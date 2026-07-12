@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useId, useRef, useState } from 'react'
 import { desktopMasterPassword } from '../../services/desktopBridge'
 import { useProfileStore } from '../../stores/profile-store'
+import { AccessibleDialog } from '../ui/AccessibleDialog'
 
 interface MasterPasswordDialogProps {
   isOpen: boolean
@@ -16,6 +17,10 @@ export function MasterPasswordDialog({ isOpen, onClose, onSuccess, mode }: Maste
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const { setMasterPasswordSet } = useProfileStore()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
+  const passwordId = useId()
+  const confirmId = useId()
 
   if (!isOpen) return null
 
@@ -69,28 +74,35 @@ export function MasterPasswordDialog({ isOpen, onClose, onSuccess, mode }: Maste
   }
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-overlay/60 backdrop-blur-sm">
-      <div className="bg-surface-elevated border border-border p-6 rounded shadow-xl w-[400px]">
-        <h2 className="text-lg font-bold mb-4">{mode === 'setup' ? 'Set Master Password' : 'Enter Master Password'}</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <AccessibleDialog
+      title={mode === 'setup' ? 'Set Master Password' : 'Enter Master Password'}
+      description="This local control password protects Family Safe Mode changes. The app stores a salted verifier, not the password itself."
+      onClose={onClose}
+      initialFocusRef={passwordRef}
+      panelRef={dialogRef}
+      panelClassName="max-w-[400px]"
+      zIndexClassName="z-[999]"
+    >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
+          <label htmlFor={passwordId} className="text-sm font-medium text-text-secondary">Master password</label>
           <input
+            ref={passwordRef}
+            id={passwordId}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Master Password"
             className="w-full px-3 py-2 bg-surface border border-border rounded"
-            autoFocus
+            autoComplete={mode === 'setup' ? 'new-password' : 'current-password'}
+            aria-invalid={error ? 'true' : 'false'}
+            aria-describedby={error ? `${passwordId}-error` : undefined}
           />
           {mode === 'setup' && (
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Confirm Password"
-              className="w-full px-3 py-2 bg-surface border border-border rounded"
-            />
+            <div className="flex flex-col gap-2">
+              <label htmlFor={confirmId} className="text-sm font-medium text-text-secondary">Confirm master password</label>
+              <input id={confirmId} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded" autoComplete="new-password" />
+            </div>
           )}
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p id={`${passwordId}-error`} role="alert" className="text-danger text-sm">{error}</p>}
           <div className="flex justify-end gap-3 mt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-surface text-text-primary rounded">Cancel</button>
             <button type="submit" className="px-4 py-2 bg-button-primary-bg text-button-primary-fg rounded">
@@ -98,7 +110,6 @@ export function MasterPasswordDialog({ isOpen, onClose, onSuccess, mode }: Maste
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </AccessibleDialog>
   )
 }

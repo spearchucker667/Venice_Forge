@@ -158,7 +158,7 @@ describe('VideoView accessibility', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
 
     const dropzone = screen.getByRole('button', { name: 'Choose reference image' })
-    const input = dropzone.querySelector('input[type="file"]') as HTMLInputElement
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
     const clickSpy = vi.spyOn(input, 'click')
 
     fireEvent.click(dropzone)
@@ -170,7 +170,7 @@ describe('VideoView accessibility', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
 
     const dropzone = screen.getByRole('button', { name: 'Choose reference image' })
-    const input = dropzone.querySelector('input[type="file"]') as HTMLInputElement
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
     const clickSpy = vi.spyOn(input, 'click')
 
     await userEvent.type(dropzone, '{Enter}')
@@ -182,7 +182,7 @@ describe('VideoView accessibility', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
 
     const dropzone = screen.getByRole('button', { name: 'Choose reference image' })
-    const input = dropzone.querySelector('input[type="file"]') as HTMLInputElement
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
     const clickSpy = vi.spyOn(input, 'click')
 
     await userEvent.type(dropzone, ' ')
@@ -193,8 +193,8 @@ describe('VideoView accessibility', () => {
     render(<VideoView />)
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
 
-    const dropzone = screen.getByRole('button', { name: 'Choose reference image' })
-    const input = dropzone.querySelector('input[type="file"]') as HTMLInputElement
+    screen.getByRole('button', { name: 'Choose reference image' })
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
 
     const file = new File(['dummy'], 'ref.png', { type: 'image/png' })
     fireEvent.change(input, { target: { files: [file] } })
@@ -226,8 +226,8 @@ describe('VideoView accessibility', () => {
     render(<VideoView />)
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
 
-    const dropzone = screen.getByRole('button', { name: 'Choose reference image' })
-    const input = dropzone.querySelector('input[type="file"]') as HTMLInputElement
+    screen.getByRole('button', { name: 'Choose reference image' })
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
     const file = new File(['dummy'], 'ref.png', { type: 'image/png' })
 
     await act(async () => {
@@ -244,8 +244,8 @@ describe('VideoView accessibility', () => {
     render(<VideoView />)
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
 
-    const dropzone = screen.getByRole('button', { name: 'Choose reference image' })
-    const input = dropzone.querySelector('input[type="file"]') as HTMLInputElement
+    screen.getByRole('button', { name: 'Choose reference image' })
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
     const bmp = new File(['dummy'], 'ref.bmp', { type: 'image/bmp' })
 
     await act(async () => {
@@ -263,8 +263,8 @@ describe('VideoView accessibility', () => {
     render(<VideoView />)
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
 
-    const dropzone = screen.getByRole('button', { name: 'Choose reference image' })
-    const input = dropzone.querySelector('input[type="file"]') as HTMLInputElement
+    screen.getByRole('button', { name: 'Choose reference image' })
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
     const file = new File(['dummy'], 'huge.png', { type: 'image/png' })
 
     await act(async () => {
@@ -285,8 +285,8 @@ describe('VideoView accessibility', () => {
     render(<VideoView />)
     const modelButton = screen.getByRole('button', { name: 'Model' })
     fireEvent.click(modelButton)
-    expect(screen.getAllByText('Priced Text-to-Video (~$0.123)').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Fallback Text-to-Video (catalog)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Priced Text-to-Video (Live $0.123)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Fallback Text-to-Video (Catalog)').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('No Text Model').length).toBeGreaterThanOrEqual(1)
   })
 
@@ -295,8 +295,8 @@ describe('VideoView accessibility', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
     const modelButton = screen.getByRole('button', { name: 'Model' })
     fireEvent.click(modelButton)
-    expect(screen.getAllByText('Priced Image-to-Video (~$0.234)').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Image-Only Video (~$0.005)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Priced Image-to-Video (Live $0.234)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Image-Only Video (Estimated ~$0.005)').length).toBeGreaterThanOrEqual(1)
   })
 
   it('falls back to the group name when the active-mode model is missing', () => {

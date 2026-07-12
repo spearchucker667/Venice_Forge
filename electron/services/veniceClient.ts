@@ -10,6 +10,7 @@ import { logError, setLastApiError } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { validateVeniceIpcRequest } from "../ipc/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS } from "../../src/shared/apiConfig";
+import { resolveProviderRoute } from "./providerAdapters";
 
 /** Maximum non-streaming Venice response body size we will buffer in memory. */
 const MAX_VENICE_RESPONSE_BYTES = 25 * 1024 * 1024;
@@ -341,8 +342,25 @@ export async function performVeniceRequest(
   options: { profileId?: string; onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void } = {}
 ): Promise<VeniceIpcResponse> {
   const request = validateVeniceIpcRequest(rawRequest);
-  const apiKey = getApiKey(request.profileId || options.profileId);
-  if (!apiKey) {
+
+  // Check if this request should be routed to a fallback provider
+  const fallbackRouteResult = resolveProviderRoute(request, options.profileId);
+  if (fallbackRouteResult && fallbackRouteResult.error) {
+    return {
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+      headers: {},
+      body: { error: fallbackRouteResult.error },
+      contentType: "application/json",
+    };
+  }
+
+  const route = fallbackRouteResult?.route;
+  const isFallback = !!route;
+  
+  const apiKey = isFallback ? undefined : getApiKey(request.profileId || options.profileId);
+  if (!isFallback && !apiKey) {
     return {
       ok: false,
       status: 401,
@@ -366,19 +384,27 @@ export async function performVeniceRequest(
         bodyText = body;
         contentTypeOverride = `multipart/form-data; boundary=${boundary}`;
       } else {
-        bodyText = request.body === undefined ? undefined : JSON.stringify(request.body);
+        const bodyObj = request.body && typeof request.body === 'object' ? request.body as Record<string, any> : null;
+        const requestBody = route && route.transformBody && bodyObj && typeof bodyObj.model === 'string'
+            ? route.transformBody(request.body, bodyObj.model.split(':').slice(1).join(':')) 
+            : request.body;
+        bodyText = requestBody === undefined ? undefined : JSON.stringify(requestBody);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      logError("Failed to prepare Venice request body", redactErrorMessage(message));
+      logError("Failed to prepare request body", redactErrorMessage(message));
       reject(new Error(`Failed to prepare request: ${redactErrorMessage(message)}`));
       return;
     }
 
-    const path = `${VENICE_API_BASE_PATH}${request.endpoint}`;
+    const hostname = route ? route.host : VENICE_API_HOST;
+    const path = route ? route.path : `${VENICE_API_BASE_PATH}${request.endpoint}`;
+    
     const headers: Record<string, string | number> = {
       ...request.headers,
-      Authorization: `Bearer ${apiKey}`,
+      ...(route ? route.headers : {
+        Authorization: `Bearer ${apiKey}`
+      }),
       "User-Agent": `VeniceForge/${app.getVersion()}`,
     };
 
@@ -389,7 +415,7 @@ export async function performVeniceRequest(
 
     const req = https.request(
       {
-        hostname: VENICE_API_HOST,
+        hostname,
         path,
         method: request.method,
         headers,

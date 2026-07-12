@@ -14,20 +14,20 @@ export function formatModelLabelWithCost(model: VeniceModel | { id: string, name
   
   if (cost === undefined) {
     if (type === 'image' || model.id.includes('image')) {
-      cost = FALLBACK_IMAGE_COST;
+      return `${name} (Estimated ~$${FALLBACK_IMAGE_COST.toFixed(3)})`;
     }
   }
 
   if (cost !== undefined) {
-    return `${name} (~$${cost.toFixed(3)})`;
+    return `${name} (Live $${cost.toFixed(3)})`;
   }
   
   if (type === 'video' || model.id.includes('video')) {
-    const state = ('source' in model && model.source) 
-      ? (model.source === 'live' ? 'live' 
-        : model.source === 'fallback' ? 'estimate'
-        : model.source)
-      : 'catalog';
+    const state = ('source' in model && model.source)
+      ? (model.source === 'live' ? 'Live'
+        : model.source === 'fallback' ? 'Estimated'
+        : model.source === 'catalog' ? 'Catalog' : 'Unavailable')
+      : 'Catalog';
     return `${name} (${state})`;
   }
   return name;

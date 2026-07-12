@@ -210,6 +210,6 @@ describe('ImageView lightbox', () => {
     })
 
     // The trigger image should regain focus because it was focused on click.
-    expect(document.activeElement).toBe(image)
+    expect(document.activeElement).toBe(image.closest('button'))
   })
 })

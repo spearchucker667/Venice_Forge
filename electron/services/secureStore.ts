@@ -280,6 +280,78 @@ export function isApiKeyConfigured(profileId: string = "default"): boolean {
   return getApiKey(profileId) !== null;
 }
 
+// ── Generic Provider API key storage (same safeStorage policy) ──
+
+/** Encrypts and stores a provider API key using OS-level encryption when possible. */
+export function setProviderApiKey(providerId: string, key: string, profileId: string = "default"): void {
+  const store = readStore("apiKey");
+  const k = profileId === "default" ? `${providerId}ApiKey` : `${providerId}ApiKey_${profileId}`;
+  const ke = profileId === "default" ? `${providerId}ApiKeyEncrypted` : `${providerId}ApiKeyEncrypted_${profileId}`;
+  if (safeStorage.isEncryptionAvailable()) {
+    store[k] = safeStorage.encryptString(key).toString("base64");
+    store[ke] = "true";
+  } else {
+    if (process.platform === "win32" || process.platform === "darwin") {
+      throw new Error(
+        `${process.platform === "win32" ? "Windows" : "macOS"} secure storage is unavailable. Venice Forge will not store the API key without OS encryption.`
+      );
+    }
+    if (!isPlaintextFallbackAllowed()) {
+      throw new Error(
+        "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented plaintext fallback."
+      );
+    }
+    store[k] = key;
+    store[ke] = "false";
+  }
+  writeStore(store);
+}
+
+/** Retrieves and decrypts the stored provider API key, if available. */
+export function getProviderApiKey(providerId: string, profileId: string = "default"): string | null {
+  const store = readStore("apiKey");
+  const k = profileId === "default" ? `${providerId}ApiKey` : `${providerId}ApiKey_${profileId}`;
+  const ke = profileId === "default" ? `${providerId}ApiKeyEncrypted` : `${providerId}ApiKeyEncrypted_${profileId}`;
+  const raw = store[k];
+  if (typeof raw !== "string" || raw.length === 0) return null;
+
+  const encryptedFlag = store[ke] as unknown;
+  const isEncrypted = encryptedFlag === "true" || encryptedFlag === true;
+
+  if (isEncrypted) {
+    try {
+      return safeStorage.decryptString(Buffer.from(raw, "base64"));
+    } catch {
+      return null;
+    }
+  }
+
+  if (process.platform === "win32" || process.platform === "darwin") {
+    return null;
+  }
+
+  if (!isPlaintextFallbackAllowed()) {
+    return null;
+  }
+
+  return raw;
+}
+
+/** Removes the stored provider API key from secure preferences. */
+export function deleteProviderApiKey(providerId: string, profileId: string = "default"): void {
+  const store = readStore("apiKey");
+  const k = profileId === "default" ? `${providerId}ApiKey` : `${providerId}ApiKey_${profileId}`;
+  const ke = profileId === "default" ? `${providerId}ApiKeyEncrypted` : `${providerId}ApiKeyEncrypted_${profileId}`;
+  delete store[k];
+  delete store[ke];
+  writeStore(store);
+}
+
+/** Checks whether a usable provider API key is currently stored. */
+export function isProviderApiKeyConfigured(providerId: string, profileId: string = "default"): boolean {
+  return getProviderApiKey(providerId, profileId) !== null;
+}
+
 /** Checks whether OS-level encryption is available on this platform. */
 export function isEncryptionAvailable(): boolean {
   return safeStorage.isEncryptionAvailable();

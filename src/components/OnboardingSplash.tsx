@@ -1,23 +1,24 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useProfileStore } from '../stores/profile-store'
 import { useSettingsStore } from '../stores/settings-store'
+import { AccessibleDialog } from './ui/AccessibleDialog'
 
 export function OnboardingSplash() {
   const { globalOnboardingCompleted, setGlobalOnboardingCompleted } = useProfileStore()
   const setActiveTab = useSettingsStore(s => s.setActiveTab)
   const setPendingSettingsSection = useSettingsStore(s => s.setPendingSettingsSection)
   const [step, setStep] = useState(0)
-
-  if (globalOnboardingCompleted) return null
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const primaryActionRef = useRef<HTMLButtonElement>(null)
 
   const steps = [
     {
       title: 'Welcome to Venice Forge',
-      description: 'Your secure, local AI workbench. Everything runs here, staying private and fast.',
+      description: 'A local desktop workbench that stores app data on this device and sends requests to the remote providers you configure.',
     },
     {
       title: 'Profiles',
-      description: 'Create isolated profiles for different workflows. API keys, settings, and histories are strictly sandboxed per profile.',
+      description: 'Create profiles for separate renderer settings and libraries. Some desktop vault files and shared caches remain machine-level.',
     },
     {
       title: 'Secure by Default',
@@ -30,6 +31,13 @@ export function OnboardingSplash() {
   ]
 
   const isLast = step === steps.length - 1
+
+  useEffect(() => {
+    if (globalOnboardingCompleted) return
+    primaryActionRef.current?.focus()
+  }, [globalOnboardingCompleted, step])
+
+  if (globalOnboardingCompleted) return null
 
   const nextStep = () => {
     if (isLast) {
@@ -46,23 +54,28 @@ export function OnboardingSplash() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/80 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-[var(--venice-app-bg)] border border-[var(--venice-border)] rounded-lg p-6 shadow-2xl flex flex-col items-center text-center">
-        <h2 className="text-2xl font-bold mb-4">{steps[step].title}</h2>
-        <p className="text-[var(--venice-muted)] mb-8 h-20">{steps[step].description}</p>
+    <AccessibleDialog
+      title={steps[step].title}
+      description={steps[step].description}
+      panelRef={dialogRef}
+      initialFocusRef={primaryActionRef}
+      panelClassName="max-w-md"
+    >
+      <div className="flex flex-col items-center p-6 text-center">
         
-        <div className="flex items-center gap-2 mb-8">
+        <div className="flex items-center gap-2 mb-8" role="group" aria-label={`Onboarding step ${step + 1} of ${steps.length}`}>
           {steps.map((_, i) => (
-            <div key={i} className={`h-2 w-2 rounded-full ${i === step ? 'bg-accent' : 'bg-border'}`} />
+            <span key={i} aria-current={i === step ? 'step' : undefined} className={`h-2 w-2 rounded-full ${i === step ? 'bg-accent ring-2 ring-focus-ring' : 'bg-border'}`} />
           ))}
         </div>
 
         {isLast ? (
           <div className="flex flex-col gap-3 w-full">
             <button
+              ref={primaryActionRef}
+              type="button"
               onClick={nextStep}
               className="w-full py-2 bg-button-primary-bg text-button-primary-fg rounded font-medium hover:bg-accent-hover transition-colors"
-              autoFocus
             >
               Get Started
             </button>
@@ -76,14 +89,15 @@ export function OnboardingSplash() {
           </div>
         ) : (
           <button
+            ref={primaryActionRef}
+            type="button"
             onClick={nextStep}
             className="w-full py-2 bg-button-primary-bg text-button-primary-fg rounded font-medium hover:bg-accent-hover transition-colors"
-            autoFocus
           >
             Next
           </button>
         )}
       </div>
-    </div>
+    </AccessibleDialog>
   )
 }

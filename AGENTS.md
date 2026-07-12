@@ -201,7 +201,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-093`.
+The primary active sequence is `VERIFY-001` through `VERIFY-094`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -298,6 +298,7 @@ registry.
 | `VERIFY-089` | Sync engine local forwarding — desktop saves/deletes are forwarded as encrypted sync/tombstone packets. | `src/services/syncEngine.test.ts` |
 | `VERIFY-092` | Theme text softening — Venice Parity Dark, Forge Graphite, and Forge Copper avoid pure-white body text while preserving WCAG AA contrast. | `src/theme/contrast.test.ts` |
 | `VERIFY-093` | Bounded applied-operations journal compaction — tombstones younger than `JOURNAL_COMPACTION_DAYS` are always kept; non-tombstone applied operations are capped at `MAX_JOURNAL_ENTRIES - tombstoneCount`; oldest non-tombstones are evicted first; compacted snapshot persists `lastCompactedAt`. | `electron/services/syncFolderWatcher.test.ts` |
+| `VERIFY-094` | Main-process background-task persistence and recovery — tasks serialize/redact safely, `BackgroundTaskManager` sync-writes and recovers from disk, IPC CRUD/subscription pushes updates to the renderer, and the renderer store delegates to the main process in Electron. | `electron/services/backgroundTaskManager.test.ts`, `electron/ipc/handlers/backgroundTaskHandlers.test.ts` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 

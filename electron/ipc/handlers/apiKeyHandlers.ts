@@ -4,6 +4,9 @@ import {
   deleteApiKey,
   isApiKeyConfigured,
   setApiKey,
+  deleteProviderApiKey,
+  isProviderApiKeyConfigured,
+  setProviderApiKey,
   setCredential,
   getCredential,
   deleteCredential,
@@ -303,6 +306,37 @@ export function registerApiKeyHandlers(): void {
   registerIpcChannel("apiKey:delete", (_event, profileId?: unknown) => {
     try {
       deleteApiKey(parseProfileIdOrDefault(profileId));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  registerIpcChannel("providerApiKey:isConfigured", (_event, payload: unknown) => {
+    const { providerId, profileId } = typeof payload === "object" && payload !== null && "providerId" in payload ? payload as { providerId: string, profileId?: unknown } : { providerId: String(payload), profileId: undefined };
+    try {
+      return isProviderApiKeyConfigured(providerId, parseProfileIdOrDefault(profileId));
+    } catch {
+      return false;
+    }
+  });
+
+  registerIpcChannel("providerApiKey:set", (_event, payload: unknown) => {
+    const { providerId, key, profileId } = payload as { providerId: string, key: unknown, profileId?: unknown };
+    try {
+      const validId = parseProfileIdOrDefault(profileId);
+      const trimmed = validateApiKeyInput(key);
+      setProviderApiKey(providerId, trimmed, validId);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  registerIpcChannel("providerApiKey:delete", (_event, payload: unknown) => {
+    const { providerId, profileId } = payload as { providerId: string, profileId?: unknown };
+    try {
+      deleteProviderApiKey(providerId, parseProfileIdOrDefault(profileId));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };

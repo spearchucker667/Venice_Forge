@@ -174,7 +174,11 @@ textarea { field-sizing: content; }
 
 /* Focus — keyboard only, accent-tinted */
 *:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; }
-button:focus, a:focus, textarea:focus, input:focus, select:focus { outline: none; }
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible) { outline: none; }
 
 @media (pointer: coarse) {
   button, a, [role="button"] { min-height: 36px; }

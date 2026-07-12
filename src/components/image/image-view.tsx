@@ -562,6 +562,7 @@ export function ImageView() {
               {enhancing ? 'Enhancing…' : 'Enhance prompt'}
             </button>
             <select
+              aria-label="Prompt template"
               onChange={(e) => {
                 const val = e.target.value;
                 if (val) {
@@ -577,7 +578,7 @@ export function ImageView() {
             >
               <option value="" disabled>Add Template...</option>
               {Object.entries(
-                PROMPT_TEMPLATES.reduce((acc, t) => {
+                PROMPT_TEMPLATES.filter((t) => t.compatibleModes.includes('image')).reduce((acc, t) => {
                   if (!acc[t.category]) acc[t.category] = [];
                   acc[t.category].push(t);
                   return acc;
@@ -601,7 +602,7 @@ export function ImageView() {
       {showEnhanceReview && enhancedPrompt && (
         <div className="p-3 mt-2 rounded-lg border border-accent/30 bg-accent/5">
           <Label>Enhanced Prompt Preview</Label>
-          <div className="text-[12.5px] text-text-primary mt-1 p-2 rounded bg-surface border border-border break-all whitespace-pre-wrap">
+          <div className="text-[12.5px] text-text-primary mt-1 p-2 rounded bg-surface border border-border break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
             {enhancedPrompt}
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -784,13 +785,13 @@ export function ImageView() {
 
       {caps.supportsSteps !== false && (
         <div>
-          <Label htmlFor={stepsId}>Steps</Label>
-          <input id={stepsId} type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" />
+          <div className="flex justify-between"><Label htmlFor={stepsId}>Steps</Label><output htmlFor={stepsId} className="text-xs text-text-secondary">{steps}</output></div>
+          <input id={stepsId} type="range" min={1} max={maxSteps} value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full" aria-valuetext={`${steps} steps`} />
         </div>
       )}
       <div>
-        <Label htmlFor={variantsId}>Variants</Label>
-        <input id={variantsId} type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" />
+        <div className="flex justify-between"><Label htmlFor={variantsId}>Variants</Label><output htmlFor={variantsId} className="text-xs text-text-secondary">{variants}</output></div>
+        <input id={variantsId} type="range" min={1} max={4} value={variants} onChange={(e) => setVariants(Number(e.target.value))} className="w-full" aria-valuetext={`${variants} variants`} />
       </div>
 
       <PrimaryButton onClick={handleGenerate} disabled={!prompt.trim() || prompt.length > promptLimit || !hasVeniceKey} loading={mutation.isPending} size="lg">
@@ -845,18 +846,15 @@ export function ImageView() {
             <div key={`skel-${i}`} className="aspect-square rounded-xl skeleton" />
           ))}
           {images.map((img, i) => (
-            <div key={i} className="relative group">
-              <img
-                src={toImageSrc(img)}
-                alt={`Generated ${i + 1}`}
-                tabIndex={-1}
-                className="w-full rounded-xl cursor-pointer border border-border hover:border-accent transition-all duration-200"
-                onClick={(e) => { (e.currentTarget as HTMLImageElement).focus(); setSelectedImage(img) }}
-              />
+            <div key={img} className="relative group">
+              <button type="button" onClick={(event) => { event.currentTarget.focus(); setSelectedImage(img) }} aria-label={`Open generated image ${i + 1}`} className="block w-full rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+                <img src={toImageSrc(img)} alt={`Generated ${i + 1}`} className="w-full rounded-xl border border-border hover:border-accent transition-all duration-200" />
+              </button>
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); downloadImage(img, i) }}
                 aria-label="Download"
-                className="absolute top-2 right-2 p-1.5 bg-overlay hover:bg-overlay rounded-lg text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                className="absolute top-2 right-2 p-1.5 bg-overlay hover:bg-overlay rounded-lg text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-all backdrop-blur-sm"
                 title="Download"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>

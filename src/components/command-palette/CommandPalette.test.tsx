@@ -528,7 +528,7 @@ describe("CommandPalette — Phase 5 Prompt Library import reconciliation", () =
       reconciled: [{ id: 'p-existing', title: 'Existing', kind: 'general', scope: 'global' }] as never[],
       skipped: [],
     });
-    const success = vi.spyOn(toast, 'success').mockReturnValue(1);
+    const success = vi.spyOn(toast, 'success').mockReturnValue("1");
 
     const createElementSpy = vi.spyOn(document, 'createElement');
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)

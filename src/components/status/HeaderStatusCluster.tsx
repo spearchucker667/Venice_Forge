@@ -27,6 +27,7 @@ import {
   StatusIndicator,
 } from "./StatusIndicator";
 import type { AppStatusItem, AppStatusSnapshot } from "../../types/status";
+import { STATUS_SEVERITIES } from "../../types/status";
 import { isElectron } from "../../services/desktopBridge";
 
 /** Ordered list of categories shown in the cluster. The order is
@@ -69,6 +70,11 @@ export function HeaderStatusCluster({ status: statusOverride, compact = false }:
       return { key, label, item: it }
     })
   }, [snapshot])
+  const worst = useMemo(() => items.reduce((current, candidate) => (
+    STATUS_SEVERITIES.indexOf(candidate.item.severity) < STATUS_SEVERITIES.indexOf(current.item.severity)
+      ? candidate
+      : current
+  )), [items])
 
   return (
     <div
@@ -76,19 +82,25 @@ export function HeaderStatusCluster({ status: statusOverride, compact = false }:
       aria-label="App status cluster"
       data-testid="header-status-cluster"
       data-app-mode={isElectron() ? "desktop" : "web"}
-      className="flex flex-nowrap overflow-x-auto items-center gap-1.5"
+      className="flex min-w-0 items-center"
     >
-      {items.map(({ key, label, item }) => (
-        <StatusIndicator
-          key={key}
-          id={key}
-          label={label}
-          severity={item.severity}
-          summary={item.summary}
-          compact={compact}
-          onClick={() => openDrawer(key)}
-        />
-      ))}
+      <div className="hidden 2xl:flex flex-nowrap items-center gap-1.5">
+        {items.map(({ key, label, item }) => (
+          <StatusIndicator key={key} id={key} label={label} severity={item.severity} summary={item.summary} compact={compact} onClick={() => openDrawer(key)} />
+        ))}
+      </div>
+      <button
+        type="button"
+        data-testid="status-cluster-summary"
+        data-severity={worst.item.severity}
+        onClick={() => openDrawer(worst.key)}
+        className="2xl:hidden inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-elevated px-2 py-1 text-xs text-text-secondary"
+        aria-label={`Open app status. Highest severity: ${worst.label} ${worst.item.severity}`}
+        title={worst.item.summary}
+      >
+        <span aria-hidden className="h-2 w-2 rounded-full bg-accent" />
+        Status
+      </button>
     </div>
   )
 }

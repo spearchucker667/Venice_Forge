@@ -10,6 +10,7 @@ import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { initializeConfig } from "./services/configService";
 import { initSyncFolderWatcher } from "./services/syncFolderWatcher";
+import { initBackgroundTaskManager } from "./services/backgroundTaskManager";
 import { logError, logInfo } from "./services/logger";
 import { redactErrorMessage } from "../src/shared/redaction";
 import { checkPathContained } from "./utils/navigation";
@@ -191,6 +192,12 @@ async function bootstrap(): Promise<void> {
   }
 
   registerIpcHandlers();
+
+  // Resume any persisted background tasks after a restart.
+  initBackgroundTaskManager().catch((err) => {
+    logError("Background task manager init failed", err);
+  });
+
   // Register CSP once globally for the default session so it is not duplicated
   // when additional windows are created (M-008).
   //

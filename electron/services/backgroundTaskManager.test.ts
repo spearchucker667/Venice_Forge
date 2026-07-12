@@ -1,0 +1,197 @@
+// @vitest-environment node
+
+/** @fileoverview Tests for the persistent main-process background task manager. */
+// VERIFY-094 regression guard: main-process background-task persistence, recovery, and redaction.
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "node:fs/promises";
+import fsSync from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+// eslint-disable-next-line no-var
+var TMP_USERDATA: string;
+
+vi.mock("electron", () => {
+  const tempRoot = fsSync.mkdtempSync(path.join(os.tmpdir(), "vf-bg-task-"));
+  fsSync.mkdirSync(path.join(tempRoot, "UserData"), { recursive: true });
+  TMP_USERDATA = fsSync.realpathSync(path.join(tempRoot, "UserData"));
+  return {
+    app: {
+      getPath: vi.fn((name: string) => {
+        if (name === "userData") return TMP_USERDATA;
+        return os.tmpdir();
+      }),
+    },
+  };
+});
+
+vi.mock("./veniceClient", () => ({
+  performVeniceRequest: vi.fn(),
+}));
+
+import { performVeniceRequest as performVeniceRequestMock } from "./veniceClient";
+import {
+  initBackgroundTaskManager,
+  createBackgroundTaskInMain,
+  updateBackgroundTaskInMain,
+  cancelBackgroundTaskInMain,
+  retryBackgroundTaskInMain,
+  clearBackgroundTaskInMain,
+  listBackgroundTasks,
+  subscribeToBackgroundTasks,
+  __resetBackgroundTaskManagerForTests,
+} from "./backgroundTaskManager";
+
+const performVeniceRequest = vi.mocked(performVeniceRequestMock);
+
+async function waitForFile(): Promise<void> {
+  const tasksFile = path.join(TMP_USERDATA, "background-tasks", "tasks.json");
+  for (let i = 0; i < 20; i++) {
+    try {
+      await fs.access(tasksFile);
+      return;
+    } catch {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+  }
+}
+
+async function readPersistedTasks(): Promise<unknown[]> {
+  const tasksFile = path.join(TMP_USERDATA, "background-tasks", "tasks.json");
+  const raw = await fs.readFile(tasksFile, "utf-8");
+  const parsed = JSON.parse(raw) as { version: number; tasks: unknown[] };
+  return parsed.tasks;
+}
+
+describe("backgroundTaskManager", () => {
+  beforeEach(() => {
+    __resetBackgroundTaskManagerForTests();
+    performVeniceRequest.mockReset();
+  });
+
+  afterEach(async () => {
+    const dir = path.join(TMP_USERDATA, "background-tasks");
+    try {
+      const entries = await fs.readdir(dir);
+      await Promise.all(entries.map((e) => fs.unlink(path.join(dir, e)).catch(() => undefined)));
+    } catch {
+      // directory may not exist
+    }
+  });
+
+  it("creates and persists a task", async () => {
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    expect(task.status).toBe("queued");
+    expect(task.type).toBe("video");
+    expect(task.queueId).toBe("q1");
+    await waitForFile();
+    const persisted = await readPersistedTasks();
+    expect(persisted).toHaveLength(1);
+    expect((persisted[0] as { id: string }).id).toBe(task.id);
+  });
+
+  it("lists tasks sorted by updatedAt descending", async () => {
+    const t1 = await createBackgroundTaskInMain({ type: "music", queueId: "q1" });
+    const t2 = await createBackgroundTaskInMain({ type: "video", queueId: "q2" });
+    await updateBackgroundTaskInMain(t1.id, { status: "processing" });
+    const list = listBackgroundTasks();
+    expect(list[0].id).toBe(t1.id);
+    expect(list[1].id).toBe(t2.id);
+  });
+
+  it("cancels a running task and stops polling", async () => {
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    const cancelled = await cancelBackgroundTaskInMain(task.id);
+    expect(cancelled?.status).toBe("aborted");
+    expect(cancelled?.error).toBe("Cancelled by user");
+  });
+
+  it("clears a task", async () => {
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    await clearBackgroundTaskInMain(task.id);
+    expect(listBackgroundTasks()).toHaveLength(0);
+    await waitForFile();
+    const persisted = await readPersistedTasks();
+    expect(persisted).toHaveLength(0);
+  });
+
+  it("retries a timed-out task", async () => {
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    await updateBackgroundTaskInMain(task.id, { status: "timeout", error: "too long" });
+    const retried = await retryBackgroundTaskInMain(task.id);
+    expect(retried?.status).toBe("queued");
+    expect(retried?.error).toBeUndefined();
+  });
+
+  it("notifies subscribers on changes", async () => {
+    const listener = vi.fn();
+    subscribeToBackgroundTasks(listener);
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    expect(listener).toHaveBeenCalledWith(task.id, expect.objectContaining({ status: "queued" }));
+    await cancelBackgroundTaskInMain(task.id);
+    expect(listener).toHaveBeenCalledWith(task.id, expect.objectContaining({ status: "aborted" }));
+  });
+
+  it("recovers persisted tasks on init and resumes polling async tasks", async () => {
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    __resetBackgroundTaskManagerForTests();
+    await initBackgroundTaskManager();
+    expect(listBackgroundTasks()).toHaveLength(1);
+    expect(listBackgroundTasks()[0].id).toBe(task.id);
+  });
+
+  it("polls video tasks to completion", async () => {
+    vi.useFakeTimers();
+    await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    performVeniceRequest.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { "content-type": "video/mp4" },
+      body: { dataBase64: "AAAA" },
+      contentType: "video/mp4",
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const updated = listBackgroundTasks()[0];
+    expect(updated?.status).toBe("completed");
+    expect(updated?.resultUrl).toBe("data:video/mp4;base64,AAAA");
+    vi.useRealTimers();
+  });
+
+  it("polls music tasks to completion", async () => {
+    vi.useFakeTimers();
+    await createBackgroundTaskInMain({ type: "music", queueId: "q1" });
+    performVeniceRequest.mockImplementationOnce(() => Promise.resolve({
+      ok: true,
+      status: 200,
+      headers: {},
+      body: { status: "COMPLETED", audio_url: "https://example.com/audio.mp3" },
+      contentType: "application/json",
+    }));
+    await vi.advanceTimersByTimeAsync(0);
+    const updated = listBackgroundTasks()[0];
+    expect(updated?.status).toBe("completed");
+    expect(updated?.resultUrl).toBe("https://example.com/audio.mp3");
+    vi.useRealTimers();
+  });
+
+  it("does not poll sync task types", async () => {
+    vi.useFakeTimers();
+    await createBackgroundTaskInMain({ type: "image", queueId: "sync-request" });
+    await vi.advanceTimersByTimeAsync(10);
+    expect(performVeniceRequest).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it("redacts secrets in metadata before persisting", async () => {
+    await createBackgroundTaskInMain({
+      type: "video",
+      queueId: "q1",
+      metadata: { apiKey: "sk-1234567890abcdef", request: { prompt: "hello" } },
+    });
+    await waitForFile();
+    const persisted = await readPersistedTasks();
+    const raw = JSON.stringify(persisted);
+    expect(raw).not.toContain("sk-1234567890abcdef");
+  });
+});

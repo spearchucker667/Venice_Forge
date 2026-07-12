@@ -115,7 +115,7 @@ export function VideoView() {
 
   useEffect(() => {
     if (status !== 'completed' || !videoUrl || !queueId) return
-    if (savedQueueIdsRef.current.has(queueId)) return
+    if (savedQueueIdsRef.current.has(queueId) || useMediaStore.getState().items.some((item) => item.queueId === queueId)) return
     savedQueueIdsRef.current.add(queueId)
     const mediaItem = {
       id: generateId(),
@@ -289,22 +289,19 @@ export function VideoView() {
                   type="button"
                   onClick={() => { setImageUrl(null); setImageName('') }}
                   aria-label="Remove reference image"
-                  className="absolute top-1.5 right-1.5 p-1 bg-overlay rounded-md text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 transition-all"
+                  className="absolute top-1.5 right-1.5 p-1 bg-overlay rounded-md text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-all"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
                 <span className="text-[16px] text-text-muted mt-1 block truncate">{imageName}</span>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                aria-label="Choose reference image"
-                className="w-full border border-dashed border-border hover:border-accent rounded-lg py-5 text-center transition-colors"
-              >
-                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
-                <p className="text-[14px] text-text-muted">Click to add image</p>
-              </button>
+              <>
+                <input ref={fileRef} id="video-reference-image" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
+                <button type="button" onClick={() => fileRef.current?.click()} aria-label="Choose reference image" className="w-full border border-dashed border-border hover:border-accent rounded-lg py-5 text-center transition-colors">
+                  <p className="text-[14px] text-text-muted">Click to add image</p>
+                </button>
+              </>
             )}
           </div>
         )}
@@ -368,7 +365,7 @@ export function VideoView() {
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {tags.map((t) => (
-              <span key={t} className="text-[16px] text-text-muted bg-surface-elevated border border-border rounded px-1.5 py-0.5">{t}</span>
+              <span key={t} className="text-xs text-text-muted bg-surface-elevated border border-border rounded px-1.5 py-0.5">{t}</span>
             ))}
           </div>
         )}
@@ -405,7 +402,7 @@ export function VideoView() {
                     // BUG-004 regression guard: the manual save button must
                     // be idempotent. If the auto-save effect already
                     // recorded this queueId, do nothing and show feedback.
-                    if (queueId && savedQueueIdsRef.current.has(queueId)) {
+                    if (queueId && (savedQueueIdsRef.current.has(queueId) || useMediaStore.getState().items.some((media) => media.queueId === queueId))) {
                       toast.success('Already in Media Studio')
                       return
                     }

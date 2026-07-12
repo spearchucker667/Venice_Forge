@@ -53,6 +53,13 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 
 ## P2 — Product Completion / Quality & DX
 
+### [x] Persist and Resume Background Tasks
+- **Description:** Moved provider queue ownership to a persistent main-process `BackgroundTaskManager` that sync-writes to `<userData>/background-tasks.json`, loads/recovers on startup, and polls only resumable `video`/`music` tasks. `image`, `research`, and `document` tasks are persisted and survive renderer reload, but are not auto-resumed by the main process because they are renderer-driven or terminal. The 2026-07-11 repairs had closed video-response normalization, polling correctness, progress scaling, queue validation, timeout truthfulness, hook/store circular imports, and the renderer task center; this session closed restart durability for Electron.
+- **Status:** Closed
+- **Affected Files/Modules:** `src/types/background-task.ts`, `src/stores/background-task-store.ts`, `electron/services/backgroundTaskManager.ts`, `electron/ipc/handlers/backgroundTaskHandlers.ts`, `electron/preload.ts`, `src/services/desktopBridge.ts`, `electron/main.ts`, generation hooks
+- **Validation Required:** focused task-manager/IPC tests (21 PASS), `npm run test:electron`, `npm run test:ui`, renderer-reload smoke, packaged restart smoke
+- **Headed/Manual Smoke Required:** Yes (renderer-reload and packaged-restart smoke remain future work)
+
 ### [ ] WorkflowTemplatesView UI Hardening & Controls
 - **Description:** Debounce title edits in `WorkflowTemplatesView`, render run/execute buttons for all template actions, call `ensureWorkflowTemplatesLoaded` on mount, and add missing versions, import/export, favorite, and tag controls.
 - **Status:** Open
@@ -99,6 +106,22 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 ---
 
 ## Recently Closed
+
+- **[x] Image and Video Studio accessibility/correctness tranche (2026-07-11)**
+  - Made generated images keyboard-openable buttons with focus restoration, focus-visible actions, and content-stable keys; labelled and compatibility-filtered prompt templates; exposed Steps/Variants values; and replaced aggressive preview word breaking.
+  - Separated the Video reference file input from its trigger, exposed remove actions on focus, reduced capability-tag dominance, made queue-ID deduplication consult persisted Media items, and labelled pricing as Live, Catalog, Estimated, or Unavailable.
+  - **Validation:** 2 focused files / 21 tests pass; full UI aggregate passes and exits naturally; ESLint and both TypeScript pipelines pass.
+
+- **[x] Responsive shell and task/status compaction (2026-07-11)**
+  - Collapsed the eight-chip status surface to a severity-aware aggregate control below extra-wide layouts and replaced per-task header chips with one task center exposing Open, Cancel, Retry, and Dismiss.
+  - Made the Traffic Inspector a clamped desktop pane/compact overlay with Escape close, trigger-focus restoration, labelled controls, and Blob-based exports. Width persistence/resizing remains future work.
+  - Made the Research session sidebar collapsible and fluid, replaced clickable rows with semantic selected options, and restored an accent-bar/bold non-color-only selection cue.
+  - **Validation:** 4 focused files / 21 tests pass; full UI aggregate passes and exits naturally; ESLint and both TypeScript pipelines pass.
+
+- **[x] Accessible modal foundation and high-severity dialog migrations (2026-07-11)**
+  - Added one semantic dialog shell using the canonical focus-trap hook, responsive sizing, scroll locking, labelled title/description relationships, optional Escape/backdrop policy, and focus restoration.
+  - Migrated Prompt Create, Memory Manager, Onboarding, Master Password, and profile-password dialogs; added programmatic form labels, announced errors/status, keyboard-visible memory actions, accurate local/remote/profile copy, and multi-word comma-separated prompt tags with storage-aligned limits.
+  - **Validation:** 7 focused files / 24 tests pass; complete UI aggregate passes and exits naturally; ESLint and both TypeScript pipelines pass.
 
 - **[x] Phase 9 — Backup and sync completion (2026-07-10)**
   - Closed backup/sync gaps: export/import round-trip tests, conflict copies, LWW merge, chat merge, tombstones, wrong passphrase, tamper rejection, plaintext scan, desktop local-change propagation, desktop delete tombstones, sync-folder config unification through `useSettingsStore`, BackupSyncPanel active-status read fix, and error redaction for `sync:encryptBackup`/`sync:decryptBackup`.

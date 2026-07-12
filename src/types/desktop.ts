@@ -13,13 +13,20 @@ import type {
 } from "./rp";
 import type { ApiConnectivityStatus } from "./api-connectivity";
 import type { MutationOrigin } from "./sync";
+import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope } from "./background-task";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
-  isConfigured(profileId?: string): Promise<boolean>;
-  set(key: string, profileId?: string): Promise<{ ok: boolean }>;
-  delete(profileId?: string): Promise<{ ok: boolean }>;
-  test(profileId?: string): Promise<{ ok: boolean; status?: number; message: string; connectivity?: ApiConnectivityStatus }>;
+  isConfigured: (profileId?: string) => Promise<boolean>;
+  set: (key: string, profileId?: string) => Promise<{ ok: boolean; error?: string }>;
+  delete: (profileId?: string) => Promise<{ ok: boolean; error?: string }>;
+  test: (profileId?: string) => Promise<{ ok: boolean; status?: number; message: string; connectivity: ApiConnectivityStatus }>;
+}
+
+export interface VeniceForgeProviderApiKey {
+  isConfigured: (providerId: string, profileId?: string) => Promise<boolean>;
+  set: (providerId: string, key: string, profileId?: string) => Promise<{ ok: boolean; error?: string }>;
+  delete: (providerId: string, profileId?: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 /** Makes Jina API requests from the main process with the profile-scoped key attached. */
@@ -289,6 +296,19 @@ export interface VeniceForgeConversations {
   openConversationsFolder(): Promise<{ ok: boolean }>;
 }
 
+/** Persistent main-process background task bridge. */
+export interface VeniceForgeBackgroundTask {
+  subscribe(): Promise<{ ok: boolean; error?: string }>;
+  unsubscribe(): Promise<{ ok: boolean; error?: string }>;
+  create(input: BackgroundTaskCreateInput): Promise<{ ok: boolean; task?: BackgroundTask; error?: string }>;
+  update(taskId: string, updates: Partial<BackgroundTask>): Promise<{ ok: boolean; task?: BackgroundTask | null; error?: string }>;
+  list(): Promise<{ ok: boolean; tasks?: BackgroundTask[]; error?: string }>;
+  cancel(taskId: string): Promise<{ ok: boolean; task?: BackgroundTask | null; error?: string }>;
+  retry(taskId: string): Promise<{ ok: boolean; task?: BackgroundTask | null; error?: string }>;
+  clear(taskId: string): Promise<{ ok: boolean; error?: string }>;
+  onUpdate(callback: (envelope: BackgroundTaskIpcEnvelope) => void): () => void;
+}
+
 /** Root interface for the Venice Forge preload bridge exposed on the window object. */
 
 export interface VeniceForgeCredentials {
@@ -319,6 +339,7 @@ export interface VeniceForge {
   venice: VeniceForgeVenice;
   apiKey: VeniceForgeApiKey;
   jinaApiKey: VeniceForgeApiKey;
+  providerApiKey: VeniceForgeProviderApiKey;
   jina: VeniceForgeJina;
   app: VeniceForgeApp;
   files: VeniceForgeFiles;
@@ -333,6 +354,7 @@ export interface VeniceForge {
   rpChats: VeniceForgeRpChats;
   rpAssets: VeniceForgeRpAssets;
   scenarios: VeniceForgeScenarios;
+  backgroundTask: VeniceForgeBackgroundTask;
   researchBrowser?: import('./researchBrowser').ResearchBrowserPreloadApi;
 }
 

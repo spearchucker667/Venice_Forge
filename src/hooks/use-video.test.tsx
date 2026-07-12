@@ -1,11 +1,12 @@
 // VERIFY-056 regression guard — video hook passes plain objects to veniceFetch
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useVideo } from "./use-video";
 import { veniceFetch } from "../services/veniceClient/fetch";
 import { useInspectorStore } from "../stores/inspector-store";
+import { useBackgroundTaskStore } from "../stores/background-task-store";
 
 vi.mock("../services/veniceClient/fetch", () => ({
   veniceFetch: vi.fn(),
@@ -20,6 +21,12 @@ describe("useVideo", () => {
   beforeEach(() => {
     vi.mocked(veniceFetch).mockReset();
     useInspectorStore.getState().clearLogs();
+  });
+
+  afterEach(() => {
+    const state = useBackgroundTaskStore.getState();
+    for (const poll of Object.values(state.activePolls)) clearTimeout(poll);
+    useBackgroundTaskStore.setState({ tasks: {}, activePolls: {} });
   });
 
   it("passes queue bodies as plain objects, not pre-stringified JSON", async () => {
@@ -50,5 +57,15 @@ describe("useVideo", () => {
         expect(typeof options.body).not.toBe("string");
       }
     }
+  });
+
+  it("rejects a queue response without registering an empty queue ID", async () => {
+    vi.mocked(veniceFetch).mockResolvedValueOnce({ data: {} } as never);
+    const { result } = renderHook(() => useVideo(), { wrapper });
+
+    act(() => result.current.queue({ prompt: "a cat", model: "vcfg" }));
+
+    await waitFor(() => expect(result.current.error).toBe("Video queue response did not include a queue ID."));
+    expect(Object.keys(useBackgroundTaskStore.getState().tasks)).toHaveLength(0);
   });
 });

@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInspectorStore } from '../../stores/inspector-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { cn } from '../../lib/utils'
@@ -27,6 +27,20 @@ export function InspectorPane() {
   const clearLogs = useInspectorStore((s) => s.clearLogs)
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState<InspectorLogFilter>('all')
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!showInspector) return
+    previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowInspector(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      if (previouslyFocusedRef.current?.isConnected) previouslyFocusedRef.current.focus()
+    }
+  }, [showInspector, setShowInspector])
 
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const [dragWidth, setDragWidth] = useState<number | null>(null)
@@ -63,11 +77,10 @@ export function InspectorPane() {
 
   const handleExport = () => {
     const exportPayload = exportRedactedInspectorLogs(logs)
-    const dataStr =
-      'data:text/json;charset=utf-8,' +
-      encodeURIComponent(JSON.stringify(exportPayload, null, 2))
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' })
+    const objectUrl = URL.createObjectURL(blob)
     const downloadAnchor = document.createElement('a')
-    downloadAnchor.setAttribute('href', dataStr)
+    downloadAnchor.setAttribute('href', objectUrl)
     downloadAnchor.setAttribute(
       'download',
       `venice_forge_traffic_logs_${Date.now()}.json`,
@@ -75,6 +88,7 @@ export function InspectorPane() {
     document.body.appendChild(downloadAnchor)
     downloadAnchor.click()
     downloadAnchor.remove()
+    URL.revokeObjectURL(objectUrl)
   }
 
   return (
@@ -112,9 +126,11 @@ export function InspectorPane() {
         </div>
         <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={clearLogs}
             title="Clear all logs"
-            className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
+            aria-label="Clear all inspector logs"
+            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
           >
             <svg
               width="14"
@@ -129,9 +145,11 @@ export function InspectorPane() {
             </svg>
           </button>
           <button
+            type="button"
             onClick={handleExport}
             title="Export redacted logs as JSON"
-            className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
+            aria-label="Export redacted inspector logs as JSON"
+            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
           >
             <svg
               width="14"
@@ -146,8 +164,10 @@ export function InspectorPane() {
             </svg>
           </button>
           <button
+            type="button"
             onClick={() => setShowInspector(false)}
             title="Close Inspector"
+            aria-label="Close traffic inspector"
             className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
           >
             <svg

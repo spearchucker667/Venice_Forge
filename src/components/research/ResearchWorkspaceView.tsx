@@ -92,6 +92,7 @@ export const ResearchWorkspaceView: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [sessionSidebarCollapsed, setSessionSidebarCollapsed] = useState(false);
   const [findingTitle, setFindingTitle] = useState('');
   const [findingContent, setFindingContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -351,43 +352,44 @@ export const ResearchWorkspaceView: React.FC = () => {
   return (
     <div className="flex h-full bg-bg text-text-primary overflow-hidden">
       {/* Sidebar - Session List */}
-      <div className="w-64 flex-shrink-0 border-r border-border/50 flex flex-col bg-surface">
+      <aside className={`${sessionSidebarCollapsed ? 'w-12' : 'w-[clamp(200px,22vw,256px)]'} flex-shrink-0 border-r border-border/50 flex flex-col bg-surface transition-[width]`} aria-label="Research sessions">
         <div className="p-4 border-b border-border/50 flex justify-between items-center">
-          <h2 className="font-bold text-text-primary">Research</h2>
-          <button
-            type="button"
-            onClick={handleCreateSession}
-            className="p-2 hover:bg-surface-elevated rounded text-text-secondary"
-            aria-label="Create research session"
-          >
-            <span aria-hidden="true"><PlusIcon /></span>
-          </button>
+          {!sessionSidebarCollapsed && <h2 className="font-bold text-text-primary">Research</h2>}
+          <div className="flex items-center gap-1">
+            {!sessionSidebarCollapsed && (
+              <button
+                type="button"
+                onClick={handleCreateSession}
+                className="p-2 hover:bg-surface-elevated rounded text-text-secondary"
+                aria-label="Create research session"
+              >
+                <span aria-hidden="true"><PlusIcon /></span>
+              </button>
+            )}
+            <button type="button" onClick={() => setSessionSidebarCollapsed((value) => !value)} className="p-2 hover:bg-surface-elevated rounded text-text-secondary" aria-label={sessionSidebarCollapsed ? 'Expand research sessions' : 'Collapse research sessions'} aria-expanded={!sessionSidebarCollapsed}>☰</button>
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        {!sessionSidebarCollapsed && <div className="flex-1 overflow-y-auto" role="listbox" aria-label="Research sessions">
           {filteredSessions.map(s => (
-            <div 
-              key={s.id}
-              onClick={() => setActiveSession(s.id)}
-              className={`p-3 cursor-pointer border-b border-border/50 transition-colors hover:bg-surface-elevated ${activeSessionId === s.id ? 'bg-surface-elevated' : ''}`}
-            >
-              <div className="flex justify-between items-center">
-                <span className="truncate font-medium text-text-primary">{s.title}</span>
+            <div key={s.id} className={`flex items-start border-b border-border/50 transition-colors hover:bg-surface-elevated ${activeSessionId === s.id ? 'border-l-4 border-l-accent bg-surface-elevated' : 'border-l-4 border-l-transparent'}`}>
+              <button type="button" role="option" aria-selected={activeSessionId === s.id} aria-current={activeSessionId === s.id ? 'true' : undefined} onClick={() => setActiveSession(s.id)} className="min-w-0 flex-1 p-3 text-left">
+                <span className={`block truncate text-text-primary ${activeSessionId === s.id ? 'font-bold' : 'font-medium'}`}>{s.title}</span>
+                <span className="mt-1 block text-xs text-text-muted">{s.sources.length} sources • {s.findings.length} findings</span>
+              </button>
+              <div className="p-2">
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); toggleFavorite(s.id); }}
+                  onClick={() => toggleFavorite(s.id)}
                   className="text-text-muted hover:text-text-primary"
                   aria-label={s.favorite ? `Remove ${s.title} from favorites` : `Add ${s.title} to favorites`}
                 >
                   <span aria-hidden="true"><StarIcon filled={s.favorite} /></span>
                 </button>
               </div>
-              <div className="text-xs text-text-muted mt-1">
-                {s.sources.length} sources • {s.findings.length} findings
-              </div>
             </div>
           ))}
-        </div>
-      </div>
+        </div>}
+      </aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">

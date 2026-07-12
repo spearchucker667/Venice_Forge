@@ -26,9 +26,11 @@ export type SettingsSection =
   | 'about'
   | 'updates'
   | 'config'
+  | 'providers'
 
 const VALID_SETTINGS_SECTIONS = new Set<SettingsSection>([
   'profiles',
+  'providers',
   'api-keys',
   'defaults',
   'safety',
@@ -131,6 +133,10 @@ interface SettingsState {
   // Sync Provider Settings
   syncFolderPath: string
   setSyncFolderPath: (path: string) => void
+
+  // Fallback Providers
+  enabledProviders: Record<string, boolean>
+  setEnabledProvider: (providerId: string, enabled: boolean) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -198,10 +204,15 @@ export const useSettingsStore = create<SettingsState>()(
 
       syncFolderPath: '',
       setSyncFolderPath: (path) => set({ syncFolderPath: path }),
+
+      enabledProviders: {},
+      setEnabledProvider: (providerId, enabled) => set((s) => ({
+        enabledProviders: { ...s.enabledProviders, [providerId]: enabled }
+      })),
     }),
     {
       name: 'venice-settings',
-      version: 6,
+      version: 7,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -229,6 +240,9 @@ export const useSettingsStore = create<SettingsState>()(
           selectedVideoModelGroup: state.selectedVideoModelGroup ?? null,
           selectedVideoMode: state.selectedVideoMode ?? null,
           selectedVideoModelId: state.selectedVideoModelId ?? null,
+
+          // v7 (providers): enabled state for fallback providers
+          enabledProviders: state.enabledProviders ?? {},
         } as SettingsState
       },
       merge: (persisted, current) => ({

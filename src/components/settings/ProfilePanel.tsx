@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 import { useProfileStore } from '../../stores/profile-store'
 import { DEFAULT_PROFILE_ID } from '../../services/activeProfile'
 import { askDecision } from '../ui/modal-requests'
 import { desktopProfilePassword, isElectron } from '../../services/desktopBridge'
+import { AccessibleDialog } from '../ui/AccessibleDialog'
 
 const MIN_PROFILE_PASSWORD_LENGTH = 4
 
@@ -18,6 +19,10 @@ export function ProfilePanel() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const passwordDialogRef = useRef<HTMLDivElement>(null)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
+  const passwordInputId = useId()
+  const confirmPasswordId = useId()
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
@@ -224,36 +229,44 @@ export function ProfilePanel() {
       </div>
 
       {passwordDialog && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-overlay/60 backdrop-blur-sm">
-          <div className="w-[min(420px,calc(100vw-32px))] rounded border border-border bg-surface-elevated p-5 shadow-xl">
-            <h3 className="text-[15px] font-semibold text-text-primary">
-              {passwordDialog.mode === 'set' ? `Set Password for ${passwordDialog.profileName}` : `Unlock ${passwordDialog.profileName}`}
-            </h3>
-            <form onSubmit={handlePasswordSubmit} className="mt-4 flex flex-col gap-3">
-              <label className="text-[12.5px] text-text-secondary">
+        <AccessibleDialog
+          title={passwordDialog.mode === 'set' ? `Set Password for ${passwordDialog.profileName}` : `Unlock ${passwordDialog.profileName}`}
+          description="This password protects switching into this local profile."
+          onClose={closePasswordDialog}
+          initialFocusRef={passwordInputRef}
+          panelRef={passwordDialogRef}
+          panelClassName="max-w-[420px]"
+          zIndexClassName="z-[999]"
+        >
+            <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-3 p-5">
+              <label htmlFor={passwordInputId} className="text-[12.5px] text-text-secondary">
                 {passwordDialog.mode === 'set' ? 'Profile password' : 'Unlock password'}
                 <input
+                  ref={passwordInputRef}
+                  id={passwordInputId}
                   type="password"
                   aria-label={passwordDialog.mode === 'set' ? 'Profile password' : 'Unlock password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="mt-1 w-full rounded border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
-                  autoFocus
+                  autoComplete={passwordDialog.mode === 'set' ? 'new-password' : 'current-password'}
                 />
               </label>
               {passwordDialog.mode === 'set' && (
-                <label className="text-[12.5px] text-text-secondary">
+                <label htmlFor={confirmPasswordId} className="text-[12.5px] text-text-secondary">
                   Confirm profile password
                   <input
+                    id={confirmPasswordId}
                     type="password"
                     aria-label="Confirm profile password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="mt-1 w-full rounded border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+                    autoComplete="new-password"
                   />
                 </label>
               )}
-              {passwordError && <p className="text-[12.5px] text-danger">{passwordError}</p>}
+              {passwordError && <p role="alert" className="text-[12.5px] text-danger">{passwordError}</p>}
               <div className="mt-2 flex justify-end gap-2">
                 <button type="button" onClick={closePasswordDialog} className="rounded bg-surface px-4 py-2 text-[13px] text-text-primary">
                   Cancel
@@ -263,8 +276,7 @@ export function ProfilePanel() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </AccessibleDialog>
       )}
     </div>
   )

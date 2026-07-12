@@ -6,7 +6,6 @@ import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
 import { StatusDot } from '../ui/shared'
 import { HeaderStatusCluster } from '../status/HeaderStatusCluster'
-import { BackgroundTaskCluster } from './BackgroundTaskCluster'
 
 import { resolveTab } from '../../config/tabs'
 import { formatModelLabelWithCost } from '../../utils/pricing'
@@ -90,7 +89,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
               searchable
               placeholder="Select model…"
               ariaLabel="Selected model"
-              className="w-44 sm:w-64"
+              className="w-36 sm:w-44 xl:w-64"
             />
             {activeTab === 'chat' && activeConversationId !== null && (
               <button
@@ -109,7 +108,6 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
 
       <div className="flex-1" />
 
-      <BackgroundTaskCluster />
       <HeaderStatusCluster />
 
       <button
@@ -119,7 +117,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
         className="flex items-center gap-2 text-[13px] px-2.5 py-1.5 rounded-md border border-border hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"
       >
         <StatusDot tone={hasVeniceKey ? 'teal' : 'slate'} pulsing={!hasVeniceKey} />
-        <span className={hasVeniceKey ? 'text-text-primary font-medium' : 'text-text-secondary'}>
+        <span className={`hidden xl:inline ${hasVeniceKey ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
           {hasVeniceKey ? 'Connected' : 'Connect API key'}
         </span>
       </button>

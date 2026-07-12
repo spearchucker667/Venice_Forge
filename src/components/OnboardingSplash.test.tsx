@@ -36,13 +36,15 @@ describe('OnboardingSplash', () => {
   it('renders the first step on first launch', () => {
     render(<OnboardingSplash />)
     expect(screen.getByText('Welcome to Venice Forge')).toBeInTheDocument()
-    expect(screen.getByText(/secure, local AI workbench/)).toBeInTheDocument()
+    expect(screen.getByText(/sends requests to the remote providers you configure/)).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Welcome to Venice Forge' })).toHaveAttribute('aria-modal', 'true')
   })
 
   it('advances through steps when Next is clicked', () => {
     render(<OnboardingSplash />)
     fireEvent.click(screen.getByRole('button', { name: /next/i }))
     expect(screen.getByText('Profiles')).toBeInTheDocument()
+    expect(screen.getByText(/shared caches remain machine-level/)).toBeInTheDocument()
   })
 
   it('marks onboarding complete on the last step', async () => {

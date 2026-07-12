@@ -14,6 +14,11 @@ import type {
   UserPersonaV1,
 } from "../types/rp";
 import type { MutationOrigin } from "../types/sync";
+import type {
+  BackgroundTask,
+  BackgroundTaskCreateInput,
+  BackgroundTaskIpcEnvelope,
+} from "../types/background-task";
 import { veniceFetch } from "./veniceClient";
 import {
   buildInspectorTelemetryPatch,
@@ -244,6 +249,24 @@ export const desktopApiKey = {
   },
 };
 
+/** Bridge interface for fallback provider API keys. */
+export const desktopProviderApiKey = {
+  async isConfigured(providerId: string): Promise<boolean> {
+    if (isElectron()) return window.veniceForge!.providerApiKey.isConfigured(providerId, getActiveProfileId());
+    return false; // For now, no web session mock for fallback providers
+  },
+
+  async set(providerId: string, key: string): Promise<{ ok: boolean; error?: string }> {
+    if (isElectron()) return window.veniceForge!.providerApiKey.set(providerId, key, getActiveProfileId());
+    return { ok: false, error: "Not supported in web mode" };
+  },
+
+  async delete(providerId: string): Promise<{ ok: boolean; error?: string }> {
+    if (isElectron()) return window.veniceForge!.providerApiKey.delete(providerId, getActiveProfileId());
+    return { ok: false, error: "Not supported in web mode" };
+  },
+};
+
 /** Exposes app-level metadata and desktop-specific utilities. */
 export const desktopApp = {
   /**
@@ -299,6 +322,46 @@ export const desktopApp = {
   proxyScrape(url: string): Promise<{ ok: boolean; data?: { url: string; finalUrl: string; contentType: string; body: string }; error?: string }> {
     if (!isElectron()) return Promise.resolve({ ok: false, error: "Only available in desktop mode" });
     return window.veniceForge!.app.proxyScrape(url);
+  },
+};
+
+/** Proxies background task commands to the persistent main-process manager. */
+export const desktopBackgroundTask = {
+  subscribe(): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return Promise.resolve({ ok: false, error: "Not in Electron" });
+    return window.veniceForge!.backgroundTask.subscribe();
+  },
+  unsubscribe(): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return Promise.resolve({ ok: false, error: "Not in Electron" });
+    return window.veniceForge!.backgroundTask.unsubscribe();
+  },
+  create(input: BackgroundTaskCreateInput): Promise<{ ok: boolean; task?: BackgroundTask; error?: string }> {
+    if (!isElectron()) return Promise.resolve({ ok: false, error: "Not in Electron" });
+    return window.veniceForge!.backgroundTask.create(input);
+  },
+  update(taskId: string, updates: Partial<BackgroundTask>): Promise<{ ok: boolean; task?: BackgroundTask | null; error?: string }> {
+    if (!isElectron()) return Promise.resolve({ ok: false, error: "Not in Electron" });
+    return window.veniceForge!.backgroundTask.update(taskId, updates);
+  },
+  list(): Promise<{ ok: boolean; tasks?: BackgroundTask[]; error?: string }> {
+    if (!isElectron()) return Promise.resolve({ ok: false, error: "Not in Electron" });
+    return window.veniceForge!.backgroundTask.list();
+  },
+  cancel(taskId: string): Promise<{ ok: boolean; task?: BackgroundTask | null; error?: string }> {
+    if (!isElectron()) return Promise.resolve({ ok: false, error: "Not in Electron" });
+    return window.veniceForge!.backgroundTask.cancel(taskId);
+  },
+  retry(taskId: string): Promise<{ ok: boolean; task?: BackgroundTask | null; error?: string }> {
+    if (!isElectron()) return Promise.resolve({ ok: false, error: "Not in Electron" });
+    return window.veniceForge!.backgroundTask.retry(taskId);
+  },
+  clear(taskId: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return Promise.resolve({ ok: false, error: "Not in Electron" });
+    return window.veniceForge!.backgroundTask.clear(taskId);
+  },
+  onUpdate(callback: (envelope: BackgroundTaskIpcEnvelope) => void): () => void {
+    if (!isElectron()) return () => {};
+    return window.veniceForge!.backgroundTask.onUpdate(callback);
   },
 };
 

@@ -259,11 +259,13 @@ export interface VideoRetrieveRequest {
 }
 
 export interface VideoRetrieveResponse {
-  id: string
-  status: 'queued' | 'processing' | 'completed' | 'failed'
+  id?: string
+  status: 'PROCESSING' | 'COMPLETED' | 'queued' | 'processing' | 'completed' | 'failed'
   video_url?: string
   error?: string
   progress?: number
+  average_execution_time?: number
+  execution_duration?: number
 }
 
 // Embedding types

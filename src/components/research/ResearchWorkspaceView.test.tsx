@@ -133,6 +133,18 @@ describe('ResearchWorkspaceView', () => {
     expect(screen.getAllByText('Active Research').length).toBeGreaterThan(0);
     expect(screen.getByPlaceholderText(/Search query/i)).toBeDefined();
     expect(screen.getByPlaceholderText(/Scrape URL/i)).toBeDefined();
+    const sessionOption = screen.getByRole('option', { name: /Active Research/ });
+    expect(sessionOption).toHaveAttribute('aria-selected', 'true');
+    expect(sessionOption).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('collapses and restores the research session sidebar', () => {
+    vi.mocked(useResearchStore).mockReturnValue(researchState({}));
+    render(<ResearchWorkspaceView />);
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse research sessions' }));
+    expect(screen.queryByRole('listbox', { name: 'Research sessions' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Expand research sessions' }));
+    expect(screen.getByRole('listbox', { name: 'Research sessions' })).toBeInTheDocument();
   });
 
   it('exposes accessible names for search and scrape controls', () => {

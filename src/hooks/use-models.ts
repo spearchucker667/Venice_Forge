@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { venice } from '../lib/venice-client'
 import type { ModelsResponse, VeniceModel, VideoConstraints } from '../types/venice'
+import { getEnabledProviderModels } from '../config/provider-models'
 
 export function useModels(type?: string) {
   return useQuery({
@@ -11,10 +12,16 @@ export function useModels(type?: string) {
         { noAuth: true },
       ),
     staleTime: 5 * 60 * 1000,
-    select: (data) =>
-      data.data
+    select: (data) => {
+      const liveModels = data.data
         .filter((m) => !m.model_spec?.offline)
-        .sort((a, b) => a.id.localeCompare(b.id)),
+
+      const fallbackModels = getEnabledProviderModels(type)
+      
+      return [...liveModels, ...fallbackModels]
+        .filter(m => !type || (type === 'image' && m.owned_by !== 'anthropic') || (type === 'chat' && !m.id.includes('FLUX')))
+        .sort((a, b) => a.id.localeCompare(b.id))
+    },
   })
 }
 

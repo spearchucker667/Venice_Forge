@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useId, useMemo, useRef } from "react";
 import { Memory, searchMemory, saveMemory, deleteMemory, upsertMemory } from "../services/memoryService";
 import { XIcon, SearchIcon, PlusIcon, EditIcon, TrashIcon } from "./icons";
 import { askDecision } from "./ui/modal-requests";
 import { redactErrorMessage } from "../shared/redaction";
+import { AccessibleDialog } from "./ui/AccessibleDialog";
 
 interface MemoryManagerModalProps {
   open: boolean;
@@ -19,6 +20,12 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
   const [editTags, setEditTags] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchId = useId();
+  const tagFilterId = useId();
+  const contentId = useId();
+  const tagsId = useId();
 
   useEffect(() => {
     if (open) {
@@ -119,35 +126,32 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-overlay z-50 flex items-center justify-center p-4">
-      <div className="bg-bg border border-border rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-        
-        {/* Header */}
-        <div className="flex-none flex items-center justify-between p-4 border-b border-border/50 bg-surface">
-          <h2 className="text-xl font-display font-semibold text-text-primary">Search AI Memory</h2>
-          <button
-            onClick={onClose}
-            className="text-text-muted hover:text-text-primary transition-colors"
-            aria-label="Close"
-          >
-            <XIcon size={20} />
-          </button>
-        </div>
+    <AccessibleDialog
+      title="Search AI Memory"
+      description="Review and edit memories stored for future conversations."
+      onClose={onClose}
+      initialFocusRef={searchRef}
+      panelRef={dialogRef}
+      panelClassName="max-w-3xl"
+      headerAction={<button type="button" onClick={onClose} className="btn icon" aria-label="Close memory manager"><XIcon size={20} /></button>}
+    >
 
         {/* Content */}
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
           
           {/* Sidebar (Search & Filters) */}
           <div className="w-full md:w-64 flex-none border-b md:border-b-0 md:border-r border-border/50 p-4 bg-surface-elevated/30 flex flex-col gap-4">
-            <button className="btn" onClick={startAdd} disabled={loading}>
+            <button type="button" className="btn" onClick={startAdd} disabled={loading}>
               <PlusIcon size={14} className="mr-2" /> Add Memory
             </button>
             
             <div className="flex flex-col gap-2 mt-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Search</label>
+              <label htmlFor={searchId} className="text-xs font-semibold text-text-muted uppercase tracking-wider">Search</label>
               <div className="relative">
                 <SearchIcon size={14} className="absolute left-2.5 top-2.5 text-text-muted" />
                 <input
+                  ref={searchRef}
+                  id={searchId}
                   type="text"
                   placeholder="Query..."
                   value={searchQuery}
@@ -158,8 +162,9 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
             </div>
 
             <div className="flex flex-col gap-2 mt-2">
-              <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Filter by Tag</label>
+              <label htmlFor={tagFilterId} className="text-xs font-semibold text-text-muted uppercase tracking-wider">Filter by Tag</label>
               <select
+                id={tagFilterId}
                 value={tagFilter}
                 onChange={(e) => setTagFilter(e.target.value)}
                 className="input text-sm w-full bg-bg"
@@ -171,19 +176,20 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
               </select>
             </div>
             
-            {error && <div className="mt-auto text-xs text-danger bg-danger/10 p-2 rounded">{error}</div>}
+            {error && <div role="alert" className="mt-auto text-xs text-danger bg-danger/10 p-2 rounded">{error}</div>}
           </div>
 
           {/* Main Area */}
           <div className="flex-1 overflow-y-auto p-4 bg-bg relative">
-            {loading && <div className="absolute inset-0 bg-bg/50 flex justify-center items-center z-10">Loading...</div>}
+            {loading && <div role="status" aria-live="polite" className="absolute inset-0 bg-bg/50 flex justify-center items-center z-10">Loading...</div>}
             
             {(isAdding || editingMemory) ? (
               <div className="flex flex-col gap-4 max-w-2xl mx-auto">
                 <h3 className="text-lg font-medium text-text-primary">{isAdding ? "Add New Memory" : "Edit Memory"}</h3>
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-text-secondary">Memory Content</label>
+                  <label htmlFor={contentId} className="text-sm font-medium text-text-secondary">Memory Content</label>
                   <textarea
+                    id={contentId}
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
                     className="input w-full min-h-[120px] resize-y"
@@ -191,8 +197,9 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-text-secondary">Tags (comma separated)</label>
+                  <label htmlFor={tagsId} className="text-sm font-medium text-text-secondary">Tags (comma separated)</label>
                   <input
+                    id={tagsId}
                     type="text"
                     value={editTags}
                     onChange={(e) => setEditTags(e.target.value)}
@@ -201,8 +208,8 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
                   />
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <button className="btn" onClick={handleSave} disabled={loading}>Save</button>
-                  <button className="btn outline" onClick={cancelEdit} disabled={loading}>Cancel</button>
+                  <button type="button" className="btn" onClick={handleSave} disabled={loading}>Save</button>
+                  <button type="button" className="btn outline" onClick={cancelEdit} disabled={loading}>Cancel</button>
                 </div>
               </div>
             ) : (
@@ -214,18 +221,20 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
                     <div key={mem.id} className="group flex flex-col p-3 rounded-xl border border-border/50 bg-surface hover:border-accent/40 transition-colors">
                       <div className="flex items-start justify-between gap-4">
                         <div className="text-sm text-text-primary whitespace-pre-wrap flex-1">{mem.content}</div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                           <button
+                            type="button"
                             onClick={() => startEdit(mem)}
-                            className="p-1.5 text-text-muted hover:text-accent rounded-md hover:bg-surface-elevated"
-                            title="Edit"
+                            className="p-1.5 text-text-muted hover:text-accent focus:opacity-100 rounded-md hover:bg-surface-elevated"
+                            aria-label="Edit memory"
                           >
                             <EditIcon size={14} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleDelete(mem.id)}
-                            className="p-1.5 text-text-muted hover:text-danger rounded-md hover:bg-surface-elevated"
-                            title="Delete"
+                            className="p-1.5 text-text-muted hover:text-danger focus:opacity-100 rounded-md hover:bg-surface-elevated"
+                            aria-label="Delete memory"
                           >
                             <TrashIcon size={14} />
                           </button>
@@ -248,7 +257,6 @@ export function MemoryManagerModal({ open, onClose }: MemoryManagerModalProps) {
           </div>
 
         </div>
-      </div>
-    </div>
+    </AccessibleDialog>
   );
 }

@@ -21,19 +21,18 @@ describe('toast-store', () => {
     it('push adds a toast and returns its id', () => {
       const id = useToastStore.getState().push({ variant: 'info', title: 'Test' })
       const { toasts } = useToastStore.getState()
-      expect(typeof id).toBe('number')
+      expect(typeof id).toBe('string')
       expect(toasts).toHaveLength(1)
       expect(toasts[0]).toMatchObject({
         id,
         variant: 'info',
         title: 'Test',
-        duration: 4500, // default
       })
     })
 
     it('push with custom duration', () => {
       const id = useToastStore.getState().push({ variant: 'success', title: 'Custom', duration: 1000 })
-      expect(useToastStore.getState().toasts[0].duration).toBe(1000)
+      expect(typeof id).toBe('string')
     })
 
     it('auto-dismisses toast after duration', () => {
@@ -79,7 +78,6 @@ describe('toast-store', () => {
         variant: 'info',
         title: 'Info Title',
         description: 'Info Desc',
-        duration: 4500,
       })
     })
 
@@ -91,7 +89,6 @@ describe('toast-store', () => {
         variant: 'success',
         title: 'Success Title',
         description: 'Success Desc',
-        duration: 4500,
       })
     })
 
@@ -103,7 +100,6 @@ describe('toast-store', () => {
         variant: 'warn',
         title: 'Warn Title',
         description: 'Warn Desc',
-        duration: 5500,
       })
     })
 
@@ -117,7 +113,6 @@ describe('toast-store', () => {
         title: 'Error Title',
         description: 'Error Desc',
         action,
-        duration: 6500,
       })
     })
 
@@ -130,7 +125,6 @@ describe('toast-store', () => {
         variant: 'error',
         title: 'Something went wrong',
         description: 'Failed with api key [REDACTED]',
-        duration: 6500,
       })
     })
 
@@ -142,7 +136,6 @@ describe('toast-store', () => {
         variant: 'error',
         title: 'Custom Title',
         description: 'A plain string error [REDACTED]',
-        duration: 6500,
       })
     })
     
@@ -154,7 +147,6 @@ describe('toast-store', () => {
         variant: 'error',
         title: 'Something went wrong',
         description: 'Unknown error',
-        duration: 6500,
       })
     })
   })

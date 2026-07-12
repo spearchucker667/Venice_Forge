@@ -1,19 +1,11 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
 import { veniceFetch } from '../services/veniceClient/fetch'
-import { sanitizeErrorText } from '../shared/redaction'
 import type { VideoQueueRequest, VideoQueueResponse } from '../types/venice'
 import { useBackgroundTaskStore } from '../stores/background-task-store'
+import { toUserFacingVideoError } from '../services/task-errors'
 
-const MAX_ERROR_LENGTH = 200
 const QUEUE_TIMEOUT_MS = 300000 // 5 minutes for video queue requests
-
-export function toUserFacingVideoError(value: unknown, fallback: string): string {
-  const normalized = value || fallback
-  const text = typeof normalized === 'string' ? normalized : normalized instanceof Error ? normalized.message : String(normalized)
-  const redacted = sanitizeErrorText(text)
-  return redacted.length > MAX_ERROR_LENGTH ? `${redacted.slice(0, MAX_ERROR_LENGTH)}…` : redacted
-}
 
 export function useVideo() {
   const activeVideoTask = useBackgroundTaskStore(s => {
@@ -24,6 +16,7 @@ export function useVideo() {
   })
 
   const [localTaskId, setLocalTaskId] = useState<string | null>(null)
+  const [queueSchemaError, setQueueSchemaError] = useState<string | null>(null)
   const taskId = localTaskId || activeVideoTask?.id
   const task = useBackgroundTaskStore(s => taskId ? s.tasks[taskId] : null)
 
@@ -56,8 +49,13 @@ export function useVideo() {
       return { data: result.data, req }
     },
     onSuccess: ({ data, req }) => {
-      const qid = data.queue_id || data.id || ''
-      const newTaskId = `video-${Date.now()}`
+      const qid = (data.queue_id || data.id || '').trim()
+      if (!qid) {
+        setQueueSchemaError('Video queue response did not include a queue ID.')
+        return
+      }
+      setQueueSchemaError(null)
+      const newTaskId = `video-${crypto.randomUUID()}`
       setLocalTaskId(newTaskId)
       useBackgroundTaskStore.getState().registerQueueTask(newTaskId, 'video', qid, { model: req.model, request: req })
     },
@@ -82,11 +80,11 @@ export function useVideo() {
     isQueueing: queueMutation.isPending,
     status: task ? task.status : 'idle',
     videoUrl: task?.resultUrl ?? null,
-    error: task?.error ?? null,
+    error: task?.error ?? queueSchemaError ?? (queueMutation.isError ? toUserFacingVideoError(queueMutation.error, 'Unable to queue video generation.') : null),
     elapsedMs,
     cancel,
     reset,
     queueId: task?.queueId ?? null,
-    lastRequest: task?.metadata?.request ?? null,
+    lastRequest: (task?.metadata?.request as VideoQueueRequest | undefined) ?? null,
   }
 }

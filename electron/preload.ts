@@ -12,6 +12,7 @@ import type {
   ResearchBrowserBoundsInput
 } from "../src/types/researchBrowser";
 import type { MutationOrigin } from "../src/types/sync";
+import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope } from "../src/types/background-task";
 
 /** Represents a Venice API request sent from the renderer to the main process. */
 type VeniceRequest = {
@@ -124,30 +125,29 @@ const veniceForge = {
   },
 
   apiKey: {
-    /** Checks whether a Venice API key has been stored securely.
-     *  @returns A promise resolving to true when a key is configured.
-     */
-    isConfigured(profileId?: string): Promise<boolean> {
+    isConfigured: (profileId?: string) => {
       return ipcRenderer.invoke("apiKey:isConfigured", profileId);
     },
-    /** Stores the Venice API key using OS-level encryption.
-     *  @param key The API key to encrypt and store.
-     *  @returns A promise resolving with the operation result.
-     */
-    set(key: string, profileId?: string): Promise<{ ok: boolean }> {
+    set: (key: string, profileId?: string) => {
       return ipcRenderer.invoke("apiKey:set", { key, profileId });
     },
-    /** Removes the stored Venice API key.
-     *  @returns A promise resolving with the operation result.
-     */
-    delete(profileId?: string): Promise<{ ok: boolean }> {
+    delete: (profileId?: string) => {
       return ipcRenderer.invoke("apiKey:delete", profileId);
     },
-    /** Verifies connectivity to the Venice API with the stored key.
-     *  @returns A promise resolving with the test result and status.
-     */
-    test(profileId?: string): Promise<{ ok: boolean; status?: number; message: string }> {
+    test: (profileId?: string) => {
       return ipcRenderer.invoke("apiKey:test", profileId);
+    },
+  },
+
+  providerApiKey: {
+    isConfigured: (providerId: string, profileId?: string) => {
+      return ipcRenderer.invoke("providerApiKey:isConfigured", { providerId, profileId });
+    },
+    set: (providerId: string, key: string, profileId?: string) => {
+      return ipcRenderer.invoke("providerApiKey:set", { providerId, key, profileId });
+    },
+    delete: (providerId: string, profileId?: string) => {
+      return ipcRenderer.invoke("providerApiKey:delete", { providerId, profileId });
     },
   },
 
@@ -594,6 +594,40 @@ const veniceForge = {
       ipcRenderer.on("researchBrowser:onStateChanged", listener);
       return () => {
         ipcRenderer.removeListener("researchBrowser:onStateChanged", listener);
+      };
+    },
+  },
+
+  backgroundTask: {
+    subscribe(): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("backgroundTask:subscribe");
+    },
+    unsubscribe(): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("backgroundTask:unsubscribe");
+    },
+    create(input: BackgroundTaskCreateInput): Promise<{ ok: boolean; task?: BackgroundTask; error?: string }> {
+      return ipcRenderer.invoke("backgroundTask:create", input);
+    },
+    update(taskId: string, updates: Partial<BackgroundTask>): Promise<{ ok: boolean; task?: BackgroundTask | null; error?: string }> {
+      return ipcRenderer.invoke("backgroundTask:update", { taskId, updates });
+    },
+    list(): Promise<{ ok: boolean; tasks?: BackgroundTask[]; error?: string }> {
+      return ipcRenderer.invoke("backgroundTask:list");
+    },
+    cancel(taskId: string): Promise<{ ok: boolean; task?: BackgroundTask | null; error?: string }> {
+      return ipcRenderer.invoke("backgroundTask:cancel", taskId);
+    },
+    retry(taskId: string): Promise<{ ok: boolean; task?: BackgroundTask | null; error?: string }> {
+      return ipcRenderer.invoke("backgroundTask:retry", taskId);
+    },
+    clear(taskId: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("backgroundTask:clear", taskId);
+    },
+    onUpdate(callback: (envelope: BackgroundTaskIpcEnvelope) => void) {
+      const listener = (_event: Electron.IpcRendererEvent, envelope: BackgroundTaskIpcEnvelope) => callback(envelope);
+      ipcRenderer.on("backgroundTask:update", listener);
+      return () => {
+        ipcRenderer.removeListener("backgroundTask:update", listener);
       };
     },
   },

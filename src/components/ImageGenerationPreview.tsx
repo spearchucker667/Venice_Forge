@@ -4,6 +4,7 @@ import React from "react";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { GalleryImage } from "../types/storage";
 import { ModuleProps, ImageDraft } from "../types/app";
+import { toast } from "../stores/toast-store";
 
 interface ImageGenerationPreviewProps extends ModuleProps {
   draft: ImageDraft;
@@ -112,10 +113,7 @@ export function ImageGenerationPreview({
                         className="btn"
                         onClick={() => {
                           patch({ prompt: img.prompt });
-                          dispatch({
-                            type: "ADD_TOAST",
-                            toast: { id: crypto.randomUUID(), message: "Copied prompt", type: "info" },
-                          });
+                          toast.info("Copied prompt");
                         }}
                       >
                         Copy Prompt

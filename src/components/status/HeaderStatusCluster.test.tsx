@@ -98,6 +98,14 @@ describe("HeaderStatusCluster (VERIFY-045)", () => {
     expect(useStatusStore.getState().focusedSectionId).toBe("safety");
   });
 
+  it("provides one aggregate status control for constrained headers", () => {
+    render(<HeaderStatusCluster />);
+    const summary = screen.getByTestId("status-cluster-summary");
+    expect(summary).toHaveAccessibleName(/Open app status/);
+    fireEvent.click(summary);
+    expect(useStatusStore.getState().drawerOpen).toBe(true);
+  });
+
   it("keyboard activation (Enter) opens the drawer", () => {
     render(<HeaderStatusCluster />);
     const el = screen.getByTestId("status-indicator-model") as HTMLButtonElement;

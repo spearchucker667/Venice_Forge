@@ -12,7 +12,9 @@ import { isElectron, desktopApiKey, desktopJinaApiKey, desktopUpdates, desktopCo
 import { redactErrorMessage } from "../../shared/redaction";
 import { reloadConfig } from "../../stores/config-store";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
+import { KeyIcon, CloudIcon } from "lucide-react";
 import { ApiKeysPanel } from "./ApiKeysPanel";
+import { ProvidersPanel } from "./ProvidersPanel";
 import { DefaultsPanel } from "./DefaultsPanel";
 import { SafetyPanel } from "./SafetyPanel";
 import { DataStoragePanel } from "./DataStoragePanel";
@@ -325,8 +327,19 @@ export function SettingsView() {
             Profiles
           </button>
           <button onClick={() => setActiveSection("api-keys")} className={sectionButtonClass("api-keys")}>
-            API Keys
+            <div className="flex items-center gap-2.5">
+              <KeyIcon className="w-4 h-4 opacity-75" />
+              <span className="font-medium">Venice API Key</span>
+            </div>
           </button>
+          
+          <button onClick={() => setActiveSection("providers")} className={sectionButtonClass("providers")}>
+            <div className="flex items-center gap-2.5">
+              <CloudIcon className="w-4 h-4 opacity-75" />
+              <span className="font-medium">Fallback Providers</span>
+            </div>
+          </button>
+
           <button onClick={() => setActiveSection("defaults")} className={sectionButtonClass("defaults")}>
             Defaults & Behavior
           </button>

@@ -6,6 +6,7 @@ const VARIANT_STYLES: Record<Toast['variant'], string> = {
   success: 'border-green-500/30 bg-green-500/[0.06]',
   warn: 'border-amber-500/30 bg-amber-500/[0.06]',
   error: 'border-red-500/30 bg-red-500/[0.06]',
+  progress: 'border-accent/30 bg-accent/[0.06]',
 }
 
 const VARIANT_TITLE: Record<Toast['variant'], string> = {
@@ -13,6 +14,7 @@ const VARIANT_TITLE: Record<Toast['variant'], string> = {
   success: 'text-green-200/85',
   warn: 'text-amber-200/85',
   error: 'text-red-200/85',
+  progress: 'text-accent',
 }
 
 export function Toaster() {

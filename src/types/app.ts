@@ -78,13 +78,6 @@ export interface AppSettings {
   customTheme: Theme | null;
 }
 
-/** Describes a transient toast notification shown to the user. */
-export interface ToastMessage {
-  id: string;
-  message: string;
-  type: "info" | "success" | "warn" | "error";
-  duration?: number;
-}
 
 /** Explicit shape of the global application state. Defined here to break the circular
  *  dependency between appReducer (which needs AppAction) and this file (which needed initialState). */
@@ -114,7 +107,6 @@ export interface AppState {
     systemPrompt: string;
     messages: ChatRecord[];
   };
-  toasts: ToastMessage[];
 }
 
 /** Discriminated union of all actions accepted by the application reducer. */
@@ -137,9 +129,7 @@ export type AppAction =
   | { type: "SET_ACTIVE_CONVERSATION"; id: string | null }
   | { type: "SET_CHAT_DRAFT"; patch: Partial<AppState['chatDraft']> }
   | { type: "SET_BATCH_DRAFT"; patch: Partial<BatchDraft> }
-  | { type: "SET_ONLINE"; online: boolean }
-  | { type: "ADD_TOAST"; toast: ToastMessage }
-  | { type: "REMOVE_TOAST"; id: string };
+  | { type: "SET_ONLINE"; online: boolean };
 
 /** Dispatch function type for the global application reducer. */
 export type AppDispatch = import("react").Dispatch<AppAction>;

@@ -32,4 +32,14 @@ describe('InspectorPane', () => {
     expect(screen.getAllByText(/No requests/i).length).toBeGreaterThan(0)
     expect(screen.queryByText('provider failed safely')).not.toBeInTheDocument()
   })
+
+  it('uses responsive drawer geometry, labelled controls, and closes on Escape', () => {
+    render(<InspectorPane />)
+    const inspector = screen.getByRole('complementary', { name: 'Developer traffic inspector' })
+    expect(inspector.className).toContain('relative soft-separator-x mesh-surface')
+    expect(screen.getByRole('button', { name: 'Clear all inspector logs' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Export redacted inspector logs as JSON' })).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(useSettingsStore.getState().showInspector).toBe(false)
+  })
 })

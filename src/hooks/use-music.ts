@@ -1,27 +1,11 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
 import { veniceFetch } from '../services/veniceClient/fetch'
-import { sanitizeErrorText } from '../shared/redaction'
 import type { MusicQueueRequest, MusicQueueResponse } from '../types/venice'
 import { useBackgroundTaskStore } from '../stores/background-task-store'
+import { MUSIC_SAFE_ERROR_MESSAGES, toUserFacingMusicError } from '../services/task-errors'
 
-const MAX_ERROR_LENGTH = 200
 const QUEUE_TIMEOUT_MS = 30000
-
-export const SAFE_ERROR_MESSAGES = {
-  queue: 'Unable to queue music generation. Please try again.',
-  polling: 'Unable to check generation status. Please try again.',
-  generation: 'Music generation failed. Please try again.',
-  timeout: 'Generation took too long. Cancel and try again.',
-  empty: 'Music generation returned an empty audio file. Please try again.',
-} as const
-
-export function toUserFacingMusicError(value: unknown, fallback: string): string {
-  const normalized = value || fallback
-  const text = typeof normalized === 'string' ? normalized : normalized instanceof Error ? normalized.message : String(normalized)
-  const redacted = sanitizeErrorText(text)
-  return redacted.length > MAX_ERROR_LENGTH ? `${redacted.slice(0, MAX_ERROR_LENGTH)}…` : redacted
-}
 
 export function useMusic() {
   const activeMusicTask = useBackgroundTaskStore(s => {
@@ -32,6 +16,7 @@ export function useMusic() {
   })
 
   const [localTaskId, setLocalTaskId] = useState<string | null>(null)
+  const [queueSchemaError, setQueueSchemaError] = useState<string | null>(null)
   const taskId = localTaskId || activeMusicTask?.id
   const task = useBackgroundTaskStore(s => taskId ? s.tasks[taskId] : null)
 
@@ -64,8 +49,13 @@ export function useMusic() {
       return { data: result.data, req }
     },
     onSuccess: ({ data, req }) => {
-      const qid = data.queue_id || data.id || ''
-      const newTaskId = `music-${Date.now()}`
+      const qid = (data.queue_id || data.id || '').trim()
+      if (!qid) {
+        setQueueSchemaError('Music queue response did not include a queue ID.')
+        return
+      }
+      setQueueSchemaError(null)
+      const newTaskId = `music-${crypto.randomUUID()}`
       setLocalTaskId(newTaskId)
       useBackgroundTaskStore.getState().registerQueueTask(newTaskId, 'music', qid, { request: req })
     },
@@ -92,11 +82,11 @@ export function useMusic() {
     isQueueing: queueMutation.isPending,
     status: task ? task.status : 'idle',
     audioUrl: task?.resultUrl ?? null,
-    error: task?.error ?? (queueMutation.isError ? toUserFacingMusicError(queueMutation.error, SAFE_ERROR_MESSAGES.queue) : null),
+    error: task?.error ?? queueSchemaError ?? (queueMutation.isError ? toUserFacingMusicError(queueMutation.error, MUSIC_SAFE_ERROR_MESSAGES.queue) : null),
     elapsedMs,
     cancel,
     reset,
     queueId: task?.queueId ?? null,
-    lastRequest: task?.metadata?.request ?? null,
+    lastRequest: (task?.metadata?.request as MusicQueueRequest | undefined) ?? null,
   }
 }

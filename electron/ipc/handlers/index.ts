@@ -10,6 +10,7 @@ import { registerJinaHandlers } from "./jinaHandlers";
 import { registerFileHandlers } from "./fileHandlers";
 import { registerSystemHandlers } from "./systemHandlers";
 import { registerSyncHandlers } from "./syncHandlers";
+import { registerBackgroundTaskHandlers } from "./backgroundTaskHandlers";
 
 let ipcHandlersRegistered = false;
 
@@ -31,6 +32,9 @@ export function registerIpcHandlers(): void {
   registerFileHandlers();
   registerSystemHandlers();
   registerSyncHandlers();
+
+  // ── Background task manager (persistent main-process queue ownership) ──
+  registerBackgroundTaskHandlers();
 
   // ── Config (local master YAML) ──
   // SECURITY: The renderer never receives raw API keys. The sanitized view

@@ -3,8 +3,10 @@ import { useSettingsStore, type Tab } from './stores/settings-store'
 import { useChatStore } from './stores/chat-store'
 import { useAuthStore } from './stores/auth-store'
 import { useConfigStore } from './stores/config-store'
+import { useBackgroundTaskStore } from './stores/background-task-store'
 import { ensureProjectsLoaded } from './stores/project-store'
 import { desktopSync } from './services/desktopBridge'
+import { initBackgroundTaskToastBridge } from './services/backgroundTaskToastBridge'
 import { Sidebar } from './components/layout/sidebar'
 import { Header } from './components/layout/header'
 import { ApiKeyDialog } from './components/layout/api-key-dialog'
@@ -214,6 +216,12 @@ export function App() {
       });
     }
   }, [syncFolderPath]);
+
+  // Init task to toast bridge
+  useEffect(() => {
+    initBackgroundTaskToastBridge()
+    useBackgroundTaskStore.getState().ensureDesktopSubscription().catch(console.error)
+  }, [])
 
   const normalisedActiveTab = normaliseTab(activeTab)
   const ActiveView = views[normalisedActiveTab] ?? views.chat
