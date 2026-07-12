@@ -236,8 +236,9 @@ button:focus, a:focus, textarea:focus, input:focus, select:focus { outline: none
 .prose-venice li { margin: 0.25em 0; line-height: 1.65; }
 .prose-venice li::marker { color: var(--text-muted); }
 .prose-venice blockquote {
-  border-left: 3px solid var(--color-accent);
-  padding-left: 1em;
+  background-color: var(--surface-elevated);
+  border-radius: 4px;
+  padding: 0.75em 1em;
   margin: 0.8em 0;
   color: var(--text-secondary);
   font-style: italic;

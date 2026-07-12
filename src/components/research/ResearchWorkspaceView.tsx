@@ -368,7 +368,7 @@ export const ResearchWorkspaceView: React.FC = () => {
             <div 
               key={s.id}
               onClick={() => setActiveSession(s.id)}
-              className={`p-3 cursor-pointer border-b border-border/50 transition-colors hover:bg-surface-elevated ${activeSessionId === s.id ? 'bg-surface-elevated border-l-4 border-l-accent' : ''}`}
+              className={`p-3 cursor-pointer border-b border-border/50 transition-colors hover:bg-surface-elevated ${activeSessionId === s.id ? 'bg-surface-elevated' : ''}`}
             >
               <div className="flex justify-between items-center">
                 <span className="truncate font-medium text-text-primary">{s.title}</span>
