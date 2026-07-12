@@ -59,7 +59,7 @@ describe('Header component', () => {
       }
 
       // Check model selector presence
-      const hasSelector = !!tabDesc?.modelType
+      const hasSelector = !!tabDesc?.modelType && tabDesc.modelSelectorOwner !== 'view'
       const selectorElement = screen.queryByLabelText('Selected model')
       
       if (hasSelector) {
@@ -84,7 +84,7 @@ describe('Header component', () => {
     const nonSelectorTabs = [
       'media', 'prompts', 'scenes', 'privacy', 'settings',
       'status', 'search', 'characters', 'rp-studio', 'workflows',
-      'playground'
+      'playground', 'video'
     ]
     for (const tabId of nonSelectorTabs) {
       useSettingsStore.setState({ activeTab: tabId as any })

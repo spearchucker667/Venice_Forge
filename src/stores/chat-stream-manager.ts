@@ -97,15 +97,18 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
       return { role: m.role, content };
     });
 
+  const characterSlug = resolveCharacterSlug(conv);
+  const isHostedCharacter = !!characterSlug;
+
   const characterSystemPrompt = conv.metadata?.character?.systemPrompt;
   const effectiveSystemPrompt = conv.metadata?.character
     ? (conv.systemPrompt ?? characterSystemPrompt ?? "").trim()
     : (conv.systemPrompt ?? state.systemPrompt).trim();
-  if (effectiveSystemPrompt) {
+  
+  // Do not send fabricated instructions for hosted characters; only send character_slug.
+  if (effectiveSystemPrompt && !isHostedCharacter) {
     requestMessages.unshift({ role: "system", content: effectiveSystemPrompt });
   }
-
-  const characterSlug = resolveCharacterSlug(conv);
   const veniceParamsForRequest: VeniceParameters = { ...state.veniceParams };
   if (characterSlug) {
     veniceParamsForRequest.character_slug = characterSlug;

@@ -32,16 +32,24 @@ export default function HistoryView() {
 
   const setActiveTab = useSettingsStore(state => state.setActiveTab)
   const [search, setSearch] = useState('')
+  const [filterType, setFilterType] = useState<'all' | 'character' | 'standard'>('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   const filtered = useMemo(() => {
+    let result = conversations
+    if (filterType === 'character') {
+      result = result.filter(c => c.metadata?.source === 'character' || c.metadata?.source === 'localCharacter' || !!c.metadata?.character)
+    } else if (filterType === 'standard') {
+      result = result.filter(c => c.metadata?.source !== 'character' && c.metadata?.source !== 'localCharacter' && !c.metadata?.character)
+    }
+
     const s = search.toLowerCase().trim()
-    if (!s) return conversations
-    return conversations.filter(c => 
+    if (!s) return result
+    return result.filter(c => 
       (c.title || '').toLowerCase().includes(s) || 
       c.messages.some(m => contentToSearchText(m.content).toLowerCase().includes(s))
     )
-  }, [conversations, search])
+  }, [conversations, search, filterType])
 
   const handleSelect = (id: string) => {
     setActiveConversation(id)
@@ -158,15 +166,26 @@ export default function HistoryView() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-6xl mx-auto p-6 space-y-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-            <input
-              type="text"
-              placeholder="Search by title or message content..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-surface-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-[14px] text-text-primary placeholder:text-text-muted transition-all"
-            />
+          <div className="flex gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+              <input
+                type="text"
+                placeholder="Search by title or message content..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-surface-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-[14px] text-text-primary placeholder:text-text-muted transition-all"
+              />
+            </div>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as 'all' | 'character' | 'standard')}
+              className="px-4 py-2.5 bg-surface-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-[14px] text-text-primary transition-all"
+            >
+              <option value="all">All Chats</option>
+              <option value="character">Character Chats</option>
+              <option value="standard">Standard Chats</option>
+            </select>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-elevated px-3 py-2">
@@ -207,9 +226,17 @@ export default function HistoryView() {
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/5 rounded-md text-accent">
-                    <MessageSquare size={13} />
+                    {conv.metadata?.character?.photoUrl ? (
+                      <img
+                        src={conv.metadata.character.photoUrl}
+                        alt=""
+                        className="w-4 h-4 rounded-full object-cover"
+                      />
+                    ) : (
+                      <MessageSquare size={13} />
+                    )}
                     <span className="text-[10px] font-bold uppercase tracking-wider truncate max-w-[120px]">
-                      {conv.model}
+                      {conv.metadata?.character ? conv.metadata.character.name : conv.model}
                     </span>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">

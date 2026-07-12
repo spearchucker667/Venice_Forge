@@ -1,3 +1,5 @@
+import { compileCharacterSystemPrompt } from "../services/rpPromptCompiler";
+import { avatarDataUri } from "../components/rp-studio/_shared";
 import { create } from 'zustand'
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware'
 import type { ChatMessage, VeniceParameters } from '../types/venice'
@@ -242,7 +244,12 @@ export const useChatStore = create<ChatState>()(
         const conv: Conversation = {
           id,
           title: `Chat with ${character.name}`,
-          messages: [],
+          messages: character.greeting ? [{
+            id: generateId(),
+            role: "assistant",
+            content: character.greeting,
+            timestamp: now,
+          }] : [],
           model: preferredModel,
           createdAt: now,
           updatedAt: now,
@@ -277,20 +284,27 @@ export const useChatStore = create<ChatState>()(
         const preferredModel =
           (card.modelId && card.modelId.trim()) || fallbackModel || DEFAULT_CHAT_MODEL
         const activeProj = useSettingsStore.getState().activeProjectId
+        const compiledSystemPrompt = compileCharacterSystemPrompt(card.systemPrompt, card.instructions);
         const characterMeta: ConversationCharacterMeta = {
           id: card.id,
           name: card.name,
           localCharacterId: card.id,
-          systemPrompt: card.systemPrompt,
+          systemPrompt: compiledSystemPrompt,
           modelId: card.modelId,
           adult: card.adult,
+          photoUrl: avatarDataUri(card.avatar),
         }
         const conv: Conversation = {
           id,
           title: `Chat with ${card.name || 'local character'}`,
           model: preferredModel,
-          systemPrompt: card.systemPrompt,
-          messages: [],
+          systemPrompt: compiledSystemPrompt,
+          messages: card.firstMessage ? [{
+            id: generateId(),
+            role: "assistant",
+            content: card.firstMessage,
+            timestamp: now,
+          }] : [],
           createdAt: now,
           updatedAt: now,
           metadata: {

@@ -6,6 +6,7 @@ import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
 import { StatusDot } from '../ui/shared'
 import { HeaderStatusCluster } from '../status/HeaderStatusCluster'
+import { BackgroundTaskCluster } from './BackgroundTaskCluster'
 
 import { resolveTab } from '../../config/tabs'
 import { formatModelLabelWithCost } from '../../utils/pricing'
@@ -25,7 +26,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   
   const tabDesc = resolveTab(activeTab)
-  const hasOwnSelector = !tabDesc?.modelType
+  const hasOwnSelector = tabDesc?.modelSelectorOwner === 'view' || !tabDesc?.modelType
   const modelType = tabDesc?.modelType || 'text'
   const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
   const activeConversationModel = activeTab === 'chat'
@@ -58,9 +59,18 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
         </svg>
       </button>
 
-      <div className="flex flex-col min-w-0">
-        <span className="text-[14px] font-semibold text-text-primary leading-none">{tabDesc?.label ?? activeTab}</span>
-        <span className="text-[11px] text-text-muted mt-0.5 leading-none truncate hidden sm:block">{tabDesc?.subtitle ?? ''}</span>
+      <div className="flex items-center gap-2 min-w-0">
+        {activeTab === 'chat' && activeConversationId && conversations.find(c => c.id === activeConversationId)?.metadata?.character?.photoUrl && (
+          <img
+            src={conversations.find(c => c.id === activeConversationId)!.metadata!.character!.photoUrl}
+            alt=""
+            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+          />
+        )}
+        <div className="flex flex-col min-w-0">
+          <span className="text-[14px] font-semibold text-text-primary leading-none">{tabDesc?.label ?? activeTab}</span>
+          <span className="text-[11px] text-text-muted mt-0.5 leading-none truncate hidden sm:block">{tabDesc?.subtitle ?? ''}</span>
+        </div>
       </div>
 
       {!hasOwnSelector && (
@@ -99,6 +109,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
 
       <div className="flex-1" />
 
+      <BackgroundTaskCluster />
       <HeaderStatusCluster />
 
       <button

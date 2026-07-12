@@ -69,6 +69,8 @@ export interface VeniceCharacter {
   updatedAt?: string;
   /** Public stats. */
   stats?: VeniceCharacterStats;
+  /** Optional greeting returned by the API */
+  greeting?: string;
 }
 
 /** Request payload for `GET /characters`. All fields are optional; the

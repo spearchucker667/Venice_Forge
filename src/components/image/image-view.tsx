@@ -135,6 +135,9 @@ export function ImageView() {
   const [enhancedPrompt, setEnhancedPrompt] = useState<string | null>(null)
   const [showEnhanceReview, setShowEnhanceReview] = useState(false)
 
+  // Template preview flow
+  const [previewTemplate, setPreviewTemplate] = useState<typeof PROMPT_TEMPLATES[number] | null>(null)
+
   // Prompt-enhancer config (renderer-bound snapshot of internal_prompt_enhancer).
   // When `enabled` is false, the enhance button is disabled and the
   // user is told why.
@@ -513,9 +516,9 @@ export function ImageView() {
         )}
       </div>
       <div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1.5 mb-1.5">
           <Label htmlFor={promptId} hint={`${prompt.length}/${promptLimit}`}>Prompt</Label>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => void handleSavePromptToLibrary('image', prompt)}
@@ -524,7 +527,7 @@ export function ImageView() {
               aria-label="Save prompt to library"
               data-testid="image-save-prompt-to-library"
             >
-              Save to library
+              Save prompt
             </button>
             <button
               type="button"
@@ -546,11 +549,7 @@ export function ImageView() {
                 if (val) {
                   const t = PROMPT_TEMPLATES.find(x => x.id === val);
                   if (t) {
-                    if (t.category === "negative") {
-                      setNegativePrompt((prev) => prev ? `${prev}, ${t.appendText}` : t.appendText);
-                    } else {
-                      setPromptClamped((prev) => prev ? `${prev}${t.appendText}` : t.appendText.replace(/^, /, ""));
-                    }
+                    setPreviewTemplate(t);
                   }
                   e.target.value = "";
                 }
@@ -582,12 +581,12 @@ export function ImageView() {
 
       {/* Enhance prompt review flow */}
       {showEnhanceReview && enhancedPrompt && (
-        <div className="p-3 rounded-lg border border-accent/30 bg-accent/5">
+        <div className="p-3 mt-2 rounded-lg border border-accent/30 bg-accent/5">
           <Label>Enhanced Prompt Preview</Label>
           <div className="text-[12.5px] text-text-primary mt-1 p-2 rounded bg-surface border border-border break-all whitespace-pre-wrap">
             {enhancedPrompt}
           </div>
-          <div className="flex gap-2 mt-2">
+          <div className="flex flex-wrap gap-2 mt-2">
             <button
               type="button"
               onClick={applyEnhancedPrompt}
@@ -601,6 +600,54 @@ export function ImageView() {
               className="px-3 py-1 text-[11.5px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               Keep original
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Template preview flow */}
+      {previewTemplate && (
+        <div className="p-3 mt-2 rounded-lg border border-accent/30 bg-accent/5">
+          <Label>Apply Template: {previewTemplate.label}</Label>
+          {previewTemplate.positiveText && (
+            <div className="text-[12.5px] text-text-primary mt-1 mb-2 p-2 rounded bg-surface border border-border break-all whitespace-pre-wrap">
+              <strong className="text-text-secondary">Positive:</strong> {previewTemplate.positiveText}
+            </div>
+          )}
+          {previewTemplate.negativeText && (
+            <div className="text-[12.5px] text-text-primary mt-1 mb-2 p-2 rounded bg-surface border border-border break-all whitespace-pre-wrap">
+              <strong className="text-text-secondary">Negative:</strong> {previewTemplate.negativeText}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (previewTemplate.positiveText) setPromptClamped((prev) => prev ? `${prev}${previewTemplate.positiveText}` : previewTemplate.positiveText!.replace(/^, /, ""));
+                if (previewTemplate.negativeText) setNegativePrompt((prev) => prev ? `${prev}, ${previewTemplate.negativeText}` : previewTemplate.negativeText!);
+                setPreviewTemplate(null);
+              }}
+              className="px-3 py-1 text-[11.5px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+            >
+              Append
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (previewTemplate.positiveText) setPromptClamped(previewTemplate.positiveText.replace(/^, /, ""));
+                if (previewTemplate.negativeText) setNegativePrompt(previewTemplate.negativeText!);
+                setPreviewTemplate(null);
+              }}
+              className="px-3 py-1 text-[11.5px] rounded-md border border-accent text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+            >
+              Replace
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewTemplate(null)}
+              className="px-3 py-1 text-[11.5px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+            >
+              Cancel
             </button>
           </div>
         </div>

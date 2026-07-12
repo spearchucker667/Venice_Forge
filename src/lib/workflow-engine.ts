@@ -84,14 +84,14 @@ function resolvePrompt(template: string, input: string): string {
 
 interface PollOptions<T> {
   path: string
-  id: string
+  buildRequestBody: () => Record<string, unknown>
   kind: string
   getStatus: (r: T) => string
   getResult: (r: T) => string | undefined
   signal?: AbortSignal
 }
 
-async function pollUntilDone<T>({ path, id, kind, getStatus, getResult, signal }: PollOptions<T>): Promise<string> {
+async function pollUntilDone<T>({ path, buildRequestBody, kind, getStatus, getResult, signal }: PollOptions<T>): Promise<string> {
   const queueStartedAt = Date.now();
   for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
@@ -121,7 +121,7 @@ async function pollUntilDone<T>({ path, id, kind, getStatus, getResult, signal }
     })
     const result = await venice<T>(path, {
       method: 'POST',
-      body: JSON.stringify({ id }),
+      body: JSON.stringify(buildRequestBody()),
       signal,
     })
     const status = getStatus(result).toLowerCase()
@@ -236,7 +236,7 @@ async function executeNode(
       })
       const url = await pollUntilDone<MusicRetrieveResponse>({
         path: '/audio/retrieve',
-        id: queueResp.queue_id,
+        buildRequestBody: () => ({ id: queueResp.queue_id }),
         kind: 'Audio',
         getStatus: (r) => r.status,
         getResult: (r) => r.audio_url,
@@ -262,7 +262,11 @@ async function executeNode(
       const videoId = queueResp.queue_id || queueResp.id || ''
       const url = await pollUntilDone<VideoRetrieveResponse>({
         path: '/video/retrieve',
-        id: videoId,
+        buildRequestBody: () => ({
+          model: data.model || DEFAULT_VIDEO_MODEL,
+          queue_id: videoId,
+          delete_media_on_completion: false
+        }),
         kind: 'Video',
         getStatus: (r) => r.status,
         getResult: (r) => r.video_url,

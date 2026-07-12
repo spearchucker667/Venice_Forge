@@ -66,6 +66,9 @@ Equivalent instructions are also present in
 observed regardless of which agent surface is in use.
 The `verify:agent-docs` contract enforces this parity.
 
+API Reference
+`/Users/super_user/Projects/Venice_Forge/docs/reference/Venice_swagger_api.yaml`
+`/Users/super_user/Projects/Venice_Forge/docs/reference/Venice_api_LLM_info.md`
 ---
 
 ## Commands

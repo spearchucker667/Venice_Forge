@@ -123,6 +123,7 @@ export function normalizeCharacter(raw: unknown): VeniceCharacter | null {
     createdAt: typeof r.createdAt === "string" ? r.createdAt : undefined,
     updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : undefined,
     stats,
+    greeting: typeof r.greeting === "string" ? r.greeting : undefined,
   };
 }
 

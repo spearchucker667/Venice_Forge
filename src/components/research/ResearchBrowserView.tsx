@@ -330,16 +330,27 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       // the WebContentsView in sync so it never drifts off the toolbar.
       scheduleUpdateBounds();
     };
+    const handleTransition = () => {
+      scheduleUpdateBounds();
+    };
+
     if (vv) {
       vv.addEventListener("resize", handleVisualViewportChange);
       vv.addEventListener("scroll", handleVisualViewportChange);
     }
+
+    window.addEventListener("transitionstart", handleTransition);
+    window.addEventListener("transitionend", handleTransition);
+    window.addEventListener("animationend", handleTransition);
 
     return () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
       if (debounceTimer !== null) clearTimeout(debounceTimer);
       window.removeEventListener("resize", handleWindowResize);
       window.removeEventListener("applyTheme:complete", handleThemeLayoutChange);
+      window.removeEventListener("transitionstart", handleTransition);
+      window.removeEventListener("transitionend", handleTransition);
+      window.removeEventListener("animationend", handleTransition);
       if (vv) {
         vv.removeEventListener("resize", handleVisualViewportChange);
         vv.removeEventListener("scroll", handleVisualViewportChange);
@@ -475,10 +486,19 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
             placeholder="Search or enter website"
             aria-label="Search or enter website"
           />
-          {browserState?.loading && (
+          {browserState?.loading ? (
             <div className="absolute right-3 flex items-center pointer-events-none">
               <svg className="w-4 h-4 animate-spin text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             </div>
+          ) : (
+            <button 
+              type="submit" 
+              className="absolute right-2 px-2 py-0.5 text-xs bg-[var(--surface-elevated)] border border-[var(--border)] rounded hover:bg-[var(--surface-muted)] transition-colors"
+              disabled={!address.trim()}
+              aria-label="Go"
+            >
+              Go
+            </button>
           )}
         </form>
 

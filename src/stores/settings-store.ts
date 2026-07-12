@@ -72,6 +72,14 @@ interface SettingsState {
   pendingSettingsSection: SettingsSection | null
   setPendingSettingsSection: (section: SettingsSection | null) => void
   
+  // Video Model canonical selection
+  selectedVideoModelGroup: string | null
+  setSelectedVideoModelGroup: (group: string | null) => void
+  selectedVideoMode: string | null
+  setSelectedVideoMode: (mode: string | null) => void
+  selectedVideoModelId: string | null
+  setSelectedVideoModelId: (modelId: string | null) => void
+  
   // Theme settings
   selectedThemeId: string
   setSelectedThemeId: (id: string) => void
@@ -138,6 +146,13 @@ export const useSettingsStore = create<SettingsState>()(
         set((s) => ({ selectedModels: { ...s.selectedModels, [tab]: modelId } })),
       playgroundAgentModel: '',
       setPlaygroundAgentModel: (modelId) => set({ playgroundAgentModel: modelId }),
+
+      selectedVideoModelGroup: null,
+      setSelectedVideoModelGroup: (group) => set({ selectedVideoModelGroup: group }),
+      selectedVideoMode: null,
+      setSelectedVideoMode: (mode) => set({ selectedVideoMode: mode }),
+      selectedVideoModelId: null,
+      setSelectedVideoModelId: (modelId) => set({ selectedVideoModelId: modelId }),
 
       // Theme settings defaults
       selectedThemeId: 'builtin-venice',
@@ -206,6 +221,10 @@ export const useSettingsStore = create<SettingsState>()(
           // against a hand-edited localStorage entry by coercing back to null.
           pendingSettingsSection: coerceSettingsSection(state.pendingSettingsSection),
           syncFolderPath: state.syncFolderPath ?? '',
+          
+          selectedVideoModelGroup: state.selectedVideoModelGroup ?? null,
+          selectedVideoMode: state.selectedVideoMode ?? null,
+          selectedVideoModelId: state.selectedVideoModelId ?? null,
         } as SettingsState
       },
       merge: (persisted, current) => ({

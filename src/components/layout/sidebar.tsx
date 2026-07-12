@@ -692,9 +692,16 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
         type="button"
         onClick={onSelect}
         aria-current={isActive ? 'page' : undefined}
-        className="min-w-0 flex-1 truncate text-left rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
+        className="min-w-0 flex flex-1 items-center gap-2 truncate text-left rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
       >
-        {getConversationDisplayTitle(conv)}
+        {conv.metadata?.character?.photoUrl && (
+          <img
+            src={conv.metadata.character.photoUrl}
+            alt=""
+            className="w-4 h-4 rounded-full object-cover flex-shrink-0"
+          />
+        )}
+        <span className="truncate">{getConversationDisplayTitle(conv)}</span>
       </button>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <button

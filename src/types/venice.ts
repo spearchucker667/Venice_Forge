@@ -252,6 +252,12 @@ export interface VideoQueueResponse {
   id?: string
 }
 
+export interface VideoRetrieveRequest {
+  model: string
+  queue_id: string
+  delete_media_on_completion?: boolean
+}
+
 export interface VideoRetrieveResponse {
   id: string
   status: 'queued' | 'processing' | 'completed' | 'failed'

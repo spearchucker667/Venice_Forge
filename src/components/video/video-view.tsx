@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback, useId } from 'react'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
+import { useSettingsStore } from '../../stores/settings-store'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
@@ -20,8 +21,12 @@ export function VideoView() {
   const aspectId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const { groups, isLoading: modelsLoading } = useVideoModels()
-  const [selectedGroup, setSelectedGroup] = useState<string>('')
-  const [mode, setMode] = useState<'text' | 'image'>('text')
+  const selectedGroup = useSettingsStore(s => s.selectedVideoModelGroup)
+  const setSelectedGroup = useSettingsStore(s => s.setSelectedVideoModelGroup)
+  const selectedMode = useSettingsStore(s => s.selectedVideoMode)
+  const setSelectedMode = useSettingsStore(s => s.setSelectedVideoMode)
+  const mode = selectedMode || 'text'
+  const setMode = setSelectedMode
 
   const [prompt, setPrompt] = useState('')
   const [negativePrompt, setNegativePrompt] = useState('')
@@ -44,6 +49,11 @@ export function VideoView() {
 
   const activeModel = mode === 'image' ? group?.imageModel : group?.textModel
   const constraints = activeModel?.model_spec?.constraints as VideoConstraints | undefined
+
+  const setSelectedModelId = useSettingsStore(s => s.setSelectedVideoModelId)
+  useEffect(() => {
+    if (activeModel?.id) setSelectedModelId(activeModel.id)
+  }, [activeModel, setSelectedModelId])
 
   // Auto-select first group when models load
   const currentGroupName = group?.name || ''

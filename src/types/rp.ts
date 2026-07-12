@@ -571,3 +571,12 @@ export function normalizeScenario(input: unknown): ScenarioV1 | null {
 
 /** Maximum number of scenarios allowed in a list. */
 export const MAX_LIST_SCENARIOS = 1_000;
+
+export type CharacterPresetSource = "venice-hosted" | "local" | "imported";
+
+export interface CharacterPreset {
+  id: string;
+  source: CharacterPresetSource;
+  slug?: string;
+  card?: CharacterCardV1;
+}

@@ -28,6 +28,7 @@ import { toast } from "../../stores/toast-store";
 import { copyText } from "../../stores/media-send-to";
 import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
 import { useChatStore } from "../../stores/chat-store";
+import { PromptCreateModal } from "./PromptCreateModal";
 
 const KIND_OPTIONS: Array<{ value: PromptKind; label: string }> = [
   { value: "image", label: "Image" },
@@ -73,6 +74,8 @@ export function PromptLibraryView() {
   useEffect(() => {
     void ensureLoaded();
   }, [ensureLoaded]);
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const [kindFilter, setKindFilter] = useState<PromptKind | "all">("all");
   const [scopeFilter, setScopeFilter] = useState<PromptScope | "all">("all");
@@ -150,7 +153,7 @@ export function PromptLibraryView() {
   return (
     <div className="flex h-full w-full min-h-0 text-text-primary">
       <aside
-        className="w-[340px] shrink-0 soft-separator-x mesh-surface flex flex-col min-h-0"
+        className="w-[clamp(280px,30%,400px)] shrink-0 soft-separator-x mesh-surface flex flex-col min-h-0"
         data-testid="prompt-library-list-pane"
       >
         <div className="px-3 py-2 soft-separator-y mesh-header mesh-surface space-y-2">
@@ -158,15 +161,7 @@ export function PromptLibraryView() {
             <h2 className="text-[14px] font-semibold">Prompt Library</h2>
             <button
               type="button"
-              onClick={async () => {
-                const created = await createPrompt({
-                  title: "Untitled prompt",
-                  kind: "general",
-                  content: "(empty draft — replace with your prompt)",
-                  scope: "global",
-                });
-                setActivePrompt(created.id);
-              }}
+              onClick={() => setIsCreateModalOpen(true)}
               className="ml-auto rounded-md border border-border px-2 py-1 text-[11.5px] hover:border-accent hover:text-accent"
               data-testid="prompt-library-new"
             >
@@ -285,7 +280,7 @@ export function PromptLibraryView() {
                         {p.favorite ? "★ " : ""}
                         {p.title}
                       </span>
-                      <span className="ml-auto text-[10.5px] uppercase tracking-wide text-text-muted">
+                      <span className="ml-auto text-[10px] uppercase tracking-wider text-text-muted bg-surface-elevated px-1.5 py-0.5 rounded border border-border">
                         {p.kind}
                       </span>
                     </div>
@@ -294,8 +289,12 @@ export function PromptLibraryView() {
                       {p.versions.length} version{p.versions.length === 1 ? "" : "s"}
                     </div>
                     {p.tags.length > 0 && (
-                      <div className="text-[10.5px] text-text-muted mt-0.5 truncate">
-                        {p.tags.map((t) => `#${t}`).join(" ")}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {p.tags.map((t) => (
+                          <span key={t} className="text-[9.5px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full border border-accent/20">
+                            #{t}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </button>
@@ -367,6 +366,19 @@ export function PromptLibraryView() {
           </div>
         )}
       </section>
+      {isCreateModalOpen && (
+        <PromptCreateModal
+          onClose={() => setIsCreateModalOpen(false)}
+          onCreate={async (data) => {
+            const created = await createPrompt({
+              ...data,
+              source: { type: "manual" },
+            });
+            setActivePrompt(created.id);
+            toast.success("Prompt created");
+          }}
+        />
+      )}
     </div>
   );
 }

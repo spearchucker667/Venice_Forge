@@ -352,6 +352,16 @@ if (!gotLock) {
   });
 
   app.on("web-contents-created", (_event, contents) => {
+    // Exclude research browser WebContents from the global policy
+    // so it can handle its own in-app navigation and links.
+    const researchBrowserSessions = [
+      session.fromPartition("venice-forge-research-browser"),
+      session.fromPartition("persist:venice-forge-research-browser"),
+    ];
+    if (researchBrowserSessions.includes(contents.session)) {
+      return;
+    }
+
     contents.on("will-navigate", (event, url) => {
       if (isAllowedAppNavigation(url)) return;
       event.preventDefault();

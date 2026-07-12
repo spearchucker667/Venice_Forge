@@ -443,3 +443,19 @@ function traceKindContent(
 export function compileSystemPrompt(input: RpCompileInput): string {
   return compileRpPrompt(input).systemPrompt;
 }
+
+/**
+ * Compiles a character system prompt by replacing %%CHARACTER_INSTRUCTIONS%%
+ * or prepending the instructions if the template is not found.
+ */
+export function compileCharacterSystemPrompt(
+  systemPrompt: string,
+  instructions?: string,
+): string {
+  const userInst = instructions?.trim() ?? "";
+  if (!userInst) return systemPrompt;
+  if (systemPrompt.includes("%%CHARACTER_INSTRUCTIONS%%")) {
+    return systemPrompt.replace("%%CHARACTER_INSTRUCTIONS%%", userInst);
+  }
+  return `${userInst}\n\n${systemPrompt}`;
+}

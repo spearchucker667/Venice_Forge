@@ -1,6 +1,5 @@
 # Source: https://api.venice.ai/doc/api/swagger.yaml
 # Retrieved: 2026-06-17
-# Diff summary: Refreshed from current Venice OpenAPI YAML; canonical path retained.
 externalDocs:
   description: Venice.ai API documentation
   url: https://docs.venice.ai
@@ -8,7 +7,7 @@ info:
   description: The Venice.ai API.
   termsOfService: https://venice.ai/legal/tos
   title: Venice.ai API
-  version: "20260617.063120"
+  version: "20260709.204640"
   x-guidance: >-
     Venice.ai is an OpenAI-compatible inference API supporting text, image,
     audio, and video generation.
@@ -2706,6 +2705,13 @@ components:
             image. Only supported by certain models. If web search is used,
             additional credits are getting charged.
           example: false
+        disable_prompt_optimization_thinking:
+          type: boolean
+          description: Skip the model's prompt-optimization thinking step for faster
+            generation. Only supported by models with
+            `supportsOptimizePromptThinking`; ignored by others. Omit to use the
+            model default.
+          example: false
         width:
           type: integer
           minimum: 0
@@ -2840,33 +2846,14 @@ components:
     UpscaleImageRequest:
       type: object
       properties:
-        enhance:
-          anyOf:
-            - type: boolean
-            - type: string
-              enum:
-                - "true"
-                - "false"
-          default: "false"
-          description: Whether to enhance the image using Venice's image engine during
-            upscaling. Must be true if scale is 1.
-          example: true
-        enhanceCreativity:
+        creativity:
           type: number
           nullable: true
-          minimum: 0
-          maximum: 1
-          default: 0.5
-          description: Higher values let the enhancement AI change the image more. Setting
-            this to 1 effectively creates an entirely new image.
-          example: 0.5
-        enhancePrompt:
-          type: string
-          maxLength: 1500
-          description: The text to image style to apply during prompt enhancement. Does
-            best with short descriptive prompts, like gold, marble or angry,
-            menacing.
-          example: gold
+          default: 0.01
+          description: How much detail and texture the upscaler adds. Higher values add
+            more; lower values stay closer to the source. Clamped to the 0–0.02
+            range.
+          example: 0.01
         image:
           anyOf:
             - {}
@@ -2875,36 +2862,21 @@ components:
             base64-encoded string. Image dimensions must be at least 65536
             pixels and final dimensions after scaling must not exceed 16777216
             pixels. File size must be less than 25MB.
-        replication:
-          type: number
-          nullable: true
-          minimum: 0
-          maximum: 1
-          default: 0.35
-          description: How strongly lines and noise in the base image are preserved.
-            Higher values are noisier but less plastic/AI
-            "generated"/hallucinated. Must be between 0 and 1.
-          example: 0.35
         scale:
           type: number
-          minimum: 1
+          minimum: 2
           maximum: 4
           default: 2
-          description: The scale factor for upscaling the image. Must be a number between
-            1 and 4. Scale of 1 requires enhance to be set true and will only
-            run the enhancer. Scale must be > 1 if enhance is false. A scale of
-            4 with large images will result in the scale being dynamically set
-            to ensure the final image stays within the maximum size limits.
+          description: The scale factor for upscaling the image. Must be either 2 or 4. A
+            scale of 4 with large images will result in the scale being
+            dynamically reduced to ensure the final image stays within the
+            maximum size limits.
           example: 2
       required:
         - image
-      additionalProperties: false
-      description: Upscale or enhance an image based on the supplied parameters. Using
-        a scale of 1 with enhance enabled will only run the enhancer.
+      description: Upscale an image to a higher resolution.
       example:
-        enhance: true
-        enhanceCreativity: 0.5
-        enhancePrompt: gold
+        creativity: 0.01
         image: iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAIAAAB7GkOtAAAAIGNIUk0A...
         scale: 2
     EditImageRequest:
@@ -3073,6 +3045,13 @@ components:
           description: Whether to use safe mode. If enabled, this will blur images that
             are classified as having adult content.
           example: false
+        disable_prompt_optimization_thinking:
+          type: boolean
+          description: Skip the model's prompt-optimization thinking step for faster
+            generation. Only supported by models with
+            `supportsOptimizePromptThinking`; ignored by others. Omit to use the
+            model default.
+          example: false
       required:
         - prompt
         - images
@@ -3153,6 +3132,13 @@ components:
           default: true
           description: Whether to use safe mode. If enabled, this will blur images that
             are classified as having adult content.
+          example: false
+        disable_prompt_optimization_thinking:
+          type: boolean
+          description: Skip the model's prompt-optimization thinking step for faster
+            generation. Only supported by models with
+            `supportsOptimizePromptThinking`; ignored by others. Omit to use the
+            model default.
           example: false
       required:
         - prompt
@@ -3701,6 +3687,7 @@ components:
         duration:
           type: string
           enum:
+            - 1s
             - 2s
             - 3s
             - 4s
@@ -3880,6 +3867,7 @@ components:
         duration:
           type: string
           enum:
+            - 1s
             - 2s
             - 3s
             - 4s
@@ -4303,8 +4291,11 @@ components:
       properties:
         warningMessage:
           type: string
-          description: A warning message to disambiguate DIEM usage from legacy DIEM
-            (formerly VCU) usage
+          enum:
+            - This endpoint is deprecated and will be removed in a future
+              release. Use GET /api/v1/billing/usage-history instead, which
+              provides the same data with keyset pagination.
+          description: Deprecation notice naming the replacement endpoint
         data:
           type: array
           items:
@@ -4392,11 +4383,15 @@ components:
             - total
             - totalPages
       required:
+        - warningMessage
         - data
         - pagination
       additionalProperties: false
       description: The response schema for the billing usage endpoint
       example:
+        warningMessage: This endpoint is deprecated and will be removed in a future
+          release. Use GET /api/v1/billing/usage-history instead, which provides
+          the same data with keyset pagination.
         data:
           - amount: -0.1
             currency: DIEM
@@ -4648,6 +4643,165 @@ components:
         topKeyNames:
           - Production Key
           - Web App
+    BillingUsageHistoryRequest:
+      type: object
+      properties:
+        currency:
+          type: string
+          enum:
+            - USD
+            - DIEM
+            - BUNDLED_CREDITS
+          description: Filter by consumable currency
+          example: USD
+        cursor:
+          type: string
+          maxLength: 512
+          pattern: ^[A-Za-z0-9_-]+$
+          description: Opaque continuation token from a previous response's nextCursor.
+            The cursor carries the filters of the walk it continues, so no
+            filter parameters may be sent alongside it.
+          example: AZq3fK9tXhIVDm2j4vN8cQwYt1sB6uEoLxRgPzKaJdHfM5nC7yW0K3w
+        endTimestamp:
+          type: string
+          maxLength: 40
+          format: date-time
+          description: Exclusive upper bound on entry timestamps (ISO 8601 UTC, "Z"
+            suffix). Must be later than startTimestamp; consecutive windows
+            sharing a boundary walk the history without gaps or overlaps.
+            Carried forward by the cursor.
+          example: 2026-07-01T00:00:00Z
+        pageSize:
+          type: integer
+          minimum: 10
+          maximum: 1000
+          default: 1000
+          description: Number of entries per page. Carried forward by the cursor.
+          example: 1000
+        startTimestamp:
+          type: string
+          maxLength: 40
+          format: date-time
+          description: 'Inclusive lower bound on entry timestamps (ISO 8601 UTC, "Z"
+            suffix). First page only: a continuation resumes from the cursor
+            position instead.'
+          example: 2026-06-01T00:00:00Z
+    BillingUsageHistoryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              amount:
+                type: number
+                description: The total amount charged for the billing usage entry
+              currency:
+                type: string
+                enum:
+                  - USD
+                  - DIEM
+                  - BUNDLED_CREDITS
+                description: The currency charged for the billing usage entry
+                example: USD
+              inferenceDetails:
+                type: object
+                nullable: true
+                properties:
+                  completionTokens:
+                    type: integer
+                    nullable: true
+                    minimum: 0
+                    description: Number of tokens used in the completion. null for non-LLM usage or
+                      when the count was not recorded.
+                  inferenceExecutionTime:
+                    type: integer
+                    nullable: true
+                    minimum: 0
+                    description: Time taken for inference execution in milliseconds. null when the
+                      timing was not recorded.
+                  promptTokens:
+                    type: integer
+                    nullable: true
+                    minimum: 0
+                    description: Number of tokens requested in the prompt. null for non-LLM usage or
+                      when the count was not recorded.
+                  requestId:
+                    type: string
+                    description: Unique identifier for the inference request
+                required:
+                  - completionTokens
+                  - inferenceExecutionTime
+                  - promptTokens
+                  - requestId
+                additionalProperties: false
+                description: Details about the related inference request, if applicable
+              notes:
+                type: string
+                description: Notes about the billing usage entry
+              pricePerUnitUsd:
+                type: number
+                description: The price per unit in USD
+              sku:
+                type: string
+                description: The product associated with the billing usage entry
+              timestamp:
+                type: string
+                maxLength: 40
+                format: date-time
+                description: The timestamp the billing usage entry was created (ISO 8601)
+                example: 2026-06-15T19:05:10.504Z
+              units:
+                type: number
+                description: The number of units consumed
+            required:
+              - amount
+              - currency
+              - inferenceDetails
+              - notes
+              - pricePerUnitUsd
+              - sku
+              - timestamp
+              - units
+            additionalProperties: false
+          maxItems: 1000
+          description: Usage entries in ascending timestamp order
+        nextCursor:
+          type: string
+          nullable: true
+          maxLength: 512
+          pattern: ^[A-Za-z0-9_-]+$
+          description: Continuation token for the next page, to be sent as the cursor
+            query parameter. null means this is the last page.
+      required:
+        - data
+        - nextCursor
+      additionalProperties: false
+      description: The response schema for the billing usage history endpoint
+      example:
+        data:
+          - amount: -0.1
+            currency: DIEM
+            inferenceDetails: null
+            notes: API Inference
+            pricePerUnitUsd: 0.1
+            sku: grok-imagine-image-image-unit
+            timestamp: 2026-06-14T19:52:45.087Z
+            units: 1
+          - amount: -0.06356
+            currency: DIEM
+            inferenceDetails:
+              completionTokens: 227
+              inferenceExecutionTime: 2964
+              promptTokens: 339
+              requestId: chatcmpl-4007fd29f42b7d3c4107f4345e8d174a
+            notes: API Inference
+            pricePerUnitUsd: 2.8
+            sku: zai-org-glm-5-1-llm-output-mtoken
+            timestamp: 2026-06-15T19:05:10.504Z
+            units: 0.000227
+        nextCursor: AZq3fK9tXhIVDm2j4vN8cQwYt1sB6uEoLxRgPzKaJdHfM5nC7yW0K3w
     WebScrapeRequest:
       type: object
       properties:
@@ -4720,7 +4874,7 @@ components:
               description: The maximum number of completion tokens the model can generate. Use
                 this to know the upper bound for the max_completion_tokens
                 request parameter. Only applicable for text models.
-              example: 24000
+              example: 131072
             beta:
               type: boolean
               description: Is this model restricted to beta users only? If true, only users
@@ -5625,6 +5779,34 @@ components:
                         4K:
                           usd: 0.85
                           diem: 0.85
+                    inputImages:
+                      type: object
+                      properties:
+                        included:
+                          type: number
+                          description: Number of input images included in the base price. Each additional
+                            input image adds the "additional" cost.
+                          example: 1
+                        additional:
+                          type: object
+                          properties:
+                            usd:
+                              type: number
+                              description: USD cost per additional input image beyond the included count
+                              example: 0.0045
+                            diem:
+                              type: number
+                              description: Diem cost per additional input image beyond the included count
+                              example: 0.0045
+                          required:
+                            - usd
+                            - diem
+                      required:
+                        - included
+                        - additional
+                      description: Input-image pricing. The base price covers "included" input images;
+                        each additional input image adds the "additional" cost
+                        per output image.
                     quality:
                       type: object
                       additionalProperties:
@@ -5897,13 +6079,10 @@ components:
                 - retention_days
               additionalProperties: false
               description: Voice-cloning capability. Only present for TTS models whose cloning
-                endpoint is publicly available — pass the model to POST
+                endpoint is available to the caller — pass the model to POST
                 /v1/audio/voices to mint a `vv_<id>` voice handle, then pass
                 that handle back as the `voice` parameter on POST
-                /v1/audio/speech alongside the same `model`. Models with cloning
-                gated behind a private alpha (e.g. MiniMax during the
-                biometric-data legal review) omit this field for non-staff
-                callers; the model itself still appears in the listing.
+                /v1/audio/speech alongside the same `model`.
               title: TTS Voice Cloning
             default_voice:
               type: string
@@ -7646,10 +7825,9 @@ paths:
   /image/upscale:
     post:
       description: >-
-        Upscale or enhance an image based on the supplied parameters. Using a
-        scale of 1 with enhance enabled will only run the enhancer. The image
-        can be provided either as a multipart form-data file upload or as a
-        base64-encoded string in a JSON request.
+        Upscale an image to a higher resolution. The image can be provided
+        either as a multipart form-data file upload or as a base64-encoded
+        string in a JSON request.
 
 
         **Authentication:** This endpoint accepts either a Bearer API key or a
@@ -7807,7 +7985,6 @@ paths:
                       type: string
                       enum:
                         - firered-image-edit
-                        - qwen-edit
                         - qwen-edit-uncensored
                         - grok-imagine-edit
                         - grok-imagine-quality-edit
@@ -7819,7 +7996,11 @@ paths:
                         - gpt-image-1-5-edit
                         - nano-banana-2-edit
                         - nano-banana-pro-edit
+                        - nano-banana-2-lite-edit
+                        - luma-uni-1-edit
+                        - luma-uni-1-max-edit
                         - seedream-v5-lite-edit
+                        - seedream-v5-pro-edit
                         - seedream-v4-edit
           multipart/form-data:
             schema:
@@ -7831,7 +8012,6 @@ paths:
                       type: string
                       enum:
                         - firered-image-edit
-                        - qwen-edit
                         - qwen-edit-uncensored
                         - grok-imagine-edit
                         - grok-imagine-quality-edit
@@ -7843,7 +8023,11 @@ paths:
                         - gpt-image-1-5-edit
                         - nano-banana-2-edit
                         - nano-banana-pro-edit
+                        - nano-banana-2-lite-edit
+                        - luma-uni-1-edit
+                        - luma-uni-1-max-edit
                         - seedream-v5-lite-edit
+                        - seedream-v5-pro-edit
                         - seedream-v4-edit
       security:
         - BearerAuth: []
@@ -8050,7 +8234,6 @@ paths:
                       type: string
                       enum:
                         - firered-image-edit
-                        - qwen-edit
                         - qwen-edit-uncensored
                         - grok-imagine-edit
                         - grok-imagine-quality-edit
@@ -8062,7 +8245,9 @@ paths:
                         - gpt-image-1-5-edit
                         - nano-banana-2-edit
                         - nano-banana-pro-edit
+                        - nano-banana-2-lite-edit
                         - seedream-v5-lite-edit
+                        - seedream-v5-pro-edit
                         - seedream-v4-edit
           multipart/form-data:
             schema:
@@ -8074,7 +8259,6 @@ paths:
                       type: string
                       enum:
                         - firered-image-edit
-                        - qwen-edit
                         - qwen-edit-uncensored
                         - grok-imagine-edit
                         - grok-imagine-quality-edit
@@ -8086,7 +8270,9 @@ paths:
                         - gpt-image-1-5-edit
                         - nano-banana-2-edit
                         - nano-banana-pro-edit
+                        - nano-banana-2-lite-edit
                         - seedream-v5-lite-edit
+                        - seedream-v5-pro-edit
                         - seedream-v4-edit
       security:
         - BearerAuth: []
@@ -8724,7 +8910,7 @@ paths:
                               properties:
                                 usd:
                                   type: string
-                                  description: USD usage in the trailing 7 days
+                                  description: USD budget usage in the trailing 7 days, including bundled credits
                                   example: "10.2424"
                                 vcu:
                                   type: string
@@ -8746,7 +8932,8 @@ paths:
                           properties:
                             usd:
                               type: string
-                              description: USD usage in the current limit period
+                              description: USD budget usage in the current limit period, including bundled
+                                credits
                               example: "5.1234"
                             diem:
                               type: string
@@ -8908,7 +9095,8 @@ paths:
                   example: MONTH
                 description:
                   type: string
-                  description: The API Key description
+                  maxLength: 64
+                  description: The API Key description (max 64 characters)
                   example: Example API Key
                 expiresAt:
                   anyOf:
@@ -9127,7 +9315,8 @@ paths:
                   example: MONTH
                 description:
                   type: string
-                  description: The API Key description
+                  maxLength: 64
+                  description: The API Key description (max 64 characters)
                   example: Updated API Key Name
                 expiresAt:
                   anyOf:
@@ -9410,7 +9599,7 @@ paths:
                             properties:
                               usd:
                                 type: string
-                                description: USD usage in the trailing 7 days
+                                description: USD budget usage in the trailing 7 days, including bundled credits
                                 example: "10.2424"
                               vcu:
                                 type: string
@@ -9432,7 +9621,8 @@ paths:
                         properties:
                           usd:
                             type: string
-                            description: USD usage in the current limit period
+                            description: USD budget usage in the current limit period, including bundled
+                              credits
                             example: "5.1234"
                           diem:
                             type: string
@@ -11166,6 +11356,7 @@ paths:
         samples. Zero-shot: no persistent voice template is derived; the
         reference audio is uploaded to a TTL’d storage object and re-read on
         each synthesis call. Handles expire automatically after 7 days.
+        Available to regular users.
 
 
         - `tts-minimax-speech-02-hd` (MiniMax) — accepts MP3 and WAV only.
@@ -12727,8 +12918,11 @@ paths:
                 $ref: "#/components/schemas/StandardError"
   /billing/usage:
     get:
-      description: "Get paginated billing usage data for the authenticated user. NOTE:
-        This is a beta endpoint and may be subject to change."
+      deprecated: true
+      description: "Get paginated billing usage data for the authenticated user.
+        DEPRECATED: This endpoint will be removed in a future release. Use GET
+        /api/v1/billing/usage-history instead, which provides the same data with
+        keyset pagination."
       operationId: getBillingUsage
       parameters:
         - description: Accept header to specify the response format
@@ -12804,6 +12998,16 @@ paths:
         "200":
           description: Successful response
           headers:
+            Deprecation:
+              schema:
+                description: RFC 9745 date at which the endpoint was deprecated
+                example: "@1783555200"
+                type: string
+            Link:
+              schema:
+                description: Points to the replacement endpoint
+                example: </api/v1/billing/usage-history>; rel="successor-version"
+                type: string
             Content-Disposition:
               schema:
                 description: attachment; filename=billing_usage.csv
@@ -12836,8 +13040,12 @@ paths:
                 properties:
                   warningMessage:
                     type: string
-                    description: A warning message to disambiguate DIEM usage from legacy DIEM
-                      (formerly VCU) usage
+                    enum:
+                      - This endpoint is deprecated and will be removed in a
+                        future release. Use GET /api/v1/billing/usage-history
+                        instead, which provides the same data with keyset
+                        pagination.
+                    description: Deprecation notice naming the replacement endpoint
                   data:
                     type: array
                     items:
@@ -12925,11 +13133,15 @@ paths:
                       - total
                       - totalPages
                 required:
+                  - warningMessage
                   - data
                   - pagination
                 additionalProperties: false
                 description: The response schema for the billing usage endpoint
                 example:
+                  warningMessage: This endpoint is deprecated and will be removed in a future
+                    release. Use GET /api/v1/billing/usage-history instead,
+                    which provides the same data with keyset pagination.
                   data:
                     - amount: -0.1
                       currency: DIEM
@@ -12962,18 +13174,51 @@ paths:
                 type: string
         "400":
           description: Invalid request parameters
+          headers:
+            Deprecation:
+              schema:
+                description: RFC 9745 date at which the endpoint was deprecated
+                example: "@1783555200"
+                type: string
+            Link:
+              schema:
+                description: Points to the replacement endpoint
+                example: </api/v1/billing/usage-history>; rel="successor-version"
+                type: string
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/DetailedError"
         "401":
           description: Authentication failed
+          headers:
+            Deprecation:
+              schema:
+                description: RFC 9745 date at which the endpoint was deprecated
+                example: "@1783555200"
+                type: string
+            Link:
+              schema:
+                description: Points to the replacement endpoint
+                example: </api/v1/billing/usage-history>; rel="successor-version"
+                type: string
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/StandardError"
         "500":
           description: Inference processing failed
+          headers:
+            Deprecation:
+              schema:
+                description: RFC 9745 date at which the endpoint was deprecated
+                example: "@1783555200"
+                type: string
+            Link:
+              schema:
+                description: Points to the replacement endpoint
+                example: </api/v1/billing/usage-history>; rel="successor-version"
+                type: string
           content:
             application/json:
               schema:
@@ -13258,6 +13503,243 @@ paths:
                     description: Error message indicating query timeout
                     type: string
                 type: object
+  /billing/usage-history:
+    get:
+      description: Get billing usage data for the authenticated user as a
+        cursor-paginated walk in ascending timestamp order. The first request
+        takes filter parameters; while more entries remain, each response
+        carries a nextCursor token that fetches the next page. A continuation
+        request sends the cursor and nothing else — the filters travel inside
+        the cursor, and filter parameters sent alongside one are rejected. A
+        rejected cursor (expired, tampered with, or issued to another user)
+        yields a 400 response; restart the walk from the first page. Page
+        contents are stable while new usage is recorded, and no result totals
+        are reported. Include text/csv in the Accept header to receive the page
+        as a CSV export instead of JSON.
+      operationId: getBillingUsageHistory
+      summary: /api/v1/billing/usage-history
+      tags:
+        - Billing
+      parameters:
+        - schema:
+            type: string
+            enum:
+              - USD
+              - DIEM
+              - BUNDLED_CREDITS
+            description: Filter by consumable currency
+            example: USD
+          required: false
+          name: currency
+          in: query
+        - schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+            description: Opaque continuation token from a previous response's nextCursor.
+              The cursor carries the filters of the walk it continues, so no
+              filter parameters may be sent alongside it.
+            example: AZq3fK9tXhIVDm2j4vN8cQwYt1sB6uEoLxRgPzKaJdHfM5nC7yW0K3w
+          required: false
+          name: cursor
+          in: query
+        - schema:
+            type: string
+            maxLength: 40
+            format: date-time
+            description: Exclusive upper bound on entry timestamps (ISO 8601 UTC, "Z"
+              suffix). Must be later than startTimestamp; consecutive windows
+              sharing a boundary walk the history without gaps or overlaps.
+              Carried forward by the cursor.
+            example: 2026-07-01T00:00:00Z
+          required: false
+          name: endTimestamp
+          in: query
+        - schema:
+            type: integer
+            minimum: 10
+            maximum: 1000
+            default: 1000
+            description: Number of entries per page. Carried forward by the cursor.
+            example: 1000
+          required: false
+          name: pageSize
+          in: query
+        - schema:
+            type: string
+            maxLength: 40
+            format: date-time
+            description: 'Inclusive lower bound on entry timestamps (ISO 8601 UTC, "Z"
+              suffix). First page only: a continuation resumes from the cursor
+              position instead.'
+            example: 2026-06-01T00:00:00Z
+          required: false
+          name: startTimestamp
+          in: query
+      responses:
+        "200":
+          description: Successful response
+          headers:
+            Content-Disposition:
+              schema:
+                description: "CSV responses only: attachment whose filename is stamped with the
+                  export time (UTC, compact ISO 8601), so each page of a paged
+                  walk downloads under a unique name and filenames sort in walk
+                  order"
+                example: attachment; filename=billing-usage-history-20260708T091530123Z.csv
+                pattern: ^attachment; filename=billing-usage-history-\d{8}T\d{9}Z\.csv$
+                type: string
+            x-next-cursor:
+              schema:
+                description: "CSV responses only: continuation token for the next page, sent as
+                  the cursor query parameter. Absent when this is the last page.
+                  JSON responses carry the token in the nextCursor body field
+                  instead."
+                example: AZq3fK9tXhIVDm2j4vN8cQwYt1sB6uEoLxRgPzKaJdHfM5nC7yW0K3w
+                maxLength: 512
+                minLength: 1
+                pattern: ^[A-Za-z0-9_-]+$
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        amount:
+                          type: number
+                          description: The total amount charged for the billing usage entry
+                        currency:
+                          type: string
+                          enum:
+                            - USD
+                            - DIEM
+                            - BUNDLED_CREDITS
+                          description: The currency charged for the billing usage entry
+                          example: USD
+                        inferenceDetails:
+                          type: object
+                          nullable: true
+                          properties:
+                            completionTokens:
+                              type: integer
+                              nullable: true
+                              minimum: 0
+                              description: Number of tokens used in the completion. null for non-LLM usage or
+                                when the count was not recorded.
+                            inferenceExecutionTime:
+                              type: integer
+                              nullable: true
+                              minimum: 0
+                              description: Time taken for inference execution in milliseconds. null when the
+                                timing was not recorded.
+                            promptTokens:
+                              type: integer
+                              nullable: true
+                              minimum: 0
+                              description: Number of tokens requested in the prompt. null for non-LLM usage or
+                                when the count was not recorded.
+                            requestId:
+                              type: string
+                              description: Unique identifier for the inference request
+                          required:
+                            - completionTokens
+                            - inferenceExecutionTime
+                            - promptTokens
+                            - requestId
+                          additionalProperties: false
+                          description: Details about the related inference request, if applicable
+                        notes:
+                          type: string
+                          description: Notes about the billing usage entry
+                        pricePerUnitUsd:
+                          type: number
+                          description: The price per unit in USD
+                        sku:
+                          type: string
+                          description: The product associated with the billing usage entry
+                        timestamp:
+                          type: string
+                          maxLength: 40
+                          format: date-time
+                          description: The timestamp the billing usage entry was created (ISO 8601)
+                          example: 2026-06-15T19:05:10.504Z
+                        units:
+                          type: number
+                          description: The number of units consumed
+                      required:
+                        - amount
+                        - currency
+                        - inferenceDetails
+                        - notes
+                        - pricePerUnitUsd
+                        - sku
+                        - timestamp
+                        - units
+                      additionalProperties: false
+                    maxItems: 1000
+                    description: Usage entries in ascending timestamp order
+                  nextCursor:
+                    type: string
+                    nullable: true
+                    maxLength: 512
+                    pattern: ^[A-Za-z0-9_-]+$
+                    description: Continuation token for the next page, to be sent as the cursor
+                      query parameter. null means this is the last page.
+                required:
+                  - data
+                  - nextCursor
+                additionalProperties: false
+                description: The response schema for the billing usage history endpoint
+                example:
+                  data:
+                    - amount: -0.1
+                      currency: DIEM
+                      inferenceDetails: null
+                      notes: API Inference
+                      pricePerUnitUsd: 0.1
+                      sku: grok-imagine-image-image-unit
+                      timestamp: 2026-06-14T19:52:45.087Z
+                      units: 1
+                    - amount: -0.06356
+                      currency: DIEM
+                      inferenceDetails:
+                        completionTokens: 227
+                        inferenceExecutionTime: 2964
+                        promptTokens: 339
+                        requestId: chatcmpl-4007fd29f42b7d3c4107f4345e8d174a
+                      notes: API Inference
+                      pricePerUnitUsd: 2.8
+                      sku: zai-org-glm-5-1-llm-output-mtoken
+                      timestamp: 2026-06-15T19:05:10.504Z
+                      units: 0.000227
+                  nextCursor: AZq3fK9tXhIVDm2j4vN8cQwYt1sB6uEoLxRgPzKaJdHfM5nC7yW0K3w
+            text/csv:
+              schema:
+                description: CSV formatted billing usage history data
+                type: string
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetailedError"
+        "401":
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardError"
+        "500":
+          description: An unknown error occurred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandardError"
   /crypto/rpc/networks:
     get:
       description: >-
@@ -13374,10 +13856,9 @@ paths:
 
         Two caps apply per caller:
 
-        - **Requests per minute**: 100 on the paid tier, 1000 on the staff tier.
+        - **Requests per minute**: 100 on the paid tier.
 
-        - **Credits per rolling 24 hours**: 10,000,000 on the paid tier,
-        100,000,000 on the staff tier.
+        - **Credits per rolling 24 hours**: 10,000,000 on the paid tier.
 
         When either cap is exceeded, the request returns 429 with a
         `customMessage` identifying which cap tripped. The per-minute cap also
@@ -13669,8 +14150,8 @@ paths:
             The `customMessage` identifies which.
           headers:
             X-RateLimit-Limit:
-              description: "Per-minute request cap for the caller's tier (paid: 100, staff:
-                1000). Set only when the rate limit is tripped."
+              description: "Per-minute request cap for the caller's tier (paid: 100). Set only
+                when the rate limit is tripped."
               schema:
                 type: integer
                 example: 100

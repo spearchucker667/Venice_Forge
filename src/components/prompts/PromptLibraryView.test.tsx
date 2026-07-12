@@ -41,6 +41,12 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     render(<PromptLibraryView />);
     fireEvent.click(screen.getByTestId("prompt-library-new"));
     await flush();
+    const titleInput = screen.getByPlaceholderText(/E.g., Dark Fantasy Portrait/i);
+    fireEvent.change(titleInput, { target: { value: "New Prompt Title" } });
+    const contentInput = screen.getByPlaceholderText(/Enter prompt text here/i);
+    fireEvent.change(contentInput, { target: { value: "New Prompt Content" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create Prompt" }));
+    await flush();
     expect(usePromptLibraryStore.getState().prompts).toHaveLength(1);
     expect(usePromptLibraryStore.getState().activePromptId).toBeTruthy();
   });
@@ -49,6 +55,12 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     render(<PromptLibraryView />);
     fireEvent.click(screen.getByTestId("prompt-library-new"));
     await flush();
+    const titleInput = screen.getByPlaceholderText(/E.g., Dark Fantasy Portrait/i);
+    fireEvent.change(titleInput, { target: { value: "Seed" } });
+    const contentInput = screen.getByPlaceholderText(/Enter prompt text here/i);
+    fireEvent.change(contentInput, { target: { value: "test seed content" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create Prompt" }));
+    await flush();
     const item = usePromptLibraryStore.getState().prompts[0]!;
     expect(item.versions).toHaveLength(1);
     expect(item.versions[0]!.content.trim().length).toBeGreaterThan(0);
@@ -56,9 +68,9 @@ describe("PromptLibraryView (VERIFY-046)", () => {
 
   it("filters by kind", async () => {
     render(<PromptLibraryView />);
-    fireEvent.click(screen.getByTestId("prompt-library-new")); // v1 = general
-    fireEvent.click(screen.getByTestId("prompt-library-new"));
-    fireEvent.click(screen.getByTestId("prompt-library-new"));
+    await usePromptLibraryStore.getState().createPrompt({ title: "New Prompt", kind: "general", content: "x", scope: "global" });
+    await usePromptLibraryStore.getState().createPrompt({ title: "New Prompt", kind: "general", content: "x", scope: "global" });
+    await usePromptLibraryStore.getState().createPrompt({ title: "New Prompt", kind: "general", content: "x", scope: "global" });
     await flush();
     const ids = usePromptLibraryStore.getState().prompts.map((p) => p.id);
     // Mark each so we have a known mix: image, chat, general.

@@ -119,6 +119,7 @@ vi.mock('../../stores/toast-store', () => ({ toast: { error: vi.fn(), success: v
 import { VideoView } from './video-view'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { toast } from '../../stores/toast-store'
+import { useSettingsStore } from '../../stores/settings-store'
 
 const mockIsSupportedImageFile = vi.mocked(isSupportedImageFile)
 const mockReadImageAttachment = vi.mocked(readImageAttachment)
@@ -131,6 +132,7 @@ describe('VideoView accessibility', () => {
     queueMock.mockReset()
     resetMock.mockReset()
     cancelMock.mockReset()
+    useSettingsStore.setState({ selectedVideoMode: 'text' })
     mockIsSupportedImageFile.mockImplementation(
       (file: File) => file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp',
     )
@@ -284,7 +286,7 @@ describe('VideoView accessibility', () => {
     const modelButton = screen.getByRole('button', { name: 'Model' })
     fireEvent.click(modelButton)
     expect(screen.getAllByText('Priced Text-to-Video (~$0.123)').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Fallback Text-to-Video (~$0.050)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Fallback Text-to-Video (catalog)').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('No Text Model').length).toBeGreaterThanOrEqual(1)
   })
 

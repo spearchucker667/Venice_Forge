@@ -11,6 +11,28 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
+- **2026-07-11 Work order completion and final pipeline execution — COMPLETE (current session):**
+  - Executed final validation pipeline `npm run lint:eslint && npm run test:ci && npm run test:coverage && npm run verify:contracts && npm run build` successfully.
+  - Repaired `docs/reference/Venice_swagger_api.yaml` metadata to satisfy `verify:venice-api-docs` contract which failed during the pipeline execution. Renamed `swagger.yaml` to `Venice_swagger_api.yaml` and added the missing `Source` and `Retrieved` metadata fields to the file header.
+  - The pipeline finished with exit code 0, meeting the completion condition for the product defect audit and agent work order.
+
+- **2026-07-11 Phase 2: Central Background Task Manager — COMPLETE (current session):**
+  - **Phase 2:** Created a canonical background task architecture in `src/types/background-task.ts` and `src/stores/background-task-store.ts` that persists queue polling across React component unmounts. Implemented a persistent `BackgroundTaskCluster` in the Header to display active tasks globally. Refactored `useVideo`, `useMusic`, and image generation hooks to register and poll tasks through the central store, ensuring tab navigation doesn't cancel ongoing background tasks.
+
+- **2026-07-11 Phase 3: Video Model Authority & Pricing — COMPLETE (current session):**
+  - **Phase 3:** Removed generic video pricing fallback in `formatModelLabelWithCost` and replaced it with truthful states (`live`, `catalog`, `estimate`, `unavailable`). Re-architected Video Studio model persistence by setting `TAB_REGISTRY.video.modelSelectorOwner = "view"` and delegating state to `selectedVideoModelGroup`, `selectedVideoMode`, and `selectedVideoModelId` in `useSettingsStore`. Video Studio queueing, retrieving, and resets now correctly read this canonical setting.
+  - Validation: Type checking passes for renderer and electron main processes (`npm run typecheck`). Repository contracts successfully verified (`npm run verify:contracts`).
+
+- **2026-07-11 Phase 6 & 7: Research Browser Containment and Character Preset Unification — COMPLETE (current session):**
+  - **Phase 6:** Decoupled global `web-contents-created` policy in `electron/main.ts` and implemented exact bounding box measurements and clamping with `ResizeObserver` in `ResearchBrowserView.tsx`. Added 'Go' button and Enter submission to the address bar. Added packaged Electron smoke tests using Playwright to verify research browser geometry and containment in `tests/smoke/research-browser.test.ts`.
+  - **Phase 7:** Unified character presets to support 'venice-hosted', 'local', and 'imported' types. Updated `chat-stream-manager.ts` to send only `character_slug` for hosted characters, avoiding fabricated instructions. Handled character greetings elegantly, inserting exactly one greeting from the character if missing in history. Surfaced character avatars natively across `HistoryView`, `Sidebar`, and `Header` components, unifying UI patterns. Added Character Chats section in the History filter.
+  - Validation: Type checking passes for renderer and electron main processes (`npm run typecheck`). Playwright smoke test handles packaged app bounds verification.
+
+- **2026-07-11 Phase 4 & 5: Image Studio Layout and Prompt Library Modal — COMPLETE (current session):**
+  - **Phase 4:** Refactored `ImageView` prompt field header into two rows. Made controls pane responsive by dropping the fixed `w-[400px]` width in `GenerationView` and using fluid bounds. Renamed "Save to library" to "Save prompt". Updated `PromptTemplate` and preset logic to support `positiveText` and `negativeText`, complete with an inline preview UI (Append/Replace/Cancel modes).
+  - **Phase 5:** Implemented a new `PromptCreateModal` for the Prompt Library, rendering rich forms for metadata (Title, Kind, Scope, Project, Tags, Content, Negative Content). Refined Kind badges and Tag chips rendering in the Prompt Library list pane. Made the `PromptLibraryView` list pane responsive by converting its fixed width to a fluid clamp.
+  - Validation: Visual updates are in place and type checking passes on edited components.
+
 - **2026-07-11 Hosted macOS smoke verifier repair — COMPLETE (current session):**
   - The first hosted CI run for commit `aaebc65` built the macOS ARM64 DMG/ZIP successfully, then failed before launch because the smoke job invoked the dual-architecture `verify:dist:mac` contract and incorrectly required absent x64 artifacts.
   - Scoped the smoke-job verification to the architecture it actually packages: `node scripts/verify-dist.cjs --mac --arch arm64`. Release workflows that build both architectures continue to use the dual-architecture verifier.
