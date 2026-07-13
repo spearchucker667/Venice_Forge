@@ -120,9 +120,10 @@ export async function decryptPayload(ciphertextWithTag: string, saltBase64: stri
       decrypted = Buffer.concat([decrypted, decipher.final()]);
         
       return decrypted.toString("utf8");
-    } catch (e: any) {
+    } catch (e: unknown) {
       // More detailed error reporting
-      throw new Error("Invalid ciphertext format (missing auth tag): " + e.message);
+      const message = e instanceof Error ? e.message : String(e);
+      throw new Error("Invalid ciphertext format (missing auth tag): " + message);
     }
   }
 }

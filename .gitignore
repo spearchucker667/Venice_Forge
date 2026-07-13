@@ -96,3 +96,8 @@ venice-forge.log
 # Local scratch space
 scratch/
 .impeccable/
+
+# BEGIN generated audit artifacts
+Venice_Forge-audit-*/
+*-audit-*/
+# END generated audit artifacts

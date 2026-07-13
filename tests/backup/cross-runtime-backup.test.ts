@@ -1,8 +1,7 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { encryptPayload as electronEncrypt, decryptPayload as electronDecrypt } from "../../electron/services/backupCrypto";
 import { createEncryptedBackup, downloadEncryptedBackup } from "../../src/services/backupExportService";
-import { importEncryptedBackup } from "../../src/services/backupImportService";
 import { BACKUP_SCHEMA_VERSION } from "../../electron/services/backupCrypto";
 import { toBase64 } from "../../src/services/backupCryptoWeb";
 
@@ -25,7 +24,7 @@ vi.mock("../../src/shared/env", () => ({
 
 // Mock storage service to return our test data
 vi.mock("../../src/services/storageService", async () => {
-  const actual = await vi.importActual("../../src/services/storageService");
+  const actual = (await vi.importActual("../../src/services/storageService")) as any;
   return {
     __esModule: true,
     default: {

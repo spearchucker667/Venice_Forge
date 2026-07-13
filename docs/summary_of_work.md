@@ -12,17 +12,23 @@
 
 ### Latest Session Summary
 **Date:** 2026-07-12
-**Task:** Fix false-positive secret hits on task-ui-store in clean-repo-zip.sh
+**Task:** Fix CI failures (explicit `any`, absolute path reference, committed audit outputs, and backup test compilation issues).
 
 **Summary of Changes:**
-- **Fix clean-repo-zip.sh false positives:** Updated `sk-token` and `venice-vn-token` regex patterns to require word boundaries (`\b`), preventing false positive matches on words like `task-ui-store` containing the substring `sk-ui-store`.
-- **Update verify-archive-clean tests:** Adjusted the expected token assertions in `scripts/verify-archive-clean.test.ts` to align with the new regex patterns.
-- **Run clean-repo-zip.sh successfully:** Successfully executed the clean repository ZIP script and generated a clean source archive.
+- **Explicit `any` removal:** Replaced caught exception `e: any` with `e: unknown` in `electron/services/backupCrypto.ts` and extracted its message safely.
+- **Repository-relative path fix:** Replaced absolute paths (`/Users/super_user/...`) with repository-relative paths in `AGENTS.md` for Venice swagger and LLM info files to prevent failures on the GitHub Actions runner.
+- **Audit outputs removal:** Removed generated local audit outputs directory `Venice_Forge-audit-97da773` from Git index and backed it up in `~/Documents/Venice-Forge-Audits/`.
+- **Git ignore rule:** Added rules in `.gitignore` to ignore future generated audit directories (`Venice_Forge-audit-*/`, `*-audit-*/`).
+- **Backup test correction:** Added missing `vi` import to `tests/backup/cross-runtime-backup.test.ts` and cast the return value of `vi.importActual` to `any` to prevent compilation errors. Removed unused import `importEncryptedBackup`.
 
 **Validation:**
-- `npx vitest run scripts/verify-archive-clean.test.ts` passed (18 tests).
-- `scripts/clean-repo-zip.sh` completed successfully and generated the clean source ZIP.
-- `npm run verify:contracts` passed all static, feature, browser, storage, sync, and release contracts checks.
+- `npm run lint:eslint` passed (0 warnings).
+- `npm run typecheck` passed (0 compilation errors).
+- `npm run verify:agent-docs` passed.
+- `npm run verify:repository-identity` passed.
+- `npx vitest run tests/backup/cross-runtime-backup.test.ts` passed (3 tests).
+- `npm run test:ci` completed successfully and all 4100+ tests passed.
+- `npm run verify:contracts` passed all contract checks.
 
 **Prior session context retained below:**
 - **Automatic Fallback Router:** Implemented an opt-in, consent-aware fallback router in `electron/services/veniceClient.ts`. The router now reads `autoFallbackEnabled` and `fallbackOrdering` from the `fallbackConfig` property and automatically iterates through the configured provider queue upon encountering a retryable error (like a 5xx response or 429 rate limit). It skips fallback routing if the stream has already commenced outputting data or if the user specifically requested a fallback provider model prefix.
@@ -34,7 +40,13 @@
 **Validation:**
 - `npm run test:ui` passed the CI invariant suite.
 
-- **2026-07-12 Fix clean-repo-zip.sh false positives (current session)**
+- **2026-07-12 Fix CI failures (current session)**
+  - Replaced explicit `any` in caught exceptions with `unknown` in `electron/services/backupCrypto.ts`.
+  - Corrected absolute path references in `AGENTS.md` to repository-relative paths.
+  - Removed local generated audit directory `Venice_Forge-audit-97da773` and added `.gitignore` rules for audit directories.
+  - Repaired stale imports and compiler errors in `tests/backup/cross-runtime-backup.test.ts`.
+
+- **2026-07-12 Fix clean-repo-zip.sh false positives (previous session)**
   - Added word boundary check `\b` to secret scan regexes in `scripts/clean-repo-zip.sh`.
   - Updated assertions in `scripts/verify-archive-clean.test.ts`.
   - Generated clean source archive `Venice_Forge-clean-20260712-172641.zip`.
@@ -974,3 +986,15 @@
   | `scripts/clean-repo-zip.sh` | PASS | — | Successfully generated clean source archive |
   | `npx vitest run scripts/verify-archive-clean.test.ts` | PASS | — | All 18 tests pass |
   | `npm run verify:contracts` | PASS | — | All contract verifications pass |
+
+- **2026-07-12 Fix CI failures**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | `npm run lint:eslint` | PASS | — | ESLint checked successfully (zero warnings/errors) |
+  | `npm run typecheck` | PASS | — | TypeScript compiled successfully (zero errors) |
+  | `npm run verify:agent-docs` | PASS | — | Agent doc verification passed |
+  | `npm run verify:repository-identity` | PASS | — | Repository identity contract passed |
+  | `npx vitest run tests/backup/cross-runtime-backup.test.ts` | PASS | — | Backup cross-runtime compatibility tests passed |
+  | `npm run test:ci` | PASS | — | Full CI test suite completed successfully (4100+ tests passed) |
+  | `npm run verify:contracts` | PASS | — | All codebase static/feature contracts passed |
