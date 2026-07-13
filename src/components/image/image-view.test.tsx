@@ -1,9 +1,11 @@
 // VERIFY-056 regression guard
 import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mutate = vi.fn()
+
+afterEach(() => vi.restoreAllMocks())
 
 vi.mock('../../hooks/use-image', () => ({
   useImageGenerate: () => ({ mutate, isPending: false, error: null }),
@@ -45,6 +47,7 @@ vi.mock('../../stores/media-store', () => ({
 import { useSettingsStore } from '../../stores/settings-store'
 import { ImageView } from './image-view'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
+import * as imageCapabilities from '../../config/image-model-capabilities'
 
 describe('ImageView model-aware payloads', () => {
   beforeEach(() => {
@@ -129,6 +132,27 @@ describe('ImageView model-aware payloads', () => {
     render(<ImageView />)
     // The capability summary still renders
     expect(screen.getByTestId('image-capability-summary')).toBeInTheDocument()
+  })
+
+  it('keeps a negative template pending for an incompatible model', () => {
+    const originalGetCapabilities = imageCapabilities.getImageModelCapabilities
+    vi.spyOn(imageCapabilities, 'getImageModelCapabilities').mockImplementation((modelId) => ({
+      ...originalGetCapabilities(modelId),
+      supportsNegativePrompt: modelId === 'unknown-model-xyz' ? false : originalGetCapabilities(modelId).supportsNegativePrompt,
+    }))
+    useSettingsStore.setState((state) => ({
+      ...state,
+      selectedModels: { ...state.selectedModels, image: 'unknown-model-xyz' },
+    }))
+    render(<ImageView />)
+    const prompt = screen.getByPlaceholderText(/serene mountain landscape/i)
+    fireEvent.change(prompt, { target: { value: 'Original prompt' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Prompt template' }), { target: { value: 'neg-standard' } })
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/does not support negative prompts/i)
+    expect(screen.getByRole('button', { name: 'Append' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Replace' })).toBeDisabled()
+    expect(prompt).toHaveValue('Original prompt')
   })
 
   it('hard-stops the image prompt at 1500 characters when typing over the limit', () => {

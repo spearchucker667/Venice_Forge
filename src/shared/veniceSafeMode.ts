@@ -14,14 +14,16 @@
  *  not support it, so unsupported endpoints never receive an unknown
  *  payload field.
  *
- *  Source: https://docs.venice.ai (2026-06-05).
+ *  Source: https://docs.venice.ai plus a live authenticated contract probe
+ *  (2026-07-13).
  *  Note: /chat/completions does NOT support top-level safe_mode.
  *        safe_mode fields are sent via venice_parameters instead.
  *  - /image/generate, /image/edit, /image/multi-edit: top-level safe_mode
  *  - /image/upscale: does NOT support safe_mode (no extractable prompt fields)
  *  - /audio/speech, /audio/transcriptions: top-level safe_mode
  *  - /embeddings: top-level safe_mode
- *  - /video/queue: top-level safe_mode
+ *  - /video/queue: does NOT support safe_mode; the live API rejects it as an
+ *    unknown key before queueing or billing
  *  - /augment/{search,scrape,text-parser}: top-level safe_mode
  *  - /audio/queue, /audio/retrieve: returned-content only, no safe_mode field
  *  - /video/{retrieve,quote,complete}: returned-content only, no safe_mode field
@@ -37,7 +39,6 @@ const ENDPOINTS_WITH_SAFE_MODE: ReadonlySet<string> = new Set([
   "/audio/speech",
   "/audio/transcriptions",
   "/embeddings",
-  "/video/queue",
   "/augment/search",
   "/augment/scrape",
   "/augment/text-parser",
@@ -110,7 +111,7 @@ export const VENICE_API_SAFE_MODE_MATRIX: ReadonlyArray<{
   { endpoint: "/audio/queue", supportsSafeMode: false, fieldLocation: "not-supported" },
   { endpoint: "/audio/retrieve", supportsSafeMode: false, fieldLocation: "not-supported" },
   { endpoint: "/embeddings", supportsSafeMode: true, fieldLocation: "top-level" },
-  { endpoint: "/video/queue", supportsSafeMode: true, fieldLocation: "top-level" },
+  { endpoint: "/video/queue", supportsSafeMode: false, fieldLocation: "not-supported" },
   { endpoint: "/video/retrieve", supportsSafeMode: false, fieldLocation: "not-supported" },
   { endpoint: "/video/quote", supportsSafeMode: false, fieldLocation: "not-supported" },
   { endpoint: "/video/complete", supportsSafeMode: false, fieldLocation: "not-supported" },

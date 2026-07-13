@@ -13,6 +13,7 @@ import { TAB_REGISTRY, TAB_GROUP_LABELS, type TabGroup, type TabId } from '../..
 import { contentToSearchText, contentToMarkdownText } from '../../utils/messageContent'
 import { DEFAULT_CHAT_MODEL } from '../../constants/venice'
 import { getConversationDisplayTitle } from '../../utils/conversationDisplayTitle'
+import { CharacterAvatar } from '../characters/CharacterAvatar'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
@@ -694,13 +695,7 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
         aria-current={isActive ? 'page' : undefined}
         className="min-w-0 flex flex-1 items-center gap-2 truncate text-left rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
       >
-        {conv.metadata?.character?.photoUrl && (
-          <img
-            src={conv.metadata.character.photoUrl}
-            alt=""
-            className="w-4 h-4 rounded-full object-cover flex-shrink-0"
-          />
-        )}
+        {conv.metadata?.character && <CharacterAvatar character={conv.metadata.character} cacheKey={`sidebar-${conv.id}`} size="sm" />}
         <span className="truncate">{getConversationDisplayTitle(conv)}</span>
       </button>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">

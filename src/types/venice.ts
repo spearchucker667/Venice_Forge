@@ -178,17 +178,17 @@ export interface ImageGenerateResponse {
 export interface ImageEditRequest {
   image: string
   prompt: string
-  modelId?: string
+  model: string
   aspect_ratio?: string
+  resolution?: string
+  output_format?: 'jpeg' | 'png' | 'webp'
+  safe_mode?: boolean
 }
 
 export interface ImageUpscaleRequest {
   image: string
-  scale?: number
-  enhance?: boolean
-  enhanceCreativity?: number
-  enhancePrompt?: string
-  replication?: number
+  scale?: 2 | 4
+  creativity?: number
 }
 
 export interface StylesResponse {
@@ -229,6 +229,12 @@ export interface MusicRetrieveResponse {
   error?: string
 }
 
+export interface MusicRetrieveRequest {
+  model: string
+  queue_id: string
+  delete_media_on_completion?: boolean
+}
+
 // Video types
 export interface VideoQueueRequest {
   model: string
@@ -250,6 +256,7 @@ export interface VideoQueueResponse {
   model: string
   queue_id: string
   id?: string
+  download_url?: string
 }
 
 export interface VideoRetrieveRequest {

@@ -42,6 +42,14 @@ describe('normalizeVideoRetrieveResult', () => {
     })
   })
 
+  it('uses the queue download URL for VPS-backed completed jobs', () => {
+    expect(normalizeVideoRetrieveResult(
+      { status: 'COMPLETED' },
+      { 'content-type': 'application/json' },
+      'https://signed.example/video.mp4',
+    )).toEqual({ kind: 'download', downloadUrl: 'https://signed.example/video.mp4', mimeType: 'video/mp4' })
+  })
+
   it('clamps progress to the canonical ratio range', () => {
     expect(normalizeProgressRatio(-20)).toBe(0)
     expect(normalizeProgressRatio(0.5)).toBe(0.5)

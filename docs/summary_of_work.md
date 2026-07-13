@@ -11,25 +11,22 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-**Date:** 2026-07-12
-**Task:** Fix CI failures (explicit `any`, absolute path reference, committed audit outputs, and backup test compilation issues).
+**Date:** 2026-07-13
+**Task:** Execute and close the authorized least-cost paid Venice image/video/music QA matrix in the packaged ARM64 application.
 
 **Summary of Changes:**
-- **Explicit `any` removal:** Replaced caught exception `e: any` with `e: unknown` in `electron/services/backupCrypto.ts` and extracted its message safely.
-- **Repository-relative path fix:** Replaced absolute paths (`/<absolute-path-removed>/...`) with repository-relative paths in `AGENTS.md` for Venice swagger and LLM info files to prevent failures on the GitHub Actions runner.
-- **Audit outputs removal:** Removed generated local audit outputs directory `Venice_Forge-audit-97da773` from Git index and backed it up in `~/Documents/Venice-Forge-Audits/`.
-- **Git ignore rule:** Added rules in `.gitignore` to ignore future generated audit directories (`Venice_Forge-audit-*/`, `*-audit-*/`).
-- **Backup test correction:** Added missing `vi` import to `tests/backup/cross-runtime-backup.test.ts` and cast the return value of `vi.importActual` to `any` to prevent compilation errors. Removed unused import `importEncryptedBackup`.
-- **Coverage threshold fix:** Restored `vitest.config.ts` coverage thresholds to the enforced baseline (branches 61, functions 68, lines 73, statements 70) to fix CI failure.
+- Queried the authenticated Venice catalog and quotes without exposing the local `.env` credential, then generated the cheapest eligible image, one-second text-to-video, and one-second text-to-audio samples. The exact account-balance delta was USD $0.08 ($0.01 image, $0.06 video, $0.01 audio).
+- Validated a 256×256 WebP, a 480×480 H.264/AAC MP4, and a mono 44.1 kHz MP3 by format inspection and full FFmpeg decode; verified video and audio playback through the packaged `venice-media://` protocol.
+- Recovered an actual packaged music background task, proved exactly one Media Studio record after unsubscribe/resubscribe snapshot replay, and proved the same completed task, record count, durable media, and playback after a full application restart.
+- Exercised hosted Character Hub favorite, details, refresh, and local duplication. This exposed and fixed preload-envelope parsing in every RP save handler while retaining direct-record backward compatibility.
+- Corrected the Venice safe-mode endpoint matrix after the live `/video/queue` contract rejected top-level `safe_mode`; video requests now omit that unsupported field.
+- Rebuilt and checksum-verified the unsigned ARM64 DMG/ZIP and closed the final current item in `docs/ROADMAP.md`.
 
 **Validation:**
-- `npm run lint:eslint` passed (0 warnings).
-- `npm run typecheck` passed (0 compilation errors).
-- `npm run verify:agent-docs` passed.
-- `npm run verify:repository-identity` passed.
-- `npx vitest run tests/backup/cross-runtime-backup.test.ts` passed (3 tests).
-- `npm run test:ci` completed successfully and all 4100+ tests passed.
-- `npm run verify:contracts` passed all contract checks.
+- Focused RP-envelope and safe-mode regressions passed (2 files / 31 tests), and `npm run typecheck` passed.
+- `npm run lint:eslint`, `npm run test:ci`, and `npm run verify:contracts` passed; Electron now reports 617 passing tests.
+- `npm run dist:mac:arm64` and `node scripts/verify-dist.cjs --mac --arch arm64` passed; the unsigned ARM64 artifacts and checksums were rebuilt after the fixes.
+- Paid image/video/audio generation, binary validation, packaged playback, background-task recovery/restart, exactly-once Media Studio insertion, and Character Hub interaction passed in isolated profiles.
 
 **Prior session context retained below:**
 - **Automatic Fallback Router:** Implemented an opt-in, consent-aware fallback router in `electron/services/veniceClient.ts`. The router now reads `autoFallbackEnabled` and `fallbackOrdering` from the `fallbackConfig` property and automatically iterates through the configured provider queue upon encountering a retryable error (like a 5xx response or 429 rate limit). It skips fallback routing if the stream has already commenced outputting data or if the user specifically requested a fallback provider model prefix.
@@ -502,6 +499,9 @@
 
 ### Session History
 
+- **2026-07-13 — Authorized paid media QA closure:** Spent exactly USD $0.08 on the least-cost eligible Venice image/video/audio matrix, validated all returned media, proved packaged playback and music-task restart/idempotency, visually exercised Character Hub, fixed RP save-envelope parsing and stale video safe-mode routing, rebuilt the ARM64 package, and closed the final current roadmap item.
+- **2026-07-13 — Remaining media/character TODO closure:** Added decoded paid-image preflight and safe diagnostics, routed workflow video through durable tasks, completed hosted Character Hub adapters/actions, added dedicated regression coverage, passed the full test/contracts/build matrix, and verified an unsigned ARM64 package plus isolated-profile startup/restart. Paid provider-generation/playback QA remains authorization-gated.
+- **2026-07-12 — Media and character integration remediation:** Canonicalized image/audio/video payloads, added durable binary media persistence and catalog recovery, repaired character greeting/avatar behavior, extended the Characters hub, and recorded explicit follow-up risks and unrun manual QA.
 - **2026-07-12 — Backup/Sync lifecycle completion:** Added durable current-object checkpoints and conservative all-device acknowledgment collection, closing the final canonical roadmap item.
 - **2026-07-12 — Deterministic multi-device convergence:** Added two-/three-device fixtures and integrated deterministic equal-time LWW, conflict-copy, and message ordering into the import path.
 - **2026-07-12 — Trusted remote mutation authority:** Replaced renderer-claimed `remote-sync` provenance for main-managed stores with operation-bound main-issued grants and a dedicated validated apply channel.
@@ -528,6 +528,9 @@
 ### Open TODO Ledger
 
 ### Current Priorities
+- [x] Media preflight: decode PNG/JPEG/WEBP dimensions, reject spoofed/invalid inputs, enforce source/projected pixel limits, and expose safe diagnostics before paid Image Tools requests.
+- [x] Media/character implementation closure: durable workflow-video completion, hosted Hub favorite/recent/detail/refresh/duplicate actions, dedicated template/avatar tests, ARM64 package verification, and isolated-profile startup/restart smoke.
+- [x] Paid headed media QA: least-cost image/video/audio generation, media validation, packaged playback, background-task restart recovery, exactly-once Media Studio insertion, and Character Hub visual checks completed with an exact USD $0.08 balance delta.
 - [x] Backup/Sync checkpoint/GC lifecycle: durable encrypted current objects plus all-registered-device acknowledgments gate historical event collection.
 - [x] Backup/Sync convergence: deterministic two-/three-device LWW and message-order fixtures plus convergent conflict winner/copy behavior.
 - [x] Backup/Sync trusted mutation provenance: live remote main-managed mutations require exact main-issued grants; manual imports use a separate origin.
@@ -851,6 +854,63 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-13 Authorized paid media QA closure**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | Authenticated model catalog, quote, and balance checks | PASS | — | Selected `z-image-turbo`, `grok-imagine-text-to-video-private` (1 s, 480p, 1:1), and `mmaudio-v2-text-to-audio` (1 s); exact USD balance delta $0.08 |
+  | Paid image generation and decode | PASS | — | HTTP 200; 3,636-byte WebP; decoded 256×256; visual content matched the safe test request |
+  | Paid video queue/retrieve and decode | PASS | Initial request was rejected before billing because `/video/queue` does not accept top-level `safe_mode`; corrected request completed. | 43,993-byte H.264/AAC MP4; 480×480; 24 fps; 1.041667 s; full FFmpeg decode passed |
+  | Paid audio queue/retrieve and decode | PASS | — | 8,795-byte mono 44.1 kHz MP3; approximately 1.02 s; full FFmpeg decode passed |
+  | Packaged video/audio playback | PASS | — | Both media elements reached ready state 4 and advanced beyond 0.5 seconds through `venice-media://` |
+  | Packaged music recovery, catalog idempotency, and restart | PASS | — | Real manager completion persisted one durable item; snapshot replay and full restart retained exactly one Media Studio record and working playback |
+  | Packaged Character Hub interaction | PASS | Local duplication initially exposed the RP save-envelope defect; fixed before the final run. | Hosted favorite/details/refresh/local duplicate all passed after rebuild |
+  | `npx vitest run electron/ipc/rpHandlers.test.ts tests/safety/veniceSafeMode.test.ts --fileParallelism=false` | PASS | — | 2 files / 31 tests |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run test:ci` | PASS | Existing non-fatal jsdom navigation notices. | Server 59; Electron 617; all remaining test segments pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, settings, backup/sync, and release hardening contracts pass |
+  | `npm run dist:mac:arm64` | PASS | Package remains unsigned because no signing identity is configured. | ARM64 DMG/ZIP and checksum sidecars rebuilt after the fixes |
+  | `node scripts/verify-dist.cjs --mac --arch arm64` | PASS | — | ARM64 package artifacts verified |
+
+- **2026-07-13 Remaining media/character TODO closure**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | Focused media/workflow/Hub/template/avatar/settings tests | PASS | One test initially expected the wrong workflow label; the new negative-template test initially used the registry's permissive unknown-model fallback; both test assumptions were corrected. | Final focused set includes 88 tests plus hosted Hub interaction coverage |
+  | `git diff --check` | PASS | — | No whitespace errors |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run test:ci` | PASS | Existing non-fatal jsdom navigation notices. | Server 59; Electron 615; ingestion 65; all unit and UI segments pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, settings, backup/sync, and release hardening contracts pass |
+  | `npm run build` | PASS | Known non-fatal `backupImportService.ts` dynamic-import warning. | Renderer, server, and Electron outputs built |
+  | `npm run verify:dist` | PASS | — | Build outputs verified |
+  | `npm run smoke:electron` | SKIP | Command exited 0; the single headed test was skipped by the environment. | 1 test skipped |
+  | `npm run dist:mac:arm64` | PASS | Package is unsigned because no signing identity is configured. | ARM64 DMG/ZIP, blockmaps, metadata, and SHA-256 sidecars created |
+  | `npm run verify:dist:mac` | EXPECTED FAIL | Dual-architecture verifier correctly required the absent x64 DMG. | Follow-up architecture-scoped verification used below |
+  | `node scripts/verify-dist.cjs --mac --arch arm64` | PASS | — | ARM64 DMG/ZIP, metadata, and blockmaps verified against checksums |
+  | Packaged executable isolated-profile launch/relaunch | PASS | Second run emitted Electron `NODE_OPTIONS` and console-message deprecation notices; no crash. | Both runs stayed alive until intentionally terminated and created expected profile surfaces |
+  | Paid image/video/music generation and playback matrix | NOT RUN | Requires explicit API-credit spending authorization and headed observation. | Retained as the sole current roadmap item |
+
+- **2026-07-12 Media and character integration remediation**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | Required root/bootstrap and toolchain checks | PASS | — | Clean initial worktree; `main`; canonical root; Node 22.13.1/npm 10.9.2 |
+  | Focused media adapter/normalizer/Image Tools/chat/task/avatar tests | PASS | Initial focused failures and a post-integration decorative-avatar test mismatch were corrected before the final runs. | 8 files / 53 tests; generated-store/manager/Image Tools subset 3 files / 21 tests; final chat/message/avatar subset 3 files / 32 tests |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript checks pass |
+  | `npm run test:unit:hooks` | PASS | Non-fatal existing jsdom navigation notice. | 16 files / 91 tests |
+  | `npm run test:unit:services` | PASS | — | 60 files / 587 tests |
+  | `npm run test:unit:stores` | PASS | Non-fatal existing jsdom navigation notices. | 40 files / 703 tests |
+  | `npm run test:unit:lib` | PASS | — | 12 files / 85 tests |
+  | `npm run test:ui:chat` | PASS | — | 5 files / 73 tests |
+  | `npm run test:ui:media` | PASS | — | Gallery 7 files / 63 tests; Image 2 files / 16 tests |
+  | `npm run test:electron` | PASS | — | 40 files / 615 tests |
+  | Venice API/image/media/provider/network verifiers | PASS | — | `verify:venice-api-docs`, `verify:image-policy`, `verify:media-studio-power-tools`, `verify:provider-adapters`, `verify:network-boundaries` |
+  | `npm run lint && npm run build && npm run verify:contracts && npm run test:ci` | PASS | Known non-fatal `backupImportService.ts` dynamic-import warning; existing jsdom navigation notices. | Full pipeline exit 0; all segmented CI domains pass |
+  | Documentation closeout contracts | PASS | — | 78 Markdown files; agent-doc parity; handoff hygiene; `git diff --check` |
+  | Manual packaged/development Electron QA matrix | NOT RUN | Headed provider requests/restart/playback were not exercised. | Explicitly deferred in roadmap/report |
 
 - **2026-07-12 Checkpointed sync-log collection**
 

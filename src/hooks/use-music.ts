@@ -57,7 +57,7 @@ export function useMusic() {
       setQueueSchemaError(null)
       const newTaskId = `music-${crypto.randomUUID()}`
       setLocalTaskId(newTaskId)
-      useBackgroundTaskStore.getState().registerQueueTask(newTaskId, 'music', qid, { request: req })
+      useBackgroundTaskStore.getState().registerQueueTask(newTaskId, 'music', qid, { model: data.model || req.model, request: req })
     },
     onError: (_err) => {
        // Optional: Could expose a queue error state if needed, or rely on component to show Toast

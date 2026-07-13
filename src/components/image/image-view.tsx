@@ -68,6 +68,7 @@ export function ImageView() {
   const variantsId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.image)
+  const setSelectedModel = useSettingsStore((s) => s.setSelectedModel)
   const veniceApiSafeMode = useSettingsStore((s) => s.veniceApiSafeMode)
   const { data: models } = useModels('image')
   const { data: styles } = useStyles()
@@ -79,6 +80,10 @@ export function ImageView() {
   const caps = useMemo(() => getImageModelCapabilities(model), [model])
   const dimOptions = useMemo(() => buildDimensionOptions(model, constraints), [model, constraints])
   const capabilitySummary = useMemo(() => getRecipeCapabilityList(caps), [caps])
+  const compatibleNegativeModel = useMemo(
+    () => models?.find((candidate) => getImageModelCapabilities(candidate.id).supportsNegativePrompt)?.id,
+    [models],
+  )
 
   const modelPricing = modelData?.model_spec?.pricing
   const modelCostLabel = useMemo(() => {
@@ -137,6 +142,11 @@ export function ImageView() {
 
   // Template preview flow
   const [previewTemplate, setPreviewTemplate] = useState<typeof PROMPT_TEMPLATES[number] | null>(null)
+  const appendTemplateText = (current: string, incoming: string) => {
+    const left = current.trim().replace(/[\s,]+$/, '')
+    const right = incoming.trim().replace(/^[\s,]+/, '')
+    return left && right ? `${left}, ${right}` : left || right
+  }
 
   // Prompt-enhancer config (renderer-bound snapshot of internal_prompt_enhancer).
   // When `enabled` is false, the enhance button is disabled and the
@@ -638,14 +648,24 @@ export function ImageView() {
               <strong className="text-text-secondary">Negative:</strong> {previewTemplate.negativeText}
             </div>
           )}
+          {previewTemplate.negativeText && !caps.supportsNegativePrompt && (
+            <div role="alert" className="mt-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-[12px] text-warning">
+              {model} does not support negative prompts. The template remains pending and your current prompt state has not changed.
+              {compatibleNegativeModel && (
+                <button type="button" onClick={() => setSelectedModel('image', compatibleNegativeModel)} className="ml-2 underline underline-offset-2">Switch to {compatibleNegativeModel}</button>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2 mt-2">
             <button
               type="button"
               onClick={() => {
-                if (previewTemplate.positiveText) setPromptClamped((prev) => prev ? `${prev}${previewTemplate.positiveText}` : previewTemplate.positiveText!.replace(/^, /, ""));
-                if (previewTemplate.negativeText) setNegativePrompt((prev) => prev ? `${prev}, ${previewTemplate.negativeText}` : previewTemplate.negativeText!);
+                if (previewTemplate.negativeText && !caps.supportsNegativePrompt) return;
+                if (previewTemplate.positiveText) setPromptClamped((prev) => appendTemplateText(prev, previewTemplate.positiveText!));
+                if (previewTemplate.negativeText) setNegativePrompt((prev) => appendTemplateText(prev, previewTemplate.negativeText!));
                 setPreviewTemplate(null);
               }}
+              disabled={Boolean(previewTemplate.negativeText && !caps.supportsNegativePrompt)}
               className="px-3 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
             >
               Append
@@ -653,10 +673,12 @@ export function ImageView() {
             <button
               type="button"
               onClick={() => {
+                if (previewTemplate.negativeText && !caps.supportsNegativePrompt) return;
                 if (previewTemplate.positiveText) setPromptClamped(previewTemplate.positiveText.replace(/^, /, ""));
                 if (previewTemplate.negativeText) setNegativePrompt(previewTemplate.negativeText!);
                 setPreviewTemplate(null);
               }}
+              disabled={Boolean(previewTemplate.negativeText && !caps.supportsNegativePrompt)}
               className="px-3 py-1 text-[12px] rounded-md border border-accent text-accent hover:bg-accent/10 transition-colors cursor-pointer"
             >
               Replace

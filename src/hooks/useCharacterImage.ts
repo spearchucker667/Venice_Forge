@@ -66,10 +66,15 @@ export function useCharacterImage(
   const charId = character?.id;
   const charPhotoUrl = character && "photoUrl" in character ? character.photoUrl : undefined;
   const charLocalId = character && "localCharacterId" in character ? character.localCharacterId : undefined;
+  const localDataUrl = useMemo(() => {
+    if (!charLocalId || !charPhotoUrl) return undefined;
+    if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(charPhotoUrl)) return undefined;
+    return charPhotoUrl.length <= 4 * 1024 * 1024 ? charPhotoUrl : undefined;
+  }, [charLocalId, charPhotoUrl]);
 
   const sourceUrl = useMemo(
-    () => (character ? resolveCharacterImageUrl(character) ?? undefined : undefined),
-    [charSlug, charId, charPhotoUrl],
+    () => localDataUrl ?? (character ? resolveCharacterImageUrl(character) ?? undefined : undefined),
+    [character, localDataUrl],
   );
 
   const requestKey = useMemo(
@@ -93,6 +98,12 @@ export function useCharacterImage(
     const hasAnyIdentity = !!(charSlug || charId || charPhotoUrl || charLocalId);
     if (!hasAnyIdentity) {
       setImageState({ requestKey, url: undefined });
+      setError(undefined);
+      setLoading(false);
+      return;
+    }
+    if (localDataUrl) {
+      setImageState({ requestKey, url: localDataUrl });
       setError(undefined);
       setLoading(false);
       return;
@@ -202,7 +213,7 @@ export function useCharacterImage(
     return () => {
       cancelled = true;
     };
-  }, [requestKey, sourceUrl, charSlug, charId, charPhotoUrl, charLocalId, retryToken]);
+  }, [requestKey, sourceUrl, charSlug, charId, charPhotoUrl, charLocalId, localDataUrl, retryToken]);
 
   const imageUrl = imageState.requestKey === requestKey ? imageState.url : undefined;
 

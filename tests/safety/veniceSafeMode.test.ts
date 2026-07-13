@@ -38,6 +38,7 @@ describe("VERIFY-018 safe_mode endpoint matrix", () => {
   });
 
   it("omits safe_mode for /video/{retrieve,quote,complete} (returned-content only)", () => {
+    expect(applyVeniceApiSafeMode("/video/queue", {}, true).safe_mode).toBeUndefined();
     expect(applyVeniceApiSafeMode("/video/retrieve", {}, true).safe_mode).toBeUndefined();
     expect(applyVeniceApiSafeMode("/video/quote", {}, true).safe_mode).toBeUndefined();
     expect(applyVeniceApiSafeMode("/video/complete", {}, true).safe_mode).toBeUndefined();

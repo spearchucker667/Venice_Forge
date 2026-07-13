@@ -5,7 +5,9 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeSanitize from 'rehype-sanitize'
 import type { ChatMessage, ContentPart } from '../../types/venice'
+import type { ConversationCharacterMeta } from '../../types/conversationVault'
 import { cn } from '../../lib/utils'
+import { CharacterAvatar } from '../characters/CharacterAvatar'
 import { useSettingsStore } from '../../stores/settings-store'
 import { maybeRunLocalFamilyGuard } from '../../shared/safety'
 import { copyText } from '../../stores/media-send-to'
@@ -115,9 +117,11 @@ interface MessageBubbleProps {
   onGenerateScene?: () => void
   isCharacterBound?: boolean
   assistantAvatarUrl?: string
+  assistantCharacter?: ConversationCharacterMeta
+  assistantCharacterCacheKey?: string
 }
 
-function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere, onRegenerateFromHere, onForkFromHere, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl }: MessageBubbleProps) {
+function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere, onRegenerateFromHere, onForkFromHere, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl, assistantCharacter, assistantCharacterCacheKey }: MessageBubbleProps) {
   useKatexCss()
 
   const [hovering, setHovering] = useState(false)
@@ -303,15 +307,19 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere
   return (
     <div className="flex gap-3" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
       <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-border flex items-center justify-center shrink-0 mt-0.5 shadow-sm overflow-hidden">
-        <img
-          src={assistantAvatarUrl || DEFAULT_AI_AVATAR_SRC}
-          alt="AI avatar"
-          width={32}
-          height={32}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover"
-        />
+        {assistantCharacter && assistantCharacterCacheKey ? (
+          <CharacterAvatar character={assistantCharacter} cacheKey={assistantCharacterCacheKey} size="lg" className="h-full w-full rounded-lg" />
+        ) : (
+          <img
+            src={assistantAvatarUrl || DEFAULT_AI_AVATAR_SRC}
+            alt="AI avatar"
+            width={32}
+            height={32}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover"
+          />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         {/* Reasoning content (thinking) */}

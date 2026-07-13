@@ -63,16 +63,23 @@ function parseDeletePayload(raw: unknown): [string, null] | [null, { id: string;
   }
 }
 
-/** Extracts and validates an optional mutation origin from a save payload.
- *  Defaults missing origins to `"local-user"` for back-compat.
- *  @returns A tuple `[error, origin]` where exactly one entry is defined. */
-function parseSaveOrigin(raw: unknown): [string, null] | [null, import("../../src/types/sync").MutationOrigin] {
+/** Unwraps the preload save envelope and validates its mutation origin.
+ *  Direct record payloads remain accepted for backwards compatibility. */
+function parseSavePayload(
+  raw: unknown,
+  recordKey: string,
+): [string, null] | [null, { record: Record<string, unknown>; origin: import("../../src/types/sync").MutationOrigin }] {
   if (!raw || typeof raw !== "object") {
-    return [null, "local-user"];
+    return ["Invalid payload", null];
   }
   const p = raw as Record<string, unknown>;
+  const wrapped = p[recordKey];
+  const candidate = wrapped && typeof wrapped === "object" && !Array.isArray(wrapped)
+    ? wrapped as Record<string, unknown>
+    : p;
+  const { origin: _embeddedOrigin, ...record } = candidate;
   try {
-    return [null, validateMutationOrigin(p.origin)];
+    return [null, { record, origin: validateMutationOrigin(p.origin) }];
   } catch (err) {
     return [err instanceof Error ? err.message : "Invalid origin", null];
   }
@@ -113,12 +120,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("characterCards:save", async (_event, card: unknown) => {
+  handleIpc("characterCards:save", async (_event, payload: unknown) => {
     try {
-      const [originError, origin] = parseSaveOrigin(card);
-      if (originError) {
-        return { ok: false, error: originError, card: null };
+      const [payloadError, parsed] = parseSavePayload(payload, "card");
+      if (payloadError || !parsed) {
+        return { ok: false, error: payloadError ?? "Invalid payload", card: null };
       }
+      const { record: card, origin } = parsed;
       const result = await saveCharacterCard(card);
       if (!result.ok) return { ok: false, error: result.error, card: null };
       // Read back the persisted card (with avatar hydrated) for the renderer.
@@ -178,13 +186,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("personas:save", async (_event, persona: unknown) => {
+  handleIpc("personas:save", async (_event, payload: unknown) => {
     try {
-      const [originError, origin] = parseSaveOrigin(persona);
-      if (originError) {
-        return { ok: false, error: originError, persona: null };
+      const [payloadError, parsed] = parseSavePayload(payload, "persona");
+      if (payloadError || !parsed) {
+        return { ok: false, error: payloadError ?? "Invalid payload", persona: null };
       }
-      const { origin: _personaOrigin, ...record } = persona as Record<string, unknown>;
+      const { record, origin } = parsed;
       const result = await personaStore.save(record);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", persona: null };
       const id = record.id;
@@ -243,13 +251,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("lorebooks:save", async (_event, lorebook: unknown) => {
+  handleIpc("lorebooks:save", async (_event, payload: unknown) => {
     try {
-      const [originError, origin] = parseSaveOrigin(lorebook);
-      if (originError) {
-        return { ok: false, error: originError, lorebook: null };
+      const [payloadError, parsed] = parseSavePayload(payload, "lorebook");
+      if (payloadError || !parsed) {
+        return { ok: false, error: payloadError ?? "Invalid payload", lorebook: null };
       }
-      const { origin: _lorebookOrigin, ...record } = lorebook as Record<string, unknown>;
+      const { record, origin } = parsed;
       const result = await lorebookStore.save(record);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", lorebook: null };
       const id = record.id;
@@ -308,12 +316,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpChats:save", async (_event, chat: unknown) => {
+  handleIpc("rpChats:save", async (_event, payload: unknown) => {
     try {
-      const [originError, origin] = parseSaveOrigin(chat);
-      if (originError) {
-        return { ok: false, error: originError, chat: null };
+      const [payloadError, parsed] = parseSavePayload(payload, "chat");
+      if (payloadError || !parsed) {
+        return { ok: false, error: payloadError ?? "Invalid payload", chat: null };
       }
+      const { record: chat, origin } = parsed;
       const result = await saveRpChat(chat);
       if (!result.ok) return { ok: false, error: result.error, chat: null };
       const id = (chat as { id?: unknown })?.id;
@@ -374,13 +383,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpAssets:save", async (_event, asset: unknown) => {
+  handleIpc("rpAssets:save", async (_event, payload: unknown) => {
     try {
-      const [originError, origin] = parseSaveOrigin(asset);
-      if (originError) {
-        return { ok: false, error: originError, asset: null };
+      const [payloadError, parsed] = parseSavePayload(payload, "asset");
+      if (payloadError || !parsed) {
+        return { ok: false, error: payloadError ?? "Invalid payload", asset: null };
       }
-      const { origin: _assetOrigin, ...record } = asset as Record<string, unknown>;
+      const { record, origin } = parsed;
       const result = await rpAssetStore.save(record);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", asset: null };
       const id = record.id;
@@ -439,13 +448,13 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("scenarios:save", async (_event, scenario: unknown) => {
+  handleIpc("scenarios:save", async (_event, payload: unknown) => {
     try {
-      const [originError, origin] = parseSaveOrigin(scenario);
-      if (originError) {
-        return { ok: false, error: originError, scenario: null };
+      const [payloadError, parsed] = parseSavePayload(payload, "scenario");
+      if (payloadError || !parsed) {
+        return { ok: false, error: payloadError ?? "Invalid payload", scenario: null };
       }
-      const { origin: _scenarioOrigin, ...record } = scenario as Record<string, unknown>;
+      const { record, origin } = parsed;
       const result = await scenarioStore.save(record);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", scenario: null };
       const id = record.id;

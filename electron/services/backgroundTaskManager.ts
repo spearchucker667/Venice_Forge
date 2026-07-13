@@ -18,9 +18,11 @@ import { createBackgroundTask, parseTasks, serializeTasks } from "../../src/type
 import { sanitizeErrorText } from "../../src/shared/redaction";
 import { normalizeVideoRetrieveResult } from "../../src/services/video-retrieve-normalizer";
 import { MUSIC_SAFE_ERROR_MESSAGES, toUserFacingMusicError, toUserFacingVideoError } from "../../src/services/task-errors";
-import type { MusicRetrieveResponse } from "../../src/types/venice";
 import { performVeniceRequest } from "./veniceClient";
 import { logError } from "./logger";
+import { buildAudioRetrieveRequest, buildVideoRetrieveRequest } from '../../src/services/media-request-adapter';
+import { normalizeAudioRetrieveResponse } from '../../src/services/audio-retrieve-normalizer';
+import { persistGeneratedMedia } from './generatedMediaStore';
 
 const TASKS_DIR = path.join(app.getPath("userData"), "background-tasks");
 const TASKS_FILE = path.join(TASKS_DIR, "tasks.json");
@@ -227,6 +229,11 @@ async function applyUpdate(taskId: string, updates: BackgroundTaskUpdate): Promi
       }
     }
   }
+  if ('resultMediaId' in updates) {
+    if (updates.resultMediaId === undefined) delete updated.resultMediaId;
+    else updated.resultMediaId = String(updates.resultMediaId).slice(0, 128);
+    hasChanges = true;
+  }
   if ("queueId" in updates && updates.queueId !== task.queueId) {
     if (updates.queueId === undefined) {
       delete updated.queueId;
@@ -362,7 +369,11 @@ async function runPoll(taskId: string): Promise<void> {
 
   const startedAt = task.createdAt;
   const effectiveTimeout = task.type === "video" ? MAX_VIDEO_GENERATION_MS : MAX_NON_VIDEO_GENERATION_MS;
-  const attempts = task.metadata?.__pollAttempts as number | undefined ?? 0;
+  const attempts = task.pollAttempts ?? 0;
+  const requestMetadata = task.metadata?.request && typeof task.metadata.request === 'object'
+    ? task.metadata.request as Record<string, unknown>
+    : undefined;
+  const taskModel = String(task.metadata?.model || task.modelId || requestMetadata?.model || '');
 
   if (Date.now() - startedAt > effectiveTimeout) {
     await applyUpdate(taskId, { status: "timeout", error: "Status checks stopped. Resume checking or try again." });
@@ -381,11 +392,7 @@ async function runPoll(taskId: string): Promise<void> {
       const response = await performVeniceRequest({
         endpoint: "/video/retrieve",
         method: "POST",
-        body: {
-          model: (task.metadata?.model as string) || "default-video-model",
-          queue_id: task.queueId,
-          delete_media_on_completion: false,
-        },
+        body: buildVideoRetrieveRequest(taskModel, task.queueId),
       });
 
       const latestTask = state.tasks[taskId];
@@ -399,9 +406,24 @@ async function runPoll(taskId: string): Promise<void> {
         throw Object.assign(new Error(message), { status: response.status, currentPolls });
       }
 
-      const normalized = normalizeVideoRetrieveResult(response.body, response.headers);
+      const queueDownloadUrl = typeof task.metadata?.queueDownloadUrl === 'string' ? task.metadata.queueDownloadUrl : undefined;
+      const normalized = normalizeVideoRetrieveResult(response.body, response.headers, queueDownloadUrl);
       if (normalized.kind === "completed") {
-        await applyUpdate(taskId, { status: "completed", progress: 1, resultUrl: normalized.mediaUrl, pollAttempts: currentPolls, consecutiveFailures: 0 });
+        const match = /^data:video\/mp4;base64,(.+)$/i.exec(normalized.mediaUrl);
+        if (!match) throw Object.assign(new Error('Video response was not durable binary media.'), { currentPolls });
+        const media = await persistGeneratedMedia(Buffer.from(match[1], 'base64'), normalized.mimeType);
+        await applyUpdate(taskId, { status: "completed", progress: 1, resultUrl: media.url, resultMediaId: media.id, pollAttempts: currentPolls, consecutiveFailures: 0 });
+        stopPolling(taskId);
+      } else if (normalized.kind === 'download') {
+        const parsed = new URL(normalized.downloadUrl);
+        if (parsed.protocol !== 'https:' || /^(localhost|127\.|0\.|10\.|192\.168\.|169\.254\.|\[?::1\]?)/i.test(parsed.hostname)) {
+          throw Object.assign(new Error('Video download URL was rejected.'), { currentPolls });
+        }
+        const download = await fetch(parsed, { redirect: 'error' });
+        const mimeType = (download.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+        if (!download.ok || mimeType !== 'video/mp4') throw Object.assign(new Error('Video download failed validation.'), { currentPolls });
+        const media = await persistGeneratedMedia(Buffer.from(await download.arrayBuffer()), mimeType);
+        await applyUpdate(taskId, { status: 'completed', progress: 1, resultUrl: media.url, resultMediaId: media.id, pollAttempts: currentPolls, consecutiveFailures: 0 });
         stopPolling(taskId);
       } else if (normalized.kind === "failed") {
         await applyUpdate(taskId, { status: "failed", error: toUserFacingVideoError(normalized.error, "Video generation failed"), pollAttempts: currentPolls, consecutiveFailures: 0 });
@@ -414,7 +436,7 @@ async function runPoll(taskId: string): Promise<void> {
       const response = await performVeniceRequest({
         endpoint: "/audio/retrieve",
         method: "POST",
-        body: { id: task.queueId },
+        body: buildAudioRetrieveRequest(taskModel, task.queueId),
       });
 
       const latestTask = state.tasks[taskId];
@@ -428,26 +450,16 @@ async function runPoll(taskId: string): Promise<void> {
         throw Object.assign(new Error(message), { status: response.status, currentPolls });
       }
 
-      const data = response.body as MusicRetrieveResponse;
-      const s = data.status.toLowerCase() as BackgroundTaskStatus;
-
-      const nextState: BackgroundTaskUpdate = { status: s, pollAttempts: currentPolls, consecutiveFailures: 0 };
-
-      if (s === "completed") {
-        if (!data.audio_url?.trim()) {
-          nextState.status = "failed";
-          nextState.error = MUSIC_SAFE_ERROR_MESSAGES.empty;
-        } else {
-          nextState.resultUrl = data.audio_url.trim();
-        }
-        await applyUpdate(taskId, nextState);
+      const normalized = normalizeAudioRetrieveResponse(response.body, response.headers);
+      if (normalized.kind === 'completed') {
+        const media = await persistGeneratedMedia(Buffer.from(normalized.dataBase64, 'base64'), normalized.mimeType);
+        await applyUpdate(taskId, { status: 'completed', progress: 1, resultUrl: media.url, resultMediaId: media.id, pollAttempts: currentPolls, consecutiveFailures: 0 });
         stopPolling(taskId);
-      } else if (s === "failed") {
-        nextState.error = toUserFacingMusicError(data.error, MUSIC_SAFE_ERROR_MESSAGES.generation);
-        await applyUpdate(taskId, nextState);
+      } else if (normalized.kind === 'failed') {
+        await applyUpdate(taskId, { status: 'failed', error: toUserFacingMusicError(normalized.error, MUSIC_SAFE_ERROR_MESSAGES.generation), pollAttempts: currentPolls, consecutiveFailures: 0 });
         stopPolling(taskId);
       } else {
-        await applyUpdate(taskId, nextState);
+        await applyUpdate(taskId, { status: 'processing', progress: normalized.progressRatio, pollAttempts: currentPolls, consecutiveFailures: 0 });
         schedulePoll(taskId, POLL_INTERVAL_MS);
       }
     }

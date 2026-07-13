@@ -10,6 +10,7 @@ This index maps retained audit and report artifacts to their current authority. 
 | Current TODO roadmap | [`../ROADMAP.md`](../ROADMAP.md) |
 | Documentation source map | [`../DOCS_INDEX.md`](../DOCS_INDEX.md) |
 | Report directory policy | [`README.md`](README.md) |
+| Media and character remediation evidence | [`MEDIA_CHARACTER_REMEDIATION_REPORT.md`](MEDIA_CHARACTER_REMEDIATION_REPORT.md) |
 
 ## Historical Report Map
 

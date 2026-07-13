@@ -4,9 +4,11 @@ import { isElectron } from '../services/desktopBridge'
 import { desktopBackgroundTask } from '../services/desktopBridge'
 import { MUSIC_SAFE_ERROR_MESSAGES, toUserFacingMusicError, toUserFacingVideoError } from '../services/task-errors'
 import { normalizeVideoRetrieveResult } from '../services/video-retrieve-normalizer'
-import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope, BackgroundTaskStatus } from '../types/background-task'
-import type { MusicRetrieveResponse } from '../types/venice'
+import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope } from '../types/background-task'
 import { getActiveProfileId } from '../services/activeProfile'
+import { buildAudioRetrieveRequest, buildVideoRetrieveRequest } from '../services/media-request-adapter'
+import { normalizeAudioRetrieveResponse } from '../services/audio-retrieve-normalizer'
+import { persistCompletedTaskMedia } from '../services/taskMediaCatalog'
 
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 200
@@ -40,6 +42,9 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
   desktopSubscribed: false,
 
   applyEnvelope: (envelope) => {
+    for (const task of envelope.tasks ?? []) {
+      if (task.status === 'completed') void persistCompletedTaskMedia(task)
+    }
     set((state) => {
       const currentProfileId = getActiveProfileId()
       if (envelope.kind === 'snapshot' && envelope.tasks) {
@@ -266,23 +271,30 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
       }
 
       try {
+        const requestMetadata = task.metadata?.request && typeof task.metadata.request === 'object'
+          ? task.metadata.request as Record<string, unknown>
+          : undefined
+        const taskModel = String(task.metadata?.model || task.modelId || requestMetadata?.model || '')
         if (task.type === 'video') {
           const result = await veniceFetch<unknown>('/video/retrieve', {
             method: 'POST',
-            body: {
-              model: task.metadata?.model || 'default-video-model',
-              queue_id: task.queueId,
-              delete_media_on_completion: false
-            },
+            body: buildVideoRetrieveRequest(taskModel, task.queueId!),
             retry: false,
           })
 
           const latestVideoTask = get().tasks[taskId]
           if (!latestVideoTask || ['completed', 'failed', 'aborted', 'timeout'].includes(latestVideoTask.status)) return
-          const normalized = normalizeVideoRetrieveResult(result.data, result.headers)
+          const normalized = normalizeVideoRetrieveResult(
+            result.data,
+            result.headers,
+            typeof task.metadata?.queueDownloadUrl === 'string' ? task.metadata.queueDownloadUrl : undefined,
+          )
           consecutiveRetryableFailures = 0
           if (normalized.kind === 'completed') {
             updateTask(taskId, { status: 'completed', progress: 1, resultUrl: normalized.mediaUrl })
+            stopPolling(taskId)
+          } else if (normalized.kind === 'download') {
+            updateTask(taskId, { status: 'failed', error: 'This video must be downloaded and secured by the desktop app.' })
             stopPolling(taskId)
           } else if (normalized.kind === 'failed') {
             updateTask(taskId, { status: 'failed', error: toUserFacingVideoError(normalized.error, 'Video generation failed') })
@@ -292,27 +304,21 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
             schedule(POLL_INTERVAL_MS)
           }
         } else if (task.type === 'music') {
-          const result = await veniceFetch<MusicRetrieveResponse>('/audio/retrieve', {
+          const result = await veniceFetch<unknown>('/audio/retrieve', {
             method: 'POST',
-            body: { id: task.queueId },
+            body: buildAudioRetrieveRequest(taskModel, task.queueId!),
             retry: false,
           })
-
-          const s = result.data.status.toLowerCase() as BackgroundTaskStatus
           consecutiveRetryableFailures = 0
-          updateTask(taskId, { status: s })
-
-          if (s === 'completed') {
-            if (!result.data.audio_url?.trim()) {
-              updateTask(taskId, { status: 'failed', error: MUSIC_SAFE_ERROR_MESSAGES.empty })
-            } else {
-              updateTask(taskId, { resultUrl: result.data.audio_url })
-            }
+          const normalized = normalizeAudioRetrieveResponse(result.data, result.headers)
+          if (normalized.kind === 'completed') {
+            updateTask(taskId, { status: 'completed', progress: 1, resultUrl: `data:${normalized.mimeType};base64,${normalized.dataBase64}` })
             stopPolling(taskId)
-          } else if (s === 'failed') {
-            updateTask(taskId, { error: toUserFacingMusicError(result.data.error, MUSIC_SAFE_ERROR_MESSAGES.generation) })
+          } else if (normalized.kind === 'failed') {
+            updateTask(taskId, { status: 'failed', error: toUserFacingMusicError(normalized.error, MUSIC_SAFE_ERROR_MESSAGES.generation) })
             stopPolling(taskId)
           } else {
+            updateTask(taskId, { status: 'processing', progress: normalized.progressRatio })
             schedule(POLL_INTERVAL_MS)
           }
         }

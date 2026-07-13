@@ -10,16 +10,14 @@ import type { VeniceNodeData, NodeResult } from '../stores/workflow-store'
 import { NODE_SCHEMAS, type IOKind } from './workflow-schema'
 import { validateWorkflow } from './workflow-validator'
 import { venice, veniceBlob } from './venice-client'
-import type { ChatCompletionResponse, ImageGenerateResponse, MusicQueueResponse, MusicRetrieveResponse, VideoQueueResponse, VideoRetrieveResponse } from '../types/venice'
+import type { ChatCompletionResponse, ImageGenerateResponse, MusicQueueResponse, VideoQueueResponse } from '../types/venice'
+import { veniceFetch } from '../services/veniceClient/fetch'
+import { buildAudioRetrieveRequest } from '../services/media-request-adapter'
+import { normalizeAudioRetrieveResponse } from '../services/audio-retrieve-normalizer'
+import { awaitWorkflowVideoTask } from '../services/workflow-background-task'
 
 const POLL_INTERVAL_MS = 3000
 const POLL_MAX_ATTEMPTS = 200 // ~10 minutes per node
-
-/** Maximum time a job can stay in 'queued' / 'pending' before we abort.
- *  A job that the upstream never picks up within this window is considered
- *  stuck and we surface a clear error rather than burning the full 10
- *  minutes of poll budget. */
-const QUEUE_TIMEOUT_MS = 60_000;
 
 export class WorkflowExecutionError extends Error {
   nodeId?: string
@@ -80,69 +78,6 @@ function resolvePrompt(template: string, input: string): string {
   if (!template) return input
   if (template.includes('{{input}}')) return template.replace(/\{\{input\}\}/g, input)
   return input ? `${template}\n\n${input}` : template
-}
-
-interface PollOptions<T> {
-  path: string
-  buildRequestBody: () => Record<string, unknown>
-  kind: string
-  getStatus: (r: T) => string
-  getResult: (r: T) => string | undefined
-  signal?: AbortSignal
-}
-
-async function pollUntilDone<T>({ path, buildRequestBody, kind, getStatus, getResult, signal }: PollOptions<T>): Promise<string> {
-  const queueStartedAt = Date.now();
-  for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
-    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
-    await new Promise<void>((resolve, reject) => {
-      let settled = false
-
-      const cleanup = () => {
-        signal?.removeEventListener('abort', onAbort)
-      }
-
-      const onAbort = () => {
-        if (settled) return
-        settled = true
-        clearTimeout(timeout)
-        cleanup()
-        reject(new DOMException('Aborted', 'AbortError'))
-      }
-
-      const timeout = setTimeout(() => {
-        if (settled) return
-        settled = true
-        cleanup()
-        resolve()
-      }, POLL_INTERVAL_MS)
-
-      signal?.addEventListener('abort', onAbort, { once: true })
-    })
-    const result = await venice<T>(path, {
-      method: 'POST',
-      body: JSON.stringify(buildRequestBody()),
-      signal,
-    })
-    const status = getStatus(result).toLowerCase()
-    if (status === 'completed') {
-      const url = getResult(result)
-      if (url) return url
-      throw new WorkflowExecutionError(`${kind} generation finished but produced no output.`)
-    }
-    if (status === 'failed') {
-      // Never surface the upstream error payload (T-135): it may contain paths,
-      // internal identifiers, or provider-specific exception text.
-      throw new WorkflowExecutionError(`${kind} generation failed.`)
-    }
-    // Per-stage queue timeout: if a job is still 'queued' or 'pending' after
-    // QUEUE_TIMEOUT_MS, abort with a clear error instead of burning the
-    // full POLL_MAX_ATTEMPTS budget.
-    if ((status === 'queued' || status === 'pending') && Date.now() - queueStartedAt > QUEUE_TIMEOUT_MS) {
-      throw new WorkflowExecutionError(`${kind} generation timed out waiting in queue.`)
-    }
-  }
-  throw new WorkflowExecutionError(`${kind} generation timed out.`)
 }
 
 async function executeNode(
@@ -234,15 +169,20 @@ async function executeNode(
         body: JSON.stringify(body),
         signal,
       })
-      const url = await pollUntilDone<MusicRetrieveResponse>({
-        path: '/audio/retrieve',
-        buildRequestBody: () => ({ id: queueResp.queue_id }),
-        kind: 'Audio',
-        getStatus: (r) => r.status,
-        getResult: (r) => r.audio_url,
-        signal,
-      })
-      return `[audio:${url}]`
+      for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
+        const response = await veniceFetch<unknown>('/audio/retrieve', {
+          method: 'POST',
+          body: buildAudioRetrieveRequest(queueResp.model || String(body.model), queueResp.queue_id),
+          signal,
+          retry: false,
+        })
+        const normalized = normalizeAudioRetrieveResponse(response.data, response.headers)
+        if (normalized.kind === 'completed') return `[audio:data:${normalized.mimeType};base64,${normalized.dataBase64}]`
+        if (normalized.kind === 'failed') throw new WorkflowExecutionError('Audio generation failed.')
+      }
+      throw new WorkflowExecutionError('Audio generation timed out.')
     }
 
     case 'video': {
@@ -260,16 +200,13 @@ async function executeNode(
         signal,
       })
       const videoId = queueResp.queue_id || queueResp.id || ''
-      const url = await pollUntilDone<VideoRetrieveResponse>({
-        path: '/video/retrieve',
-        buildRequestBody: () => ({
-          model: data.model || DEFAULT_VIDEO_MODEL,
-          queue_id: videoId,
-          delete_media_on_completion: false
-        }),
-        kind: 'Video',
-        getStatus: (r) => r.status,
-        getResult: (r) => r.video_url,
+      if (!videoId) throw new WorkflowExecutionError('Video generation did not return a queue ID.')
+      const { image_url: _imageUrl, end_image_url: _endImageUrl, audio_url: _audioUrl, video_url: _videoUrl, reference_image_urls: _referenceImages, scene_image_urls: _sceneImages, ...requestSummary } = body
+      const url = await awaitWorkflowVideoTask({
+        queueId: videoId,
+        model: queueResp.model || String(body.model),
+        request: requestSummary,
+        ...(queueResp.download_url ? { queueDownloadUrl: queueResp.download_url } : {}),
         signal,
       })
       return `[video:${url}]`

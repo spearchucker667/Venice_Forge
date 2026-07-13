@@ -7,6 +7,7 @@ import type { Conversation } from '../../types/conversation'
 import { contentToSearchText } from '../../utils/messageContent'
 import { askDecision } from '../ui/modal-requests'
 import { getConversationDisplayTitle } from '../../utils/conversationDisplayTitle'
+import { CharacterAvatar } from '../characters/CharacterAvatar'
 
 function formatRelativeTime(date: number): string {
   const now = Date.now()
@@ -226,12 +227,8 @@ export default function HistoryView() {
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/5 rounded-md text-accent">
-                    {conv.metadata?.character?.photoUrl ? (
-                      <img
-                        src={conv.metadata.character.photoUrl}
-                        alt=""
-                        className="w-4 h-4 rounded-full object-cover"
-                      />
+                    {conv.metadata?.character ? (
+                      <CharacterAvatar character={conv.metadata.character} cacheKey={`history-${conv.id}`} size="sm" />
                     ) : (
                       <MessageSquare size={13} />
                     )}

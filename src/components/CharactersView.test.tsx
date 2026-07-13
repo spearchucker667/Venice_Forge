@@ -5,12 +5,20 @@
 
 import "@testing-library/jest-dom/vitest";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { Avatar } from "./CharactersView";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { Avatar, CharactersView } from "./CharactersView";
 import { useCharacterImage } from "../hooks/useCharacterImage";
 import type { VeniceCharacter } from "../types/characters";
+import { useCharacterStore } from '../stores/character-store'
+import { useCharacterCardStore } from '../stores/character-card-store'
+import { useSettingsStore } from '../stores/settings-store'
+import { useChatStore } from '../stores/chat-store'
 
 vi.mock("../hooks/useCharacterImage");
+vi.mock("../services/characterService", () => ({
+  listCharacters: vi.fn().mockResolvedValue([]),
+  getCharacter: vi.fn(),
+}));
 
 const mockedUseCharacterImage = vi.mocked(useCharacterImage);
 
@@ -71,3 +79,43 @@ describe("Avatar", () => {
     expect(container.querySelector("[style]")).toBeNull();
   });
 });
+
+describe('CharactersView hosted hub adapters', () => {
+  it('favorites, shows details, refreshes, and duplicates a hosted character locally', async () => {
+    mockedUseCharacterImage.mockReturnValue({ imageUrl: undefined, loading: false, error: undefined, retry: vi.fn(), fallbackInitials: 'AW', showInitials: true })
+    const refresh = vi.fn().mockResolvedValue(CHARACTER)
+    const upsert = vi.fn().mockImplementation(async (card) => card)
+    useCharacterStore.setState({
+      results: [CHARACTER],
+      isLoading: false,
+      error: null,
+      hasMore: false,
+      searchCharacters: vi.fn().mockResolvedValue(undefined),
+      fetchBySlug: refresh,
+    })
+    useCharacterCardStore.setState({ cards: [], load: vi.fn().mockResolvedValue(undefined), upsert })
+    useSettingsStore.setState({ favoriteHostedCharacterSlugs: [] })
+    useChatStore.setState({ conversations: [], createCharacterConversation: vi.fn() })
+
+    render(<CharactersView />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Favorite' }))
+    expect(useSettingsStore.getState().favoriteHostedCharacterSlugs).toEqual(['alan-watts'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'favorites' }))
+    expect(screen.getByTestId('character-card')).toHaveAttribute('data-character-slug', 'alan-watts')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
+    expect(screen.getByRole('dialog', { name: 'Alan Watts' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close character details' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await waitFor(() => expect(refresh).toHaveBeenCalledWith('alan-watts'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate locally' }))
+    await waitFor(() => expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Alan Watts Copy',
+      metadata: { sourceHostedSlug: 'alan-watts' },
+    })))
+  })
+})

@@ -47,7 +47,7 @@ describe('background task polling', () => {
       headers: { 'content-type': 'application/json' },
     } as never)
 
-    useBackgroundTaskStore.getState().registerQueueTask('video-two', 'video', 'queue-two')
+    useBackgroundTaskStore.getState().registerQueueTask('video-two', 'video', 'queue-two', { model: 'model-two' })
     await vi.advanceTimersByTimeAsync(0)
 
     expect(useBackgroundTaskStore.getState().tasks['video-two']).toMatchObject({
@@ -86,7 +86,7 @@ describe('background task polling', () => {
         headers: { 'content-type': 'video/mp4' },
       } as never)
 
-    useBackgroundTaskStore.getState().registerQueueTask('video-four', 'video', 'queue-four')
+    useBackgroundTaskStore.getState().registerQueueTask('video-four', 'video', 'queue-four', { model: 'model-four' })
     await vi.advanceTimersByTimeAsync(0)
     expect(veniceFetch).toHaveBeenCalledTimes(1)
 
@@ -103,7 +103,7 @@ describe('background task polling', () => {
       headers: { 'content-type': 'application/json' },
     } as never)
 
-    useBackgroundTaskStore.getState().registerQueueTask('video-five', 'video', 'queue-five')
+    useBackgroundTaskStore.getState().registerQueueTask('video-five', 'video', 'queue-five', { model: 'model-five' })
     await vi.advanceTimersByTimeAsync(0)
 
     useBackgroundTaskStore.getState().cancelTask('video-five')

@@ -4,15 +4,21 @@ import { venice, veniceBlob } from './venice-client'
 import type { Node, Edge } from '@xyflow/react'
 import type { VeniceNodeData } from '../stores/workflow-store'
 import { DEFAULT_TTS_MODEL, DEFAULT_VIDEO_MODEL } from '../constants/venice'
+import { awaitWorkflowVideoTask } from '../services/workflow-background-task'
 
 vi.mock('./venice-client', () => ({
   venice: vi.fn(),
   veniceBlob: vi.fn(),
 }))
 
+vi.mock('../services/workflow-background-task', () => ({
+  awaitWorkflowVideoTask: vi.fn(),
+}))
+
 describe('workflow-engine', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(awaitWorkflowVideoTask).mockResolvedValue('venice-media://workflow-video')
   })
 
   it('should execute a simple workflow with textInput and output nodes', async () => {
@@ -130,34 +136,42 @@ describe('workflow-engine', () => {
   // T-135 regression guard: queued media (video/audio) failures must not surface
   // the upstream error payload, which may contain paths or internal details.
   it('never surfaces raw queued-media error payloads (T-135)', async () => {
-    vi.useFakeTimers()
-    try {
-      vi.mocked(venice)
-        .mockResolvedValueOnce({ queue_id: 'v1' }) // /video/queue
-        .mockResolvedValueOnce({ status: 'failed', error: 'Internal error: /secret/path' }) // /video/retrieve
+    vi.mocked(venice).mockResolvedValueOnce({ queue_id: 'v1', model: DEFAULT_VIDEO_MODEL })
+    vi.mocked(awaitWorkflowVideoTask).mockRejectedValueOnce(new Error('Internal error: /secret/path'))
 
-      const nodes: Node<VeniceNodeData>[] = [
+    const nodes: Node<VeniceNodeData>[] = [
         { id: 'n1', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'In', nodeType: 'textInput', inputText: 'prompt', model: '', prompt: '' } },
         { id: 'n2', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'Video', nodeType: 'video', model: DEFAULT_VIDEO_MODEL, prompt: '', videoAspectRatio: '16:9' } }
       ]
-      const edges: Edge[] = [{ id: 'e1', source: 'n1', target: 'n2' }]
+    const edges: Edge[] = [{ id: 'e1', source: 'n1', target: 'n2' }]
 
-      const updates: Record<string, any>[] = []
-      const assertion = expect(executeWorkflow(nodes, edges, (nodeId, res) => {
-        updates.push({ nodeId, ...res })
-      })).rejects.toThrow(WorkflowExecutionError)
+    const updates: Record<string, any>[] = []
+    await expect(executeWorkflow(nodes, edges, (nodeId, res) => {
+      updates.push({ nodeId, ...res })
+    })).rejects.toThrow(WorkflowExecutionError)
 
-      await vi.advanceTimersByTimeAsync(3000)
+    const updateError = updates.find((u) => u.nodeId === 'n2' && u.status === 'error')?.error ?? ''
+    expect(updateError).toBe('Video Gen failed. Check your connection and try again.')
+    expect(updateError).not.toContain('Internal error')
+    expect(updateError).not.toContain('/secret/path')
+  })
 
-      await assertion
+  it('routes workflow video completion through the durable background task path', async () => {
+    vi.mocked(venice).mockResolvedValueOnce({ queue_id: 'v1', model: 'video-model', download_url: 'https://signed.example/video.mp4' })
+    const nodes: Node<VeniceNodeData>[] = [
+      { id: 'n1', type: 'venice', position: { x: 0, y: 0 }, data: { label: 'Video', nodeType: 'video', model: 'video-model', prompt: 'ocean', videoAspectRatio: '16:9' } },
+    ]
+    const updates: Record<string, unknown>[] = []
 
-      const updateError = updates.find((u) => u.nodeId === 'n2' && u.status === 'error')?.error ?? ''
-      expect(updateError).toBe('Video generation failed.')
-      expect(updateError).not.toContain('Internal error')
-      expect(updateError).not.toContain('/secret/path')
-    } finally {
-      vi.useRealTimers()
-    }
+    await executeWorkflow(nodes, [], (nodeId, result) => updates.push({ nodeId, ...result }))
+
+    expect(awaitWorkflowVideoTask).toHaveBeenCalledWith(expect.objectContaining({
+      queueId: 'v1',
+      model: 'video-model',
+      queueDownloadUrl: 'https://signed.example/video.mp4',
+      request: expect.objectContaining({ prompt: 'ocean', aspect_ratio: '16:9' }),
+    }))
+    expect(updates).toContainEqual(expect.objectContaining({ status: 'done', output: '[video:venice-media://workflow-video]' }))
   })
 
   it('keeps TTS blob URLs alive after workflow completion', async () => {

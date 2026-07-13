@@ -113,36 +113,6 @@ export function VideoView() {
   // legitimately re-rendered after navigation.
   const savedQueueIdsRef = useRef<Set<string>>(new Set())
 
-  useEffect(() => {
-    if (status !== 'completed' || !videoUrl || !queueId) return
-    if (savedQueueIdsRef.current.has(queueId) || useMediaStore.getState().items.some((item) => item.queueId === queueId)) return
-    savedQueueIdsRef.current.add(queueId)
-    const mediaItem = {
-      id: generateId(),
-      image: videoUrl,
-      prompt: lastRequest?.prompt ?? prompt.trim(),
-      model: lastRequest?.model ?? 'venice-video',
-      timestamp: Date.now(),
-      mediaType: 'video' as const,
-      operation: 'video-generate' as const,
-      parentId: null,
-      childrenIds: [] as string[],
-      tags: [] as string[],
-      note: '',
-      favorite: false,
-      queueId,
-      duration: lastRequest?.duration,
-      resolution: lastRequest?.resolution,
-      aspectRatio: lastRequest?.aspect_ratio,
-      audio: lastRequest?.audio,
-      downloadUrl: videoUrl,
-    }
-    void useMediaStore.getState().upsert(mediaItem, {
-      attachActiveProject: true,
-      source: 'generated',
-    })
-  }, [status, videoUrl, queueId, lastRequest, prompt])
-
   const formatGroupLabel = useCallback(
     (g: VideoModelGroup) => {
       const model = mode === 'image' ? g.imageModel : g.textModel

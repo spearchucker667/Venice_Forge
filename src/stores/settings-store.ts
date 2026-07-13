@@ -141,6 +141,8 @@ interface SettingsState {
   setAutoFallbackEnabled: (enabled: boolean) => void
   fallbackOrdering: string[]
   setFallbackOrdering: (ordering: string[]) => void
+  favoriteHostedCharacterSlugs: string[]
+  setFavoriteHostedCharacterSlugs: (slugs: string[]) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -218,10 +220,14 @@ export const useSettingsStore = create<SettingsState>()(
       setAutoFallbackEnabled: (enabled) => set({ autoFallbackEnabled: enabled }),
       fallbackOrdering: [],
       setFallbackOrdering: (ordering) => set({ fallbackOrdering: ordering }),
+      favoriteHostedCharacterSlugs: [],
+      setFavoriteHostedCharacterSlugs: (slugs) => set({
+        favoriteHostedCharacterSlugs: [...new Set(slugs.filter((slug) => /^[A-Za-z0-9_-]{1,128}$/.test(slug)))].slice(0, 100),
+      }),
     }),
     {
       name: 'venice-settings',
-      version: 7,
+      version: 8,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -252,6 +258,9 @@ export const useSettingsStore = create<SettingsState>()(
 
           // v7 (providers): enabled state for fallback providers
           enabledProviders: state.enabledProviders ?? {},
+          favoriteHostedCharacterSlugs: Array.isArray(state.favoriteHostedCharacterSlugs)
+            ? [...new Set(state.favoriteHostedCharacterSlugs.filter((slug): slug is string => typeof slug === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(slug)))].slice(0, 100)
+            : [],
         } as SettingsState
       },
       merge: (persisted, current) => ({

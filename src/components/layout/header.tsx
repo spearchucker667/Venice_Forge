@@ -11,6 +11,7 @@ import { useBackgroundTaskStore } from '../../stores/background-task-store'
 import { getActiveProfileId } from '../../services/activeProfile'
 import { resolveTab } from '../../config/tabs'
 import { formatModelLabelWithCost } from '../../utils/pricing'
+import { CharacterAvatar } from '../characters/CharacterAvatar'
 
 interface Props {
   onOpenApiKey: () => void
@@ -41,6 +42,9 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
     : undefined
   const currentModel = hasOwnSelector ? '' : (activeConversationModel || selectedModels[activeTab] || '')
   const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: (modelType === 'image' || modelType === 'video') ? formatModelLabelWithCost(m) : m.model_spec?.name || m.id })) ?? [])
+  const activeCharacter = activeTab === 'chat'
+    ? conversations.find((conversation) => conversation.id === activeConversationId)?.metadata?.character
+    : undefined
 
   return (
     <header className="flex items-center gap-3 h-14 px-3 soft-separator-y mesh-surface mesh-header shrink-0 shell-region">
@@ -67,13 +71,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
       </button>
 
       <div className="flex items-center gap-2 min-w-0">
-        {activeTab === 'chat' && activeConversationId && conversations.find(c => c.id === activeConversationId)?.metadata?.character?.photoUrl && (
-          <img
-            src={conversations.find(c => c.id === activeConversationId)!.metadata!.character!.photoUrl}
-            alt=""
-            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
-          />
-        )}
+        {activeCharacter && <CharacterAvatar character={activeCharacter} cacheKey={`header-${activeConversationId}`} size="md" />}
         <div className="flex flex-col min-w-0">
           <span className="text-[14px] font-semibold text-text-primary leading-none">{tabDesc?.label ?? activeTab}</span>
           <span className="text-[12px] text-text-muted mt-0.5 leading-none truncate hidden sm:block">{tabDesc?.subtitle ?? ''}</span>

@@ -21,6 +21,13 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 
 ## P1 — Runtime-Critical Bugs / Security Adjustments
 
+### [x] Complete Paid Image Preflight Validation
+- **Description:** Image Tools now decodes normalized PNG/JPEG/WEBP headers before submission, rejects MIME spoofing and undecodable content, enforces the 65,536-pixel minimum source area and 16,777,216-pixel projected upscale ceiling, rejects URL upscales whose dimensions cannot be proven locally, and exposes metadata-only diagnostics (kind, MIME, byte count, dimensions, projected dimensions, request keys).
+- **Status:** Closed (2026-07-13)
+- **Affected Files/Modules:** `src/services/media-request-adapter.ts`, `src/hooks/use-image-tools.ts`
+- **Validation Required:** focused adapter/hook tests plus `npm run verify:image-policy`
+- **Headed/Manual Smoke Required:** Yes
+
 ### [x] Scene-Composer Field Sanitization & Reference Resolution
 - **Description:** Run write-time sanitization on all fields (SC-01); resolve Prompt Library references before compiling or sending scenes to the Image Studio (SC-02); and ensure `redactSecrets` is called in `sceneCompiler.ts` (SC-03).
 - **Status:** Closed
@@ -52,6 +59,20 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 ---
 
 ## P2 — Product Completion / Quality & DX
+
+### [x] Finish Media/Character Remediation Integration Closure
+- **Description:** Workflow-engine video completion now uses the durable background-task/media-catalog path. Character Hub supports persisted hosted favorites, hosted recents, accessible details, refresh, and safe local duplication. Dedicated negative-template incompatibility, avatar surface/race, workflow, and hosted-Hub interaction tests pass. An unsigned ARM64 package was built, artifact-verified, launched, terminated, and relaunched against one isolated profile.
+- **Status:** Closed (2026-07-13; see `docs/reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md`)
+- **Affected Files/Modules:** `src/lib/workflow-engine.ts`, character presentation adapters/components, image template tests, packaged Electron QA
+- **Validation Required:** focused workflow/UI tests, `npm run test:ci`, `npm run verify:contracts`, packaged restart/playback evidence
+- **Headed/Manual Smoke Required:** Yes
+
+### [x] Execute Paid Media Generation and Playback QA
+- **Description:** With explicit authorization, ran the least-cost live Venice matrix available from the authenticated catalog: `z-image-turbo` image generation, `grok-imagine-text-to-video-private` at 1 second/480p/1:1, and `mmaudio-v2-text-to-audio` at 1 second. Verified decoded image/video/audio outputs, packaged protocol playback, music queue recovery, exactly-once Media Studio insertion across snapshot replay and restart, and hosted Character Hub favorite/details/refresh/local-duplicate interaction. The exact balance delta was USD $0.08; no credential, raw prompt, or private profile data was recorded in the repository.
+- **Status:** Closed (2026-07-13)
+- **Affected Files/Modules:** Packaged application, isolated test profiles, `src/shared/veniceSafeMode.ts`, `electron/ipc/rpHandlers.ts`, focused regression tests, and the media/character remediation report
+- **Validation Required:** Paid provider outputs, FFmpeg decode, packaged playback, restart recovery, exactly-once catalog insertion, Character Hub visual interaction, focused regressions, full test/contracts suite, and ARM64 package verification
+- **Headed/Manual Smoke Required:** Yes
 
 ### [x] Persist and Resume Background Tasks
 - **Description:** Moved provider queue ownership to a persistent main-process `BackgroundTaskManager` that sync-writes to `<userData>/background-tasks.json`, loads/recovers on startup, and polls only resumable `video`/`music` tasks. `image`, `research`, and `document` tasks are persisted and survive renderer reload, but are not auto-resumed by the main process because they are renderer-driven or terminal. The 2026-07-11 repairs had closed video-response normalization, polling correctness, progress scaling, queue validation, timeout truthfulness, hook/store circular imports, and the renderer task center; this session closed restart durability for Electron.

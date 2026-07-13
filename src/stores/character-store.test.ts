@@ -339,6 +339,18 @@ describe("useCharacterStore", () => {
       expect(state.selectedCharacter).toEqual(char);
       expect(state.selectedCharacterSlug).toBe("test-slug");
       expect(state.error).toBeNull();
+      expect(state.results).toEqual([char]);
+    });
+
+    it("refreshes a hosted result in place without duplicating it", async () => {
+      const stale = mockCharacter({ slug: "test-slug", name: "Old name" });
+      const refreshed = mockCharacter({ slug: "test-slug", name: "New name" });
+      useCharacterStore.setState({ results: [stale] });
+      vi.mocked(getCharacter).mockResolvedValue(refreshed);
+
+      await useCharacterStore.getState().fetchBySlug("test-slug");
+
+      expect(useCharacterStore.getState().results).toEqual([refreshed]);
     });
 
     it("should handle error, set error state, and return null", async () => {

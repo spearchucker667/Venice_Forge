@@ -34,7 +34,7 @@ vi.mock('../../hooks/use-models', () => ({
     data: type === 'image'
       ? [
         {
-          id: 'live-only-edit-model',
+          id: 'flux-2-max-edit',
           object: 'model',
           created: 1,
           owned_by: 'venice',

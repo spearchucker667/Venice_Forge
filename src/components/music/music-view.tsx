@@ -57,32 +57,6 @@ export function MusicView() {
     if (!audioUrl) setPlaybackError(null)
   }, [audioUrl])
 
-  useEffect(() => {
-    if (status !== 'completed' || !audioUrl || !queueId) return
-    if (savedQueueIdsRef.current.has(queueId)) return
-    savedQueueIdsRef.current.add(queueId)
-    const mediaItem = {
-      id: generateId(),
-      image: audioUrl,
-      prompt: lastRequest?.prompt ?? prompt.trim(),
-      model: lastRequest?.model ?? model,
-      timestamp: Date.now(),
-      mediaType: 'audio' as const,
-      operation: 'music-generate' as const,
-      parentId: null,
-      childrenIds: [] as string[],
-      tags: [] as string[],
-      note: '',
-      favorite: false,
-      queueId,
-      downloadUrl: audioUrl,
-    }
-    void useMediaStore.getState().upsert(mediaItem, {
-      attachActiveProject: true,
-      source: 'generated',
-    })
-  }, [status, audioUrl, queueId, lastRequest, prompt, model])
-
   const handleGenerate = () => {
     if (!prompt.trim()) return
     setPlaybackError(null)

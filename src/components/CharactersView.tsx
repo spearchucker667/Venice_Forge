@@ -18,6 +18,13 @@ import type {
   CharacterSortOrder,
   VeniceCharacter,
 } from "../types/characters";
+import { useCharacterCardStore } from '../stores/character-card-store'
+import { startNormalChatForCharacter } from '../services/rpHelpers'
+import { avatarDataUri } from './rp-studio/_shared'
+import { CharacterAvatar } from './characters/CharacterAvatar'
+import { askDecision } from './ui/modal-requests'
+import { AccessibleDialog } from './ui/AccessibleDialog'
+import { toast } from '../stores/toast-store'
 
 const SORT_OPTIONS: Array<{ value: CharacterSortBy; label: string }> = [
   { value: "featured", label: "Featured" },
@@ -69,10 +76,20 @@ function CharacterCard({
   character,
   onChat,
   onSelect,
+  isFavorite,
+  onFavorite,
+  onDetails,
+  onRefresh,
+  onDuplicate,
 }: {
   character: VeniceCharacter;
   onChat: (character: VeniceCharacter) => void;
   onSelect: (character: VeniceCharacter) => void;
+  isFavorite?: boolean;
+  onFavorite?: (character: VeniceCharacter) => void;
+  onDetails?: (character: VeniceCharacter) => void;
+  onRefresh?: (character: VeniceCharacter) => void;
+  onDuplicate?: (character: VeniceCharacter) => void;
 }) {
   return (
     <article
@@ -165,6 +182,14 @@ function CharacterCard({
           </a>
         )}
       </div>
+      {(onFavorite || onDetails || onRefresh || onDuplicate) && (
+        <div className="grid grid-cols-2 gap-2 text-[12px]">
+          {onFavorite && <button type="button" onClick={() => onFavorite(character)} className="rounded border border-border px-2 py-1.5 text-text-secondary">{isFavorite ? 'Unfavorite' : 'Favorite'}</button>}
+          {onDetails && <button type="button" onClick={() => onDetails(character)} className="rounded border border-border px-2 py-1.5 text-text-secondary">Details</button>}
+          {onRefresh && <button type="button" onClick={() => onRefresh(character)} className="rounded border border-border px-2 py-1.5 text-text-secondary">Refresh</button>}
+          {onDuplicate && <button type="button" onClick={() => onDuplicate(character)} className="rounded border border-border px-2 py-1.5 text-text-secondary">Duplicate locally</button>}
+        </div>
+      )}
     </article>
   );
 }
@@ -190,11 +215,22 @@ export function CharactersView() {
     searchCharacters,
     loadMore,
     selectCharacter,
+    fetchBySlug,
   } = useCharacterStore();
 
   const createCharacterConversation = useChatStore((s) => s.createCharacterConversation);
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
   const fallbackModel = useSettingsStore((s) => s.selectedModels.chat) || DEFAULT_CHAT_MODEL;
+  const localCards = useCharacterCardStore((s) => s.cards)
+  const loadLocalCards = useCharacterCardStore((s) => s.load)
+  const upsertLocalCard = useCharacterCardStore((s) => s.upsert)
+  const removeLocalCard = useCharacterCardStore((s) => s.remove)
+  const conversations = useChatStore((s) => s.conversations)
+  const favoriteHostedCharacterSlugs = useSettingsStore((s) => s.favoriteHostedCharacterSlugs)
+  const setFavoriteHostedCharacterSlugs = useSettingsStore((s) => s.setFavoriteHostedCharacterSlugs)
+  const [hubSection, setHubSection] = useState<'hosted' | 'local' | 'favorites' | 'recent'>('hosted')
+  const [hostedDetail, setHostedDetail] = useState<VeniceCharacter | null>(null)
+  const detailPanelRef = useRef<HTMLDivElement>(null)
 
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
   const debounceRef = useRef<number | null>(null);
@@ -214,6 +250,8 @@ export function CharactersView() {
   useEffect(() => {
     void searchCharacters(debouncedQuery);
   }, [debouncedQuery, sortBy, sortOrder, includeAdultCharacters, webEnabledOnly, searchCharacters]);
+
+  useEffect(() => { void loadLocalCards() }, [loadLocalCards])
 
   const handleChat = (character: VeniceCharacter) => {
     // Resolve the model BEFORE selectCharacter mutates selectedModel,
@@ -236,13 +274,174 @@ export function CharactersView() {
     };
   }, [results]);
 
+  const localLastUsed = useMemo(() => {
+    const out = new Map<string, number>()
+    for (const conversation of conversations) {
+      const id = conversation.metadata?.character?.localCharacterId
+      if (id) out.set(id, Math.max(out.get(id) ?? 0, conversation.updatedAt))
+    }
+    return out
+  }, [conversations])
+
+  const hostedRecentSlugs = useMemo(() => {
+    const timestamps = new Map<string, number>()
+    for (const conversation of conversations) {
+      const slug = conversation.metadata?.character?.slug
+      if (slug) timestamps.set(slug, Math.max(timestamps.get(slug) ?? 0, conversation.updatedAt))
+    }
+    return [...timestamps].sort((a, b) => b[1] - a[1]).map(([slug]) => slug)
+  }, [conversations])
+
+  const requestedHostedSlugs = useMemo(() => (
+    hubSection === 'favorites'
+      ? favoriteHostedCharacterSlugs
+      : hubSection === 'recent'
+        ? hostedRecentSlugs
+        : []
+  ), [favoriteHostedCharacterSlugs, hostedRecentSlugs, hubSection])
+
+  useEffect(() => {
+    for (const slug of requestedHostedSlugs) {
+      if (!results.some((character) => character.slug === slug)) void fetchBySlug(slug)
+    }
+  }, [fetchBySlug, requestedHostedSlugs, results])
+
+  const visibleHostedCards = requestedHostedSlugs
+    .map((slug) => results.find((character) => character.slug === slug))
+    .filter((character): character is VeniceCharacter => Boolean(character))
+
+  const visibleLocalCards = useMemo(() => {
+    const active = localCards.filter((card) => !card.archivedAt)
+    if (hubSection === 'favorites') return active.filter((card) => card.metadata?.favorite === true)
+    if (hubSection === 'recent') return active.filter((card) => localLastUsed.has(card.id)).sort((a, b) => (localLastUsed.get(b.id) ?? 0) - (localLastUsed.get(a.id) ?? 0))
+    return active
+  }, [hubSection, localCards, localLastUsed])
+
+  const toggleHostedFavorite = (character: VeniceCharacter) => {
+    const next = favoriteHostedCharacterSlugs.includes(character.slug)
+      ? favoriteHostedCharacterSlugs.filter((slug) => slug !== character.slug)
+      : [character.slug, ...favoriteHostedCharacterSlugs]
+    setFavoriteHostedCharacterSlugs(next)
+  }
+
+  const refreshHostedCharacter = async (character: VeniceCharacter) => {
+    const refreshed = await fetchBySlug(character.slug)
+    if (!refreshed) return
+    setHostedDetail((current) => current?.slug === refreshed.slug ? refreshed : current)
+    toast.success(`Refreshed ${refreshed.name}`)
+  }
+
+  const duplicateHostedCharacter = async (character: VeniceCharacter) => {
+    const now = Date.now()
+    const saved = await upsertLocalCard({
+      schema: 'CharacterCardV1',
+      id: crypto.randomUUID(),
+      name: `${character.name} Copy`,
+      description: character.description || '',
+      systemPrompt: '',
+      tags: character.tags?.slice(0, 32) ?? [],
+      modelId: character.modelId,
+      author: character.author,
+      adult: character.adult === true,
+      exampleDialogues: [],
+      firstMessage: character.greeting,
+      metadata: { sourceHostedSlug: character.slug },
+      createdAt: now,
+      updatedAt: now,
+    })
+    if (saved) toast.success(`Duplicated ${character.name} to Local`)
+  }
+
+  const renderHostedCard = (character: VeniceCharacter) => (
+    <CharacterCard
+      key={character.slug}
+      character={character}
+      onChat={handleChat}
+      onSelect={handleSelect}
+      isFavorite={favoriteHostedCharacterSlugs.includes(character.slug)}
+      onFavorite={toggleHostedFavorite}
+      onDetails={setHostedDetail}
+      onRefresh={(item) => void refreshHostedCharacter(item)}
+      onDuplicate={(item) => void duplicateHostedCharacter(item)}
+    />
+  )
+
+  const hostedDetailDialog = hostedDetail ? (
+    <AccessibleDialog
+      title={hostedDetail.name}
+      description={`Hosted Venice character /${hostedDetail.slug}`}
+      panelRef={detailPanelRef}
+      onClose={() => setHostedDetail(null)}
+      headerAction={<button type="button" onClick={() => setHostedDetail(null)} className="rounded border border-border px-2 py-1 text-text-secondary" aria-label="Close character details">Close</button>}
+    >
+      <div className="space-y-4 overflow-y-auto p-5 text-sm text-text-secondary">
+        <div className="flex items-center gap-3"><Avatar character={hostedDetail} /><div><p className="font-semibold text-text-primary">{hostedDetail.name}</p><p>{hostedDetail.author || 'Unknown author'}</p></div></div>
+        <p>{hostedDetail.description || 'No description provided.'}</p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => toggleHostedFavorite(hostedDetail)} className="rounded border border-border px-3 py-1.5">{favoriteHostedCharacterSlugs.includes(hostedDetail.slug) ? 'Unfavorite' : 'Favorite'}</button>
+          <button type="button" onClick={() => void refreshHostedCharacter(hostedDetail)} className="rounded border border-border px-3 py-1.5">Refresh</button>
+          <button type="button" onClick={() => void duplicateHostedCharacter(hostedDetail)} className="rounded border border-border px-3 py-1.5">Duplicate locally</button>
+        </div>
+      </div>
+    </AccessibleDialog>
+  ) : null
+
+  const hubNav = (
+    <nav aria-label="Character sections" className="flex flex-wrap gap-2">
+      {(['hosted', 'local', 'favorites', 'recent'] as const).map((section) => (
+        <button key={section} type="button" aria-pressed={hubSection === section} onClick={() => setHubSection(section)} className={`rounded-md border px-3 py-1.5 text-[12px] capitalize ${hubSection === section ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-secondary'}`}>{section}</button>
+      ))}
+    </nav>
+  )
+
+  if (hubSection !== 'hosted') {
+    return (
+      <div className="flex h-full flex-col mesh-surface shell-region">
+        <div className="flex-none space-y-3 p-5 soft-panel bg-surface/40">
+          <div><h2 className="text-[17px] font-semibold text-text-primary">Characters</h2><p className="text-[12.5px] text-text-muted">Hosted and locally authored characters in one hub.</p></div>
+          {hubNav}
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          {visibleHostedCards.length > 0 && (
+            <section className="mb-6">
+              <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-text-muted">Hosted</h3>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{visibleHostedCards.map(renderHostedCard)}</div>
+            </section>
+          )}
+          {visibleLocalCards.length > 0 && <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-text-muted">Local</h3>}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleLocalCards.map((card) => {
+              const meta = { id: card.id, localCharacterId: card.id, name: card.name, photoUrl: avatarDataUri(card.avatar), modelId: card.modelId }
+              return (
+                <article key={card.id} className="rounded-xl border border-border p-4 mesh-surface-elevated">
+                  <div className="flex gap-3"><CharacterAvatar character={meta} cacheKey={`hub-local-${card.id}`} size="lg" /><div className="min-w-0"><h3 className="truncate font-semibold text-text-primary">{card.name}</h3><span className="text-[11px] uppercase text-accent">Local</span></div></div>
+                  <p className="mt-3 line-clamp-3 text-[12.5px] text-text-secondary">{card.description || 'No description'}</p>
+                  <div className="mt-2 flex flex-wrap gap-1">{card.tags.slice(0, 4).map((tag) => <span key={tag} className="rounded bg-surface px-2 py-0.5 text-[11px] text-text-muted">{tag}</span>)}</div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+                    <button type="button" onClick={() => void startNormalChatForCharacter(card.id)} className="rounded bg-accent px-2 py-1.5 text-accent-fg">Start chat</button>
+                    <button type="button" onClick={() => setActiveTab('rp-studio')} className="rounded border border-border px-2 py-1.5 text-text-secondary">Edit</button>
+                    <button type="button" onClick={() => void upsertLocalCard({ ...card, id: crypto.randomUUID(), name: `${card.name} Copy`, createdAt: Date.now(), updatedAt: Date.now() })} className="rounded border border-border px-2 py-1.5 text-text-secondary">Duplicate</button>
+                    <button type="button" onClick={() => void upsertLocalCard({ ...card, metadata: { ...card.metadata, favorite: card.metadata?.favorite !== true }, updatedAt: Date.now() })} className="rounded border border-border px-2 py-1.5 text-text-secondary">{card.metadata?.favorite === true ? 'Unfavorite' : 'Favorite'}</button>
+                    <button type="button" onClick={async () => { if (await askDecision({ title: `Delete ${card.name}?`, detail: 'This removes the locally owned character card.', actionLabel: 'Delete', danger: true })) await removeLocalCard(card.id) }} className="col-span-2 rounded border border-danger/40 px-2 py-1.5 text-danger">Delete local character</button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+          {visibleLocalCards.length === 0 && visibleHostedCards.length === 0 && <div className="py-16 text-center text-[13px] text-text-muted">No {hubSection} characters yet.</div>}
+        </div>
+        {hostedDetailDialog}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-full mesh-surface shell-region">
       <div className="flex-none flex flex-col gap-3 p-5 soft-panel z-10 bg-surface/40 backdrop-blur">
         <header>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-[17px] font-semibold text-text-primary">Venice Characters</h2>
+              <h2 className="text-[17px] font-semibold text-text-primary">Characters</h2>
               <p className="text-[12.5px] text-text-muted mt-0.5">
                 Browse characters hosted on Venice.ai and chat using{" "}
                 <code className="font-mono text-text-secondary">venice_parameters.character_slug</code>.
@@ -293,6 +492,7 @@ export function CharactersView() {
             </div>
           </div>
         </header>
+        {hubNav}
 
         <div className="flex flex-col gap-3 pt-3 soft-separator-y">
           <input
@@ -350,9 +550,7 @@ export function CharactersView() {
               Characters
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {grouped.standard.map((c) => (
-                <CharacterCard key={c.slug} character={c} onChat={handleChat} onSelect={handleSelect} />
-              ))}
+              {grouped.standard.map(renderHostedCard)}
             </div>
           </section>
         )}
@@ -363,9 +561,7 @@ export function CharactersView() {
               Featured
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {grouped.featured.map((c) => (
-                <CharacterCard key={c.slug} character={c} onChat={handleChat} onSelect={handleSelect} />
-              ))}
+              {grouped.featured.map(renderHostedCard)}
             </div>
           </section>
         )}
@@ -376,9 +572,7 @@ export function CharactersView() {
               Adult
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {grouped.adult.map((c) => (
-                <CharacterCard key={c.slug} character={c} onChat={handleChat} onSelect={handleSelect} />
-              ))}
+              {grouped.adult.map(renderHostedCard)}
             </div>
           </section>
         )}
@@ -396,6 +590,7 @@ export function CharactersView() {
           </div>
         )}
       </div>
+      {hostedDetailDialog}
     </div>
   );
 }

@@ -57,7 +57,12 @@ export function useVideo() {
       setQueueSchemaError(null)
       const newTaskId = `video-${crypto.randomUUID()}`
       setLocalTaskId(newTaskId)
-      useBackgroundTaskStore.getState().registerQueueTask(newTaskId, 'video', qid, { model: req.model, request: req })
+      const { image_url: _imageUrl, end_image_url: _endImageUrl, audio_url: _audioUrl, video_url: _videoUrl, reference_image_urls: _referenceImages, scene_image_urls: _sceneImages, ...requestSummary } = req
+      useBackgroundTaskStore.getState().registerQueueTask(newTaskId, 'video', qid, {
+        model: data.model || req.model,
+        request: requestSummary,
+        ...(data.download_url ? { queueDownloadUrl: data.download_url } : {}),
+      })
     },
   })
 

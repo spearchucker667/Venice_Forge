@@ -72,6 +72,45 @@ describe("rpHandlers", () => {
     expect(logger.logError).toHaveBeenCalled();
   });
 
+  it("unwraps the preload characterCards:save envelope before validation and persistence", async () => {
+    registerRpIpcHandlers();
+    const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "characterCards:save")?.[1] as (...args: any[]) => any;
+    const card = {
+      schema: "CharacterCardV1",
+      id: "card-1",
+      name: "Hosted Copy",
+      description: "Safe fixture",
+      systemPrompt: "",
+      tags: [],
+      adult: false,
+      exampleDialogues: [],
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    vi.mocked(characterCardStorage.saveCharacterCard).mockResolvedValueOnce({ ok: true });
+    vi.mocked(characterCardStorage.readCharacterCard).mockResolvedValueOnce(card as never);
+
+    const result = await handler({} as any, { card, origin: "local-user" });
+
+    expect(result).toMatchObject({ ok: true, card: { id: "card-1" } });
+    expect(characterCardStorage.saveCharacterCard).toHaveBeenCalledWith(card);
+    expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("character_cards", "card-1", card, "local-user");
+  });
+
+  it("unwraps named preload envelopes for generic RP stores", async () => {
+    registerRpIpcHandlers();
+    const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "personas:save")?.[1] as (...args: any[]) => any;
+    const persona = { id: "persona-1", name: "Wrapped" };
+    vi.mocked(personaStore.save).mockResolvedValueOnce({ ok: true });
+    vi.mocked(personaStore.read).mockResolvedValueOnce(persona as never);
+
+    const result = await handler({} as any, { persona, origin: "remote-sync" });
+
+    expect(result).toMatchObject({ ok: true, persona });
+    expect(personaStore.save).toHaveBeenCalledWith(persona);
+    expect(syncBridge.emitSyncPacket).not.toHaveBeenCalled();
+  });
+
   it("handles personas:save correctly", async () => {
     registerRpIpcHandlers();
     const handler = vi.mocked(ipcMain.handle).mock.calls.find((call) => call[0] === "personas:save")?.[1] as (...args: any[]) => any;

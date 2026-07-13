@@ -12,6 +12,7 @@ export interface BackgroundTask {
   progress?: number
   error?: string
   resultUrl?: string
+  resultMediaId?: string
   createdAt: number
   updatedAt: number
   metadata?: Record<string, unknown>
@@ -49,6 +50,7 @@ export interface BackgroundTaskUpdate {
   progress?: number
   error?: string
   resultUrl?: string
+  resultMediaId?: string
   metadata?: Record<string, unknown>
   queueId?: string
   attemptStartedAt?: number
@@ -96,6 +98,7 @@ export function isValidBackgroundTask(value: unknown): value is BackgroundTask {
     isValidProgress(task.progress) &&
     (task.error === undefined || typeof task.error === 'string') &&
     (task.resultUrl === undefined || typeof task.resultUrl === 'string') &&
+    (task.resultMediaId === undefined || typeof task.resultMediaId === 'string') &&
     (task.queueId === undefined || typeof task.queueId === 'string') &&
     typeof task.profileId === 'string' &&
     (task.providerId === undefined || typeof task.providerId === 'string') &&

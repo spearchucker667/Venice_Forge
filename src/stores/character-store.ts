@@ -193,7 +193,13 @@ export const useCharacterStore = create<CharacterState>((set, get) => ({
   fetchBySlug: async (slug) => {
     try {
       const character = await getCharacter(slug);
-      set({ selectedCharacter: character, selectedCharacterSlug: character.slug });
+      set((state) => ({
+        selectedCharacter: character,
+        selectedCharacterSlug: character.slug,
+        results: state.results.some((item) => item.slug === character.slug)
+          ? state.results.map((item) => item.slug === character.slug ? character : item)
+          : [character, ...state.results],
+      }));
       return character;
     } catch (err) {
       logger.error("[character-store] Failed to fetch character", err);

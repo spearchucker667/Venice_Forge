@@ -11,6 +11,11 @@ export type NormalizedVideoRetrieveResult =
       mimeType: 'video/mp4'
     }
   | {
+      kind: 'download'
+      downloadUrl: string
+      mimeType: 'video/mp4'
+    }
+  | {
       kind: 'failed'
       error: string
     }
@@ -35,6 +40,7 @@ export function normalizeProgressRatio(value: unknown): number | undefined {
 export function normalizeVideoRetrieveResult(
   value: unknown,
   headers: Record<string, string> = {},
+  queueDownloadUrl?: string,
 ): NormalizedVideoRetrieveResult {
   const data = asRecord(value)
   if (!data) return { kind: 'failed', error: 'Video status response was malformed.' }
@@ -75,6 +81,9 @@ export function normalizeVideoRetrieveResult(
     }
   }
   if (rawStatus === 'COMPLETED') {
+    if (queueDownloadUrl?.trim()) {
+      return { kind: 'download', downloadUrl: queueDownloadUrl.trim(), mimeType: 'video/mp4' }
+    }
     return { kind: 'failed', error: 'Video completed without a playable video response.' }
   }
   return { kind: 'failed', error: 'Video status response was malformed.' }

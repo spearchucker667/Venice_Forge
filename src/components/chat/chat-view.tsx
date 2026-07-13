@@ -6,21 +6,22 @@ import { useChat } from '../../hooks/use-chat'
 import { toast } from '../../stores/toast-store'
 import { DEFAULT_CHAT_MODEL, modelSupportsVision } from '../../constants/venice'
 import { resolveDefaultChatModel } from '../../services/defaultModelResolver'
-import { useCharacterImage } from '../../hooks/useCharacterImage'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useCharacterCardStore } from '../../stores/character-card-store'
+import { useCharacterStore } from '../../stores/character-store'
 import { MessageBubble } from './message-bubble'
 import { ChatInput } from './chat-input'
 import { IngestedAttachment } from '../../types/ingestion'
 import { VeniceParams } from './venice-params'
 import { VeniceLogo } from '../ui/logo'
+import { CharacterAvatar } from '../characters/CharacterAvatar'
 import { RefreshCw } from 'lucide-react'
 import { desktopConversations } from '../../services/desktopBridge'
 import * as logger from '../../shared/logger'
 import { getBalancedPromptStarters } from '../../services/promptStarterService'
 import { askDecision } from '../ui/modal-requests'
 import type { PromptStarter } from '../../data/promptStarters'
-import type { MemoryFact, ConversationRecordV1, ConversationMessage } from '../../types/conversationVault'
+import type { MemoryFact, ConversationRecordV1 } from '../../types/conversationVault'
 import type { Conversation } from '../../types/conversation'
 import type { ChatMemoryDecision } from '../../hooks/use-chat'
 import { buildChatPayloadContext, buildPriorConversationContextText } from '../../utils/chatPayloadContext'
@@ -65,9 +66,6 @@ export function ChatView() {
     liveVisionSupports === null ? null : { supportsVision: liveVisionSupports },
   )
   const { send, stop, regenerate, isStreaming, createScene, memoryStatus, resetMemoryPreview } = useChat()
-  const activeCharacterImage = useCharacterImage(conversation?.metadata?.character, {
-    cacheKey: conversation?.id,
-  })
   const enableMemoryRetrieval = useSettingsStore((s) => s.enableMemoryRetrieval)
   // The global Memory panel toggle must be reflected immediately in the chat
   // input indicator, not just on the next send. When retrieval is disabled we
@@ -263,12 +261,13 @@ export function ChatView() {
   const [starters, setStarters] = useState<PromptStarter[]>([])
 
   const conversationId = conversation?.id
-  const isCharacterBound = !!conversation?.metadata?.character?.slug
+  const isCharacterBound = Boolean(conversation?.metadata?.character)
   const messageCount = conversation?.messages.length ?? 0
-  const assistantAvatarUrl = isCharacterBound ? activeCharacterImage.imageUrl : undefined
   
   // For character-bound conversations with no messages, show the character's firstMessage as initial assistant message
   const cards = useCharacterCardStore((s) => s.cards)
+  const hostedCharacters = useCharacterStore((s) => s.results)
+  const fetchHostedCharacter = useCharacterStore((s) => s.fetchBySlug)
   const firstCharacterMessage = useMemo(() => {
     if (!isCharacterBound || messageCount > 0 || !conversation?.metadata?.character) return null
     
@@ -279,10 +278,32 @@ export function ChatView() {
       return card?.firstMessage || null
     }
     
-    // For hosted characters, the firstMessage might be in the metadata
-    // Type assertion since firstMessage may not exist on all ConversationCharacterMeta variants
-    return (characterMeta as Partial<{ firstMessage: string }>).firstMessage || null
-  }, [isCharacterBound, messageCount, conversation?.metadata?.character, cards])
+    return hostedCharacters.find((item) => item.slug === characterMeta.slug)?.greeting || null
+  }, [isCharacterBound, messageCount, conversation?.metadata?.character, cards, hostedCharacters])
+
+  const greetingInsertedRef = useRef(new Set<string>())
+  const greetingLookupRef = useRef(new Set<string>())
+  const greetingCheckedRef = useRef(new Set<string>())
+  useEffect(() => {
+    if (!conversation || !isCharacterBound || conversation.messages.length > 0 || greetingInsertedRef.current.has(conversation.id)) return
+    if (firstCharacterMessage) {
+      greetingInsertedRef.current.add(conversation.id)
+      useChatStore.getState().addMessage(conversation.id, { role: 'assistant', content: firstCharacterMessage })
+      return
+    }
+    const slug = conversation.metadata?.character?.slug
+    if (slug && !greetingLookupRef.current.has(conversation.id) && !greetingCheckedRef.current.has(conversation.id)) {
+      const conversationId = conversation.id
+      greetingLookupRef.current.add(conversationId)
+      void fetchHostedCharacter(slug).then((hosted) => {
+        greetingCheckedRef.current.add(conversationId)
+        const live = useChatStore.getState().conversations.find((item) => item.id === conversationId)
+        if (!hosted?.greeting || !live || live.messages.length > 0 || greetingInsertedRef.current.has(conversationId)) return
+        greetingInsertedRef.current.add(conversationId)
+        useChatStore.getState().addMessage(conversationId, { role: 'assistant', content: hosted.greeting })
+      }).finally(() => greetingLookupRef.current.delete(conversationId))
+    }
+  }, [conversation, firstCharacterMessage, fetchHostedCharacter, isCharacterBound])
 
   useEffect(() => {
     if (messageCount === 0) {
@@ -393,7 +414,7 @@ export function ChatView() {
         </div>
       )}
       <div className="flex-1 overflow-y-auto">
-        {!conversation || conversation.messages.length === 0 ? (
+        {!conversation || (conversation.messages.length === 0 && !isCharacterBound) ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-6">
             <div className="flex flex-col items-center gap-3">
               <VeniceLogo size={32} className="opacity-80" />
@@ -441,7 +462,6 @@ export function ChatView() {
                 <div className="max-w-[960px] mx-auto px-4 sm:px-5 py-2 flex items-center gap-3">
                   <ActiveCharacterPill
                     character={conversation.metadata.character}
-                    imageUrl={activeCharacterImage.imageUrl}
                     onClear={() => {
                       const convId = conversation.id;
                       // Strip character binding from the conversation so
@@ -478,31 +498,9 @@ export function ChatView() {
               <VeniceParams />
             </div>
             <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
-              {/* Display character's firstMessage as initial assistant message when no messages exist */}
-              {firstCharacterMessage && conversation.messages.length === 0 && (
-                <div
-                  key="first-character-message"
-                  className="rounded-lg outline outline-2 outline-accent outline-offset-4"
-                >
-                  <MessageBubble
-                    message={{
-                      id: "first-character-message",
-                      role: "assistant",
-                      content: firstCharacterMessage,
-                      timestamp: Date.now(),
-                    } as ConversationMessage}
-                    index={-1}
-                    onCopy={() => {}}
-                    onDelete={() => {}}
-                    onEdit={undefined}
-                    onDeleteFromHere={undefined}
-                    onRegenerateFromHere={undefined}
-                    onForkFromHere={undefined}
-                    onRegenerate={undefined}
-                    onGenerateScene={undefined}
-                    isCharacterBound={isCharacterBound}
-                    assistantAvatarUrl={assistantAvatarUrl}
-                  />
+              {isCharacterBound && conversation.messages.length === 0 && (
+                <div className="rounded-lg border border-border bg-surface-elevated p-5 text-center text-[14px] text-text-secondary">
+                  Start a conversation with {conversation.metadata?.character?.name || 'this character'}.
                 </div>
               )}
               {conversation.messages.map((msg, i) => {
@@ -530,7 +528,8 @@ export function ChatView() {
                       onRegenerate={cb?.onRegenerate}
                       onGenerateScene={cb?.onGenerateScene}
                       isCharacterBound={isCharacterBound}
-                      assistantAvatarUrl={assistantAvatarUrl}
+                      assistantCharacter={isCharacterBound ? conversation.metadata?.character : undefined}
+                      assistantCharacterCacheKey={`message-${conversation.id}`}
                     />
                   </div>
                 )
@@ -821,37 +820,17 @@ function PriorConversationContextSelector({
  *  model, and offers a way to clear the binding. */
 function ActiveCharacterPill({
   character,
-  imageUrl,
   onClear,
 }: {
   character: NonNullable<NonNullable<Conversation["metadata"]>["character"]>;
-  imageUrl: string | undefined;
   onClear: () => void;
 }) {
-  const initial = character.name?.trim()?.charAt(0)?.toUpperCase() || "?";
   return (
     <div
       className="flex items-center gap-3 rounded-full bg-surface-elevated border border-accent/30 pl-1.5 pr-3 py-1 text-[12.5px]"
       data-testid="active-character-pill"
     >
-      {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt=""
-          width={26}
-          height={26}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="w-[26px] h-[26px] rounded-full object-cover border border-border"
-        />
-      ) : (
-        <span
-          aria-hidden="true"
-          className="w-[26px] h-[26px] rounded-full bg-accent/15 text-accent flex items-center justify-center text-[12px] font-semibold border border-border"
-        >
-          {initial}
-        </span>
-      )}
+      <CharacterAvatar character={character} cacheKey={`pill-${character.localCharacterId || character.slug || character.id || character.name}`} size="md" className="border border-border" />
       <div className="flex flex-col leading-tight">
         <span className="text-text-primary font-semibold">
           Chatting as <span data-testid="active-character-name">{character.name}</span>

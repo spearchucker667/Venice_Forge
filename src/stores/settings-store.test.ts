@@ -25,6 +25,7 @@ describe('settings-store', () => {
       activeProjectId: null,
       characterSceneGenerationEnabled: false,
       characterSceneGenerationMode: 'manual',
+      favoriteHostedCharacterSlugs: [],
     })
   })
 
@@ -167,6 +168,13 @@ describe('settings-store', () => {
     })
   })
 
+  describe('hosted character preferences', () => {
+    it('deduplicates and rejects invalid favorite slugs', () => {
+      useSettingsStore.getState().setFavoriteHostedCharacterSlugs(['alan-watts', '../bad', 'alan-watts', 'valid_2'])
+      expect(useSettingsStore.getState().favoriteHostedCharacterSlugs).toEqual(['alan-watts', 'valid_2'])
+    })
+  })
+
   describe('persistence migration and merge', () => {
     it('migrates older state objects', () => {
       const migrate = useSettingsStore.persist.getOptions().migrate as (persistedState: unknown, version: number) => any
@@ -184,6 +192,7 @@ describe('settings-store', () => {
       expect(migrated.activeProjectId).toBe(null)
       expect(migrated.characterSceneGenerationEnabled).toBe(false)
       expect(migrated.characterSceneGenerationMode).toBe('manual')
+      expect(migrated.favoriteHostedCharacterSlugs).toEqual([])
     })
 
     it('handles empty migration gracefully', () => {

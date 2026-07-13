@@ -37,6 +37,27 @@ export const FALLBACK_MODELS = {
 };
 
 export const DEFAULT_IMAGE_MODEL = "z-image-turbo";
+export const DEFAULT_IMAGE_EDIT_MODEL = "firered-image-edit";
+export const IMAGE_EDIT_MODEL_IDS = new Set([
+  "firered-image-edit",
+  "qwen-edit-uncensored",
+  "grok-imagine-edit",
+  "grok-imagine-quality-edit",
+  "qwen-image-2-edit",
+  "qwen-image-2-pro-edit",
+  "wan-2-7-pro-edit",
+  "flux-2-max-edit",
+  "gpt-image-2-edit",
+  "gpt-image-1-5-edit",
+  "nano-banana-2-edit",
+  "nano-banana-pro-edit",
+  "nano-banana-2-lite-edit",
+  "luma-uni-1-edit",
+  "luma-uni-1-max-edit",
+  "seedream-v5-lite-edit",
+  "seedream-v5-pro-edit",
+  "seedream-v4-edit",
+]);
 export const DEFAULT_TTS_MODEL = "tts-kokoro";
 export const DEFAULT_MUSIC_MODEL = "stable-audio";
 export const DEFAULT_VIDEO_MODEL = "wan-2.6-text-to-video";

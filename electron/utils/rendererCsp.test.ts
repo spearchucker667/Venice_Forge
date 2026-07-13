@@ -8,6 +8,7 @@ describe("rendererCsp", () => {
   it("production CSP does not allow arbitrary https: image sources", () => {
     const csp = rendererCsp(false);
     expect(csp).toContain("img-src 'self' data: blob: venice-character-cache:");
+    expect(csp).toContain("media-src 'self' blob: venice-media:");
     expect(csp).not.toContain("img-src 'self' data: blob: https: venice-character-cache:");
     expect(csp).not.toMatch(/img-src[^;]*\shttps:/);
   });

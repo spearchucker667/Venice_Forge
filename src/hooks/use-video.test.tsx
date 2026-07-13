@@ -68,4 +68,14 @@ describe("useVideo", () => {
     await waitFor(() => expect(result.current.error).toBe("Video queue response did not include a queue ID."));
     expect(Object.keys(useBackgroundTaskStore.getState().tasks)).toHaveLength(0);
   });
+
+  it('preserves queue download metadata without persisting source image bytes', async () => {
+    vi.mocked(veniceFetch).mockResolvedValueOnce({ data: { model: 'vps-model', queue_id: 'queue-vps', download_url: 'https://signed.example/result.mp4' } } as never)
+    const { result } = renderHook(() => useVideo(), { wrapper })
+    act(() => result.current.queue({ prompt: 'animate', model: 'vps-model', image_url: 'data:image/png;base64,AAAA' }))
+    await waitFor(() => expect(result.current.status).toBe('queued'))
+    const task = Object.values(useBackgroundTaskStore.getState().tasks)[0]
+    expect(task.metadata).toMatchObject({ model: 'vps-model', queueDownloadUrl: 'https://signed.example/result.mp4', request: { prompt: 'animate', model: 'vps-model' } })
+    expect(JSON.stringify(task.metadata)).not.toContain('data:image')
+  })
 });

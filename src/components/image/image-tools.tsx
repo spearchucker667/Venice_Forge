@@ -7,7 +7,7 @@ import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
 import { cn, generateId } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
-import { FALLBACK_MODELS, modelSupportsEdit } from '../../constants/venice'
+import { DEFAULT_IMAGE_EDIT_MODEL, IMAGE_EDIT_MODEL_IDS } from '../../constants/venice'
 import { normalizeError } from '../../services/veniceClient/errors'
 import { useMediaStore } from '../../stores/media-store'
 import { blobToDataUrl } from '../../utils/image'
@@ -15,22 +15,22 @@ import type { MediaOperation } from '../../types/media'
 import type { VeniceModel } from '../../types/venice'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
+import { inspectImageInput } from '../../services/media-request-adapter'
 
 type Tool = 'edit' | 'upscale' | 'remove-bg'
-type ImageModelChoice = VeniceModel | (typeof FALLBACK_MODELS.image)[number]
+type ImageModelChoice = VeniceModel
 
 function modelSpecFor(model: ImageModelChoice): VeniceModel['model_spec'] | undefined {
   return 'model_spec' in model ? model.model_spec : undefined
 }
 
 function labelForModel(model: ImageModelChoice): string {
-  return modelSpecFor(model)?.name || ('name' in model ? model.name : undefined) || model.id
+  return modelSpecFor(model)?.name || model.id
 }
 
 export function ImageTools() {
   const editPromptId = useId()
   const editModelId = useId()
-  const enhancePromptId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const { data: imageModels } = useModels('image')
   const [tool, setTool] = useState<Tool>('edit')
@@ -45,30 +45,35 @@ export function ImageTools() {
   const [editPrompt, setEditPrompt] = useState('')
   const [editModel, setEditModel] = useState('')
   const editModelOptions = useMemo(() => {
-    const candidates = imageModels && imageModels.length > 0 ? imageModels : FALLBACK_MODELS.image
+    const candidates = imageModels ?? []
     const seen = new Set<string>()
     return candidates
-      .filter((model) => modelSupportsEdit({
-        id: model.id,
-        name: labelForModel(model),
-        type: 'type' in model ? model.type : 'image',
-        traits: 'traits' in model ? model.traits : modelSpecFor(model)?.traits,
-        capabilities: modelSpecFor(model)?.capabilities,
-        features: modelSpecFor(model)?.constraints,
-      }))
+      .filter((model) => IMAGE_EDIT_MODEL_IDS.has(model.id))
       .filter((model) => {
         if (seen.has(model.id)) return false
         seen.add(model.id)
         return true
       })
       .map((model) => ({ value: model.id, label: labelForModel(model) }))
+      .concat(candidates.length === 0 ? [{ value: DEFAULT_IMAGE_EDIT_MODEL, label: DEFAULT_IMAGE_EDIT_MODEL }] : [])
   }, [imageModels])
 
   // Upscale state
-  const [scale, setScale] = useState(2)
-  const [enhance, setEnhance] = useState(false)
-  const [enhanceCreativity, setEnhanceCreativity] = useState(0.5)
-  const [enhancePrompt, setEnhancePrompt] = useState('')
+  const [scale, setScale] = useState<2 | 4>(2)
+  const [creativity, setCreativity] = useState(0.01)
+  const sourceDiagnostics = useMemo(() => {
+    if (!imageData) return null
+    const requestKeys = tool === 'edit'
+      ? ['image', 'model', 'prompt']
+      : tool === 'upscale'
+        ? ['creativity', 'image', 'scale']
+        : ['image']
+    try {
+      return inspectImageInput(imageData, requestKeys, tool === 'upscale' ? scale : undefined)
+    } catch {
+      return null
+    }
+  }, [imageData, scale, tool])
 
   const editMutation = useImageEdit()
   const upscaleMutation = useImageUpscale()
@@ -146,7 +151,7 @@ export function ImageTools() {
     lastToolRef.current = tool
     lastScaleRef.current = scale
     lastEditModelRef.current = editModel
-    lastPromptRef.current = tool === 'edit' ? editPrompt.trim() : (enhance && enhancePrompt.trim() ? enhancePrompt.trim() : '')
+    lastPromptRef.current = tool === 'edit' ? editPrompt.trim() : ''
     const opts = {
       onSuccess: (blob: Blob) => {
         resultBlobRef.current = blob
@@ -155,10 +160,10 @@ export function ImageTools() {
       onError: (err: unknown) => toast.fromError(err, 'Image tool failed'),
     }
     if (tool === 'edit') {
-      editMutation.mutate({ image: imageData, prompt: editPrompt.trim(), modelId: editModel }, opts)
+      editMutation.mutate({ image: imageData, prompt: editPrompt.trim(), model: editModel }, opts)
     } else if (tool === 'upscale') {
       upscaleMutation.mutate(
-        { image: imageData, scale, enhance, enhanceCreativity: enhance ? enhanceCreativity : undefined, enhancePrompt: enhance && enhancePrompt.trim() ? enhancePrompt.trim() : undefined },
+        { image: imageData, scale, creativity },
         opts,
       )
     } else {
@@ -253,6 +258,15 @@ export function ImageTools() {
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
               <span className="text-[13px] text-text-muted mt-1 block truncate">{imageName}</span>
+              {sourceDiagnostics?.width && sourceDiagnostics.height && (
+                <p className="mt-1 text-[12px] text-text-muted" aria-label="Source image diagnostics">
+                  {sourceDiagnostics.mimeType?.replace('image/', '').toUpperCase()} · {sourceDiagnostics.width}×{sourceDiagnostics.height} · {sourceDiagnostics.byteCount?.toLocaleString()} bytes
+                  {sourceDiagnostics.projectedWidth && sourceDiagnostics.projectedHeight
+                    ? ` · output ${sourceDiagnostics.projectedWidth}×${sourceDiagnostics.projectedHeight}`
+                    : ''}
+                  {' · '}{sourceDiagnostics.requestKeys.join(', ')}
+                </p>
+              )}
             </div>
           ) : (
             <button
@@ -284,35 +298,19 @@ export function ImageTools() {
                 <Label>Scale</Label>
                 <span className="text-[13px] text-text-muted font-mono">{scale}x</span>
               </div>
-              <input type="range" min={1} max={4} step={1} value={scale} onChange={(e) => setScale(Number(e.target.value))} className="w-full" />
+              <div className="grid grid-cols-2 gap-2">
+                {([2, 4] as const).map((factor) => (
+                  <button key={factor} type="button" aria-pressed={scale === factor} onClick={() => setScale(factor)} className={cn('rounded-md border px-3 py-2 text-[13px]', scale === factor ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-secondary')}>{factor}×</button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Label>Enhance</Label>
-              <button
-                onClick={() => setEnhance(!enhance)}
-                className={cn(
-                  'w-8 h-[18px] rounded-full transition-colors relative',
-                  enhance ? 'bg-accent' : 'bg-surface-elevated',
-                )}
-              >
-                <div className={cn(
-                  'absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all',
-                  enhance ? 'left-[16px] bg-accent-fg' : 'left-[2px] bg-text-muted',
-                )} />
-              </button>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label>Creativity</Label>
+                <span className="text-[13px] text-text-muted font-mono">{creativity.toFixed(3)}</span>
+              </div>
+              <input aria-label="Upscale creativity" type="range" min={0} max={0.02} step={0.001} value={creativity} onChange={(e) => setCreativity(Math.min(0.02, Math.max(0, Number(e.target.value))))} className="w-full" />
             </div>
-            {enhance && (
-              <>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <Label>Creativity</Label>
-                    <span className="text-[13px] text-text-muted font-mono">{enhanceCreativity.toFixed(2)}</span>
-                  </div>
-                  <input type="range" min={0} max={1} step={0.05} value={enhanceCreativity} onChange={(e) => setEnhanceCreativity(Number(e.target.value))} className="w-full" />
-                </div>
-                <div><Label htmlFor={enhancePromptId}>Enhance prompt</Label><TextArea id={enhancePromptId} value={enhancePrompt} onChange={setEnhancePrompt} placeholder="Make it more vibrant..." rows={2} /></div>
-              </>
-            )}
           </>
         )}
 

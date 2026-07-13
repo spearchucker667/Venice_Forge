@@ -39,7 +39,7 @@ export function rendererCsp(isDev: boolean): string {
     "img-src 'self' data: blob: venice-character-cache:",
     `connect-src ${connectSrc}`,
     "font-src 'self' data:",
-    "media-src 'self' blob:",
+    "media-src 'self' blob: venice-media:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'none'",

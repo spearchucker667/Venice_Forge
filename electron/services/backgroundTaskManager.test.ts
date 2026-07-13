@@ -30,6 +30,16 @@ vi.mock("./veniceClient", () => ({
   performVeniceRequest: vi.fn(),
 }));
 
+vi.mock('./generatedMediaStore', () => ({
+  persistGeneratedMedia: vi.fn(async (_bytes: Buffer, mimeType: string) => ({
+    id: 'a'.repeat(64),
+    url: `venice-media://${'a'.repeat(64)}`,
+    mimeType,
+    byteCount: 4,
+    sha256: 'a'.repeat(64),
+  })),
+}));
+
 import { performVeniceRequest as performVeniceRequestMock } from "./veniceClient";
 import {
   initBackgroundTaskManager,
@@ -143,7 +153,7 @@ describe("backgroundTaskManager", () => {
 
   it("polls video tasks to completion", async () => {
     vi.useFakeTimers();
-    await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1" });
+    await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1", metadata: { model: 'video-model' } });
     performVeniceRequest.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -154,24 +164,26 @@ describe("backgroundTaskManager", () => {
     await vi.advanceTimersByTimeAsync(0);
     const updated = listBackgroundTasks()[0];
     expect(updated?.status).toBe("completed");
-    expect(updated?.resultUrl).toBe("data:video/mp4;base64,AAAA");
+    expect(updated?.resultUrl).toBe(`venice-media://${'a'.repeat(64)}`);
+    expect(performVeniceRequest).toHaveBeenCalledWith(expect.objectContaining({ body: { model: 'video-model', queue_id: 'q1', delete_media_on_completion: false } }));
     vi.useRealTimers();
   });
 
   it("polls music tasks to completion", async () => {
     vi.useFakeTimers();
-    await createBackgroundTaskInMain({ type: "music", queueId: "q1", profileId: "p1" });
+    await createBackgroundTaskInMain({ type: "music", queueId: "q1", profileId: "p1", metadata: { model: 'stable-audio' } });
     performVeniceRequest.mockImplementationOnce(() => Promise.resolve({
       ok: true,
       status: 200,
-      headers: {},
-      body: { status: "COMPLETED", audio_url: "https://example.com/audio.mp3" },
-      contentType: "application/json",
+      headers: { 'content-type': 'audio/mpeg' },
+      body: { dataBase64: 'SUQzAA==' },
+      contentType: "audio/mpeg",
     }));
     await vi.advanceTimersByTimeAsync(0);
     const updated = listBackgroundTasks()[0];
     expect(updated?.status).toBe("completed");
-    expect(updated?.resultUrl).toBe("https://example.com/audio.mp3");
+    expect(updated?.resultUrl).toBe(`venice-media://${'a'.repeat(64)}`);
+    expect(performVeniceRequest).toHaveBeenCalledWith(expect.objectContaining({ body: { model: 'stable-audio', queue_id: 'q1', delete_media_on_completion: false } }));
     vi.useRealTimers();
   });
 

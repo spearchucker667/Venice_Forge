@@ -22,11 +22,13 @@ import { stopSyncWatcher } from "./services/syncFolderWatcher";
 import { isValidBridgeHost } from "./utils/bridgeHost";
 import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
 import { setupResearchBrowserIpc } from "./services/researchBrowserServer";
+import { GENERATED_MEDIA_SCHEME, resolveGeneratedMedia } from './services/generatedMediaStore';
 
 export { isValidBridgeHost };
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: "venice-character-cache", privileges: { secure: true, standard: true, supportFetchAPI: true } }
+  { scheme: "venice-character-cache", privileges: { secure: true, standard: true, supportFetchAPI: true } },
+  { scheme: GENERATED_MEDIA_SCHEME, privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true } },
 ]);
 
 /** Indicates whether the app is running in development mode. */
@@ -281,6 +283,16 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
+    protocol.handle(GENERATED_MEDIA_SCHEME, async (request) => {
+      const parsedUrl = new URL(request.url);
+      const id = parsedUrl.hostname || parsedUrl.pathname.replace(/^\/+/, '');
+      const resolved = await resolveGeneratedMedia(id);
+      if (!resolved) return new Response('Not found', { status: 404 });
+      const bytes = await fs.promises.readFile(resolved.path);
+      return new Response(bytes, {
+        headers: { 'Content-Type': resolved.mimeType, 'Cache-Control': 'private, max-age=31536000, immutable' },
+      });
+    });
     protocol.handle("venice-character-cache", async (request) => {
       const rendererRoot = path.resolve(__dirname, "../../dist");
       if (!isAllowedCharacterImageCacheProtocolAccess({
