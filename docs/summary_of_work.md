@@ -12,32 +12,17 @@
 
 ### Latest Session Summary
 **Date:** 2026-07-12
-**Task:** Security audit remediation T-001 through T-008
+**Task:** Fix false-positive secret hits on task-ui-store in clean-repo-zip.sh
 
 **Summary of Changes:**
-- **Checkpointed sync-log collection:** Each encrypted event is now published alongside a durable encrypted current-object checkpoint. Devices register and acknowledge operations; event blobs are collected only when the checkpoint exists and every registered device has acknowledged. Offline devices block collection, tombstone checkpoints remain available to new devices, and replay after journal eviction resolves through the deterministic import rules.
-- **Deterministic convergence:** Added production record/message comparators with two- and three-device order-independence fixtures. Equal-time LWW no longer leaves each device retaining its own value; conflict-preserving stores deterministically select the original winner and loser-copy ID; equal-time merged messages sort by stable ID.
-- **Trusted remote mutation authority:** The main watcher now issues a cryptographically random grant bound to the exact operation, store, and record being delivered. Live remote filesystem writes/deletes route through a dedicated main-process IPC channel, reject absent/forged/cross-record grants, and revoke grants on acknowledgment, timeout, pause, or stop. Manual backup import is explicitly `manual-import` and cannot claim live remote authority.
-- **Sync profile isolation:** The renderer now starts sync with the validated active profile; the main process binds that profile to the authenticated session and every packet. Foreign-profile packets fail before renderer delivery, and renderer reload cannot attach to a watcher owned by another profile.
-- **Encrypted sync-set/key identity:** Added an encrypted folder-owned identity created atomically on first authenticated start and reopened only with the correct passphrase. Outbound packets carry its opaque sync-set/key IDs; inbound packets with missing or mismatched IDs fail closed before renderer delivery. This closes cross-folder/cross-key packet mixing while leaving active-profile protocol isolation and key rotation UX for the remaining P0 work.
-- **Durable sync outbox:** Added an atomic, size-bounded main-process outbox containing encrypted manifests only. `writePacket` persists before sync-folder publication, removes entries only after publication/existing-content confirmation, and drains pending packets when an authenticated watcher restarts. Traversal-safe filenames and focused crash-recovery coverage are included. The broader Backup/Sync item remains open for sync-set/key isolation, checkpointed garbage collection, convergence fixtures, and final authority/provenance work.
-- **Remaining non-sync roadmap closure:** Reconciled and closed stale-release cleanup, Scene Reference request/UI integration, and WorkflowTemplatesView control hardening against the live implementation. Removed the final `as unknown` workflow-store test cast while preserving corrupt-storage coverage.
-- **Stale-roadmap reconciliation:** Closed the Research R-01/R-02 and Release REL-002/REL-003/REL-004 entries after verifying their implementations in the live tree. `verify:research-workspace` passes 105 tests, and `verify:release-packaging-hardening` passes all 103 checks.
-- **ENG-001 dependency-engine closure:** Replaced `http-proxy-middleware` v4 with the maintained v3 line (`^3.0.7`). Its declared Node range (`^14.18.0 || ^16.10.0 || >=18.0.0`) includes the repository's documented Node 22.13 floor, while retaining the server's existing `createProxyMiddleware`/event-handler API. The regenerated npm lockfile resolves 3.0.7 and the dependency audit remains clean.
-- **Provider credential custody:** Validated `request.profileId` at the IPC boundary and made that request field the sole profile source used by provider routing and Venice key lookup. Provider adapters now reject unknown or unavailable providers before any credential read.
-- **Fail-closed provider scope:** Removed dormant custom-executor and ambient cloud-identity routes. AWS Bedrock, Google Vertex, and Replicate remain explicit unavailable stubs rather than implying production-ready integrations.
-- **Secret-safe transport:** Gemini API keys now travel in the `x-goog-api-key` header instead of the request URL. The provider verifier now invokes the repository-local Vitest binary and exercises validation, routing, payload, header, and transport behavior.
-- **Truthful background-task cancellation:** Video/music cancellation no longer marks a paid remote job aborted when the provider offers no cancellation API. Reconciliation continues, the limitation is persisted in metadata, and Task Center removes the misleading repeat-cancel action.
-- **Deterministic task persistence:** Replaced fire-and-forget persistence with a tracked, draining promise and added a test-only flush boundary so restart/persistence tests do not rely on sleeps.
-- **Prompt Library confirmation:** Awaited destructive actions inside `ConfirmModal`; failures retain the pending action and dirty editor state for retry.
-- **Dependency reduction:** Removed unused AWS Bedrock and Google Vertex SDK dependencies (74 packages). The explicit moderate-level audit reports zero vulnerabilities.
-- **Toolchain compatibility:** Local Node is `v22.13.1`; pinning `http-proxy-middleware` to maintained v3.0.7 restores compatibility with that documented floor.
+- **Fix clean-repo-zip.sh false positives:** Updated `sk-token` and `venice-vn-token` regex patterns to require word boundaries (`\b`), preventing false positive matches on words like `task-ui-store` containing the substring `sk-ui-store`.
+- **Update verify-archive-clean tests:** Adjusted the expected token assertions in `scripts/verify-archive-clean.test.ts` to align with the new regex patterns.
+- **Run clean-repo-zip.sh successfully:** Successfully executed the clean repository ZIP script and generated a clean source archive.
 
 **Validation:**
-- Focused provider adapter suite: 3 files / 27 tests pass.
-- Focused background-task suite: 2 files / 16 tests pass.
-- Prompt Library component suite: 1 file / 19 tests pass.
-- `npm run lint:eslint`, `npm run typecheck`, `npm run test:electron`, `npm run test:ci`, `npm run verify:contracts`, and `npm audit --audit-level=moderate` pass.
+- `npx vitest run scripts/verify-archive-clean.test.ts` passed (18 tests).
+- `scripts/clean-repo-zip.sh` completed successfully and generated the clean source ZIP.
+- `npm run verify:contracts` passed all static, feature, browser, storage, sync, and release contracts checks.
 
 **Prior session context retained below:**
 - **Automatic Fallback Router:** Implemented an opt-in, consent-aware fallback router in `electron/services/veniceClient.ts`. The router now reads `autoFallbackEnabled` and `fallbackOrdering` from the `fallbackConfig` property and automatically iterates through the configured provider queue upon encountering a retryable error (like a 5xx response or 429 rate limit). It skips fallback routing if the stream has already commenced outputting data or if the user specifically requested a fallback provider model prefix.
@@ -49,7 +34,17 @@
 **Validation:**
 - `npm run test:ui` passed the CI invariant suite.
 
-- **2026-07-12 Phase 4 & 5 (Features & Fallback) (current session)**
+- **2026-07-12 Fix clean-repo-zip.sh false positives (current session)**
+  - Added word boundary check `\b` to secret scan regexes in `scripts/clean-repo-zip.sh`.
+  - Updated assertions in `scripts/verify-archive-clean.test.ts`.
+  - Generated clean source archive `Venice_Forge-clean-20260712-172641.zip`.
+
+- **2026-07-12 Security audit remediation T-001 through T-008 (previous session)**
+  - Implemented checkpointed sync-log collection, LWW convergent comparator determinism, and trusted remote mutation IPC grants.
+  - Isolated sync profiles at the boundary and bound encrypted sync-set identities.
+  - Implemented a durable sync outbox in the main process and resolved background-task cancellation / Prompt Library confirmation issues.
+
+- **2026-07-12 Phase 4 & 5 (Features & Fallback) (previous session)**
   - Implemented automatic fallback routing for main process HTTP paths.
   - Added ProvidersPanel Settings UI for router preferences.
   - Fixed vitest failures for inline style and mesh surface invariants.
@@ -971,3 +966,11 @@
   | `npm run verify:agent-docs` | PASS | <1s | — | Agent doc verification passed |
   | `npm run verify:markdown-links` | PASS | <1s | — | 77 Markdown files checked |
   | `git diff --check` | PASS | <1s | — | No whitespace errors before ledger update |
+
+- **2026-07-12 Fix clean-repo-zip.sh false positives**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | `scripts/clean-repo-zip.sh` | PASS | — | Successfully generated clean source archive |
+  | `npx vitest run scripts/verify-archive-clean.test.ts` | PASS | — | All 18 tests pass |
+  | `npm run verify:contracts` | PASS | — | All contract verifications pass |
