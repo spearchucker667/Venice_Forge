@@ -102,30 +102,26 @@ export async function decryptPayload(ciphertextWithTag: string, saltBase64: stri
     // WebCrypto passes the entire buffer to decrypt(), so we need to do the same
     try {
       const combinedBuffer = decodeBase64(ciphertextWithTag, "combined ciphertext and tag");
-      
-      // For WebCrypto compatibility, we decrypt the entire buffer as-is
-      // Node.js crypto.subtle.decrypt equivalent
-      const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-      
-      // The entire buffer contains ciphertext + auth tag
-      // We need to extract the auth tag from the end and set it
+        
       if (combinedBuffer.length < AUTH_TAG_BYTE_LENGTH) {
         throw new Error("Buffer too short to contain auth tag");
       }
-      
+        
       // Extract auth tag (last 16 bytes) and ciphertext (everything else)
       const authTag = combinedBuffer.subarray(combinedBuffer.length - AUTH_TAG_BYTE_LENGTH);
       const ciphertextBuffer = combinedBuffer.subarray(0, combinedBuffer.length - AUTH_TAG_BYTE_LENGTH);
-      
+        
+      // For WebCrypto compatibility, we decrypt the entire buffer as-is
+      // Node.js crypto.subtle.decrypt equivalent
+      const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
       decipher.setAuthTag(authTag);
-      
+        
       let decrypted = decipher.update(ciphertextBuffer);
       decrypted = Buffer.concat([decrypted, decipher.final()]);
-      
+        
       return decrypted.toString("utf8");
     } catch (e: any) {
       // More detailed error reporting
-      console.error("WebCrypto format decryption error:", e.message);
       throw new Error("Invalid ciphertext format (missing auth tag): " + e.message);
     }
   }
