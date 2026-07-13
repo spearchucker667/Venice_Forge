@@ -92,7 +92,7 @@ export function registerBackgroundTaskHandlers(): void {
       if (createInput.queueId && typeof createInput.queueId !== 'string') {
         return { ok: false, error: "Invalid queue ID." };
       }
-      if (createInput.profileId && typeof createInput.profileId !== 'string') {
+      if (!createInput.profileId || typeof createInput.profileId !== 'string') {
         return { ok: false, error: "Invalid profile ID." };
       }
       const task = await createBackgroundTaskInMain(createInput);

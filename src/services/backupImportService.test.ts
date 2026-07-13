@@ -63,6 +63,7 @@ vi.mock("./desktopBridge", async (importOriginal) => {
     desktopSync: {
       decryptBackup: vi.fn(),
       setEmissionSuppressed: vi.fn().mockResolvedValue({ ok: true }),
+      applyRemoteMutation: vi.fn().mockResolvedValue({ ok: true }),
     },
   };
 });
@@ -119,6 +120,7 @@ describe("backupImportService", () => {
     mockGetItem.mockResolvedValue(null);
     mockSaveItem.mockImplementation(async (_store, item) => ({ ...(item as object), id: (item as { id: string }).id, timestamp: Date.now() } as never));
     mockSaveImportedItem.mockImplementation(async (_store, item) => item as never);
+    vi.mocked(desktopBridge.desktopSync.applyRemoteMutation).mockResolvedValue({ ok: true });
   });
 
   afterEach(() => {
@@ -176,12 +178,31 @@ describe("backupImportService", () => {
     expect(mockSaveImportedItem).toHaveBeenCalledWith("conversations", expect.any(Object));
   });
 
-  it("passes remote-sync origin to Electron bridge", async () => {
+  it("marks a manual Electron import without claiming remote-sync authority", async () => {
     mockIsElectron.mockReturnValue(true);
     vi.mocked(desktopBridge.desktopCharacterCards.list).mockResolvedValueOnce({ ok: true, cards: [], error: undefined } as never);
     const res = await importDecryptedPacket("character_cards", "card-1", JSON.stringify({ id: "card-1", updatedAt: 2000 }));
     expect(res.ok).toBe(true);
-    expect(desktopBridge.desktopCharacterCards.save).toHaveBeenCalledWith(expect.objectContaining({ id: "card-1" }), "remote-sync");
+    expect(desktopBridge.desktopCharacterCards.save).toHaveBeenCalledWith(expect.objectContaining({ id: "card-1" }), "manual-import");
+  });
+
+  it("routes a live remote packet through the main-process apply authority", async () => {
+    mockIsElectron.mockReturnValue(true);
+    vi.mocked(desktopBridge.desktopCharacterCards.list).mockResolvedValueOnce({ ok: true, cards: [], error: undefined } as never);
+    const res = await importDecryptedPacket(
+      "character_cards",
+      "card-remote",
+      JSON.stringify({ id: "card-remote", updatedAt: 2000 }),
+      "operation-remote",
+      "grant-token",
+    );
+    expect(res.ok).toBe(true);
+    expect(desktopBridge.desktopSync.applyRemoteMutation).toHaveBeenCalledWith(expect.objectContaining({
+      storeName: "character_cards",
+      id: "card-remote",
+      remoteApplyToken: "grant-token",
+    }));
+    expect(desktopBridge.desktopCharacterCards.save).not.toHaveBeenCalled();
   });
 
   it("rejects a wrong passphrase", async () => {
@@ -259,7 +280,11 @@ describe("backupImportService", () => {
     expect(res.ok).toBe(true);
     const saved = mockSaveImportedItem.mock.calls[0][1] as { id: string; name: string };
     expect(saved.id).toMatch(/^card-1_conflict_[a-f0-9]{16}$/);
-    expect(saved.name).toContain("Conflict from device-b");
+    expect(saved.name).toContain("Conflict from device-a");
+    expect(mockSaveImportedItem).toHaveBeenCalledWith(
+      "character_cards",
+      expect.objectContaining({ id: "card-1", revisionId: "rev-b" }),
+    );
   });
 
   it("reuses the same conflict ID when the same remote conflict is replayed", async () => {
@@ -284,7 +309,9 @@ describe("backupImportService", () => {
     await importDecryptedPacket("character_cards", "card-replay", remote, operationId);
     await importDecryptedPacket("character_cards", "card-replay", remote, operationId);
 
-    const conflictIds = mockSaveImportedItem.mock.calls.map((call) => (call[1] as { id: string }).id);
+    const conflictIds = mockSaveImportedItem.mock.calls
+      .map((call) => (call[1] as { id: string }).id)
+      .filter((id) => id.includes("_conflict_"));
     expect(conflictIds).toHaveLength(2);
     expect(new Set(conflictIds).size).toBe(1);
   });

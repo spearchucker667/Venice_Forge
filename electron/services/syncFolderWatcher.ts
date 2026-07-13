@@ -10,6 +10,11 @@ import { getSyncPath, setSyncPath, getDeviceId } from "./syncConfig";
 import { enqueueRemoteApply } from "./syncApplyQueue";
 import { initSyncRetryQueue, scheduleRetry, stopSyncRetryQueue } from "./syncRetryQueue";
 import { validateTombstone } from "../../src/shared/syncProtocol";
+import { drainSyncOutbox, persistSyncOutboxEntry } from "./syncOutbox";
+import { ensureSyncIdentity, packetMatchesSyncIdentity, type SyncIdentity } from "./syncIdentity";
+import { isValidProfileStorageId } from "../../src/utils/profileIdValidation";
+import { issueRemoteApplyGrant, revokeRemoteApplyGrant } from "./remoteApplyAuthority";
+import { acknowledgeSyncOperation, collectAcknowledgedEvent, registerSyncDevice } from "./syncCheckpoint";
 
 let watcher: FSWatcher | null = null;
 let currentSyncPath: string | null = null;
@@ -20,12 +25,16 @@ let rendererSessionAttached = false;
 let authenticated = false;
 let degradedReason: string | undefined;
 let localEmissionSuppressed = false;
+let currentSyncIdentity: SyncIdentity | null = null;
+let currentProfileId: string | null = null;
 interface InFlightOperation {
   storeName: string;
   sourceDeviceId?: string;
   filePath: string;
   attempts: number;
   complete?: () => void;
+  remoteApplyToken?: string;
+  checkpointFilePath?: string;
 }
 
 const inFlightOperations = new Map<string, InFlightOperation>();
@@ -249,6 +258,7 @@ function startAckTimeout(operationId: string, filePath: string, attempts: number
     inFlightTimeouts.delete(operationId);
     const inFlight = inFlightOperations.get(operationId);
     if (inFlight) {
+      revokeRemoteApplyGrant(inFlight.remoteApplyToken);
       inFlightOperations.delete(operationId);
       scheduleRetry(operationId, filePath, attempts, "Acknowledgment timeout");
       inFlight.complete?.();
@@ -260,6 +270,7 @@ function startAckTimeout(operationId: string, filePath: string, attempts: number
 function requeueInFlightOperations(lastError?: string): void {
   for (const [operationId, op] of inFlightOperations) {
     clearAckTimeout(operationId);
+    revokeRemoteApplyGrant(op.remoteApplyToken);
     scheduleRetry(operationId, op.filePath, op.attempts, lastError);
     op.complete?.();
   }
@@ -275,6 +286,7 @@ export async function acknowledgeOperation(operationId: string, ok: boolean): Pr
     return { ok: false, error: "No such in-flight operation." };
   }
   clearAckTimeout(operationId);
+  revokeRemoteApplyGrant(inFlight.remoteApplyToken);
   if (!ok) {
     inFlightOperations.delete(operationId);
     scheduleRetry(operationId, inFlight.filePath, inFlight.attempts, "Negative acknowledgment");
@@ -283,6 +295,12 @@ export async function acknowledgeOperation(operationId: string, ok: boolean): Pr
   }
   try {
     await recordAppliedOperation(operationId, inFlight.storeName, "applied", inFlight.sourceDeviceId);
+    if (currentSyncPath && inFlight.checkpointFilePath && path.basename(path.dirname(inFlight.filePath)) === "blobs") {
+      const vfbackupPath = path.join(currentSyncPath, ".vfbackup");
+      const deviceId = await getDeviceId();
+      await acknowledgeSyncOperation(vfbackupPath, deviceId, operationId);
+      await collectAcknowledgedEvent(vfbackupPath, operationId, inFlight.filePath, inFlight.checkpointFilePath);
+    }
     inFlightOperations.delete(operationId);
     inFlight.complete?.();
     return { ok: true };
@@ -328,6 +346,10 @@ function logicalQueueKey(parsed: Record<string, unknown>): string | null {
   return `${validation.tombstone.storeName}:${validation.tombstone.recordId}`;
 }
 
+function objectCheckpointFilename(logicalKey: string): string {
+  return `${crypto.createHash("sha256").update(logicalKey).digest("hex")}.json`;
+}
+
 /** Test-only helper to clear the in-flight operation map. */
 export function __clearInFlightOperationsForTests(): void {
   for (const operationId of inFlightOperations.keys()) {
@@ -344,15 +366,19 @@ export async function initSyncFolderWatcher(mainWindow: BrowserWindow) {
   initSyncRetryQueue((filePath, attempts) => handleRemoteChange(filePath, attempts));
 }
 
-export async function startSyncWatcher(password: string): Promise<{ ok: boolean; error?: string }> {
+export async function startSyncWatcher(password: string, profileId = "default"): Promise<{ ok: boolean; error?: string }> {
   if (!password) return { ok: false, error: "Sync passphrase is required." };
+  if (!isValidProfileStorageId(profileId)) return { ok: false, error: "Invalid sync profileId." };
   currentPassword = password;
+  currentSyncIdentity = null;
+  currentProfileId = profileId;
   authenticated = true;
   degradedReason = undefined;
   initSyncRetryQueue((filePath, attempts) => handleRemoteChange(filePath, attempts));
   if (!currentSyncPath) {
     stopSyncRetryQueue();
     currentPassword = null;
+    currentProfileId = null;
     authenticated = false;
     syncStatus = "error";
     degradedReason = "Sync folder not configured.";
@@ -377,6 +403,8 @@ export async function startSyncWatcher(password: string): Promise<{ ok: boolean;
 
 export async function stopSyncWatcher(): Promise<{ ok: boolean; error?: string }> {
   currentPassword = null;
+  currentSyncIdentity = null;
+  currentProfileId = null;
   authenticated = false;
   rendererSessionAttached = false;
   degradedReason = undefined;
@@ -395,6 +423,8 @@ export async function pauseSyncWatcher(): Promise<{ ok: boolean; error?: string 
   if (watcher) await watcher.close();
   watcher = null;
   currentPassword = null;
+  currentSyncIdentity = null;
+  currentProfileId = null;
   authenticated = false;
   rendererSessionAttached = false;
   degradedReason = undefined;
@@ -411,6 +441,7 @@ export function getSyncStatus() {
     rendererSessionAttached,
     authenticated,
     degradedReason,
+    profileId: currentProfileId ?? undefined,
   };
 }
 
@@ -454,7 +485,11 @@ export async function setSyncFolder(syncPath: string): Promise<{ ok: boolean; er
 
     // Only start watching if we have a password
     if (currentPassword) {
-      watcher = chokidar.watch(path.join(vfbackupPath, "blobs"), {
+      currentSyncIdentity = await ensureSyncIdentity(vfbackupPath, currentPassword);
+      const deviceId = await getDeviceId();
+      await registerSyncDevice(vfbackupPath, deviceId);
+      await drainSyncOutbox(path.join(vfbackupPath, "blobs"), path.join(vfbackupPath, "objects"));
+      watcher = chokidar.watch([path.join(vfbackupPath, "blobs"), path.join(vfbackupPath, "objects")], {
         ignored: /(^|[/\\])\../, // ignore dotfiles
         persistent: true,
         ignoreInitial: false, // We DO want to process existing files on startup
@@ -494,6 +529,9 @@ export function getSyncFolder(): string | null {
 export async function handleRemoteChange(filePath: string, attempts = 0): Promise<boolean> {
   if (!mainWindowRef || mainWindowRef.isDestroyed()) return false;
   if (!currentPassword) return false;
+  if (!currentSyncPath) return false;
+  if (!currentSyncIdentity) return false;
+  if (!currentProfileId) return false;
 
   const filename = path.basename(filePath);
 
@@ -525,6 +563,19 @@ export async function handleRemoteChange(filePath: string, attempts = 0): Promis
     }
 
     const localDeviceId = await getDeviceId();
+    if (!packetMatchesSyncIdentity(parsed, currentSyncIdentity)) {
+      logError("syncFolderWatcher", `Rejected packet outside the active sync set for ${filename}`);
+      return true;
+    }
+    if (parsed._profileId !== currentProfileId) {
+      logError("syncFolderWatcher", `Rejected packet outside the active profile for ${filename}`);
+      return true;
+    }
+    if (typeof parsed._sourceDeviceId !== "string") {
+      logError("syncFolderWatcher", `Rejected packet without a source device for ${filename}`);
+      return true;
+    }
+    await registerSyncDevice(path.join(currentSyncPath, ".vfbackup"), parsed._sourceDeviceId);
     if (parsed._sourceDeviceId === localDeviceId) {
       // Ignore our own echoes
       return true;
@@ -542,12 +593,15 @@ export async function handleRemoteChange(filePath: string, attempts = 0): Promis
       if (isOperationApplied(parsed._operationId) || isOperationInFlight(parsed._operationId)) return;
 
       await new Promise<void>((resolve) => {
+        const remoteApplyToken = issueRemoteApplyGrant(parsed._operationId, parsed._storeName, parsed._id);
         inFlightOperations.set(parsed._operationId, {
           storeName: parsed._storeName,
           sourceDeviceId: parsed._sourceDeviceId,
           filePath,
           attempts,
           complete: resolve,
+          remoteApplyToken,
+          checkpointFilePath: path.join(currentSyncPath!, ".vfbackup", "objects", objectCheckpointFilename(queueKey)),
         });
         startAckTimeout(parsed._operationId, filePath, attempts);
 
@@ -555,7 +609,8 @@ export async function handleRemoteChange(filePath: string, attempts = 0): Promis
           storeName: parsed._storeName,
           id: parsed._id,
           operationId: parsed._operationId,
-          recordJson: JSON.stringify(parsed.data)
+          recordJson: JSON.stringify(parsed.data),
+          remoteApplyToken,
         });
       });
     });
@@ -572,6 +627,8 @@ export async function writePacket(storeName: string, id: string, recordJson: str
   if (localEmissionSuppressed) return { ok: true };
   if (!currentSyncPath) return { ok: false, error: "Sync folder not configured." };
   if (!currentPassword) return { ok: false, error: "Sync is not active (no password)." };
+  if (!currentSyncIdentity) return { ok: false, error: "Sync identity is not initialized." };
+  if (!currentProfileId) return { ok: false, error: "Sync profile is not initialized." };
 
   // Strict path traversal and semantic validation for storeName and id
   if (!SYNC_STORE_ALLOWLIST.has(storeName)) {
@@ -595,11 +652,22 @@ export async function writePacket(storeName: string, id: string, recordJson: str
     }
 
     const operationId = crypto.createHash("sha256").update(`${storeName}\0${id}\0${recordJson}`).digest("hex");
+    const logicalKey = storeName === "tombstones"
+      ? (() => {
+          const validation = validateTombstone(parsedRecord);
+          if (!validation.ok) throw new Error(validation.error);
+          return `${validation.tombstone.storeName}:${validation.tombstone.recordId}`;
+        })()
+      : `${storeName}:${id}`;
+    const objectFilename = objectCheckpointFilename(logicalKey);
     const payload = JSON.stringify({
       _storeName: storeName,
       _id: id,
       _operationId: operationId,
       _sourceDeviceId: await getDeviceId(),
+      _syncSetId: currentSyncIdentity.syncSetId,
+      _keyId: currentSyncIdentity.keyId,
+      _profileId: currentProfileId,
       data: parsedRecord
     });
     
@@ -625,25 +693,14 @@ export async function writePacket(storeName: string, id: string, recordJson: str
 
     const vfbackupPath = path.join(currentSyncPath, ".vfbackup");
     const blobsPath = path.join(vfbackupPath, "blobs");
-    const filePath = path.join(blobsPath, filename);
-
-    // Check if it already exists (content-addressed, so if hash matches, content matches)
-    try {
-      await fs.access(filePath);
-      // Already exists, no need to write again
-      return { ok: true };
-    } catch {
-      // File doesn't exist, proceed
-    }
-
-    // Atomic write
-    const tmpPath = `${filePath}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
-    try {
-      await fs.writeFile(tmpPath, manifestJson, { encoding: "utf8", flag: "wx" });
-      await fs.rename(tmpPath, filePath);
-    } finally {
-      await fs.rm(tmpPath, { force: true });
-    }
+    // Persist the already-encrypted manifest locally before publishing it to
+    // the sync folder. A crash or transient folder failure can then be drained
+    // safely on the next authenticated watcher start.
+    await persistSyncOutboxEntry(filename, manifestJson, objectFilename);
+    await drainSyncOutbox(blobsPath, path.join(vfbackupPath, "objects"));
+    const deviceId = await getDeviceId();
+    await registerSyncDevice(vfbackupPath, deviceId);
+    await acknowledgeSyncOperation(vfbackupPath, deviceId, operationId);
 
     return { ok: true };
   } catch (err: unknown) {

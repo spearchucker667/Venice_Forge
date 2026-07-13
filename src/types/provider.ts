@@ -6,6 +6,7 @@ export type ProviderId =
   | 'replicate'
   | 'aws_bedrock'
   | 'google_vertex'
+  | 'google_gemini'
   | 'azure_openai'
   | 'huggingface'
   | 'mistral'
@@ -28,6 +29,7 @@ export interface ProviderDefinition {
   description: string
   docsUrl?: string
   supportedTypes: Array<'chat' | 'image' | 'video' | 'audio' | 'embeddings' | 'rerank' | 'vision'>
+  unavailable?: boolean
 }
 
 export const PROVIDER_REGISTRY: Record<ProviderId, ProviderDefinition> = {
@@ -60,17 +62,26 @@ export const PROVIDER_REGISTRY: Record<ProviderId, ProviderDefinition> = {
     label: 'Replicate',
     description: 'Run machine learning models with cloud APIs.',
     supportedTypes: ['chat', 'image', 'video', 'audio'],
+    unavailable: true,
   },
   aws_bedrock: {
     id: 'aws_bedrock',
     label: 'AWS Bedrock',
     description: 'Managed service for foundation models.',
     supportedTypes: ['chat', 'image', 'embeddings'],
+    unavailable: true,
   },
   google_vertex: {
     id: 'google_vertex',
     label: 'Google Vertex AI',
     description: 'Google Cloud\'s generative AI models.',
+    supportedTypes: ['chat', 'image', 'video', 'audio', 'embeddings'],
+    unavailable: true,
+  },
+  google_gemini: {
+    id: 'google_gemini',
+    label: 'Google Gemini (Developer API)',
+    description: 'Gemini Developer API (AI Studio).',
     supportedTypes: ['chat', 'image', 'video', 'audio', 'embeddings'],
   },
   azure_openai: {
@@ -78,12 +89,14 @@ export const PROVIDER_REGISTRY: Record<ProviderId, ProviderDefinition> = {
     label: 'Azure OpenAI',
     description: 'Microsoft enterprise-grade OpenAI models.',
     supportedTypes: ['chat', 'image', 'embeddings'],
+    unavailable: true,
   },
   huggingface: {
     id: 'huggingface',
     label: 'Hugging Face',
     description: 'Inference endpoints for open-source models.',
     supportedTypes: ['chat', 'image'],
+    unavailable: true,
   },
   mistral: {
     id: 'mistral',
@@ -108,5 +121,6 @@ export const PROVIDER_REGISTRY: Record<ProviderId, ProviderDefinition> = {
     label: 'Cohere',
     description: 'Enterprise AI and RAG endpoints.',
     supportedTypes: ['chat', 'embeddings', 'rerank'],
+    unavailable: true,
   },
 }

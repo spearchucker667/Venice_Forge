@@ -89,6 +89,10 @@ export const desktopVenice = {
         ...input,
         signalId,
         profileId: getActiveProfileId(),
+        fallbackConfig: {
+          enabled: useSettingsStore.getState().autoFallbackEnabled,
+          ordering: useSettingsStore.getState().fallbackOrdering,
+        }
       });
     } finally {
       cleanup?.();
@@ -115,6 +119,10 @@ export const desktopVenice = {
         ...input,
         signalId,
         profileId: getActiveProfileId(),
+        fallbackConfig: {
+          enabled: useSettingsStore.getState().autoFallbackEnabled,
+          ordering: useSettingsStore.getState().fallbackOrdering,
+        }
       }, onDelta);
     } finally {
       cleanup?.();
@@ -501,8 +509,12 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.setSyncFolder(params);
     return { ok: false, error: "Not in Electron" };
   },
-  async startSync(params: { password: string }) {
+  async startSync(params: { password: string; profileId: string }) {
     if (isElectron()) return window.veniceForge!.sync.startSync(params);
+    return { ok: false, error: "Not in Electron" };
+  },
+  async applyRemoteMutation(params: { storeName: string; id: string; recordJson?: string; delete?: boolean; remoteApplyToken: string }) {
+    if (isElectron()) return window.veniceForge!.sync.applyRemoteMutation(params);
     return { ok: false, error: "Not in Electron" };
   },
   async stopSync() {
@@ -533,7 +545,7 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.acknowledgeOperation(params);
     return { ok: false, error: "Not supported in Web" };
   },
-  onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string }) => void) {
+  onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string; remoteApplyToken: string }) => void) {
     if (isElectron()) return window.veniceForge!.sync.onRemoteChange(callback);
     return () => {};
   },

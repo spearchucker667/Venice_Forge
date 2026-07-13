@@ -17,7 +17,7 @@ vi.mock("../services/storageService", () => {
 import StorageService from "../services/storageService";
 import { useWorkflowTemplateStore } from "./workflow-template-store";
 import { useSettingsStore } from "./settings-store";
-import { WORKFLOW_TEMPLATE_VERSION, type WorkflowTemplateExport, type WorkflowTemplateItem, createWorkflowTemplateItem } from "../types/workflow";
+import { WORKFLOW_TEMPLATE_VERSION, type WorkflowTemplateExport, createWorkflowTemplateItem } from "../types/workflow";
 
 describe("workflow-template-store", () => {
   beforeEach(() => {
@@ -54,7 +54,8 @@ describe("workflow-template-store", () => {
     });
 
     it("sets empty array if non-array returned", async () => {
-      vi.mocked(StorageService.getItems).mockResolvedValue({ notAnArray: true } as unknown as WorkflowTemplateItem[]);
+      const getItemsMock = vi.mocked(StorageService.getItems);
+      Reflect.apply(getItemsMock.mockResolvedValue, getItemsMock, [{ notAnArray: true }]);
       const store = useWorkflowTemplateStore.getState();
       await store.ensureWorkflowTemplatesLoaded();
       

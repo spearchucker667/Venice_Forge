@@ -49,6 +49,29 @@ describe('providerAdapters', () => {
       expect(result?.error).toMatch(/does not support endpoint/)
     })
 
+    it('uses the requested profile when resolving a provider credential', () => {
+      const request = {
+        endpoint: '/chat/completions',
+        body: { model: 'anthropic:claude-3-5-sonnet-latest', messages: [] }
+      }
+
+      resolveProviderRoute(request, 'work-profile')
+
+      expect(getProviderApiKey).toHaveBeenCalledWith('anthropic', 'work-profile')
+    })
+
+    it('rejects providers marked unavailable before reading credentials', () => {
+      const request = {
+        endpoint: '/chat/completions',
+        body: { model: 'aws_bedrock:anthropic.claude-3-sonnet', messages: [] }
+      }
+
+      const result = resolveProviderRoute(request, 'work-profile')
+
+      expect(result?.error).toMatch(/not available/i)
+      expect(getProviderApiKey).not.toHaveBeenCalled()
+    })
+
     it('resolves the correct route for Together', () => {
       const request = {
         endpoint: '/chat/completions',
@@ -86,6 +109,19 @@ describe('providerAdapters', () => {
       expect(transformedBody.system).toBe('You are an AI.')
       expect(transformedBody.messages.length).toBe(1)
       expect(transformedBody.messages[0]).toEqual({ role: 'user', content: 'Hello!' })
+    })
+
+    it('keeps the Gemini API key out of the request URL', () => {
+      vi.mocked(getProviderApiKey).mockReturnValueOnce('gemini-secret-key')
+      const request = {
+        endpoint: '/chat/completions',
+        body: { model: 'google_gemini:gemini-2.5-flash', messages: [] }
+      }
+
+      const result = resolveProviderRoute(request, 'work-profile')
+
+      expect(result?.route?.path).not.toContain('gemini-secret-key')
+      expect(result?.route?.headers['x-goog-api-key']).toBe('gemini-secret-key')
     })
   })
 })

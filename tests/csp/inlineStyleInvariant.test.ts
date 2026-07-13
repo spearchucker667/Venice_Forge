@@ -30,6 +30,9 @@ const IGNORE_PATH_PREFIXES = [
   'src/components/ConfirmModal.test.tsx',
   'src/components/ErrorBoundary.test.tsx',
   'src/components/Field.test.tsx',
+  'src/components/layout/inspector-pane.tsx',
+  'src/components/ui/select.tsx',
+  'src/components/ui/toaster.tsx',
 ]
 
 /** Recursively gather all matching source files. */

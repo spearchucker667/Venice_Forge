@@ -6,16 +6,16 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 
 ## P0 — Safety / Security / Data Protection
 
-### [ ] Finish Backup/Sync Conflict and Lifecycle Coverage
-- **Description:** The 2026-07-10 pass hardened approved-path custody, packet validation, initial reconciliation, operation IDs, atomic temp cleanup, pause/resume, secret exclusion, import preview, and conflict preservation. The 2026-07-11 dirty-snapshot audit supersedes the earlier release-ready assessment. Closed from that audit: public IndexedDB deletes persist tombstones before raw deletion; record/tombstone packets share one acknowledgment-held logical-object queue; imported IndexedDB records preserve revision/timestamp metadata; timestamps normalize consistently with deletion winning ties; conflict IDs are deterministic across replay; main-process and renderer packet emission share portable secret/path sanitization; the applied-operation journal enforces its 50,000-entry hard bound even for all-recent-tombstone workloads; failed watcher startup fully stops the retry scheduler; and unit, UI, and coverage aggregates exit naturally. Still required before a release-complete claim: Electron-backed delete coordination with one tombstone authority; a persistent outbound outbox; trusted mutation provenance; profile/sync-set/key isolation; historical packet checkpoint/garbage-collection semantics after journal eviction; and full convergence fixtures.
-- **Status:** In progress
-- **Affected Files/Modules:** `src/services/storageService.ts`, `src/services/syncDeleteCoordinator.ts`, `src/services/syncEngine.ts`, `src/services/backupImportService.ts`, `electron/services/syncBridge.ts`, `electron/services/syncFolderWatcher.ts`, Electron save/delete handlers, sync protocol types and tests
+### [x] Finish Backup/Sync Conflict and Lifecycle Coverage
+- **Description:** Backup/Sync now has approved-path custody, authenticated encryption, packet validation, atomic writes, a durable encrypted outbound outbox, encrypted sync-set/key identity, profile-bound sessions and packets, main-authoritative remote apply grants, one logical-object apply queue, deterministic timestamp/conflict/message convergence, bounded retry/journal behavior, durable current-object checkpoints, and device-acknowledged historical event collection. Event blobs are removed only after a checkpoint exists and every registered device has acknowledged; offline devices block collection, while new devices hydrate from retained object checkpoints.
+- **Status:** Closed (2026-07-12)
+- **Affected Files/Modules:** `src/services/storageService.ts`, `src/services/syncDeleteCoordinator.ts`, `src/services/syncEngine.ts`, `src/services/backupImportService.ts`, `electron/services/syncBridge.ts`, `electron/services/syncFolderWatcher.ts`, `electron/services/syncOutbox.ts`, Electron save/delete handlers, sync protocol types and tests
 - **Validation Required:** focused backup/import/sync tests, `npm run test:electron`, `npm run test:unit`, `npm run test:ui`, `npm run test:coverage`, `npm run verify:backup-sync`, `npm run verify:contracts`
 
-### [ ] Complete Scene Reference Request/UI Integration
-- **Description:** Entity detection, alias/word-boundary matching, safe image filtering, model capability omission, reference limits, and user-removal planning are implemented. Wire the plan into the Scene Composer preview and a Venice image endpoint/model that officially supports references; unsupported models must remain explicit text-only generation.
-- **Status:** In progress
-- **Validation Required:** scene UI tests and `npm run verify:scene-composer`
+### [x] Complete Scene Reference Request/UI Integration
+- **Description:** Scene Composer renders the included/omitted reference plan, character scene generation passes planned references to the canonical image payload, the reference-capable model is explicitly gated, and unsupported models omit `reference_image_urls` and remain text-only.
+- **Status:** Closed (live-tree reconciliation 2026-07-12)
+- **Validation Required:** `npm run verify:scene-references` and focused scene/payload tests
 
 ---
 
@@ -42,9 +42,9 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 - **Validation Required:** `npm run test:coverage`
 - **Headed/Manual Smoke Required:** No
 
-### [ ] Clear Stale Release Artifacts Before Packaging
-- **Description:** Automate or enforce `npm run clean` to clear stale `release/` v2.0.0 or v2.1.0 artifacts before packaging (REL-001) in the build process.
-- **Status:** Open
+### [x] Clear Stale Release Artifacts Before Packaging
+- **Description:** Every `dist:*` packaging script begins with `npm run clean`, and `scripts/build-electron.cjs` independently removes stale `release/` artifacts before building (REL-001).
+- **Status:** Closed (live-tree reconciliation 2026-07-12)
 - **Affected Files/Modules:** `scripts/build-electron.cjs`
 - **Validation Required:** `npm run verify:release-packaging-hardening`
 - **Headed/Manual Smoke Required:** No
@@ -60,23 +60,23 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 - **Validation Required:** focused task-manager/IPC tests (21 PASS), `npm run test:electron`, `npm run test:ui`, renderer-reload smoke, packaged restart smoke
 - **Headed/Manual Smoke Required:** Yes (renderer-reload and packaged-restart smoke remain future work)
 
-### [ ] WorkflowTemplatesView UI Hardening & Controls
-- **Description:** Debounce title edits in `WorkflowTemplatesView`, render run/execute buttons for all template actions, call `ensureWorkflowTemplatesLoaded` on mount, and add missing versions, import/export, favorite, and tag controls.
-- **Status:** Open
+### [x] WorkflowTemplatesView UI Hardening & Controls
+- **Description:** Title/tag edits are debounced and flushed on selection changes; templates load on mount; version, import/export, favorite, tag, compile, and per-action run controls are implemented.
+- **Status:** Closed (live-tree reconciliation 2026-07-12)
 - **Affected Files/Modules:** `src/components/workflows/WorkflowTemplatesView.tsx`
 - **Validation Required:** `npm run verify:workflow-templates`
 - **Headed/Manual Smoke Required:** Recommended to verify UI interactions.
 
-### [ ] Research Subsystem: Local Vitest & Localhost Blocking
-- **Description:** Fix `scripts/verify-research-workspace.cjs` to resolve and use project-local vitest (R-01) instead of global shell commands, and block `.localhost` resolution in the generic HTTP scrape provider (R-02).
-- **Status:** Open
+### [x] Research Subsystem: Local Vitest & Localhost Blocking
+- **Description:** `scripts/verify-research-workspace.cjs` resolves the project-local Vitest package/bin (R-01), and the generic HTTP scrape provider rejects both `localhost` and `.localhost` hosts (R-02).
+- **Status:** Closed (live-source reconciliation 2026-07-12)
 - **Affected Files/Modules:** `scripts/verify-research-workspace.cjs`, `src/research/providers/genericHttpScrapeProvider.ts`
 - **Validation Required:** `npm run verify:research-workspace`
 - **Headed/Manual Smoke Required:** No
 
-### [ ] Release & Packaging Hardening Extensions
-- **Description:** Add root `LEGAL.md` and link it in `docs/RELEASE/release.md` (REL-002), extend the hardening verifier to cover portable/single-arch scripts (REL-003), and integrate `verify:dist:portable` into the CI release workflow (REL-004).
-- **Status:** Open (Root `LEGAL.md` created in this session, other items remain open)
+### [x] Release & Packaging Hardening Extensions
+- **Description:** Root `LEGAL.md` is linked from `docs/RELEASE/release.md` (REL-002), the hardening verifier covers portable and single-architecture scripts (REL-003), and the Windows release job runs `verify:dist:portable` (REL-004).
+- **Status:** Closed (live-source reconciliation 2026-07-12)
 - **Affected Files/Modules:** `.github/workflows/release.yml`, `scripts/verify-release-packaging-hardening.cjs`
 - **Validation Required:** `npm run verify:release-packaging-hardening`
 - **Headed/Manual Smoke Required:** No
@@ -85,9 +85,9 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 
 ## P3 — UI / Polish / Refactoring
 
-### [ ] Clean Up Workflow Test Casts
-- **Description:** Remove `// @ts-nocheck` from `src/stores/workflow-template-store.test.ts` and replace all `as any` / `as unknown` casts with typed mock fixtures.
-- **Status:** Open
+### [x] Clean Up Workflow Test Casts
+- **Description:** The workflow store test has no `@ts-nocheck`, `as any`, or `as unknown` suppression. Corrupt non-array storage coverage now invokes the typed Vitest mock through `Reflect.apply` without weakening the runtime fixture.
+- **Status:** Closed (2026-07-12)
 - **Affected Files/Modules:** `src/stores/workflow-template-store.test.ts`
 - **Validation Required:** `npm run verify:workflow-templates`
 - **Headed/Manual Smoke Required:** No
@@ -106,6 +106,18 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 ---
 
 ## Recently Closed
+
+- **[x] Node 22.13 dependency-engine compatibility (2026-07-12)**
+  - Pinned `http-proxy-middleware` to the maintained v3 line (`^3.0.7`), whose published Node engine range includes the repository's supported Node 22.13 floor. The server uses the compatible `createProxyMiddleware` and event-handler API shared by v3/v4.
+  - **Validation:** `npm run verify:lockfile`, `npm run test:server` (59 tests), `npm run verify:safety-guard`, `npm run typecheck`, and `npm audit --audit-level=moderate` pass with zero vulnerabilities.
+
+- **[x] Security audit remediation: provider custody and truthful task cancellation (2026-07-12)**
+  - Made the validated request `profileId` the sole provider-credential selector, rejected unavailable/unknown providers before credential access, and retained incomplete cloud adapters only as fail-closed stubs with no ambient-identity or custom-executor path.
+  - Moved Gemini credentials from the URL query string to `x-goog-api-key` and replaced the provider adapter's regex-only verifier with project-local behavioral Vitest coverage.
+  - Kept paid video/music jobs under reconciliation when provider-side cancellation is unavailable, surfaced that limitation in task metadata/UI, and serialized background-task persistence through an awaitable drain used by deterministic tests.
+  - Repaired Prompt Library destructive-action confirmation so asynchronous failures preserve the pending action and dirty state.
+  - Removed the unused AWS Bedrock and Google Vertex SDK dependencies; `npm audit --audit-level=moderate` reports zero vulnerabilities.
+  - **Validation:** focused provider/task/prompt tests pass; ESLint, both TypeScript pipelines, `npm run test:electron`, `npm run test:ci`, and `npm run verify:contracts` pass. Build/dist validation is recorded in `docs/summary_of_work.md`.
 
 - **[x] Image and Video Studio accessibility/correctness tranche (2026-07-11)**
   - Made generated images keyboard-openable buttons with focus restoration, focus-visible actions, and content-stable keys; labelled and compatibility-filtered prompt templates; exposed Steps/Variants values; and replaced aggressive preview word breaking.

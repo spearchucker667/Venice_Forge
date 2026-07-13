@@ -1,5 +1,6 @@
 import { getProviderApiKey } from './secureStore'
 import type { StreamDelta } from './veniceClient'
+import { PROVIDER_REGISTRY } from '../../src/types/provider'
 
 export interface ProviderRoute {
   host: string
@@ -130,57 +131,60 @@ export const providerAdapters: Record<string, AdapterFn> = {
     if (originalPath !== '/chat/completions') return null
     return {
       host: 'api.cohere.com',
-      path: '/v1/chat',
+      path: '/v2/chat',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       transformBody: (body, realModel) => {
         const messages = (body.messages as Record<string, unknown>[]) || []
-        const chatHistory = messages.slice(0, -1).map(m => ({
-          role: m.role === 'assistant' ? 'CHATBOT' : m.role === 'system' ? 'SYSTEM' : 'USER',
-          message: m.content
+        const formattedMessages = messages.map(m => ({
+          role: m.role === 'assistant' ? 'assistant' : m.role === 'system' ? 'system' : 'user',
+          content: m.content
         }))
-        const lastMessage = messages.length > 0 ? messages[messages.length - 1].content : ''
         return {
           model: realModel,
-          message: lastMessage,
-          chat_history: chatHistory.length > 0 ? chatHistory : undefined,
+          messages: formattedMessages,
           temperature: body.temperature,
-          stream: body.stream
+          stream: body.stream,
+          max_tokens: body.max_tokens,
+          p: body.top_p
         }
       },
       transformResponse: (responseBody: unknown) => {
         if (responseBody && typeof responseBody === 'object') {
           const body = responseBody as Record<string, unknown>
-          if (body.message && !body.text) {
+          if (body.message && !body.id) {
             return { error: { message: body.message } }
           }
-          if (body.text) {
-            const meta = body.meta as Record<string, unknown> | undefined
-            const billed = meta?.billed_units as Record<string, unknown> | undefined
-            return {
-              id: body.generation_id,
-              choices: [{ message: { content: body.text, role: 'assistant' } }],
-              usage: {
-                prompt_tokens: billed?.input_tokens,
-                completion_tokens: billed?.output_tokens,
-                total_tokens: (Number(billed?.input_tokens) || 0) + (Number(billed?.output_tokens) || 0)
-              }
-            }
+          if (body.message) {
+             const message = body.message as Record<string, unknown>
+             const content = message.content as Array<Record<string, unknown>>
+             const text = content?.[0]?.text || ''
+             const usage = body.usage as Record<string, unknown> | undefined
+             const billed = usage?.billed_units as Record<string, unknown> | undefined
+             return {
+               id: body.id,
+               choices: [{ message: { content: text, role: 'assistant' } }],
+               usage: {
+                 prompt_tokens: billed?.input_tokens,
+                 completion_tokens: billed?.output_tokens,
+                 total_tokens: (Number(billed?.input_tokens) || 0) + (Number(billed?.output_tokens) || 0)
+               }
+             }
           }
         }
         return responseBody
       },
-      extractStreamDelta: (data: string): StreamDelta => {
+      extractStreamDelta: (data: string): import('./veniceClient').StreamDelta => {
         if (!data || data === '[DONE]') return { content: '', reasoning: '', parsed: true, malformed: false }
         try {
           const json = JSON.parse(data)
           if (json && typeof json === 'object') {
-            if (json.event_type === 'text-generation') {
-              return { content: json.text || '', reasoning: '', parsed: true, malformed: false }
+            if (json.type === 'content-delta' && json.delta?.message?.content?.text) {
+              return { content: json.delta.message.content.text, reasoning: '', parsed: true, malformed: false }
             }
-            if (json.event_type === 'stream-end') {
+            if (json.type === 'message-end') {
               return { content: '', reasoning: '', parsed: true, malformed: false }
             }
             return { content: '', reasoning: '', parsed: true, malformed: false }
@@ -192,13 +196,14 @@ export const providerAdapters: Record<string, AdapterFn> = {
       }
     }
   },
-  google_vertex: (model, apiKey, originalPath, originalBody) => {
+  google_gemini: (model, apiKey, originalPath, originalBody) => {
     if (originalPath !== '/chat/completions') return null
     const isStream = !!originalBody.stream
     return {
       host: 'generativelanguage.googleapis.com',
-      path: `/v1beta/models/${model}:${isStream ? 'streamGenerateContent' : 'generateContent'}?key=${apiKey}`,
+      path: `/v1beta/models/${model}:${isStream ? 'streamGenerateContent' : 'generateContent'}`,
       headers: {
+        'x-goog-api-key': apiKey,
         'Content-Type': 'application/json'
       },
       transformBody: (body, _realModel) => {
@@ -242,7 +247,7 @@ export const providerAdapters: Record<string, AdapterFn> = {
         }
         return responseBody
       },
-      extractStreamDelta: (data: string): StreamDelta => {
+      extractStreamDelta: (data: string): import('./veniceClient').StreamDelta => {
         if (!data || data === '[DONE]') return { content: '', reasoning: '', parsed: true, malformed: false }
         try {
           const json = JSON.parse(data)
@@ -260,6 +265,7 @@ export const providerAdapters: Record<string, AdapterFn> = {
       }
     }
   },
+  google_vertex: () => null,
   fireworks: (model, apiKey, originalPath, _originalBody) => {
     if (originalPath !== '/chat/completions') return null
     return {
@@ -269,43 +275,10 @@ export const providerAdapters: Record<string, AdapterFn> = {
       transformBody: (body, realModel) => ({ ...body, model: realModel })
     }
   },
-  replicate: (model, apiKey, originalPath, _originalBody) => {
-    // Basic placeholder, Replicate has a very different API for chat
-    if (originalPath !== '/chat/completions') return null
-    return {
-      host: 'api.replicate.com',
-      path: '/v1/predictions',
-      headers: { 'Authorization': `Token ${apiKey}`, 'Content-Type': 'application/json' },
-      transformBody: (body, realModel) => ({ version: realModel, input: body })
-    }
-  },
-  aws_bedrock: (model, apiKey, originalPath, _originalBody) => {
-    if (originalPath !== '/chat/completions') return null
-    return {
-      host: 'bedrock-runtime.us-east-1.amazonaws.com',
-      path: `/model/${model}/invoke`,
-      headers: { 'Content-Type': 'application/json' },
-      transformBody: (body, realModel) => ({ ...body, model: realModel })
-    }
-  },
-  azure_openai: (model, apiKey, originalPath, _originalBody) => {
-    if (originalPath !== '/chat/completions') return null
-    return {
-      host: 'api.cognitive.microsoft.com', // placeholder
-      path: `/openai/deployments/${model}${originalPath}?api-version=2024-02-15-preview`,
-      headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
-      transformBody: (body, realModel) => ({ ...body, model: realModel })
-    }
-  },
-  huggingface: (model, apiKey, originalPath, _originalBody) => {
-    if (originalPath !== '/chat/completions') return null
-    return {
-      host: 'api-inference.huggingface.co',
-      path: `/models/${model}/v1${originalPath}`,
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      transformBody: (body, realModel) => ({ ...body, model: realModel })
-    }
-  },
+  replicate: () => null,
+  aws_bedrock: () => null,
+  azure_openai: () => null,
+  huggingface: () => null,
   perplexity: (model, apiKey, originalPath, _originalBody) => {
     if (originalPath !== '/chat/completions') return null
     return {
@@ -331,10 +304,17 @@ export function resolveProviderRoute(request: Record<string, unknown>, profileId
   const providerId = match[1]
   const realModel = match[2]
 
+  const providerDefinition = PROVIDER_REGISTRY[providerId as keyof typeof PROVIDER_REGISTRY]
+  if (!providerDefinition) {
+    return { error: `Unknown or unsupported provider prefix: ${providerId}` }
+  }
+  if (providerDefinition.unavailable) {
+    return { error: `Provider ${providerId} is not available.` }
+  }
+
   const adapter = providerAdapters[providerId]
   if (!adapter) {
-    // If it has a colon but no adapter, we might just pass it to Venice and let it fail.
-    return null
+    return { error: `Unknown or unsupported provider prefix: ${providerId}` }
   }
 
   // Use the new generic key system `[providerId]_api_key`

@@ -6,7 +6,9 @@ import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { Select } from '../ui/select'
 import { StatusDot } from '../ui/shared'
 import { HeaderStatusCluster } from '../status/HeaderStatusCluster'
-
+import { useTaskUIStore } from '../../stores/task-ui-store'
+import { useBackgroundTaskStore } from '../../stores/background-task-store'
+import { getActiveProfileId } from '../../services/activeProfile'
 import { resolveTab } from '../../config/tabs'
 import { formatModelLabelWithCost } from '../../utils/pricing'
 
@@ -23,7 +25,13 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
     useShallow((s) => ({ activeConversationId: s.activeConversationId, conversations: s.conversations, setActiveConversation: s.setActiveConversation, setConversationModel: s.setConversationModel }))
   )
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
+  const toggleTaskCenter = useTaskUIStore((s) => s.toggleTaskCenter)
   
+  const rawTasks = useBackgroundTaskStore((s) => s.tasks)
+  const currentProfileId = getActiveProfileId()
+  const activeTaskCount = Object.values(rawTasks).filter(
+    t => t.profileId === currentProfileId && (t.status === 'queued' || t.status === 'processing')
+  ).length
   const tabDesc = resolveTab(activeTab)
   const hasOwnSelector = tabDesc?.modelSelectorOwner === 'view' || !tabDesc?.modelType
   const modelType = tabDesc?.modelType || 'text'
@@ -107,6 +115,26 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
       )}
 
       <div className="flex-1" />
+
+      <button
+        type="button"
+        onClick={toggleTaskCenter}
+        aria-label="Toggle task center"
+        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-border hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+        <span className="text-[13px] hidden xl:inline text-text-secondary">
+          Tasks
+        </span>
+        {activeTaskCount > 0 && (
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent text-accent-fg text-[11px] font-bold">
+            {activeTaskCount}
+          </span>
+        )}
+      </button>
 
       <HeaderStatusCluster />
 

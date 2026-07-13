@@ -62,12 +62,22 @@ import { app } from "electron";
 import { createTombstone } from "../../src/shared/syncProtocol";
 import { logError } from "./logger";
 import { encryptPayload } from "./backupCrypto";
+import { ensureSyncIdentity } from "./syncIdentity";
+import { getDeviceId } from "./syncConfig";
 
 vi.mock("./syncConfig", () => ({
   getSyncPath: vi.fn().mockResolvedValue(null),
   setSyncPath: vi.fn().mockResolvedValue(undefined),
   getDeviceId: vi.fn().mockResolvedValue("device-1"),
 }));
+
+const { testSyncIdentity } = vi.hoisted(() => ({
+  testSyncIdentity: { syncSetId: "11111111-1111-4111-8111-111111111111", keyId: "22222222-2222-4222-8222-222222222222" },
+}));
+vi.mock("./syncIdentity", async (importOriginal) => {
+  const original = await importOriginal<typeof import("./syncIdentity")>();
+  return { ...original, ensureSyncIdentity: vi.fn().mockResolvedValue(testSyncIdentity) };
+});
 
 vi.mock("./logger", () => ({
   logInfo: vi.fn(),
@@ -82,13 +92,16 @@ const tmpDir = "/tmp/sync-test";
 
 async function writeRemotePacket(
   fileName: string,
-  packet: { storeName: string; id: string; operationId: string; data: Record<string, unknown> },
+  packet: { storeName: string; id: string; operationId: string; data: Record<string, unknown>; syncSetId?: string; keyId?: string; profileId?: string },
 ): Promise<string> {
   const payload = JSON.stringify({
     _storeName: packet.storeName,
     _id: packet.id,
     _operationId: packet.operationId,
     _sourceDeviceId: "device-2",
+    _syncSetId: packet.syncSetId ?? testSyncIdentity.syncSetId,
+    _keyId: packet.keyId ?? testSyncIdentity.keyId,
+    _profileId: packet.profileId ?? "default",
     data: packet.data,
   });
   const encrypted = await encryptPayload(payload, "password");
@@ -101,6 +114,8 @@ describe("syncFolderWatcher", () => {
   beforeEach(async () => {
     vi.useRealTimers();
     vi.resetAllMocks();
+    vi.mocked(ensureSyncIdentity).mockResolvedValue(testSyncIdentity);
+    vi.mocked(getDeviceId).mockResolvedValue("device-1");
     vi.mocked(app.getPath).mockReturnValue("/tmp/userData");
     setSyncEmissionSuppressed(false);
     resetAppliedOperationsJournal();
@@ -223,7 +238,7 @@ describe("syncFolderWatcher", () => {
 
     setSyncEmissionSuppressed(false);
     const result2 = await writePacket("conversations", "id-1", '{"id":"id-1","title":"Hello"}');
-    expect(result2.ok).toBe(true);
+    expect(result2).toEqual({ ok: true });
     const blobs2 = await fs.readdir(`${tmpDir}/.vfbackup/blobs`);
     expect(blobs2.length).toBe(1);
   });
@@ -234,7 +249,7 @@ describe("syncFolderWatcher", () => {
 
     const tombstone = createTombstone("conversations", "conv-1");
     const result = await writePacket("tombstones", tombstone.id, JSON.stringify(tombstone));
-    expect(result.ok).toBe(true);
+    expect(result).toEqual({ ok: true });
   });
 
   it("records acknowledged operations and prevents duplicate processing", async () => {
@@ -292,6 +307,48 @@ describe("syncFolderWatcher", () => {
     });
     await acknowledgeOperation(tombstoneOperationId, true);
     await Promise.all([recordApply, tombstoneApply]);
+  });
+
+  it("rejects a decrypted packet from another sync set before renderer delivery", async () => {
+    const { BrowserWindow } = await import("electron");
+    await initSyncFolderWatcher(new BrowserWindow());
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password");
+    const packetPath = await writeRemotePacket("foreign-set.json", {
+      storeName: "conversations",
+      id: "conv-foreign",
+      operationId: "3".repeat(64),
+      data: { id: "conv-foreign" },
+      syncSetId: "33333333-3333-4333-8333-333333333333",
+    });
+
+    await expect(handleRemoteChange(packetPath)).resolves.toBe(true);
+    expect(sendMock).not.toHaveBeenCalled();
+    expect(logError).toHaveBeenCalledWith(
+      "syncFolderWatcher",
+      expect.stringMatching(/outside the active sync set/),
+    );
+  });
+
+  it("rejects a decrypted packet from another profile before renderer delivery", async () => {
+    const { BrowserWindow } = await import("electron");
+    await initSyncFolderWatcher(new BrowserWindow());
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password", "default");
+    const packetPath = await writeRemotePacket("foreign-profile.json", {
+      storeName: "conversations",
+      id: "conv-work",
+      operationId: "4".repeat(64),
+      data: { id: "conv-work" },
+      profileId: "work",
+    });
+
+    await expect(handleRemoteChange(packetPath)).resolves.toBe(true);
+    expect(sendMock).not.toHaveBeenCalled();
+    expect(logError).toHaveBeenCalledWith(
+      "syncFolderWatcher",
+      expect.stringMatching(/outside the active profile/),
+    );
   });
 
   it("rejects an acknowledgment with an invalid operation id", async () => {

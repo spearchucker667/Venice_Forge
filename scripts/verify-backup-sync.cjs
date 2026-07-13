@@ -49,6 +49,11 @@ require("tsx/cjs");
 const REPO = path.resolve(__dirname, "..");
 const BACKUP_CRYPTO_FILE = path.join(REPO, "electron/services/backupCrypto.ts");
 const SYNC_WATCHER_FILE = path.join(REPO, "electron/services/syncFolderWatcher.ts");
+const SYNC_OUTBOX_FILE = path.join(REPO, "electron/services/syncOutbox.ts");
+const SYNC_IDENTITY_FILE = path.join(REPO, "electron/services/syncIdentity.ts");
+const REMOTE_APPLY_AUTHORITY_FILE = path.join(REPO, "electron/services/remoteApplyAuthority.ts");
+const SYNC_CONVERGENCE_FILE = path.join(REPO, "src/shared/syncConvergence.ts");
+const SYNC_CHECKPOINT_FILE = path.join(REPO, "electron/services/syncCheckpoint.ts");
 const SYNC_BRIDGE_FILE = path.join(REPO, "electron/services/syncBridge.ts");
 const SYNC_HANDLERS_FILE = path.join(REPO, "electron/ipc/handlers/syncHandlers.ts");
 const SYSTEM_HANDLERS_FILE = path.join(REPO, "electron/ipc/handlers/systemHandlers.ts");
@@ -99,6 +104,48 @@ function runStaticChecks() {
     "SYNC_STORE_ALLOWLIST",
   ]);
 
+  mustContain(SYNC_OUTBOX_FILE, "electron/services/syncOutbox.ts durable encrypted outbox", [
+    "export async function persistSyncOutboxEntry",
+    "export async function drainSyncOutbox",
+    "export async function removeSyncOutboxEntry",
+  ]);
+
+  mustContain(SYNC_IDENTITY_FILE, "electron/services/syncIdentity.ts encrypted set/key identity", [
+    "export async function ensureSyncIdentity",
+    "export function packetMatchesSyncIdentity",
+    "sync-identity.json",
+  ]);
+
+  mustContain(REMOTE_APPLY_AUTHORITY_FILE, "main-authoritative remote apply grants", [
+    "export function issueRemoteApplyGrant",
+    "export function validateMutationAuthority",
+    "export function revokeRemoteApplyGrant",
+  ]);
+
+  mustContain(SYNC_CONVERGENCE_FILE, "deterministic multi-device convergence", [
+    "export function compareSyncRecords",
+    "export function compareSyncMessages",
+  ]);
+
+  mustContain(SYNC_CHECKPOINT_FILE, "device-acknowledged checkpoint collection", [
+    "export async function registerSyncDevice",
+    "export async function acknowledgeSyncOperation",
+    "export async function collectAcknowledgedEvent",
+  ]);
+
+  mustContain(SYNC_WATCHER_FILE, "syncFolderWatcher outbox integration", [
+    "persistSyncOutboxEntry(filename, manifestJson, objectFilename)",
+    'drainSyncOutbox(path.join(vfbackupPath, "blobs"), path.join(vfbackupPath, "objects"))',
+    "packetMatchesSyncIdentity(parsed, currentSyncIdentity)",
+    "_syncSetId: currentSyncIdentity.syncSetId",
+    "_keyId: currentSyncIdentity.keyId",
+    "_profileId: currentProfileId",
+    "parsed._profileId !== currentProfileId",
+    'path.join(vfbackupPath, "objects")',
+    "acknowledgeSyncOperation",
+    "collectAcknowledgedEvent",
+  ]);
+
   mustContain(SYNC_BRIDGE_FILE, "electron/services/syncBridge.ts exports", [
     "export async function emitSyncPacket",
     "export async function emitSyncTombstone",
@@ -115,6 +162,8 @@ function runStaticChecks() {
     'ipcMain.handle("sync:writePacket"',
     'ipcMain.handle("sync:encryptBackup"',
     'ipcMain.handle("sync:decryptBackup"',
+    'ipcMain.handle("sync:applyRemoteMutation"',
+    'validateMutationAuthority("remote-sync"',
   ]);
 
   mustContain(BACKUP_EXPORT_FILE, "src/services/backupExportService.ts exports", [

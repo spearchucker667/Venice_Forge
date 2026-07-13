@@ -115,5 +115,6 @@ export const toast = {
   },
   upsertToast: (dedupeKey: string, t: Parameters<ToastState['upsertToast']>[1]) => useToastStore.getState().upsertToast(dedupeKey, t),
   dismiss: (id: string) => useToastStore.getState().dismiss(id),
+  dismissByKey: (dedupeKey: string) => useToastStore.getState().dismissByKey(dedupeKey),
   getToasts: () => useToastStore.getState().toasts,
 }

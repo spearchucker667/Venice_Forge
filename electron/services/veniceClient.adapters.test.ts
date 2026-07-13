@@ -30,6 +30,7 @@ vi.mock("./logger", () => ({
 }));
 
 import { performVeniceRequest } from "./veniceClient";
+import { getProviderApiKey } from "./secureStore";
 
 interface MockRequest extends EventEmitter {
   write: ReturnType<typeof vi.fn>;
@@ -125,5 +126,37 @@ describe("performVeniceRequest multi-provider adapter integration", () => {
     expect(parsedBody.system).toBe("You are a test.");
     expect(parsedBody.messages).toHaveLength(1);
     expect(parsedBody.messages[0]).toEqual({ role: 'user', content: 'Hi' });
+  });
+
+  it("uses request.profileId as the provider credential scope", async () => {
+    const requestMock = https.request as unknown as HttpsRequestMock;
+    let requestOptions: Record<string, unknown> = {};
+
+    requestMock.mockImplementation((options, callback) => {
+      requestOptions = options as Record<string, unknown>;
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn();
+      req.end = vi.fn(() => {
+        const res = new EventEmitter() as MockResponse;
+        res.headers = { "content-type": "application/json" };
+        res.statusCode = 200;
+        callback(res);
+        res.emit("end");
+      });
+      return req;
+    });
+
+    await performVeniceRequest({
+      endpoint: "/chat/completions",
+      method: "POST",
+      profileId: "work-profile",
+      body: {
+        model: "anthropic:claude-3-5-sonnet-latest",
+        messages: [{ role: "user", content: "Hi" }],
+      },
+    });
+
+    expect(getProviderApiKey).toHaveBeenCalledWith("anthropic", "work-profile");
+    expect((requestOptions.headers as Record<string, string>)["x-api-key"]).toBe("test-anthropic-key");
   });
 });

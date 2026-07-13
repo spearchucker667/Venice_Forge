@@ -1,42 +1,29 @@
-/**
- * Verifies that all fallback providers defined in PROVIDER_REGISTRY have an adapter implemented.
- */
-const { readFileSync } = require('fs');
-const { join } = require('path');
+const { spawnSync } = require('node:child_process');
+const { dirname, resolve } = require('node:path');
 
 function run() {
-  const providerTs = readFileSync(join(__dirname, '../src/types/provider.ts'), 'utf-8');
-  const adaptersTs = readFileSync(join(__dirname, '../electron/services/providerAdapters.ts'), 'utf-8');
+  const vitestPackage = require.resolve('vitest/package.json');
+  const vitestPackageJson = require(vitestPackage);
+  const vitestBinary = resolve(dirname(vitestPackage), vitestPackageJson.bin.vitest);
+  const tests = [
+    'electron/ipc/validation.test.ts',
+    'electron/services/providerAdapters.test.ts',
+    'electron/services/veniceClient.adapters.test.ts',
+  ];
 
-  // Extract ProviderId union from provider.ts
-  const providerIdMatch = providerTs.match(/export type ProviderId =([\s\S]*?)\n\n/);
-  if (!providerIdMatch) {
-    console.error('FAIL: Could not find ProviderId union in src/types/provider.ts');
+  console.log('Running provider credential, routing, payload, and transport contract tests...');
+  const result = spawnSync(
+    process.execPath,
+    [vitestBinary, 'run', ...tests, '--fileParallelism=false'],
+    { stdio: 'inherit', cwd: resolve(__dirname, '..') },
+  );
+
+  if (result.error || result.status !== 0) {
+    console.error('FAIL: Provider adapter contract tests failed.');
     process.exit(1);
   }
 
-  const providers = providerIdMatch[1]
-    .split('|')
-    .map(p => p.trim().replace(/['"]/g, ''))
-    .filter(p => p && p !== 'venice');
-
-  const missingAdapters = [];
-
-  for (const provider of providers) {
-    // Check if there's a key in providerAdapters object
-    const regex = new RegExp(`${provider}:\\s*\\(model, apiKey, originalPath,`);
-    if (!regex.test(adaptersTs)) {
-      missingAdapters.push(provider);
-    }
-  }
-
-  if (missingAdapters.length > 0) {
-    console.error('FAIL: The following providers are missing adapters in electron/services/providerAdapters.ts:');
-    console.error(missingAdapters.join(', '));
-    process.exit(1);
-  }
-
-  console.log('PASS: All fallback providers have adapters implemented.');
+  console.log('PASS: Provider adapter behavioral contracts passed.');
 }
 
 run();

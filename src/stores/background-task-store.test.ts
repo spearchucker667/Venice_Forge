@@ -96,4 +96,23 @@ describe('background task polling', () => {
     expect(veniceFetch).toHaveBeenCalledTimes(2)
     expect(useBackgroundTaskStore.getState().tasks['video-four'].status).toBe('completed')
   })
+
+  it('keeps polling when the provider cannot cancel a paid task', async () => {
+    vi.mocked(veniceFetch).mockResolvedValue({
+      data: { status: 'PROCESSING', progress: 25 },
+      headers: { 'content-type': 'application/json' },
+    } as never)
+
+    useBackgroundTaskStore.getState().registerQueueTask('video-five', 'video', 'queue-five')
+    await vi.advanceTimersByTimeAsync(0)
+
+    useBackgroundTaskStore.getState().cancelTask('video-five')
+
+    expect(useBackgroundTaskStore.getState().tasks['video-five']).toMatchObject({
+      status: 'processing',
+      error: 'Provider cancellation is unavailable; generation is still running.',
+      metadata: { cancellationUnsupported: true },
+    })
+    expect(useBackgroundTaskStore.getState().activePolls['video-five']).toBeDefined()
+  })
 })

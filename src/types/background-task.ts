@@ -16,7 +16,15 @@ export interface BackgroundTask {
   updatedAt: number
   metadata?: Record<string, unknown>
   queueId?: string
-  profileId?: string
+  profileId: string
+  providerId?: string
+  modelId?: string
+  sourceTab?: string
+  requestFingerprint?: string
+  attemptStartedAt?: number
+  attemptNumber?: number
+  pollAttempts?: number
+  consecutiveFailures?: number
 }
 
 export interface PersistedBackgroundTask {
@@ -29,7 +37,11 @@ export interface BackgroundTaskCreateInput {
   type: BackgroundTaskType
   queueId?: string
   metadata?: Record<string, unknown>
-  profileId?: string
+  profileId: string
+  providerId?: string
+  modelId?: string
+  sourceTab?: string
+  requestFingerprint?: string
 }
 
 export interface BackgroundTaskUpdate {
@@ -38,6 +50,11 @@ export interface BackgroundTaskUpdate {
   error?: string
   resultUrl?: string
   metadata?: Record<string, unknown>
+  queueId?: string
+  attemptStartedAt?: number
+  attemptNumber?: number
+  pollAttempts?: number
+  consecutiveFailures?: number
 }
 
 export interface BackgroundTaskSnapshot {
@@ -80,7 +97,15 @@ export function isValidBackgroundTask(value: unknown): value is BackgroundTask {
     (task.error === undefined || typeof task.error === 'string') &&
     (task.resultUrl === undefined || typeof task.resultUrl === 'string') &&
     (task.queueId === undefined || typeof task.queueId === 'string') &&
-    (task.profileId === undefined || typeof task.profileId === 'string') &&
+    typeof task.profileId === 'string' &&
+    (task.providerId === undefined || typeof task.providerId === 'string') &&
+    (task.modelId === undefined || typeof task.modelId === 'string') &&
+    (task.sourceTab === undefined || typeof task.sourceTab === 'string') &&
+    (task.requestFingerprint === undefined || typeof task.requestFingerprint === 'string') &&
+    (task.attemptStartedAt === undefined || (typeof task.attemptStartedAt === 'number' && Number.isFinite(task.attemptStartedAt))) &&
+    (task.attemptNumber === undefined || (typeof task.attemptNumber === 'number' && Number.isFinite(task.attemptNumber))) &&
+    (task.pollAttempts === undefined || (typeof task.pollAttempts === 'number' && Number.isFinite(task.pollAttempts))) &&
+    (task.consecutiveFailures === undefined || (typeof task.consecutiveFailures === 'number' && Number.isFinite(task.consecutiveFailures))) &&
     (task.metadata === undefined || (typeof task.metadata === 'object' && task.metadata !== null))
   )
 }
@@ -123,6 +148,14 @@ export function createBackgroundTask(input: BackgroundTaskCreateInput): Backgrou
     status: 'queued',
     queueId: input.queueId,
     profileId: input.profileId,
+    providerId: input.providerId,
+    modelId: input.modelId,
+    sourceTab: input.sourceTab,
+    requestFingerprint: input.requestFingerprint,
+    attemptStartedAt: now,
+    attemptNumber: 1,
+    pollAttempts: 0,
+    consecutiveFailures: 0,
     metadata: input.metadata ? redactSecrets(input.metadata) : undefined,
     createdAt: now,
     updatedAt: now,

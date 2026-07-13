@@ -52,7 +52,10 @@ export interface VeniceForgeRequest {
   signalId?: string;
   localFamilySafeModeEnabled?: boolean;
   profileId?: string;
-
+  fallbackConfig?: {
+    enabled?: boolean;
+    ordering?: string[];
+  };
 }
 
 /** Describes the response returned from the Electron IPC bridge. */
@@ -97,6 +100,7 @@ export interface SyncRuntimeStatus {
   rendererSessionAttached: boolean;
   authenticated: boolean;
   degradedReason?: string;
+  profileId?: string;
 }
 
 /** Exposes application-level helpers available through the preload bridge. */
@@ -369,7 +373,7 @@ export interface ElectronSyncAPI {
   setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }>;
 
   /** Starts the sync watcher with the given password. Main process uses this to decrypt incoming sync blobs. */
-  startSync(input: { password: string }): Promise<{ ok: boolean; error?: string }>;
+  startSync(input: { password: string; profileId: string }): Promise<{ ok: boolean; error?: string }>;
 
   /** Stops the sync watcher and clears the password from main process memory. */
   stopSync(): Promise<{ ok: boolean; error?: string }>;
@@ -384,12 +388,13 @@ export interface ElectronSyncAPI {
 
   /** Writes a SyncObject to the sync folder. Encryption happens in main process. */
   writePacket(input: { storeName: string; id: string; recordJson: string }): Promise<{ ok: boolean; error?: string }>;
+  applyRemoteMutation(input: { storeName: string; id: string; recordJson?: string; delete?: boolean; remoteApplyToken: string }): Promise<{ ok: boolean; error?: string }>;
 
   /** Acknowledges that a remote operation was applied (or failed) in the renderer. */
   acknowledgeOperation(input: { operationId: string; ok: boolean }): Promise<{ ok: boolean; error?: string }>;
 
   /** Listen for changes from the watcher */
-  onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string }) => void): () => void;
+  onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string; remoteApplyToken: string }) => void): () => void;
   
   /** Encrypt a manual backup payload */
   encryptBackup(input: { payload: string, password: string }): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }>;

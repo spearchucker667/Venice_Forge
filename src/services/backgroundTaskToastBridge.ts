@@ -21,22 +21,47 @@ export function initBackgroundTaskToastBridge() {
     for (const [taskId, task] of Object.entries(currentTasks)) {
       const prevTask = previousTasks[taskId]
       const dedupeKey = `task:${taskId}`
-      
+
       const typeLabel = task.type.charAt(0).toUpperCase() + task.type.slice(1)
-      const title = `${typeLabel} generation`
+      let title = `${typeLabel} generation`
+
+      const providerStr = task.providerId ? ` via ${task.providerId}` : ''
+      const modelStr = task.modelId ? ` (${task.modelId})` : ''
+      title = `${title}${providerStr}${modelStr}`
 
       if (task.status === 'queued') {
         if (!prevTask || prevTask.status !== 'queued') {
-          toast.upsertToast(dedupeKey, { variant: 'info', title, description: 'Queued...', persistent: true })
+          toast.upsertToast(dedupeKey, {
+            variant: 'info',
+            title,
+            description: 'Queued...',
+            persistent: true,
+            actions: [
+              {
+                id: 'cancel',
+                label: 'Cancel',
+                kind: 'cancel-task',
+                onClick: () => useBackgroundTaskStore.getState().cancelTask(taskId)
+              }
+            ]
+          })
         }
       } else if (task.status === 'processing') {
         if (!prevTask || prevTask.status !== 'processing' || prevTask.progress !== task.progress) {
           toast.upsertToast(dedupeKey, {
-            variant: 'progress', // Wait, do we have progress variant? Yes, I added 'progress' to toaster.tsx
+            variant: 'progress',
             title,
             description: 'Generating...',
             progressRatio: task.progress,
             persistent: true,
+            actions: [
+              {
+                id: 'cancel',
+                label: 'Cancel',
+                kind: 'cancel-task',
+                onClick: () => useBackgroundTaskStore.getState().cancelTask(taskId)
+              }
+            ]
           })
         }
       } else if (task.status === 'completed') {
@@ -47,17 +72,21 @@ export function initBackgroundTaskToastBridge() {
             description: 'Completed successfully.',
             persistent: false, // auto dismiss now
             duration: 4500,
-            action: task.resultUrl ? {
-              label: 'View',
-              onClick: () => {
-                // Determine what to do based on type
-                if (task.type === 'video' || task.type === 'music') {
-                  const projectId = task.metadata?.projectId as string
-                  if (projectId) useSettingsStore.getState().setActiveProjectId(projectId)
-                  useSettingsStore.getState().setActiveTab('media')
+            actions: task.resultUrl ? [
+              {
+                id: 'open',
+                label: 'Open',
+                kind: 'open-task',
+                onClick: () => {
+                  if (task.type === 'video' || task.type === 'music') {
+                    const projectId = task.metadata?.projectId as string
+                    if (projectId) useSettingsStore.getState().setActiveProjectId(projectId)
+                    useSettingsStore.getState().setActiveTab('media')
+                  }
+                  toast.dismissByKey(dedupeKey)
                 }
               }
-            } : undefined
+            ] : undefined
           })
         }
       } else if (task.status === 'failed' || task.status === 'timeout' || task.status === 'aborted') {
@@ -66,14 +95,19 @@ export function initBackgroundTaskToastBridge() {
             variant: 'error',
             title: `${title} failed`,
             description: task.error || 'An error occurred.',
-            persistent: false,
-            duration: 6500,
+            persistent: true, // Phase 7: Keep failures persistent
             actions: [
+              {
+                id: 'retry',
+                label: 'Retry',
+                kind: 'retry-task',
+                onClick: () => useBackgroundTaskStore.getState().retryTask(taskId)
+              },
               {
                 id: 'dismiss',
                 label: 'Dismiss',
                 kind: 'dismiss',
-                onClick: () => toast.dismiss(toast.getToasts().find(t => t.dedupeKey === dedupeKey)?.id ?? '')
+                onClick: () => toast.dismissByKey(dedupeKey)
               }
             ]
           })

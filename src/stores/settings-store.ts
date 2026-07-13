@@ -137,6 +137,10 @@ interface SettingsState {
   // Fallback Providers
   enabledProviders: Record<string, boolean>
   setEnabledProvider: (providerId: string, enabled: boolean) => void
+  autoFallbackEnabled: boolean
+  setAutoFallbackEnabled: (enabled: boolean) => void
+  fallbackOrdering: string[]
+  setFallbackOrdering: (ordering: string[]) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -205,10 +209,15 @@ export const useSettingsStore = create<SettingsState>()(
       syncFolderPath: '',
       setSyncFolderPath: (path) => set({ syncFolderPath: path }),
 
+      // Fallback Providers
       enabledProviders: {},
-      setEnabledProvider: (providerId, enabled) => set((s) => ({
-        enabledProviders: { ...s.enabledProviders, [providerId]: enabled }
+      setEnabledProvider: (providerId, enabled) => set((state) => ({
+        enabledProviders: { ...state.enabledProviders, [providerId]: enabled }
       })),
+      autoFallbackEnabled: false,
+      setAutoFallbackEnabled: (enabled) => set({ autoFallbackEnabled: enabled }),
+      fallbackOrdering: [],
+      setFallbackOrdering: (ordering) => set({ fallbackOrdering: ordering }),
     }),
     {
       name: 'venice-settings',

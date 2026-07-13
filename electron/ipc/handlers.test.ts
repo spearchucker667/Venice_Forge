@@ -151,6 +151,7 @@ vi.mock("../services/conversationVault", () => ({
 import { registerIpcHandlers } from "./handlers";
 import { resetIpcRateLimitForTests } from "../utils/rateLimit";
 import * as syncBridge from "../services/syncBridge";
+import { __resetRemoteApplyGrantsForTests, issueRemoteApplyGrant } from "../services/remoteApplyAuthority";
 import {
   clearProfilePassword,
   isProfilePasswordSet,
@@ -1232,6 +1233,33 @@ describe("registerIpcHandlers", () => {
       const validOpId = "a".repeat(64);
       const result = await handler!(null, { operationId: validOpId, ok: true });
       expect(result).toEqual({ ok: false, error: "No such in-flight operation." });
+    });
+  });
+
+  describe("sync:applyRemoteMutation", () => {
+    beforeEach(() => __resetRemoteApplyGrantsForTests());
+
+    it("rejects renderer-claimed remote sync without a main-issued grant", async () => {
+      const handler = capturedHandlers.get("sync:applyRemoteMutation");
+      const result = await handler?.(null, {
+        storeName: "conversations",
+        id: "conv-unauthorized",
+        recordJson: JSON.stringify({ id: "conv-unauthorized" }),
+        remoteApplyToken: "renderer-invented",
+      });
+      expect(result).toEqual({ ok: false, error: "Remote mutation authority rejected." });
+    });
+
+    it("accepts only the exact store and record bound to the grant", async () => {
+      const handler = capturedHandlers.get("sync:applyRemoteMutation");
+      const token = issueRemoteApplyGrant("f".repeat(64), "conversations", "conv-authorized");
+      const result = await handler?.(null, {
+        storeName: "conversations",
+        id: "conv-authorized",
+        recordJson: JSON.stringify({ id: "conv-authorized", title: "Remote" }),
+        remoteApplyToken: token,
+      });
+      expect(result).toEqual({ ok: true });
     });
   });
 });

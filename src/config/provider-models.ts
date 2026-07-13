@@ -11,6 +11,7 @@ export type FallbackModelDef = VeniceModel & { _type: 'text' | 'image' }
 
 export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
   venice: [], // Venice is the primary provider; its models come from the live /models API.
+  google_gemini: [],
   together: [
     {
       id: 'together:meta-llama/Llama-3-70b-chat-hf',

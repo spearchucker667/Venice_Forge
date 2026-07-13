@@ -98,11 +98,31 @@ export function InspectorPane() {
       style={{ width: dragWidth ?? inspectorWidth }}
     >
       <div 
-        className="absolute left-0 top-0 bottom-0 w-1.5 -ml-[0.75px] cursor-col-resize hover:bg-accent/50 z-50 transition-colors"
+        role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-valuemin={300}
+        aria-valuemax={800}
+        aria-valuenow={inspectorWidth}
+        aria-label="Resize Inspector"
+        className="absolute left-0 top-0 bottom-0 w-1.5 -ml-[0.75px] cursor-col-resize hover:bg-accent/50 focus-visible:bg-accent z-50 transition-colors outline-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            setInspectorWidth(Math.min(800, inspectorWidth + 20));
+          } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            setInspectorWidth(Math.max(300, inspectorWidth - 20));
+          } else if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+            e.preventDefault();
+            setInspectorWidth(400); // Default reset
+          }
+        }}
+        onDoubleClick={() => setInspectorWidth(400)}
       />
       <div className="flex items-center justify-between px-3 h-14 soft-separator-y">
         <div className="flex items-center gap-2">

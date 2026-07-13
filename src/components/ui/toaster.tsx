@@ -58,6 +58,7 @@ export function Toaster() {
                   {t.actions.map(action => (
                     <button
                       key={action.id}
+                      type="button"
                       onClick={() => {
                         if (action.onClick) action.onClick();
                         if (action.kind === 'dismiss') dismiss(t.id);
@@ -71,6 +72,7 @@ export function Toaster() {
               )}
               {t.action && !t.actions && (
                 <button
+                  type="button"
                   onClick={() => { t.action?.onClick(); dismiss(t.id) }}
                   className="mt-1.5 text-[12.5px] font-medium text-text-secondary hover:text-text-primary underline underline-offset-2"
                 >
@@ -79,6 +81,7 @@ export function Toaster() {
               )}
             </div>
             <button
+              type="button"
               onClick={() => dismiss(t.id)}
               aria-label="Dismiss notification"
               className="text-text-muted hover:text-text-secondary transition-colors p-0.5 -m-0.5 shrink-0 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-text-muted/30"

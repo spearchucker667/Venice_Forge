@@ -19,6 +19,7 @@ import { STORE_NAMES } from "../constants/venice";
 import { validateTombstone } from "../shared/syncProtocol";
 import { toEpochMilliseconds } from "../shared/syncTimestamp";
 import { createConflictIdentity } from "../shared/syncConflictIdentity";
+import { compareSyncMessages, compareSyncRecords } from "../shared/syncConvergence";
 
 interface SyncableRecord {
   id: string;
@@ -72,7 +73,20 @@ export async function saveStoreRecord(
   storeName: SyncStoreName,
   record: unknown,
   origin: MutationOrigin = "remote-sync",
+  remoteApplyToken?: string,
 ): Promise<void> {
+  if (isElectron() && origin === "remote-sync") {
+    const recordObject = record as Record<string, unknown>;
+    const id = typeof recordObject.id === "string" ? recordObject.id : "";
+    const result = await desktopSync.applyRemoteMutation({
+      storeName,
+      id,
+      recordJson: JSON.stringify(recordObject),
+      remoteApplyToken: remoteApplyToken ?? "",
+    });
+    if (!result.ok) throw new Error(result.error || "Remote sync save was rejected.");
+    return;
+  }
   if (isElectron()) {
     switch (storeName) {
       case "conversations":
@@ -112,7 +126,18 @@ export async function deleteStoreRecord(
   storeName: SyncStoreName,
   recordId: string,
   origin: MutationOrigin = "remote-sync",
+  remoteApplyToken?: string,
 ): Promise<void> {
+  if (isElectron() && origin === "remote-sync") {
+    const result = await desktopSync.applyRemoteMutation({
+      storeName,
+      id: recordId,
+      delete: true,
+      remoteApplyToken: remoteApplyToken ?? "",
+    });
+    if (!result.ok) throw new Error(result.error || "Remote sync delete was rejected.");
+    return;
+  }
   if (isElectron()) {
     switch (storeName) {
       case "conversations":
@@ -192,8 +217,10 @@ export async function importDecryptedPacket(
   id: string,
   recordJson: string,
   operationId?: string,
+  remoteApplyToken?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    const importOrigin: MutationOrigin = !isElectron() || remoteApplyToken ? "remote-sync" : "manual-import";
     if (!IMPORTABLE_STORES.has(storeName)) return { ok: false, error: "Store is not allowed for import." };
     if (!/^[a-zA-Z0-9_.:-]{1,256}$/.test(id) || id.includes("..")) return { ok: false, error: "Invalid record ID." };
 
@@ -204,7 +231,7 @@ export async function importDecryptedPacket(
         return { ok: false, error: `Malformed tombstone: ${validation.error}` };
       }
       await TombstoneService.saveTombstone(validation.tombstone);
-      await deleteStoreRecord(validation.tombstone.storeName, validation.tombstone.recordId);
+      await deleteStoreRecord(validation.tombstone.storeName, validation.tombstone.recordId, importOrigin, remoteApplyToken);
       return { ok: true };
     }
 
@@ -236,7 +263,7 @@ export async function importDecryptedPacket(
 
     if (!local) {
       // Record doesn't exist locally, so save it
-      await saveStoreRecord(storeName, imported);
+      await saveStoreRecord(storeName, imported, importOrigin, remoteApplyToken);
     } else {
       // Both exist, check for divergence
       const isConflict = 
@@ -251,23 +278,23 @@ export async function importDecryptedPacket(
         const mergeStores = ["chats", "rp_chats", "conversations"];
 
         if (preserveStores.includes(storeName)) {
-          // Preserve conflict copy
+          const importedWins = compareSyncRecords(imported, local) > 0;
+          const loser = importedWins ? local : imported;
           const conflictIdentity = await createConflictIdentity({
             storeName,
             recordId: id,
-            sourceDeviceId: imported.deviceId,
-            remoteRevisionId: imported.revisionId,
-            localRevisionId: local.revisionId,
-            operationId,
+            sourceDeviceId: loser.deviceId,
+            remoteRevisionId: loser.revisionId,
           });
           const newId = `${id}_conflict_${conflictIdentity.slice(0, 16)}`;
           const conflictRecord = {
-            ...imported,
+            ...loser,
             id: newId,
-            name: imported.name ? `${imported.name} (Conflict from ${imported.deviceId || "Remote"})` : undefined,
-            title: imported.title ? `${imported.title} (Conflict from ${imported.deviceId || "Remote"})` : undefined,
+            name: loser.name ? `${loser.name} (Conflict from ${loser.deviceId || "Remote"})` : undefined,
+            title: loser.title ? `${loser.title} (Conflict from ${loser.deviceId || "Remote"})` : undefined,
           };
-          await saveStoreRecord(storeName, conflictRecord);
+          await saveStoreRecord(storeName, conflictRecord, importOrigin, remoteApplyToken);
+          if (importedWins) await saveStoreRecord(storeName, imported, importOrigin, remoteApplyToken);
         } else if (mergeStores.includes(storeName)) {
           // Message-level append merge
           const localMessages = local.messages || [];
@@ -279,23 +306,21 @@ export async function importDecryptedPacket(
           if (newMessages.length > 0) {
             const mergedRecord = {
               ...local,
-              messages: [...localMessages, ...newMessages].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.createdAt as number) - (b.createdAt as number)),
+              messages: [...localMessages, ...newMessages].sort(compareSyncMessages),
               updatedAt: Math.max(toEpochMilliseconds(local.updatedAt) ?? 0, importedUpdateEpoch)
             };
-            await saveStoreRecord(storeName, mergedRecord);
+            await saveStoreRecord(storeName, mergedRecord, importOrigin, remoteApplyToken);
           }
         } else {
           // No conflict merge logic, just LWW
-          const localUpdate = toEpochMilliseconds(local.updatedAt) ?? 0;
-          if (importedUpdateEpoch > localUpdate) {
-            await saveStoreRecord(storeName, imported);
+          if (compareSyncRecords(imported, local) > 0) {
+            await saveStoreRecord(storeName, imported, importOrigin, remoteApplyToken);
           }
         }
       } else {
         // No conflict, just use last-write-wins
-        const localUpdate = toEpochMilliseconds(local.updatedAt) ?? 0;
-        if (importedUpdateEpoch > localUpdate) {
-          await saveStoreRecord(storeName, imported);
+        if (compareSyncRecords(imported, local) > 0) {
+          await saveStoreRecord(storeName, imported, importOrigin, remoteApplyToken);
         }
       }
     }

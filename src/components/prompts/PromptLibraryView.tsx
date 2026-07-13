@@ -30,6 +30,7 @@ import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
 import { useChatStore } from "../../stores/chat-store";
 import { PromptCreateModal } from "./PromptCreateModal";
 import { Select } from "../ui/select";
+import { ConfirmModal } from "../ConfirmModal";
 
 const KIND_OPTIONS: Array<{ value: PromptKind; label: string }> = [
   { value: "image", label: "Image" },
@@ -77,6 +78,20 @@ export function PromptLibraryView() {
   }, [ensureLoaded]);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [hasDirtyEdits, setHasDirtyEdits] = useState(false);
+  const [pendingDiscardAction, setPendingDiscardAction] = useState<(() => void | Promise<void>) | null>(null);
+
+  const handleSetActivePrompt = (id: string | null) => {
+    if (hasDirtyEdits && id !== activePromptId) {
+      setPendingDiscardAction(() => () => {
+        setActivePrompt(id);
+        setHasDirtyEdits(false);
+      });
+      return;
+    }
+    setActivePrompt(id);
+    setHasDirtyEdits(false);
+  };
 
   const [kindFilter, setKindFilter] = useState<PromptKind | "all">("all");
   const [scopeFilter, setScopeFilter] = useState<PromptScope | "all">("all");
@@ -148,7 +163,12 @@ export function PromptLibraryView() {
 
   useEffect(() => {
     const reconciled = reconcileSelectedPrompt(activePromptId, filtered);
-    if (reconciled !== activePromptId) setActivePrompt(reconciled);
+    if (reconciled !== activePromptId) {
+       // Wait, we shouldn't prompt during auto-reconciliation, but we must update state.
+       // It's safer to just let it reconcile if it was deleted.
+       setActivePrompt(reconciled);
+       setHasDirtyEdits(false);
+    }
   }, [activePromptId, filtered, setActivePrompt]);
 
   return (
@@ -275,7 +295,7 @@ export function PromptLibraryView() {
                 <li key={p.id}>
                   <button
                     type="button"
-                    onClick={() => setActivePrompt(p.id)}
+                    onClick={() => handleSetActivePrompt(p.id)}
                     className={`w-full text-left px-3 py-2 hover:bg-background ${
                       p.id === activePromptId ? "bg-background" : ""
                     }`}
@@ -316,6 +336,7 @@ export function PromptLibraryView() {
             key={active.id}
             item={active}
             projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+            onDirtyChange={setHasDirtyEdits}
             onUpdate={async (patch) => {
               await updatePrompt(active.id, patch);
             }}
@@ -339,6 +360,7 @@ export function PromptLibraryView() {
                 ?? filtered[deletedIndex - 1]?.id
                 ?? null;
               await deletePrompt(active.id);
+              setHasDirtyEdits(false);
               setActivePrompt(replacement);
               toast.success("Prompt deleted");
             }}
@@ -376,13 +398,41 @@ export function PromptLibraryView() {
         <PromptCreateModal
           onClose={() => setIsCreateModalOpen(false)}
           onCreate={async (data) => {
-            const created = await createPrompt({
-              ...data,
-              source: { type: "manual" },
-            });
-            setActivePrompt(created.id);
-            toast.success("Prompt created");
+            const doCreate = async () => {
+              const created = await createPrompt({
+                ...data,
+                source: { type: "manual" },
+              });
+              setHasDirtyEdits(false);
+              setActivePrompt(created.id);
+              toast.success("Prompt created");
+            };
+
+            if (hasDirtyEdits) {
+              setPendingDiscardAction(() => doCreate);
+              return;
+            }
+            await doCreate();
           }}
+        />
+      )}
+      {pendingDiscardAction && (
+        <ConfirmModal
+          open
+          message="Unsaved Changes"
+          detail="You have unsaved changes. Are you sure you want to discard them?"
+          confirmLabel="Discard Changes"
+          onConfirm={() => {
+            void (async () => {
+              try {
+                await pendingDiscardAction();
+                setPendingDiscardAction(null);
+              } catch {
+                toast.error("The pending action failed. Your unsaved changes were preserved.");
+              }
+            })();
+          }}
+          onCancel={() => setPendingDiscardAction(null)}
         />
       )}
     </div>
@@ -392,6 +442,7 @@ export function PromptLibraryView() {
 interface PromptDetailProps {
   item: PromptLibraryItem;
   projects: Array<{ id: string; name: string }>;
+  onDirtyChange?: (isDirty: boolean) => void;
   onUpdate: (patch: {
     title?: string;
     description?: string;
@@ -416,7 +467,7 @@ interface PromptDetailProps {
 }
 
 function PromptDetail(props: PromptDetailProps) {
-  const { item, projects, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete, onCreateWorkflow } = props;
+  const { item, projects, onDirtyChange, onUpdate, onAddVersion, onSetCurrentVersion, onToggleFavorite, onArchive, onDelete, onCreateWorkflow } = props;
   const current: PromptVersion =
     item.versions.find((v) => v.id === item.currentVersionId) ??
     item.versions[item.versions.length - 1]!;
@@ -430,18 +481,24 @@ function PromptDetail(props: PromptDetailProps) {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmDeleteText, setConfirmDeleteText] = useState("");
+  const [isSavingMetadata, setIsSavingMetadata] = useState(false);
+  const [isSavingVersion, setIsSavingVersion] = useState(false);
 
   // When the user switches active version, mirror its content into the
   // editor so the edits apply to the right version. The store remains
   // the source of truth for the persisted state.
-  
+
   const isMetadataDirty =
     title.trim() !== item.title ||
     description.trim() !== (item.description ?? "") ||
     kind !== item.kind ||
-    Array.from(new Set(tagsInput.split(/[,\s]+/).map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0))).sort().join(",") !== [...item.tags].sort().join(",");
+    Array.from(new Set(tagsInput.split(",").map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0))).sort().join(",") !== [...item.tags].sort().join(",");
 
   const isContentDirty = content !== current.content || negativeContent !== (current.negativeContent ?? "");
+
+  useEffect(() => {
+    onDirtyChange?.(isMetadataDirty || isContentDirty);
+  }, [isMetadataDirty, isContentDirty, onDirtyChange]);
 
   useEffect(() => {
     setTitle(item.title);
@@ -454,15 +511,23 @@ function PromptDetail(props: PromptDetailProps) {
 
   const persistMetadata = async () => {
     const tags = tagsInput
-      .split(/[,\s]+/)
+      .split(",")
       .map((t) => t.trim().toLowerCase())
       .filter((t) => t.length > 0);
-    await onUpdate({
-      title: title.trim() || item.title,
-      description: description.trim() || undefined,
-      kind,
-      tags: Array.from(new Set(tags)),
-    });
+    setIsSavingMetadata(true);
+    try {
+      await onUpdate({
+        title: title.trim() || item.title,
+        description: description.trim() || undefined,
+        kind,
+        tags: Array.from(new Set(tags)),
+      });
+      toast.success("Metadata saved");
+    } catch {
+      toast.error("Failed to save metadata");
+    } finally {
+      setIsSavingMetadata(false);
+    }
   };
 
   const saveNewVersion = async () => {
@@ -470,11 +535,18 @@ function PromptDetail(props: PromptDetailProps) {
       toast.error("Version content is empty");
       return;
     }
-    await onAddVersion({
-      content,
-      negativeContent: negativeContent.trim() || undefined,
-      sourceType: "manual",
-    });
+    setIsSavingVersion(true);
+    try {
+      await onAddVersion({
+        content,
+        negativeContent: negativeContent.trim() || undefined,
+        sourceType: "manual",
+      });
+    } catch {
+      toast.error("Failed to save version");
+    } finally {
+      setIsSavingVersion(false);
+    }
   };
 
   return (
@@ -530,12 +602,12 @@ function PromptDetail(props: PromptDetailProps) {
           />
           <button
             type="button"
-            disabled={!isMetadataDirty}
+            disabled={!isMetadataDirty || isSavingMetadata}
             onClick={() => void persistMetadata()}
-            className={`rounded-md border px-2 py-0.5 text-[12px] transition-colors ${isMetadataDirty ? 'border-accent text-accent' : 'border-border text-text-muted'}`}
+            className={`rounded-md border px-2 py-0.5 text-[12px] transition-colors ${isMetadataDirty ? 'border-accent text-accent' : 'border-border text-text-muted'} ${isSavingMetadata ? 'opacity-50' : ''}`}
             data-testid="prompt-library-save-metadata"
           >
-            Save metadata
+            {isSavingMetadata ? "Saving..." : "Save metadata"}
           </button>
         </div>
         <input
@@ -571,12 +643,12 @@ function PromptDetail(props: PromptDetailProps) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            disabled={!isContentDirty}
+            disabled={!isContentDirty || isSavingVersion}
             onClick={saveNewVersion}
-            className={`rounded-md border px-2 py-1 text-[12px] transition-colors ${isContentDirty ? 'border-accent text-accent' : 'border-border text-text-muted'}`}
+            className={`rounded-md border px-2 py-1 text-[12px] transition-colors ${isContentDirty ? 'border-accent text-accent' : 'border-border text-text-muted'} ${isSavingVersion ? 'opacity-50' : ''}`}
             data-testid="prompt-library-save-version"
           >
-            Save new version
+            {isSavingVersion ? "Saving..." : "Save new version"}
           </button>
           {(item.kind === "image" || item.kind === "general" || item.kind === "recipe") && (
             <button

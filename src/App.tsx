@@ -17,6 +17,7 @@ import { ChatView } from './components/chat/chat-view'
 import { CommandPalette } from './components/command-palette/CommandPalette'
 import { AppMeshOverlay } from './components/layout/AppMeshOverlay'
 import { DiagnosticsDrawer } from './components/status/DiagnosticsDrawer'
+import { TaskCenterDrawer } from './components/status/TaskCenterDrawer'
 // Lazy loaded views below
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { ModalRequestHost } from './components/ui/modal-requests'
@@ -309,6 +310,7 @@ export function App() {
         onToggle={() => setCmdPaletteOpen((value) => !value)}
       />
       <DiagnosticsDrawer />
+      <TaskCenterDrawer />
     </div>
   )
 }

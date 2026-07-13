@@ -16,6 +16,7 @@ import {
 } from "../../src/shared/validation";
 import { VENICE_API_HOST } from "../../src/shared/apiConfig";
 import type { MutationOrigin } from "../../src/types/sync";
+import { assertValidProfileStorageId } from "../../src/utils/profileIdValidation";
 
 /** Describes a validated Venice IPC request ready for the main process.
  *
@@ -34,7 +35,7 @@ export interface VeniceIpcRequest {
   headers?: Record<string, string>;
   signalId?: string;
   profileId?: string;
-
+  fallbackConfig?: { enabled: boolean; ordering: string[] };
 }
 
 /** Headers the renderer is never allowed to set on a forwarded Venice request.
@@ -184,12 +185,19 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     throw new Error("Venice endpoint query string is too long.");
   }
 
+  let profileId: string | undefined;
+  if (request.profileId !== undefined) {
+    assertValidProfileStorageId(request.profileId);
+    profileId = request.profileId;
+  }
+
   return {
     endpoint: `${endpoint.pathname}${endpoint.search}`,
     method: method as VeniceIpcMethod,
     body: request.body,
     headers,
     signalId: request.signalId,
-    profileId: typeof request.profileId === "string" ? request.profileId : undefined,
+    profileId,
+    fallbackConfig: typeof request.fallbackConfig === "object" ? (request.fallbackConfig as { enabled: boolean; ordering: string[] }) : undefined,
   };
 }

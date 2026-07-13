@@ -118,10 +118,10 @@ describe("registerBackgroundTaskHandlers", () => {
   });
 
   it("creates a task and returns it", async () => {
-    createTaskMock.mockResolvedValue({ id: "t1", type: "video", status: "queued", createdAt: 1, updatedAt: 2 });
-    const result = await invoke("backgroundTask:create", { type: "video", queueId: "q1" });
+    createTaskMock.mockResolvedValue({ id: "t1", type: "video", status: "queued", profileId: "p1", createdAt: 1, updatedAt: 2 });
+    const result = await invoke("backgroundTask:create", { type: "video", queueId: "q1", profileId: "p1" });
     expect(result.ok).toBe(true);
-    expect(createTaskMock).toHaveBeenCalledWith({ type: "video", queueId: "q1" });
+    expect(createTaskMock).toHaveBeenCalledWith({ type: "video", queueId: "q1", profileId: "p1" });
   });
 
   it("rejects invalid task input", async () => {

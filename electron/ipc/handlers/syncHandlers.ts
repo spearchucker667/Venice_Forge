@@ -1,6 +1,9 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
 import { setSyncFolder, getSyncFolder, getSyncStatus, setSyncEmissionSuppressed, setRendererSessionAttached, startSyncWatcher, stopSyncWatcher, pauseSyncWatcher, acknowledgeOperation } from "../../services/syncFolderWatcher";
 import { redactErrorMessage } from "../../../src/shared/redaction";
+import { isValidProfileStorageId } from "../../../src/utils/profileIdValidation";
+import { validateMutationAuthority } from "../../services/remoteApplyAuthority";
+import { isValidId } from "../../../src/utils/idValidation";
 
 export function registerSyncHandlers(): void {
   ipcMain.handle("sync:chooseSyncFolder", async (event) => {
@@ -38,8 +41,11 @@ export function registerSyncHandlers(): void {
     return { ok: true };
   });
 
-  ipcMain.handle("sync:startSync", async (_event, params: { password: string }) => {
-    return await startSyncWatcher(params.password);
+  ipcMain.handle("sync:startSync", async (_event, params: { password: string; profileId: string }) => {
+    if (!params || typeof params.password !== "string" || !isValidProfileStorageId(params.profileId)) {
+      return { ok: false, error: "Invalid sync start payload." };
+    }
+    return await startSyncWatcher(params.password, params.profileId);
   });
 
   ipcMain.handle("sync:stopSync", async () => {
@@ -71,6 +77,59 @@ export function registerSyncHandlers(): void {
   ipcMain.handle("sync:writePacket", async (_event, input: { storeName: string; id: string; recordJson: string }) => {
     const { writePacket } = await import("../../services/syncFolderWatcher");
     return await writePacket(input.storeName, input.id, input.recordJson);
+  });
+
+  ipcMain.handle("sync:applyRemoteMutation", async (_event, input: { storeName?: unknown; id?: unknown; recordJson?: unknown; delete?: unknown; remoteApplyToken?: unknown }) => {
+    if (!input || typeof input.storeName !== "string" || typeof input.id !== "string" || !isValidId(input.id)) {
+      return { ok: false, error: "Invalid remote mutation payload." };
+    }
+    if (!validateMutationAuthority("remote-sync", input.remoteApplyToken, input.storeName, input.id)) {
+      return { ok: false, error: "Remote mutation authority rejected." };
+    }
+    try {
+      const deleting = input.delete === true;
+      const record = deleting ? null : JSON.parse(typeof input.recordJson === "string" ? input.recordJson : "null");
+      if (!deleting && (!record || typeof record !== "object" || Array.isArray(record) || record.id !== input.id)) {
+        return { ok: false, error: "Remote record ID mismatch." };
+      }
+      switch (input.storeName) {
+        case "conversations": {
+          const storage = await import("../../services/chatStorage");
+          if (deleting) await storage.deleteConversation(input.id);
+          else await storage.saveConversation(record);
+          break;
+        }
+        case "character_cards": {
+          const storage = await import("../../services/characterCardStorage");
+          if (deleting) await storage.deleteCharacterCard(input.id);
+          else await storage.saveCharacterCard(record);
+          break;
+        }
+        case "personas":
+        case "lorebooks":
+        case "rp_assets":
+        case "rpScenarios": {
+          const stores = await import("../../services/rpStores");
+          const target = input.storeName === "personas" ? stores.personaStore
+            : input.storeName === "lorebooks" ? stores.lorebookStore
+              : input.storeName === "rp_assets" ? stores.rpAssetStore : stores.scenarioStore;
+          if (deleting) await target.remove(input.id);
+          else await target.save(record);
+          break;
+        }
+        case "rp_chats": {
+          const storage = await import("../../services/rpChatStorage");
+          if (deleting) await storage.deleteRpChat(input.id);
+          else await storage.saveRpChat(record);
+          break;
+        }
+        default:
+          return { ok: false, error: "Remote mutation store is not main-process managed." };
+      }
+      return { ok: true };
+    } catch (err: unknown) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
   });
 
   const OPERATION_ID_RE = /^[a-f0-9]{64}$/;

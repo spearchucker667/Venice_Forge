@@ -341,12 +341,86 @@ export function abortVeniceRequest(signalId: string): { ok: boolean } {
  */
 export async function performVeniceRequest(
   rawRequest: unknown,
-  options: { profileId?: string; onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void; body?: unknown } = {}
+  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void; body?: unknown } = {}
 ): Promise<VeniceIpcResponse> {
   const request = validateVeniceIpcRequest(rawRequest);
+  const fallbackConfig = request.fallbackConfig;
+  const originalModel = typeof (request.body as Record<string, unknown>)?.model === 'string'
+    ? (request.body as Record<string, unknown>).model as string : null;
+
+  // If the request targets a specific provider via prefix (e.g. together:...), don't auto-fallback.
+  const isExplicitProvider = originalModel && originalModel.includes(':');
+
+  const providersToTry = ['venice'];
+  if (!isExplicitProvider && fallbackConfig?.enabled && Array.isArray(fallbackConfig.ordering) && originalModel) {
+    // Add unique fallback providers that are not venice
+    const extra = fallbackConfig.ordering.filter(p => p !== 'venice');
+    providersToTry.push(...extra);
+  }
+
+  let lastResponse: VeniceIpcResponse | null = null;
+  let lastError: Error | null = null;
+
+  for (const providerId of providersToTry) {
+    let hasStartedStreaming = false;
+    try {
+      let currentRequest = request;
+
+      // If we are falling back (providerId !== 'venice'), prepend the provider prefix
+      if (providerId !== 'venice' && originalModel) {
+        currentRequest = {
+          ...request,
+          body: {
+            ...(request.body as Record<string, unknown>),
+            model: `${providerId}:${originalModel}`
+          }
+        };
+      }
+
+      const wrappedOptions = {
+        ...options,
+        onDelta: options.onDelta ? (chunk: { content: string; reasoning: string; providerRequestId?: string }) => {
+          hasStartedStreaming = true;
+          options.onDelta!(chunk);
+        } : undefined
+      };
+
+      const response = await performSingleVeniceRequest(currentRequest, wrappedOptions);
+      lastResponse = response;
+
+      // Error policy: Only fallback on 5xx or rate limits (429), or 408 Timeout.
+      if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status)) {
+        return response; // Success, or a client error (e.g. 400 Bad Request, 401 Auth) that shouldn't be retried
+      }
+
+      // If we got here, it's a retryable error.
+      logError(`Provider ${providerId} failed with ${response.status}, attempting fallback if available.`);
+    } catch (err) {
+      lastError = err as Error;
+      // Network errors (fetch failed, aborted, etc)
+      // We only fallback if it's not a user abort and we haven't started streaming
+      if (err instanceof Error && err.message === "Request aborted") {
+        throw err;
+      }
+      if (hasStartedStreaming) {
+        logError(`Provider ${providerId} failed after stream started, cannot fallback.`, err);
+        throw err;
+      }
+      logError(`Provider ${providerId} network error, attempting fallback if available.`, err);
+    }
+  }
+
+  if (lastResponse) return lastResponse;
+  throw lastError || new Error("All fallback providers failed");
+}
+
+async function performSingleVeniceRequest(
+  request: ReturnType<typeof validateVeniceIpcRequest>,
+  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void; body?: unknown } = {}
+): Promise<VeniceIpcResponse> {
 
   // Check if this request should be routed to a fallback provider
-  const fallbackRouteResult = resolveProviderRoute(request as unknown as Record<string, unknown>, options.profileId);
+  const fallbackRouteResult = resolveProviderRoute(request as unknown as Record<string, unknown>, request.profileId);
   if (fallbackRouteResult && fallbackRouteResult.error) {
     return {
       ok: false,
@@ -360,8 +434,8 @@ export async function performVeniceRequest(
 
   const route = fallbackRouteResult?.route;
   const isFallback = !!route;
-  
-  const apiKey = isFallback ? undefined : getApiKey(request.profileId || options.profileId);
+
+  const apiKey = isFallback ? undefined : getApiKey(request.profileId);
   if (!isFallback && !apiKey) {
     return {
       ok: false,
@@ -374,6 +448,7 @@ export async function performVeniceRequest(
   }
 
   const release = await acquireVeniceSlot();
+
   return new Promise<VeniceIpcResponse>((resolve, reject) => {
     let bodyText: string | Buffer | undefined;
     let contentTypeOverride: string | undefined;
@@ -388,7 +463,7 @@ export async function performVeniceRequest(
       } else {
         const bodyObj = request.body && typeof request.body === 'object' ? request.body as Record<string, unknown> : null;
         const requestBody = route && route.transformBody && bodyObj && typeof bodyObj.model === 'string'
-            ? route.transformBody(bodyObj, bodyObj.model.split(':').slice(1).join(':')) 
+            ? route.transformBody(bodyObj, bodyObj.model.split(':').slice(1).join(':'))
             : request.body;
         bodyText = requestBody === undefined ? undefined : JSON.stringify(requestBody);
       }
@@ -401,7 +476,7 @@ export async function performVeniceRequest(
 
     const hostname = route ? route.host : VENICE_API_HOST;
     const path = route ? route.path : `${VENICE_API_BASE_PATH}${request.endpoint}`;
-    
+
     const headers: Record<string, string | number> = {
       ...request.headers,
       ...(route ? route.headers : {
@@ -441,8 +516,8 @@ export async function performVeniceRequest(
           if (options.onDelta && contentType.includes("event-stream") && res.statusCode && res.statusCode < 400) {
             sseBuffer += chunk.toString("utf-8");
             const parsed = parseSseLines(
-              sseBuffer, 
-              options.onDelta, 
+              sseBuffer,
+              options.onDelta,
               (raw) => {
                 // SECURITY: redact any leaked secret-like values before logging.
                 const redacted = redactErrorMessage(raw);
@@ -470,7 +545,7 @@ export async function performVeniceRequest(
             options.onDelta && contentType.includes("event-stream") && res.statusCode && res.statusCode < 400
               ? { text: streamText }
               : parseBody(buffer, contentType);
-              
+
           if (route?.transformResponse && typeof body === 'object' && body !== null) {
             body = route.transformResponse(body);
           }

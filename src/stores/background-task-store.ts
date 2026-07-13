@@ -139,6 +139,20 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
   },
 
   cancelTask: (taskId) => {
+    const task = get().tasks[taskId]
+    if (!task) return
+    if (task.type === 'video' || task.type === 'music') {
+      get().updateTask(taskId, {
+        error: 'Provider cancellation is unavailable; generation is still running.',
+        metadata: { ...task.metadata, cancellationUnsupported: true },
+      })
+      if (isElectron()) {
+        get().ensureDesktopSubscription()
+        void desktopBackgroundTask.cancel(taskId)
+      }
+      return
+    }
+
     get().updateTask(taskId, { status: 'aborted', error: 'Cancelled by user' })
     if (isElectron()) {
       get().ensureDesktopSubscription()

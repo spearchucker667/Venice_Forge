@@ -12,10 +12,11 @@ interface SelectProps {
   id?: string
   ariaLabel?: string
   labelledBy?: string
+  disabled?: boolean
   "data-testid"?: string
 }
 
-export function Select({ value, onChange, options, placeholder = 'Select...', searchable = false, className, id, ariaLabel, labelledBy, "data-testid": dataTestId }: SelectProps) {
+export function Select({ value, onChange, options, placeholder = 'Select...', searchable = false, className, id, ariaLabel, labelledBy, disabled, "data-testid": dataTestId }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(0)
@@ -26,6 +27,8 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
   const triggerId = id ?? generatedId
   const listboxId = `${triggerId}-listbox`
   const [rect, setRect] = useState<DOMRect | null>(null)
+  const [flip, setFlip] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   const filtered = useMemo(() =>
     search ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase())) : options,
@@ -44,14 +47,32 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
   }, [])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      // Focus return is only when closed while it still has focus or is expected to
+      if (document.activeElement === inputRef.current || document.activeElement === listRef.current) {
+        triggerRef.current?.focus()
+      }
+      return
+    }
     const update = () => {
-      if (ref.current) setRect(ref.current.getBoundingClientRect())
+      if (ref.current) {
+        const r = ref.current.getBoundingClientRect()
+        setRect(r)
+        if (listRef.current) {
+          const listHeight = listRef.current.getBoundingClientRect().height
+          setFlip(r.bottom + listHeight + 10 > window.innerHeight && r.top - listHeight - 10 > 0)
+        } else {
+          setFlip(r.bottom + 250 > window.innerHeight && r.top - 250 > 0)
+        }
+      }
     }
     update()
+    // Small delay to measure list size after it renders
+    const timer = setTimeout(update, 0)
     window.addEventListener('resize', update)
     window.addEventListener('scroll', update, true)
     return () => {
+      clearTimeout(timer)
       window.removeEventListener('resize', update)
       window.removeEventListener('scroll', update, true)
     }
@@ -67,36 +88,55 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
     }
   }, [open, options, value, searchable])
 
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        setOpen(false)
+  const handleKeyDown = (e: React.KeyboardEvent | KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      setOpen(false)
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (!open) {
+        setOpen(true)
         return
       }
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setHighlightedIndex((i) => (filtered.length === 0 ? 0 : (i + 1) % filtered.length))
+      setHighlightedIndex((i) => (filtered.length === 0 ? 0 : (i + 1) % filtered.length))
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      e.stopPropagation()
+      if (!open) {
+        setOpen(true)
         return
       }
-      if (e.key === 'ArrowUp') {
+      setHighlightedIndex((i) => (filtered.length === 0 ? 0 : (i - 1 + filtered.length) % filtered.length))
+      return
+    }
+    if (open && e.key === 'Home') {
+      e.preventDefault()
+      e.stopPropagation()
+      setHighlightedIndex(0)
+      return
+    }
+    if (open && e.key === 'End') {
+      e.preventDefault()
+      e.stopPropagation()
+      setHighlightedIndex(filtered.length - 1)
+      return
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (!open) {
         e.preventDefault()
-        setHighlightedIndex((i) => (filtered.length === 0 ? 0 : (i - 1 + filtered.length) % filtered.length))
-        return
-      }
-      if (e.key === 'Home') {
-        e.preventDefault()
-        setHighlightedIndex(0)
-        return
-      }
-      if (e.key === 'End') {
-        e.preventDefault()
-        setHighlightedIndex(filtered.length - 1)
+        e.stopPropagation()
+        setOpen(true)
         return
       }
       if (e.key === 'Enter') {
         e.preventDefault()
+        e.stopPropagation()
         const opt = filtered[highlightedIndex]
         if (opt) {
           onChange(opt.value)
@@ -104,23 +144,22 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
         }
         return
       }
-      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const char = e.key.toLowerCase()
-        const flat = search ? filtered : options
-        const current = search ? highlightedIndex : options.findIndex((o) => o.value === value)
-        const start = Math.max(current, 0)
-        const nextIndex = flat.findIndex((o, i) => i > start && o.label.toLowerCase().startsWith(char))
-        if (nextIndex >= 0) {
-          setHighlightedIndex(nextIndex)
-        } else {
-          const wrapIndex = flat.findIndex((o) => o.label.toLowerCase().startsWith(char))
-          if (wrapIndex >= 0) setHighlightedIndex(wrapIndex)
-        }
+    }
+    if (open && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !searchable) {
+      e.preventDefault()
+      e.stopPropagation()
+      const char = e.key.toLowerCase()
+      const current = options.findIndex((o) => o.value === value)
+      const start = Math.max(current, 0)
+      const nextIndex = options.findIndex((o, i) => i > start && o.label.toLowerCase().startsWith(char))
+      if (nextIndex >= 0) {
+        setHighlightedIndex(nextIndex)
+      } else {
+        const wrapIndex = options.findIndex((o) => o.label.toLowerCase().startsWith(char))
+        if (wrapIndex >= 0) setHighlightedIndex(wrapIndex)
       }
     }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [open, filtered, highlightedIndex, onChange, options, search])
+  }
 
   useEffect(() => {
     if (!open) return
@@ -131,9 +170,12 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
   return (
     <div ref={ref} className={cn('relative', className)}>
       <button
+        ref={triggerRef}
         id={triggerId}
         type="button"
-        onClick={() => { const next = !open; setOpen(next); if (!next) setSearch('') }}
+        disabled={disabled}
+        onClick={() => { if (disabled) return; const next = !open; setOpen(next); if (!next) setSearch('') }}
+        onKeyDown={handleKeyDown}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
@@ -144,6 +186,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
         className={cn(
           'mesh-input w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-[15px] hover:border-text-muted outline-none cursor-pointer',
           open && 'border-accent',
+          disabled && 'opacity-50 cursor-not-allowed hover:border-border'
         )}
       >
         <span className={cn('truncate text-[15px]', value ? 'text-text-primary' : 'text-text-muted')}>{selectedLabel}</span>
@@ -155,8 +198,15 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
 
       {open && rect && createPortal(
         <div
-          style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, width: rect.width }}
-          className="mesh-panel absolute z-50 w-full mt-0.5 rounded-lg animate-scale-in overflow-hidden"
+          style={{
+            position: 'fixed',
+            top: flip ? undefined : rect.bottom + 4,
+            bottom: flip ? window.innerHeight - rect.top + 4 : undefined,
+            left: rect.left,
+            width: rect.width
+          }}
+          onKeyDown={handleKeyDown}
+          className="mesh-panel absolute z-50 w-full mt-0.5 rounded-lg animate-scale-in overflow-hidden shadow-xl border border-border"
         >
           {searchable && (
             <div className="p-1 border-b border-border/50">
@@ -166,10 +216,11 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
                 aria-expanded={open}
                 aria-autocomplete="list"
                 aria-controls={listboxId}
-                aria-activedescendant={filtered[highlightedIndex] ? `${listboxId}-opt-${highlightedIndex}` : undefined}
+                aria-activedescendant={filtered[highlightedIndex] ? `${listboxId}-opt-${filtered[highlightedIndex].value.replace(/\W+/g, '-')}` : undefined}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
+                aria-label="Search options"
                 className="mesh-input w-full rounded px-2 py-1 text-[15px] text-text-primary outline-none placeholder:text-text-muted/50"
               />
             </div>
@@ -182,11 +233,11 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
                 <div
                   key={o.value}
                   role="option"
-                  id={`${listboxId}-opt-${i}`}
+                  id={`${listboxId}-opt-${o.value.replace(/\W+/g, '-')}`}
                   aria-selected={o.value === value}
                   data-index={i}
                   data-highlighted={i === highlightedIndex}
-                  onClick={() => { onChange(o.value); setOpen(false) }}
+                  onClick={(e) => { e.stopPropagation(); onChange(o.value); setOpen(false) }}
                   onMouseEnter={() => setHighlightedIndex(i)}
                   className={cn(
                     'w-full text-left px-3 py-[6px] text-[15px] rounded transition-colors cursor-pointer',

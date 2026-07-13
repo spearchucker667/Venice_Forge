@@ -12,7 +12,7 @@ vi.mock("./desktopBridge", () => ({
     startSync: vi.fn().mockResolvedValue({ ok: true }),
     stopSync: vi.fn().mockResolvedValue({ ok: true }),
     pauseSync: vi.fn().mockResolvedValue({ ok: true }),
-    getStatus: vi.fn().mockResolvedValue({ ok: true, configured: true, mainWatcher: "running", rendererSessionAttached: false, authenticated: true }),
+    getStatus: vi.fn().mockResolvedValue({ ok: true, configured: true, mainWatcher: "running", rendererSessionAttached: false, authenticated: true, profileId: "default" }),
     writePacket: vi.fn().mockResolvedValue({ ok: true }),
     acknowledgeOperation: vi.fn().mockResolvedValue({ ok: true }),
     onRemoteChange: vi.fn().mockReturnValue(() => {}),
@@ -53,7 +53,7 @@ describe("syncEngine", () => {
   it("initializes and registers remote-change listener", async () => {
     const result = await initSyncEngine("password");
     expect(result).toEqual({ ok: true, status: "running" });
-    expect(mockStartSync).toHaveBeenCalledWith({ password: "password" });
+    expect(mockStartSync).toHaveBeenCalledWith({ password: "password", profileId: "default" });
     expect(mockOnRemoteChange).toHaveBeenCalled();
     expect(window.addEventListener).toHaveBeenCalledWith("venice:storage-saved", expect.any(Function));
     expect(mockSetRendererSessionAttached).toHaveBeenCalledWith({ attached: true });
@@ -134,15 +134,15 @@ describe("syncEngine", () => {
   it("imports remote changes via importDecryptedPacket", async () => {
     await initSyncEngine("password");
     const remoteCallback = mockOnRemoteChange.mock.calls[0][0];
-    await remoteCallback({ storeName: "conversations", id: "conv-1", operationId: "op-1", recordJson: '{"id":"conv-1"}' });
-    expect(mockImportDecryptedPacket).toHaveBeenCalledWith("conversations", "conv-1", '{"id":"conv-1"}', "op-1");
+    await remoteCallback({ storeName: "conversations", id: "conv-1", operationId: "op-1", recordJson: '{"id":"conv-1"}', remoteApplyToken: "token-1" });
+    expect(mockImportDecryptedPacket).toHaveBeenCalledWith("conversations", "conv-1", '{"id":"conv-1"}', "op-1", "token-1");
     expect(mockAcknowledgeOperation).toHaveBeenCalledWith({ operationId: "op-1", ok: true });
   });
 
   it("rejects malformed tombstones from remote changes", async () => {
     await initSyncEngine("password");
     const remoteCallback = mockOnRemoteChange.mock.calls[0][0];
-    await remoteCallback({ storeName: "tombstones", id: "conv-1", operationId: "op-2", recordJson: '{"storeName":"conversations","id":"conv-1","deletedAt":12345}' });
+    await remoteCallback({ storeName: "tombstones", id: "conv-1", operationId: "op-2", recordJson: '{"storeName":"conversations","id":"conv-1","deletedAt":12345}', remoteApplyToken: "token-2" });
     expect(mockImportDecryptedPacket).not.toHaveBeenCalled();
     expect(mockAcknowledgeOperation).toHaveBeenCalledWith({ operationId: "op-2", ok: false });
   });
@@ -151,8 +151,8 @@ describe("syncEngine", () => {
     await initSyncEngine("password");
     const remoteCallback = mockOnRemoteChange.mock.calls[0][0];
     const recordJson = JSON.stringify({ id: "conversations:conv-1", storeName: "conversations", recordId: "conv-1", deletedAt: Date.now() });
-    await remoteCallback({ storeName: "tombstones", id: "conv-1", operationId: "op-3", recordJson });
-    expect(mockImportDecryptedPacket).toHaveBeenCalledWith("tombstones", "conv-1", recordJson, "op-3");
+    await remoteCallback({ storeName: "tombstones", id: "conv-1", operationId: "op-3", recordJson, remoteApplyToken: "token-3" });
+    expect(mockImportDecryptedPacket).toHaveBeenCalledWith("tombstones", "conv-1", recordJson, "op-3", "token-3");
     expect(mockAcknowledgeOperation).toHaveBeenCalledWith({ operationId: "op-3", ok: true });
   });
 
@@ -210,7 +210,7 @@ describe("syncEngine", () => {
   });
 
   it("reattaches without restarting the main watcher when it is already running", async () => {
-    mockGetStatus.mockResolvedValueOnce({ ok: true, configured: true, mainWatcher: "running", rendererSessionAttached: false, authenticated: true });
+    mockGetStatus.mockResolvedValueOnce({ ok: true, configured: true, mainWatcher: "running", rendererSessionAttached: false, authenticated: true, profileId: "default" });
     const result = await reattachSyncEngine();
     expect(result).toEqual({ ok: true, status: "running" });
     expect(mockStopSync).not.toHaveBeenCalled();
@@ -218,6 +218,14 @@ describe("syncEngine", () => {
     expect(mockOnRemoteChange).toHaveBeenCalled();
     expect(window.addEventListener).toHaveBeenCalledWith("venice:storage-saved", expect.any(Function));
     expect(mockSetRendererSessionAttached).toHaveBeenCalledWith({ attached: true });
+  });
+
+  it("refuses to reattach a sync session owned by another profile", async () => {
+    mockGetStatus.mockResolvedValueOnce({ ok: true, configured: true, mainWatcher: "running", rendererSessionAttached: false, authenticated: true, profileId: "work" });
+    const result = await reattachSyncEngine();
+    expect(result).toMatchObject({ ok: false, status: "error" });
+    expect(result.error).toMatch(/another profile/i);
+    expect(mockOnRemoteChange).not.toHaveBeenCalled();
   });
 
   it("refuses to reattach when the main watcher is not running", async () => {

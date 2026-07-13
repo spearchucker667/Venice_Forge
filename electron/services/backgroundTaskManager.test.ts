@@ -40,22 +40,11 @@ import {
   clearBackgroundTaskInMain,
   listBackgroundTasks,
   subscribeToBackgroundTasks,
+  __flushBackgroundTaskPersistenceForTests,
   __resetBackgroundTaskManagerForTests,
 } from "./backgroundTaskManager";
 
 const performVeniceRequest = vi.mocked(performVeniceRequestMock);
-
-async function waitForFile(): Promise<void> {
-  const tasksFile = path.join(TMP_USERDATA, "background-tasks", "tasks.json");
-  for (let i = 0; i < 20; i++) {
-    try {
-      await fs.access(tasksFile);
-      return;
-    } catch {
-      await new Promise((r) => setTimeout(r, 10));
-    }
-  }
-}
 
 async function readPersistedTasks(): Promise<unknown[]> {
   const tasksFile = path.join(TMP_USERDATA, "background-tasks", "tasks.json");
@@ -65,9 +54,15 @@ async function readPersistedTasks(): Promise<unknown[]> {
 }
 
 describe("backgroundTaskManager", () => {
-  beforeEach(() => {
-    __resetBackgroundTaskManagerForTests();
+  beforeEach(async () => {
+    await __resetBackgroundTaskManagerForTests();
     performVeniceRequest.mockReset();
+    const tasksFile = path.join(TMP_USERDATA, "background-tasks", "tasks.json");
+    try {
+      await fs.unlink(tasksFile);
+    } catch {
+      // ignore
+    }
   });
 
   afterEach(async () => {
@@ -81,43 +76,44 @@ describe("backgroundTaskManager", () => {
   });
 
   it("creates and persists a task", async () => {
-    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1" });
     expect(task.status).toBe("queued");
     expect(task.type).toBe("video");
     expect(task.queueId).toBe("q1");
-    await waitForFile();
+    await __flushBackgroundTaskPersistenceForTests();
     const persisted = await readPersistedTasks();
     expect(persisted).toHaveLength(1);
     expect((persisted[0] as { id: string }).id).toBe(task.id);
   });
 
   it("lists tasks sorted by updatedAt descending", async () => {
-    const t1 = await createBackgroundTaskInMain({ type: "music", queueId: "q1" });
-    const t2 = await createBackgroundTaskInMain({ type: "video", queueId: "q2" });
+    const t1 = await createBackgroundTaskInMain({ type: "music", queueId: "q1", profileId: "p1" });
+    const t2 = await createBackgroundTaskInMain({ type: "video", queueId: "q2", profileId: "p1" });
     await updateBackgroundTaskInMain(t1.id, { status: "processing" });
     const list = listBackgroundTasks();
     expect(list[0].id).toBe(t1.id);
     expect(list[1].id).toBe(t2.id);
   });
 
-  it("cancels a running task and stops polling", async () => {
-    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+  it("keeps monitoring a paid task when provider cancellation is unavailable", async () => {
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1" });
     const cancelled = await cancelBackgroundTaskInMain(task.id);
-    expect(cancelled?.status).toBe("aborted");
-    expect(cancelled?.error).toBe("Cancelled by user");
+    expect(cancelled?.status).toBe("queued");
+    expect(cancelled?.error).toBe("Provider cancellation is unavailable; generation is still running.");
+    expect(cancelled?.metadata?.cancellationUnsupported).toBe(true);
   });
 
   it("clears a task", async () => {
-    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1" });
     await clearBackgroundTaskInMain(task.id);
     expect(listBackgroundTasks()).toHaveLength(0);
-    await waitForFile();
+    await __flushBackgroundTaskPersistenceForTests();
     const persisted = await readPersistedTasks();
     expect(persisted).toHaveLength(0);
   });
 
   it("retries a timed-out task", async () => {
-    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1" });
     await updateBackgroundTaskInMain(task.id, { status: "timeout", error: "too long" });
     const retried = await retryBackgroundTaskInMain(task.id);
     expect(retried?.status).toBe("queued");
@@ -127,15 +123,19 @@ describe("backgroundTaskManager", () => {
   it("notifies subscribers on changes", async () => {
     const listener = vi.fn();
     subscribeToBackgroundTasks(listener);
-    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1" });
     expect(listener).toHaveBeenCalledWith(task.id, expect.objectContaining({ status: "queued" }));
     await cancelBackgroundTaskInMain(task.id);
-    expect(listener).toHaveBeenCalledWith(task.id, expect.objectContaining({ status: "aborted" }));
+    expect(listener).toHaveBeenCalledWith(task.id, expect.objectContaining({
+      status: "queued",
+      metadata: expect.objectContaining({ cancellationUnsupported: true }),
+    }));
   });
 
   it("recovers persisted tasks on init and resumes polling async tasks", async () => {
-    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
-    __resetBackgroundTaskManagerForTests();
+    const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1" });
+    await __flushBackgroundTaskPersistenceForTests();
+    await __resetBackgroundTaskManagerForTests();
     await initBackgroundTaskManager();
     expect(listBackgroundTasks()).toHaveLength(1);
     expect(listBackgroundTasks()[0].id).toBe(task.id);
@@ -143,7 +143,7 @@ describe("backgroundTaskManager", () => {
 
   it("polls video tasks to completion", async () => {
     vi.useFakeTimers();
-    await createBackgroundTaskInMain({ type: "video", queueId: "q1" });
+    await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1" });
     performVeniceRequest.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -160,7 +160,7 @@ describe("backgroundTaskManager", () => {
 
   it("polls music tasks to completion", async () => {
     vi.useFakeTimers();
-    await createBackgroundTaskInMain({ type: "music", queueId: "q1" });
+    await createBackgroundTaskInMain({ type: "music", queueId: "q1", profileId: "p1" });
     performVeniceRequest.mockImplementationOnce(() => Promise.resolve({
       ok: true,
       status: 200,
@@ -177,7 +177,7 @@ describe("backgroundTaskManager", () => {
 
   it("does not poll sync task types", async () => {
     vi.useFakeTimers();
-    await createBackgroundTaskInMain({ type: "image", queueId: "sync-request" });
+    await createBackgroundTaskInMain({ type: "image", queueId: "sync-request", profileId: "p1" });
     await vi.advanceTimersByTimeAsync(10);
     expect(performVeniceRequest).not.toHaveBeenCalled();
     vi.useRealTimers();
@@ -187,9 +187,10 @@ describe("backgroundTaskManager", () => {
     await createBackgroundTaskInMain({
       type: "video",
       queueId: "q1",
+      profileId: "p1",
       metadata: { apiKey: "sk-1234567890abcdef", request: { prompt: "hello" } },
     });
-    await waitForFile();
+    await __flushBackgroundTaskPersistenceForTests();
     const persisted = await readPersistedTasks();
     const raw = JSON.stringify(persisted);
     expect(raw).not.toContain("sk-1234567890abcdef");

@@ -531,8 +531,11 @@ const veniceForge = {
     setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:setSyncFolder", input);
     },
-    startSync(input: { password: string }): Promise<{ ok: boolean; error?: string }> {
+    startSync(input: { password: string; profileId: string }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:startSync", input);
+    },
+    applyRemoteMutation(input: { storeName: string; id: string; recordJson?: string; delete?: boolean; remoteApplyToken: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("sync:applyRemoteMutation", input);
     },
     stopSync(): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:stopSync");
@@ -561,8 +564,8 @@ const veniceForge = {
     decryptBackup(input: { ciphertext: string, salt: string, iv: string, password: string }): Promise<{ ok: boolean; data?: string; error?: string }> {
       return ipcRenderer.invoke("sync:decryptBackup", input);
     },
-    onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string }) => void) {
-      const listener = (_event: Electron.IpcRendererEvent, eventData: { storeName: string; id: string; operationId: string; recordJson: string }) => callback(eventData);
+    onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string; remoteApplyToken: string }) => void) {
+      const listener = (_event: Electron.IpcRendererEvent, eventData: { storeName: string; id: string; operationId: string; recordJson: string; remoteApplyToken: string }) => callback(eventData);
       ipcRenderer.on("sync:onRemoteChange", listener);
       return () => {
         ipcRenderer.removeListener("sync:onRemoteChange", listener);

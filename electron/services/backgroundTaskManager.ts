@@ -6,7 +6,6 @@
 
 import { app } from "electron";
 import fs from "fs/promises";
-import fsSync from "fs";
 import path from "path";
 import crypto from "crypto";
 import type {
@@ -54,16 +53,21 @@ function emit(taskId: string, task: BackgroundTask | null): void {
   }
 }
 
-function writeTasksFile(): void {
-  fsSync.mkdirSync(TASKS_DIR, { recursive: true, mode: 0o700 });
+let pendingPersist = false;
+let pendingPersistTimeout: NodeJS.Timeout | null = null;
+let lastPersistTime = 0;
+let activePersistPromise: Promise<void> | null = null;
+
+async function writeTasksFile(): Promise<void> {
+  await fs.mkdir(TASKS_DIR, { recursive: true, mode: 0o700 });
   const payload = serializeTasks(Object.values(state.tasks));
   const tempFile = `${TASKS_FILE}.tmp.${crypto.randomBytes(8).toString("hex")}`;
   try {
-    fsSync.writeFileSync(tempFile, payload, { encoding: "utf-8", mode: 0o600 });
-    fsSync.renameSync(tempFile, TASKS_FILE);
+    await fs.writeFile(tempFile, payload, { encoding: "utf-8", mode: 0o600 });
+    await fs.rename(tempFile, TASKS_FILE);
   } catch (err) {
     try {
-      fsSync.unlinkSync(tempFile);
+      await fs.unlink(tempFile);
     } catch {
       // ignore cleanup failure
     }
@@ -71,12 +75,42 @@ function writeTasksFile(): void {
   }
 }
 
-function persist(): void {
-  try {
-    writeTasksFile();
-  } catch (err) {
-    logError("Failed to persist background tasks", sanitizeErrorText(String(err)));
+async function flushPersist(): Promise<void> {
+  if (activePersistPromise) {
+    pendingPersist = true;
+    return activePersistPromise;
   }
+
+  activePersistPromise = (async () => {
+    do {
+      pendingPersist = false;
+      try {
+        await writeTasksFile();
+        lastPersistTime = Date.now();
+      } catch (err) {
+        logError("Failed to persist background tasks", sanitizeErrorText(String(err)));
+      }
+    } while (pendingPersist);
+  })().finally(() => {
+    activePersistPromise = null;
+  });
+
+  return activePersistPromise;
+}
+
+function persist(debounceMs = 0): void {
+  if (debounceMs > 0 && Date.now() - lastPersistTime < debounceMs) {
+    if (!pendingPersistTimeout) {
+      pendingPersist = true;
+      pendingPersistTimeout = setTimeout(() => {
+        pendingPersistTimeout = null;
+        pendingPersist = false;
+        void flushPersist();
+      }, debounceMs - (Date.now() - lastPersistTime));
+    }
+    return;
+  }
+  void flushPersist();
 }
 
 export async function loadBackgroundTasks(): Promise<void> {
@@ -92,6 +126,12 @@ export async function loadBackgroundTasks(): Promise<void> {
     state.tasks = Object.fromEntries(tasks.map((t) => [t.id, t]));
   } catch (err) {
     logError("Failed to load background tasks", sanitizeErrorText(String(err)));
+    try {
+      await fs.copyFile(TASKS_FILE, `${TASKS_FILE}.corrupt`);
+      logError("Quarantined corrupt tasks file", "tasks.json.corrupt");
+    } catch {
+      // Ignore
+    }
     state.tasks = {};
   }
 }
@@ -141,16 +181,90 @@ export function listBackgroundTasks(): BackgroundTask[] {
 async function applyUpdate(taskId: string, updates: BackgroundTaskUpdate): Promise<BackgroundTask | null> {
   const task = state.tasks[taskId];
   if (!task) return null;
-  const updated: BackgroundTask = {
-    ...task,
-    ...updates,
-    id: task.id,
-    type: task.type,
-    createdAt: task.createdAt,
-    updatedAt: Date.now(),
-  };
+
+  // Strict parsing and size limits
+  let hasChanges = false;
+  const updated = { ...task };
+
+  if ("status" in updates && updates.status !== task.status) {
+    updated.status = updates.status as BackgroundTaskStatus;
+    hasChanges = true;
+  }
+  if ("progress" in updates && updates.progress !== task.progress) {
+    if (updates.progress === undefined) {
+      delete updated.progress;
+      hasChanges = true;
+    } else {
+      updated.progress = updates.progress;
+      hasChanges = true;
+    }
+  }
+  if ("error" in updates) {
+    if (updates.error === undefined) {
+      if (task.error !== undefined) {
+        delete updated.error;
+        hasChanges = true;
+      }
+    } else {
+      const err = String(updates.error).slice(0, 1024);
+      if (err !== task.error) {
+        updated.error = err;
+        hasChanges = true;
+      }
+    }
+  }
+  if ("resultUrl" in updates) {
+    if (updates.resultUrl === undefined) {
+      if (task.resultUrl !== undefined) {
+        delete updated.resultUrl;
+        hasChanges = true;
+      }
+    } else {
+      const url = String(updates.resultUrl).slice(0, 4096);
+      if (url !== task.resultUrl) {
+        updated.resultUrl = url;
+        hasChanges = true;
+      }
+    }
+  }
+  if ("queueId" in updates && updates.queueId !== task.queueId) {
+    if (updates.queueId === undefined) {
+      delete updated.queueId;
+      hasChanges = true;
+    } else {
+      updated.queueId = String(updates.queueId).slice(0, 128);
+      hasChanges = true;
+    }
+  }
+  if (updates.attemptStartedAt !== undefined && updates.attemptStartedAt !== task.attemptStartedAt) {
+    updated.attemptStartedAt = Number(updates.attemptStartedAt);
+    hasChanges = true;
+  }
+  if (updates.attemptNumber !== undefined && updates.attemptNumber !== task.attemptNumber) {
+    updated.attemptNumber = Number(updates.attemptNumber);
+    hasChanges = true;
+  }
+  if (updates.pollAttempts !== undefined && updates.pollAttempts !== task.pollAttempts) {
+    updated.pollAttempts = Number(updates.pollAttempts);
+    hasChanges = true;
+  }
+  if (updates.consecutiveFailures !== undefined && updates.consecutiveFailures !== task.consecutiveFailures) {
+    updated.consecutiveFailures = Number(updates.consecutiveFailures);
+    hasChanges = true;
+  }
+  if (updates.metadata !== undefined) {
+    updated.metadata = { ...task.metadata, ...updates.metadata };
+    hasChanges = true; // Object spread always creates new ref, but fine for now
+  }
+
+  if (!hasChanges) return task;
+
+  updated.updatedAt = Date.now();
   state.tasks[taskId] = updated;
-  persist();
+
+  // Debounce non-critical progress updates to avoid disk thrashing
+  const isProgressOnly = hasChanges && updates.status === undefined && updates.error === undefined && updates.resultUrl === undefined;
+  persist(isProgressOnly ? 2000 : 0);
   emit(taskId, updated);
   return updated;
 }
@@ -179,15 +293,31 @@ export async function updateBackgroundTaskInMain(
 
 export async function cancelBackgroundTaskInMain(taskId: string): Promise<BackgroundTask | null> {
   await initBackgroundTaskManager();
+  const task = state.tasks[taskId];
+  if (task && (task.type === "video" || task.type === "music")) {
+    return applyUpdate(taskId, {
+      error: "Provider cancellation is unavailable; generation is still running.",
+      metadata: { cancellationUnsupported: true },
+    });
+  }
   stopPolling(taskId);
-  return applyUpdate(taskId, { status: "aborted", error: "Cancelled by user" });
+  return applyUpdate(taskId, { status: "aborted", error: "Cancel requested" });
 }
 
 export async function retryBackgroundTaskInMain(taskId: string): Promise<BackgroundTask | null> {
   await initBackgroundTaskManager();
   const task = state.tasks[taskId];
   if (!task || !task.queueId) return null;
-  const updated = await applyUpdate(taskId, { status: "queued", error: undefined, progress: undefined });
+  const nextAttempt = (task.attemptNumber ?? 1) + 1;
+  const updated = await applyUpdate(taskId, {
+    status: "queued",
+    error: undefined,
+    progress: 0,
+    attemptStartedAt: Date.now(),
+    attemptNumber: nextAttempt,
+    pollAttempts: 0,
+    consecutiveFailures: 0
+  });
   if (updated && (updated.type === "video" || updated.type === "music")) {
     startPolling(taskId);
   }
@@ -261,21 +391,23 @@ async function runPoll(taskId: string): Promise<void> {
       const latestTask = state.tasks[taskId];
       if (!latestTask || isTerminalStatus(latestTask.status)) return;
 
+      const currentPolls = (latestTask.pollAttempts ?? 0) + 1;
+
       if (!response.ok) {
         const body = response.body as Record<string, unknown> | undefined;
         const message = typeof body?.error === "string" ? body.error : "Video retrieve failed";
-        throw Object.assign(new Error(message), { status: response.status });
+        throw Object.assign(new Error(message), { status: response.status, currentPolls });
       }
 
       const normalized = normalizeVideoRetrieveResult(response.body, response.headers);
       if (normalized.kind === "completed") {
-        await applyUpdate(taskId, { status: "completed", progress: 1, resultUrl: normalized.mediaUrl });
+        await applyUpdate(taskId, { status: "completed", progress: 1, resultUrl: normalized.mediaUrl, pollAttempts: currentPolls, consecutiveFailures: 0 });
         stopPolling(taskId);
       } else if (normalized.kind === "failed") {
-        await applyUpdate(taskId, { status: "failed", error: toUserFacingVideoError(normalized.error, "Video generation failed") });
+        await applyUpdate(taskId, { status: "failed", error: toUserFacingVideoError(normalized.error, "Video generation failed"), pollAttempts: currentPolls, consecutiveFailures: 0 });
         stopPolling(taskId);
       } else {
-        await applyUpdate(taskId, { status: "processing", progress: normalized.progressRatio, metadata: { ...task.metadata, __pollAttempts: attempts + 1 } });
+        await applyUpdate(taskId, { status: "processing", progress: normalized.progressRatio, pollAttempts: currentPolls, consecutiveFailures: 0 });
         schedulePoll(taskId, POLL_INTERVAL_MS);
       }
     } else if (task.type === "music") {
@@ -288,27 +420,34 @@ async function runPoll(taskId: string): Promise<void> {
       const latestTask = state.tasks[taskId];
       if (!latestTask || isTerminalStatus(latestTask.status)) return;
 
+      const currentPolls = (latestTask.pollAttempts ?? 0) + 1;
+
       if (!response.ok) {
         const body = response.body as Record<string, unknown> | undefined;
         const message = typeof body?.error === "string" ? body.error : "Audio retrieve failed";
-        throw Object.assign(new Error(message), { status: response.status });
+        throw Object.assign(new Error(message), { status: response.status, currentPolls });
       }
 
       const data = response.body as MusicRetrieveResponse;
       const s = data.status.toLowerCase() as BackgroundTaskStatus;
-      await applyUpdate(taskId, { status: s, metadata: { ...task.metadata, __pollAttempts: attempts + 1 } });
+
+      const nextState: BackgroundTaskUpdate = { status: s, pollAttempts: currentPolls, consecutiveFailures: 0 };
 
       if (s === "completed") {
         if (!data.audio_url?.trim()) {
-          await applyUpdate(taskId, { status: "failed", error: MUSIC_SAFE_ERROR_MESSAGES.empty });
+          nextState.status = "failed";
+          nextState.error = MUSIC_SAFE_ERROR_MESSAGES.empty;
         } else {
-          await applyUpdate(taskId, { status: "completed", resultUrl: data.audio_url.trim() });
+          nextState.resultUrl = data.audio_url.trim();
         }
+        await applyUpdate(taskId, nextState);
         stopPolling(taskId);
       } else if (s === "failed") {
-        await applyUpdate(taskId, { error: toUserFacingMusicError(data.error, MUSIC_SAFE_ERROR_MESSAGES.generation) });
+        nextState.error = toUserFacingMusicError(data.error, MUSIC_SAFE_ERROR_MESSAGES.generation);
+        await applyUpdate(taskId, nextState);
         stopPolling(taskId);
       } else {
+        await applyUpdate(taskId, nextState);
         schedulePoll(taskId, POLL_INTERVAL_MS);
       }
     }
@@ -317,28 +456,44 @@ async function runPoll(taskId: string): Promise<void> {
     if (!latestTask || isTerminalStatus(latestTask.status)) return;
 
     const status = err !== null && typeof err === "object" && "status" in err ? (err as { status?: unknown }).status : undefined;
+    const currentPolls = err !== null && typeof err === "object" && "currentPolls" in err
+      ? Number((err as { currentPolls?: unknown }).currentPolls)
+      : ((latestTask.pollAttempts ?? 0) + 1);
+
     if (typeof status === "number" && status >= 400 && status < 500 && status !== 429) {
-      await applyUpdate(taskId, { status: "failed", error: "Generation failed" });
+      await applyUpdate(taskId, { status: "failed", error: "Generation failed", pollAttempts: currentPolls });
       stopPolling(taskId);
       return;
     }
 
-    const consecutiveFailures = (task.metadata?.__consecutiveFailures as number | undefined) ?? 0;
-    const nextFailures = consecutiveFailures + 1;
-    const retryDelayMs = Math.min(30000, POLL_INTERVAL_MS * 2 ** Math.min(nextFailures, 4));
-    await applyUpdate(taskId, { metadata: { ...task.metadata, __consecutiveFailures: nextFailures } });
+    const consecutiveFailures = (latestTask.consecutiveFailures ?? 0) + 1;
+    const retryDelayMs = Math.min(30000, POLL_INTERVAL_MS * 2 ** Math.min(consecutiveFailures, 4));
+    await applyUpdate(taskId, { consecutiveFailures, pollAttempts: currentPolls });
     schedulePoll(taskId, retryDelayMs);
   }
 }
 
-export function __resetBackgroundTaskManagerForTests(): void {
+export async function __flushBackgroundTaskPersistenceForTests(): Promise<void> {
+  await flushPersist();
+}
+
+export async function __resetBackgroundTaskManagerForTests(): Promise<void> {
   for (const poll of Object.values(state.activePolls)) {
     clearTimeout(poll);
+  }
+  if (pendingPersistTimeout) {
+    clearTimeout(pendingPersistTimeout);
+    pendingPersistTimeout = null;
+  }
+  pendingPersist = false;
+  if (activePersistPromise) {
+    await activePersistPromise;
   }
   state.activePolls = {};
   state.tasks = {};
   initialized = false;
   initializationPromise = null;
+  lastPersistTime = 0;
   listeners.clear();
 }
 

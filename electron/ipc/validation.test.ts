@@ -100,6 +100,27 @@ describe("Electron IPC validation", () => {
     ).toThrow(/circular references|not serializable/i);
   });
 
+  /** T-001 regression guard: provider credential scope must use a validated profile id. */
+  it("validates profile ids before provider credential routing", () => {
+    expect(
+      validateVeniceIpcRequest({
+        endpoint: "/chat/completions",
+        method: "POST",
+        profileId: "work-profile",
+        body: { model: "anthropic:claude-3-5-sonnet-latest" },
+      }),
+    ).toMatchObject({ profileId: "work-profile" });
+
+    expect(() =>
+      validateVeniceIpcRequest({
+        endpoint: "/chat/completions",
+        method: "POST",
+        profileId: "../../default",
+        body: { model: "anthropic:claude-3-5-sonnet-latest" },
+      }),
+    ).toThrow(/profile id/i);
+  });
+
   /** Character endpoints: GET /characters is allowed, GET /characters/{slug}
    *  is allowed for valid slugs, and a range of attack inputs is rejected. */
   describe("character endpoints", () => {

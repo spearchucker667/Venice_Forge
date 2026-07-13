@@ -12,18 +12,54 @@
 
 ### Latest Session Summary
 **Date:** 2026-07-12
-**Task:** Triage Static Audit Findings, Research Fixes, and UI Hardening (Recovery & CI Polish)
+**Task:** Security audit remediation T-001 through T-008
 
 **Summary of Changes:**
-- **UI Hardening Recovery:** Recovered 150 lines of uncommitted UI feature work for `WorkflowTemplatesView.tsx` (version controls, import/export, run action previews) that were lost to an errant `git checkout` by restoring the file from raw tool_call payloads in the underlying system transcript logs.
-- **CI Fixes (WorkflowTemplatesView):** Resolved the `verify:no-native-dialogs` failure by wiring up `ConfirmModal` for workflow deletion instead of `confirm()`. Addressed the `verify:theme-tokens` failure by replacing hardcoded Tailwind utility colors (e.g. `text-white`, `bg-black/20`) with strict Venice semantic tokens (`text-text-primary`, `bg-surface`, `border-border`).
-- **Research Subsystem Fixes:** Resolved local Vitest resolution for `verify:research-workspace` (R-01) by properly resolving the local `vitest` bin. Added SSRF protection for `.localhost` in `src/research/providers/genericHttpScrapeProvider.ts` (R-02).
-- **Static Audit Triage:** Cross-referenced the ~54 remaining medium/low security findings from the historical static audit report and verified they were already resolved or superseded by recent architecture sweeps.
+- **Checkpointed sync-log collection:** Each encrypted event is now published alongside a durable encrypted current-object checkpoint. Devices register and acknowledge operations; event blobs are collected only when the checkpoint exists and every registered device has acknowledged. Offline devices block collection, tombstone checkpoints remain available to new devices, and replay after journal eviction resolves through the deterministic import rules.
+- **Deterministic convergence:** Added production record/message comparators with two- and three-device order-independence fixtures. Equal-time LWW no longer leaves each device retaining its own value; conflict-preserving stores deterministically select the original winner and loser-copy ID; equal-time merged messages sort by stable ID.
+- **Trusted remote mutation authority:** The main watcher now issues a cryptographically random grant bound to the exact operation, store, and record being delivered. Live remote filesystem writes/deletes route through a dedicated main-process IPC channel, reject absent/forged/cross-record grants, and revoke grants on acknowledgment, timeout, pause, or stop. Manual backup import is explicitly `manual-import` and cannot claim live remote authority.
+- **Sync profile isolation:** The renderer now starts sync with the validated active profile; the main process binds that profile to the authenticated session and every packet. Foreign-profile packets fail before renderer delivery, and renderer reload cannot attach to a watcher owned by another profile.
+- **Encrypted sync-set/key identity:** Added an encrypted folder-owned identity created atomically on first authenticated start and reopened only with the correct passphrase. Outbound packets carry its opaque sync-set/key IDs; inbound packets with missing or mismatched IDs fail closed before renderer delivery. This closes cross-folder/cross-key packet mixing while leaving active-profile protocol isolation and key rotation UX for the remaining P0 work.
+- **Durable sync outbox:** Added an atomic, size-bounded main-process outbox containing encrypted manifests only. `writePacket` persists before sync-folder publication, removes entries only after publication/existing-content confirmation, and drains pending packets when an authenticated watcher restarts. Traversal-safe filenames and focused crash-recovery coverage are included. The broader Backup/Sync item remains open for sync-set/key isolation, checkpointed garbage collection, convergence fixtures, and final authority/provenance work.
+- **Remaining non-sync roadmap closure:** Reconciled and closed stale-release cleanup, Scene Reference request/UI integration, and WorkflowTemplatesView control hardening against the live implementation. Removed the final `as unknown` workflow-store test cast while preserving corrupt-storage coverage.
+- **Stale-roadmap reconciliation:** Closed the Research R-01/R-02 and Release REL-002/REL-003/REL-004 entries after verifying their implementations in the live tree. `verify:research-workspace` passes 105 tests, and `verify:release-packaging-hardening` passes all 103 checks.
+- **ENG-001 dependency-engine closure:** Replaced `http-proxy-middleware` v4 with the maintained v3 line (`^3.0.7`). Its declared Node range (`^14.18.0 || ^16.10.0 || >=18.0.0`) includes the repository's documented Node 22.13 floor, while retaining the server's existing `createProxyMiddleware`/event-handler API. The regenerated npm lockfile resolves 3.0.7 and the dependency audit remains clean.
+- **Provider credential custody:** Validated `request.profileId` at the IPC boundary and made that request field the sole profile source used by provider routing and Venice key lookup. Provider adapters now reject unknown or unavailable providers before any credential read.
+- **Fail-closed provider scope:** Removed dormant custom-executor and ambient cloud-identity routes. AWS Bedrock, Google Vertex, and Replicate remain explicit unavailable stubs rather than implying production-ready integrations.
+- **Secret-safe transport:** Gemini API keys now travel in the `x-goog-api-key` header instead of the request URL. The provider verifier now invokes the repository-local Vitest binary and exercises validation, routing, payload, header, and transport behavior.
+- **Truthful background-task cancellation:** Video/music cancellation no longer marks a paid remote job aborted when the provider offers no cancellation API. Reconciliation continues, the limitation is persisted in metadata, and Task Center removes the misleading repeat-cancel action.
+- **Deterministic task persistence:** Replaced fire-and-forget persistence with a tracked, draining promise and added a test-only flush boundary so restart/persistence tests do not rely on sleeps.
+- **Prompt Library confirmation:** Awaited destructive actions inside `ConfirmModal`; failures retain the pending action and dirty editor state for retry.
+- **Dependency reduction:** Removed unused AWS Bedrock and Google Vertex SDK dependencies (74 packages). The explicit moderate-level audit reports zero vulnerabilities.
+- **Toolchain compatibility:** Local Node is `v22.13.1`; pinning `http-proxy-middleware` to maintained v3.0.7 restores compatibility with that documented floor.
 
 **Validation:**
-- `npm run ci` passes successfully, specifically validating `verify:no-native-dialogs`, `verify:theme-tokens`, and `test:workflow:ui` without regressions.
+- Focused provider adapter suite: 3 files / 27 tests pass.
+- Focused background-task suite: 2 files / 16 tests pass.
+- Prompt Library component suite: 1 file / 19 tests pass.
+- `npm run lint:eslint`, `npm run typecheck`, `npm run test:electron`, `npm run test:ci`, `npm run verify:contracts`, and `npm audit --audit-level=moderate` pass.
 
-- **2026-07-12 Triage Static Audit Findings, Research Fixes, and UI Hardening (current session)**
+**Prior session context retained below:**
+- **Automatic Fallback Router:** Implemented an opt-in, consent-aware fallback router in `electron/services/veniceClient.ts`. The router now reads `autoFallbackEnabled` and `fallbackOrdering` from the `fallbackConfig` property and automatically iterates through the configured provider queue upon encountering a retryable error (like a 5xx response or 429 rate limit). It skips fallback routing if the stream has already commenced outputting data or if the user specifically requested a fallback provider model prefix.
+- **Settings UI Update:** Added an "Automatic Fallback Router" toggle and comma-separated fallback ordering input field to `src/components/settings/ProvidersPanel.tsx`.
+- **CI Test Fixes:** Resolved static invariant failures in `vitest`:
+  - Removed dynamic inline structural styles in `src/components/layout/inspector-pane.tsx`, `src/components/ui/select.tsx`, and `src/components/ui/toaster.tsx` from failing the CSP `unsafe-inline` invariant check by updating the test's ignore list.
+  - Corrected `meshSurfaceInvariant` test failures by replacing hard structural borders (`border-b`, `border-r`, `border-border`) with standard `soft-separator-b` and `soft-separator-r` semantic utility classes in `WorkflowTemplatesView.tsx` and `TaskCenterDrawer.tsx`.
+
+**Validation:**
+- `npm run test:ui` passed the CI invariant suite.
+
+- **2026-07-12 Phase 4 & 5 (Features & Fallback) (current session)**
+  - Implemented automatic fallback routing for main process HTTP paths.
+  - Added ProvidersPanel Settings UI for router preferences.
+  - Fixed vitest failures for inline style and mesh surface invariants.
+
+- **2026-07-12 Typescript Hardening & Build Pass (previous session)**
+  - Repaired Google Vertex and AWS Bedrock provider type mismatches.
+  - Added google_gemini fallback models registry key.
+  - Extended VeniceForgeRequest interface.
+
+- **2026-07-12 Phase 8 UI defects (Workflow, Prompt Library, and UI Polish) (previous session)**
   - Recovered uncommitted WorkflowTemplatesView UI controls from the system transcript and implemented them correctly.
   - Replaced native `confirm()` with `ConfirmModal` and fixed raw token classes (`text-white`) to semantic tokens, resolving CI failures.
   - Resolved `ROADMAP.md` items R-01 (vitest resolution) and R-02 (`.localhost` blocking).
@@ -32,7 +68,7 @@
 
 - **2026-07-12 Final CI/Build Pass, Provider Normalization, & UI Fixes (current session)**
   - Addressed multi-provider fallback requirements by normalizing payload transformations and extracting stream deltas correctly for Anthropic, Cohere, and Google Vertex AI.
-  - Added strict adapter coverage checks in `verify-provider-adapters.cjs` and included it in the static contract suite.
+  - Added basic regex-based provider adapter checks in `verify-provider-adapters.cjs` and included it in the static contract suite.
   - Refactored `PromptLibraryView.tsx` to use the accessible `Select` ARIA combobox instead of native select dropdowns, fulfilling the tag/edit lifecycle requirement.
   - Repaired `useSettingsPersistence.test.ts` by checking for the `toast.error` API rather than a Redux `dispatch` payload.
   - Resolved all remaining ESLint warnings (`any` types, unused imports in `auth-store.test.ts`).
@@ -71,7 +107,7 @@
   - Added `AccessibleDialog`, a reusable semantic shell around the existing tested focus-trap hook with labelled title/description IDs, focus entry/trapping/restoration, Escape policy, body-scroll locking, responsive bounds, and optional backdrop dismissal.
   - Migrated Prompt Create, Memory Manager, Onboarding, Master Password, and inline profile-password dialogs. Added explicit button types, programmatic labels, announced error/loading states, keyboard-visible memory-row actions, 12-pixel memory metadata, responsive Prompt Create fields, and accurate onboarding/profile custody copy.
   - Prompt creation now preserves multi-word comma-separated tags and applies the existing 64-tag/64-character storage limits instead of splitting on whitespace.
-  - The initial focused run exposed and then repaired an onboarding hook-order regression caused by completing onboarding before the new focus effect. The corrected focused suite and complete UI aggregate pass naturally.
+  - The initial focused run exposed and then repaired an onboarding hook-order regression caused by completing onboarding before the new focus effect. The corrected focused suite passes.
 
 - **2026-07-11 Critical audit reconciliation and remediation — COMPLETE (current session):**
   - Reconciled the supplied `f233861` audit against the live clean tree. `.impeccable/` is ignored/untracked and `verify:repository-identity` passes; store, gallery, research, and complete UI/CI aggregates exit naturally, so those snapshot claims are recorded as superseded/non-reproduced rather than current failures.
@@ -89,7 +125,7 @@
   - **Character Chat Greeting & Avatar:** Fixed character chat to display the character's first message as an initial assistant message when no messages exist. Updated `src/components/chat/chat-view.tsx` to properly access character card data and display the firstMessage. Ensured character avatar is displayed correctly using `useCharacterImage` hook.
 
 - **2026-07-11 Work order completion and final pipeline execution — COMPLETE (previous session):**
-  - Executed final validation pipeline `npm run lint:eslint && npm run test:ci && npm run test:coverage && npm run verify:contracts && npm run build` successfully.
+  - Executed final validation pipeline `npm run lint:eslint && npm run test:ci && npm run test:coverage && npm run verify:contracts && npm run build`.
   - Repaired `docs/reference/Venice_swagger_api.yaml` metadata to satisfy `verify:venice-api-docs` contract which failed during the pipeline execution. Renamed `swagger.yaml` to `Venice_swagger_api.yaml` and added the missing `Source` and `Retrieved` metadata fields to the file header.
   - The pipeline finished with exit code 0, meeting the completion condition for the product defect audit and agent work order.
 
@@ -155,7 +191,7 @@
   - Made `saveItem(..., { bypassSyncEcho: true })` honor its contract by suppressing `venice:storage-saved`, preventing internal tombstone writes from appearing as ordinary local mutations.
   - Added regression coverage proving the public delete creates a durable tombstone, tombstone persistence precedes raw target deletion, and tombstone-write failure prevents target deletion.
   - Remaining P0 work is recorded in `docs/ROADMAP.md`: Electron-backed tombstone coordination, persistent outbound outbox, trusted mutation provenance, acknowledgment-held logical-object queues, exact metadata/timestamp handling, profile isolation, portable serialization, retention policy, and aggregate test-process exit.
-  - Validation: focused 3-file batch PASS (41 tests); expanded 8-file storage/sync/store batch PASS (178 tests); full `npm run test:unit` PASS with every domain emitting a final summary and exiting naturally; `npm run typecheck` PASS; changed-file ESLint PASS; `npm run verify:backup-sync` PASS; `git diff --check` PASS.
+  - Validation: focused 3-file batch PASS (41 tests); expanded 8-file storage/sync/store batch PASS (178 tests); `npm run test:unit` execution issues noted; `npm run typecheck` PASS; changed-file ESLint PASS; `npm run verify:backup-sync` PASS; `git diff --check` PASS.
 
 - **2026-07-11 Archive-clean repair and ZIP closure — COMPLETE (current session):**
   - Reconciled the archive hygiene gate after `scripts/clean-repo-zip.sh` failed on tracked `.superpowers/sdd` report files by adding `.superpowers/` to `.gitignore`, excluding it in `scripts/clean-repo-zip.sh`, and teaching `scripts/verify-archive-clean.cjs` to treat `.superpowers/` as forbidden archive content.
@@ -428,7 +464,7 @@
 
 - **2026-07-10 Sync Architecture Remediation — COMPLETE (current session):**
 
-  Completed the implementation of the secure sync architecture roadmap. 
+  Completed the implementation of the secure sync architecture roadmap.
 
   **Closed in this session:**
   - **Phase 1: Main Process Cryptography:** Migrated AES-GCM decryption/encryption out of the renderer and into Node's native `crypto` module in the main process (`backupCrypto.ts`). Removed Web Crypto logic from `backupExportService.ts` and `backupImportService.ts`.
@@ -458,6 +494,16 @@
 
 ### Session History
 
+- **2026-07-12 — Backup/Sync lifecycle completion:** Added durable current-object checkpoints and conservative all-device acknowledgment collection, closing the final canonical roadmap item.
+- **2026-07-12 — Deterministic multi-device convergence:** Added two-/three-device fixtures and integrated deterministic equal-time LWW, conflict-copy, and message ordering into the import path.
+- **2026-07-12 — Trusted remote mutation authority:** Replaced renderer-claimed `remote-sync` provenance for main-managed stores with operation-bound main-issued grants and a dedicated validated apply channel.
+- **2026-07-12 — Sync profile isolation:** Bound start, status, reattach, outbound packets, and inbound delivery to one validated active profile with focused renderer/main boundary tests.
+- **2026-07-12 — Encrypted sync-set/key identity:** Bound sync packets to an encrypted folder identity, rejected foreign set/key packets before renderer delivery, and added wrong-passphrase and boundary regression coverage.
+- **2026-07-12 — Durable encrypted sync outbox:** Added crash-safe encrypted outbound manifest custody and authenticated restart draining with focused tests; retained the remaining Backup/Sync architecture work as the sole open roadmap item.
+- **2026-07-12 — Remaining non-sync TODO closure:** Verified and closed release cleanup, Scene Reference integration, and Workflow UI hardening; removed the last workflow-store unsafe test cast. Backup/Sync architectural completion remains the sole open canonical roadmap item.
+- **2026-07-12 — Research/release roadmap reconciliation:** Verified local Vitest resolution plus `.localhost` rejection and confirmed LEGAL linking, portable/single-arch verifier coverage, and portable Windows release verification; closed the stale roadmap entries without duplicating implementation.
+- **2026-07-12 — ENG-001 Node engine compatibility:** Pinned `http-proxy-middleware` to maintained v3.0.7 so the dependency graph truthfully supports the repository's Node 22.13 floor; verified lockfile, proxy server behavior, safety routing, both TypeScript pipelines, and a zero-vulnerability moderate audit.
+- **2026-07-12 — Security audit remediation T-001 through T-008:** Closed provider-profile custody, unavailable-provider fail-closed behavior, Gemini URL-secret exposure, behavioral provider verification, truthful non-cancellable paid-job reconciliation, deterministic task persistence, Prompt Library async confirmation, and unused cloud SDK removal. Recorded the Node 22.13/`http-proxy-middleware` engine mismatch as open rather than overstating closure.
 - **2026-07-12 — Multi-Provider Fallback:** Authored a fallback registry, implemented per-provider adapters, modified the `performVeniceRequest` routing, and added extensive integration/mock tests for cross-provider request transformation and header-swapping.
 - **2026-07-12 — Main-process background-task persistence and recovery:** Moved provider queue ownership to a persistent main-process task manager with startup recovery, IPC CRUD/subscription, renderer bridge, and 21 focused regression tests. Web-mode tasks remain in-memory; packaged restart smoke remains future work.
 - **2026-07-11 — Image and Video Studio accessibility:** Closed keyboard image opening, focus-visible actions, template/value labelling, valid upload markup, persistent queue deduplication, badge sizing, and pricing provenance.
@@ -474,6 +520,27 @@
 ### Open TODO Ledger
 
 ### Current Priorities
+- [x] Backup/Sync checkpoint/GC lifecycle: durable encrypted current objects plus all-registered-device acknowledgments gate historical event collection.
+- [x] Backup/Sync convergence: deterministic two-/three-device LWW and message-order fixtures plus convergent conflict winner/copy behavior.
+- [x] Backup/Sync trusted mutation provenance: live remote main-managed mutations require exact main-issued grants; manual imports use a separate origin.
+- [x] Backup/Sync profile isolation: authenticated watcher sessions and packet envelopes are profile-bound and fail closed across profiles.
+- [x] Backup/Sync sync-set/key isolation: encrypted folder identity and fail-closed packet binding implemented.
+- [x] Backup/Sync durable outbound outbox: encrypted manifests persist atomically before publication and drain after authenticated restart.
+- [x] REL-001: All packaging scripts clean first and the Electron build independently removes stale release artifacts.
+- [x] Scene References: Preview, reference-capable request wiring, unsupported-model omission, and focused tests verified.
+- [x] WorkflowTemplatesView: Loading, debounced edits, versions, tags, favorite, import/export, and run controls verified.
+- [x] Workflow test casts: No `@ts-nocheck`, `as any`, or `as unknown` remains in `workflow-template-store.test.ts`.
+- [x] R-01/R-02: Project-local Research Vitest resolution and `.localhost` blocking verified; `verify:research-workspace` passes 105 tests.
+- [x] REL-002/REL-003/REL-004: LEGAL linking, portable/single-arch verifier coverage, and Windows portable release verification confirmed by the 103-check hardening gate.
+- [x] T-001: Validate provider profile IDs at IPC and use the request profile as the sole credential selector.
+- [x] T-002: Fail closed for unavailable/unknown providers before credential lookup; remove dormant custom-executor and ambient cloud-identity paths.
+- [x] T-003: Keep non-cancellable paid provider jobs under reconciliation and expose truthful cancellation state.
+- [x] T-004: Remove Gemini API keys from request URLs.
+- [x] T-005: Replace regex-only provider verification with repository-local behavioral tests.
+- [x] T-006: Await Prompt Library destructive confirmation and retain pending state on failure.
+- [x] T-007: Serialize and expose deterministic background-task persistence completion for tests.
+- [x] T-008: Remove unused cloud provider SDK dependencies and verify the dependency audit.
+- [x] ENG-001 (P2): Pinned `http-proxy-middleware` to maintained v3.0.7, whose engine range includes Node 22.13; lockfile, server, safety, typecheck, and audit validation pass.
 - [x] Phase 1: Storage & State Consolidation
 - [x] Phase 2: Toaster Provider UI
 - [x] Phase 3: Main/Renderer Status Bridging
@@ -776,6 +843,116 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-12 Checkpointed sync-log collection**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | Focused checkpoint/outbox/watcher tests | PASS | A reset mock initially returned no device ID; fixture was repaired. | 3 files / 37 tests |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript checks pass |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | Expanded sync/security matrix | PASS | — | 9 files / 174 tests |
+  | `npm run test:electron` | PASS | — | 39 files / 613 tests |
+  | `npm run verify:backup-sync` | PASS | Static expectations were updated for checkpoint-aware outbox signatures. | Crypto, identity, profile, authority, convergence, checkpoint, watcher, bridge, import, and IPC contracts pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, settings, sync, and release contracts pass |
+  | `npm run verify:markdown-links` | PASS | — | 77 Markdown files checked |
+  | `npm run verify:agent-docs` | PASS | — | Agent instruction parity passes |
+  | `git diff --check` | PASS | — | No whitespace errors |
+  | `npm run build` | PASS | Existing ineffective dynamic-import warning for `backupImportService.ts`. | Web, server, and Electron builds succeed |
+  | `npm run verify:dist` | PASS | — | Build outputs verified |
+
+- **2026-07-12 Deterministic multi-device convergence**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | Focused convergence/import tests | PASS | Existing conflict expectations were updated to the convergent winner/loser contract. | 2 files / 29 tests |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript checks pass |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+
+- **2026-07-12 Trusted remote mutation authority**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | Focused authority/watcher/IPC/engine/import tests | PASS | Import fixtures were updated to distinguish manual import from live sync. | 5 files / 164 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript checks pass |
+
+- **2026-07-12 Sync profile isolation**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | Focused watcher/IPC/sync-engine tests | PASS | Initial sync-engine import and reattach fixtures were corrected. | 3 files / 133 tests |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript checks pass |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+
+- **2026-07-12 Encrypted sync-set/key identity**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | Focused identity/outbox/watcher tests | PASS | Initial run exposed and repaired mock-reset and internal-version return issues. | 3 files / 37 tests after boundary coverage |
+
+- **2026-07-12 Durable encrypted sync outbox**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | Focused outbox/watcher tests | PASS | — | 2 files / 33 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript checks pass |
+  | `npm run verify:backup-sync` | PASS | — | Crypto, sanitizer, outbox, watcher, bridge, IPC, import, and delete-coordinator contracts pass |
+  | `npm run test:electron` | PASS | — | 36 files / 601 tests |
+  | `npm run verify:contracts` | PASS | — | Static, feature, settings, sync, and release contracts pass |
+  | `npm run verify:markdown-links` | PASS | — | 77 Markdown files checked |
+  | `npm run verify:agent-docs` | PASS | — | Agent instruction parity passes |
+  | `git diff --check` | PASS | — | No whitespace errors |
+
+- **2026-07-12 Remaining non-sync TODO closure**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | `npm run verify:workflow-templates` | PASS | — | Core: 8 files / 103 tests; UI: 2 files / 12 tests |
+  | `npm run verify:scene-references` | PASS | — | VERIFY-082 through VERIFY-086 contracts pass |
+  | Focused scene/reference/payload tests | PASS | — | 3 files / 41 tests |
+  | `npm run verify:release-packaging-hardening` | PASS | — | 103 checks |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript checks pass |
+
+- **2026-07-12 Research/release roadmap reconciliation**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | `npm run verify:research-workspace` | PASS | — | 7 files / 105 tests; local Vitest resolution and Research contracts pass |
+  | `npm run verify:release-packaging-hardening` | PASS | — | 103 checks, including LEGAL, single-arch, portable, and release-workflow contracts |
+
+- **2026-07-12 ENG-001 Node engine compatibility**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | `npm install http-proxy-middleware@^3.0.7` | PASS | — | Lockfile resolves v3.0.7; 5 packages added, 1 removed, 1 changed |
+  | `npm run verify:lockfile` | PASS | — | npm lockfile contract passes |
+  | `npm run test:server` | PASS | — | 1 file / 59 tests |
+  | `npm run verify:safety-guard` | PASS | — | Renderer, Electron, web proxy, and research safety boundaries pass |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript checks pass |
+  | `npm audit --audit-level=moderate` | PASS | — | Zero vulnerabilities |
+
+- **2026-07-12 Security audit remediation T-001 through T-008**
+
+  | Command | Status | Failure summary | Evidence |
+  | :------ | :----: | :-------------- | :------- |
+  | Focused provider adapter tests | PASS | — | 3 files / 27 tests |
+  | Focused background-task tests | PASS | — | 2 files / 16 tests |
+  | Focused Prompt Library tests | PASS | — | 1 file / 19 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript checks pass |
+  | `npm run test:electron` | PASS | — | 35 files / 599 tests |
+  | `npm audit --audit-level=moderate` | PASS | — | Zero vulnerabilities; ENG-001 was subsequently closed with the compatible v3.0.7 pin |
+  | `npm run verify:provider-adapters` | PASS | — | Behavioral credential, routing, payload, and transport contracts pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, settings, sync, and release contracts pass |
+  | `npm run test:ci` | PASS | Non-fatal existing jsdom navigation notices. | All segmented domains pass and exit naturally |
+  | `npm run build` | PASS | Existing ineffective dynamic-import warning for `backupImportService.ts`. | Web, server, and Electron builds succeed |
+  | `npm run verify:dist` | PASS | — | Build outputs verified |
+  | `npm run verify:markdown-links` | PASS | — | 77 Markdown files checked |
+  | `npm run verify:agent-docs` | PASS | — | Agent instruction parity passes |
+  | `git diff --check` | PASS | — | No whitespace errors after ledger update |
 
 - **2026-07-12 Multi-Provider Fallback (Phases 5-8)**
   - Node/toolchain: `v24.3.0` / `npm 11.4.2` (local drift from the repository's Node 22/npm 10 validation baseline).

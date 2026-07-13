@@ -4,6 +4,7 @@ import type { MutationOrigin, SyncStoreName } from "../types/sync";
 import type { SyncRuntimeStatus } from "../types/desktop";
 import { sanitizePortableData } from "./syncDataSanitizer";
 import { validateTombstone } from "../shared/syncProtocol";
+import { getActiveProfileId } from "./activeProfile";
 
 let remoteChangeListenerCleanup: (() => void) | null = null;
 let syncActive = false;
@@ -43,7 +44,7 @@ function attachRendererSyncListeners(): void {
 
 function registerRemoteChangeListener(): void {
   remoteChangeListenerCleanup = desktopSync.onRemoteChange(async (event) => {
-    const { storeName, id, operationId, recordJson } = event;
+    const { storeName, id, operationId, recordJson, remoteApplyToken } = event;
     try {
       if (storeName === "tombstones") {
         const parsed = JSON.parse(recordJson);
@@ -53,12 +54,12 @@ function registerRemoteChangeListener(): void {
           await desktopSync.acknowledgeOperation({ operationId, ok: false });
           return;
         }
-        await importDecryptedPacket(storeName as SyncStoreName, id, recordJson, operationId);
+        await importDecryptedPacket(storeName as SyncStoreName, id, recordJson, operationId, remoteApplyToken);
         await desktopSync.acknowledgeOperation({ operationId, ok: true });
         return;
       }
 
-      const result = await importDecryptedPacket(storeName as SyncStoreName, id, recordJson, operationId);
+      const result = await importDecryptedPacket(storeName as SyncStoreName, id, recordJson, operationId, remoteApplyToken);
       await desktopSync.acknowledgeOperation({ operationId, ok: result.ok });
       if (!result.ok) {
         console.error(`[SyncEngine] Failed to import packet ${storeName}/${id}:`, result.error);
@@ -95,7 +96,7 @@ export async function initSyncEngine(password: string): Promise<SyncEngineStartR
   }
 
   // Pass password to main process to start the watcher and enable decryption
-  const startResult = await desktopSync.startSync({ password });
+  const startResult = await desktopSync.startSync({ password, profileId: getActiveProfileId() });
   if (!startResult.ok) {
     const error = startResult.error || "Failed to start sync in main process.";
     console.error(`[SyncEngine] ${error}`);
@@ -148,6 +149,13 @@ export async function reattachSyncEngine(): Promise<SyncEngineStartResult> {
       ok: false,
       status: "error",
       error: "Sync session is not authenticated. Enter the passphrase to start sync.",
+    };
+  }
+  if (status.profileId !== getActiveProfileId()) {
+    return {
+      ok: false,
+      status: "error",
+      error: "The running sync session belongs to another profile. Stop it before switching profiles.",
     };
   }
 
