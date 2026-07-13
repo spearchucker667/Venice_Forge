@@ -2,6 +2,7 @@
 
 /** @fileoverview Tests for the persistent main-process background task manager. */
 // VERIFY-094 regression guard: main-process background-task persistence, recovery, and redaction.
+// VERIFY-095 regression guard: reject noncanonical generated-media result URLs without mutation.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
@@ -48,6 +49,7 @@ import {
   cancelBackgroundTaskInMain,
   retryBackgroundTaskInMain,
   clearBackgroundTaskInMain,
+  getBackgroundTask,
   listBackgroundTasks,
   subscribeToBackgroundTasks,
   __flushBackgroundTaskPersistenceForTests,
@@ -185,6 +187,27 @@ describe("backgroundTaskManager", () => {
     expect(updated?.resultUrl).toBe(`venice-media://${'a'.repeat(64)}`);
     expect(performVeniceRequest).toHaveBeenCalledWith(expect.objectContaining({ body: { model: 'stable-audio', queue_id: 'q1', delete_media_on_completion: false } }));
     vi.useRealTimers();
+  });
+
+  it("rejects noncanonical result URLs without mutating the task", async () => {
+    const task = await createBackgroundTaskInMain({ type: "image", queueId: "sync-request", profileId: "p1" });
+
+    await expect(updateBackgroundTaskInMain(task.id, {
+      status: "completed",
+      resultUrl: `data:audio/mpeg;base64,${"A".repeat(5000)}`,
+    })).rejects.toThrow("must reference durable generated media");
+
+    expect(getBackgroundTask(task.id)).toMatchObject({ status: "queued" });
+    expect(getBackgroundTask(task.id)?.resultUrl).toBeUndefined();
+  });
+
+  it("accepts canonical durable generated-media URLs", async () => {
+    const task = await createBackgroundTaskInMain({ type: "image", queueId: "sync-request", profileId: "p1" });
+    const resultUrl = `venice-media://${"b".repeat(64)}`;
+
+    const updated = await updateBackgroundTaskInMain(task.id, { status: "completed", resultUrl });
+
+    expect(updated).toMatchObject({ status: "completed", resultUrl });
   });
 
   it("does not poll sync task types", async () => {

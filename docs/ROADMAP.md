@@ -75,11 +75,11 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 - **Headed/Manual Smoke Required:** Yes
 
 ### [x] Persist and Resume Background Tasks
-- **Description:** Moved provider queue ownership to a persistent main-process `BackgroundTaskManager` that sync-writes to `<userData>/background-tasks.json`, loads/recovers on startup, and polls only resumable `video`/`music` tasks. `image`, `research`, and `document` tasks are persisted and survive renderer reload, but are not auto-resumed by the main process because they are renderer-driven or terminal. The 2026-07-11 repairs had closed video-response normalization, polling correctness, progress scaling, queue validation, timeout truthfulness, hook/store circular imports, and the renderer task center; this session closed restart durability for Electron.
+- **Description:** Moved provider queue ownership to a persistent main-process `BackgroundTaskManager` that sync-writes to `<userData>/background-tasks.json`, loads/recovers on startup, and polls only resumable `video`/`music` tasks. `image`, `research`, and `document` tasks are persisted and survive renderer reload, but are not auto-resumed by the main process because they are renderer-driven or terminal. Electron results use canonical durable `venice-media://<sha256>` references. Browser audio is persisted into Media Studio before completion and task memory retains only a revocable blob URL plus media ID.
 - **Status:** Closed
 - **Affected Files/Modules:** `src/types/background-task.ts`, `src/stores/background-task-store.ts`, `electron/services/backgroundTaskManager.ts`, `electron/ipc/handlers/backgroundTaskHandlers.ts`, `electron/preload.ts`, `src/services/desktopBridge.ts`, `electron/main.ts`, generation hooks
-- **Validation Required:** focused task-manager/IPC tests (21 PASS), `npm run test:electron`, `npm run test:ui`, renderer-reload smoke, packaged restart smoke
-- **Headed/Manual Smoke Required:** Yes (renderer-reload and packaged-restart smoke remain future work)
+- **Validation Required:** focused task-manager/IPC/renderer-store tests, `npm run test:electron`, `npm run test:ui`, renderer snapshot replay, packaged restart/playback smoke
+- **Headed/Manual Smoke Required:** Complete for ARM64 media generation, snapshot replay, packaged restart, and playback (2026-07-13)
 
 ### [x] WorkflowTemplatesView UI Hardening & Controls
 - **Description:** Title/tag edits are debounced and flushed on selection changes; templates load on mount; version, import/export, favorite, tag, compile, and per-action run controls are implemented.
@@ -127,6 +127,11 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 ---
 
 ## Recently Closed
+
+- **[x] Generated-media result custody hardening (2026-07-13)**
+  - Browser music results are persisted to encrypted Media Studio storage before completion; task state uses a compact revocable blob URL and durable media ID instead of retaining the full data URL.
+  - Electron background tasks accept only canonical `venice-media://<sha256>` result references and reject invalid or oversized values without partial mutation or silent truncation.
+  - **Validation:** VERIFY-095 focused tests (3 files / 22 tests), lint, typecheck, complete `test:ci`, complete contracts, build, `verify:dist`, and bundle budgets pass.
 
 - **[x] Node 22.13 dependency-engine compatibility (2026-07-12)**
   - Pinned `http-proxy-middleware` to the maintained v3 line (`^3.0.7`), whose published Node engine range includes the repository's supported Node 22.13 floor. The server uses the compatible `createProxyMiddleware` and event-handler API shared by v3/v4.

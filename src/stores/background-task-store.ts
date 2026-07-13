@@ -14,6 +14,20 @@ const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 200
 const MAX_GENERATION_MS = 300000 // 5 minutes for video models
 
+function revokeObjectUrl(url: string | undefined): void {
+  if (!url?.startsWith('blob:')) return
+  URL.revokeObjectURL(url)
+}
+
+function createAudioObjectUrl(dataBase64: string, mimeType: string): string {
+  const binary = atob(dataBase64)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index)
+  }
+  return URL.createObjectURL(new Blob([bytes], { type: mimeType }))
+}
+
 interface BackgroundTaskState {
   tasks: Record<string, BackgroundTask>
   activePolls: Record<string, ReturnType<typeof setInterval>>
@@ -122,6 +136,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
   },
 
   updateTask: (taskId, updates) => {
+    const previousResultUrl = get().tasks[taskId]?.resultUrl
     set((state) => {
       const task = state.tasks[taskId]
       if (!task) return state
@@ -136,6 +151,10 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
         }
       }
     })
+
+    if (updates.resultUrl !== undefined && updates.resultUrl !== previousResultUrl) {
+      revokeObjectUrl(previousResultUrl)
+    }
 
     if (isElectron()) {
       get().ensureDesktopSubscription()
@@ -168,6 +187,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
   },
 
   clearTask: (taskId) => {
+    revokeObjectUrl(get().tasks[taskId]?.resultUrl)
     set((state) => {
       const { [taskId]: _, ...rest } = state.tasks
       return { tasks: rest }
@@ -312,7 +332,23 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
           consecutiveRetryableFailures = 0
           const normalized = normalizeAudioRetrieveResponse(result.data, result.headers)
           if (normalized.kind === 'completed') {
-            updateTask(taskId, { status: 'completed', progress: 1, resultUrl: `data:${normalized.mimeType};base64,${normalized.dataBase64}` })
+            const dataUrl = `data:${normalized.mimeType};base64,${normalized.dataBase64}`
+            const latestMusicTask = get().tasks[taskId]
+            if (!latestMusicTask || ['completed', 'failed', 'aborted', 'timeout'].includes(latestMusicTask.status)) return
+            const media = await persistCompletedTaskMedia({
+              ...latestMusicTask,
+              status: 'completed',
+              progress: 1,
+              resultUrl: dataUrl,
+              updatedAt: Date.now(),
+            })
+            const objectUrl = createAudioObjectUrl(normalized.dataBase64, normalized.mimeType)
+            updateTask(taskId, {
+              status: 'completed',
+              progress: 1,
+              resultUrl: objectUrl,
+              resultMediaId: media?.id,
+            })
             stopPolling(taskId)
           } else if (normalized.kind === 'failed') {
             updateTask(taskId, { status: 'failed', error: toUserFacingMusicError(normalized.error, MUSIC_SAFE_ERROR_MESSAGES.generation) })

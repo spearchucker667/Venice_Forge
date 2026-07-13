@@ -12,21 +12,21 @@
 
 ### Latest Session Summary
 **Date:** 2026-07-13
-**Task:** Execute and close the authorized least-cost paid Venice image/video/music QA matrix in the packaged ARM64 application.
+**Task:** Close the remaining browser-audio and background-task result-URL custody findings from the media remediation follow-up.
 
 **Summary of Changes:**
-- Queried the authenticated Venice catalog and quotes without exposing the local `.env` credential, then generated the cheapest eligible image, one-second text-to-video, and one-second text-to-audio samples. The exact account-balance delta was USD $0.08 ($0.01 image, $0.06 video, $0.01 audio).
-- Validated a 256×256 WebP, a 480×480 H.264/AAC MP4, and a mono 44.1 kHz MP3 by format inspection and full FFmpeg decode; verified video and audio playback through the packaged `venice-media://` protocol.
-- Recovered an actual packaged music background task, proved exactly one Media Studio record after unsubscribe/resubscribe snapshot replay, and proved the same completed task, record count, durable media, and playback after a full application restart.
-- Exercised hosted Character Hub favorite, details, refresh, and local duplication. This exposed and fixed preload-envelope parsing in every RP save handler while retaining direct-record backward compatibility.
-- Corrected the Venice safe-mode endpoint matrix after the live `/video/queue` contract rejected top-level `safe_mode`; video requests now omit that unsupported field.
-- Rebuilt and checksum-verified the unsigned ARM64 DMG/ZIP and closed the final current item in `docs/ROADMAP.md`.
+- Browser-mode music completion now persists the full provider payload into the encrypted Media Studio record before marking the task complete. The renderer task retains only a compact revocable `blob:` URL plus `resultMediaId`, and blob URLs are revoked when replaced or cleared.
+- `persistCompletedTaskMedia()` now returns the existing or newly persisted media item, allowing task state to retain the durable catalog identity without duplicate insertion.
+- The Electron task manager no longer silently truncates `resultUrl`. It accepts only canonical `venice-media://<64-hex-sha256>` references and rejects data URLs, signed URLs, and oversized/noncanonical values before mutating task state.
+- Registered `VERIFY-095` across the regression tests, agent guide, and repository handoff-hygiene verifier.
+- Reconciled the supplied live-provider concern against current evidence: the July 13 packaged ARM64 paid matrix already proved image/video/audio provider responses, playback, restart recovery, and exactly-once catalog insertion. No additional paid requests were made.
 
 **Validation:**
-- Focused RP-envelope and safe-mode regressions passed (2 files / 31 tests), and `npm run typecheck` passed.
-- `npm run lint:eslint`, `npm run test:ci`, and `npm run verify:contracts` passed; Electron now reports 617 passing tests.
-- `npm run dist:mac:arm64` and `node scripts/verify-dist.cjs --mac --arch arm64` passed; the unsigned ARM64 artifacts and checksums were rebuilt after the fixes.
-- Paid image/video/audio generation, binary validation, packaged playback, background-task recovery/restart, exactly-once Media Studio insertion, and Character Hub interaction passed in isolated profiles.
+- Focused background-task/media-catalog tests pass (3 files / 22 tests); `npm run lint:eslint` and both TypeScript pipelines pass under Node 22.13.1/npm 10.9.2.
+- `npm run test:ci` passes and all segmented domains exit naturally; Electron reports 619 tests and stores report 707 tests.
+- The first `npm run verify:contracts` run correctly failed because the handoff verifier still capped the guard namespace at `VERIFY-094`; after updating the canonical limit, the full contract chain passes.
+- `npm run build`, `npm run verify:dist`, and `npm run verify:bundle-budget` pass. The existing ineffective `backupImportService.ts` dynamic-import warning remains non-fatal.
+- Packaging and paid live-provider QA were not rerun; this session did not alter provider request/response normalization or the packaged `venice-media://` protocol.
 
 **Prior session context retained below:**
 - **Automatic Fallback Router:** Implemented an opt-in, consent-aware fallback router in `electron/services/veniceClient.ts`. The router now reads `autoFallbackEnabled` and `fallbackOrdering` from the `fallbackConfig` property and automatically iterates through the configured provider queue upon encountering a retryable error (like a 5xx response or 429 rate limit). It skips fallback routing if the stream has already commenced outputting data or if the user specifically requested a fallback provider model prefix.
@@ -499,6 +499,7 @@
 
 ### Session History
 
+- **2026-07-13 — Generated-media result custody closure:** Persisted browser audio before completion, replaced task data URLs with revocable blob URLs and durable media IDs, rejected noncanonical Electron result URLs atomically, registered VERIFY-095, and passed full tests/contracts/build validation.
 - **2026-07-13 — Authorized paid media QA closure:** Spent exactly USD $0.08 on the least-cost eligible Venice image/video/audio matrix, validated all returned media, proved packaged playback and music-task restart/idempotency, visually exercised Character Hub, fixed RP save-envelope parsing and stale video safe-mode routing, rebuilt the ARM64 package, and closed the final current roadmap item.
 - **2026-07-13 — Remaining media/character TODO closure:** Added decoded paid-image preflight and safe diagnostics, routed workflow video through durable tasks, completed hosted Character Hub adapters/actions, added dedicated regression coverage, passed the full test/contracts/build matrix, and verified an unsigned ARM64 package plus isolated-profile startup/restart. Paid provider-generation/playback QA remains authorization-gated.
 - **2026-07-12 — Media and character integration remediation:** Canonicalized image/audio/video payloads, added durable binary media persistence and catalog recovery, repaired character greeting/avatar behavior, extended the Characters hub, and recorded explicit follow-up risks and unrun manual QA.
@@ -528,6 +529,7 @@
 ### Open TODO Ledger
 
 ### Current Priorities
+- [x] Generated-media result custody: browser audio persists before completion and uses a compact revocable task URL; Electron rejects noncanonical/oversized result URLs without mutation (VERIFY-095).
 - [x] Media preflight: decode PNG/JPEG/WEBP dimensions, reject spoofed/invalid inputs, enforce source/projected pixel limits, and expose safe diagnostics before paid Image Tools requests.
 - [x] Media/character implementation closure: durable workflow-video completion, hosted Hub favorite/recent/detail/refresh/duplicate actions, dedicated template/avatar tests, ARM64 package verification, and isolated-profile startup/restart smoke.
 - [x] Paid headed media QA: least-cost image/video/audio generation, media validation, packaged playback, background-task restart recovery, exactly-once Media Studio insertion, and Character Hub visual checks completed with an exact USD $0.08 balance delta.
@@ -854,6 +856,21 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-13 Generated-media result custody closure**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | `npx vitest run src/services/taskMediaCatalog.test.ts src/stores/background-task-store.test.ts electron/services/backgroundTaskManager.test.ts --no-file-parallelism` | PASS | — | 3 files / 22 tests; durable catalog insertion/idempotency, browser blob cleanup, and Electron fail-closed URL validation pass |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run test:ci` | PASS | Existing non-fatal jsdom navigation notices. | Server 59; Electron 40 files / 619 tests; ingestion 65; stores 707; services 61 files / 592 tests; all remaining unit/UI domains pass and exit naturally |
+  | First `npm run verify:contracts` | FAIL | `verify:repo-handoff-hygiene` still capped the named guard sequence at VERIFY-094. | Verifier limit and documentation were updated to VERIFY-095 |
+  | `npm run verify:repo-handoff-hygiene && npm run verify:contracts` | PASS | — | Full static, feature, browser, storage, sync, and release contract chain passes |
+  | `npm run build` | PASS | Existing ineffective dynamic-import warning for `backupImportService.ts`. | Web, server, and Electron outputs rebuilt |
+  | `npm run verify:dist` | PASS | — | Fresh build outputs verified |
+  | `npm run verify:bundle-budget` | PASS | — | Fresh CSS/JS/vendor/PDF-worker chunks remain within configured budgets |
+  | Packaged/live-provider QA | NOT RUN | No provider transport or packaged protocol behavior changed; additional paid requests were unnecessary. | Prior July 13 ARM64 paid generation/playback/restart evidence remains applicable |
 
 - **2026-07-13 Authorized paid media QA closure**
 

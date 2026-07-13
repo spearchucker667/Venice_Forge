@@ -31,6 +31,7 @@ const POLL_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 200;
 const MAX_VIDEO_GENERATION_MS = 300000; // 5 minutes
 const MAX_NON_VIDEO_GENERATION_MS = 120000; // 2 minutes
+const DURABLE_RESULT_URL_RE = /^venice-media:\/\/[a-f0-9]{64}$/;
 
 export interface BackgroundTaskManagerState {
   tasks: Record<string, BackgroundTask>;
@@ -222,7 +223,10 @@ async function applyUpdate(taskId: string, updates: BackgroundTaskUpdate): Promi
         hasChanges = true;
       }
     } else {
-      const url = String(updates.resultUrl).slice(0, 4096);
+      const url = String(updates.resultUrl);
+      if (!DURABLE_RESULT_URL_RE.test(url)) {
+        throw new Error("Background task result URL must reference durable generated media.");
+      }
       if (url !== task.resultUrl) {
         updated.resultUrl = url;
         hasChanges = true;

@@ -4,17 +4,17 @@ import { useMediaStore } from '../stores/media-store'
 
 const inFlight = new Set<string>()
 
-export async function persistCompletedTaskMedia(task: BackgroundTask): Promise<void> {
-  if (task.status !== 'completed' || !task.resultUrl || !task.queueId) return
-  if (task.type !== 'video' && task.type !== 'music') return
+export async function persistCompletedTaskMedia(task: BackgroundTask): Promise<MediaItem | null> {
+  if (task.status !== 'completed' || !task.resultUrl || !task.queueId) return null
+  if (task.type !== 'video' && task.type !== 'music') return null
   const id = `task-result-${task.id}`
-  if (inFlight.has(id)) return
+  if (inFlight.has(id)) return null
   inFlight.add(id)
   try {
     const store = useMediaStore.getState()
     const existing = store.items.find((item) => item.id === id || item.queueId === task.queueId)
       ?? await store.loadById(id)
-    if (existing) return
+    if (existing) return existing
     const request = task.metadata?.request && typeof task.metadata.request === 'object'
       ? task.metadata.request as Record<string, unknown>
       : {}
@@ -38,7 +38,7 @@ export async function persistCompletedTaskMedia(task: BackgroundTask): Promise<v
       ...(typeof request.aspect_ratio === 'string' ? { aspectRatio: request.aspect_ratio } : {}),
       ...(typeof request.audio === 'boolean' ? { audio: request.audio } : {}),
     }
-    await store.upsert(item, { attachActiveProject: true, source: 'generated' })
+    return await store.upsert(item, { attachActiveProject: true, source: 'generated' })
   } finally {
     inFlight.delete(id)
   }

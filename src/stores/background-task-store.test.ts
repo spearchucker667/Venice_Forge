@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { veniceFetch } from '../services/veniceClient/fetch'
+import { persistCompletedTaskMedia } from '../services/taskMediaCatalog'
 import { useBackgroundTaskStore } from './background-task-store'
 
+// VERIFY-095 regression guard: browser media result custody and blob URL cleanup.
 vi.mock('../services/veniceClient/fetch', () => ({ veniceFetch: vi.fn() }))
+vi.mock('../services/taskMediaCatalog', () => ({ persistCompletedTaskMedia: vi.fn() }))
 
 function resetStore(): void {
   const state = useBackgroundTaskStore.getState()
@@ -15,11 +18,19 @@ describe('background task polling', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-11T21:00:00Z'))
     vi.mocked(veniceFetch).mockReset()
+    vi.mocked(persistCompletedTaskMedia).mockReset()
+    vi.mocked(persistCompletedTaskMedia).mockResolvedValue(null)
+    vi.stubGlobal('URL', {
+      ...URL,
+      createObjectURL: vi.fn(() => 'blob:browser-audio'),
+      revokeObjectURL: vi.fn(),
+    })
     resetStore()
   })
 
   afterEach(() => {
     resetStore()
+    vi.unstubAllGlobals()
     vi.useRealTimers()
   })
 
@@ -114,5 +125,52 @@ describe('background task polling', () => {
       metadata: { cancellationUnsupported: true },
     })
     expect(useBackgroundTaskStore.getState().activePolls['video-five']).toBeDefined()
+  })
+
+  it('persists browser audio before completing with a compact object URL', async () => {
+    vi.mocked(veniceFetch).mockResolvedValueOnce({
+      data: { dataBase64: 'SUQzAA==' },
+      headers: { 'content-type': 'audio/mpeg' },
+    } as never)
+    vi.mocked(persistCompletedTaskMedia).mockResolvedValueOnce({ id: 'task-result-music-one' } as never)
+
+    useBackgroundTaskStore.getState().registerQueueTask('music-one', 'music', 'queue-music', {
+      model: 'music-model',
+      request: { model: 'music-model', prompt: 'test' },
+    })
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(persistCompletedTaskMedia).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'music-one',
+      status: 'completed',
+      resultUrl: 'data:audio/mpeg;base64,SUQzAA==',
+    }))
+    expect(useBackgroundTaskStore.getState().tasks['music-one']).toMatchObject({
+      status: 'completed',
+      progress: 1,
+      resultUrl: 'blob:browser-audio',
+      resultMediaId: 'task-result-music-one',
+    })
+    expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+  })
+
+  it('revokes browser media object URLs when clearing tasks', () => {
+    useBackgroundTaskStore.setState({
+      tasks: {
+        'music-two': {
+          id: 'music-two',
+          type: 'music',
+          status: 'completed',
+          resultUrl: 'blob:browser-audio',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          profileId: 'default',
+        },
+      },
+    })
+
+    useBackgroundTaskStore.getState().clearTask('music-two')
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:browser-audio')
   })
 })
