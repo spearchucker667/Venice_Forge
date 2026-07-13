@@ -20,6 +20,7 @@
 - **Audit outputs removal:** Removed generated local audit outputs directory `Venice_Forge-audit-97da773` from Git index and backed it up in `~/Documents/Venice-Forge-Audits/`.
 - **Git ignore rule:** Added rules in `.gitignore` to ignore future generated audit directories (`Venice_Forge-audit-*/`, `*-audit-*/`).
 - **Backup test correction:** Added missing `vi` import to `tests/backup/cross-runtime-backup.test.ts` and cast the return value of `vi.importActual` to `any` to prevent compilation errors. Removed unused import `importEncryptedBackup`.
+- **Coverage threshold fix:** Restored `vitest.config.ts` coverage thresholds to the enforced baseline (branches 61, functions 68, lines 73, statements 70) to fix CI failure.
 
 **Validation:**
 - `npm run lint:eslint` passed (0 warnings).
