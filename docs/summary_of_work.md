@@ -16,7 +16,7 @@
 
 **Summary of Changes:**
 - **Explicit `any` removal:** Replaced caught exception `e: any` with `e: unknown` in `electron/services/backupCrypto.ts` and extracted its message safely.
-- **Repository-relative path fix:** Replaced absolute paths (`/Users/super_user/...`) with repository-relative paths in `AGENTS.md` for Venice swagger and LLM info files to prevent failures on the GitHub Actions runner.
+- **Repository-relative path fix:** Replaced absolute paths (`/<absolute-path-removed>/...`) with repository-relative paths in `AGENTS.md` for Venice swagger and LLM info files to prevent failures on the GitHub Actions runner.
 - **Audit outputs removal:** Removed generated local audit outputs directory `Venice_Forge-audit-97da773` from Git index and backed it up in `~/Documents/Venice-Forge-Audits/`.
 - **Git ignore rule:** Added rules in `.gitignore` to ignore future generated audit directories (`Venice_Forge-audit-*/`, `*-audit-*/`).
 - **Backup test correction:** Added missing `vi` import to `tests/backup/cross-runtime-backup.test.ts` and cast the return value of `vi.importActual` to `any` to prevent compilation errors. Removed unused import `importEncryptedBackup`.
