@@ -571,8 +571,8 @@ SECRET_SCAN_SUMMARY="$META_DIR/SECRET_SCAN_SUMMARY.txt"
       # still flagged for review, but bare YAML keys like "tokens:" are not.
       scan_pattern "token-assignment"     "(auth[_-]?token|access[_-]?token|token)\s*[:=]\s*[\"'][^\"']{8,}" "high-risk-source"
       scan_pattern "bearer-token"         "bearer[[:space:]]+[A-Za-z0-9._~+/=-]{20,}"    "high-risk-source"
-      scan_pattern "sk-token"             "sk-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"
-      scan_pattern "venice-vn-token"      "vn-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"
+      scan_pattern "sk-token"             "\\bsk-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"
+      scan_pattern "venice-vn-token"      "\\bvn-[A-Za-z0-9._~+/=-]{8,}"                     "high-risk-source"
       scan_pattern "github-token"         "ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}" "high-risk-source"
       scan_pattern "aws-access-key"       "AKIA[0-9A-Z]{16}"                              "high-risk-source"
     )

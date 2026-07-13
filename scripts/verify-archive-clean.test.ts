@@ -278,8 +278,8 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
 
   it("clean-repo-zip.sh scans flexible sk/vn keys and omits absolute paths by default", () => {
     const script = readFileSync(join(__dirname, "clean-repo-zip.sh"), "utf8");
-    expect(script).toContain('"sk-[A-Za-z0-9._~+/=-]{8,}"');
-    expect(script).toContain('"vn-[A-Za-z0-9._~+/=-]{8,}"');
+    expect(script).toContain('"\\\\bsk-[A-Za-z0-9._~+/=-]{8,}"');
+    expect(script).toContain('"\\\\bvn-[A-Za-z0-9._~+/=-]{8,}"');
     expect(script).toContain('echo "==> Output: private path omitted"');
     expect(script).toContain('echo "ZIP:     $(basename "$ZIP_PATH") (output path omitted)"');
   });
