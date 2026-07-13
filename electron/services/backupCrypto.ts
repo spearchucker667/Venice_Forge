@@ -36,8 +36,9 @@ export function deriveBackupKey(password: string, salt: Buffer): Promise<Buffer>
 /** 
  * Encrypts a plaintext payload using AES-256-GCM. 
  * Returns the salt, iv, and ciphertext as base64 strings.
+ * With useWebFormat=true, returns a combined ciphertext+tag buffer compatible with WebCrypto.
  */
-export async function encryptPayload(plaintext: string, password: string): Promise<{ salt: string, iv: string, ciphertext: string }> {
+export async function encryptPayload(plaintext: string, password: string, useWebFormat: boolean = false): Promise<{ salt: string, iv: string, ciphertext: string }> {
   if (!password) throw new Error("Password is required");
   const salt = crypto.randomBytes(SALT_BYTE_LENGTH);
   const iv = crypto.randomBytes(IV_BYTE_LENGTH);
@@ -50,8 +51,17 @@ export async function encryptPayload(plaintext: string, password: string): Promi
   
   const authTag = cipher.getAuthTag().toString("base64");
   
-  // Append authTag to ciphertext (Node.js requires manual auth tag handling for GCM)
-  const finalCiphertext = encrypted + ":" + authTag;
+  let finalCiphertext: string;
+  if (useWebFormat) {
+    // Create combined format compatible with WebCrypto
+    const encryptedBuffer = Buffer.from(encrypted, "base64");
+    const authTagBuffer = Buffer.from(authTag, "base64");
+    const combinedBuffer = Buffer.concat([encryptedBuffer, authTagBuffer]);
+    finalCiphertext = combinedBuffer.toString("base64");
+  } else {
+    // Append authTag to ciphertext (Node.js requires manual auth tag handling for GCM)
+    finalCiphertext = encrypted + ":" + authTag;
+  }
   
   return {
     salt: salt.toString("base64"),
@@ -62,6 +72,7 @@ export async function encryptPayload(plaintext: string, password: string): Promi
 
 /** 
  * Decrypts a ciphertext payload using AES-256-GCM. 
+ * Handles both Electron's colon-separated format and WebCrypto's combined buffer format.
  */
 export async function decryptPayload(ciphertextWithTag: string, saltBase64: string, ivBase64: string, password: string): Promise<string> {
   if (!password) throw new Error("Password is required");
@@ -70,19 +81,52 @@ export async function decryptPayload(ciphertextWithTag: string, saltBase64: stri
   
   const key = await deriveBackupKey(password, salt);
   
+  // Check if it's Electron's colon-separated format or WebCrypto's combined format
   const parts = ciphertextWithTag.split(":");
-  if (parts.length !== 2) {
-    throw new Error("Invalid ciphertext format (missing auth tag)");
+  
+  if (parts.length === 2) {
+    // Electron format: ciphertext:authTag
+    const ciphertext = parts[0];
+    decodeBase64(ciphertext, "ciphertext");
+    const authTag = decodeBase64(parts[1], "authentication tag", AUTH_TAG_BYTE_LENGTH);
+    
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(authTag);
+    
+    let decrypted = decipher.update(ciphertext, "base64", "utf8");
+    decrypted += decipher.final("utf8");
+    
+    return decrypted;
+  } else {
+    // WebCrypto format: combined ciphertext+tag buffer
+    // WebCrypto passes the entire buffer to decrypt(), so we need to do the same
+    try {
+      const combinedBuffer = decodeBase64(ciphertextWithTag, "combined ciphertext and tag");
+      
+      // For WebCrypto compatibility, we decrypt the entire buffer as-is
+      // Node.js crypto.subtle.decrypt equivalent
+      const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+      
+      // The entire buffer contains ciphertext + auth tag
+      // We need to extract the auth tag from the end and set it
+      if (combinedBuffer.length < AUTH_TAG_BYTE_LENGTH) {
+        throw new Error("Buffer too short to contain auth tag");
+      }
+      
+      // Extract auth tag (last 16 bytes) and ciphertext (everything else)
+      const authTag = combinedBuffer.subarray(combinedBuffer.length - AUTH_TAG_BYTE_LENGTH);
+      const ciphertextBuffer = combinedBuffer.subarray(0, combinedBuffer.length - AUTH_TAG_BYTE_LENGTH);
+      
+      decipher.setAuthTag(authTag);
+      
+      let decrypted = decipher.update(ciphertextBuffer);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      
+      return decrypted.toString("utf8");
+    } catch (e: any) {
+      // More detailed error reporting
+      console.error("WebCrypto format decryption error:", e.message);
+      throw new Error("Invalid ciphertext format (missing auth tag): " + e.message);
+    }
   }
-  const ciphertext = parts[0];
-  decodeBase64(ciphertext, "ciphertext");
-  const authTag = decodeBase64(parts[1], "authentication tag", AUTH_TAG_BYTE_LENGTH);
-  
-  const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
-  decipher.setAuthTag(authTag);
-  
-  let decrypted = decipher.update(ciphertext, "base64", "utf8");
-  decrypted += decipher.final("utf8");
-  
-  return decrypted;
 }
