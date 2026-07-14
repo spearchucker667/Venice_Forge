@@ -37,12 +37,12 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const hasOwnSelector = tabDesc?.modelSelectorOwner === 'view' || !tabDesc?.modelType
   const modelType = tabDesc?.modelType || 'text'
   const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
-  const activeConversationModel = activeTab === 'chat'
+  const activeConversationModel = activeTab === 'chat' || activeTab === 'character-chats'
     ? conversations.find((conversation) => conversation.id === activeConversationId)?.model
     : undefined
   const currentModel = hasOwnSelector ? '' : (activeConversationModel || selectedModels[activeTab] || '')
   const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: (modelType === 'image' || modelType === 'video') ? formatModelLabelWithCost(m) : m.model_spec?.name || m.id })) ?? [])
-  const activeCharacter = activeTab === 'chat'
+  const activeCharacter = activeTab === 'character-chats'
     ? conversations.find((conversation) => conversation.id === activeConversationId)?.metadata?.character
     : undefined
 
@@ -85,7 +85,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
             <Select
               value={currentModel}
               onChange={(v) => {
-                if (activeTab === 'chat' && activeConversationId) {
+                if ((activeTab === 'chat' || activeTab === 'character-chats') && activeConversationId) {
                   setConversationModel(activeConversationId, v)
                   return
                 }
@@ -97,7 +97,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
               ariaLabel="Selected model"
               className="w-36 sm:w-44 xl:w-64"
             />
-            {activeTab === 'chat' && activeConversationId !== null && (
+            {(activeTab === 'chat' || activeTab === 'character-chats') && activeConversationId !== null && (
               <button
                 type="button"
                 onClick={() => setActiveConversation(null)}

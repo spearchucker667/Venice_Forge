@@ -28,6 +28,7 @@ import { isValidProfileStorageId } from "../../../src/utils/profileIdValidation"
 import type { ApiConnectivityFailureKind, ApiConnectivityStatus } from "../../../src/types/api-connectivity";
 import { registerIpcChannel } from "./common";
 import { PROVIDER_REGISTRY } from "../../../src/types/provider";
+import { getProfileSessionId, setProfileSessionId } from "../../services/profileSession";
 
 /** Parses and validates a profile id for IPC use (storage-valid, including "default"). */
 function parseProfileId(profileId: unknown): string {
@@ -42,14 +43,6 @@ function parseProviderId(providerId: unknown): string {
     throw new Error(`Invalid provider ID: ${String(providerId)}`);
   }
   return providerId;
-}
-
-/** Parses an optional profile id, returning "default" when omitted. Throws on
- *  invalid ids so an attacker-controlled IPC payload cannot write to
- *  secure-prefs entries with namespaces like `apiKey_../../x`. */
-function parseProfileIdOrDefault(profileId: unknown): string {
-  if (profileId === undefined || profileId === null) return "default";
-  return parseProfileId(profileId);
 }
 
 function connectivityFailure(
@@ -239,13 +232,36 @@ export function registerApiKeyHandlers(): void {
     }
   });
 
-  registerIpcChannel("profilePassword:set", (_event, payload: unknown) => {
+  registerIpcChannel("profileSession:activate", (event, payload: unknown) => {
+    try {
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Invalid profile activation payload.");
+      }
+      const { profileId, password } = payload as { profileId?: unknown; password?: unknown };
+      const validId = parseProfileId(profileId);
+      if (isProfilePasswordSet(validId)) {
+        if (typeof password !== "string" || !verifyProfilePassword(password, validId)) {
+          return {
+            ok: true,
+            verified: false,
+            lockedOutSeconds: getProfilePasswordLockoutSeconds(validId),
+          };
+        }
+      }
+      setProfileSessionId(event.sender, validId);
+      return { ok: true, verified: true, profileId: validId, lockedOutSeconds: 0 };
+    } catch {
+      return { ok: false, verified: false, lockedOutSeconds: 0, error: "Profile activation failed." };
+    }
+  });
+
+  registerIpcChannel("profilePassword:set", (event, payload: unknown) => {
     try {
       if (!payload || typeof payload !== "object") {
         throw new Error("Invalid profile password payload.");
       }
-      const { profileId, password } = payload as { profileId?: unknown; password?: unknown };
-      const validId = parseProfileId(profileId);
+      const { password } = payload as { profileId?: unknown; password?: unknown };
+      const validId = getProfileSessionId(event.sender);
       // Option A (audit 2026-07-08 #2): the default profile is the unprotected
       // system fallback and cannot be password-locked. Rejecting here also
       // prevents an orphan verifier from being written when the renderer
@@ -263,7 +279,7 @@ export function registerApiKeyHandlers(): void {
     }
   });
 
-  registerIpcChannel("profilePassword:verify", (_event, payload: unknown) => {
+  registerIpcChannel("profilePassword:verify", (event, payload: unknown) => {
     try {
       if (!payload || typeof payload !== "object") {
         throw new Error("Invalid profile password payload.");
@@ -275,6 +291,7 @@ export function registerApiKeyHandlers(): void {
       }
       const verified = verifyProfilePassword(password, validId);
       const lockedOutSeconds = getProfilePasswordLockoutSeconds(validId);
+      if (verified) setProfileSessionId(event.sender, validId);
       return { ok: true, verified, lockedOutSeconds };
     } catch {
       // Return generic failure — never expose the reason to the renderer.
@@ -282,27 +299,31 @@ export function registerApiKeyHandlers(): void {
     }
   });
 
-  registerIpcChannel("profilePassword:clear", (_event, profileId: unknown) => {
+  registerIpcChannel("profilePassword:clear", (event, profileId: unknown) => {
     try {
-      clearProfilePassword(parseProfileId(profileId));
+      // The default profile cannot acquire a verifier; allowing explicit
+      // default cleanup preserves recovery from historical orphan rows.
+      const requestedId = parseProfileId(profileId);
+      const validId = requestedId === "default" ? "default" : getProfileSessionId(event.sender);
+      clearProfilePassword(validId);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("apiKey:isConfigured", (_event, profileId?: unknown) => {
+  registerIpcChannel("apiKey:isConfigured", (event, _profileId?: unknown) => {
     try {
-      return isApiKeyConfigured(parseProfileIdOrDefault(profileId));
+      return isApiKeyConfigured(getProfileSessionId(event.sender));
     } catch {
       return false;
     }
   });
 
-  registerIpcChannel("apiKey:set", (_event, payload: unknown) => {
-    const { key, profileId } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: unknown } : { key: payload, profileId: undefined };
+  registerIpcChannel("apiKey:set", (event, payload: unknown) => {
+    const { key } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: unknown } : { key: payload };
     try {
-      const validId = parseProfileIdOrDefault(profileId);
+      const validId = getProfileSessionId(event.sender);
       const trimmed = validateApiKeyInput(key);
       setApiKey(trimmed, validId);
       return { ok: true };
@@ -311,29 +332,29 @@ export function registerApiKeyHandlers(): void {
     }
   });
 
-  registerIpcChannel("apiKey:delete", (_event, profileId?: unknown) => {
+  registerIpcChannel("apiKey:delete", (event, _profileId?: unknown) => {
     try {
-      deleteApiKey(parseProfileIdOrDefault(profileId));
+      deleteApiKey(getProfileSessionId(event.sender));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("providerApiKey:isConfigured", (_event, payload: unknown) => {
-    const { providerId, profileId } = typeof payload === "object" && payload !== null && "providerId" in payload ? payload as { providerId: unknown, profileId?: unknown } : { providerId: payload, profileId: undefined };
+  registerIpcChannel("providerApiKey:isConfigured", (event, payload: unknown) => {
+    const { providerId } = typeof payload === "object" && payload !== null && "providerId" in payload ? payload as { providerId: unknown, profileId?: unknown } : { providerId: payload };
     try {
-      return isProviderApiKeyConfigured(parseProviderId(providerId), parseProfileIdOrDefault(profileId));
+      return isProviderApiKeyConfigured(parseProviderId(providerId), getProfileSessionId(event.sender));
     } catch {
       return false;
     }
   });
 
-  registerIpcChannel("providerApiKey:set", (_event, payload: unknown) => {
-    const { providerId, key, profileId } = payload as { providerId: unknown, key: unknown, profileId?: unknown };
+  registerIpcChannel("providerApiKey:set", (event, payload: unknown) => {
+    const { providerId, key } = payload as { providerId: unknown, key: unknown, profileId?: unknown };
     try {
       const validProviderId = parseProviderId(providerId);
-      const validId = parseProfileIdOrDefault(profileId);
+      const validId = getProfileSessionId(event.sender);
       const trimmed = validateApiKeyInput(key);
       setProviderApiKey(validProviderId, trimmed, validId);
       return { ok: true };
@@ -342,31 +363,18 @@ export function registerApiKeyHandlers(): void {
     }
   });
 
-  registerIpcChannel("providerApiKey:delete", (_event, payload: unknown) => {
-    const { providerId, profileId } = payload as { providerId: unknown, profileId?: unknown };
+  registerIpcChannel("providerApiKey:delete", (event, payload: unknown) => {
+    const { providerId } = payload as { providerId: unknown, profileId?: unknown };
     try {
       const validProviderId = parseProviderId(providerId);
-      deleteProviderApiKey(validProviderId, parseProfileIdOrDefault(profileId));
+      deleteProviderApiKey(validProviderId, getProfileSessionId(event.sender));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("apiKey:test", (_event, profileId?: unknown) => {
-    let validId = "default";
-    try {
-      validId = parseProfileIdOrDefault(profileId);
-    } catch {
-      return {
-        ok: false,
-        message: "Invalid profile id.",
-        connectivity: connectivityFailure(
-          "missing-api-key",
-          "Profile context is invalid. Reopen Config and retry the connection test.",
-        ),
-      };
-    }
-    return testVeniceConnection(validId);
+  registerIpcChannel("apiKey:test", (event, _profileId?: unknown) => {
+    return testVeniceConnection(getProfileSessionId(event.sender));
   });
 }

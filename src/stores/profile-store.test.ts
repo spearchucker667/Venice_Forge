@@ -5,6 +5,7 @@ import { useProfileStore } from "./profile-store";
 vi.mock("../services/desktopBridge", () => ({
   isElectron: vi.fn(() => false),
   desktopProfilePassword: {
+    activate: vi.fn(),
     set: vi.fn(),
     verify: vi.fn(),
     clear: vi.fn(),
@@ -61,6 +62,8 @@ describe("useProfileStore", () => {
   });
 
   it("switches to an unprotected profile without a password", async () => {
+    vi.mocked(isElectron).mockReturnValue(true);
+    vi.mocked(desktopProfilePassword.activate).mockResolvedValue({ ok: true, verified: true, profileId: "work" });
     useProfileStore.setState({
       profiles: [
         { id: "default", name: "Default", onboardingCompleted: false },
@@ -69,12 +72,31 @@ describe("useProfileStore", () => {
     });
     const result = await useProfileStore.getState().requestSwitchProfile("work");
     expect(result.ok).toBe(true);
+    expect(desktopProfilePassword.activate).toHaveBeenCalledWith("work", undefined);
     expect(reloadFn).toHaveBeenCalled();
+  });
+
+  it("reactivates an already-selected Electron profile in the main process", async () => {
+    vi.mocked(isElectron).mockReturnValue(true);
+    vi.mocked(desktopProfilePassword.activate).mockResolvedValue({ ok: true, verified: true, profileId: "work" });
+    useProfileStore.setState({
+      profiles: [
+        { id: "default", name: "Default", onboardingCompleted: false },
+        { id: "work", name: "Work", onboardingCompleted: false },
+      ],
+      activeProfileId: "work",
+    });
+
+    const result = await useProfileStore.getState().requestSwitchProfile("work");
+
+    expect(result.ok).toBe(true);
+    expect(desktopProfilePassword.activate).toHaveBeenCalledWith("work", undefined);
+    expect(reloadFn).not.toHaveBeenCalled();
   });
 
   it("does not switch to a password-protected profile without verification", async () => {
     vi.mocked(isElectron).mockReturnValue(true);
-    vi.mocked(desktopProfilePassword.verify).mockResolvedValue({ ok: true, verified: false, lockedOutSeconds: 0 });
+    vi.mocked(desktopProfilePassword.activate).mockResolvedValue({ ok: true, verified: false, lockedOutSeconds: 0 });
 
     useProfileStore.setState({
       profiles: [
@@ -90,7 +112,7 @@ describe("useProfileStore", () => {
 
   it("switches to a password-protected profile after successful verification", async () => {
     vi.mocked(isElectron).mockReturnValue(true);
-    vi.mocked(desktopProfilePassword.verify).mockResolvedValue({ ok: true, verified: true, lockedOutSeconds: 0 });
+    vi.mocked(desktopProfilePassword.activate).mockResolvedValue({ ok: true, verified: true, profileId: "work", lockedOutSeconds: 0 });
 
     useProfileStore.setState({
       profiles: [
@@ -101,11 +123,27 @@ describe("useProfileStore", () => {
 
     const result = await useProfileStore.getState().requestSwitchProfile("work", "correct");
     expect(result.ok).toBe(true);
-    expect(desktopProfilePassword.verify).toHaveBeenCalledWith("work", "correct");
+    expect(desktopProfilePassword.activate).toHaveBeenCalledWith("work", "correct");
     expect(reloadFn).toHaveBeenCalled();
   });
 
   it("purges data and removes metadata when deleting a profile", async () => {
+    useProfileStore.setState({
+      profiles: [
+        { id: "default", name: "Default", onboardingCompleted: false },
+        { id: "work", name: "Work", onboardingCompleted: false },
+      ],
+      activeProfileId: "work",
+    });
+
+    await useProfileStore.getState().deleteProfile("work");
+
+    expect(purgeProfileData).toHaveBeenCalledWith("work");
+    expect(useProfileStore.getState().profiles).toHaveLength(1);
+    expect(useProfileStore.getState().profiles[0].id).toBe("default");
+  });
+
+  it("refuses to delete an inactive Electron profile before it is activated", async () => {
     useProfileStore.setState({
       profiles: [
         { id: "default", name: "Default", onboardingCompleted: false },
@@ -116,9 +154,8 @@ describe("useProfileStore", () => {
 
     await useProfileStore.getState().deleteProfile("work");
 
-    expect(purgeProfileData).toHaveBeenCalledWith("work");
-    expect(useProfileStore.getState().profiles).toHaveLength(1);
-    expect(useProfileStore.getState().profiles[0].id).toBe("default");
+    expect(purgeProfileData).not.toHaveBeenCalled();
+    expect(useProfileStore.getState().profiles.some((profile) => profile.id === "work")).toBe(true);
   });
 
   it("switches to default and reloads when deleting the active profile", async () => {

@@ -13,7 +13,8 @@ import { ApiKeyDialog } from './components/layout/api-key-dialog'
 import { InspectorPane } from './components/layout/inspector-pane'
 import { FirstRunModal } from './components/FirstRunModal'
 import { OnboardingSplash } from './components/OnboardingSplash'
-import { ChatView } from './components/chat/chat-view'
+import { StandardChatView } from './components/chat/StandardChatView'
+import { CharacterChatsView } from './components/chat/CharacterChatsView'
 import { CommandPalette } from './components/command-palette/CommandPalette'
 import { AppMeshOverlay } from './components/layout/AppMeshOverlay'
 import { DiagnosticsDrawer } from './components/status/DiagnosticsDrawer'
@@ -128,7 +129,8 @@ function StoragePrivacyDashboard() {
 }
 
 const views: Record<TabId, React.ComponentType> = {
-  chat: ChatView,
+  chat: StandardChatView,
+  'character-chats': CharacterChatsView,
   history: HistoryView,
   image: ImagePage,
   media: MediaStudioView,

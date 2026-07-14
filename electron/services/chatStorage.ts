@@ -10,6 +10,7 @@ import type { Conversation, ConversationFile } from "../../src/types/conversatio
 import { logError, logInfo, logWarn } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { isValidId } from "../../src/utils/idValidation";
+import { isValidProfileStorageId } from "../../src/utils/profileIdValidation";
 
 /** Sub-directory inside userData where conversation files live. */
 const CHAT_DIR = "chat-history";
@@ -24,22 +25,25 @@ const MAX_LIST_CONVERSATIONS = 2000;
 const MAX_CONVERSATION_FILES_TO_SCAN = MAX_LIST_CONVERSATIONS * 2;
 const LIST_BATCH_SIZE = 50;
 
-/** Returns the absolute path to the chat-history directory. */
-export function getChatHistoryDir(): string {
-  return path.join(app.getPath("userData"), CHAT_DIR);
+/** Returns the profile-owned chat directory. Historical unscoped files remain
+ *  in the default directory; non-default profiles use isolated subdirectories. */
+export function getChatHistoryDir(profileId: string = "default"): string {
+  if (!isValidProfileStorageId(profileId)) throw new Error("Invalid profile id.");
+  const root = path.join(app.getPath("userData"), CHAT_DIR);
+  return profileId === "default" ? root : path.join(root, "profiles", profileId);
 }
 
 /** Ensures the chat-history directory exists. */
-async function ensureDir(): Promise<void> {
-  await fs.mkdir(getChatHistoryDir(), { recursive: true });
+async function ensureDir(profileId: string): Promise<void> {
+  await fs.mkdir(getChatHistoryDir(profileId), { recursive: true });
 }
 
 /** Builds the filesystem path for a conversation file.
  *  @param id The conversation identifier.
  *  @returns Absolute path to the JSON file.
  */
-function conversationPath(id: string): string {
-  return path.join(getChatHistoryDir(), `${id}.json`);
+function conversationPath(id: string, profileId: string): string {
+  return path.join(getChatHistoryDir(profileId), `${id}.json`);
 }
 
 /** Reads and validates a conversation file from disk.
@@ -116,6 +120,7 @@ function isValidConversation(value: unknown): value is Conversation {
   if (typeof c.createdAt !== "number") return false;
   if (typeof c.updatedAt !== "number") return false;
   if (typeof c.model !== "string") return false;
+  if (c.profileId !== undefined && !isValidProfileStorageId(c.profileId)) return false;
   if (c.systemPrompt !== undefined && typeof c.systemPrompt !== "string") return false;
   if (!Array.isArray(c.messages)) return false;
   return c.messages.every(isValidMessage);
@@ -190,10 +195,12 @@ const MAX_PAGE_LIMIT = 1000;
  *  backward compatibility with older callers. New callers should pass
  *  { offset, limit } and always receive the envelope shape. */
 export async function listConversations(
-  options?: ListConversationsOptions
+  options?: ListConversationsOptions,
+  profileId: string = "default",
 ): Promise<Conversation[] | ListConversationsResult> {
-  await ensureDir();
-  const dir = getChatHistoryDir();
+  if (!isValidProfileStorageId(profileId)) return [];
+  await ensureDir(profileId);
+  const dir = getChatHistoryDir(profileId);
   const jsonFiles = await listConversationFileNames(dir);
   const totalScanned = jsonFiles.length;
 
@@ -216,7 +223,10 @@ export async function listConversations(
       })
     );
     for (const conv of batchResults) {
-      if (conv) conversations.push(conv);
+      const owned = profileId === "default"
+        ? conv?.profileId === undefined || conv.profileId === "default"
+        : conv?.profileId === profileId;
+      if (conv && owned) conversations.push(conv);
     }
     if (conversations.length >= requestedOffset + requestedLimit + 1) break;
   }
@@ -240,24 +250,35 @@ export async function listConversations(
 }
 
 /** Retrieves a single conversation by id. */
-export async function getConversation(id: string): Promise<Conversation | null> {
-  if (!isValidId(id)) return null;
-  await ensureDir();
-  const filePath = conversationPath(id);
-  return readConversationFile(filePath);
+export async function getConversation(id: string, profileId: string = "default"): Promise<Conversation | null> {
+  if (!isValidId(id) || !isValidProfileStorageId(profileId)) return null;
+  await ensureDir(profileId);
+  const filePath = conversationPath(id, profileId);
+  const conversation = await readConversationFile(filePath);
+  if (!conversation) return null;
+  if (profileId === "default") {
+    return conversation.profileId === undefined || conversation.profileId === "default" ? conversation : null;
+  }
+  return conversation.profileId === profileId ? conversation : null;
 }
 
 /** Atomically writes a conversation to disk.
  *  @returns An ok flag and optional error message.
  */
-export async function saveConversation(conversation: Conversation): Promise<{ ok: boolean; error?: string }> {
-  if (!isValidConversation(conversation)) {
+export async function saveConversation(conversation: Conversation, profileId: string = "default"): Promise<{ ok: boolean; error?: string }> {
+  if (!isValidProfileStorageId(profileId)) {
+    return { ok: false, error: "Invalid conversation profile" };
+  }
+  const storedConversation: Conversation = profileId === "default"
+    ? { ...conversation, profileId: undefined }
+    : { ...conversation, profileId };
+  if (!isValidConversation(storedConversation)) {
     return { ok: false, error: "Invalid conversation schema" };
   }
-  await ensureDir();
-  const filePath = conversationPath(conversation.id);
+  await ensureDir(profileId);
+  const filePath = conversationPath(storedConversation.id, profileId);
   const tempPath = `${filePath}.${crypto.randomUUID()}.tmp`;
-  const payload: ConversationFile = { version: FILE_VERSION, conversation };
+  const payload: ConversationFile = { version: FILE_VERSION, conversation: storedConversation };
   try {
     await fs.writeFile(tempPath, JSON.stringify(payload, null, 2), { encoding: "utf-8", mode: 0o600 });
     await fs.rename(tempPath, filePath);
@@ -273,10 +294,10 @@ export async function saveConversation(conversation: Conversation): Promise<{ ok
 /** Deletes a conversation file by id.
  *  @returns An ok flag.
  */
-export async function deleteConversation(id: string): Promise<{ ok: boolean }> {
-  if (!isValidId(id)) return { ok: false };
-  await ensureDir();
-  const filePath = conversationPath(id);
+export async function deleteConversation(id: string, profileId: string = "default"): Promise<{ ok: boolean }> {
+  if (!isValidId(id) || !isValidProfileStorageId(profileId)) return { ok: false };
+  await ensureDir(profileId);
+  const filePath = conversationPath(id, profileId);
   try {
     await fs.unlink(filePath);
     return { ok: true };

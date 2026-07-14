@@ -30,6 +30,7 @@ import { VENICE_MAX_BODY_BYTES } from "../../../src/shared/limits";
 const IPC_PAYLOAD_TOO_LARGE = "Conversation payload is too large.";
 import { registerIpcChannel } from "./common";
 import { validateMutationOrigin } from "../validation";
+import { getProfileSessionId } from "../../services/profileSession";
 
 interface LookupResult {
   address: string;
@@ -242,9 +243,9 @@ export function registerSystemHandlers(): void {
 
   registerIpcChannel("app:openLogsFolder", () => openLogsFolder());
 
-  registerIpcChannel("chat:list", async () => {
+  registerIpcChannel("chat:list", async (event) => {
     try {
-      const result = await listConversations();
+      const result = await listConversations(undefined, getProfileSessionId(event.sender));
       // listConversations returns either Conversation[] (back-compat) or
       // { conversations, truncated, totalScanned } when the on-disk scan
       // was capped. Surface the envelope to the renderer so it can prompt
@@ -265,7 +266,7 @@ export function registerSystemHandlers(): void {
   // { offset, limit } object and returns the conversation-list envelope
   // directly (no back-compat shim). The renderer should call this when
   // a chat:list result has `truncated: true` to fetch subsequent pages.
-  registerIpcChannel("chat:listPage", async (_event, params: unknown) => {
+  registerIpcChannel("chat:listPage", async (event, params: unknown) => {
     try {
       const offset = typeof params === "object" && params !== null && "offset" in params
         ? Number((params as { offset: unknown }).offset)
@@ -279,7 +280,7 @@ export function registerSystemHandlers(): void {
       if (!Number.isFinite(limit) || limit < 1) {
         return { ok: false, error: "Invalid limit", conversations: [], truncated: false, totalScanned: 0, offset: 0, count: 0 };
       }
-      const result = await listConversations({ offset, limit });
+      const result = await listConversations({ offset, limit }, getProfileSessionId(event.sender));
       // listConversations({...}) always returns the envelope.
       const envelope = Array.isArray(result)
         ? { conversations: result, truncated: false, totalScanned: result.length, offset, count: result.length }
@@ -292,12 +293,12 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("chat:get", async (_event, id: unknown) => {
+  registerIpcChannel("chat:get", async (event, id: unknown) => {
     try {
       if (typeof id !== "string" || id.length > 128) {
         return { ok: false, error: "Invalid conversation id", conversation: null };
       }
-      const conversation = await getConversation(id);
+      const conversation = await getConversation(id, getProfileSessionId(event.sender));
       return { ok: true, conversation };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -306,7 +307,7 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("chat:save", async (_event, payload: unknown) => {
+  registerIpcChannel("chat:save", async (event, payload: unknown) => {
     try {
       if (!payload || typeof payload !== "object") {
         return { ok: false, error: "Invalid payload" };
@@ -315,7 +316,11 @@ export function registerSystemHandlers(): void {
       if (!p.conversation || typeof p.conversation !== "object") {
         return { ok: false, error: "Missing conversation" };
       }
-      const conversation = p.conversation as Conversation;
+      const profileId = getProfileSessionId(event.sender);
+      const rendererConversation = p.conversation as Conversation;
+      const conversation: Conversation = profileId === "default"
+        ? { ...rendererConversation, profileId: undefined }
+        : { ...rendererConversation, profileId };
       const payloadBytes = Buffer.byteLength(JSON.stringify(conversation), "utf8");
       if (payloadBytes > VENICE_MAX_BODY_BYTES) {
         logError("chat:save rejected: payload too large", `${payloadBytes} bytes`);
@@ -325,7 +330,7 @@ export function registerSystemHandlers(): void {
       if (originError) {
         return { ok: false, error: originError };
       }
-      const result = await saveConversation(conversation);
+      const result = await saveConversation(conversation, profileId);
       if (result.ok && origin === "local-user") {
         await emitSyncPacket("conversations", conversation.id, conversation, origin);
       }
@@ -337,7 +342,7 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("chat:delete", async (_event, payload: unknown) => {
+  registerIpcChannel("chat:delete", async (event, payload: unknown) => {
     try {
       const [error, parsed] = parseDeletePayload(payload);
       if (error || !parsed) {
@@ -347,7 +352,7 @@ export function registerSystemHandlers(): void {
       if (id.length > 128) {
         return { ok: false, error: "Invalid conversation id" };
       }
-      const result = await deleteConversation(id);
+      const result = await deleteConversation(id, getProfileSessionId(event.sender));
       if (result.ok && origin === "local-user") {
         await emitSyncTombstone("conversations", id, origin);
       }
@@ -359,7 +364,7 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("conversations:list", async (_event, filter: unknown) => {
+  registerIpcChannel("conversations:list", async (event, filter: unknown) => {
     try {
       const cleanFilter: {
         archived?: boolean;
@@ -381,27 +386,27 @@ export function registerSystemHandlers(): void {
         }
       }
       const { listConversations } = await import("../../services/conversationVault");
-      const records = await listConversations(cleanFilter);
+      const records = await listConversations(cleanFilter, getProfileSessionId(event.sender));
       return { ok: true, records };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err), records: [] };
     }
   });
 
-  registerIpcChannel("conversations:get", async (_event, id: unknown) => {
+  registerIpcChannel("conversations:get", async (event, id: unknown) => {
     try {
       if (typeof id !== "string" || id.length > 128 || id.includes("\0")) {
         return { ok: false, error: "Invalid conversation id" };
       }
       const { getConversation } = await import("../../services/conversationVault");
-      const record = await getConversation(id);
+      const record = await getConversation(id, getProfileSessionId(event.sender));
       return { ok: true, record };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("conversations:save", async (_event, record: unknown) => {
+  registerIpcChannel("conversations:save", async (event, record: unknown) => {
     try {
       const [originError, origin] = parseSaveOrigin(record);
       if (originError) {
@@ -425,7 +430,7 @@ export function registerSystemHandlers(): void {
         return { ok: false, error: IPC_PAYLOAD_TOO_LARGE };
       }
       const { saveConversation } = await import("../../services/conversationVault");
-      const result = await saveConversation(rec);
+      const result = await saveConversation(rec, getProfileSessionId(event.sender));
       if (result.ok && origin === "local-user") {
         await emitSyncPacket("conversations", rec.id, rec, origin);
       }
@@ -435,7 +440,7 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("conversations:delete", async (_event, payload: unknown) => {
+  registerIpcChannel("conversations:delete", async (event, payload: unknown) => {
     try {
       const [error, parsed] = parseDeletePayload(payload);
       if (error || !parsed) {
@@ -446,7 +451,7 @@ export function registerSystemHandlers(): void {
         return { ok: false, error: "Invalid conversation id" };
       }
       const { deleteConversation } = await import("../../services/conversationVault");
-      const result = await deleteConversation(id);
+      const result = await deleteConversation(id, getProfileSessionId(event.sender));
       if (result.ok && origin === "local-user") {
         await emitSyncTombstone("conversations", id, origin);
       }
@@ -456,7 +461,7 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("conversations:archive", async (_event, payload: unknown) => {
+  registerIpcChannel("conversations:archive", async (event, payload: unknown) => {
     try {
       const [error, parsed] = parseDeletePayload(payload);
       if (error || !parsed) {
@@ -467,13 +472,13 @@ export function registerSystemHandlers(): void {
         return { ok: false, error: "Invalid conversation id" };
       }
       const { archiveConversation } = await import("../../services/conversationVault");
-      return await archiveConversation(id);
+      return await archiveConversation(id, getProfileSessionId(event.sender));
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("conversations:search", async (_event, query: unknown, options: unknown) => {
+  registerIpcChannel("conversations:search", async (event, query: unknown, options: unknown) => {
     try {
       if (typeof query !== "string" || query.length > 1024) {
         return { ok: false, error: "Invalid query" };
@@ -485,14 +490,14 @@ export function registerSystemHandlers(): void {
         if (typeof opt.includeArchived === "boolean") cleanOpts.includeArchived = opt.includeArchived;
       }
       const { searchIndex } = await import("../../services/memoryPuller");
-      const results = await searchIndex(query, cleanOpts);
+      const results = await searchIndex(query, cleanOpts, getProfileSessionId(event.sender));
       return { ok: true, results };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("conversations:pullContext", async (_event, input: unknown) => {
+  registerIpcChannel("conversations:pullContext", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") {
         return { ok: false, error: "Invalid input" };
@@ -537,7 +542,7 @@ export function registerSystemHandlers(): void {
       }
 
       const { pullContext } = await import("../../services/memoryPuller");
-      const context = await pullContext(cleanInput);
+      const context = await pullContext(cleanInput, getProfileSessionId(event.sender));
 
       // SAFETY Stage 2: Screen retrieved memory context before returning it to the renderer
       if (context.injectedText) {
@@ -561,18 +566,27 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("conversations:rebuildIndex", async () => {
+  registerIpcChannel("conversations:rebuildIndex", async (event) => {
     try {
       const { rebuildIndex } = await import("../../services/memoryPuller");
-      const itemsIndexed = await rebuildIndex();
+      const itemsIndexed = await rebuildIndex(getProfileSessionId(event.sender));
       return { ok: true, itemsIndexed };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("conversations:migrateLegacyHistory", async () => {
+  registerIpcChannel("conversations:migrateLegacyHistory", async (event) => {
     try {
+      if (getProfileSessionId(event.sender) !== "default") {
+        return {
+          ok: false,
+          migrated: 0,
+          failed: 0,
+          skipped: 0,
+          error: "Legacy migration is available only from the default profile.",
+        };
+      }
       const { migrateLegacyHistory } = await import("../../services/vaultMigration");
       return await migrateLegacyHistory();
     } catch (err) {
@@ -580,8 +594,9 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerIpcChannel("conversations:detectLegacyHistory", async () => {
+  registerIpcChannel("conversations:detectLegacyHistory", async (event) => {
     try {
+      if (getProfileSessionId(event.sender) !== "default") return false;
       const { detectLegacyHistory } = await import("../../services/vaultMigration");
       return await detectLegacyHistory();
     } catch {

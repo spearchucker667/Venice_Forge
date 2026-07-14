@@ -18,8 +18,10 @@ import { DEFAULT_PROFILE_ID } from "./activeProfile";
 import {
   desktopApiKey,
   desktopJinaApiKey,
+  desktopProviderApiKey,
   desktopProfilePassword,
 } from "./desktopBridge";
+import { PROVIDER_REGISTRY } from "../types/provider";
 import StorageService from "./storageService";
 
 /** Known localStorage key prefixes that Venice Forge owns.
@@ -58,6 +60,7 @@ export interface ProfilePurgeResult {
   profileId: string;
   veniceApiKeyRemoved: boolean;
   jinaApiKeyRemoved: boolean;
+  providerApiKeysRemoved: number;
   passwordRemoved: boolean;
   localStorageKeysRemoved: number;
   indexedDBStoresScanned: number;
@@ -73,6 +76,7 @@ export async function purgeProfileData(profileId: string): Promise<ProfilePurgeR
       profileId,
       veniceApiKeyRemoved: false,
       jinaApiKeyRemoved: false,
+      providerApiKeysRemoved: 0,
       passwordRemoved: false,
       localStorageKeysRemoved: 0,
       indexedDBStoresScanned: 0,
@@ -83,6 +87,7 @@ export async function purgeProfileData(profileId: string): Promise<ProfilePurgeR
     profileId,
     veniceApiKeyRemoved: false,
     jinaApiKeyRemoved: false,
+    providerApiKeysRemoved: 0,
     passwordRemoved: false,
     localStorageKeysRemoved: 0,
     indexedDBStoresScanned: 0,
@@ -100,6 +105,14 @@ export async function purgeProfileData(profileId: string): Promise<ProfilePurgeR
     result.jinaApiKeyRemoved = jina.ok;
   } catch {
     /* ignore */
+  }
+  for (const providerId of Object.keys(PROVIDER_REGISTRY)) {
+    try {
+      const provider = await desktopProviderApiKey.delete(providerId);
+      if (provider.ok) result.providerApiKeysRemoved += 1;
+    } catch {
+      /* ignore */
+    }
   }
   try {
     const pw = await desktopProfilePassword.clear(profileId);

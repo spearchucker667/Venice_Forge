@@ -4,6 +4,12 @@ import { redactErrorMessage } from "../../../src/shared/redaction";
 import { isValidProfileStorageId } from "../../../src/utils/profileIdValidation";
 import { validateMutationAuthority } from "../../services/remoteApplyAuthority";
 import { isValidId } from "../../../src/utils/idValidation";
+import { getProfileSessionId } from "../../services/profileSession";
+import crypto from "node:crypto";
+import { validateBackupPayloadProfile } from "../../../src/shared/backupProfile";
+
+const BACKUP_EXPORT_LEASE_MS = 5 * 60 * 1000;
+const backupExportLeases = new WeakMap<Electron.WebContents, { token: string; profileId: string; expiresAt: number }>();
 
 export function registerSyncHandlers(): void {
   ipcMain.handle("sync:chooseSyncFolder", async (event) => {
@@ -79,7 +85,7 @@ export function registerSyncHandlers(): void {
     return await writePacket(input.storeName, input.id, input.recordJson);
   });
 
-  ipcMain.handle("sync:applyRemoteMutation", async (_event, input: { storeName?: unknown; id?: unknown; recordJson?: unknown; delete?: unknown; remoteApplyToken?: unknown }) => {
+  ipcMain.handle("sync:applyRemoteMutation", async (event, input: { storeName?: unknown; id?: unknown; recordJson?: unknown; delete?: unknown; remoteApplyToken?: unknown }) => {
     if (!input || typeof input.storeName !== "string" || typeof input.id !== "string" || !isValidId(input.id)) {
       return { ok: false, error: "Invalid remote mutation payload." };
     }
@@ -95,8 +101,9 @@ export function registerSyncHandlers(): void {
       switch (input.storeName) {
         case "conversations": {
           const storage = await import("../../services/chatStorage");
-          if (deleting) await storage.deleteConversation(input.id);
-          else await storage.saveConversation(record);
+          const profileId = getProfileSessionId(event.sender);
+          if (deleting) await storage.deleteConversation(input.id, profileId);
+          else await storage.saveConversation(record, profileId);
           break;
         }
         case "character_cards": {
@@ -145,8 +152,32 @@ export function registerSyncHandlers(): void {
   });
 
   // Manual Backup Support
-  ipcMain.handle("sync:encryptBackup", async (_event, params: { payload: string, password: string }) => {
+  ipcMain.handle("sync:beginBackupExport", async (event) => {
+    const profileId = getProfileSessionId(event.sender);
+    const token = crypto.randomUUID();
+    backupExportLeases.set(event.sender, {
+      token,
+      profileId,
+      expiresAt: Date.now() + BACKUP_EXPORT_LEASE_MS,
+    });
+    return { ok: true, token, profileId };
+  });
+
+  ipcMain.handle("sync:encryptBackup", async (event, params: { payload: string, password: string, token: string }) => {
     try {
+      const lease = backupExportLeases.get(event.sender);
+      backupExportLeases.delete(event.sender);
+      if (
+        !lease ||
+        typeof params?.token !== "string" ||
+        params.token !== lease.token ||
+        lease.expiresAt < Date.now() ||
+        getProfileSessionId(event.sender) !== lease.profileId ||
+        typeof params.payload !== "string" ||
+        !validateBackupPayloadProfile(params.payload, lease.profileId)
+      ) {
+        return { ok: false, error: "Backup export profile session is invalid or expired." };
+      }
       const { encryptPayload } = await import("../../services/backupCrypto");
       const encrypted = await encryptPayload(params.payload, params.password);
       return { ok: true, data: encrypted };

@@ -23,6 +23,7 @@ import { logError } from "./logger";
 import { buildAudioRetrieveRequest, buildVideoRetrieveRequest } from '../../src/services/media-request-adapter';
 import { normalizeAudioRetrieveResponse } from '../../src/services/audio-retrieve-normalizer';
 import { persistGeneratedMedia } from './generatedMediaStore';
+import { downloadGeneratedVideo } from './generatedVideoDownload';
 
 const TASKS_DIR = path.join(app.getPath("userData"), "background-tasks");
 const TASKS_FILE = path.join(TASKS_DIR, "tasks.json");
@@ -38,7 +39,7 @@ export interface BackgroundTaskManagerState {
   activePolls: Record<string, ReturnType<typeof setTimeout>>;
 }
 
-export type BackgroundTaskChangeListener = (taskId: string, task: BackgroundTask | null) => void;
+export type BackgroundTaskChangeListener = (taskId: string, task: BackgroundTask | null, profileId: string) => void;
 
 const listeners = new Set<BackgroundTaskChangeListener>();
 const state: BackgroundTaskManagerState = { tasks: {}, activePolls: {} };
@@ -46,10 +47,10 @@ const state: BackgroundTaskManagerState = { tasks: {}, activePolls: {} };
 let initialized = false;
 let initializationPromise: Promise<void> | null = null;
 
-function emit(taskId: string, task: BackgroundTask | null): void {
+function emit(taskId: string, task: BackgroundTask | null, profileId: string): void {
   for (const listener of listeners) {
     try {
-      listener(taskId, task);
+      listener(taskId, task, profileId);
     } catch (err) {
       logError("Background task listener failed", sanitizeErrorText(String(err)));
     }
@@ -276,7 +277,7 @@ async function applyUpdate(taskId: string, updates: BackgroundTaskUpdate): Promi
   // Debounce non-critical progress updates to avoid disk thrashing
   const isProgressOnly = hasChanges && updates.status === undefined && updates.error === undefined && updates.resultUrl === undefined;
   persist(isProgressOnly ? 2000 : 0);
-  emit(taskId, updated);
+  emit(taskId, updated, updated.profileId);
   return updated;
 }
 
@@ -287,7 +288,7 @@ export async function createBackgroundTaskInMain(
   const task = createBackgroundTask(input);
   state.tasks[task.id] = task;
   persist();
-  emit(task.id, task);
+  emit(task.id, task, task.profileId);
   if (task.type === "video" || task.type === "music") {
     startPolling(task.id);
   }
@@ -337,10 +338,11 @@ export async function retryBackgroundTaskInMain(taskId: string): Promise<Backgro
 
 export async function clearBackgroundTaskInMain(taskId: string): Promise<void> {
   await initBackgroundTaskManager();
+  const profileId = state.tasks[taskId]?.profileId ?? "default";
   stopPolling(taskId);
   delete state.tasks[taskId];
   persist();
-  emit(taskId, null);
+  emit(taskId, null, profileId);
 }
 
 function stopPolling(taskId: string): void {
@@ -397,6 +399,7 @@ async function runPoll(taskId: string): Promise<void> {
         endpoint: "/video/retrieve",
         method: "POST",
         body: buildVideoRetrieveRequest(taskModel, task.queueId),
+        profileId: task.profileId,
       });
 
       const latestTask = state.tasks[taskId];
@@ -419,14 +422,9 @@ async function runPoll(taskId: string): Promise<void> {
         await applyUpdate(taskId, { status: "completed", progress: 1, resultUrl: media.url, resultMediaId: media.id, pollAttempts: currentPolls, consecutiveFailures: 0 });
         stopPolling(taskId);
       } else if (normalized.kind === 'download') {
-        const parsed = new URL(normalized.downloadUrl);
-        if (parsed.protocol !== 'https:' || /^(localhost|127\.|0\.|10\.|192\.168\.|169\.254\.|\[?::1\]?)/i.test(parsed.hostname)) {
-          throw Object.assign(new Error('Video download URL was rejected.'), { currentPolls });
-        }
-        const download = await fetch(parsed, { redirect: 'error' });
-        const mimeType = (download.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-        if (!download.ok || mimeType !== 'video/mp4') throw Object.assign(new Error('Video download failed validation.'), { currentPolls });
-        const media = await persistGeneratedMedia(Buffer.from(await download.arrayBuffer()), mimeType);
+        const download = await downloadGeneratedVideo(normalized.downloadUrl)
+          .catch((error: unknown) => { throw Object.assign(error instanceof Error ? error : new Error('Video download failed.'), { currentPolls }) })
+        const media = await persistGeneratedMedia(download.bytes, download.mimeType);
         await applyUpdate(taskId, { status: 'completed', progress: 1, resultUrl: media.url, resultMediaId: media.id, pollAttempts: currentPolls, consecutiveFailures: 0 });
         stopPolling(taskId);
       } else if (normalized.kind === "failed") {
@@ -441,6 +439,7 @@ async function runPoll(taskId: string): Promise<void> {
         endpoint: "/audio/retrieve",
         method: "POST",
         body: buildAudioRetrieveRequest(taskModel, task.queueId),
+        profileId: task.profileId,
       });
 
       const latestTask = state.tasks[taskId];

@@ -35,10 +35,8 @@ export interface VeniceForgeJina {
     url: string;
     headers?: Record<string, string>;
     timeoutMs?: number;
-    /** Optional profile id used to look up the Jina API key in secure
-     *  storage. The renderer bridge normally stamps this with the active
-     *  profile id; tests may override with a specific profile id to
-     *  exercise the credential isolation matrix. */
+    /** Retained for preload backwards compatibility. The main process ignores
+     *  this field and derives Jina credential authority from WebContents. */
     profileId?: string;
   }): Promise<{ ok: boolean; status?: number; body?: unknown; contentType?: string; error?: string }>;
 }
@@ -329,6 +327,7 @@ export interface VeniceForgeMasterPassword {
 }
 
 export interface VeniceForgeProfilePassword {
+  activate(profileId: string, password?: string): Promise<{ ok: boolean; verified: boolean; profileId?: string; lockedOutSeconds?: number; error?: string }>;
   isSet(profileId: string): Promise<boolean>;
   set(profileId: string, password: string): Promise<{ ok: boolean; error?: string }>;
   verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; lockedOutSeconds?: number; error?: string }>;
@@ -397,7 +396,8 @@ export interface ElectronSyncAPI {
   onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string; remoteApplyToken: string }) => void): () => void;
   
   /** Encrypt a manual backup payload */
-  encryptBackup(input: { payload: string, password: string }): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }>;
+  beginBackupExport(): Promise<{ ok: boolean; profileId?: string; token?: string; error?: string }>;
+  encryptBackup(input: { payload: string, password: string, token: string }): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }>;
   
   /** Decrypt a manual backup payload */
   decryptBackup(input: { ciphertext: string, salt: string, iv: string, password: string }): Promise<{ ok: boolean; data?: string; error?: string }>;

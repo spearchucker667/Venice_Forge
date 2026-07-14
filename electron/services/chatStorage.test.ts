@@ -49,14 +49,7 @@ function makeConv(overrides: Partial<Conversation> = {}): Conversation {
 
 async function cleanDir() {
   const dir = getChatHistoryDir();
-  try {
-    const entries = await fs.readdir(dir);
-    for (const entry of entries) {
-      await fs.unlink(path.join(dir, entry));
-    }
-  } catch {
-    // ignore
-  }
+  await fs.rm(dir, { recursive: true, force: true });
 }
 
 describe("chatStorage", () => {
@@ -229,6 +222,25 @@ describe("chatStorage", () => {
     const retrieved = await getConversation(conv.id);
     expect(retrieved?.title).toBe("Updated");
     expect(retrieved?.messages).toHaveLength(3);
+  });
+
+  // VERIFY-100: identical logical ids are isolated in per-profile directories;
+  // unscoped historical files belong only to the default profile.
+  it("isolates identical conversation ids across profiles", async () => {
+    const defaultConversation = makeConv({ id: "shared", title: "Default" });
+    const workConversation = makeConv({ id: "shared", title: "Work" });
+
+    expect((await saveConversation(defaultConversation, "default")).ok).toBe(true);
+    expect((await saveConversation(workConversation, "work")).ok).toBe(true);
+
+    expect((await getConversation("shared", "default"))?.title).toBe("Default");
+    expect((await getConversation("shared", "work"))?.title).toBe("Work");
+    expect((await listConversations(undefined, "default")).map((item) => item.title)).toEqual(["Default"]);
+    expect((await listConversations(undefined, "work")).map((item) => item.title)).toEqual(["Work"]);
+
+    expect((await deleteConversation("shared", "work")).ok).toBe(true);
+    expect(await getConversation("shared", "work")).toBeNull();
+    expect((await getConversation("shared", "default"))?.title).toBe("Default");
   });
 
   // VERIFY-008 regression guard (T14): server-side paginated listConversations.

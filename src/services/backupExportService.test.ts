@@ -10,6 +10,7 @@ vi.mock("./desktopBridge", async (importOriginal) => {
     ...mod,
     isElectron: vi.fn(),
     desktopSync: {
+      beginBackupExport: vi.fn(),
       encryptBackup: vi.fn(),
       decryptBackup: vi.fn(),
     },
@@ -26,6 +27,7 @@ vi.mock("./storageService", () => ({
 }));
 
 const mockIsElectron = vi.mocked(desktopBridge.isElectron);
+const mockBeginBackupExport = vi.mocked(desktopBridge.desktopSync.beginBackupExport);
 const mockEncryptBackup = vi.mocked(desktopBridge.desktopSync.encryptBackup);
 const mockExportJson = vi.mocked(desktopBridge.desktopFiles.exportJson);
 const mockGetItems = vi.mocked(StorageService.getItems);
@@ -35,6 +37,7 @@ describe("backupExportService", () => {
     vi.resetAllMocks();
     mockIsElectron.mockReturnValue(false);
     mockGetItems.mockResolvedValue([]);
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -65,13 +68,18 @@ describe("backupExportService", () => {
 
   it("delegates encryption to the desktop bridge in Electron mode", async () => {
     mockIsElectron.mockReturnValue(true);
+    localStorage.setItem("venice-active-profile-id", "work");
+    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "work", token: "lease-token" });
     mockEncryptBackup.mockResolvedValue({
       ok: true,
       data: { salt: "salt", iv: "iv", ciphertext: "cipher" },
     });
 
     const manifest = await createEncryptedBackup("password");
-    expect(mockEncryptBackup).toHaveBeenCalledWith(expect.any(String), "password");
+    expect(mockBeginBackupExport).toHaveBeenCalledTimes(1);
+    expect(mockEncryptBackup).toHaveBeenCalledWith(expect.any(String), "password", "lease-token");
+    const payload = JSON.parse(mockEncryptBackup.mock.calls[0][0]);
+    expect(payload._veniceForgeBackup).toEqual({ profileId: "work" });
     expect(manifest).toEqual({
       version: 2,
       exportedAt: expect.any(String),
@@ -83,9 +91,19 @@ describe("backupExportService", () => {
 
   it("throws when desktop encryption fails", async () => {
     mockIsElectron.mockReturnValue(true);
+    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "default", token: "lease-token" });
     mockEncryptBackup.mockResolvedValue({ ok: false, error: "Encryption failed" });
 
     await expect(createEncryptedBackup("password")).rejects.toThrow("Encryption failed");
+  });
+
+  it("rejects export when the renderer profile does not match the main-process lease", async () => {
+    mockIsElectron.mockReturnValue(true);
+    localStorage.setItem("venice-active-profile-id", "work");
+    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "default", token: "lease-token" });
+
+    await expect(createEncryptedBackup("password")).rejects.toThrow(/profile session changed/i);
+    expect(mockEncryptBackup).not.toHaveBeenCalled();
   });
 
   it("downloads a backup via desktop file dialog", async () => {

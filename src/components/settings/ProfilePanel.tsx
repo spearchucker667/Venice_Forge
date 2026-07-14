@@ -163,7 +163,7 @@ export function ProfilePanel() {
                 </span>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
-                {isElectron() && p.id !== DEFAULT_PROFILE_ID && (
+                {isElectron() && p.id !== DEFAULT_PROFILE_ID && p.id === activeProfileId && (
                   p.hasPassword ? (
                     <button
                       type="button"
@@ -194,7 +194,7 @@ export function ProfilePanel() {
                     Switch To
                   </button>
                 )}
-                {p.id !== DEFAULT_PROFILE_ID && (
+                {p.id !== DEFAULT_PROFILE_ID && (!isElectron() || p.id === activeProfileId) && (
                   <button type="button" onClick={async () => {
                     const confirmed = await askDecision({
                       title: 'Delete profile?',
@@ -205,7 +205,7 @@ export function ProfilePanel() {
                     if (confirmed) {
                       await deleteProfile(p.id)
                     }
-                  }} className="text-[12px] text-danger hover:underline px-2 py-1">
+                  }} className="text-[12px] text-danger hover:underline px-2 py-1" aria-label={`Delete ${p.name}`}>
                     Delete
                   </button>
                 )}

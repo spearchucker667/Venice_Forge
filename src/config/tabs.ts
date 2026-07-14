@@ -17,6 +17,7 @@
 
 export const TAB_IDS = [
   'chat',
+  'character-chats',
   'history',
   'image',
   'media',
@@ -72,6 +73,7 @@ export interface TabDescriptor {
 
 export const TAB_REGISTRY: readonly TabDescriptor[] = [
   { id: 'chat', label: 'Chat', group: 'conversation', subtitle: 'Conversational AI', modelType: 'text' },
+  { id: 'character-chats', label: 'Character Chats', group: 'conversation', subtitle: 'Conversations with hosted and local characters', modelType: 'text' },
   { id: 'history', label: 'History', group: 'conversation', subtitle: 'Browse past conversations' },
   { id: 'image', label: 'Image Studio', group: 'generate', subtitle: 'Generate images from text', modelType: 'image' },
   { id: 'media', label: 'Media Studio', group: 'generate', aliases: ['gallery'], subtitle: 'Browse, tag, edit, and export your generated media' },

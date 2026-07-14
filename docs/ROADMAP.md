@@ -6,6 +6,24 @@ This is the canonical product roadmap and open task ledger. For the append-only 
 
 ## P0 — Safety / Security / Data Protection
 
+### [ ] Close 2026-07-14 Repository-Wide Security and Quality Audit
+- **Status:** In progress (started 2026-07-14)
+- **Source:** Audit run `VF-AUDIT-20260714T002656Z-dc979a5`, reconciled against commit `dc979a50de8efebdfac575d46bcb9423928970b1`
+- **Current tranche:** `VF-AUDIT-20260714-T001` and `T002` are closed through `VERIFY-096`–`VERIFY-103`: profile/task authority is isolated, and provider video downloads are DNS-aware, connection-pinned, and size-bounded. `VF-AUDIT-20260714-T003` is the next release blocker.
+- **Open findings:**
+  - [x] `VF-AUDIT-20260714-T001` (High): established main-authoritative profile sessions and profile-scoped credentials, conversations, tasks, subscriptions, and backup export (`VERIFY-096`–`VERIFY-102`).
+  - [x] `VF-AUDIT-20260714-T002` (High): replaced generated-video download URL checks with DNS-aware SSRF protection, approved-address connection pinning, and 256 MiB bounded streaming (`VERIFY-103`).
+  - [ ] `VF-AUDIT-20260714-T003` (High): make provider enabled state and provider-native fallback models main-authoritative.
+  - [ ] `VF-AUDIT-20260714-T004` (Medium): replace the stale preview and correct the API-key custody claim.
+  - [ ] `VF-AUDIT-20260714-T005` (Medium): parse and validate API-reference provenance instead of locking stale string markers.
+  - [ ] `VF-AUDIT-20260714-T006` (Medium): remove contradictory historical statuses from the live TODO ledger.
+  - [ ] `VF-AUDIT-20260714-T007` (Medium): remove raw prompts and lyrics from plaintext background-task persistence.
+  - [ ] `VF-AUDIT-20260714-T008` (Medium): enforce realpath/no-follow custody for sync-folder descendants.
+  - [ ] `VF-AUDIT-20260714-T009` (Medium): make Clear All Local History accurately scoped or implement complete desktop deletion with a receipt.
+  - [ ] `VF-AUDIT-20260714-T010` (Medium, suspected): prove and close the Research Browser DNS-rebinding window with a pinned connection or controlled harness.
+- **Validation Required:** focused regression tests for each tranche, `npm run lint:eslint`, `npm run typecheck`, relevant verifier contracts, `npm run test:ci`, and `npm run build` before release closure.
+- **Release status:** Blocked while T001, T002, or T003 remains open.
+
 ### [x] Finish Backup/Sync Conflict and Lifecycle Coverage
 - **Description:** Backup/Sync now has approved-path custody, authenticated encryption, packet validation, atomic writes, a durable encrypted outbound outbox, encrypted sync-set/key identity, profile-bound sessions and packets, main-authoritative remote apply grants, one logical-object apply queue, deterministic timestamp/conflict/message convergence, bounded retry/journal behavior, durable current-object checkpoints, and device-acknowledged historical event collection. Event blobs are removed only after a checkpoint exists and every registered device has acknowledged; offline devices block collection, while new devices hydrate from retained object checkpoints.
 - **Status:** Closed (2026-07-12)

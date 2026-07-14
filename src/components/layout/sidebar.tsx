@@ -14,9 +14,13 @@ import { contentToSearchText, contentToMarkdownText } from '../../utils/messageC
 import { DEFAULT_CHAT_MODEL } from '../../constants/venice'
 import { getConversationDisplayTitle } from '../../utils/conversationDisplayTitle'
 import { CharacterAvatar } from '../characters/CharacterAvatar'
+import { getConversationKind } from '../../utils/conversationKind'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
+}
+function CharacterChatsIcon() {
+  return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H9l-4 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><circle cx="9" cy="10" r="2" /><path d="M13 14c-.6-1.3-2-2-4-2s-3.4.7-4 2" /></svg>)
 }
 function StatusIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v6l4 2" /></svg>)
@@ -82,6 +86,7 @@ interface NavGroup {
  */
 const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
   chat: ChatIcon,
+  'character-chats': CharacterChatsIcon,
   history: HistoryIcon,
   image: ImageIcon,
   media: GalleryIcon,
@@ -199,11 +204,15 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   }
 
   const deferredSearch = useDeferredValue(search)
+  const standardConversations = useMemo(
+    () => conversations.filter((conversation) => getConversationKind(conversation) === 'standard'),
+    [conversations],
+  )
   const searchIndexCache = useRef(new Map<string, { updatedAt: number, text: string }>())
   const searchIndex = useMemo(() => {
     if (!historyExpanded || !deferredSearch.trim()) return []
     const cache = searchIndexCache.current
-    return conversations.map((conversation) => {
+    return standardConversations.map((conversation) => {
       let entry = cache.get(conversation.id)
       if (!entry || entry.updatedAt !== conversation.updatedAt) {
         entry = { updatedAt: conversation.updatedAt, text: buildConversationSearchText(conversation) }
@@ -211,10 +220,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       }
       return { conversation, text: entry.text }
     })
-  }, [conversations, deferredSearch, historyExpanded])
+  }, [standardConversations, deferredSearch, historyExpanded])
   const searchResult = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase()
-    if (!query) return { conversations: conversations.slice(0, MAX_CONVERSATION_SEARCH_RESULTS), totalMatches: conversations.length }
+    if (!query) return { conversations: standardConversations.slice(0, MAX_CONVERSATION_SEARCH_RESULTS), totalMatches: standardConversations.length }
 
     const matches: Conversation[] = []
     let totalMatches = 0
@@ -224,7 +233,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       if (matches.length < MAX_CONVERSATION_SEARCH_RESULTS) matches.push(entry.conversation)
     }
     return { conversations: matches, totalMatches }
-  }, [conversations, deferredSearch, searchIndex])
+  }, [deferredSearch, searchIndex, standardConversations])
   const filtered = searchResult.conversations
 
   const handleDelete = async (conv: Conversation) => {

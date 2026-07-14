@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { abortVeniceRequest } from "../../services/veniceClient";
 import { performGuardedVeniceRequest } from "../../services/guardPipeline";
 import { logError } from "../../services/logger";
+import { getProfileSessionId } from "../../services/profileSession";
 import { validateVeniceIpcRequest } from "../validation";
 import { redactErrorMessage } from "../../../src/shared/redaction";
 import { SafetyGuardBlockedError } from "../../../src/shared/safety";
@@ -37,11 +38,20 @@ function transportErrorResponse(message: string) {
   };
 }
 
+function withSessionProfile(input: unknown, profileId: string): unknown {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) return input;
+  return { ...(input as Record<string, unknown>), profileId };
+}
+
 export function registerVeniceHandlers(): void {
-  registerIpcChannel("venice:request", async (_event, input: unknown) => {
+  registerIpcChannel("venice:request", async (event, input: unknown) => {
     try {
-      // Validate first so the guard sees a typed endpoint/method/payload.
-      const request = validateVeniceIpcRequest(input);
+      // Credential selection is main-process authoritative. Replace any
+      // renderer-supplied profile before validation so a forged invalid id
+      // cannot select another profile or turn into a request-level denial.
+      const request = validateVeniceIpcRequest(
+        withSessionProfile(input, getProfileSessionId(event.sender)),
+      );
       const result = await performGuardedVeniceRequest(request);
       if (result.kind === "blocked") return result.block;
       return result.response;
@@ -57,7 +67,9 @@ export function registerVeniceHandlers(): void {
 
   registerIpcChannel("venice:streamChat", async (event, input: unknown) => {
     try {
-      const request = validateVeniceIpcRequest(input);
+      const request = validateVeniceIpcRequest(
+        withSessionProfile(input, getProfileSessionId(event.sender)),
+      );
       if (request.endpoint !== "/chat/completions" || request.method !== "POST") {
         throw new Error("Streaming is only available for POST /chat/completions.");
       }

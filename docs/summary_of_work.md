@@ -11,24 +11,55 @@
 > are archived in [`docs/archives/session-history-pre-2026-07-11.md`](archives/session-history-pre-2026-07-11.md).
 
 ### Latest Session Summary
-**Date:** 2026-07-13
-**Task:** Close the remaining browser-audio and background-task result-URL custody findings from the media remediation follow-up.
+**Date:** 2026-07-14
+**Task:** Close `VF-AUDIT-20260714-T002`, add a dedicated Character Chats workspace, and validate the existing mesh/surface architecture.
 
 **Summary of Changes:**
-- Browser-mode music completion now persists the full provider payload into the encrypted Media Studio record before marking the task complete. The renderer task retains only a compact revocable `blob:` URL plus `resultMediaId`, and blob URLs are revoked when replaced or cleared.
-- `persistCompletedTaskMedia()` now returns the existing or newly persisted media item, allowing task state to retain the durable catalog identity without duplicate insertion.
-- The Electron task manager no longer silently truncates `resultUrl`. It accepts only canonical `venice-media://<64-hex-sha256>` references and rejects data URLs, signed URLs, and oversized/noncanonical values before mutating task state.
-- Registered `VERIFY-095` across the regression tests, agent guide, and repository handoff-hygiene verifier.
-- Reconciled the supplied live-provider concern against current evidence: the July 13 packaged ARM64 paid matrix already proved image/video/audio provider responses, playback, restart recovery, and exactly-once catalog insertion. No additional paid requests were made.
+- Replaced the generated-video signed-download path's lexical URL check and unbounded `arrayBuffer()` with DNS-aware public-address validation, connection pinning, redirect rejection, a 30-second timeout, MP4 MIME enforcement, and a 256 MiB streamed limit.
+- Preserved the existing durable video pipeline: normalized queue metadata, main-process restart recovery, atomic SHA-256 media persistence, compact `venice-media://` playback references, and idempotent Media Studio upsert.
+- Added a canonical standard-versus-character conversation classifier covering current character metadata and legacy hosted/local source markers without rewriting stored conversations.
+- Added a distinct top-level Character Chats workspace with character-only search/history, hosted/local labels, character-aware empty states, and correct hosted/local start-chat routing. Standard Chat now excludes character-bound history and clears character selection on entry.
+- Routed global History results into the correct workspace and updated header/model behavior for both chat surfaces.
+- Reconciled the requested UI-surface work against the live tree and retained the existing app-level mesh overlay, semantic translucent surfaces, soft separators, theme fallbacks, and reduced-transparency behavior; browser QA confirmed the overlay remains non-interactive.
+- Added `VERIFY-103` and `VERIFY-104`, closed `VF-AUDIT-20260714-T002`, and published `docs/reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md` with confirmed, obsolete, deferred, and manually verified findings.
+- Preserved the unrelated in-progress profile/session-security changes already present in the dirty worktree.
 
 **Validation:**
-- Focused background-task/media-catalog tests pass (3 files / 22 tests); `npm run lint:eslint` and both TypeScript pipelines pass under Node 22.13.1/npm 10.9.2.
-- `npm run test:ci` passes and all segmented domains exit naturally; Electron reports 619 tests and stores report 707 tests.
-- The first `npm run verify:contracts` run correctly failed because the handoff verifier still capped the guard namespace at `VERIFY-094`; after updating the canonical limit, the full contract chain passes.
-- `npm run build`, `npm run verify:dist`, and `npm run verify:bundle-budget` pass. The existing ineffective `backupImportService.ts` dynamic-import warning remains non-fatal.
-- Packaging and paid live-provider QA were not rerun; this session did not alter provider request/response normalization or the packaged `venice-media://` protocol.
+- Focused implementation tests pass (10 files / 94 tests), followed by a final focused downloader/navigation batch (6 files / 50 tests).
+- Browser QA against the development app passes for standard Chat, Character Chats empty/active states, hosted character routing, distinct navigation, model/source display, absence of generic starters, mesh presence, and non-intercepting mesh pointer behavior.
+- An initial full `npm run ci` under unsupported Node `v26.5.0` failed intermittently in renderer service aggregates; the implicated Venice client test passes in isolation. This result is retained as a toolchain mismatch, not reported as a product pass.
+- Full `npm run ci` passes under the repository-supported Node `v22.23.1` / npm `10.9.8`, including lint, both TypeScript pipelines, all segmented tests, zero-vulnerability audit, contracts, build, release-packaging hardening, and dist verification.
+- Final `verify:repo-handoff-hygiene`, `verify:agent-docs`, `verify:markdown-links` (79 files), and `git diff --check` pass after the report and ledger update.
+- Paid video generation, packaged restart playback, narrow-window capture, and the full light/high-contrast/custom-theme matrix were not run in this session.
 
 **Prior session context retained below:**
+- Added all ten reconciled audit findings to the canonical `docs/ROADMAP.md` under namespaced `VF-AUDIT-20260714-T001` through `T010` identifiers; release remains blocked on T001, T002, and T003.
+- Fixed the smallest contained T001 defect: video and music recovery polling now passes the persisted task `profileId` to `performVeniceRequest`, preventing restart polling from silently using the default profile credential.
+- Registered `VERIFY-096` in the manager test, agent guide, and handoff-hygiene namespace.
+- Added a WebContents-scoped main-process profile session. Both protected and unprotected Electron profile switches now activate that session before renderer reload.
+- Background-task create/list/snapshot/update/cancel/retry/clear/broadcast paths derive their profile from the session, ignore renderer-forged create profile IDs, and conceal cross-profile task existence (`VERIFY-097`).
+- Ordinary and streaming Venice requests now replace renderer-supplied profile selectors with the sender's session before validation; Jina request key lookup uses the same session authority (`VERIFY-098`).
+- Venice, Jina, and fallback-provider credential status/set/delete/test plus profile-password set/clear now derive the secure-store profile from the authenticated sender session. Electron deletion requires activating the target profile first, and purge removes all registered fallback-provider keys (`VERIFY-099`).
+- The legacy JSON chat mirror preserves unscoped historical files as default-profile data and routes non-default profiles into validated subdirectories. CRUD and remote-sync apply use the WebContents session, same logical IDs are isolated, and non-default sessions cannot invoke default-only legacy migration (`VERIFY-100`).
+- The encrypted Conversation Vault preserves historical default paths/AAD while routing non-default records, manifests, journals, attachments, and indexes into validated profile roots with profile-bound AAD. Caches/queues and all vault/search/context/folder IPC operations are profile-scoped (`VERIFY-101`).
+- Manual Electron backup export now requires a one-time, five-minute lease bound to the sender's main-process profile. Renderer/main session changes, token reuse, mismatched encrypted profile metadata, and cross-profile records fail before encryption; non-default exports omit legacy unscoped/default records (`VERIFY-102`).
+- Closed `VF-AUDIT-20260714-T001`; T002 and T003 remain the active release blockers.
+
+**Validation:**
+- The new focused assertions failed before implementation and passed afterward (1 file / 13 tests).
+- The provider-use session assertions failed before implementation and passed afterward (1 file / 86 tests); `npm run test:electron` passes after all three T001 tranches (41 files / 627 tests).
+- `npm run test:unit:stores` passes (40 files / 708 tests) after updating the existing desktop-bridge test double for profile activation.
+- `npm run lint:eslint`, `npm run typecheck`, `npm run verify:contracts`, and `git diff --check` pass; the aggregate contracts include handoff, agent-doc, Markdown, feature, backup/sync, and 103 release-hardening checks.
+- The VERIFY-099 focused assertions failed before implementation and pass afterward (4 files / 99 tests). Electron (41 files / 620 tests), stores (40 files / 709 tests), and all segmented UI suites pass; lint and both TypeScript pipelines pass.
+- `npm run verify:contracts` passes with VERIFY-099 registered, including static/feature/backup-sync contracts and all 103 release-hardening checks.
+- Final handoff-hygiene, Markdown-link, and `git diff --check` checks pass.
+- VERIFY-100 focused tests pass (2 files / 101 tests), followed by Electron (41 files / 622 tests), stores (40 files / 709 tests), backup export/import (2 files / 30 tests), lint, and both TypeScript pipelines.
+- `npm run verify:contracts` passes with VERIFY-100 registered, including all static/feature/backup-sync contracts and 103 release-hardening checks.
+- VERIFY-101 initially failed at the intended boundaries (2 failed / 111 passed) and passes after implementation (2 files / 113 tests). Electron passes 41 files / 624 tests; lint and both TypeScript pipelines pass.
+- VERIFY-102 initially failed at all four intended export/session assertions. Focused IPC/export/storage tests pass (3 files / 109 tests), backup export/import/cross-runtime tests pass (3 files / 34 tests), and Electron passes 41 files / 626 tests.
+- Renderer service tests pass (61 files / 593 tests), and `npm run verify:contracts` passes with VERIFY-102 registered, including backup/sync and 103 release-hardening checks.
+- Full renderer CI, build, packaging, and headed/provider QA were not run because these T001 tranches are scoped to main-process profile/session authority and existing request credential selection.
+
 - **Automatic Fallback Router:** Implemented an opt-in, consent-aware fallback router in `electron/services/veniceClient.ts`. The router now reads `autoFallbackEnabled` and `fallbackOrdering` from the `fallbackConfig` property and automatically iterates through the configured provider queue upon encountering a retryable error (like a 5xx response or 429 rate limit). It skips fallback routing if the stream has already commenced outputting data or if the user specifically requested a fallback provider model prefix.
 - **Settings UI Update:** Added an "Automatic Fallback Router" toggle and comma-separated fallback ordering input field to `src/components/settings/ProvidersPanel.tsx`.
 - **CI Test Fixes:** Resolved static invariant failures in `vitest`:
@@ -499,6 +530,14 @@
 
 ### Session History
 
+- **2026-07-14 — Video download and Character Chats remediation:** Closed T002 with DNS-aware, pinned, size-bounded generated-video downloading; registered VERIFY-103/104; added canonical conversation classification and a distinct Character Chats workspace; validated the existing mesh/surface system in-browser; and passed full CI under Node 22.
+- **2026-07-14 — T001 backup-export closure:** Added one-time main-profile export leases, encrypted profile provenance, renderer/main profile-race checks, and cross-profile payload rejection; registered VERIFY-102 and closed T001. T002 is the next release blocker.
+- **2026-07-14 — T001 encrypted Conversation Vault isolation:** Added default-compatible per-profile vault roots, profile-bound AAD, profile-keyed manifest/index caches and queues, and session-owned vault/search/context/folder IPC; registered VERIFY-101. Final backup-export binding remains open.
+- **2026-07-14 — T001 legacy desktop-chat isolation:** Added default-compatible per-profile chat directories, session-owned CRUD/remote-sync routing, same-ID isolation, and default-only legacy migration gating; registered VERIFY-100. Encrypted-vault/index and final backup binding remain open.
+- **2026-07-14 — T001 credential/password administration isolation:** Bound Venice, Jina, and fallback-provider credential administration plus password mutations to the authenticated renderer session; required active-profile ownership for Electron deletion; swept all registered provider keys; and registered VERIFY-099. Conversation and backup boundaries remain open.
+- **2026-07-14 — T001 provider-use session isolation:** Derived ordinary/streaming Venice and Jina credential selection from the sender's WebContents session, ignored forged renderer profile selectors before validation/key lookup, and registered VERIFY-098. Credential administration and remaining storage boundaries stay open.
+- **2026-07-14 — T001 main-process task-session isolation:** Added WebContents-scoped profile activation for protected and unprotected switches, derived background-task IPC authority from that session, concealed cross-profile mutations, and registered VERIFY-097. Credential/password/conversation/backup session authority remains open.
+- **2026-07-14 — Repository-wide audit remediation start:** Added the ten reconciled findings to the canonical roadmap, fixed background video/music recovery polling to retain the task profile credential selector, registered VERIFY-096, and kept the broader T001 profile-session/isolation work explicitly open.
 - **2026-07-13 — Generated-media result custody closure:** Persisted browser audio before completion, replaced task data URLs with revocable blob URLs and durable media IDs, rejected noncanonical Electron result URLs atomically, registered VERIFY-095, and passed full tests/contracts/build validation.
 - **2026-07-13 — Authorized paid media QA closure:** Spent exactly USD $0.08 on the least-cost eligible Venice image/video/audio matrix, validated all returned media, proved packaged playback and music-task restart/idempotency, visually exercised Character Hub, fixed RP save-envelope parsing and stale video safe-mode routing, rebuilt the ARM64 package, and closed the final current roadmap item.
 - **2026-07-13 — Remaining media/character TODO closure:** Added decoded paid-image preflight and safe diagnostics, routed workflow video through durable tasks, completed hosted Character Hub adapters/actions, added dedicated regression coverage, passed the full test/contracts/build matrix, and verified an unsigned ARM64 package plus isolated-profile startup/restart. Paid provider-generation/playback QA remains authorization-gated.
@@ -529,7 +568,12 @@
 ### Open TODO Ledger
 
 ### Current Priorities
+- [x] `VF-AUDIT-20260714-T001` (High): main-authoritative profile sessions and profile-scoped credentials/conversations/tasks/subscriptions/backups completed through `VERIFY-096`–`VERIFY-102`.
+- [x] `VF-AUDIT-20260714-T002` (High): DNS-aware, connection-pinned, redirect-rejecting, size-bounded generated-video downloading completed under `VERIFY-103`.
+- [ ] `VF-AUDIT-20260714-T003` (High, release blocking): main-authoritative provider consent and provider-native fallback models.
+- [ ] `VF-AUDIT-20260714-T004` through `T010`: preview truthfulness, API-reference provenance, ledger consistency, plaintext task prompts, sync symlink custody, destructive-history scope, and Research Browser DNS pinning. See `docs/ROADMAP.md` for the canonical per-item ledger.
 - [x] Generated-media result custody: browser audio persists before completion and uses a compact revocable task URL; Electron rejects noncanonical/oversized result URLs without mutation (VERIFY-095).
+- [x] Character Chats and surface remediation: canonical standard/character classification, exclusive workspaces and routing, character-specific empty/active states, and browser validation of the existing app-level mesh architecture (`VERIFY-104`).
 - [x] Media preflight: decode PNG/JPEG/WEBP dimensions, reject spoofed/invalid inputs, enforce source/projected pixel limits, and expose safe diagnostics before paid Image Tools requests.
 - [x] Media/character implementation closure: durable workflow-video completion, hosted Hub favorite/recent/detail/refresh/duplicate actions, dedicated template/avatar tests, ARM64 package verification, and isolated-profile startup/restart smoke.
 - [x] Paid headed media QA: least-cost image/video/audio generation, media validation, packaged playback, background-task restart recovery, exactly-once Media Studio insertion, and Character Hub visual checks completed with an exact USD $0.08 balance delta.
@@ -856,6 +900,122 @@
   above. IMG-001 is closed.
 
 ### Validation Matrix (this session)
+
+- **2026-07-14 video download, Character Chats, and UI-surface remediation**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | Focused implementation tests | PASS | — | 10 files / 94 tests |
+  | Final focused downloader/navigation tests | PASS | — | 6 files / 50 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | Browser QA against `npm run dev` | PARTIAL PASS | Paid generation, packaged restart, narrow layout, and full theme matrix were not run. | Standard/Character Chats/Characters navigation, active hosted chat, model/source display, empty state, mesh presence, and non-intercepting overlay pass in wide dark mode |
+  | `npm run ci` under Node `v26.5.0` | FAIL | Unsupported runtime produced intermittent renderer service aggregate failures; the implicated Venice client test passed alone. | Retained as an honest toolchain failure; rerun under supported Node 22 |
+  | `npm run ci` under Node `v22.23.1`, npm `10.9.8` | PASS | Existing non-fatal build warning for mixed dynamic/static `backupImportService.ts` import. | All segmented tests, lint, typecheck, zero-vulnerability audit, contracts, build, 103 release-hardening checks, and dist verification pass |
+  | Final handoff/documentation checks | PASS | — | Handoff hygiene and agent-doc parity pass; 79 Markdown files checked; `git diff --check` reports no whitespace errors |
+
+- **2026-07-14 T001 closure — main-authoritative backup export**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | Initial focused IPC/export test | EXPECTED FAIL | Export lease channel was absent and renderer export did not request or compare main profile authority. | 4 failed / 84 passed before implementation |
+  | Focused IPC/export/storage tests | PASS | Initial exact-import regression from a persistent profile stamp was corrected by stamping only the temporary backup copy. | 3 files / 109 tests |
+  | Focused backup export/import/cross-runtime tests | PASS | The expected payload was updated for encrypted profile provenance. | 3 files / 34 tests |
+  | `npm run test:electron` | PASS | — | 41 files / 626 tests |
+  | `npm run test:unit:services` | PASS | — | 61 files / 593 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, backup/sync, and 103 release-hardening checks pass with VERIFY-102 registered |
+  | `npm run verify:repo-handoff-hygiene` | PASS | — | VERIFY-102 is registered and the repository handoff contract passes |
+  | `npm run verify:markdown-links` | PASS | — | 78 Markdown files checked |
+  | `git diff --check` | PASS | — | No whitespace errors after the final ledger update |
+
+- **2026-07-14 T001 continuation — encrypted Conversation Vault profile isolation**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | Initial focused two-file test | EXPECTED FAIL | Work-profile vault save replaced the default same-ID record and all vault/index IPC operations omitted session context. | 2 failed / 111 passed before implementation |
+  | Final focused two-file test | PASS | — | 2 files / 113 tests |
+  | `npm run test:electron` | PASS | — | 41 files / 624 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, backup/sync, and 103 release-hardening checks pass with VERIFY-101 registered |
+  | `npm run verify:repo-handoff-hygiene` | PASS | — | VERIFY-101 is registered and the repository handoff contract passes |
+  | `npm run verify:markdown-links` | PASS | — | 78 Markdown files checked |
+  | `git diff --check` | PASS | — | No whitespace errors after the final ledger update |
+
+- **2026-07-14 T001 continuation — legacy desktop-chat profile isolation**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | Initial focused two-file test | EXPECTED FAIL | Work-profile saves overwrote the default file and chat IPC omitted session context. | 2 failed / 99 passed before implementation |
+  | Final focused two-file test | PASS | — | 2 files / 101 tests |
+  | `npm run test:electron` | PASS | — | 41 files / 622 tests |
+  | `npm run test:unit:stores` | PASS | Existing non-fatal jsdom navigation notices. | 40 files / 709 tests |
+  | Focused backup export/import tests | PASS | — | 2 files / 30 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, backup/sync, and 103 release-hardening checks pass with VERIFY-100 registered |
+  | `npm run verify:repo-handoff-hygiene` | PASS | — | VERIFY-100 is registered and the repository handoff contract passes |
+  | `npm run verify:markdown-links` | PASS | — | 78 Markdown files checked |
+  | `git diff --check` | PASS | — | No whitespace errors after the final ledger update |
+
+- **2026-07-14 T001 continuation — credential/password administration isolation**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | Initial focused four-file test | EXPECTED FAIL | Credential/password handlers trusted renderer profile IDs; inactive profile deletion was allowed; provider keys were not purged. One ProfilePanel test double also lacked the preceding activation API. | 6 behavioral failures plus 1 stale-mock suite failure before implementation |
+  | Final focused four-file test | PASS | — | 4 files / 99 tests |
+  | `npm run test:electron` | PASS | — | 41 files / 620 tests |
+  | `npm run test:unit:stores` | PASS | Existing non-fatal jsdom navigation notices. | 40 files / 709 tests |
+  | `npm run test:ui` | PASS | — | Layout 66, chat 73, gallery 63, image 17, research 38, settings/privacy 13 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, backup/sync, and 103 release-hardening checks pass with VERIFY-099 registered |
+  | Final handoff/Markdown/whitespace checks | PASS | — | Handoff hygiene OK; 78 Markdown files checked; no whitespace errors |
+
+- **2026-07-14 T001 continuation — provider-use profile-session isolation**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | Initial focused IPC handler test | EXPECTED FAIL | Venice rejected the forged invalid renderer profile before dispatch; Jina selected the renderer-requested/default key. | 4 failed / 82 passed before implementation |
+  | Final focused IPC handler test | PASS | — | 1 file / 86 tests |
+  | `npm run test:electron` | PASS | — | 41 files / 627 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, backup/sync, and 103 release-hardening checks pass with VERIFY-098 registered |
+  | `git diff --check` | PASS | — | No whitespace errors |
+  | Full `test:ci`, build, packaging, and headed/provider QA | NOT RUN | Scoped main-process session/credential-selection changes; no renderer output format or package behavior changed. | Deferred until a broader audit tranche or release closure |
+
+- **2026-07-14 T001 continuation — main-process profile-session task isolation**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | Initial focused four-file profile/task test | EXPECTED FAIL | Session service and session-derived task filtering/authorization did not exist. | 1 missing-module suite plus 9 behavioral failures before implementation |
+  | Final focused profile/task test | PASS | — | 4 files / 36 tests |
+  | Focused profile IPC handler test | PASS | — | 24 passed / 60 skipped; activation and successful-verification session binding pass |
+  | `npm run test:electron` | PASS | — | 41 files / 625 tests |
+  | First `npm run test:unit:stores` | FAIL | Existing `profile-store.broadcast.test.ts` desktop bridge mock lacked the new activation method. | 39 files / 705 tests passed before the test double was repaired |
+  | Final `npm run test:unit:stores` | PASS | Existing non-fatal jsdom navigation notices. | 40 files / 708 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run verify:contracts` | PASS | — | Static, feature, settings, backup/sync, and 103 release-hardening checks pass with VERIFY-097 registered |
+
+- **2026-07-14 Repository-wide audit remediation start — T001 polling profile tranche**
+
+  | Command / check | Status | Failure summary | Evidence |
+  | :-------------- | :----: | :-------------- | :------- |
+  | Initial `npx vitest run electron/services/backgroundTaskManager.test.ts --fileParallelism=false` | EXPECTED FAIL | Video and music retrieve requests omitted `profileId`. | 2 failed / 11 passed before implementation |
+  | Final focused background-task manager test | PASS | — | 1 file / 13 tests; both media polling paths assert `profileId: "p1"` |
+  | `npm run test:electron` | PASS | — | 40 files / 619 tests |
+  | `npm run lint:eslint` | PASS | — | Zero warnings |
+  | `npm run typecheck` | PASS | — | Renderer and Electron TypeScript pipelines pass |
+  | `npm run verify:repo-handoff-hygiene` | PASS | — | VERIFY-096 is registered and allowlisted |
+  | `npm run verify:agent-docs` | PASS | — | Agent instruction parity passes |
+  | `npm run verify:markdown-links` | PASS | — | 78 Markdown files checked |
+  | `npm run verify:contracts` | PASS | — | Static, feature, settings, backup/sync, and 103 release-hardening checks pass |
+  | `git diff --check` | PASS | — | No whitespace errors |
+  | Full `test:ci`, build, packaging, and headed/provider QA | NOT RUN | Scoped main-process request-field change; no renderer, output-format, or package behavior changed. | Deferred until a broader audit tranche or release closure |
 
 - **2026-07-13 Generated-media result custody closure**
 

@@ -48,7 +48,7 @@ vi.mock("../../src/services/storageService", async () => {
 describe("cross-runtime backup compatibility", () => {
   const testPassword = "test-password-123";
   // Expected payload that matches our mocked storage data
-const testPayload = JSON.stringify({
+  const testPayload = JSON.stringify({
   images: [],
   chats: [{ id: "test1", content: "test chat content" }],
   settings: [{ id: "setting1", value: "test setting" }],
@@ -70,6 +70,29 @@ const testPayload = JSON.stringify({
   playground: [],
   tombstones: []
 });
+  const webProfileBoundPayload = JSON.stringify({
+    _veniceForgeBackup: { profileId: "default" },
+    images: [],
+    chats: [{ id: "test1", content: "test chat content", profileId: "default" }],
+    settings: [{ id: "setting1", value: "test setting", profileId: "default" }],
+    conversations: [],
+    ai_memory: [],
+    files: [],
+    character_cards: [],
+    personas: [],
+    lorebooks: [],
+    rp_chats: [],
+    rp_assets: [],
+    projects: [],
+    promptLibrary: [],
+    scenes: [],
+    rpScenarios: [],
+    workflowTemplates: [],
+    researchSessions: [],
+    visualWorkflows: [],
+    playground: [],
+    tombstones: [],
+  });
 
   it("should create backups that can be decrypted by both runtimes", async () => {
     // Create Electron backup (traditional format)
@@ -95,7 +118,7 @@ const testPayload = JSON.stringify({
       webBackup.iv,
       testPassword
     );
-    expect(webDecrypted).toBe(testPayload);
+    expect(webDecrypted).toBe(webProfileBoundPayload);
     
     // Electron backup should be decryptable by Web (this requires proper mocking)
     // We'll test this by creating an Electron backup in WebCrypto-compatible format

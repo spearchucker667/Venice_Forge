@@ -2,6 +2,7 @@
 
 /** @fileoverview Tests for background task IPC handlers. */
 // VERIFY-094 regression guard: IPC CRUD/subscription and push broadcasts for persisted background tasks.
+// VERIFY-097 regression guard: background-task IPC is scoped to the main-process profile session.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import os from "os";
@@ -39,6 +40,7 @@ vi.mock("../../services/backgroundTaskManager", () => ({
   cancelBackgroundTaskInMain: vi.fn(),
   retryBackgroundTaskInMain: vi.fn(),
   clearBackgroundTaskInMain: vi.fn(),
+  getBackgroundTask: vi.fn(),
   listBackgroundTasks: vi.fn(),
   subscribeToBackgroundTasks: vi.fn(),
 }));
@@ -49,9 +51,14 @@ import {
   cancelBackgroundTaskInMain as cancelTask,
   retryBackgroundTaskInMain as retryTask,
   clearBackgroundTaskInMain as clearTask,
+  getBackgroundTask as getTask,
   listBackgroundTasks as listTasks,
   subscribeToBackgroundTasks as subscribe,
 } from "../../services/backgroundTaskManager";
+
+vi.mock("../../services/profileSession", () => ({
+  getProfileSessionId: vi.fn(() => "p1"),
+}));
 
 vi.mock("./common", () => ({
   registerIpcChannel: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
@@ -70,6 +77,7 @@ const updateTaskMock = vi.mocked(updateTask);
 const cancelTaskMock = vi.mocked(cancelTask);
 const retryTaskMock = vi.mocked(retryTask);
 const clearTaskMock = vi.mocked(clearTask);
+const getTaskMock = vi.mocked(getTask);
 const listTasksMock = vi.mocked(listTasks);
 const subscribeMock = vi.mocked(subscribe);
 
@@ -88,7 +96,9 @@ describe("registerBackgroundTaskHandlers", () => {
     cancelTaskMock.mockReset();
     retryTaskMock.mockReset();
     clearTaskMock.mockReset();
+    getTaskMock.mockReset();
     listTasksMock.mockReset();
+    listTasksMock.mockReturnValue([]);
     subscribeMock.mockReset();
     mockWebContents.isDestroyed.mockReturnValue(false);
     __resetBackgroundTaskHandlersForTests();
@@ -108,18 +118,20 @@ describe("registerBackgroundTaskHandlers", () => {
 
   it("subscribes a renderer and sends a snapshot", async () => {
     listTasksMock.mockReturnValue([
-      { id: "t1", type: "video", status: "queued", queueId: "q1", createdAt: 1, updatedAt: 2 },
+      { id: "t1", type: "video", status: "queued", queueId: "q1", profileId: "p1", createdAt: 1, updatedAt: 2 },
+      { id: "t2", type: "video", status: "queued", queueId: "q2", profileId: "p2", createdAt: 1, updatedAt: 2 },
     ]);
     const result = await invoke("backgroundTask:subscribe");
     expect(result).toEqual({ ok: true });
     expect(sentEvents).toHaveLength(1);
     expect(sentEvents[0].channel).toBe("backgroundTask:update");
     expect((sentEvents[0].payload as { kind: string }).kind).toBe("snapshot");
+    expect((sentEvents[0].payload as { tasks: Array<{ id: string }> }).tasks.map((task) => task.id)).toEqual(["t1"]);
   });
 
   it("creates a task and returns it", async () => {
     createTaskMock.mockResolvedValue({ id: "t1", type: "video", status: "queued", profileId: "p1", createdAt: 1, updatedAt: 2 });
-    const result = await invoke("backgroundTask:create", { type: "video", queueId: "q1", profileId: "p1" });
+    const result = await invoke("backgroundTask:create", { type: "video", queueId: "q1", profileId: "p2" });
     expect(result.ok).toBe(true);
     expect(createTaskMock).toHaveBeenCalledWith({ type: "video", queueId: "q1", profileId: "p1" });
   });
@@ -131,6 +143,7 @@ describe("registerBackgroundTaskHandlers", () => {
   });
 
   it("updates a task", async () => {
+    getTaskMock.mockReturnValue({ id: "t1", type: "video", status: "queued", profileId: "p1", createdAt: 1, updatedAt: 1 });
     updateTaskMock.mockResolvedValue({ id: "t1", type: "video", status: "completed" });
     const result = await invoke("backgroundTask:update", { taskId: "t1", updates: { status: "completed" } });
     expect(result.ok).toBe(true);
@@ -138,13 +151,26 @@ describe("registerBackgroundTaskHandlers", () => {
   });
 
   it("lists tasks", async () => {
-    listTasksMock.mockReturnValue([{ id: "t1", type: "video", status: "queued", createdAt: 1, updatedAt: 2 }]);
+    listTasksMock.mockReturnValue([
+      { id: "t1", type: "video", status: "queued", profileId: "p1", createdAt: 1, updatedAt: 2 },
+      { id: "t2", type: "video", status: "queued", profileId: "p2", createdAt: 1, updatedAt: 2 },
+    ]);
     const result = await invoke("backgroundTask:list");
     expect(result.ok).toBe(true);
     expect(result.tasks).toHaveLength(1);
   });
 
+  it("rejects cross-profile mutation without revealing task state", async () => {
+    getTaskMock.mockReturnValue({ id: "t2", type: "video", status: "queued", profileId: "p2", createdAt: 1, updatedAt: 1 });
+
+    const result = await invoke("backgroundTask:update", { taskId: "t2", updates: { status: "completed" } });
+
+    expect(result).toEqual({ ok: false, error: "Background task not found." });
+    expect(updateTaskMock).not.toHaveBeenCalled();
+  });
+
   it("cancels a task", async () => {
+    getTaskMock.mockReturnValue({ id: "t1", type: "video", status: "queued", profileId: "p1", createdAt: 1, updatedAt: 1 });
     cancelTaskMock.mockResolvedValue({ id: "t1", type: "video", status: "aborted" });
     const result = await invoke("backgroundTask:cancel", "t1");
     expect(result.ok).toBe(true);
@@ -152,6 +178,7 @@ describe("registerBackgroundTaskHandlers", () => {
   });
 
   it("retries a task", async () => {
+    getTaskMock.mockReturnValue({ id: "t1", type: "video", status: "timeout", profileId: "p1", createdAt: 1, updatedAt: 1 });
     retryTaskMock.mockResolvedValue({ id: "t1", type: "video", status: "queued" });
     const result = await invoke("backgroundTask:retry", "t1");
     expect(result.ok).toBe(true);
@@ -159,6 +186,7 @@ describe("registerBackgroundTaskHandlers", () => {
   });
 
   it("clears a task", async () => {
+    getTaskMock.mockReturnValue({ id: "t1", type: "video", status: "completed", profileId: "p1", createdAt: 1, updatedAt: 1 });
     clearTaskMock.mockResolvedValue(undefined);
     const result = await invoke("backgroundTask:clear", "t1");
     expect(result.ok).toBe(true);
@@ -167,10 +195,19 @@ describe("registerBackgroundTaskHandlers", () => {
 
   it("broadcasts task changes to subscribed renderers", async () => {
     await invoke("backgroundTask:subscribe");
-    const listener = subscribeMock.mock.calls[0]?.[0] as (taskId: string, task: unknown) => void;
+    const listener = subscribeMock.mock.calls[0]?.[0] as (taskId: string, task: unknown, profileId: string) => void;
     expect(listener).toBeDefined();
-    listener("t1", { id: "t1", type: "video", status: "processing" } as never);
+    listener("t1", { id: "t1", type: "video", status: "processing", profileId: "p1" } as never, "p1");
     expect(sentEvents).toHaveLength(2);
     expect(sentEvents[1].channel).toBe("backgroundTask:update");
+  });
+
+  it("does not broadcast another profile's task", async () => {
+    await invoke("backgroundTask:subscribe");
+    const listener = subscribeMock.mock.calls[0]?.[0] as (taskId: string, task: unknown, profileId: string) => void;
+
+    listener("t2", { id: "t2", type: "video", status: "processing", profileId: "p2" }, "p2");
+
+    expect(sentEvents).toHaveLength(1);
   });
 });

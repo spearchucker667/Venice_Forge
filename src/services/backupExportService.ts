@@ -17,6 +17,8 @@ import {
 import type { SyncStoreName } from "../types/sync";
 import { BACKUP_SCHEMA_VERSION, SALT_BYTE_LENGTH, IV_BYTE_LENGTH, deriveBackupKey, toBase64, EncryptedBackupManifest } from "./backupCryptoWeb";
 import { sanitizePortableData } from "./syncDataSanitizer";
+import { getActiveProfileId } from "./activeProfile";
+import { BACKUP_PROFILE_METADATA_KEY, backupRecordBelongsToProfile } from "../shared/backupProfile";
 
 
 /** Fetch all records for a specific store, routing to IPC if needed in Desktop mode. */
@@ -55,22 +57,52 @@ export async function fetchStoreRecords(storeName: SyncStoreName): Promise<unkno
   }
 
   // Web mode OR IndexedDB-only stores
-  return StorageService.getItems(storeName);
+  const profileId = getActiveProfileId();
+  const records = await StorageService.getItems(storeName);
+  return records.map((record) => {
+    if (!record || typeof record !== "object" || Array.isArray(record) || "profileId" in record) return record;
+    return { ...record, profileId };
+  });
 }
 
 /** Creates an encrypted backup manifest containing all syncable data. */
 export async function createEncryptedBackup(password: string): Promise<EncryptedBackupManifest> {
-  const data: Record<string, unknown[]> = {};
+  const rendererProfileId = getActiveProfileId();
+  let profileId = rendererProfileId;
+  let exportToken: string | undefined;
+
+  if (isElectron()) {
+    const lease = await desktopSync.beginBackupExport();
+    if (!lease.ok || !lease.profileId || !lease.token) {
+      throw new Error(lease.error || "Failed to begin backup export.");
+    }
+    if (lease.profileId !== rendererProfileId) {
+      throw new Error("Backup export profile session changed. Reactivate the profile and retry.");
+    }
+    profileId = lease.profileId;
+    exportToken = lease.token;
+  }
+
+  const data: Record<string, unknown> = {
+    [BACKUP_PROFILE_METADATA_KEY]: { profileId },
+  };
 
   for (const storeName of STORE_NAMES) {
     if (storeName === "diagnostics") continue;
-    data[storeName] = sanitizePortableData(await fetchStoreRecords(storeName as SyncStoreName)) as unknown[];
+    if (getActiveProfileId() !== profileId) {
+      throw new Error("Backup export profile session changed during collection. Retry the export.");
+    }
+    const sanitized = sanitizePortableData(await fetchStoreRecords(storeName as SyncStoreName)) as unknown[];
+    data[storeName] = sanitized.filter((record) => backupRecordBelongsToProfile(record, profileId));
   }
 
+  if (getActiveProfileId() !== profileId) {
+    throw new Error("Backup export profile session changed during collection. Retry the export.");
+  }
   const jsonPayload = JSON.stringify(data);
 
   if (isElectron()) {
-    const res = await desktopSync.encryptBackup(jsonPayload, password);
+    const res = await desktopSync.encryptBackup(jsonPayload, password, exportToken!);
     if (!res.ok || !res.data) throw new Error(res.error || "Encryption failed in main process");
     return {
       version: BACKUP_SCHEMA_VERSION,

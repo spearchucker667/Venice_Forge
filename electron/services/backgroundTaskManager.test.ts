@@ -3,6 +3,8 @@
 /** @fileoverview Tests for the persistent main-process background task manager. */
 // VERIFY-094 regression guard: main-process background-task persistence, recovery, and redaction.
 // VERIFY-095 regression guard: reject noncanonical generated-media result URLs without mutation.
+// VERIFY-096 regression guard: recovered media polling always uses the task's persisted profile.
+// VERIFY-103 regression guard: completed queue-download responses use the bounded, DNS-aware downloader.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
@@ -41,7 +43,15 @@ vi.mock('./generatedMediaStore', () => ({
   })),
 }));
 
+vi.mock('./generatedVideoDownload', () => ({
+  downloadGeneratedVideo: vi.fn(async () => ({
+    bytes: Buffer.from([0, 0, 0, 16, 0x66, 0x74, 0x79, 0x70, 0, 0, 0, 0]),
+    mimeType: 'video/mp4',
+  })),
+}));
+
 import { performVeniceRequest as performVeniceRequestMock } from "./veniceClient";
+import { downloadGeneratedVideo } from './generatedVideoDownload';
 import {
   initBackgroundTaskManager,
   createBackgroundTaskInMain,
@@ -69,6 +79,7 @@ describe("backgroundTaskManager", () => {
   beforeEach(async () => {
     await __resetBackgroundTaskManagerForTests();
     performVeniceRequest.mockReset();
+    vi.mocked(downloadGeneratedVideo).mockClear();
     const tasksFile = path.join(TMP_USERDATA, "background-tasks", "tasks.json");
     try {
       await fs.unlink(tasksFile);
@@ -136,12 +147,12 @@ describe("backgroundTaskManager", () => {
     const listener = vi.fn();
     subscribeToBackgroundTasks(listener);
     const task = await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1" });
-    expect(listener).toHaveBeenCalledWith(task.id, expect.objectContaining({ status: "queued" }));
+    expect(listener).toHaveBeenCalledWith(task.id, expect.objectContaining({ status: "queued" }), "p1");
     await cancelBackgroundTaskInMain(task.id);
     expect(listener).toHaveBeenCalledWith(task.id, expect.objectContaining({
       status: "queued",
       metadata: expect.objectContaining({ cancellationUnsupported: true }),
-    }));
+    }), "p1");
   });
 
   it("recovers persisted tasks on init and resumes polling async tasks", async () => {
@@ -167,7 +178,37 @@ describe("backgroundTaskManager", () => {
     const updated = listBackgroundTasks()[0];
     expect(updated?.status).toBe("completed");
     expect(updated?.resultUrl).toBe(`venice-media://${'a'.repeat(64)}`);
-    expect(performVeniceRequest).toHaveBeenCalledWith(expect.objectContaining({ body: { model: 'video-model', queue_id: 'q1', delete_media_on_completion: false } }));
+    expect(performVeniceRequest).toHaveBeenCalledWith(expect.objectContaining({
+      body: { model: 'video-model', queue_id: 'q1', delete_media_on_completion: false },
+      profileId: "p1",
+    }));
+    vi.useRealTimers();
+  });
+
+  it("uses the secure downloader for completed queue-download responses", async () => {
+    vi.useFakeTimers();
+    await createBackgroundTaskInMain({
+      type: "video",
+      queueId: "q-download",
+      profileId: "p1",
+      metadata: { model: "video-model", queueDownloadUrl: "https://media.example/result.mp4" },
+    });
+    performVeniceRequest.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { "content-type": "application/json" },
+      body: { status: "COMPLETED" },
+      contentType: "application/json",
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(downloadGeneratedVideo).toHaveBeenCalledWith("https://media.example/result.mp4");
+    expect(listBackgroundTasks()[0]).toMatchObject({
+      status: "completed",
+      resultUrl: `venice-media://${'a'.repeat(64)}`,
+      resultMediaId: 'a'.repeat(64),
+    });
     vi.useRealTimers();
   });
 
@@ -185,7 +226,10 @@ describe("backgroundTaskManager", () => {
     const updated = listBackgroundTasks()[0];
     expect(updated?.status).toBe("completed");
     expect(updated?.resultUrl).toBe(`venice-media://${'a'.repeat(64)}`);
-    expect(performVeniceRequest).toHaveBeenCalledWith(expect.objectContaining({ body: { model: 'stable-audio', queue_id: 'q1', delete_media_on_completion: false } }));
+    expect(performVeniceRequest).toHaveBeenCalledWith(expect.objectContaining({
+      body: { model: 'stable-audio', queue_id: 'q1', delete_media_on_completion: false },
+      profileId: "p1",
+    }));
     vi.useRealTimers();
   });
 

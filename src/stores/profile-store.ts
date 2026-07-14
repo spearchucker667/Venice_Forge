@@ -73,28 +73,28 @@ export const useProfileStore = create<ProfileState>()(
       requestSwitchProfile: async (id, password) => {
         if (!isValidProfileStorageId(id)) return { ok: false, error: "Invalid profile id." }
         const { profiles, activeProfileId } = get()
-        if (id === activeProfileId) return { ok: true }
         const target = profiles.find(p => p.id === id)
         if (!target) return { ok: false, error: "Profile not found." }
 
-        // Authorization gate: password-protected profiles require Electron secure
-        // bridge verification. In web mode there is no secure bridge, so we fail
-        // closed rather than allowing an unverified switch.
-        if (target.hasPassword) {
-          if (!isElectron()) {
-            return {
-              ok: false,
-              error: "Password-protected profiles require the desktop secure bridge.",
-            }
-          }
-          const result = await desktopProfilePassword.verify(id, password || '')
+        // Electron switches always activate a main-process profile session.
+        // The main process checks the live password verifier even if renderer
+        // metadata is stale, so unprotected and protected switches share one gate.
+        if (isElectron()) {
+          const result = await desktopProfilePassword.activate(id, password)
           if (!result.ok || !result.verified) {
             const lockoutMsg = result.lockedOutSeconds && result.lockedOutSeconds > 0
               ? ` Locked out. Try again in ${result.lockedOutSeconds}s.`
               : ''
             return { ok: false, error: result.error || `Incorrect password.${lockoutMsg}` }
           }
+        } else if (target.hasPassword) {
+            return {
+              ok: false,
+              error: "Password-protected profiles require the desktop secure bridge.",
+            }
         }
+
+        if (id === activeProfileId) return { ok: true }
 
         performRawProfileSwitch(id)
         return { ok: true }
@@ -113,6 +113,9 @@ export const useProfileStore = create<ProfileState>()(
       deleteProfile: async (id) => {
         if (id === DEFAULT_PROFILE_ID) return
         if (!isUserCreatableProfileId(id)) return
+        // Desktop credential/password purge is session-authoritative. Require
+        // the target profile to be activated before its destructive cleanup.
+        if (isElectron() && id !== get().activeProfileId) return
 
         // Purge all renderer-reachable profile-scoped data before removing
         // the metadata record. Failures are best-effort and logged by the
@@ -180,4 +183,15 @@ if (typeof window !== 'undefined') {
     useProfileStore.setState({ activeProfileId: DEFAULT_PROFILE_ID })
   }
   setActiveProfileId(profileId)
+  if (isElectron()) {
+    // Queue main-process activation during module initialization so later IPC
+    // calls from this renderer are ordered after the restored profile binding.
+    void desktopProfilePassword.activate(profileId).then((result) => {
+      if (result.ok && result.verified) return
+      if (profileId === DEFAULT_PROFILE_ID) return
+      useProfileStore.setState({ activeProfileId: DEFAULT_PROFILE_ID })
+      setActiveProfileId(DEFAULT_PROFILE_ID)
+      window.location.reload()
+    })
+  }
 }

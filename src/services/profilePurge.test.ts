@@ -5,6 +5,7 @@ import { purgeProfileData } from "./profilePurge";
 vi.mock("./desktopBridge", () => ({
   desktopApiKey: { delete: vi.fn(() => Promise.resolve({ ok: true })) },
   desktopJinaApiKey: { delete: vi.fn(() => Promise.resolve({ ok: true })) },
+  desktopProviderApiKey: { delete: vi.fn(() => Promise.resolve({ ok: true })) },
   desktopProfilePassword: { clear: vi.fn(() => Promise.resolve({ ok: true })) },
 }));
 
@@ -14,7 +15,8 @@ vi.mock("./storageService", () => ({
   },
 }));
 
-import { desktopApiKey, desktopJinaApiKey, desktopProfilePassword } from "./desktopBridge";
+import { desktopApiKey, desktopJinaApiKey, desktopProfilePassword, desktopProviderApiKey } from "./desktopBridge";
+import { PROVIDER_REGISTRY } from "../types/provider";
 import StorageService from "./storageService";
 
 describe("purgeProfileData", () => {
@@ -39,6 +41,10 @@ describe("purgeProfileData", () => {
 
     expect(desktopApiKey.delete).toHaveBeenCalledWith("work");
     expect(desktopJinaApiKey.delete).toHaveBeenCalledWith("work");
+    expect(desktopProviderApiKey.delete).toHaveBeenCalledTimes(Object.keys(PROVIDER_REGISTRY).length);
+    for (const providerId of Object.keys(PROVIDER_REGISTRY)) {
+      expect(desktopProviderApiKey.delete).toHaveBeenCalledWith(providerId);
+    }
     expect(desktopProfilePassword.clear).toHaveBeenCalledWith("work");
     expect(StorageService.deleteRecordsForProfile).toHaveBeenCalledWith("work");
 
@@ -49,6 +55,7 @@ describe("purgeProfileData", () => {
     expect(localStorage.getItem("venice-active-profile-id")).toBe("default");
     expect(result.localStorageKeysRemoved).toBeGreaterThanOrEqual(1);
     expect(result.indexedDBStoresScanned).toBe(1);
+    expect(result.providerApiKeysRemoved).toBe(Object.keys(PROVIDER_REGISTRY).length);
   });
 
   it("does not remove unrelated same-origin keys ending in the profile id", async () => {

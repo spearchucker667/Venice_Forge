@@ -549,8 +549,12 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.onRemoteChange(callback);
     return () => {};
   },
-  async encryptBackup(payload: string, password: string): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }> {
-    if (isElectron()) return window.veniceForge!.sync.encryptBackup({ payload, password });
+  async beginBackupExport(): Promise<{ ok: boolean; profileId?: string; token?: string; error?: string }> {
+    if (isElectron()) return window.veniceForge!.sync.beginBackupExport();
+    return { ok: false, error: "Not supported in Web" };
+  },
+  async encryptBackup(payload: string, password: string, token: string): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }> {
+    if (isElectron()) return window.veniceForge!.sync.encryptBackup({ payload, password, token });
     return { ok: false, error: "Not supported in Web" };
   },
   async decryptBackup(ciphertext: string, salt: string, iv: string, password: string): Promise<{ ok: boolean; data?: string; error?: string }> {
@@ -1166,6 +1170,10 @@ export const desktopMasterPassword = {
 };
 
 export const desktopProfilePassword = {
+  async activate(profileId: string, password?: string): Promise<{ ok: boolean; verified: boolean; profileId?: string; lockedOutSeconds?: number; error?: string }> {
+    if (!isElectron()) return { ok: false, verified: false, error: "Not available in web" };
+    return window.veniceForge!.profilePassword.activate(profileId, password);
+  },
   async isSet(profileId: string): Promise<boolean> {
     if (!isElectron()) return false;
     return window.veniceForge!.profilePassword.isSet(profileId);

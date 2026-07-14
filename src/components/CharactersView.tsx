@@ -259,7 +259,7 @@ export function CharactersView() {
     const effectiveModel = useCharacterStore.getState().getEffectiveModel(character, fallbackModel);
     selectCharacter(character);
     createCharacterConversation(character, effectiveModel);
-    setActiveTab("chat");
+    setActiveTab("character-chats");
   };
 
   const handleSelect = (character: VeniceCharacter) => {

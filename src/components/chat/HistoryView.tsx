@@ -8,6 +8,7 @@ import { contentToSearchText } from '../../utils/messageContent'
 import { askDecision } from '../ui/modal-requests'
 import { getConversationDisplayTitle } from '../../utils/conversationDisplayTitle'
 import { CharacterAvatar } from '../characters/CharacterAvatar'
+import { getConversationKind } from '../../utils/conversationKind'
 
 function formatRelativeTime(date: number): string {
   const now = Date.now()
@@ -39,9 +40,9 @@ export default function HistoryView() {
   const filtered = useMemo(() => {
     let result = conversations
     if (filterType === 'character') {
-      result = result.filter(c => c.metadata?.source === 'character' || c.metadata?.source === 'localCharacter' || !!c.metadata?.character)
+      result = result.filter(c => getConversationKind(c) === 'character')
     } else if (filterType === 'standard') {
-      result = result.filter(c => c.metadata?.source !== 'character' && c.metadata?.source !== 'localCharacter' && !c.metadata?.character)
+      result = result.filter(c => getConversationKind(c) === 'standard')
     }
 
     const s = search.toLowerCase().trim()
@@ -53,8 +54,9 @@ export default function HistoryView() {
   }, [conversations, search, filterType])
 
   const handleSelect = (id: string) => {
+    const conversation = conversations.find((item) => item.id === id)
     setActiveConversation(id)
-    setActiveTab('chat')
+    setActiveTab(conversation && getConversationKind(conversation) === 'character' ? 'character-chats' : 'chat')
   }
 
   const handleDelete = async (conv: Conversation, e: React.MouseEvent) => {

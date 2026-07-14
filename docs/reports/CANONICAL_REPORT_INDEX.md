@@ -11,6 +11,7 @@ This index maps retained audit and report artifacts to their current authority. 
 | Documentation source map | [`../DOCS_INDEX.md`](../DOCS_INDEX.md) |
 | Report directory policy | [`README.md`](README.md) |
 | Media and character remediation evidence | [`MEDIA_CHARACTER_REMEDIATION_REPORT.md`](MEDIA_CHARACTER_REMEDIATION_REPORT.md) |
+| Video gallery, Character Chats, and UI surface remediation | [`VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md`](VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) |
 
 ## Historical Report Map
 

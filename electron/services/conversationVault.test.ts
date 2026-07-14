@@ -222,6 +222,31 @@ describe("ConversationVault core and services", () => {
 
   // Group B: Queue & Concurrency
   describe("Group B: Queue & Concurrency", () => {
+    it("VERIFY-101 isolates vault records, manifests, and indexes by profile", async () => {
+      const sharedId = "conv_shared_profile_id";
+      const defaultRecord = makeRecord({ id: sharedId, title: "Default vault record" });
+      const workRecord = makeRecord({ id: sharedId, title: "Work vault record" });
+
+      expect((await saveConversation(defaultRecord, "default")).ok).toBe(true);
+      expect((await saveConversation(workRecord, "work")).ok).toBe(true);
+
+      const defaultEnvelope = JSON.parse(await fs.readFile(getRecordPath(sharedId, defaultRecord.createdAt), "utf-8"));
+      const workEnvelope = JSON.parse(await fs.readFile(getRecordPath(sharedId, workRecord.createdAt, "work"), "utf-8"));
+      expect(defaultEnvelope.aad).toBe(`venice-forge:vault:conversation-record:v1:${sharedId}`);
+      expect(workEnvelope.aad).toBe(`venice-forge:vault:conversation-record:v1:profile:work:${sharedId}`);
+
+      expect((await getConversation(sharedId, "default"))?.title).toBe("Default vault record");
+      expect((await getConversation(sharedId, "work"))?.title).toBe("Work vault record");
+      expect((await listConversations(undefined, "default")).map((record) => record.title)).toEqual(["Default vault record"]);
+      expect((await listConversations(undefined, "work")).map((record) => record.title)).toEqual(["Work vault record"]);
+      expect((await searchIndex("default vault", undefined, "default")).map((result) => result.id)).toEqual([sharedId]);
+      expect((await searchIndex("work vault", undefined, "work")).map((result) => result.id)).toEqual([sharedId]);
+
+      expect((await deleteConversation(sharedId, "work")).ok).toBe(true);
+      expect(await getConversation(sharedId, "work")).toBeNull();
+      expect((await getConversation(sharedId, "default"))?.title).toBe("Default vault record");
+    });
+
     it("8. Write serialization enqueues parallel writes sequentially", async () => {
       const record = makeRecord();
       const operations: string[] = [];

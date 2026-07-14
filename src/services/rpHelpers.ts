@@ -233,9 +233,9 @@ export async function startChatForCharacter(characterId: string, opts?: { title?
   return chatId;
 }
 
-/** Create a normal (non-RP) chat seeded with the given local character.
+/** Create a character chat seeded with the given local character.
  *  The character's system prompt is persisted as the conversation system
- *  prompt and the chat is opened in the standard Chat tab. Returns the
+ *  prompt and the chat is opened in the Character Chats workspace. Returns the
  *  new conversation id or null. */
 export async function startNormalChatForCharacter(characterId: string, opts?: { modelId?: string }): Promise<string | null> {
   const card = useCharacterCardStore.getState().getById(characterId);
@@ -249,7 +249,7 @@ export async function startNormalChatForCharacter(characterId: string, opts?: { 
     fallbackTextId;
   const convId = useChatStore.getState().createLocalCharacterConversation(card, modelId);
   if (convId) {
-    settings.setActiveTab("chat");
+    settings.setActiveTab("character-chats");
   }
   return convId;
 }

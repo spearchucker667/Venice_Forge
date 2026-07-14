@@ -3,7 +3,15 @@
  * Handles local heuristic keyword/entity extraction and context injection compilation.
  */
 
-import { INDEX_FILE, getRecordPath, getConversation, readEncryptedFile, writeEncryptedFile, getOrLoadManifest } from "./conversationVault";
+import {
+  getIndexFile,
+  getProfileConversationsDir,
+  getRecordPath,
+  getConversation,
+  readEncryptedFile,
+  writeEncryptedFile,
+  getOrLoadManifest,
+} from "./conversationVault";
 import type {
   ConversationRecordV1,
   MemoryIndexEntryV1,
@@ -20,7 +28,7 @@ import { ConversationWriteQueue } from "./conversationWriteQueue";
 
 const indexWriteQueue = new ConversationWriteQueue();
 
-let cachedIndex: MemoryIndexV2 | null = null;
+const cachedIndexes = new Map<string, MemoryIndexV2>();
 
 const STOP_WORDS = new Set([
   "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "arent", "as", "at",
@@ -43,7 +51,7 @@ const STOP_WORDS = new Set([
  * Resets the cached index (useful for test isolation).
  */
 export function _resetIndexCache_TEST_ONLY(): void {
-  cachedIndex = null;
+  cachedIndexes.clear();
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -61,11 +69,11 @@ function normalizeEntryToV2(entry: MemoryIndexEntryV1): MemoryIndexEntryV2 {
   };
 }
 
-async function migrateMemoryIndexV1ToV2(index: MemoryIndexV1): Promise<MemoryIndexV2> {
+async function migrateMemoryIndexV1ToV2(index: MemoryIndexV1, profileId: string): Promise<MemoryIndexV2> {
   const records: MemoryIndexEntryV2[] = [];
 
   for (const entry of index.records) {
-    const conversation = await getConversation(entry.id);
+    const conversation = await getConversation(entry.id, profileId);
     records.push({
       ...entry,
       characterId: normalizeCharacterId(conversation?.metadata?.character?.id ?? entry.characterId),
@@ -87,7 +95,7 @@ function createEmptyIndex(): MemoryIndexV2 {
   };
 }
 
-async function parseAndMigrateIndex(raw: unknown): Promise<{ index: MemoryIndexV2; migrated: boolean } | null> {
+async function parseAndMigrateIndex(raw: unknown, profileId: string): Promise<{ index: MemoryIndexV2; migrated: boolean } | null> {
   if (!isObject(raw) || !Array.isArray(raw.records)) return null;
 
   if (raw.version === MEMORY_INDEX_VERSION) {
@@ -105,7 +113,7 @@ async function parseAndMigrateIndex(raw: unknown): Promise<{ index: MemoryIndexV
 
   if (raw.version === 1) {
     return {
-      index: await migrateMemoryIndexV1ToV2(raw as unknown as MemoryIndexV1),
+      index: await migrateMemoryIndexV1ToV2(raw as unknown as MemoryIndexV1, profileId),
       migrated: true,
     };
   }
@@ -116,19 +124,27 @@ async function parseAndMigrateIndex(raw: unknown): Promise<{ index: MemoryIndexV
 /**
  * Loads the memory index, migrating older index versions in place.
  */
-export async function loadIndex(): Promise<MemoryIndexV2> {
+export async function loadIndex(profileId = "default"): Promise<MemoryIndexV2> {
+  getProfileConversationsDir(profileId);
+  const cachedIndex = cachedIndexes.get(profileId);
   if (cachedIndex) return cachedIndex;
 
-  const decrypted = await readEncryptedFile(INDEX_FILE, "memory-index", "global");
+  const encryptionId = profileId === "default" ? "global" : `profile:${profileId}:global`;
+  const decrypted = await readEncryptedFile(
+    getIndexFile(profileId),
+    "memory-index",
+    encryptionId,
+    getProfileConversationsDir(profileId),
+  );
   if (decrypted) {
     try {
-      const result = await parseAndMigrateIndex(JSON.parse(decrypted));
+      const result = await parseAndMigrateIndex(JSON.parse(decrypted), profileId);
       if (result) {
-        cachedIndex = result.index;
+        cachedIndexes.set(profileId, result.index);
         if (result.migrated) {
-          await saveIndex(result.index);
+          await saveIndex(result.index, profileId);
         }
-        return cachedIndex;
+        return result.index;
       }
       logError("Unsupported memory index schema", "Resetting memory index.");
     } catch {
@@ -136,19 +152,22 @@ export async function loadIndex(): Promise<MemoryIndexV2> {
     }
   }
 
-  cachedIndex = createEmptyIndex();
-  return cachedIndex;
+  const index = createEmptyIndex();
+  cachedIndexes.set(profileId, index);
+  return index;
 }
 
 /**
  * Saves the memory index.
  */
-export async function saveIndex(index: MemoryIndexV2): Promise<void> {
+export async function saveIndex(index: MemoryIndexV2, profileId = "default"): Promise<void> {
+  getProfileConversationsDir(profileId);
   index.version = MEMORY_INDEX_VERSION;
-  cachedIndex = index;
+  cachedIndexes.set(profileId, index);
   index.updatedAt = Date.now();
-  return indexWriteQueue.enqueue("index", async () => {
-    await writeEncryptedFile(INDEX_FILE, JSON.stringify(index, null, 2), "memory-index", "global");
+  return indexWriteQueue.enqueue(`${profileId}:index`, async () => {
+    const encryptionId = profileId === "default" ? "global" : `profile:${profileId}:global`;
+    await writeEncryptedFile(getIndexFile(profileId), JSON.stringify(index, null, 2), "memory-index", encryptionId);
   });
 }
 
@@ -199,8 +218,8 @@ export function extractKeywordsAndEntities(text: string): { keywords: string[]; 
 /**
  * Updates index for a record.
  */
-export async function updateIndexForRecord(record: ConversationRecordV1): Promise<void> {
-  const index = await loadIndex();
+export async function updateIndexForRecord(record: ConversationRecordV1, profileId = "default"): Promise<void> {
+  const index = await loadIndex(profileId);
 
   const userText = record.messages
     .filter((m) => m.role === "user")
@@ -220,7 +239,7 @@ export async function updateIndexForRecord(record: ConversationRecordV1): Promis
     record.memory.entities = entities;
   }
 
-  const recordPath = getRecordPath(record.id, record.createdAt);
+  const recordPath = getRecordPath(record.id, record.createdAt, profileId);
   const entry: MemoryIndexEntryV2 = {
     id: record.id,
     title: record.title,
@@ -246,16 +265,16 @@ export async function updateIndexForRecord(record: ConversationRecordV1): Promis
     index.records.push(entry);
   }
 
-  await saveIndex(index);
+  await saveIndex(index, profileId);
 }
 
 /**
  * Removes record from index.
  */
-export async function removeRecordFromIndex(id: string): Promise<void> {
-  const index = await loadIndex();
+export async function removeRecordFromIndex(id: string, profileId = "default"): Promise<void> {
+  const index = await loadIndex(profileId);
   index.records = index.records.filter((r) => r.id !== id);
-  await saveIndex(index);
+  await saveIndex(index, profileId);
 }
 
 /**
@@ -263,9 +282,10 @@ export async function removeRecordFromIndex(id: string): Promise<void> {
  */
 export async function searchIndex(
   query: string,
-  options?: { limit?: number; includeArchived?: boolean; characterId?: string }
+  options?: { limit?: number; includeArchived?: boolean; characterId?: string },
+  profileId = "default",
 ): Promise<SearchResult[]> {
-  const index = await loadIndex();
+  const index = await loadIndex(profileId);
   const limit = options?.limit ?? 50;
   const includeArchived = options?.includeArchived ?? false;
   const characterId = options?.characterId;
@@ -399,13 +419,13 @@ export async function pullContext(input: {
   includeArchived?: boolean;
   excludeConversationIds?: string[];
   characterId?: string;
-}): Promise<PulledMemoryContext> {
+}, profileId = "default"): Promise<PulledMemoryContext> {
   const maxItems = input.maxItems ?? 5;
   const maxTokens = input.maxTokens ?? 1200;
   const includeArchived = input.includeArchived ?? false;
 
   const excluded = new Set(input.excludeConversationIds ?? []);
-  const results = (await searchIndex(input.message, { includeArchived, characterId: input.characterId }))
+  const results = (await searchIndex(input.message, { includeArchived, characterId: input.characterId }, profileId))
     .filter((result) => !excluded.has(result.id));
   const topResults = results.slice(0, maxItems);
 
@@ -413,7 +433,7 @@ export async function pullContext(input: {
   const summaries: string[] = [];
 
   for (const r of topResults) {
-    const record = await getConversation(r.id);
+    const record = await getConversation(r.id, profileId);
     if (!record) continue;
 
     if (record.memory.summary) {
@@ -466,13 +486,13 @@ export async function pullContext(input: {
 /**
  * Rebuilds the memory index from all records in the manifest.
  */
-export async function rebuildIndex(): Promise<number> {
-  const manifest = await getOrLoadManifest();
+export async function rebuildIndex(profileId = "default"): Promise<number> {
+  const manifest = await getOrLoadManifest(profileId);
   let itemsIndexed = 0;
   const recordsToSave: MemoryIndexEntryV2[] = [];
 
   for (const c of manifest.conversations) {
-    const record = await getConversation(c.id);
+    const record = await getConversation(c.id, profileId);
     if (!record) continue;
 
     const userText = record.messages
@@ -485,7 +505,7 @@ export async function rebuildIndex(): Promise<number> {
     recordsToSave.push({
       id: record.id,
       title: record.title,
-      recordPath: getRecordPath(record.id, record.createdAt),
+      recordPath: getRecordPath(record.id, record.createdAt, profileId),
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       model: record.model,
@@ -508,6 +528,6 @@ export async function rebuildIndex(): Promise<number> {
     records: recordsToSave,
   };
 
-  await saveIndex(index);
+  await saveIndex(index, profileId);
   return itemsIndexed;
 }

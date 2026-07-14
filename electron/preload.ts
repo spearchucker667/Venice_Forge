@@ -110,6 +110,9 @@ const veniceForge = {
   },
 
   profilePassword: {
+    activate(profileId: string, password?: string): Promise<{ ok: boolean; verified: boolean; profileId?: string; lockedOutSeconds?: number; error?: string }> {
+      return ipcRenderer.invoke("profileSession:activate", { profileId, password });
+    },
     isSet(profileId: string): Promise<boolean> {
       return ipcRenderer.invoke("profilePassword:isSet", profileId);
     },
@@ -558,7 +561,10 @@ const veniceForge = {
     acknowledgeOperation(input: { operationId: string; ok: boolean }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:acknowledgeOperation", input);
     },
-    encryptBackup(input: { payload: string, password: string }): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }> {
+    beginBackupExport(): Promise<{ ok: boolean; profileId?: string; token?: string; error?: string }> {
+      return ipcRenderer.invoke("sync:beginBackupExport");
+    },
+    encryptBackup(input: { payload: string, password: string, token: string }): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }> {
       return ipcRenderer.invoke("sync:encryptBackup", input);
     },
     decryptBackup(input: { ciphertext: string, salt: string, iv: string, password: string }): Promise<{ ok: boolean; data?: string; error?: string }> {

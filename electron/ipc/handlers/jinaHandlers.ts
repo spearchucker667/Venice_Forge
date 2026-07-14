@@ -19,18 +19,9 @@ import {
   safetyBlockBodyFromResponseScreen,
 } from "../../../src/shared/safety";
 import { checkLocalFamilyGuard } from "../../services/guardPipeline";
+import { getProfileSessionId } from "../../services/profileSession";
 import { getRuntimeLocalFamilySafeModeEnabled } from "../../services/runtimeSafetySettings";
-import { isValidProfileStorageId } from "../../../src/utils/profileIdValidation";
 import { registerIpcChannel } from "./common";
-
-/** Parses and validates an optional profile id (e.g. for credential IPC). */
-function parseOptionalProfileId(profileId: unknown): string | undefined {
-  if (profileId === undefined || profileId === null) return undefined;
-  if (!isValidProfileStorageId(profileId)) {
-    throw new Error("Invalid profile id.");
-  }
-  return profileId;
-}
 
 const JINA_ALLOWED_FORWARD_HEADERS = new Set([
   "accept",
@@ -77,18 +68,18 @@ function sanitizeJinaForwardHeaders(input: unknown): Record<string, string> {
 }
 
 export function registerJinaHandlers(): void {
-  registerIpcChannel("jinaApiKey:isConfigured", (_event, profileId?: unknown) => {
+  registerIpcChannel("jinaApiKey:isConfigured", (event, _profileId?: unknown) => {
     try {
-      return isJinaApiKeyConfigured(parseOptionalProfileId(profileId));
+      return isJinaApiKeyConfigured(getProfileSessionId(event.sender));
     } catch {
       return false;
     }
   });
 
-  registerIpcChannel("jinaApiKey:set", (_event, payload: unknown) => {
-    const { key, profileId } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: unknown } : { key: payload, profileId: undefined };
+  registerIpcChannel("jinaApiKey:set", (event, payload: unknown) => {
+    const { key } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: unknown } : { key: payload };
     try {
-      const validId = parseOptionalProfileId(profileId);
+      const validId = getProfileSessionId(event.sender);
       const trimmed = typeof key === "string" ? key.trim() : "";
       if (!trimmed) throw new Error("Enter a Jina API key before saving.");
       if (trimmed.length > 512) throw new Error("Jina API key is too long.");
@@ -99,16 +90,16 @@ export function registerJinaHandlers(): void {
     }
   });
 
-  registerIpcChannel("jinaApiKey:delete", (_event, profileId?: unknown) => {
+  registerIpcChannel("jinaApiKey:delete", (event, _profileId?: unknown) => {
     try {
-      deleteJinaApiKey(parseOptionalProfileId(profileId));
+      deleteJinaApiKey(getProfileSessionId(event.sender));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
   });
 
-  registerIpcChannel("jina:request", async (_event, input: unknown) => {
+  registerIpcChannel("jina:request", async (event, input: unknown) => {
     try {
       const request = input as { url?: unknown; headers?: unknown; timeoutMs?: unknown; profileId?: unknown };
       if (typeof request.url !== "string") {
@@ -128,13 +119,10 @@ export function registerJinaHandlers(): void {
 
       const headers = sanitizeJinaForwardHeaders(request.headers);
 
-      // Profile-scoped credential lookup. `parseOptionalProfileId` throws on
-      // ids that are not valid storage ids — never fall back to the active
-      // profile automatically, because the renderer may not be in sync with
-      // the desktop bridge here. An omitted `profileId` falls back to
-      // "default" (the system profile) so an unambiguous, audit-able key
-      // lookup happens.
-      const validProfileId = parseOptionalProfileId(request.profileId) ?? "default";
+      // Provider-use credential selection is main-process authoritative.
+      // The request field remains accepted for backwards compatibility but
+      // cannot select a key or cause a validation denial.
+      const validProfileId = getProfileSessionId(event.sender);
       const jinaKey = (() => { try { return getJinaApiKey(validProfileId); } catch { return null; } })();
       if (jinaKey) headers["Authorization"] = `Bearer ${jinaKey}`;
 
@@ -189,14 +177,8 @@ export function registerJinaHandlers(): void {
     }
   });
 
-  registerIpcChannel("jinaApiKey:test", async (_event, profileId?: unknown) => {
-    let validProfileId = "default";
-    try {
-      const parsed = parseOptionalProfileId(profileId);
-      if (parsed) validProfileId = parsed;
-    } catch {
-      return { ok: false, status: 0, message: "Invalid profile id." };
-    }
+  registerIpcChannel("jinaApiKey:test", async (event, _profileId?: unknown) => {
+    const validProfileId = getProfileSessionId(event.sender);
     const jinaKey = (() => {
       try {
         return getJinaApiKey(validProfileId);

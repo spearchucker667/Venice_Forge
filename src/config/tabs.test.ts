@@ -11,6 +11,12 @@ describe('Tab registry (BUG-TAB-ALIASES regression)', () => {
     expect(mediaIdx).toBe(imageIdx + 1)
   })
 
+  it('keeps Chat, Character Chats, and Characters as distinct canonical destinations', () => {
+    expect(TAB_REGISTRY.find((tab) => tab.id === 'chat')?.label).toBe('Chat')
+    expect(TAB_REGISTRY.find((tab) => tab.id === 'character-chats')?.label).toBe('Character Chats')
+    expect(TAB_REGISTRY.find((tab) => tab.id === 'characters')?.label).toBe('Characters')
+  })
+
   it('resolves the legacy "gallery" alias to the Media Studio descriptor', () => {
     const resolved = resolveTab('gallery')
     expect(resolved?.id).toBe<TabId>('media')

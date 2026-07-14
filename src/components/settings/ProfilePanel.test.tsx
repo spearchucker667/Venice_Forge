@@ -10,6 +10,7 @@ import { desktopProfilePassword, isElectron } from "../../services/desktopBridge
 vi.mock("../../services/desktopBridge", () => ({
   isElectron: vi.fn(() => true),
   desktopProfilePassword: {
+    activate: vi.fn(() => Promise.resolve({ ok: true, verified: true, profileId: "default" })),
     set: vi.fn(),
     verify: vi.fn(),
     clear: vi.fn(),
@@ -30,6 +31,7 @@ describe("ProfilePanel profile password lock flow", () => {
     vi.clearAllMocks();
     vi.mocked(isElectron).mockReturnValue(true);
     vi.mocked(desktopProfilePassword.set).mockResolvedValue({ ok: true });
+    vi.mocked(desktopProfilePassword.activate).mockResolvedValue({ ok: true, verified: true, profileId: "work" });
     vi.mocked(desktopProfilePassword.verify).mockResolvedValue({ ok: true, verified: true });
     vi.mocked(desktopProfilePassword.clear).mockResolvedValue({ ok: true });
     vi.mocked(desktopProfilePassword.isSet).mockImplementation(async (profileId) => profileId === "work");
@@ -94,7 +96,18 @@ describe("ProfilePanel profile password lock flow", () => {
     expect(useProfileStore.getState().profiles.find((p) => p.id === "work")?.hasPassword).toBe(false);
   });
 
-  it("sets a non-default profile password through the secure bridge", async () => {
+  it("offers password and delete administration only for the active Electron profile", () => {
+    useProfileStore.setState({ activeProfileId: "personal" });
+    render(<ProfilePanel />);
+
+    expect(screen.getByRole("button", { name: /Set password for Personal/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Delete Personal/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Remove password for Work/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Delete Work/i })).not.toBeInTheDocument();
+  });
+
+  it("sets the active non-default profile password through the secure bridge", async () => {
+    useProfileStore.setState({ activeProfileId: "personal" });
     render(<ProfilePanel />);
 
     await userEvent.click(screen.getByRole("button", { name: /Set password for Personal/i }));
@@ -116,12 +129,12 @@ describe("ProfilePanel profile password lock flow", () => {
     await userEvent.click(screen.getByRole("button", { name: "Unlock" }));
 
     await waitFor(() => {
-      expect(desktopProfilePassword.verify).toHaveBeenCalledWith("work", "correct-pass");
+      expect(desktopProfilePassword.activate).toHaveBeenCalledWith("work", "correct-pass");
     });
   });
 
   it("clears the unlock input and surfaces the error after a failed unlock", async () => {
-    vi.mocked(desktopProfilePassword.verify).mockResolvedValue({
+    vi.mocked(desktopProfilePassword.activate).mockResolvedValue({
       ok: true,
       verified: false,
       lockedOutSeconds: 0,

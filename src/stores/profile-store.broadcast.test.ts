@@ -20,6 +20,7 @@ vi.mock('../services/profilePurge', () => ({
 vi.mock('../services/desktopBridge', () => ({
   isElectron: vi.fn(() => true),
   desktopProfilePassword: {
+    activate: vi.fn(() => Promise.resolve({ ok: true, verified: true, profileId: 'default' })),
     verify: vi.fn(),
     clear: vi.fn(),
     isSet: vi.fn(),
@@ -61,7 +62,7 @@ describe('profile-store broadcast deduplication', () => {
 
   it('requestSwitchProfile calls setActiveProfileId exactly once', async () => {
     const { desktopProfilePassword } = await import('../services/desktopBridge')
-    vi.mocked(desktopProfilePassword.verify).mockResolvedValue({ ok: true, verified: true })
+    vi.mocked(desktopProfilePassword.activate).mockResolvedValue({ ok: true, verified: true, profileId: 'work' })
 
     const result = await useProfileStore.getState().requestSwitchProfile('work')
     expect(result.ok).toBe(true)

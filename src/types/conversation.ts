@@ -31,6 +31,8 @@ export interface ConversationMessage {
 /** A persisted conversation / chat session. */
 export interface Conversation {
   id: string;
+  /** Main-process storage owner. Missing historical records belong to default. */
+  profileId?: string;
   title: string;
   createdAt: number;
   updatedAt: number;

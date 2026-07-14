@@ -1,4 +1,9 @@
 // VERIFY-056 regression guard
+// VERIFY-098 regression guard
+// VERIFY-099 regression guard
+// VERIFY-100 regression guard
+// VERIFY-101 regression guard
+// VERIFY-102 regression guard
 // @vitest-environment node
 /** @fileoverview Unit tests for Electron IPC handler registration and safety guard enforcement. */
 
@@ -61,13 +66,16 @@ vi.mock("node:dns/promises", () => ({
 vi.mock("../services/secureStore", () => ({
   deleteApiKey: vi.fn(),
   deleteJinaApiKey: vi.fn(),
+  deleteProviderApiKey: vi.fn(),
   getApiKey: vi.fn(() => null),
   getJinaApiKey: vi.fn(() => null),
   getSecureStoreStatus: vi.fn(() => ({ encryptionAvailable: true, mode: "safeStorage", corrupted: false, error: null })),
   isApiKeyConfigured: vi.fn(() => false),
   isJinaApiKeyConfigured: vi.fn(() => false),
+  isProviderApiKeyConfigured: vi.fn(() => false),
   setApiKey: vi.fn(),
   setJinaApiKey: vi.fn(),
+  setProviderApiKey: vi.fn(),
   setCredential: vi.fn(),
   getCredential: vi.fn(() => null),
   deleteCredential: vi.fn(),
@@ -131,6 +139,8 @@ vi.mock("../services/syncBridge", () => ({
 }));
 
 vi.mock("../services/memoryPuller", () => ({
+  rebuildIndex: vi.fn(async () => 0),
+  searchIndex: vi.fn(async () => []),
   pullContext: vi.fn(async (input: unknown) => ({
     injectedText: "",
     facts: [],
@@ -141,6 +151,7 @@ vi.mock("../services/memoryPuller", () => ({
 }));
 
 vi.mock("../services/conversationVault", () => ({
+  getProfileConversationsDir: vi.fn((profileId: string) => `/vault/${profileId}`),
   saveConversation: vi.fn(async () => ({ ok: true, id: "conv-1" })),
   deleteConversation: vi.fn(async () => ({ ok: true })),
   getConversation: vi.fn(async () => null),
@@ -148,10 +159,20 @@ vi.mock("../services/conversationVault", () => ({
   archiveConversation: vi.fn(async () => ({ ok: true })),
 }));
 
+vi.mock("../services/backupCrypto", () => ({
+  encryptPayload: vi.fn(async () => ({ salt: "salt", iv: "iv", ciphertext: "cipher" })),
+  decryptPayload: vi.fn(async () => "{}"),
+}));
+
 import { registerIpcHandlers } from "./handlers";
 import { resetIpcRateLimitForTests } from "../utils/rateLimit";
 import * as syncBridge from "../services/syncBridge";
 import { __resetRemoteApplyGrantsForTests, issueRemoteApplyGrant } from "../services/remoteApplyAuthority";
+import {
+  __resetProfileSessionsForTests,
+  getProfileSessionId,
+  setProfileSessionId,
+} from "../services/profileSession";
 import {
   clearProfilePassword,
   isProfilePasswordSet,
@@ -164,8 +185,13 @@ import {
   clearMasterPassword,
   setApiKey,
   setJinaApiKey,
+  setProviderApiKey,
   deleteApiKey,
   deleteJinaApiKey,
+  deleteProviderApiKey,
+  isApiKeyConfigured,
+  isJinaApiKeyConfigured,
+  isProviderApiKeyConfigured,
   getJinaApiKey,
 } from "../services/secureStore";
 
@@ -178,6 +204,7 @@ describe("registerIpcHandlers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetIpcRateLimitForTests();
+    __resetProfileSessionsForTests();
   });
 
   it("is idempotent when bootstrap calls registration more than once", () => {
@@ -188,18 +215,46 @@ describe("registerIpcHandlers", () => {
   });
 
   it("registers profile password IPC handlers without returning verifier material", async () => {
+    const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+    const event = { sender };
     vi.mocked(isProfilePasswordSet).mockReturnValueOnce(true);
     vi.mocked(verifyProfilePassword).mockReturnValueOnce(true);
 
     expect(await capturedHandlers.get("profilePassword:isSet")!(null, "work")).toBe(true);
-    expect(await capturedHandlers.get("profilePassword:set")!(null, { profileId: "work", password: "secret" })).toEqual({ ok: true });
-    expect(await capturedHandlers.get("profilePassword:verify")!(null, { profileId: "work", password: "secret" })).toEqual({ ok: true, verified: true, lockedOutSeconds: 0 });
-    expect(await capturedHandlers.get("profilePassword:clear")!(null, "work")).toEqual({ ok: true });
+    setProfileSessionId(sender, "work");
+    expect(await capturedHandlers.get("profilePassword:set")!(event, { profileId: "work", password: "secret" })).toEqual({ ok: true });
+    expect(await capturedHandlers.get("profilePassword:verify")!(event, { profileId: "work", password: "secret" })).toEqual({ ok: true, verified: true, lockedOutSeconds: 0 });
+    expect(await capturedHandlers.get("profilePassword:clear")!(event, "work")).toEqual({ ok: true });
 
     expect(setProfilePassword).toHaveBeenCalledWith("secret", "work");
     expect(verifyProfilePassword).toHaveBeenCalledWith("secret", "work");
     expect(getProfilePasswordLockoutSeconds).toHaveBeenCalledWith("work");
     expect(clearProfilePassword).toHaveBeenCalledWith("work");
+    expect(getProfileSessionId(sender)).toBe("work");
+  });
+
+  it("activates unprotected profiles and rejects an incorrect protected-profile password", async () => {
+    const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+    const event = { sender };
+    const handler = capturedHandlers.get("profileSession:activate");
+
+    vi.mocked(isProfilePasswordSet).mockReturnValueOnce(false);
+    await expect(handler!(event, { profileId: "work" })).resolves.toEqual({
+      ok: true,
+      verified: true,
+      profileId: "work",
+      lockedOutSeconds: 0,
+    });
+    expect(getProfileSessionId(sender)).toBe("work");
+
+    vi.mocked(isProfilePasswordSet).mockImplementation((profileId) => profileId === "private");
+    vi.mocked(verifyProfilePassword).mockReturnValueOnce(false);
+    await expect(handler!(event, { profileId: "private", password: "wrong" })).resolves.toEqual({
+      ok: true,
+      verified: false,
+      lockedOutSeconds: 0,
+    });
+    expect(getProfileSessionId(sender)).toBe("work");
   });
 
   it("registers master password IPC handlers without returning verifier material", async () => {
@@ -262,6 +317,28 @@ describe("registerIpcHandlers", () => {
   });
 
   describe("venice:request", () => {
+    it("derives the credential profile from the WebContents session", async () => {
+      const { performVeniceRequest } = await import("../services/veniceClient");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "work");
+
+      const handler = capturedHandlers.get("venice:request");
+      const result = await handler!(
+        { sender },
+        {
+          endpoint: "/models",
+          method: "GET",
+          profileId: "../../forged",
+        },
+      );
+
+      expect(result).toMatchObject({ ok: true, status: 200 });
+      expect(performVeniceRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ profileId: "work" }),
+        expect.any(Object),
+      );
+    });
+
     it("returns a 451 response when the safety guard blocks the request", async () => {
       const handler = capturedHandlers.get("venice:request");
       expect(handler).toBeDefined();
@@ -445,15 +522,123 @@ describe("registerIpcHandlers", () => {
       const { pullContext } = await import("../services/memoryPuller");
       const handler = capturedHandlers.get("conversations:pullContext");
       expect(handler).toBeDefined();
+      const event = { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents };
 
-      await handler!(null, { message: "hello", maxItems: 1e9, maxTokens: 1e9 });
-      expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 50, maxTokens: 8192 });
+      await handler!(event, { message: "hello", maxItems: 1e9, maxTokens: 1e9 });
+      expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 50, maxTokens: 8192 }, "default");
 
-      await handler!(null, { message: "hello", maxItems: -10, maxTokens: -10 });
-      expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 1, maxTokens: 1 });
+      await handler!(event, { message: "hello", maxItems: -10, maxTokens: -10 });
+      expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 1, maxTokens: 1 }, "default");
 
-      await handler!(null, { message: "hello", maxItems: "many", maxTokens: "huge" });
-      expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 5, maxTokens: 1200 });
+      await handler!(event, { message: "hello", maxItems: "many", maxTokens: "huge" });
+      expect(pullContext).toHaveBeenLastCalledWith({ message: "hello", maxItems: 5, maxTokens: 1200 }, "default");
+    });
+  });
+
+  describe("encrypted conversation vault profile-session isolation", () => {
+    it("derives vault and memory-index authority from WebContents", async () => {
+      const vault = await import("../services/conversationVault");
+      const memory = await import("../services/memoryPuller");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      const event = { sender };
+      setProfileSessionId(sender, "work");
+      const record = { version: 1, id: "conv-1", title: "Work", createdAt: 1, updatedAt: 1, model: "m", messages: [], metadata: { tags: [], pinned: false, archived: false, source: "user", messageCount: 0 }, memory: { summary: "", topics: [], entities: [], projectRefs: [] } };
+
+      await capturedHandlers.get("conversations:list")!(event, {});
+      await capturedHandlers.get("conversations:get")!(event, "conv-1");
+      await capturedHandlers.get("conversations:save")!(event, { ...record, origin: "remote-sync" });
+      await capturedHandlers.get("conversations:delete")!(event, { id: "conv-1", origin: "remote-sync" });
+      await capturedHandlers.get("conversations:archive")!(event, { id: "conv-1", origin: "remote-sync" });
+      await capturedHandlers.get("conversations:search")!(event, "work", {});
+      await capturedHandlers.get("conversations:pullContext")!(event, { message: "work" });
+      await capturedHandlers.get("conversations:rebuildIndex")!(event);
+      await capturedHandlers.get("app:openConversationsFolder")!(event);
+
+      expect(vault.listConversations).toHaveBeenCalledWith({}, "work");
+      expect(vault.getConversation).toHaveBeenCalledWith("conv-1", "work");
+      expect(vault.saveConversation).toHaveBeenCalledWith(expect.objectContaining({ id: "conv-1" }), "work");
+      expect(vault.deleteConversation).toHaveBeenCalledWith("conv-1", "work");
+      expect(vault.archiveConversation).toHaveBeenCalledWith("conv-1", "work");
+      expect(memory.searchIndex).toHaveBeenCalledWith("work", {}, "work");
+      expect(memory.pullContext).toHaveBeenCalledWith(expect.objectContaining({ message: "work" }), "work");
+      expect(memory.rebuildIndex).toHaveBeenCalledWith("work");
+      expect(vault.getProfileConversationsDir).toHaveBeenCalledWith("work");
+    });
+  });
+
+  describe("manual backup export profile-session isolation", () => {
+    it("binds a one-time export lease to the WebContents profile", async () => {
+      const { encryptPayload } = await import("../services/backupCrypto");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      const event = { sender };
+      setProfileSessionId(sender, "work");
+
+      const lease = await capturedHandlers.get("sync:beginBackupExport")!(event) as { token: string; profileId: string };
+      expect(lease).toMatchObject({ ok: true, profileId: "work", token: expect.any(String) });
+      const payload = JSON.stringify({
+        _veniceForgeBackup: { profileId: "work" },
+        conversations: [{ id: "conv-1", profileId: "work" }],
+      });
+
+      await expect(capturedHandlers.get("sync:encryptBackup")!(event, {
+        payload,
+        password: "password",
+        token: lease.token,
+      })).resolves.toMatchObject({ ok: true });
+      expect(encryptPayload).toHaveBeenCalledWith(payload, "password");
+
+      await expect(capturedHandlers.get("sync:encryptBackup")!(event, {
+        payload,
+        password: "password",
+        token: lease.token,
+      })).resolves.toMatchObject({ ok: false });
+    });
+
+    it("rejects switched sessions and cross-profile records before encryption", async () => {
+      const { encryptPayload } = await import("../services/backupCrypto");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      const event = { sender };
+      setProfileSessionId(sender, "work");
+
+      const switchedLease = await capturedHandlers.get("sync:beginBackupExport")!(event) as { token: string };
+      setProfileSessionId(sender, "default");
+      await expect(capturedHandlers.get("sync:encryptBackup")!(event, {
+        payload: JSON.stringify({ _veniceForgeBackup: { profileId: "work" } }),
+        password: "password",
+        token: switchedLease.token,
+      })).resolves.toMatchObject({ ok: false });
+
+      setProfileSessionId(sender, "work");
+      const mixedLease = await capturedHandlers.get("sync:beginBackupExport")!(event) as { token: string };
+      await expect(capturedHandlers.get("sync:encryptBackup")!(event, {
+        payload: JSON.stringify({
+          _veniceForgeBackup: { profileId: "work" },
+          conversations: [{ id: "default-conversation" }],
+        }),
+        password: "password",
+        token: mixedLease.token,
+      })).resolves.toMatchObject({ ok: false });
+
+      const metadataLease = await capturedHandlers.get("sync:beginBackupExport")!(event) as { token: string };
+      await expect(capturedHandlers.get("sync:encryptBackup")!(event, {
+        payload: JSON.stringify({ _veniceForgeBackup: { profileId: "default" } }),
+        password: "password",
+        token: metadataLease.token,
+      })).resolves.toMatchObject({ ok: false });
+
+      const expiredLease = await capturedHandlers.get("sync:beginBackupExport")!(event) as { token: string };
+      const now = Date.now();
+      const clock = vi.spyOn(Date, "now").mockReturnValue(now + 6 * 60 * 1000);
+      try {
+        await expect(capturedHandlers.get("sync:encryptBackup")!(event, {
+          payload: JSON.stringify({ _veniceForgeBackup: { profileId: "work" } }),
+          password: "password",
+          token: expiredLease.token,
+        })).resolves.toMatchObject({ ok: false });
+      } finally {
+        clock.mockRestore();
+      }
+      expect(encryptPayload).not.toHaveBeenCalled();
     });
   });
 
@@ -562,7 +747,64 @@ describe("registerIpcHandlers", () => {
     });
   });
 
+  describe("legacy chat profile-session isolation", () => {
+    it("derives list/get/save/delete storage authority from WebContents", async () => {
+      const storage = await import("../services/chatStorage");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      const event = { sender };
+      setProfileSessionId(sender, "work");
+      const conversation = { id: "shared", title: "Work", createdAt: 1, updatedAt: 1, model: "m", messages: [], profileId: "forged" };
+
+      await capturedHandlers.get("chat:list")!(event);
+      await capturedHandlers.get("chat:listPage")!(event, { offset: 0, limit: 10 });
+      await capturedHandlers.get("chat:get")!(event, "shared");
+      await capturedHandlers.get("chat:save")!(event, { conversation, origin: "remote-sync" });
+      await capturedHandlers.get("chat:delete")!(event, { id: "shared", origin: "remote-sync" });
+
+      expect(storage.listConversations).toHaveBeenNthCalledWith(1, undefined, "work");
+      expect(storage.listConversations).toHaveBeenNthCalledWith(2, { offset: 0, limit: 10 }, "work");
+      expect(storage.getConversation).toHaveBeenCalledWith("shared", "work");
+      expect(storage.saveConversation).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "shared", profileId: "work" }),
+        "work",
+      );
+      expect(storage.deleteConversation).toHaveBeenCalledWith("shared", "work");
+
+      expect(await capturedHandlers.get("conversations:detectLegacyHistory")!(event)).toBe(false);
+      expect(await capturedHandlers.get("conversations:migrateLegacyHistory")!(event)).toEqual({
+        ok: false,
+        migrated: 0,
+        failed: 0,
+        skipped: 0,
+        error: "Legacy migration is available only from the default profile.",
+      });
+    });
+  });
+
   describe("venice:streamChat", () => {
+    it("derives the streaming credential profile from the WebContents session", async () => {
+      const { performVeniceRequest } = await import("../services/veniceClient");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "work");
+
+      const handler = capturedHandlers.get("venice:streamChat");
+      const result = await handler!(
+        { sender },
+        {
+          endpoint: "/chat/completions",
+          method: "POST",
+          body: { messages: [{ role: "user", content: "hello" }] },
+          profileId: "../../forged",
+        },
+      );
+
+      expect(result).toMatchObject({ ok: true, status: 200 });
+      expect(performVeniceRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ profileId: "work" }),
+        expect.objectContaining({ onDelta: expect.any(Function) }),
+      );
+    });
+
     it("returns 451 when the safety guard blocks streaming chat", async () => {
       const handler = capturedHandlers.get("venice:streamChat");
       expect(handler).toBeDefined();
@@ -1037,111 +1279,76 @@ describe("registerIpcHandlers", () => {
     });
   });
 
-  // Audit 2026-07-08 #1 + #3: profile-scoped credential isolation. Each
-  // credential IPC channel must validate the supplied profile id before
-  // reaching the storage layer. An invalid id must NOT write a storage
-  // entry shape that collides with separators (`_`, `:`, `/`).
+  // VERIFY-099: credential and password administration is bound to the
+  // authenticated WebContents session. Renderer profile ids are retained in
+  // the preload types for compatibility but cannot select a secure-store row.
   describe("audit 2026-07-08: profile-scoped credential isolation", () => {
     const ctx = () =>
       ({ sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents });
 
-    it("apiKey:set accepts a valid storage id and writes to that profile", async () => {
-      const handler = capturedHandlers.get("apiKey:set");
-      const ok = await handler!(ctx(), { key: "sk-valid", profileId: "work" });
-      expect(ok).toEqual({ ok: true });
+    function sessionCtx(profileId = "work") {
+      const event = ctx();
+      setProfileSessionId(event.sender, profileId);
+      return event;
+    }
+
+    it("binds Venice key status, set, delete, and test to the session profile", async () => {
+      const event = sessionCtx();
+      vi.mocked(isApiKeyConfigured).mockReturnValue(true);
+
+      expect(await capturedHandlers.get("apiKey:isConfigured")!(event, "../../forged")).toBe(true);
+      expect(await capturedHandlers.get("apiKey:set")!(event, { key: "sk-valid", profileId: "default" })).toEqual({ ok: true });
+      expect(await capturedHandlers.get("apiKey:delete")!(event, "default")).toEqual({ ok: true });
+      await capturedHandlers.get("apiKey:test")!(event, "../../forged");
+
+      expect(isApiKeyConfigured).toHaveBeenCalledWith("work");
       expect(setApiKey).toHaveBeenCalledWith("sk-valid", "work");
+      expect(deleteApiKey).toHaveBeenCalledWith("work");
     });
 
-    it("apiKey:set rejects an invalid profileId without writing", async () => {
-      const handler = capturedHandlers.get("apiKey:set");
-      const bad = await handler!(ctx(), { key: "sk-valid", profileId: "bad_id" });
-      expect(bad).toMatchObject({ ok: false });
-      expect(setApiKey).not.toHaveBeenCalled();
+    it("binds fallback-provider key status, set, and delete to the session profile", async () => {
+      const event = sessionCtx();
+
+      await capturedHandlers.get("providerApiKey:isConfigured")!(event, { providerId: "groq", profileId: "default" });
+      await capturedHandlers.get("providerApiKey:set")!(event, { providerId: "groq", key: "sk-provider", profileId: "../../forged" });
+      await capturedHandlers.get("providerApiKey:delete")!(event, { providerId: "groq", profileId: "default" });
+
+      expect(isProviderApiKeyConfigured).toHaveBeenCalledWith("groq", "work");
+      expect(setProviderApiKey).toHaveBeenCalledWith("groq", "sk-provider", "work");
+      expect(deleteProviderApiKey).toHaveBeenCalledWith("groq", "work");
     });
 
-    it("apiKey:set with omitted profileId falls back to the default profile", async () => {
-      const handler = capturedHandlers.get("apiKey:set");
-      const ok = await handler!(ctx(), { key: "sk-default", profileId: undefined });
-      expect(ok).toEqual({ ok: true });
-      expect(setApiKey).toHaveBeenCalledWith("sk-default", "default");
-    });
-
-    it("apiKey:delete rejects an invalid profileId without writing", async () => {
-      const handler = capturedHandlers.get("apiKey:delete");
-      const bad = await handler!(ctx(), "../../x");
-      expect(bad).toMatchObject({ ok: false });
-      expect(deleteApiKey).not.toHaveBeenCalled();
-    });
-
-    it("apiKey:isConfigured returns false for invalid profileId without throwing", async () => {
-      const handler = capturedHandlers.get("apiKey:isConfigured");
-      const result = await handler!(ctx(), "bad_id");
-      expect(result).toBe(false);
-    });
-
-    it("jinaApiKey:set accepts a valid storage id and writes to that profile", async () => {
-      const handler = capturedHandlers.get("jinaApiKey:set");
-      const ok = await handler!(ctx(), { key: "jina-valid-key", profileId: "work" });
-      expect(ok).toEqual({ ok: true });
-      expect(setJinaApiKey).toHaveBeenCalledWith("jina-valid-key", "work");
-    });
-
-    it("jinaApiKey:set rejects an invalid profileId without writing", async () => {
-      const handler = capturedHandlers.get("jinaApiKey:set");
-      const bad = await handler!(ctx(), { key: "jina-valid-key", profileId: "bad_id" });
-      expect(bad).toMatchObject({ ok: false });
-      expect(setJinaApiKey).not.toHaveBeenCalled();
-    });
-
-    it("jinaApiKey:delete rejects an invalid profileId without writing", async () => {
-      const handler = capturedHandlers.get("jinaApiKey:delete");
-      const bad = await handler!(ctx(), "../../x");
-      expect(bad).toMatchObject({ ok: false });
-      expect(deleteJinaApiKey).not.toHaveBeenCalled();
-    });
-
-    it("jinaApiKey:test uses the supplied profile's key, not the default's", async () => {
-      // Profile A is the active profile; default has a different key.
+    it("binds Jina key status, set, delete, and test to the session profile", async () => {
       vi.mocked(getJinaApiKey).mockImplementation((pid) =>
         pid === "work" ? "jina-key-A" : "jina-key-default",
       );
-      // Suppress the actual HTTP call to keep the test isolated.
       vi.stubGlobal("fetch", vi.fn(async () => new Response("ok", { status: 200 })));
+      const event = sessionCtx();
 
-      const handler = capturedHandlers.get("jinaApiKey:test");
-      const result = await handler!(ctx(), "work");
+      await capturedHandlers.get("jinaApiKey:isConfigured")!(event, "../../forged");
+      expect(await capturedHandlers.get("jinaApiKey:set")!(event, { key: "jina-valid-key", profileId: "default" })).toEqual({ ok: true });
+      expect(await capturedHandlers.get("jinaApiKey:delete")!(event, "default")).toEqual({ ok: true });
+      const result = await capturedHandlers.get("jinaApiKey:test")!(event, "../../forged");
       expect(result.ok).toBe(true);
-      // Verify the request actually used the profile-A key.
-      const fetchMock = vi.mocked(globalThis.fetch);
-      const fetchCall = fetchMock.mock.calls[0];
-      const sentHeaders = fetchCall?.[1]?.headers as Record<string, string> | undefined;
-      expect(sentHeaders?.Authorization).toBe("Bearer jina-key-A");
+      expect(isJinaApiKeyConfigured).toHaveBeenCalledWith("work");
+      expect(setJinaApiKey).toHaveBeenCalledWith("jina-valid-key", "work");
+      expect(deleteJinaApiKey).toHaveBeenCalledWith("work");
+      expect(getJinaApiKey).toHaveBeenCalledWith("work");
 
       vi.unstubAllGlobals();
     });
 
-    it("jinaApiKey:test falls back to the default profile key when id is omitted", async () => {
-      vi.mocked(getJinaApiKey).mockReturnValue("jina-key-default");
-      vi.stubGlobal("fetch", vi.fn(async () => new Response("ok", { status: 200 })));
+    it("binds profile-password set and clear mutations to the session profile", async () => {
+      const event = sessionCtx();
 
-      const handler = capturedHandlers.get("jinaApiKey:test");
-      const result = await handler!(ctx(), undefined);
-      expect(result.ok).toBe(true);
-      const fetchMock = vi.mocked(globalThis.fetch);
-      const sentHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string> | undefined;
-      expect(sentHeaders?.Authorization).toBe("Bearer jina-key-default");
+      expect(await capturedHandlers.get("profilePassword:set")!(event, { profileId: "personal", password: "secret" })).toEqual({ ok: true });
+      expect(await capturedHandlers.get("profilePassword:clear")!(event, "personal")).toEqual({ ok: true });
 
-      vi.unstubAllGlobals();
+      expect(setProfilePassword).toHaveBeenCalledWith("secret", "work");
+      expect(clearProfilePassword).toHaveBeenCalledWith("work");
     });
 
-    it("jinaApiKey:test rejects an invalid profileId", async () => {
-      const handler = capturedHandlers.get("jinaApiKey:test");
-      const result = await handler!(ctx(), "bad_id");
-      expect(result.ok).toBe(false);
-      expect(result.message).toMatch(/Invalid profile id/);
-    });
-
-    it("jina:request uses the supplied profile's Jina key", async () => {
+    it("jina:request uses the WebContents session profile's Jina key", async () => {
       vi.mocked(getJinaApiKey).mockImplementation((pid) =>
         pid === "work" ? "jina-key-A" : "jina-key-default",
       );
@@ -1151,9 +1358,11 @@ describe("registerIpcHandlers", () => {
       );
 
       const handler = capturedHandlers.get("jina:request");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "work");
       const result = await handler!(
-        ctx(),
-        { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000, profileId: "work" },
+        { sender },
+        { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000, profileId: "default" },
       );
 
       expect(result.ok).toBe(true);
@@ -1185,17 +1394,29 @@ describe("registerIpcHandlers", () => {
       vi.unstubAllGlobals();
     });
 
-    it("jina:request rejects an invalid profileId", async () => {
+    it("jina:request ignores an invalid renderer profileId and uses the session", async () => {
+      vi.mocked(getJinaApiKey).mockImplementation((pid) =>
+        pid === "work" ? "jina-key-A" : "jina-key-default",
+      );
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("<html></html>", { status: 200, headers: { "content-type": "text/html" } })),
+      );
+
       const handler = capturedHandlers.get("jina:request");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "work");
       const result = await handler!(
-        ctx(),
+        { sender },
         { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000, profileId: "../../x" },
       );
 
-      expect(result).toMatchObject({ ok: false });
-      // Specifically: a generic 400-class shape so an invalid-profile
-      // attempt cannot enumerate the underlying error.
-      expect(typeof result.status).toBe("number");
+      expect(result).toMatchObject({ ok: true, status: 200 });
+      const fetchMock = vi.mocked(globalThis.fetch);
+      const sentHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string> | undefined;
+      expect(sentHeaders?.Authorization).toBe("Bearer jina-key-A");
+
+      vi.unstubAllGlobals();
     });
   });
 
@@ -1206,7 +1427,8 @@ describe("registerIpcHandlers", () => {
 
     it("profilePassword:set rejects the reserved default id without writing", async () => {
       const handler = capturedHandlers.get("profilePassword:set");
-      const result = await handler!(ctx(), { profileId: "default", password: "secret" });
+      const event = ctx();
+      const result = await handler!(event, { profileId: "work", password: "secret" });
       expect(result).toMatchObject({ ok: false });
       expect(result.error).toMatch(/default profile cannot be password-protected/);
       // MUST NOT have written a verifier row to secure-prefs.
@@ -1215,7 +1437,9 @@ describe("registerIpcHandlers", () => {
 
     it("profilePassword:set still works for non-default valid ids", async () => {
       const handler = capturedHandlers.get("profilePassword:set");
-      const result = await handler!(ctx(), { profileId: "work", password: "secret" });
+      const event = ctx();
+      setProfileSessionId(event.sender, "work");
+      const result = await handler!(event, { profileId: "default", password: "secret" });
       expect(result).toEqual({ ok: true });
       expect(setProfilePassword).toHaveBeenCalledWith("secret", "work");
     });
@@ -1253,13 +1477,20 @@ describe("registerIpcHandlers", () => {
     it("accepts only the exact store and record bound to the grant", async () => {
       const handler = capturedHandlers.get("sync:applyRemoteMutation");
       const token = issueRemoteApplyGrant("f".repeat(64), "conversations", "conv-authorized");
-      const result = await handler?.(null, {
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "work");
+      const result = await handler?.({ sender }, {
         storeName: "conversations",
         id: "conv-authorized",
         recordJson: JSON.stringify({ id: "conv-authorized", title: "Remote" }),
         remoteApplyToken: token,
       });
       expect(result).toEqual({ ok: true });
+      const storage = await import("../services/chatStorage");
+      expect(storage.saveConversation).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "conv-authorized" }),
+        "work",
+      );
     });
   });
 });

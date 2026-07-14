@@ -19,6 +19,7 @@ import {
   getCharacterImageCacheInventory,
 } from "../../services/characterImageCache";
 import { registerIpcChannel } from "./common";
+import { getProfileSessionId } from "../../services/profileSession";
 
 /** Maximum size in bytes for JSON import and export files. */
 const MAX_JSON_FILE_BYTES = VENICE_MAX_BODY_BYTES;
@@ -437,9 +438,9 @@ export function registerFileHandlers(): void {
     }
   });
 
-  registerIpcChannel("app:openConversationsFolder", async () => {
-    const { CONVERSATIONS_DIR } = await import("../../services/conversationVault");
-    await shell.openPath(CONVERSATIONS_DIR);
+  registerIpcChannel("app:openConversationsFolder", async (event) => {
+    const { getProfileConversationsDir } = await import("../../services/conversationVault");
+    await shell.openPath(getProfileConversationsDir(getProfileSessionId(event.sender)));
     return { ok: true };
   });
 }
