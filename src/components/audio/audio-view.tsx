@@ -13,37 +13,8 @@ import { toast } from '../../stores/toast-store'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
 import { redactErrorMessage } from '../../shared/redaction'
 import { DEFAULT_TTS_MODEL } from '../../constants/venice'
+import { DEFAULT_TTS_VOICE, TTS_FALLBACK_VOICES } from '../../constants/tts'
 
-const VOICES = [
-  // American Female
-  'af_alloy', 'af_aoede', 'af_bella', 'af_heart', 'af_jessica', 'af_kore', 'af_nicole', 'af_nova', 'af_river', 'af_sarah', 'af_sky',
-  // American Male
-  'am_adam', 'am_echo', 'am_eric', 'am_fable', 'am_liam', 'am_michael', 'am_onyx',
-  // British Female
-  'bf_alice', 'bf_emma', 'bf_isabella', 'bf_lily',
-  // British Male
-  'bm_daniel', 'bm_fable', 'bm_george', 'bm_lewis',
-  // Chinese
-  'zf_xiaobei', 'zf_xiaoni', 'zf_xiaoxuan', 'zf_xiaoyan', 'zf_xiaoyi',
-  'zm_yunjian', 'zm_yunxi', 'zm_yunxia', 'zm_yunyang',
-  // Japanese
-  'jf_alpha', 'jf_gongitsune', 'jf_nezumi', 'jf_tebukuro',
-  'jm_kumo',
-  // French
-  'ff_siwis',
-  // Hindi
-  'hf_alpha', 'hf_beta',
-  'hm_omega', 'hm_psi',
-  // Italian
-  'if_sara',
-  'im_nicola',
-  // Portuguese (Brazil)
-  'pf_dora',
-  'pm_alex', 'pm_santa',
-  // Spanish
-  'ef_dora',
-  'em_alex', 'em_santa',
-]
 const FORMATS = ['mp3', 'opus', 'aac', 'flac', 'wav'] as const
 
 export function AudioView() {
@@ -59,7 +30,7 @@ export function AudioView() {
   const [tab, setTab] = useState<'tts' | 'transcribe'>('tts')
   const [text, setText] = useState('')
   const [starters, setStarters] = useState<string[]>(() => getPromptStartersForCategory('audio', 3))
-  const [voice, setVoice] = useState('af_heart')
+  const [voice, setVoice] = useState(DEFAULT_TTS_VOICE)
   const [speed, setSpeed] = useState(1)
   const [format, setFormat] = useState<string>('mp3')
   const [audioUrl, setAudioBlob] = useBlobUrl()
@@ -75,7 +46,9 @@ export function AudioView() {
     if (!audioUrl) setPlaybackError(null)
   }, [audioUrl])
 
-  const voiceOptions = VOICES.map((v) => {
+  const selectedModelVoices = models?.find((candidate) => candidate.id === model)?.model_spec?.voices
+  const voices = selectedModelVoices?.length ? selectedModelVoices : TTS_FALLBACK_VOICES
+  const voiceOptions = voices.map((v) => {
     const prefix = v.slice(0, 2)
     const langMap: Record<string, { flag: string; gender: string; lang: string }> = {
       af: { flag: '🇺🇸', gender: 'F', lang: 'American English (Female)' },

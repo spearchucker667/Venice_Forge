@@ -396,7 +396,7 @@ describe("Research Browser Server Main Process Integration", () => {
       await createHandler!();
     });
 
-    it("allows HTTPS subresources without DNS-validating every page asset", async () => {
+    it("VERIFY-111: DNS-validates every HTTP subresource request", async () => {
       const onBeforeRequestHandler = (mockSession.webRequest.onBeforeRequest as any).mock.calls[0][1];
       const callback = vi.fn();
       onBeforeRequestHandler(
@@ -404,8 +404,24 @@ describe("Research Browser Server Main Process Integration", () => {
         callback,
       );
 
+      await new Promise((resolve) => setImmediate(resolve));
+
       expect(callback).toHaveBeenCalledWith({ cancel: false });
-      expect(validateResearchBrowserNetworkUrl).not.toHaveBeenCalled();
+      expect(validateResearchBrowserNetworkUrl).toHaveBeenCalledWith("https://cdn.example.com/app.js");
+    });
+
+    it("VERIFY-111: blocks a subresource when per-request DNS validation fails", async () => {
+      const onBeforeRequestHandler = (mockSession.webRequest.onBeforeRequest as any).mock.calls[0][1];
+      const callback = vi.fn();
+      onBeforeRequestHandler(
+        { url: "https://blocked.example.com/private.js", resourceType: "script" },
+        callback,
+      );
+
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(callback).toHaveBeenCalledWith({ cancel: true });
+      expect(validateResearchBrowserNetworkUrl).toHaveBeenCalledWith("https://blocked.example.com/private.js");
     });
 
     it("blocks unsafe subresource schemes without DNS validation", async () => {

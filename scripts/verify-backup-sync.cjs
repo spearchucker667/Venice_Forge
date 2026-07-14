@@ -135,7 +135,7 @@ function runStaticChecks() {
 
   mustContain(SYNC_WATCHER_FILE, "syncFolderWatcher outbox integration", [
     "persistSyncOutboxEntry(filename, manifestJson, objectFilename)",
-    'drainSyncOutbox(path.join(vfbackupPath, "blobs"), path.join(vfbackupPath, "objects"))',
+    "drainSyncOutbox(blobsPath, objectsPath)",
     "packetMatchesSyncIdentity(parsed, currentSyncIdentity)",
     "_syncSetId: currentSyncIdentity.syncSetId",
     "_keyId: currentSyncIdentity.keyId",
@@ -144,6 +144,13 @@ function runStaticChecks() {
     'path.join(vfbackupPath, "objects")',
     "acknowledgeSyncOperation",
     "collectAcknowledgedEvent",
+  ]);
+  mustContain(SYNC_WATCHER_FILE, "syncFolderWatcher canonical path custody", [
+    "canonicalizeSyncRoot",
+    "ensureSecureDirectory",
+    "fsConstants.O_NOFOLLOW",
+    "Sync packet path escapes the watched directories.",
+    "Sync packet resolves outside the watched directories.",
   ]);
 
   mustContain(SYNC_BRIDGE_FILE, "electron/services/syncBridge.ts exports", [

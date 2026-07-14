@@ -72,6 +72,29 @@ export interface BackgroundTaskIpcEnvelope {
 const VALID_STATUSES: BackgroundTaskStatus[] = ['idle', 'queued', 'processing', 'completed', 'failed', 'aborted', 'timeout']
 const VALID_TYPES: BackgroundTaskType[] = ['video', 'music', 'image', 'research', 'document']
 const VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/
+const PERSISTED_METADATA_STRING_LIMITS = {
+  model: 256,
+  queueDownloadUrl: 4096,
+  source: 128,
+  projectId: 128,
+} as const
+
+/**
+ * Background tasks are a restart/recovery journal, not a request archive.
+ * Keep only fields required to resume polling or route the completed result;
+ * request bodies, prompts, lyrics, and unknown nested metadata stay in memory.
+ */
+function sanitizePersistedMetadata(metadata: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!metadata) return undefined
+  const redacted = redactSecrets(metadata)
+  const persisted: Record<string, unknown> = {}
+  for (const [key, maxLength] of Object.entries(PERSISTED_METADATA_STRING_LIMITS)) {
+    const value = redacted[key]
+    if (typeof value === 'string' && value.length > 0) persisted[key] = value.slice(0, maxLength)
+  }
+  if (redacted.cancellationUnsupported === true) persisted.cancellationUnsupported = true
+  return Object.keys(persisted).length > 0 ? persisted : undefined
+}
 
 export function isValidTaskType(value: unknown): value is BackgroundTaskType {
   return typeof value === 'string' && VALID_TYPES.includes(value as BackgroundTaskType)
@@ -114,8 +137,10 @@ export function isValidBackgroundTask(value: unknown): value is BackgroundTask {
 }
 
 export function sanitizeBackgroundTask(task: BackgroundTask): BackgroundTask {
+  const redacted = redactSecrets(task)
   return {
-    ...redactSecrets(task),
+    ...redacted,
+    metadata: sanitizePersistedMetadata(redacted.metadata),
     progress: task.progress === undefined ? undefined : Math.max(0, Math.min(1, task.progress)),
     createdAt: task.createdAt,
     updatedAt: Date.now(),
@@ -139,7 +164,9 @@ export function parseTasks(raw: string): BackgroundTask[] {
   if (envelope.version !== 1) return []
   const tasks = envelope.tasks
   if (!Array.isArray(tasks)) return []
-  return tasks.filter(isValidBackgroundTask)
+  return tasks
+    .filter(isValidBackgroundTask)
+    .map((task) => ({ ...task, metadata: sanitizePersistedMetadata(task.metadata) }))
 }
 
 export function createBackgroundTask(input: BackgroundTaskCreateInput): BackgroundTask {

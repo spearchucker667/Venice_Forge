@@ -1,7 +1,7 @@
 import chokidar, { FSWatcher } from "chokidar";
 import path from "path";
 import crypto from "crypto";
-import { promises as fs } from "fs";
+import { constants as fsConstants, promises as fs, type Dirent } from "fs";
 import { logInfo, logError } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { BrowserWindow, app } from "electron";
@@ -41,6 +41,86 @@ const inFlightOperations = new Map<string, InFlightOperation>();
 const inFlightTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 const ACK_TIMEOUT_MS = 30_000;
 const MAX_PACKET_BYTES = 50 * 1024 * 1024;
+const RETRYABLE_SYNC_READ_CODES = new Set(["EBUSY", "EAGAIN", "EINTR", "ENOENT", "ESTALE", "ETIMEDOUT"]);
+
+function isRetryableRemoteReadError(error: unknown): boolean {
+  if (error instanceof SyntaxError) return true;
+  const code = (error as NodeJS.ErrnoException | null)?.code;
+  return typeof code === "string" && RETRYABLE_SYNC_READ_CODES.has(code);
+}
+
+function transientReadOperationId(filePath: string): string {
+  return crypto.createHash("sha256").update(`sync-read\0${filePath}`).digest("hex");
+}
+
+function isWithinDirectory(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return relative === "" || (!path.isAbsolute(relative) && relative !== ".." && !relative.startsWith(`..${path.sep}`));
+}
+
+async function canonicalizeSyncRoot(syncPath: string): Promise<string> {
+  const rootStat = await fs.lstat(syncPath);
+  if (rootStat.isSymbolicLink()) throw new Error("Sync folder must not be a symbolic link.");
+  if (!rootStat.isDirectory()) throw new Error("Sync folder must be a directory.");
+  return path.resolve(await fs.realpath(syncPath));
+}
+
+async function ensureSecureDirectory(root: string, target: string): Promise<string> {
+  const relative = path.relative(root, target);
+  if (!isWithinDirectory(root, target) || relative === "") return root;
+  let current = root;
+  for (const segment of relative.split(path.sep)) {
+    current = path.join(current, segment);
+    try {
+      const existing = await fs.lstat(current);
+      if (existing.isSymbolicLink()) throw new Error(`Sync custody path is a symbolic link: ${segment}`);
+      if (!existing.isDirectory()) throw new Error(`Sync custody path is not a directory: ${segment}`);
+    } catch (error: unknown) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      await fs.mkdir(current, { mode: 0o700 });
+    }
+    const resolved = await fs.realpath(current);
+    if (!isWithinDirectory(root, resolved)) throw new Error("Sync custody path escapes the approved root.");
+  }
+  return current;
+}
+
+async function assertNotSymlinkIfPresent(filePath: string): Promise<void> {
+  try {
+    if ((await fs.lstat(filePath)).isSymbolicLink()) {
+      throw new Error(`Sync custody file is a symbolic link: ${path.basename(filePath)}`);
+    }
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+}
+
+async function openSecureWatchedFile(filePath: string): Promise<Awaited<ReturnType<typeof fs.open>>> {
+  if (!currentSyncPath) throw new Error("Sync folder not configured.");
+  const vfbackupPath = path.join(currentSyncPath, ".vfbackup");
+  const allowedParents = await Promise.all([
+    ensureSecureDirectory(currentSyncPath, path.join(vfbackupPath, "blobs")),
+    ensureSecureDirectory(currentSyncPath, path.join(vfbackupPath, "objects")),
+  ]);
+  const linkStat = await fs.lstat(filePath);
+  if (linkStat.isSymbolicLink()) throw new Error("Sync packet must not be a symbolic link.");
+  if (!linkStat.isFile()) throw new Error("Sync packet must be a regular file.");
+  const requestedParent = await fs.realpath(path.dirname(filePath));
+  if (!allowedParents.includes(requestedParent)) throw new Error("Sync packet path escapes the watched directories.");
+
+  const handle = await fs.open(filePath, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+  try {
+    if (!(await handle.stat()).isFile()) throw new Error("Sync packet must be a regular file.");
+    const resolvedFile = await fs.realpath(filePath);
+    if (!allowedParents.includes(path.dirname(resolvedFile))) {
+      throw new Error("Sync packet resolves outside the watched directories.");
+    }
+    return handle;
+  } catch (error) {
+    await handle.close();
+    throw error;
+  }
+}
 
 const JOURNAL_VERSION = 1;
 export const MAX_JOURNAL_ENTRIES = 50_000;
@@ -462,58 +542,88 @@ export function isSyncEmissionSuppressed(): boolean {
 
 /** Set the sync folder and start watching. */
 export async function setSyncFolder(syncPath: string): Promise<{ ok: boolean; error?: string }> {
+  const previousSyncPath = currentSyncPath;
+  const previousSyncIdentity = currentSyncIdentity;
+  let candidateWatcher: typeof watcher = null;
+  let persistenceAttempted = false;
   try {
     if (watcher) {
       await watcher.close();
       watcher = null;
     }
 
-    currentSyncPath = syncPath;
-    await setSyncPath(syncPath);
     if (!syncPath) {
+      currentSyncPath = null;
+      await setSyncPath("");
       return { ok: true };
     }
 
-    // Ensure .vfbackup directory exists
-    const vfbackupPath = path.join(syncPath, ".vfbackup");
-    await fs.mkdir(vfbackupPath, { recursive: true });
-    await fs.mkdir(path.join(vfbackupPath, "blobs"), { recursive: true });
-    await fs.mkdir(path.join(vfbackupPath, "objects"), { recursive: true });
-    for (const entry of await fs.readdir(path.join(vfbackupPath, "blobs"))) {
-      if (entry.endsWith(".tmp")) await fs.rm(path.join(vfbackupPath, "blobs", entry), { force: true });
+    const canonicalRoot = await canonicalizeSyncRoot(syncPath);
+    const vfbackupPath = await ensureSecureDirectory(canonicalRoot, path.join(canonicalRoot, ".vfbackup"));
+    const blobsPath = await ensureSecureDirectory(canonicalRoot, path.join(vfbackupPath, "blobs"));
+    const objectsPath = await ensureSecureDirectory(canonicalRoot, path.join(vfbackupPath, "objects"));
+    await assertNotSymlinkIfPresent(path.join(vfbackupPath, "sync-identity.json"));
+    for (const entry of await fs.readdir(blobsPath, { withFileTypes: true }) as Dirent[]) {
+      if (!entry.name.endsWith(".tmp")) continue;
+      if (entry.isSymbolicLink()) throw new Error(`Temporary sync blob is a symbolic link: ${entry.name}`);
+      const temporaryPath = path.join(blobsPath, entry.name);
+      const resolvedTemporary = await fs.realpath(temporaryPath);
+      if (path.dirname(resolvedTemporary) !== blobsPath) throw new Error("Temporary sync blob escapes the approved directory.");
+      await fs.rm(temporaryPath, { force: true });
     }
+    let candidateIdentity: SyncIdentity | null = null;
 
     // Only start watching if we have a password
     if (currentPassword) {
-      currentSyncIdentity = await ensureSyncIdentity(vfbackupPath, currentPassword);
+      candidateIdentity = await ensureSyncIdentity(vfbackupPath, currentPassword);
       const deviceId = await getDeviceId();
       await registerSyncDevice(vfbackupPath, deviceId);
-      await drainSyncOutbox(path.join(vfbackupPath, "blobs"), path.join(vfbackupPath, "objects"));
-      watcher = chokidar.watch([path.join(vfbackupPath, "blobs"), path.join(vfbackupPath, "objects")], {
+      await drainSyncOutbox(blobsPath, objectsPath);
+      candidateWatcher = chokidar.watch([blobsPath, objectsPath], {
         ignored: /(^|[/\\])\../, // ignore dotfiles
         persistent: true,
         ignoreInitial: false, // We DO want to process existing files on startup
         depth: 0 // only watch blobs directly in blobs folder
       });
 
-      watcher.on("add", (filePath: string) => {
+      candidateWatcher.on("add", (filePath: string) => {
         handleRemoteChange(filePath, 0).catch((err: unknown) => {
           logError("syncFolderWatcher", `Remote change delivery failed: ${redactErrorMessage(err)}`);
         });
       });
-      watcher.on("change", (filePath: string) => {
+      candidateWatcher.on("change", (filePath: string) => {
         handleRemoteChange(filePath, 0).catch((err: unknown) => {
           logError("syncFolderWatcher", `Remote change delivery failed: ${redactErrorMessage(err)}`);
         });
       });
       
-      logInfo("syncFolderWatcher", "Started watching approved encrypted sync folder");
-    } else {
-      logInfo("syncFolderWatcher", "Encrypted sync folder configured; sync is paused");
     }
+
+    // Commit in-memory and persisted configuration only after every setup step
+    // has succeeded. This prevents a failed identity/outbox/watcher setup from
+    // leaving a path that was never operational.
+    currentSyncPath = canonicalRoot;
+    currentSyncIdentity = candidateIdentity;
+    watcher = candidateWatcher;
+    persistenceAttempted = true;
+    await setSyncPath(canonicalRoot);
+
+    logInfo(
+      "syncFolderWatcher",
+      currentPassword ? "Started watching approved encrypted sync folder" : "Encrypted sync folder configured; sync is paused",
+    );
 
     return { ok: true };
   } catch (err: unknown) {
+    if (candidateWatcher) await candidateWatcher.close().catch(() => undefined);
+    if (watcher === candidateWatcher) watcher = null;
+    currentSyncPath = previousSyncPath;
+    currentSyncIdentity = previousSyncIdentity;
+    if (persistenceAttempted) {
+      await setSyncPath(previousSyncPath ?? "").catch((rollbackError: unknown) => {
+        logError("syncFolderWatcher", `Failed to roll back sync folder configuration: ${redactErrorMessage(rollbackError)}`);
+      });
+    }
     const errorMsg = err instanceof Error ? err.message : "Unknown error";
     logError("syncFolderWatcher", `Failed to set sync folder: ${redactErrorMessage(errorMsg)}`);
     return { ok: false, error: redactErrorMessage(errorMsg) };
@@ -536,7 +646,7 @@ export async function handleRemoteChange(filePath: string, attempts = 0): Promis
   const filename = path.basename(filePath);
 
   try {
-    const fh = await fs.open(filePath, "r");
+    const fh = await openSecureWatchedFile(filePath);
     let data: string;
     try {
       const stat = await fh.stat();
@@ -624,6 +734,10 @@ export async function handleRemoteChange(filePath: string, attempts = 0): Promis
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Unknown error";
     logError("syncFolderWatcher", `Failed to read/decrypt changed sync file ${filename}: ${redactErrorMessage(errorMsg)}`);
+    if (isRetryableRemoteReadError(err)) {
+      scheduleRetry(transientReadOperationId(filePath), filePath, attempts, "Remote sync file is not fully available yet");
+      return false;
+    }
     return true;
   }
 }
@@ -698,12 +812,14 @@ export async function writePacket(storeName: string, id: string, recordJson: str
     const filename = `${canonicalHash}.json`;
 
     const vfbackupPath = path.join(currentSyncPath, ".vfbackup");
-    const blobsPath = path.join(vfbackupPath, "blobs");
+    const blobsPath = await ensureSecureDirectory(currentSyncPath, path.join(vfbackupPath, "blobs"));
+    const objectsPath = await ensureSecureDirectory(currentSyncPath, path.join(vfbackupPath, "objects"));
+    await assertNotSymlinkIfPresent(path.join(vfbackupPath, "sync-identity.json"));
     // Persist the already-encrypted manifest locally before publishing it to
     // the sync folder. A crash or transient folder failure can then be drained
     // safely on the next authenticated watcher start.
     await persistSyncOutboxEntry(filename, manifestJson, objectFilename);
-    await drainSyncOutbox(blobsPath, path.join(vfbackupPath, "objects"));
+    await drainSyncOutbox(blobsPath, objectsPath);
     const deviceId = await getDeviceId();
     await registerSyncDevice(vfbackupPath, deviceId);
     await acknowledgeSyncOperation(vfbackupPath, deviceId, operationId);

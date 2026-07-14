@@ -154,6 +154,15 @@ const veniceForge = {
     },
   },
 
+  providerSettings: {
+    get() {
+      return ipcRenderer.invoke("providerSettings:get");
+    },
+    update(input: { enabledProviders?: Record<string, boolean>; autoFallbackEnabled?: boolean; fallbackOrdering?: string[] }) {
+      return ipcRenderer.invoke("providerSettings:update", input);
+    },
+  },
+
   jinaApiKey: {
     isConfigured(profileId?: string): Promise<boolean> {
       return ipcRenderer.invoke("jinaApiKey:isConfigured", profileId);
@@ -181,7 +190,7 @@ const veniceForge = {
   },
 
   tts: {
-    synthesize(opts: { text: string; model?: string; voice?: string; speed?: number }, cacheEnabled: boolean): Promise<{ ok: boolean; id?: string; error?: string }> {
+    synthesize(opts: { text: string; model?: string; voice?: string; speed?: number }, cacheEnabled: boolean): ReturnType<import("../src/types/desktop").VeniceForgeTts["synthesize"]> {
       return ipcRenderer.invoke("tts:synthesize", opts, cacheEnabled);
     },
     clearCache(): Promise<{ ok: boolean; error?: string }> {

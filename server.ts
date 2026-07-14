@@ -63,6 +63,13 @@ function isLoopbackClient(req: express.Request): boolean {
 
 dotenv.config();
 
+/** AUDIT-026: surface or auto-tighten a local credential file with overly
+ *  permissive mode bits while a real Venice/Jina key is loaded. Implementation
+ *  lives in `src/services/envPermissionsService.ts` so it is unit-testable
+ *  in isolation. */
+import { checkLocalEnvFilePermissionsOnce } from "./src/services/envPermissionsService";
+checkLocalEnvFilePermissionsOnce();
+
 /** Determines whether Local Family Safe Mode is enabled in the web proxy.
  *
  * Priority:

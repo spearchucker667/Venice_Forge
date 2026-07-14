@@ -44,6 +44,35 @@ const LOCAL_CACHE_PATTERNS = [
   /(?:^|\/)[^/]+\.cache\.json$/,
 ];
 const TEXT_FILE_RE = /\.(?:cjs|mjs|js|jsx|ts|tsx|md|ya?ml|json|txt|rules)$/i;
+const README_REQUIRED_TAB_LABELS = [
+  "Chat",
+  "Character Chats",
+  "History",
+  "Image Studio",
+  "Media Studio",
+  "Prompts",
+  "Scene Composer",
+  "Audio Studio",
+  "Music Studio",
+  "Video Studio",
+  "Embeddings",
+  "Research",
+  "Characters",
+  "RP Studio",
+  "Workflows",
+  "Playground",
+  "Privacy",
+  "Config",
+  "Status",
+];
+const README_REQUIRED_CUSTODY_MARKERS = [
+  "Electron `safeStorage`",
+  "`secure-prefs.json`",
+  "Keychain-backed encryption",
+  "DPAPI",
+  "password-verifier records",
+  "it does not store API keys",
+];
 
 const EXCLUDED_ARCHIVE_DIRS = new Set([
   "_REPO_EXTRACT_METADATA",
@@ -123,6 +152,43 @@ function reportLine(errors, relativePath, lineNumber, message) {
   errors.push(`${relativePath}:${lineNumber}: ${message}`);
 }
 
+function verifyReadmeClaims(rootDir, errors) {
+  const relativePath = "README.md";
+  const absolutePath = path.join(rootDir, relativePath);
+  if (!fs.existsSync(absolutePath)) return;
+
+  const content = fs.readFileSync(absolutePath, "utf8");
+  const workspaceMap = content.match(/## Current Workspace Map\s+([\s\S]*?)\n---/)?.[1] ?? "";
+  const custodyClaim = content
+    .split(/\r?\n/)
+    .find((line) => line.startsWith("- **Secure Key Storage:**")) ?? "";
+  const lineNumberFor = (needle) => {
+    const index = content.split(/\r?\n/).findIndex((line) => line.includes(needle));
+    return index >= 0 ? index + 1 : 1;
+  };
+
+  if (content.includes("assets/preview.png")) {
+    reportLine(
+      errors,
+      relativePath,
+      lineNumberFor("assets/preview.png"),
+      "stale promotional preview must not replace the canonical workspace map",
+    );
+  }
+
+  for (const label of README_REQUIRED_TAB_LABELS) {
+    if (!workspaceMap.includes(label)) {
+      reportLine(errors, relativePath, 1, `workspace map is missing canonical tab label: ${label}`);
+    }
+  }
+
+  for (const marker of README_REQUIRED_CUSTODY_MARKERS) {
+    if (!custodyClaim.includes(marker)) {
+      reportLine(errors, relativePath, 1, `secure-storage claim is missing implementation marker: ${marker}`);
+    }
+  }
+}
+
 function verifyRepositoryIdentity(rootDir) {
   const errors = [];
   const { mode, files } = trackedFiles(rootDir);
@@ -164,6 +230,8 @@ function verifyRepositoryIdentity(rootDir) {
       reportLine(errors, relativePath, 1, `missing canonical GitHub repository ${CANONICAL_REPOSITORY}`);
     }
   }
+
+  verifyReadmeClaims(rootDir, errors);
 
   for (const relativePath of files) {
     if (mode === "archive" && isExcludedArchiveDir(relativePath)) continue;
@@ -233,6 +301,8 @@ module.exports = {
   ACTIVE_AGENT_DOCS,
   CANONICAL_PATH,
   CANONICAL_REPOSITORY,
+  README_REQUIRED_CUSTODY_MARKERS,
+  README_REQUIRED_TAB_LABELS,
   verifyRepositoryIdentity,
 };
 

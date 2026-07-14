@@ -453,5 +453,5 @@ Users create custom themes via the ThemeMaker UI. No code changes required.
 
 - [`docs/ABOUT.md`](../ABOUT.md) — Architecture and goals
 - [`docs/FAQ.md`](../FAQ.md) — Frequently asked questions (includes theme Q&A)
-- [`CHANGELOG.md`](../audits/CHANGELOG.md) — Version history
+- [`summary_of_work.md`](../summary_of_work.md) — Current development and validation history
 - [`src/theme/`](../../src/theme/) — Source code

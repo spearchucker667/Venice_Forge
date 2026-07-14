@@ -6,7 +6,7 @@
  * Locks three repo-governance invariants:
  * - current bug-hunt prompt is canonical and zip-aware;
  * - stale audit reports do not live at the repository root;
- * - VERIFY IDs stay in the documented namespace: VERIFY-001..VERIFY-104 plus
+ * - VERIFY IDs stay in the documented namespace: VERIFY-001..VERIFY-122 plus
  *   the intentional legacy T-168 bridge id VERIFY-168.
  */
 
@@ -78,7 +78,7 @@ if (!agents.includes("VERIFY-168") || !agents.includes("intentional legacy")) {
 }
 
 const allowedVerifyIds = new Set(["VERIFY-168"]);
-for (let id = 1; id <= 104; id += 1) {
+for (let id = 1; id <= 122; id += 1) {
   allowedVerifyIds.add(`VERIFY-${String(id).padStart(3, "0")}`);
 }
 

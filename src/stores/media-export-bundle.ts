@@ -1,11 +1,9 @@
 /** @fileoverview Phase 2B Media Studio export bundle.
  *
  * Produces a self-contained export payload for a set of MediaItem
- * records. The payload can be serialised to JSON (browser + Electron
- * IPC) and used to drive a ZIP export via `jszip` or a manual save
- * dialog. This module is pure (no DOM, no Node imports) so it works
- * in both the renderer and main process; the caller is responsible
- * for the actual ZIP assembly + save.
+ * records. The payload is serialised as a redacted JSON manifest in the
+ * current UI. This module is pure (no DOM or Node imports); it does not claim
+ * to assemble a ZIP or include the media bytes.
  *
  * Safety:
  *   - Secrets, bearer tokens, api keys, raw authorization headers, and
@@ -105,7 +103,14 @@ function extensionFor(item: MediaItem): string {
   // and mp4 for videos. The consumer can override via the
   // `mediaFile.extension` field.
   if (item.mediaType === "video") return "mp4";
-  if (item.mediaType === "audio") return "mp3";
+  if (item.mediaType === "audio") {
+    const subtype = typeof item.image === "string"
+      ? item.image.match(/^data:audio\/([a-zA-Z0-9.+-]+);base64,/)?.[1]?.toLowerCase()
+      : undefined;
+    if (subtype === "mpeg" || subtype === "mp3") return "mp3";
+    if (subtype && ["ogg", "wav", "flac", "aac", "m4a", "mp4"].includes(subtype)) return subtype === "mp4" ? "m4a" : subtype;
+    return "mp3";
+  }
   if (typeof item.image === "string") return getExtensionFromDataUrl(item.image);
   return "png";
 }
@@ -201,7 +206,7 @@ export function validateSidecar(input: unknown): string | null {
   const v = input as Record<string, unknown>;
   if (v.version !== EXPORT_BUNDLE_VERSION) return `Bad version: ${String(v.version)}`;
   if (typeof v.id !== "string") return "Missing id";
-  if (v.type !== "image" && v.type !== "video") return "Bad type";
+  if (v.type !== "image" && v.type !== "video" && v.type !== "audio") return "Bad type";
   if (typeof v.model !== "string") return "Missing model";
   if (typeof v.prompt !== "string") return "Missing prompt";
   if (!v.lineage || typeof v.lineage !== "object") return "Missing lineage";

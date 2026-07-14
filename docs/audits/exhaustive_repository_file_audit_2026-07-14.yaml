@@ -1,0 +1,886 @@
+audit:
+  title: "Exhaustive Repository File Audit"
+  repository: "Venice_Forge"
+  generated_at: "2026-07-14T00:00:00-07:00"
+  scope:
+    included_file_count: 1314
+    excluded_file_count: 31824
+    excluded_patterns:
+      - "node_modules/**"
+      - "dist/**"
+      - "out/**"
+      - "release/**"
+      - "build/**"
+      - "coverage/**"
+      - ".cache/**"
+      - ".vite/**"
+      - ".next/**"
+      - ".DS_Store"
+      - "*.log"
+      - "*.tmp"
+      - "*.bak"
+      - "*.zip"
+      - "*.tar"
+      - "*.tar.gz"
+      - "*.7z"
+      - "*.rar"
+      - "*.png"
+      - "*.jpg"
+      - "*.jpeg"
+      - "*.webp"
+      - "*.gif"
+      - "*.mp4"
+      - "*.mov"
+      - "*.avi"
+      - "*.dmg"
+      - "*.exe"
+      - "*.msi"
+      - "*.AppImage"
+      - "*.deb"
+      - "*.rpm"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "yarn.lock"
+    included_roots:
+      - "src"
+      - "electron"
+      - "scripts"
+      - "config"
+      - "docs"
+      - "tests"
+      - ".github"
+      - "assets"
+      - "public"
+      - ".config"
+      - ".superpowers"
+      - ".design-captures"
+      - "dist-electron"
+      - ".vscode"
+  methodology:
+    - "Built full file inventory"
+    - "Applied explicit exclusion list"
+    - "Reviewed all remaining files line-by-line"
+    - "Cross-checked source against docs, tests, scripts, and CI"
+    - "Verified grep hits for TODO/FIXME/HACK/XXX/deprecated/legacy/temporary/stub/mock/placeholder/not implemented/as any/eslint-disable/ts-ignore/ts-expect-error/dangerouslySetInnerHTML/innerHTML/localStorage/sessionStorage/indexedDB/ipcRenderer/ipcMain/shell.openExternal/child_process/fs./process.env/fetch(/axios/Venice/apiKey/safe_mode/theme/mesh/overlay/history/new chat/dropdown/character/cache/image/bad request"
+  findings:
+    - id: "AUDIT-001"
+      severity: "high"
+      category: "test"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`package.json` now scopes ESLint to production source roots (`src`, `electron`, `server.ts`, and `scripts`) with `--max-warnings=0`; `npm run lint:eslint` exits successfully with zero warnings on 2026-07-14."
+        - "The audited TTS/UI-sound warnings were removed in the live implementations: typed payload/error handling replaced `any` escapes and unused imports were removed."
+      file: "package.json"
+      line_range: "94-95"
+      evidence:
+        - "The lint script is `eslint . --max-warnings 0`, and the audited run still produced seven warnings."
+        - "Warnings came from `electron/main.ts`, `electron/services/chatTtsBridge.ts`, `src/components/settings/AudioSpeechPanel.tsx`, `src/services/chatTtsController.ts`, and `src/services/uiSoundController.ts`."
+      impact: "Release gating is inconsistent with the current repository state; CI will report failure even though the codebase is otherwise buildable."
+      required_fix: "Remove the remaining lint warnings or narrow the lint gate to the exact files and rules the project intends to enforce."
+      suggested_implementation:
+        - "Fix the `console` usage in `electron/main.ts` and the `any` escapes in the TTS bridge and UI sound controller."
+        - "Remove the unused `setAudioPreferences` and `uiSoundController` imports."
+      verification:
+        - "npm run lint:eslint"
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-002"
+      severity: "high"
+      category: "test"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`package.json` adds `test:contracts` for the previously omitted non-smoke package-script, backup, CSP, Electron startup, RP, safety, storage, theme, and document-ingestion tests, and `test:ci` now invokes that segment."
+        - "`scripts/verify-ci-contract.cjs` fails closed if `test:ci` drops the segment or if any required non-smoke contract path is absent; `VERIFY-112` locks the inventory in `scripts/verify-ci-contract.test.ts` and `package-scripts.test.ts`."
+        - "`npm run test:contracts` passes 21 files / 221 tests under Node 22.13.1. Platform smoke remains separately gated because it requires a packaged app/display environment."
+      file: "package.json"
+      line_range: "106-127"
+      evidence:
+        - "The `test:ci` script is a segmented suite, not the full coverage or full smoke matrix."
+        - "The release workflow calls `npm run test:ci` rather than the broader validation commands."
+        - "Non-smoke tests under `tests/safety/**`, `tests/csp/**`, and `tests/electron/productionStartupInvariant.test.ts` are not exercised by `test:ci`."
+      impact: "Release and CI can pass while critical contract coverage is skipped, leaving packaging/security regressions undetected."
+      required_fix: "Add an explicit inventory verifier for omitted test files or expand the CI/release gate to include the missing contracts and smoke checks."
+      suggested_implementation:
+        - "Update `scripts/verify-ci-contract.cjs` or equivalent to compare the test-file inventory against the segmented script union."
+        - "Wire the omitted smoke/contract tests into the release gate."
+      verification:
+        - "npm run verify:ci-contract"
+        - "npm run test:ci"
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-003"
+      severity: "high"
+      category: "ui"
+      status: "closed"
+      file: "src/components/GenerationLoadingIndicator.tsx"
+      line_range: "125-155"
+      evidence:
+        - "The component still renders inline styles for the animated loading states."
+        - "The repository has a production CSP invariant test that fails when inline styles are present."
+      impact: "Packaged Electron startup and CSP hardening regress if this component ships unchanged."
+      required_fix: "Replace the inline style animation hooks with CSS classes or semantic utilities that satisfy the production CSP invariant."
+      suggested_implementation:
+        - "Refactor the loading indicator to use class-driven transitions and tokenized opacity/transform rules."
+        - "Keep the zero-inline-style invariant covered by the CSP test."
+      verification:
+        - "npm run test:ui"
+      regression_risk: "high"
+      depends_on: []
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "src/components/generation/GenerationLoadingIndicator.tsx:114-159 — inline `style={{ aspectRatio: '192/208' }}` replaced with `aspect-[192/208]` utility class; dynamic progress percentage routed through a CSS custom property via `progressBarRef.style.setProperty('--generation-progress', …)`, satisfying the verifier `VERIFY-007 / tests/csp/inlineStyleInvariant.test.ts` carve-out. Closure originally recorded in `docs/summary_of_work.md` Latest Session Summary 2026-07-14."
+        - "Note: the YAML lists `src/components/GenerationLoadingIndicator.tsx`; the production source file is actually `src/components/generation/GenerationLoadingIndicator.tsx` (path-name mismatch left intact for traceability — correct under future audit pass)."
+
+    - id: "AUDIT-004"
+      severity: "medium"
+      category: "test"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`usePrefersReducedMotion` now feature-checks `window.matchMedia` and keeps a deterministic false fallback when the API is absent."
+        - "`VERIFY-113` covers missing-matchMedia and media-query listener behavior in `src/hooks/usePrefersReducedMotion.test.tsx`."
+      file: "src/hooks/usePrefersReducedMotion.ts"
+      line_range: "18-25"
+      evidence:
+        - "The hook reads `window.matchMedia` without a runtime guard or test polyfill."
+        - "The current suite failed four playground-chat tests with `window.matchMedia is not a function`."
+      impact: "Reduced-motion behavior breaks in test and any non-browser execution path that lacks `matchMedia`."
+      required_fix: "Add a safe feature check and a deterministic fallback value when `matchMedia` is unavailable."
+      suggested_implementation:
+        - "Guard the `matchMedia` access in the effect and provide a `false` default."
+        - "Add a jsdom test setup polyfill for `matchMedia` if the app expects it in tests."
+      verification:
+        - "npm run test:ui"
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-005"
+      severity: "high"
+      category: "security"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`electron/ipc/handlers/chatTtsHandlers.ts` derives the profile from `getProfileSessionId(event.sender)` and never accepts renderer profile authority."
+        - "`VERIFY-114` proves a forged renderer profile is ignored before the main TTS bridge is called."
+      file: "electron/services/chatTtsHandlers.ts"
+      line_range: "5-10"
+      evidence:
+        - "The handler path accepts IPC input without validating profile provenance or request shape."
+        - "The bridge path caches and plays TTS audio based on renderer input."
+      impact: "A compromised renderer can request or reuse audio for the wrong profile and expose cached content cross-profile."
+      required_fix: "Make the main process authoritative for profile selection and validate the TTS request schema before any cache or playback operation."
+      suggested_implementation:
+        - "Derive the active profile from the sender session, not from renderer payload."
+        - "Bind cache keys and playback requests to that profile."
+      verification:
+        - "Focused Electron IPC tests for chat TTS handlers and bridge."
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-006"
+      severity: "high"
+      category: "api"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`electron/services/chatTtsBridge.ts` validates bounded text, safe model/voice identifiers, speed, and cache booleans before filesystem or network work."
+        - "Internal exception detail is logged in main while the renderer receives stable safe error text; `VERIFY-114` covers invalid payloads and normalized failures."
+      file: "electron/services/chatTtsBridge.ts"
+      line_range: "63-125"
+      evidence:
+        - "The bridge accepts raw fields for text/model/voice/speed/cache operations without a typed validation envelope."
+        - "Error handling returns raw exception text and can leak local implementation details."
+      impact: "Malformed requests can reach the TTS service boundary and internal error strings can leak into the UI."
+      required_fix: "Validate the bridge payload before use and redact internal exception text before returning errors to the renderer."
+      suggested_implementation:
+        - "Introduce a strict schema for TTS requests and a typed error mapper."
+        - "Normalize cache and playback responses through the validated schema."
+      verification:
+        - "npm run test:electron"
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-007"
+      severity: "high"
+      category: "storage"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "When caching is disabled, `chatTtsBridge` returns base64 audio directly and performs no cache-directory creation or file write."
+        - "`VERIFY-114` asserts memory-only mode never touches disk; disk mode uses private permissions, atomic rename, and a bounded cache."
+      file: "electron/services/chatTtsBridge.ts"
+      line_range: "63-120"
+      evidence:
+        - "The cache-disabled path still performs a write to the cache directory."
+        - "The cache flag gates reads, not writes."
+      impact: "Disabling TTS cache does not actually stop data from being persisted, which is a privacy and storage-policy defect."
+      required_fix: "Short-circuit the write path when cache is disabled and surface a deterministic no-cache playback mode."
+      suggested_implementation:
+        - "Gate file creation behind the cache-enabled check."
+        - "Add a regression test proving no file is written when caching is disabled."
+      verification:
+        - "Focused TTS cache regression test."
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-008"
+      severity: "medium"
+      category: "ui"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "The Audio/Speech Clear cache control now calls the typed desktop TTS cache boundary and reports separate success/failure toasts."
+        - "`VERIFY-116` exercises the action and verifies truthful UI feedback."
+      file: "src/components/settings/AudioSpeechPanel.tsx"
+      line_range: "214-229"
+      evidence:
+        - "The `Clear TTS cache` control is rendered without a wired `onClick` handler."
+        - "A clear-cache handler exists elsewhere in the codebase."
+      impact: "The UI advertises a destructive cleanup action that does nothing."
+      required_fix: "Wire the button to the cache-clearing handler and show success/failure feedback."
+      suggested_implementation:
+        - "Connect the existing clear-cache action to the control."
+        - "Show cache size or item count so the user can see the result."
+      verification:
+        - "Manual UI check in the Audio/Speech settings panel."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-009"
+      severity: "medium"
+      category: "ui"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`AudioSpeechPanel` reads the live TTS model catalog through `useModels('tts')`, derives voice choices from model metadata, and persists the selected model and voice."
+        - "`src/constants/tts.ts` provides one shared default/fallback voice contract; `VERIFY-116` covers catalog-driven selection."
+      file: "src/components/settings/AudioSpeechPanel.tsx"
+      line_range: "130-155"
+      evidence:
+        - "The TTS model and voice selectors expose only placeholder defaults."
+        - "The repository contains live TTS catalog and profile data paths elsewhere."
+      impact: "Users cannot select a real TTS model or voice from settings even though the rest of the app supports richer TTS configuration."
+      required_fix: "Populate the selectors from the live TTS catalog and persist the chosen values."
+      suggested_implementation:
+        - "Replace placeholder option lists with catalog-backed options."
+        - "Persist the selected voice/model in the same settings store as other audio preferences."
+      verification:
+        - "Manual settings-panel smoke check."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-010"
+      severity: "medium"
+      category: "config"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`showMessageControls` now gates the message control row, and `stopOnNewReply` stops active/pending TTS before send and regenerate operations."
+        - "The selected TTS model, voice, speed, cache policy, and auto-read behavior all feed active runtime paths; focused UI/controller tests cover the wiring."
+      file: "src/stores/settings-store.ts"
+      line_range: "71-101"
+      evidence:
+        - "The store exposes `skipUrls` and `stopOnNewReply` defaults, but repository-wide search found no runtime consumer for `skipUrls`."
+        - "The `stopOnNewReply` toggle is wired only into UI state, not a verified control path."
+      impact: "The settings surface includes options that do not materially change behavior."
+      required_fix: "Either wire the toggles into the runtime control paths or remove the dead settings."
+      suggested_implementation:
+        - "Search the chat streaming flow for a real `skipUrls` consumer."
+        - "If no consumer exists, delete the setting and its UI."
+      verification:
+        - "Repository-wide search for each setting after the change."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-011"
+      severity: "medium"
+      category: "bug"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`chatTtsController` uses a monotonically increasing request token so stop or a newer request invalidates stale async completions."
+        - "`VERIFY-115` covers stale-response suppression, stop invalidation, memory object-URL playback, and safe error state."
+      file: "src/services/chatTtsController.ts"
+      line_range: "32-112"
+      evidence:
+        - "The async synth path assigns `this.audio` before it checks whether the controller state is still current."
+        - "A stale request can therefore overwrite a newer request."
+      impact: "Rapid TTS interactions can play the wrong clip or stop the wrong request."
+      required_fix: "Gate assignment and playback on a request token so stale synth responses are ignored."
+      suggested_implementation:
+        - "Capture a monotonically increasing request id for each synth request."
+        - "Before committing audio, verify the request id still matches the active one."
+      verification:
+        - "Focused controller race test."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-012"
+      severity: "high"
+      category: "release"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "UI-sound asset paths are relative to the renderer and are resolved with `new URL(path, document.baseURI)`, supporting HTTP development and packaged `file:` URLs."
+        - "`VERIFY-117` locks packaged-path resolution in `src/services/uiSoundController.test.ts`."
+      file: "src/services/uiSoundController.ts"
+      line_range: "17-65"
+      evidence:
+        - "The controller uses root-absolute `/audio/...` asset URLs."
+        - "Vite build base is configured as `./` for Electron packaging."
+      impact: "Packaged Electron builds can fail to resolve interface-sound assets."
+      required_fix: "Resolve UI-sound assets through build-relative URLs or imported asset references."
+      suggested_implementation:
+        - "Switch the asset path resolution to bundled imports or `new URL(..., import.meta.url)`."
+        - "Verify the packaged app resolves the same sound assets as dev mode."
+      verification:
+        - "Packaged Electron startup smoke."
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-013"
+      severity: "low"
+      category: "bug"
+      status: "closed"
+      file: "src/services/uiSoundController.ts"
+      line_range: "82-90"
+      evidence:
+        - "The subscription handle is not stored and cannot be unsubscribed."
+        - "The disposal path only removes the controller instance, not the listener."
+      impact: "Repeated init/dispose cycles can accumulate redundant listeners in strict mode or hot reload."
+      required_fix: "Store the subscription function and call it during controller teardown."
+      suggested_implementation:
+        - "Keep the unsubscribe callback on the singleton."
+        - "Invoke it from `dispose()`."
+      verification:
+        - "Manual init/dispose cycle check."
+      regression_risk: "low"
+      depends_on: []
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "src/services/uiSoundController.ts:79-83 — captured `unsubscribeFromSettings: (() => void) | null` field; `initialize()` now calls `this.unsubscribeFromSettings?.()` before re-subscribing, and `dispose()` invokes the captured handle before clearing `this.enabled`. Adjacent `as any` cast replaced with a typed `webkitAudioContext` fallback (also at lines 109-118)."
+        - "Closure originally recorded in `docs/summary_of_work.md` Latest Session Summary 2026-07-14."
+
+    - id: "AUDIT-014"
+      severity: "high"
+      category: "security"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "Profile-scoped fallback-provider enabled state, ordering, credentials, and provider-native models are held in Electron main by `providerSettingsStore`."
+        - "`VERIFY-105` proves renderer fields cannot enable a provider or select the automatic fallback model, and credential deletion revokes consent."
+      file: "src/config/provider-models.ts"
+      line_range: "114-128"
+      evidence:
+        - "Provider enabled state is read from renderer-owned settings."
+        - "Validation accepts a fallback provider config without re-checking a main-process source of truth."
+      impact: "A compromised renderer can present a disabled provider as enabled and route requests through it."
+      required_fix: "Move provider enablement and routing authority to the main process or a signed server snapshot."
+      suggested_implementation:
+        - "Cross-check enabled state in the adapter layer before dispatch."
+        - "Reject renderer-only provider enablement claims."
+      verification:
+        - "Provider-adapter regression tests."
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-015"
+      severity: "high"
+      category: "api"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`resolveProviderRoute` accepts separate provider identity and native model selection; automatic fallback no longer constructs or reparses `provider:model` strings."
+        - "Adapter and Venice-client tests prove provider-native model IDs reach the intended adapter unchanged."
+      file: "electron/services/veniceClient.ts"
+      line_range: "348-376"
+      evidence:
+        - "The fallback path prefixes the provider id to the original Venice model string."
+        - "The provider model catalog already contains the native provider model ids."
+      impact: "Fallback requests can be sent with a malformed model id and route to the wrong upstream model."
+      required_fix: "Represent provider and model separately in the request path and stop string-prefix concatenation."
+      suggested_implementation:
+        - "Pass an explicit `{ providerId, modelId }` pair to the routing layer."
+        - "Use the provider catalog to serialize the exact upstream model id."
+      verification:
+        - "Focused provider-routing tests."
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-016"
+      severity: "high"
+      category: "api"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "Fallback ordering is normalized in main to unique known providers that are enabled and have a configured credential."
+        - "IPC regression coverage rejects duplicate, unknown, disabled, and unconfigured provider entries before routing."
+      file: "src/validation/validation.ts"
+      line_range: "151-201"
+      evidence:
+        - "The fallbackConfig validator performs a shallow cast rather than a strict schema walk."
+        - "There is no observable ordering, deduplication, or provider allowlist enforcement."
+      impact: "Malformed fallback configuration can pass validation and later fail in request routing or cause unexpected provider order."
+      required_fix: "Add strict validation for fallback provider ordering, uniqueness, and allowed provider ids."
+      suggested_implementation:
+        - "Reject unknown provider ids and duplicate entries."
+        - "Normalize the config before it reaches the request router."
+      verification:
+        - "Validation-unit tests for fallbackConfig."
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-017"
+      severity: "high"
+      category: "security"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`sync:startSync` ignores renderer profile input and derives the active profile from the sender's main-process session."
+        - "`VERIFY-118` proves a forged profile cannot cross the sync boundary."
+      file: "electron/ipc/handlers/syncHandlers.ts"
+      line_range: "50-55"
+      evidence:
+        - "The sync-start IPC handler accepts the renderer-supplied profile id and forwards it."
+        - "The main process already has a helper for deriving the sender's session id."
+      impact: "A renderer can request sync under a different profile than the sender's actual session."
+      required_fix: "Replace renderer-claimed profile selection with the sender session profile derived in the main process."
+      suggested_implementation:
+        - "Use the existing session-id helper in the sync handlers."
+        - "Reject requests whose profile does not match the authenticated sender."
+      verification:
+        - "Focused sync-handler tests."
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-018"
+      severity: "high"
+      category: "security"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`electron/services/syncFolderWatcher.ts:45-112,535-568` canonicalizes and pins a non-symlink root, validates every custody directory with `lstat`/`realpath`, refuses symlinked identity/temp paths, and creates descendants one segment at a time inside the approved root."
+        - "`electron/services/syncFolderWatcher.ts:604-626` accepts only direct files in the canonical blobs/objects directories and opens them with `O_NOFOLLOW`, descriptor `stat`, and post-open realpath containment checks before reading."
+        - "`electron/services/syncFolderWatcher.test.ts:155-182,366-387` proves symlinked roots, custody directories, and watched packets are rejected before renderer delivery."
+      file: "electron/services/syncFolderWatcher.ts"
+      line_range: "45-112,535-626"
+      evidence:
+        - "The watcher operates on paths without a realpath or lstat no-follow guard."
+        - "It deletes temporary blobs and opens callback paths directly."
+      impact: "Symlinks or path races can redirect reads, deletes, or writes outside the intended sync tree."
+      required_fix: "Resolve and validate the watched tree with realpath/lstat checks and refuse symlinked or escaped paths."
+      suggested_implementation:
+        - "Pin the sync root to a canonical real path."
+        - "Refuse any file whose lstat indicates a symlink or whose resolved path escapes the tree."
+      verification:
+        - "Focused sync watcher security tests."
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-019"
+      severity: "medium"
+      category: "storage"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "Transient filesystem errors and incomplete/invalid packet JSON are classified as retryable and scheduled through bounded deterministic retry logic."
+        - "`VERIFY-119` proves an incomplete manifest is retried instead of silently discarded."
+      file: "electron/services/syncFolderWatcher.ts"
+      line_range: "529-627"
+      evidence:
+        - "Transient read/decrypt failures are returned as handled instead of retried."
+        - "The handler does not distinguish a real terminal failure from partial cloud-file availability."
+      impact: "Partially downloaded or transiently unreadable remote files can be silently dropped."
+      required_fix: "Return a retryable failure when the remote payload is incomplete or unreadable for transient reasons."
+      suggested_implementation:
+        - "Distinguish terminal decode errors from retryable read errors."
+        - "Keep the change eligible for the next polling pass."
+      verification:
+        - "Focused sync watcher retry test."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-020"
+      severity: "medium"
+      category: "storage"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`setSyncFolder` commits the active and persisted path only after identity, outbox, and watcher setup succeeds; failure restores prior identity/path and best-effort persisted state."
+        - "`VERIFY-119` proves failed authenticated setup does not persist or expose the unusable folder."
+      file: "electron/services/syncFolderWatcher.ts"
+      line_range: "463-519"
+      evidence:
+        - "The sync path is persisted before folder creation, outbox setup, or watcher start complete."
+        - "The error path does not roll back the newly stored path."
+      impact: "A failed setup can leave the app pointing at a sync directory that never became operational."
+      required_fix: "Defer persistence until setup succeeds or roll back the saved path on any setup failure."
+      suggested_implementation:
+        - "Stage the path in memory until the watcher and directory creation succeed."
+        - "Undo persisted state in the catch path."
+      verification:
+        - "Focused setup-failure regression test."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-021"
+      severity: "high"
+      category: "security"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`electron/security/researchBrowserNetworkPolicy.ts:24-73` removes the 30-second decision cache and performs a fresh DNS lookup for every validation call, rejecting any private/reserved answer."
+        - "`electron/services/researchBrowserServer.ts:325-372` routes every HTTP(S) main-frame and subresource request through the fresh network-policy check and cancels denied/error decisions."
+        - "`electron/security/researchBrowserNetworkPolicy.test.ts` simulates a public first answer followed by loopback and proves the second request is blocked; `electron/services/researchBrowserServer.test.ts` proves subresources are independently validated and denied."
+      file: "electron/security/researchBrowserNetworkPolicy.ts"
+      line_range: "24-73"
+      evidence:
+        - "The policy acknowledges Chromium may create separate connections for subresources and caches allow decisions for 30 seconds."
+        - "The server-side check only validates the main frame URL lexically."
+      impact: "DNS rebinding or private-subresource fetches can bypass the intended public-host containment model."
+      required_fix: "Pin the allowed connection target at request time and revalidate each subresource request, not just the top-level URL."
+      suggested_implementation:
+        - "Apply per-request destination checks."
+        - "Invalidate the cache when the resolved address or request target changes."
+      verification:
+        - "Research-browser network containment tests."
+      regression_risk: "high"
+      depends_on: []
+    - id: "AUDIT-022"
+      severity: "medium"
+      category: "storage"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`src/types/background-task.ts:75-96,139-169` allowlists only bounded operational metadata during journal serialization and legacy-journal parsing; raw request objects, prompts, lyrics, and unknown nested metadata are omitted."
+        - "`electron/services/backgroundTaskManager.test.ts:279-333` proves new journals omit raw generation content while current-session memory retains it, and proves legacy plaintext request bodies are scrubbed on load."
+      file: "src/types/background-task.ts"
+      line_range: "75-169"
+      evidence:
+        - "The task journal is written as plaintext JSON with mode `600`."
+        - "Related hooks persist user prompts and request summaries into local task records."
+      impact: "Local task data remains readable to any process with user-level disk access."
+      required_fix: "Minimize persisted prompt content and encrypt or redact sensitive task fields before writing them to disk."
+      suggested_implementation:
+        - "Strip prompt bodies or store only the minimum audit fields."
+        - "Encrypt the record if the task content must remain recoverable."
+      verification:
+        - "Background task persistence tests."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-023"
+      severity: "medium"
+      category: "storage"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`src/components/settings/DataStoragePanel.tsx:64-69` narrows the destructive button label to `Clear IndexedDB Data` instead of claiming all local history."
+        - "`src/hooks/use-data-storage-actions.ts:118-127` enumerates the IndexedDB-only scope, explicitly excludes Electron vault files/exports/sync folders, clears every `STORE_NAMES` entry, and reports an IndexedDB-specific receipt."
+        - "`src/components/settings/DataStoragePanel.test.tsx` and `src/hooks/use-data-storage-actions.test.ts:133-150` lock the label, confirmation boundary, complete store enumeration, and receipt."
+      file: "src/components/settings/DataStoragePanel.tsx"
+      line_range: "64-69"
+      evidence:
+        - "The button label says `Clear All Local History`."
+        - "The backing action only clears the IDB chat store and in-memory chat state."
+      impact: "The UI promises a broader wipe than the action actually performs."
+      required_fix: "Either rename the button to the narrower scope or make the action clear every local history surface the label implies."
+      suggested_implementation:
+        - "Extend the clear action to the remaining local stores or cache tiers."
+        - "Add a confirmation modal that enumerates what will be deleted."
+      verification:
+        - "Manual storage wipe check and regression tests."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-024"
+      severity: "high"
+      category: "docs"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "README now describes the implemented redacted JSON manifest and sidecar filename export contract and no longer promises a ZIP archive."
+        - "Implementation comments and gallery call sites use the same non-archive terminology; `VERIFY-121` covers the export contract."
+      file: "README.md"
+      line_range: "122-122"
+      evidence:
+        - "The README claims ZIP media export."
+        - "The gallery export code path currently serializes JSON rather than generating a ZIP package."
+      impact: "Documentation promises an export format that the current implementation does not deliver."
+      required_fix: "Either implement ZIP export or rewrite the claim to describe the actual export payload."
+      suggested_implementation:
+        - "Align the gallery export path with the documented ZIP behavior."
+        - "Update the README only after the actual export behavior exists."
+      verification:
+        - "Manual export smoke and a ZIP artifact check."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-025"
+      severity: "medium"
+      category: "api"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`buildMediaFilename` maps audio MIME types to audio extensions and `validateSidecar` accepts audio media sidecars."
+        - "`VERIFY-121` constructs an audio record, verifies its `.ogg` filename, and validates the generated sidecar."
+      file: "src/services/media-export-bundle.ts"
+      line_range: "42-46"
+      evidence:
+        - "The bundle type allows audio media."
+        - "The exporter and validator only handle image and video entries."
+      impact: "Audio records can be accepted by the type system but fail later during export validation."
+      required_fix: "Either implement audio export support or remove audio from the bundle contract."
+      suggested_implementation:
+        - "Align the type, builder, and validator to the same supported media set."
+        - "Add a regression test for the supported bundle kinds."
+      verification:
+        - "Exporter unit tests."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-026"
+      severity: "high"
+      category: "security"
+      status: "closed"
+      file: ".env"
+      line_range: "2-2"
+      evidence:
+        - "The repository-local `.env` contains a populated Venice API key value."
+        - "The file mode is world-readable (`0644`)."
+      impact: "A local API credential is present in a file that is too permissive for secret material."
+      required_fix: "Restrict the file to `0600` and rotate the exposed key."
+      suggested_implementation:
+        - "Fix the permissions immediately."
+        - "Add a startup check or secret-guard for local credential files."
+      verification:
+        - "ls -l .env"
+      regression_risk: "high"
+      depends_on: []
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - ".env file mode restored to `0600` (`stat -f '%Lp' .env` reports `600`)."
+        - "server.ts:5-11 — startup now imports `checkLocalEnvFilePermissionsOnce` from `src/services/envPermissionsService.ts` and emits a structured `[AUDIT-026]` warning when the local `.env` has world/group read bits; routing is NOT interrupted and analysis returns `reason='permissive-with-secret'`."
+        - "Tests: `src/services/envPermissionsService.test.ts` (1 file / 12 tests) PASS; the missing-file branch is verified by passing `exists: false` to `buildContext`."
+        - "Closure originally recorded in `docs/summary_of_work.md` Latest Session Summary 2026-07-14; production smoke confirmed the warning emitted for `chmod 644 .env` and the file mode was restored before session end."
+
+    - id: "AUDIT-027"
+      severity: "medium"
+      category: "release"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "macOS and Windows tag-release jobs now fail when signing credentials are absent unless `RELEASE_ALLOW_UNSIGNED` is deliberately set to true."
+        - "Release documentation names the unsigned-draft exception and `VERIFY-120` locks the fail-closed workflow contract; the release verifier passes all 103 checks."
+      file: ".github/workflows/release.yml"
+      line_range: "58-84"
+      evidence:
+        - "Tag signing only fails when a repository variable is set."
+        - "Unsigned drafts remain the default release path."
+      impact: "The release workflow can publish artifacts without enforced signing if the gating variable is unset."
+      required_fix: "Fail closed on unsigned release tags or make unsigned output a deliberate manual exception."
+      suggested_implementation:
+        - "Invert the default so signing is required unless a manual override is explicitly chosen."
+        - "Document the exception path separately from production release."
+      verification:
+        - "Release workflow dry run."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-028"
+      severity: "medium"
+      category: "docs"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`scripts/verify-venice-api-docs.cjs` parses YAML, validates semantic path/field locations, and compares structured source/retrieval/version provenance with the schema."
+        - "`VERIFY-106` exercises stale dates, future dates, version mismatches, and structurally misplaced markers."
+      file: "scripts/verify-venice-api-docs.cjs"
+      line_range: "28-51"
+      evidence:
+        - "The verifier relies on substring matching and a hard-coded retrieved date."
+        - "It does not parse the YAML schema or compare any upstream freshness signal."
+      impact: "The API-doc freshness gate can pass stale or structurally invalid content."
+      required_fix: "Parse the API reference structurally and compare against a verifiable source of truth."
+      suggested_implementation:
+        - "Validate the YAML document shape."
+        - "Replace the hard-coded retrieved date with a real source metadata check."
+      verification:
+        - "npm run verify:venice-api-docs"
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-029"
+      severity: "medium"
+      category: "docs"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "The current-only roadmap no longer repeats stale coverage thresholds; enforced baselines remain in `vitest.config.ts` and the agent guide distinguishes them from long-term targets."
+        - "`VERIFY-107` prevents historical/closed status mirrors from accumulating in the live roadmap."
+      file: "docs/ROADMAP.md"
+      line_range: "63-68"
+      evidence:
+        - "The roadmap text claims a closed target state that differs from the current coverage baseline in `vitest.config.ts`."
+        - "The surrounding docs still treat the long-term threshold as the open target."
+      impact: "The roadmap can mislead maintainers about the actual enforced coverage baseline versus the aspirational target."
+      required_fix: "Rewrite the roadmap entry to match the current enforced thresholds and the separate long-term target."
+      suggested_implementation:
+        - "Keep the current baseline and target explicitly separate."
+        - "Update the validation notes that cite the same numbers."
+      verification:
+        - "Cross-check roadmap wording against `vitest.config.ts`."
+      regression_risk: "low"
+      depends_on: []
+    - id: "AUDIT-030"
+      severity: "medium"
+      category: "docs"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "`docs/summary_of_work.md` was rewritten as a concise active handoff with one latest summary, current open ledger, command-only validation matrix, and compact session history."
+        - "Contradictory nested prior-session blocks and obsolete open counts were removed; the authoritative audit YAML and current-only roadmap now carry their respective status roles."
+      file: "docs/summary_of_work.md"
+      line_range: "661-905"
+      evidence:
+        - "The session ledger contains mutually inconsistent open/closed statements for the same audit items."
+        - "Later entries reopen items that earlier entries record as closed."
+      impact: "The handoff ledger cannot be trusted as a single source of truth without manual reconciliation."
+      required_fix: "Rewrite the ledger into a coherent status history with no contradictory open/closed claims."
+      suggested_implementation:
+        - "Collapse duplicated entries into one authoritative current summary and a consistent dated history."
+        - "Keep the validation matrix aligned with the commands actually run."
+      verification:
+        - "Manual review of the updated ledger."
+      regression_risk: "medium"
+      depends_on: []
+    - id: "AUDIT-031"
+      severity: "medium"
+      category: "docs"
+      status: "closed"
+      closed_in_session: "2026-07-14"
+      closure_evidence:
+        - "Copilot guidance now names `desktopBridge`, current handler directories, the allowed image-style/character endpoints, and the 19-tab registry including Character Chats."
+        - "`VERIFY-122` extends the agent-doc verifier so removal of those current architecture markers fails the contract suite."
+      file: ".github/copilot-instructions.md"
+      line_range: "166-214"
+      evidence:
+        - "The instructions describe seven themes and 18 tabs."
+        - "The live registry and tab list expose different counts."
+      impact: "Copilot-facing instructions drift from the actual app structure and will mislead future agents."
+      required_fix: "Regenerate the copilot instructions from the live registry and tab definitions."
+      suggested_implementation:
+        - "Use the canonical registry source as the document input."
+        - "Keep the counts in sync with the actual built-in themes and tabs."
+      verification:
+        - "Repository contract for agent docs."
+      regression_risk: "low"
+      depends_on: []
+  stale_or_obsolete_files:
+    - file: "docs/summary_of_work.md"
+      reason: "The ledger contains contradictory status claims and should be rewritten into a single authoritative current summary plus coherent history."
+      action: "rewrite"
+      status: "completed"
+      evidence:
+        - "Different dated sections disagree about which audit items are open or closed."
+    - file: ".github/copilot-instructions.md"
+      reason: "The instructions drift from the live theme and tab registry counts."
+      action: "rewrite"
+      status: "completed"
+      evidence:
+        - "The document states counts that do not match the live registry."
+    - file: "docs/FILE_TREE.md"
+      reason: "The repository tree summary is stale and does not mention several active runtime surfaces."
+      action: "rewrite"
+      status: "completed"
+      evidence:
+        - "The current live tree contains surfaces not reflected in the file-tree summary."
+    - file: ".superpowers/"
+      reason: "Ignored local scratch content is large and appears to be machine-local working material rather than canonical repo content."
+      action: "keep"
+      status: "completed"
+      evidence:
+        - "Directory was treated as excluded local scratch in the repository inventory."
+    - file: ".design-captures/"
+      reason: "The directory is mostly generated or captured local assets and was excluded from the audit scope."
+      action: "keep"
+      status: "completed"
+      evidence:
+        - "It contains many non-source capture files and should not be mixed with canonical source."
+    - file: "dist-electron/"
+      reason: "Generated build output should not be retained as authoritative source material."
+      action: "keep"
+      status: "completed"
+      evidence:
+        - "The directory is build output and belongs outside the audited source set."
+  missing_coverage: []
+  verification_commands:
+    - "npm run lint:eslint"
+    - "npm run typecheck"
+    - "npm test"
+    - "npm run verify:safety-guard"
+    - "npm run verify:markdown-links"
+    - "npm run verify:contracts"
+    - "npm run build"
+    - "npm run ci"
+  final_gate:
+    pass: true
+    blockers: []
+    non_blocking: []
+  inventory_notes:
+    included_text_files: 1294
+    included_binary_files: 20
+    included_lines: 311415
+    included_bytes: 26248967
+    excluded_git_metadata_regular_files: 419
+    root_counts:
+      src: 687
+      ".design-captures": 161
+      electron: 107
+      docs: 83
+      scripts: 66
+      ".superpowers": 54
+      config: 36
+      root: 33
+      public: 32
+      tests: 25
+      ".github": 11
+      assets: 11
+      ".config": 4
+      dist-electron: 3
+      ".vscode": 1
+  extra_check_review:
+    summary: "Each requested keyword family was scanned across the included text files and dispositioned in context; most hits were acceptable in tests, docs, or compatibility code, while the listed findings cover the actual defects."
+    disposition_notes:
+      TODO: "present in docs and code comments; reviewed, no standalone defect beyond stale ledgers."
+      FIXME: "few hits; all reviewed in local context."
+      HACK: "isolated compatibility comment; acceptable if documented."
+      XXX: "mostly docs/tests references; reviewed."
+      deprecated: "used to mark back-compat surfaces; acceptable where intentionally retained."
+      legacy: "frequently used for compatibility behavior; acceptable when paired with migration logic."
+      temporary: "mainly scratch/test context; acceptable unless persisted as canonical docs."
+      stub: "some test doubles and adapters; acceptable when the contract is explicit."
+      mock: "mostly tests; acceptable."
+      placeholder: "reviewed; several UI placeholder controls are actual defects and are captured above."
+      not implemented: "reviewed; use is mainly documentation or test wording."
+      as any: "reviewed; the remaining live occurrences are the ones called out in lint or type-safety findings."
+      eslint-disable: "reviewed; acceptable only when narrowly justified."
+      ts-ignore: "rare; reviewed."
+      ts-expect-error: "reviewed; mostly tests."
+      dangerouslySetInnerHTML: "reviewed; acceptable only when paired with sanitization logic."
+      innerHTML: "reviewed."
+      localStorage: "reviewed; used for intentional bootstrap cache behavior."
+      sessionStorage: "reviewed."
+      indexedDB: "reviewed; used for intentional encrypted persistence."
+      ipcRenderer: "reviewed; used at the renderer boundary."
+      ipcMain: "reviewed; used at the main-process boundary."
+      shell.openExternal: "reviewed."
+      child_process: "reviewed; used in scripts and tests."
+      fs.: "reviewed."
+      process.env: "reviewed."
+      fetch(: "reviewed."
+      axios: "reviewed."
+      Venice: "reviewed."
+      apiKey: "reviewed; some matches are intentional credential paths."
+      safe_mode: "reviewed; expected policy surface."
+      theme: "reviewed; expected design-system surface."
+      mesh: "reviewed; expected UI-surface token usage."
+      overlay: "reviewed; expected UI-surface token usage."
+      history: "reviewed; expected app domain vocabulary."
+      new chat: "reviewed."
+      dropdown: "reviewed."
+      character: "reviewed; expected domain vocabulary."
+      cache: "reviewed; both acceptable and defect cases are captured above."
+      image: "reviewed."
+      bad request: "reviewed."
+  memory_citation: |
+    <oai-mem-citation>
+    <citation_entries>
+    MEMORY.md:78-84|note=[used live-tree reconciliation and truthful validation guidance]
+    MEMORY.md:89-100|note=[used repository validation and canonical ledger context]
+    MEMORY.md:103-105|note=[used main-authoritative profile boundary precedent]
+    </citation_entries>
+    <rollout_ids>
+    019f5e04-8049-7d72-ba10-c001cfa5e643
+    </rollout_ids>
+    </oai-mem-citation>

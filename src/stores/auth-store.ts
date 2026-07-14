@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { desktopApiKey, desktopJinaApiKey, desktopProviderApiKey } from '../services/desktopBridge' // TARGET Bridge
+import { desktopApiKey, desktopJinaApiKey, desktopProviderApiKey, desktopProviderSettings } from '../services/desktopBridge' // TARGET Bridge
 import { PROVIDER_REGISTRY, type ProviderId } from '../types/provider'
 
 export interface AuthState {
@@ -35,9 +35,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
   checkConfiguration: async () => {
     const providerIds = Object.keys(PROVIDER_REGISTRY) as ProviderId[]
     
-    const [configured, jinaConfigured, ...providerConfigs] = await Promise.all([
+    const [configured, jinaConfigured, , ...providerConfigs] = await Promise.all([
       desktopApiKey.isConfigured(),
       desktopJinaApiKey.isConfigured(),
+      desktopProviderSettings.get(),
       ...providerIds.map(id => desktopProviderApiKey.isConfigured(id))
     ])
     

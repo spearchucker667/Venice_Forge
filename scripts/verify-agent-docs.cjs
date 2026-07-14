@@ -20,6 +20,23 @@ const STORAGE_GROUND_TRUTH = [
   'src/services/dbMigrations.ts',
 ];
 
+const COPILOT_CURRENT_ARCHITECTURE_MARKERS = [
+  'src/services/desktopBridge.ts',
+  'electron/ipc/handlers/',
+  'GET  /image/styles',
+  'GET  /characters',
+  '19 top-level tabs',
+  'Character Chats',
+];
+
+const FILE_TREE_CURRENT_ARCHITECTURE_MARKERS = [
+  'src/config/tabs.ts',
+  'src/services/desktopBridge.ts',
+  'electron/ipc/handlers/',
+  'electron/services/providerSettingsStore.ts',
+  'do not copy a numeric tab count',
+];
+
 function compileGitignorePattern(rawPattern) {
   const pattern = rawPattern.trim();
   if (!pattern || pattern.startsWith('#')) return null;
@@ -155,6 +172,23 @@ function verifyAgentDocs(repoRoot) {
     if (!hasAllGroundTruth) {
       errorSet.add('ERROR: .github/copilot-instructions.md storage section must reference src/constants/venice.ts, src/services/storageService.ts, and src/services/dbMigrations.ts as ground truth.');
     }
+    for (const marker of COPILOT_CURRENT_ARCHITECTURE_MARKERS) {
+      if (!copilot.includes(marker)) {
+        errorSet.add(`ERROR: .github/copilot-instructions.md is missing current architecture marker: ${marker}.`);
+      }
+    }
+  }
+
+  const fileTreePath = path.resolve(repoRoot, 'docs/FILE_TREE.md');
+  if (!fs.existsSync(fileTreePath)) {
+    errorSet.add('ERROR: docs/FILE_TREE.md does not exist.');
+  } else {
+    const fileTree = fs.readFileSync(fileTreePath, 'utf8');
+    for (const marker of FILE_TREE_CURRENT_ARCHITECTURE_MARKERS) {
+      if (!fileTree.includes(marker)) {
+        errorSet.add(`ERROR: docs/FILE_TREE.md is missing current architecture marker: ${marker}.`);
+      }
+    }
   }
 
   const errors = Array.from(errorSet);
@@ -174,7 +208,13 @@ function main() {
   console.log('Agent doc verification passed.');
 }
 
-module.exports = { verifyAgentDocs, DOCS, THIN_POINTERS };
+module.exports = {
+  verifyAgentDocs,
+  DOCS,
+  THIN_POINTERS,
+  COPILOT_CURRENT_ARCHITECTURE_MARKERS,
+  FILE_TREE_CURRENT_ARCHITECTURE_MARKERS,
+};
 
 if (require.main === module) {
   main();

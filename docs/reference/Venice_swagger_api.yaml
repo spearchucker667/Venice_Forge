@@ -1,5 +1,7 @@
-# Source: https://api.venice.ai/doc/api/swagger.yaml
-# Retrieved: 2026-06-17
+x-venice-forge-provenance:
+  source: https://api.venice.ai/doc/api/swagger.yaml
+  retrieved: "2026-07-11"
+  content_version: "20260709.204640"
 externalDocs:
   description: Venice.ai API documentation
   url: https://docs.venice.ai

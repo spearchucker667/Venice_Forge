@@ -119,11 +119,11 @@ export function useDataStorageActions(
     setPendingConfirm({
       message: "Delete all IndexedDB history?",
       detail:
-        "This will permanently delete all saved images, chats, configurations, and settings from local database. This cannot be undone.",
+        "This deletes every Venice Forge IndexedDB store in this browser profile, including saved images, chats, configurations, and settings. It does not delete Electron vault files, exports, or sync folders. This cannot be undone.",
       onConfirm: async () => {
         await Promise.all(STORE_NAMES.map((store) => StorageService.clearStore(store)));
         useChatStore.setState({ conversations: [], activeConversationId: null });
-        toast.success("IndexedDB history cleared successfully.");
+        toast.success("IndexedDB data cleared successfully.");
       },
     });
   }, [setPendingConfirm]);

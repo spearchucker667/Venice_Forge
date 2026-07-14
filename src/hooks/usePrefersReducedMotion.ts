@@ -19,6 +19,10 @@ export function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(() => syncPrefersReducedMotion());
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      setReduced(false);
+      return undefined;
+    }
     const mql = window.matchMedia(QUERY);
     const handler = () => setReduced(syncPrefersReducedMotion());
     mql.addEventListener("change", handler);

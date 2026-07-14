@@ -1,8 +1,8 @@
-<!--
-Source: https://docs.venice.ai/llms.txt
-Retrieved: 2026-06-17
-Diff summary: Refreshed from current Venice llms.txt; canonical path retained.
--->
+---
+source: https://docs.venice.ai/llms.txt
+retrieved: "2026-06-17"
+content_type: text/markdown
+---
 
 # Venice API
 

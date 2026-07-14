@@ -7,8 +7,8 @@ Public distribution of Electron applications requires OS-level code signing to b
 Venice Forge artifacts are classified into three levels of signing:
 
 1. **Local unsigned builds**: Executing `npm run dist:win` or `npm run dist:mac` locally without credentials produces unsigned artifacts. These will trigger Windows SmartScreen and macOS Gatekeeper warnings.
-2. **Workflow-dispatch unsigned drafts**: Manual runs of the CI release workflow without signing secrets will emit warnings and create unsigned draft releases.
-3. **Production signed/notarized tag releases**: Version tag releases (e.g. `v1.0.0`) must be signed. Set `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` in repository variables to fail closed if credentials are missing, ensuring production tags are never released unsigned. See [SIGNED_ARTIFACT_EVIDENCE.md](SIGNED_ARTIFACT_EVIDENCE.md) for how to verify these.
+2. **Deliberate unsigned tag drafts**: Set `RELEASE_ALLOW_UNSIGNED=true` for an explicitly approved unsigned draft exception, then remove or reset the variable after the run.
+3. **Production signed/notarized tag releases**: Version tag releases (e.g. `v1.0.0`) fail closed by default if credentials are missing. See [SIGNED_ARTIFACT_EVIDENCE.md](SIGNED_ARTIFACT_EVIDENCE.md) for how to verify these.
 
 ## Windows Authenticode
 

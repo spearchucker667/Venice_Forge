@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, memo, useMemo, type ComponentPropsWithoutRef } from 'react'
+import { useState, useRef, useEffect, memo, useMemo, lazy, Suspense, type ComponentPropsWithoutRef } from 'react'
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -14,8 +14,12 @@ import { maybeRunLocalFamilyGuard } from '../../shared/safety'
 import { copyText } from '../../stores/media-send-to'
 import { useKatexCss } from '../../hooks/useKatexCss'
 import { CharacterSceneCard } from './CharacterSceneCard'
-import { ChatTtsPlayer } from './ChatTtsPlayer'
 import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
+
+const ChatTtsPlayer = lazy(async () => {
+  const module = await import('./ChatTtsPlayer')
+  return { default: module.ChatTtsPlayer }
+})
 
 // Relative path so the default avatar resolves correctly both in Vite dev
 // (where index.html is served from project root) and in the packaged Electron
@@ -138,6 +142,7 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
   const redTeamMode = useSettingsStore((s) => s.redTeamMode)
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled)
   const characterSceneGenerationEnabled = useSettingsStore((s) => s.characterSceneGenerationEnabled)
+  const showTtsControls = useSettingsStore((s) => s.audioPreferences?.chatTts.showMessageControls ?? true)
   const sceneGeneration = message.metadata?.sceneGeneration as CharacterSceneGenerationResult | undefined
   const injectedContext = typeof message.metadata?.injectedContext === 'string'
     ? message.metadata.injectedContext.trim()
@@ -427,7 +432,11 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
         )}
         <div className="mt-0.5 flex items-center gap-2">
           {actions}
-          {isAssistant && content && <ChatTtsPlayer messageId={index.toString()} text={content} />}
+          {showTtsControls && isAssistant && content && (
+            <Suspense fallback={null}>
+              <ChatTtsPlayer messageId={index.toString()} text={content} />
+            </Suspense>
+          )}
         </div>
       </div>
     </div>

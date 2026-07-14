@@ -114,45 +114,57 @@ export function GenerationLoadingIndicator({
 
   const displaySrc = prefersReducedMotion ? currentAsset.staticSrc : currentAsset.src;
   const nextDisplaySrc = nextAsset ? (prefersReducedMotion ? nextAsset.staticSrc : nextAsset.src) : null;
-  
+
+  // Verify-007 / T1: dynamic progress width is applied through a CSS custom
+  // property instead of an inline JSX style attribute, so the production CSP
+  // invariant (renderer source has zero inline-style JSX attrs) stays green.
+  // Calling `style.setProperty` on a ref is exempt from the scan-time
+  // invariant checker (see tests/csp/inlineStyleInvariant.test.ts:69).
+  const progressBarRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (progress === undefined) return;
+    const el = progressBarRef.current;
+    if (!el) return;
+    const clamped = Math.max(0, Math.min(100, progress));
+    el.style.setProperty('--generation-progress', `${clamped}%`);
+  }, [progress]);
+
   return (
-    <div 
+    <div
       className={cn(size === 'sm' ? "flex flex-row items-center gap-2" : "flex flex-col items-center justify-center gap-3", className)}
-      role="status" 
-      aria-live="polite" 
+      role="status"
+      aria-live="polite"
       aria-atomic="true"
     >
-      <div className={cn("relative overflow-hidden flex items-center justify-center shrink-0", sizeClass)} style={{ aspectRatio: '192/208' }}>
-        <img 
-          src={displaySrc} 
-          alt="" 
-          aria-hidden="true" 
+      <div className={cn("relative overflow-hidden flex items-center justify-center shrink-0 aspect-[192/208]", sizeClass)}>
+        <img
+          src={displaySrc}
+          alt=""
+          aria-hidden="true"
           className={cn(
-            "absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-150", 
+            "absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-150",
             nextAsset ? "opacity-0" : "opacity-100"
           )}
-          style={{ imageRendering: 'auto' }}
         />
         {nextDisplaySrc && (
-          <img 
-            src={nextDisplaySrc} 
-            alt="" 
-            aria-hidden="true" 
+          <img
+            src={nextDisplaySrc}
+            alt=""
+            aria-hidden="true"
             className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-100"
-            style={{ imageRendering: 'auto' }}
           />
         )}
       </div>
-      
+
       {(label || detail || progress !== undefined || showCancel) && (
         <div className={cn(size === 'sm' ? "flex flex-row items-center gap-2" : "flex flex-col items-center text-center", "max-w-[250px]")}>
           {label && <div className={cn(size === 'sm' ? "text-xs" : "text-sm", "font-medium text-text-main")}>{label}</div>}
-          
+
           {progress !== undefined && (
             <div className={cn(size === 'sm' ? "w-12" : "w-full", "h-1.5 bg-bg-alt rounded-full overflow-hidden")}>
-              <div 
-                className="h-full bg-accent transition-all duration-300"
-                style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+              <div
+                ref={progressBarRef}
+                className="h-full bg-accent transition-all duration-300 w-[var(--generation-progress)]"
               />
             </div>
           )}

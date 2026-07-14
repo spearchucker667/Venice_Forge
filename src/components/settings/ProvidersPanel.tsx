@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../../stores/auth-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { PROVIDER_REGISTRY, type ProviderId } from '../../types/provider'
 import { PrimaryButton } from '../ui/shared'
+import { desktopProviderSettings, isElectron } from '../../services/desktopBridge'
 
 export function resolveFeatureAvailability(providerId: string, feature: string): boolean {
   if (providerId === 'venice') return true
@@ -23,6 +24,34 @@ export function ProvidersPanel() {
   const [isSaving, setIsSaving] = useState<Record<string, boolean>>({})
   const [errorMsg, setErrorMsg] = useState<Record<string, string>>({})
   const [fallbackInput, setFallbackInput] = useState<string>(fallbackOrdering.join(', '))
+  const [routerError, setRouterError] = useState('')
+
+  useEffect(() => {
+    if (!isElectron()) return
+    let cancelled = false
+    void desktopProviderSettings.get().then((settings) => {
+      if (cancelled) return
+      setFallbackInput(settings.fallbackOrdering.join(', '))
+    }).catch((error: unknown) => {
+      if (!cancelled) setRouterError(error instanceof Error ? error.message : 'Failed to load provider settings.')
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  const persistRoutingSettings = async (update: {
+    enabledProviders?: Record<string, boolean>
+    autoFallbackEnabled?: boolean
+    fallbackOrdering?: string[]
+  }) => {
+    if (!isElectron()) return true
+    const result = await desktopProviderSettings.update(update)
+    if (!result.ok) {
+      setRouterError(result.error || 'Failed to save provider settings.')
+      return false
+    }
+    setRouterError('')
+    return true
+  }
 
   const handleKeyChange = (providerId: string, val: string) => {
     setKeyInputs(prev => ({ ...prev, [providerId]: val }))
@@ -64,13 +93,16 @@ export function ProvidersPanel() {
     }
   }
 
-  const handleToggleEnable = (providerId: string, enabled: boolean) => {
+  const handleToggleEnable = async (providerId: string, enabled: boolean) => {
     if (enabled && !configuredProviders[providerId]) {
       setErrorMsg(prev => ({ ...prev, [providerId]: 'Cannot enable provider without an API key.' }))
       return
     }
     setErrorMsg(prev => ({ ...prev, [providerId]: '' }))
-    setEnabledProvider(providerId, enabled)
+    const nextEnabled = { ...enabledProviders, [providerId]: enabled }
+    if (await persistRoutingSettings({ enabledProviders: nextEnabled })) {
+      setEnabledProvider(providerId, enabled)
+    }
   }
 
   const providers = Object.values(PROVIDER_REGISTRY)
@@ -98,7 +130,12 @@ export function ProvidersPanel() {
             type="button"
             role="switch"
             aria-checked={autoFallbackEnabled}
-            onClick={() => setAutoFallbackEnabled(!autoFallbackEnabled)}
+            onClick={() => {
+              const next = !autoFallbackEnabled
+              void persistRoutingSettings({ autoFallbackEnabled: next }).then((saved) => {
+                if (saved) setAutoFallbackEnabled(next)
+              })
+            }}
             className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */ ${
               autoFallbackEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-bg-tertiary)]'
             }`}
@@ -125,12 +162,14 @@ export function ProvidersPanel() {
                 const parts = e.target.value.split(',').map(s => s.trim()).filter(s => s);
                 setFallbackOrdering(parts);
               }}
+              onBlur={() => { void persistRoutingSettings({ fallbackOrdering }) }}
             />
             <p className="text-xs text-[var(--color-text-muted)] mt-1">
               Providers will be tried in this exact order. Ensure you have enabled them below. Available: {providers.map(p => p.id).join(', ')}
             </p>
           </div>
         )}
+        {routerError && <p role="alert" className="text-sm text-[var(--color-danger)]">{routerError}</p>}
       </div>
 
       <div className="space-y-4">
@@ -173,7 +212,7 @@ export function ProvidersPanel() {
                     type="button"
                     role="switch"
                     aria-checked={isEnabled}
-                    onClick={() => handleToggleEnable(provider.id, !isEnabled)}
+                    onClick={() => { void handleToggleEnable(provider.id, !isEnabled) }}
                     disabled={!isConfigured || isUnavailable}
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */ ${
                       isEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-bg-tertiary)]'

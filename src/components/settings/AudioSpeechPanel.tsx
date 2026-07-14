@@ -1,11 +1,34 @@
 import React from "react";
 import { useSettingsStore, DEFAULT_AUDIO_PREFERENCES, type UiSoundPackId } from "../../stores/settings-store";
 import { uiSoundController } from "../../services/uiSoundController";
+import { desktopTts, isElectron } from "../../services/desktopBridge";
+import { useModels } from "../../hooks/use-models";
+import { TTS_FALLBACK_VOICES } from "../../constants/tts";
+import { toast } from "../../stores/toast-store";
 
 export function AudioSpeechPanel() {
-  const { audioPreferences, setAudioPreferences, setUiSoundPreferences, setChatTtsPreferences } = useSettingsStore();
+  const { audioPreferences, setUiSoundPreferences, setChatTtsPreferences } = useSettingsStore();
+  const { data: ttsModels = [], isLoading: ttsModelsLoading } = useModels("tts");
+  const [clearingCache, setClearingCache] = React.useState(false);
 
   const { uiSounds, chatTts } = audioPreferences || DEFAULT_AUDIO_PREFERENCES;
+  const selectedModel = ttsModels.find((model) => model.id === chatTts.model);
+  const voices: readonly string[] = selectedModel?.model_spec?.voices?.length
+    ? selectedModel.model_spec.voices
+    : TTS_FALLBACK_VOICES;
+
+  const handleClearTtsCache = async () => {
+    setClearingCache(true);
+    try {
+      const result = await desktopTts.clearCache();
+      if (result.ok) toast.success("TTS cache cleared");
+      else toast.error("Unable to clear TTS cache", result.error);
+    } catch (error) {
+      toast.fromError(error, "Unable to clear TTS cache");
+    } finally {
+      setClearingCache(false);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -36,7 +59,7 @@ export function AudioSpeechPanel() {
                   setUiSoundPreferences({ enabled: e.target.checked })
                 }}
               />
-              <div className="w-9 h-5 bg-surface-elevated border border-border/80 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-secondary peer-checked:after:bg-white after:border-border/10 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
+              <div className="w-9 h-5 bg-surface-elevated border border-border/80 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-text-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-secondary peer-checked:after:bg-text-primary after:border-border/10 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
             </label>
           </div>
         </div>
@@ -127,7 +150,6 @@ export function AudioSpeechPanel() {
             <span className="text-sm text-text-primary">Automatically read completed replies</span>
           </label>
 
-          {/* Model and Voice placeholders for now, will implement discovery later */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1.5">
@@ -138,8 +160,15 @@ export function AudioSpeechPanel() {
                 value={chatTts.model || ""}
                 onChange={(e) => setChatTtsPreferences({ model: e.target.value || undefined })}
               >
-                <option value="">Default Provider Model</option>
+                <option value="">Default provider model</option>
+                {chatTts.model && !ttsModels.some((model) => model.id === chatTts.model) && (
+                  <option value={chatTts.model}>{chatTts.model} (saved)</option>
+                )}
+                {ttsModels.map((model) => (
+                  <option key={model.id} value={model.id}>{model.model_spec?.name ?? model.id}</option>
+                ))}
               </select>
+              {ttsModelsLoading && <p className="mt-1 text-[11px] text-text-muted">Loading speech models…</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1.5">
@@ -150,7 +179,11 @@ export function AudioSpeechPanel() {
                 value={chatTts.voice || ""}
                 onChange={(e) => setChatTtsPreferences({ voice: e.target.value || undefined })}
               >
-                <option value="">Default Voice</option>
+                <option value="">Default voice</option>
+                {chatTts.voice && !voices.includes(chatTts.voice) && (
+                  <option value={chatTts.voice}>{chatTts.voice} (saved)</option>
+                )}
+                {voices.map((voice) => <option key={voice} value={voice}>{voice}</option>)}
               </select>
             </div>
           </div>
@@ -224,8 +257,13 @@ export function AudioSpeechPanel() {
               </select>
             </label>
 
-            <button className="px-3 py-1.5 text-xs font-medium bg-surface-elevated hover:bg-surface-elevated/80 hover:text-red-400 border border-border/50 rounded-md text-text-primary transition-colors">
-              Clear TTS cache
+            <button
+              type="button"
+              onClick={() => { void handleClearTtsCache(); }}
+              disabled={clearingCache || !isElectron()}
+              className="px-3 py-1.5 text-xs font-medium bg-surface-elevated hover:bg-surface-elevated/80 hover:text-danger border border-border/50 rounded-md text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {clearingCache ? "Clearing…" : "Clear TTS cache"}
             </button>
           </div>
         </div>

@@ -1,7 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  clearResearchBrowserDnsCache,
   validateResearchBrowserNetworkUrl,
   type ResearchBrowserDnsLookup,
 } from "./researchBrowserNetworkPolicy";
@@ -11,9 +10,7 @@ function lookup(addresses: string[]): ResearchBrowserDnsLookup {
 }
 
 describe("research browser network policy", () => {
-  beforeEach(() => {
-    clearResearchBrowserDnsCache();
-  });
+  beforeEach(() => vi.clearAllMocks());
 
   it.each([
     "file:///etc/passwd",
@@ -89,16 +86,19 @@ describe("research browser network policy", () => {
     });
   });
 
-  it("caches host decisions briefly by protocol and hostname", async () => {
-    const fakeLookup = lookup(["93.184.216.34"]);
+  it("VERIFY-111: revalidates every request and blocks a rebound hostname", async () => {
+    const fakeLookup: ResearchBrowserDnsLookup = vi.fn()
+      .mockResolvedValueOnce([{ address: "93.184.216.34", family: 4 }])
+      .mockResolvedValueOnce([{ address: "127.0.0.1", family: 4 }]);
 
-    await expect(validateResearchBrowserNetworkUrl("https://example.com/one", fakeLookup, 1000)).resolves.toMatchObject({
+    await expect(validateResearchBrowserNetworkUrl("https://example.com/one", fakeLookup)).resolves.toMatchObject({
       allowed: true,
     });
-    await expect(validateResearchBrowserNetworkUrl("https://example.com/two", fakeLookup, 2000)).resolves.toMatchObject({
-      allowed: true,
+    await expect(validateResearchBrowserNetworkUrl("https://example.com/two", fakeLookup)).resolves.toMatchObject({
+      allowed: false,
+      resolvedAddresses: ["127.0.0.1"],
     });
 
-    expect(fakeLookup).toHaveBeenCalledTimes(1);
+    expect(fakeLookup).toHaveBeenCalledTimes(2);
   });
 });

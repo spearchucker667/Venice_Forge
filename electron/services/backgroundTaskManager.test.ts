@@ -5,6 +5,7 @@
 // VERIFY-095 regression guard: reject noncanonical generated-media result URLs without mutation.
 // VERIFY-096 regression guard: recovered media polling always uses the task's persisted profile.
 // VERIFY-103 regression guard: completed queue-download responses use the bounded, DNS-aware downloader.
+// VERIFY-108 regression guard: persisted task journals omit raw prompts, lyrics, and request bodies.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
@@ -273,5 +274,61 @@ describe("backgroundTaskManager", () => {
     const persisted = await readPersistedTasks();
     const raw = JSON.stringify(persisted);
     expect(raw).not.toContain("sk-1234567890abcdef");
+  });
+
+  it("persists only operational metadata and omits raw generation content", async () => {
+    const prompt = "private video prompt that must remain memory-only";
+    const lyrics = "private song lyrics that must remain memory-only";
+    const task = await createBackgroundTaskInMain({
+      type: "music",
+      queueId: "q-sensitive",
+      profileId: "p1",
+      metadata: {
+        model: "stable-audio",
+        source: "music-studio",
+        projectId: "project-one",
+        request: { model: "stable-audio", prompt, lyrics, duration: 30 },
+        nestedPrompt: { prompt },
+      },
+    });
+
+    expect(task.metadata?.request).toEqual(expect.objectContaining({ prompt, lyrics }));
+
+    await __flushBackgroundTaskPersistenceForTests();
+    const [persisted] = await readPersistedTasks() as Array<{ metadata?: Record<string, unknown> }>;
+    const raw = JSON.stringify(persisted);
+
+    expect(raw).not.toContain(prompt);
+    expect(raw).not.toContain(lyrics);
+    expect(persisted.metadata).toEqual({
+      model: "stable-audio",
+      source: "music-studio",
+      projectId: "project-one",
+    });
+  });
+
+  it("scrubs legacy request bodies while loading an existing task journal", async () => {
+    const tasksDir = path.join(TMP_USERDATA, "background-tasks");
+    const tasksFile = path.join(tasksDir, "tasks.json");
+    const prompt = "legacy plaintext prompt";
+    await fs.mkdir(tasksDir, { recursive: true });
+    await fs.writeFile(tasksFile, JSON.stringify({
+      version: 1,
+      tasks: [{
+        id: "legacy-sensitive-task",
+        type: "music",
+        status: "completed",
+        queueId: "q-legacy",
+        profileId: "p1",
+        metadata: { model: "stable-audio", request: { prompt, lyrics: "legacy lyrics" } },
+        createdAt: 1,
+        updatedAt: 2,
+      }],
+    }), "utf-8");
+
+    await initBackgroundTaskManager();
+
+    expect(listBackgroundTasks()[0]?.metadata).toEqual({ model: "stable-audio" });
+    expect(JSON.stringify(listBackgroundTasks())).not.toContain(prompt);
   });
 });

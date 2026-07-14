@@ -170,4 +170,4 @@ User input
 - [docs/RELEASE/release.md](RELEASE/release.md) — Release and signing process
 - [docs/design/REPOSITORY_TREE.md](design/REPOSITORY_TREE.md) — Repository structure
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — How to contribute
-- [docs/audits/CHANGELOG.md](audits/CHANGELOG.md) — Version history
+- [docs/summary_of_work.md](summary_of_work.md) — Current development and validation history

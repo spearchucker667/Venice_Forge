@@ -8,6 +8,12 @@ const bridgeMocks = vi.hoisted(() => ({
   setApiKey: vi.fn(),
   setJinaApiKey: vi.fn(),
   setProviderApiKey: vi.fn(),
+  getProviderSettings: vi.fn(async () => ({
+    enabledProviders: {},
+    autoFallbackEnabled: false,
+    fallbackOrdering: [],
+    nativeFallbackModels: {},
+  })),
 }));
 
 vi.mock("../services/desktopBridge", () => ({
@@ -25,7 +31,11 @@ vi.mock("../services/desktopBridge", () => ({
     set: bridgeMocks.setProviderApiKey,
     delete: vi.fn(),
     isConfigured: vi.fn(async () => false),
-  }
+  },
+  desktopProviderSettings: {
+    get: bridgeMocks.getProviderSettings,
+    update: vi.fn(),
+  },
 }));
 
 import { desktopApiKey, desktopJinaApiKey } from "../services/desktopBridge";

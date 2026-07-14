@@ -10,7 +10,8 @@ import { logError, setLastApiError } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { validateVeniceIpcRequest } from "../ipc/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS } from "../../src/shared/apiConfig";
-import { resolveProviderRoute } from "./providerAdapters";
+import { resolveProviderRoute, type ProviderRouteSelection } from "./providerAdapters";
+import { getProviderSettings } from "./providerSettingsStore";
 
 /** Maximum non-streaming Venice response body size we will buffer in memory. */
 const MAX_VENICE_RESPONSE_BYTES = 25 * 1024 * 1024;
@@ -344,7 +345,9 @@ export async function performVeniceRequest(
   options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void; body?: unknown } = {}
 ): Promise<VeniceIpcResponse> {
   const request = validateVeniceIpcRequest(rawRequest);
-  const fallbackConfig = request.fallbackConfig;
+  // Renderer-provided fallbackConfig is retained only for wire compatibility.
+  // Consent, ordering, and provider-native models are main-process authority.
+  const fallbackConfig = getProviderSettings(request.profileId);
   const originalModel = typeof (request.body as Record<string, unknown>)?.model === 'string'
     ? (request.body as Record<string, unknown>).model as string : null;
 
@@ -352,9 +355,11 @@ export async function performVeniceRequest(
   const isExplicitProvider = originalModel && originalModel.includes(':');
 
   const providersToTry = ['venice'];
-  if (!isExplicitProvider && fallbackConfig?.enabled && Array.isArray(fallbackConfig.ordering) && originalModel) {
-    // Add unique fallback providers that are not venice
-    const extra = fallbackConfig.ordering.filter(p => p !== 'venice');
+  if (!isExplicitProvider && fallbackConfig.autoFallbackEnabled && originalModel) {
+    const extra = fallbackConfig.fallbackOrdering.filter((providerId) =>
+      fallbackConfig.enabledProviders[providerId] === true &&
+      typeof fallbackConfig.nativeFallbackModels[providerId] === "string"
+    );
     providersToTry.push(...extra);
   }
 
@@ -364,17 +369,14 @@ export async function performVeniceRequest(
   for (const providerId of providersToTry) {
     let hasStartedStreaming = false;
     try {
-      let currentRequest = request;
+      const currentRequest = request;
+      let providerSelection: ProviderRouteSelection | undefined;
 
-      // If we are falling back (providerId !== 'venice'), prepend the provider prefix
+      // Automatic fallback must use a provider-native model, never a Venice model id.
       if (providerId !== 'venice' && originalModel) {
-        currentRequest = {
-          ...request,
-          body: {
-            ...(request.body as Record<string, unknown>),
-            model: `${providerId}:${originalModel}`
-          }
-        };
+        const nativeModel = fallbackConfig.nativeFallbackModels[providerId as keyof typeof fallbackConfig.nativeFallbackModels];
+        if (!nativeModel) continue;
+        providerSelection = { providerId, model: nativeModel };
       }
 
       const wrappedOptions = {
@@ -385,7 +387,7 @@ export async function performVeniceRequest(
         } : undefined
       };
 
-      const response = await performSingleVeniceRequest(currentRequest, wrappedOptions);
+      const response = await performSingleVeniceRequest(currentRequest, wrappedOptions, providerSelection);
       lastResponse = response;
 
       // Error policy: Only fallback on 5xx or rate limits (429), or 408 Timeout.
@@ -416,11 +418,12 @@ export async function performVeniceRequest(
 
 async function performSingleVeniceRequest(
   request: ReturnType<typeof validateVeniceIpcRequest>,
-  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void; body?: unknown } = {}
+  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void; body?: unknown } = {},
+  providerSelection?: ProviderRouteSelection,
 ): Promise<VeniceIpcResponse> {
 
   // Check if this request should be routed to a fallback provider
-  const fallbackRouteResult = resolveProviderRoute(request as unknown as Record<string, unknown>, request.profileId);
+  const fallbackRouteResult = resolveProviderRoute(request as unknown as Record<string, unknown>, request.profileId, providerSelection);
   if (fallbackRouteResult && fallbackRouteResult.error) {
     return {
       ok: false,
@@ -463,7 +466,10 @@ async function performSingleVeniceRequest(
       } else {
         const bodyObj = request.body && typeof request.body === 'object' ? request.body as Record<string, unknown> : null;
         const requestBody = route && route.transformBody && bodyObj && typeof bodyObj.model === 'string'
-            ? route.transformBody(bodyObj, bodyObj.model.split(':').slice(1).join(':'))
+            ? route.transformBody(
+                bodyObj,
+                providerSelection?.model ?? bodyObj.model.split(':').slice(1).join(':'),
+              )
             : request.body;
         bodyText = requestBody === undefined ? undefined : JSON.stringify(requestBody);
       }

@@ -322,8 +322,9 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
       return false;
     });
 
-    // Gate top-level browsing strictly, but avoid DNS-gating every script,
-    // stylesheet, image, or XHR request; modern sites depend on those assets.
+    // Validate every HTTP(S) request independently. The network policy does
+    // not cache DNS decisions, so a hostname that rebinds to a private address
+    // is blocked on the next main-frame or subresource request.
     researchSession.webRequest.onBeforeRequest({ urls: ["*://*/*"] }, (details, callback) => {
       if (isMainFrameRequest(details)) {
         void validateTopLevelNavigation(details.url).then((decision) => {
@@ -346,6 +347,24 @@ export function setupResearchBrowserIpc(mainWindow: BrowserWindow): void {
           // Subresource / iframe blocks are NOT user-visible page-level
           // failures. Record telemetry only; do NOT set lastBlockedError.
           recordBlockedSubresource(details.url);
+          return;
+        }
+        let protocol: string;
+        try {
+          protocol = new URL(details.url).protocol;
+        } catch {
+          callback({ cancel: true });
+          recordBlockedSubresource(details.url);
+          return;
+        }
+        if (protocol === "http:" || protocol === "https:") {
+          void validateResearchBrowserNetworkUrl(details.url).then((decision) => {
+            callback({ cancel: !decision.allowed });
+            if (!decision.allowed) recordBlockedSubresource(details.url);
+          }).catch(() => {
+            callback({ cancel: true });
+            recordBlockedSubresource(details.url);
+          });
           return;
         }
       }

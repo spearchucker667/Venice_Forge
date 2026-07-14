@@ -112,7 +112,7 @@ Equivalent instructions live in `AGENTS.md`, `CLAUDE.md`, and
 
 The renderer (`src/`) runs identically in both modes. Transport is selected at runtime by `isElectron()` in `src/services/desktopBridge.ts`:
 
-- **Electron mode**: renderer calls `window.veniceForge.*` (the contextBridge API exposed by `electron/preload.ts`), which invokes IPC channels handled in `electron/ipc/handlers.ts`. The main process holds API keys (Venice + optional Jina) in `safeStorage` and makes HTTPS calls directly to `api.venice.ai` (and optionally to Jina endpoints).
+- **Electron mode**: renderer modules call the typed services in `src/services/desktopBridge.ts`; only that boundary uses `window.veniceForge.*` from `electron/preload.ts`. Domain handlers live under `electron/ipc/handlers/`. The main process holds profile-scoped Venice, Jina, and fallback-provider keys in `safeStorage` and performs provider requests.
 - **Web mode**: renderer calls the Express server in `server.ts`. Venice uses server-side `VENICE_API_KEY`; Jina uses server-side `JINA_API_KEY`. Browser Settings cannot forward provider credentials, and the Jina proxy drops renderer-supplied `Authorization` / `x-jina-api-key` headers.
 
 All Venice API requests go through `src/services/veniceClient.ts` — `veniceFetch()` for non-streaming and `veniceStreamChat()` for chat streams. Both paths include up to 3 retries with exponential back-off for 429/500/503 responses. (See also `src/lib/venice-client.ts` for the thin Electron passthrough used by some legacy hooks.)
@@ -136,6 +136,9 @@ The renderer can only call the channels declared in `electron/preload.ts` via `w
 
 ```
 GET  /models
+GET  /image/styles
+GET  /characters
+GET  /characters/{slug}
 POST /chat/completions
 POST /image/generate
 POST /image/upscale
@@ -172,9 +175,9 @@ Auto-updates are fetched via GitHub Releases. The `electron/ipc/updates.ts` modu
 
 ### Content Safety Guard
 
-Every outgoing Venice API request routes through `maybeRunLocalFamilyGuard()` from `src/shared/safety/`. Family Safe Mode invokes the local rules; Adult Mode skips rule evaluation entirely. Venice API Safe Mode is a separate provider-side parameter. The conditional pipeline runs at every enforcement boundary:
+Every outgoing Venice API request routes through the guarded transport. Family Safe Mode invokes the local rules; Adult Mode skips rule evaluation entirely. Venice API Safe Mode is a separate provider-side parameter. The conditional pipeline runs at every enforcement boundary:
 
-- **Electron IPC** (`electron/ipc/handlers.ts`): assessed before the main-process Venice client makes the HTTPS call.
+- **Electron IPC** (`electron/ipc/handlers/veniceHandlers.ts` plus `electron/services/guardPipeline.ts`): assessed before the main-process Venice client makes the HTTPS call.
 - **Express proxy** (`server.ts`): assessed before `http-proxy-middleware` forwards the request.
 - **UI call sites**: All prompt-sending paths (chat, image, audio, video, embeddings, research, RP scene/character import, etc.) route through the guard. No raw prompt text is ever logged. See `src/services/veniceClient.ts`, `electron/ipc/handlers.ts`, `server.ts`, and `src/shared/safety/characterImportSafety.ts`.
 
@@ -211,7 +214,7 @@ Status and Inspector surfaces are fed by the inspector store + telemetry (see `s
 
 ### Tab / View structure (current)
 
-Canonical registry in `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, `CANONICAL_TAB_ORDER`). 18 top-level tabs (Chat, History, Image Studio, Media Studio, Prompts, Scene Composer, Audio Studio, Music Studio, Video Studio, Embeddings, Research, Characters, RP Studio, Workflows, Privacy, Playground, Config, Status). Add tabs only via the registry. Legacy aliases (e.g. `gallery` → `media`) are supported only for persisted state migration. See `AGENTS.md` "Canonical tab registry" and `src/config/tabs.test.ts` (VERIFY-022).
+Canonical registry in `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, `CANONICAL_TAB_ORDER`). 19 top-level tabs (Chat, Character Chats, History, Image Studio, Media Studio, Prompts, Scene Composer, Audio Studio, Music Studio, Video Studio, Embeddings, Research, Characters, RP Studio, Workflows, Privacy, Playground, Config, Status). Add tabs only via the registry. Legacy aliases (e.g. `gallery` → `media`) are supported only for persisted state migration. See `AGENTS.md` "Canonical tab registry" and `src/config/tabs.test.ts` (VERIFY-022).
 
 ### Electron build pipeline
 
@@ -220,7 +223,7 @@ Canonical registry in `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, `CANONICA
 ### Security constraints
 
 - Never expose the API key to the renderer — it lives in `electron/services/secureStore.ts` (main process) or the Express server env.
-- Do not add new IPC channels without adding them to `electron/preload.ts` and `electron/ipc/handlers.ts`, and validating inputs in `electron/ipc/validation.ts`.
+- Do not add new IPC channels without adding them to `electron/preload.ts`, the appropriate module under `electron/ipc/handlers/`, and a main-process input validator.
 - Do not add new Venice endpoints without updating `src/shared/validation.ts`.
 - CSP is strict in production — no inline scripts, no external `connect-src`.
 - Packaged startup must load `dist/index.html` in place so its relative `./assets` URLs remain valid; `VERIFY-036` locks this contract.
@@ -354,5 +357,5 @@ Copy `.env.example` to `.env` for web-mode dev:
 ## Files to Keep Current
 
 When changing behavior, packaging, or storage, also update:
-- `README.md`, `docs/audits/CHANGELOG.md`, `AGENTS.md`, `.github/copilot-instructions.md`
+- `README.md`, `docs/ROADMAP.md`, `docs/summary_of_work.md`, `AGENTS.md`, `.github/copilot-instructions.md`
 - `docs/ABOUT.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `LEGAL.md`

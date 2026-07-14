@@ -2,7 +2,7 @@
 
 // Code Owner: fayeblade (@spearchucker667)
 import "../types/desktop";
-import type { SyncRuntimeStatus, VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
+import type { ProviderSettingsSnapshot, SyncRuntimeStatus, VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
 import type { ApiConnectivityStatus } from "../types/api-connectivity";
 import type { Conversation } from "../types/conversation";
 import type {
@@ -89,10 +89,6 @@ export const desktopVenice = {
         ...input,
         signalId,
         profileId: getActiveProfileId(),
-        fallbackConfig: {
-          enabled: useSettingsStore.getState().autoFallbackEnabled,
-          ordering: useSettingsStore.getState().fallbackOrdering,
-        }
       });
     } finally {
       cleanup?.();
@@ -119,10 +115,6 @@ export const desktopVenice = {
         ...input,
         signalId,
         profileId: getActiveProfileId(),
-        fallbackConfig: {
-          enabled: useSettingsStore.getState().autoFallbackEnabled,
-          ordering: useSettingsStore.getState().fallbackOrdering,
-        }
       }, onDelta);
     } finally {
       cleanup?.();
@@ -272,6 +264,52 @@ export const desktopProviderApiKey = {
   async delete(providerId: string): Promise<{ ok: boolean; error?: string }> {
     if (isElectron()) return window.veniceForge!.providerApiKey.delete(providerId, getActiveProfileId());
     return { ok: false, error: "Not supported in web mode" };
+  },
+};
+
+/** Main-authoritative fallback-provider consent and routing settings. */
+export const desktopProviderSettings = {
+  async get(): Promise<ProviderSettingsSnapshot> {
+    if (isElectron()) {
+      const settings = await window.veniceForge!.providerSettings.get();
+      useSettingsStore.setState({
+        enabledProviders: settings.enabledProviders,
+        autoFallbackEnabled: settings.autoFallbackEnabled,
+        fallbackOrdering: settings.fallbackOrdering,
+      });
+      return settings;
+    }
+    const state = useSettingsStore.getState();
+    return {
+      enabledProviders: state.enabledProviders,
+      autoFallbackEnabled: state.autoFallbackEnabled,
+      fallbackOrdering: state.fallbackOrdering as ProviderSettingsSnapshot["fallbackOrdering"],
+      nativeFallbackModels: {},
+    };
+  },
+
+  async update(input: {
+    enabledProviders?: Record<string, boolean>;
+    autoFallbackEnabled?: boolean;
+    fallbackOrdering?: string[];
+  }): Promise<{ ok: boolean; settings?: ProviderSettingsSnapshot; error?: string }> {
+    if (isElectron()) return window.veniceForge!.providerSettings.update(input);
+    return { ok: true, settings: await this.get() };
+  },
+};
+
+/** Profile-authoritative desktop TTS bridge. Raw renderer profile selectors are never accepted. */
+export const desktopTts = {
+  synthesize(
+    options: { text: string; model?: string; voice?: string; speed?: number },
+    cacheEnabled: boolean,
+  ) {
+    if (!isElectron()) return Promise.resolve({ ok: false as const, error: "Text-to-speech is available in the desktop app." });
+    return window.veniceForge!.tts.synthesize(options, cacheEnabled);
+  },
+  clearCache() {
+    if (!isElectron()) return Promise.resolve({ ok: false as const, error: "The TTS cache is available in the desktop app." });
+    return window.veniceForge!.tts.clearCache();
   },
 };
 

@@ -84,8 +84,9 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ## 7. Roadmap / Current Work
 
-- [ROADMAP.md](ROADMAP.md) — Canonical task ledger with priorities (P0 to P4) and verification checklist.
+- [ROADMAP.md](ROADMAP.md) — Canonical current-work-only task ledger; closed work and historical validation stay in the session ledger and historical reports.
 - [summary_of_work.md](summary_of_work.md) — Active session ledger (recent sessions only).
+- [audits/exhaustive_repository_file_audit_2026-07-14.yaml](audits/exhaustive_repository_file_audit_2026-07-14.yaml) — Completed authoritative 2026-07-14 file-audit record; all per-finding closure evidence lives here.
 - [archives/session-history-pre-2026-07-11.md](archives/session-history-pre-2026-07-11.md) — Archived dated session records.
 
 ---
@@ -97,7 +98,6 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md](reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md) — Current implementation evidence, validation results, and explicit follow-up risks for the 2026-07-12 media/character remediation.
 - [reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md](reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) — Current evidence for signed-video download hardening, dedicated Character Chats navigation, and mesh-surface validation.
 - [reports/historical/final-massive-bug-hunt-with-proof.md](reports/historical/final-massive-bug-hunt-with-proof.md) — Historical audit log of closed validation checks from the v2.1.0 release boundary.
-- [audits/exhaustive-bug-hunt-2026-06-19.md](audits/exhaustive-bug-hunt-2026-06-19.md) — Historical snapshot; paths inside describe the repository at audit time and are not setup instructions.
 
 ---
 
@@ -106,6 +106,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 The following files were removed, merged, or archived during the repository-wide documentation hygiene pass:
 - `docs/audits/repository-todo-roadmap-current.md` — Merged into the clean [ROADMAP.md](ROADMAP.md).
 - `docs/audits/research-browser-plan.md` — Merged into [DEVELOPMENT/research-browser.md](DEVELOPMENT/research-browser.md).
+- `docs/audits/CHANGELOG.md` — Removed as a duplicate history ledger; current work is recorded in [summary_of_work.md](summary_of_work.md).
+- `docs/audits/exhaustive-bug-hunt-2026-06-19.md` — Removed as superseded historical evidence; current findings remain in the canonical roadmap and audit index.
 - `docs/LEGAL.md` — Deleted as a duplicate of the root [LEGAL.md](../LEGAL.md).
 - `docs/archives/VENICE_FORGE_TODO.md` — Superseded by the new [ROADMAP.md](ROADMAP.md).
 - `docs/archives/VENICE_FORGE_ZIP_AUDIT_HANDOFF.md` — Superseded by [summary_of_work.md](summary_of_work.md).

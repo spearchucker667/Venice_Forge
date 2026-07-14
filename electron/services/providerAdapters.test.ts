@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resolveProviderRoute } from './providerAdapters'
 import { getProviderApiKey } from './secureStore'
+import { getProviderSettings } from './providerSettingsStore'
 
 // Mock getProviderApiKey to return a fake key for testing
 vi.mock('./secureStore', () => ({
@@ -12,6 +13,21 @@ vi.mock('./secureStore', () => ({
     if (providerId === 'mistral') return 'fake-mistral-key'
     return null
   }),
+}))
+
+vi.mock('./providerSettingsStore', () => ({
+  getProviderSettings: vi.fn(() => ({
+    enabledProviders: {
+      together: true,
+      groq: true,
+      anthropic: true,
+      mistral: true,
+      google_gemini: true,
+    },
+    autoFallbackEnabled: false,
+    fallbackOrdering: [],
+    nativeFallbackModels: {},
+  })),
 }))
 
 describe('providerAdapters', () => {
@@ -38,6 +54,38 @@ describe('providerAdapters', () => {
       
       const result = resolveProviderRoute(request)
       expect(result?.error).toMatch(/API key is not configured/)
+    })
+
+    it('rejects a renderer-selected provider that main-process consent has disabled', () => {
+      vi.mocked(getProviderSettings).mockReturnValueOnce({
+        enabledProviders: {},
+        autoFallbackEnabled: false,
+        fallbackOrdering: [],
+        nativeFallbackModels: { anthropic: 'claude-3-5-sonnet-latest' },
+      })
+
+      const result = resolveProviderRoute({
+        endpoint: '/chat/completions',
+        body: { model: 'anthropic:claude-3-5-sonnet-latest', messages: [] },
+      }, 'work-profile')
+
+      expect(result?.error).toMatch(/disabled for this profile/i)
+      expect(getProviderApiKey).not.toHaveBeenCalled()
+    })
+
+    it('routes an automatic fallback with provider and model as separate authority fields', () => {
+      const result = resolveProviderRoute({
+        endpoint: '/chat/completions',
+        body: { model: 'venice-model', messages: [] },
+      }, 'work-profile', {
+        providerId: 'anthropic',
+        model: 'claude-3-5-sonnet-latest',
+      })
+
+      expect(result?.error).toBeUndefined()
+      expect(result?.route?.host).toBe('api.anthropic.com')
+      expect(result?.route?.transformBody({ model: 'venice-model', messages: [] }, 'claude-3-5-sonnet-latest').model)
+        .toBe('claude-3-5-sonnet-latest')
     })
 
     it('returns an error for unsupported endpoints on a known provider', () => {

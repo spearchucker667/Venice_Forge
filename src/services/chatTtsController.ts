@@ -1,6 +1,5 @@
 import { useSettingsStore } from '../stores/settings-store';
-import { isElectron } from './desktopBridge';
-import { uiSoundController } from './uiSoundController';
+import { desktopTts, isElectron } from './desktopBridge';
 
 export type TtsPlaybackState = 'idle' | 'loading' | 'playing' | 'paused';
 
@@ -10,6 +9,7 @@ class ChatTtsControllerImpl {
   private currentText: string | null = null;
   private state: TtsPlaybackState = 'idle';
   private objectUrl: string | null = null;
+  private requestToken = 0;
   private subscribers = new Set<(state: TtsPlaybackState, messageId: string | null) => void>();
 
   public subscribe(callback: (state: TtsPlaybackState, messageId: string | null) => void) {
@@ -39,6 +39,7 @@ class ChatTtsControllerImpl {
     }
 
     this.stop();
+    const requestToken = ++this.requestToken;
     
     // We only support TTS on desktop right now due to API key security constraints
     if (!isElectron()) return;
@@ -56,9 +57,12 @@ class ChatTtsControllerImpl {
       // Very basic regex to strip markdown code blocks
       textToRead = text.replace(/```[\s\S]*?```/g, ' [Code block skipped] ');
     }
+    if (prefs?.skipUrls) {
+      textToRead = textToRead.replace(/https?:\/\/\S+/gi, ' [Link skipped] ');
+    }
 
     try {
-      const result = await window.veniceForge!.tts.synthesize(
+      const result = await desktopTts.synthesize(
         {
           text: textToRead,
           model: prefs?.model,
@@ -68,11 +72,26 @@ class ChatTtsControllerImpl {
         cacheEnabled
       );
 
-      if (!result.ok || !result.id) {
+      if (requestToken !== this.requestToken || this.currentMessageId !== messageId) return;
+      if (!result.ok || (!result.id && !result.audioBase64)) {
         throw new Error(result.error || 'TTS Synthesis failed');
       }
 
-      this.audio = new Audio(`venice-tts://${result.id}`);
+      let sourceUrl: string;
+      if (result.audioBase64) {
+        const binary = atob(result.audioBase64);
+        const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+        this.objectUrl = URL.createObjectURL(new Blob([bytes], { type: result.mimeType ?? 'audio/mpeg' }));
+        sourceUrl = this.objectUrl;
+      } else {
+        sourceUrl = `venice-tts://${result.id}`;
+      }
+      if (requestToken !== this.requestToken || this.currentMessageId !== messageId) {
+        if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
+        this.objectUrl = null;
+        return;
+      }
+      this.audio = new Audio(sourceUrl);
       this.audio.volume = prefs?.volume ?? 1.0;
       this.audio.playbackRate = prefs?.speed ?? 1.0;
 
@@ -121,6 +140,7 @@ class ChatTtsControllerImpl {
   }
 
   public stop() {
+    this.requestToken += 1;
     if (this.audio) {
       this.audio.pause();
       this.audio.src = '';

@@ -1,4 +1,6 @@
 // VERIFY-091 regression guard: sync folder watcher validates, encrypts, and suppresses local emission.
+// VERIFY-109 regression guard: sync roots and watched descendants reject symlinks and path escapes.
+// VERIFY-119 regression guard: failed setup rolls back and transient remote files remain retryable.
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
@@ -108,7 +110,8 @@ async function writeRemotePacket(
     data: packet.data,
   });
   const encrypted = await encryptPayload(payload, "password");
-  const filePath = `${tmpDir}/${fileName}`;
+  const filePath = path.join(tmpDir, ".vfbackup", "blobs", fileName);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), ...encrypted }));
   return filePath;
 }
@@ -148,6 +151,35 @@ describe("syncFolderWatcher", () => {
     expect(result.ok).toBe(true);
     const stat = await fs.stat(`${tmpDir}/.vfbackup/blobs`);
     expect(stat.isDirectory()).toBe(true);
+  });
+
+  it("rejects a symlinked sync root", async () => {
+    const realRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sync-real-"));
+    const linkedRoot = `${realRoot}-link`;
+    await fs.symlink(realRoot, linkedRoot, "dir");
+    try {
+      await expect(setSyncFolder(linkedRoot)).resolves.toMatchObject({
+        ok: false,
+        error: expect.stringMatching(/symbolic link/i),
+      });
+    } finally {
+      await fs.rm(linkedRoot, { force: true });
+      await fs.rm(realRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects symlinked sync custody directories", async () => {
+    const external = await fs.mkdtemp(path.join(os.tmpdir(), "sync-external-"));
+    await fs.mkdir(path.join(tmpDir, ".vfbackup"), { recursive: true });
+    await fs.symlink(external, path.join(tmpDir, ".vfbackup", "blobs"), "dir");
+    try {
+      await expect(setSyncFolder(tmpDir)).resolves.toMatchObject({
+        ok: false,
+        error: expect.stringMatching(/symbolic link/i),
+      });
+    } finally {
+      await fs.rm(external, { recursive: true, force: true });
+    }
   });
 
   it("starts the watcher and updates status", async () => {
@@ -191,6 +223,39 @@ describe("syncFolderWatcher", () => {
     expect(status.degradedReason).toMatch(/permission denied/);
     expect(isSyncRetryQueueRunning()).toBe(false);
     mkdirSpy.mockRestore();
+  });
+
+  it("does not persist a new sync path when authenticated setup fails", async () => {
+    const { setSyncPath } = await import("./syncConfig");
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password");
+    vi.mocked(ensureSyncIdentity).mockRejectedValueOnce(new Error("identity setup failed"));
+    vi.mocked(setSyncPath).mockClear();
+    const replacement = await fs.mkdtemp(path.join(os.tmpdir(), "sync-replacement-"));
+    try {
+      const result = await setSyncFolder(replacement);
+      expect(result).toMatchObject({ ok: false, error: expect.stringMatching(/identity setup failed/) });
+      expect(setSyncPath).not.toHaveBeenCalledWith(replacement);
+      expect(getSyncStatus().configured).toBe(true);
+    } finally {
+      await fs.rm(replacement, { recursive: true, force: true });
+    }
+  });
+
+  it("queues an incomplete remote manifest for retry instead of treating it as handled", async () => {
+    await initSyncFolderWatcher({
+      isDestroyed: () => false,
+      webContents: { send: sendMock },
+    } as unknown as import("electron").BrowserWindow);
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password", "default");
+    const filePath = path.join(tmpDir, ".vfbackup", "blobs", "partial.json");
+    await fs.writeFile(filePath, "{\"version\":2");
+
+    await expect(handleRemoteChange(filePath, 0)).resolves.toBe(false);
+    const retries = Array.from(getPendingRetries().values());
+    expect(retries).toHaveLength(1);
+    expect(retries[0]).toMatchObject({ filePath, attempts: 1 });
   });
 
   it("tracks renderer session attachment", async () => {
@@ -329,6 +394,29 @@ describe("syncFolderWatcher", () => {
     expect(logError).toHaveBeenCalledWith(
       "syncFolderWatcher",
       expect.stringMatching(/outside the active sync set/),
+    );
+  });
+
+  it("refuses a symlinked watched packet before reading or renderer delivery", async () => {
+    const { BrowserWindow } = await import("electron");
+    await initSyncFolderWatcher(new BrowserWindow());
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password");
+    const packetPath = await writeRemotePacket("real-packet.json", {
+      storeName: "conversations",
+      id: "conv-symlink",
+      operationId: "9".repeat(64),
+      data: { id: "conv-symlink" },
+    });
+    const linkedPath = path.join(tmpDir, ".vfbackup", "blobs", "linked-packet.json");
+    await fs.symlink(packetPath, linkedPath);
+
+    await expect(handleRemoteChange(linkedPath)).resolves.toBe(true);
+
+    expect(sendMock).not.toHaveBeenCalled();
+    expect(logError).toHaveBeenCalledWith(
+      "syncFolderWatcher",
+      expect.stringMatching(/symbolic link/i),
     );
   });
 

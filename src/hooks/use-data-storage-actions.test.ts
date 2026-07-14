@@ -10,6 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import StorageService from "../services/storageService";
+import { STORE_NAMES } from "../constants/venice";
 
 // VERIFY-055 regression guard: export/import failure paths must surface
 // safe, generic toast messages and never emit raw exception text that
@@ -63,7 +64,7 @@ vi.mock("../services/desktopBridge", async (importOriginal) => {
 // stubs so the hook does not actually touch IDB in this test.
 vi.mock("../services/storageService", () => ({
   default: {
-    clearStore: async () => undefined,
+    clearStore: vi.fn(async () => undefined),
     getItems: async () => [],
     getItemsPage: async () => ({ items: [], total: 0, offset: 0, limit: 1, hasMore: false }),
     getItem: async () => null,
@@ -127,6 +128,25 @@ describe("useDataStorageActions", () => {
       await result.current.clearAllHistory();
     });
     expect(setters.setPendingConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("VERIFY-110: clearAllHistory enumerates and clears only the IndexedDB scope", async () => {
+    const setters = buildSetters();
+    const { result } = renderHook(() => useDataStorageActions({ ...setters }));
+    await act(async () => {
+      await result.current.clearAllHistory();
+    });
+    const pending = setters.setPendingConfirm.mock.calls[0][0];
+    expect(pending.message).toBe("Delete all IndexedDB history?");
+    expect(pending.detail).toMatch(/does not delete Electron vault files, exports, or sync folders/i);
+
+    await act(async () => {
+      await pending.onConfirm();
+    });
+
+    expect(StorageService.clearStore).toHaveBeenCalledTimes(STORE_NAMES.length);
+    for (const store of STORE_NAMES) expect(StorageService.clearStore).toHaveBeenCalledWith(store);
+    expect(toast.success).toHaveBeenCalledWith("IndexedDB data cleared successfully.");
   });
 
   it("exportData returns cleanly when the IPC stub resolves", async () => {

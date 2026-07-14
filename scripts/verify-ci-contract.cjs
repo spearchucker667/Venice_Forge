@@ -27,6 +27,7 @@ const dependencyReviewYaml = fs.existsSync(dependencyReviewYamlPath) ? fs.readFi
 // The required verification gates that must be run in CI
 const requiredGates = [
   'verify:bundle-budget',
+  'verify:roadmap-current',
   'verify:safety-guard',
   'verify:markdown-links',
   'verify:repo-handoff-hygiene',
@@ -229,6 +230,38 @@ if (missingPaths.length > 0) {
   process.exit(1);
 }
 console.log("✓ All explicit Vitest paths exist");
+
+// Keep every non-smoke test surface outside the ordinary source segments in an
+// explicit contract segment. These directories previously fell through the
+// segmented test:ci union even though they contain release and security guards.
+const requiredContractTestPaths = [
+  'package-scripts.test.ts',
+  'tests/backup',
+  'tests/csp',
+  'tests/electron',
+  'tests/rp',
+  'tests/safety',
+  'tests/storage',
+  'tests/theme',
+  'scripts/verify-document-ingestion.test.ts',
+];
+const contractTestScript = pkg.scripts['test:contracts'] || '';
+const ciTestScript = pkg.scripts['test:ci'] || '';
+
+if (!ciTestScript.includes('npm run test:contracts')) {
+  console.error("❌ package.json test:ci must invoke test:contracts");
+  process.exit(1);
+}
+
+const omittedContractPaths = requiredContractTestPaths.filter(
+  (requiredPath) => !tokenize(contractTestScript).includes(requiredPath),
+);
+if (omittedContractPaths.length > 0) {
+  console.error("❌ package.json test:contracts omits required non-smoke test paths:");
+  omittedContractPaths.forEach((requiredPath) => console.error(`  - ${requiredPath}`));
+  process.exit(1);
+}
+console.log("✓ test:ci covers every required non-smoke contract test path");
 
 console.log("CI contract check: PASS");
 process.exit(0);

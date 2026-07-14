@@ -59,6 +59,9 @@ describe("package.json test scripts", () => {
     expect(pkg.scripts["test:unit:scripts"]).toContain("--exclude 'scripts/verify-document-ingestion.test.ts'");
     expect(pkg.scripts["test:unit"]).toMatch(/^npm run test:unit:stores &&/);
     expect(pkg.scripts["test:ci"]).toMatch(/^npm run test:server &&/);
+    expect(pkg.scripts["test:contracts"]).toContain("tests/safety");
+    expect(pkg.scripts["test:contracts"]).toContain("tests/csp");
+    expect(pkg.scripts["test:ci"]).toContain("npm run test:contracts");
   });
 
   it("uses test:ci in the aggregate ci script so coverage is collected", () => {

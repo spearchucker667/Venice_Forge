@@ -135,7 +135,7 @@ function createWindow(): BrowserWindow {
   });
   win.webContents.on("console-message", (_event, level, message, line, sourceId) => {
     if (isDev) {
-      console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`);
+      process.stdout.write(`[renderer:${level}] ${message} (${sourceId}:${line})\n`);
     }
     const levelStr = ["verbose", "info", "warning", "error"][level] ?? "info";
     const src = sourceId ? ` [${path.basename(sourceId)}:${line}]` : "";

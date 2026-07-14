@@ -24,6 +24,18 @@ vi.mock("./secureStore", () => ({
   })
 }));
 
+vi.mock("./providerSettingsStore", () => ({
+  getProviderSettings: vi.fn(() => ({
+    enabledProviders: { anthropic: true, together: true },
+    autoFallbackEnabled: false,
+    fallbackOrdering: [],
+    nativeFallbackModels: {
+      anthropic: "claude-3-5-sonnet-latest",
+      together: "meta-llama/Llama-3-70b-chat-hf",
+    },
+  })),
+}));
+
 vi.mock("./logger", () => ({
   logError: vi.fn(),
   setLastApiError: vi.fn(),
@@ -31,6 +43,7 @@ vi.mock("./logger", () => ({
 
 import { performVeniceRequest } from "./veniceClient";
 import { getProviderApiKey } from "./secureStore";
+import { getProviderSettings } from "./providerSettingsStore";
 
 interface MockRequest extends EventEmitter {
   write: ReturnType<typeof vi.fn>;
@@ -158,5 +171,45 @@ describe("performVeniceRequest multi-provider adapter integration", () => {
 
     expect(getProviderApiKey).toHaveBeenCalledWith("anthropic", "work-profile");
     expect((requestOptions.headers as Record<string, string>)["x-api-key"]).toBe("test-anthropic-key");
+  });
+
+  it("ignores renderer fallback settings and uses the main-owned provider-native model", async () => {
+    vi.mocked(getProviderSettings).mockReturnValue({
+      enabledProviders: { anthropic: true },
+      autoFallbackEnabled: true,
+      fallbackOrdering: ["anthropic"],
+      nativeFallbackModels: { anthropic: "claude-3-5-sonnet-latest" },
+    });
+    const requestMock = https.request as unknown as HttpsRequestMock;
+    const requests: Array<{ options: Record<string, unknown>; body: string }> = [];
+
+    requestMock.mockImplementation((options, callback) => {
+      const record = { options: options as Record<string, unknown>, body: "" };
+      requests.push(record);
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn((data) => { record.body += String(data); });
+      req.end = vi.fn(() => {
+        const res = new EventEmitter() as MockResponse;
+        res.headers = { "content-type": "application/json" };
+        res.statusCode = requests.length === 1 ? 503 : 200;
+        res.statusMessage = requests.length === 1 ? "Unavailable" : "OK";
+        callback(res);
+        res.emit("data", Buffer.from("{}"));
+        res.emit("end");
+      });
+      return req;
+    });
+
+    await performVeniceRequest({
+      endpoint: "/chat/completions",
+      method: "POST",
+      profileId: "work-profile",
+      fallbackConfig: { enabled: true, ordering: ["together"] },
+      body: { model: "venice-model-id", messages: [{ role: "user", content: "Hi" }] },
+    });
+
+    expect(requests).toHaveLength(2);
+    expect(requests[1].options.hostname).toBe("api.anthropic.com");
+    expect(JSON.parse(requests[1].body).model).toBe("claude-3-5-sonnet-latest");
   });
 });

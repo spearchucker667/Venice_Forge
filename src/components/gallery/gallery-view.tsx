@@ -473,9 +473,7 @@ export function MediaStudioView() {
     a.click()
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 0)
-    // Sidecar list — the caller is expected to assemble the ZIP
-    // separately; we surface the per-item filename list so the user
-    // can pair the manifest with the media/ subdir.
+    // Surface deterministic sidecar filenames alongside the JSON manifest.
     const filenameList = exportItems.map((it) => buildMediaFilename(it)).join("\n")
     toast.success(`Exported ${ids.length} item${ids.length === 1 ? "" : "s"}. Sidecar filenames:\n${filenameList}`)
   }, [items]);

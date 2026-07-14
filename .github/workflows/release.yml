@@ -59,11 +59,11 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           if [[ -z "${{ secrets.CSC_LINK }}" || -z "${{ secrets.CSC_KEY_PASSWORD }}" || -z "${{ secrets.APPLE_ID }}" || -z "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" || -z "${{ secrets.APPLE_TEAM_ID }}" ]]; then
-            if [[ "${{ vars.VENICE_FORGE_REQUIRE_SIGNED_RELEASE }}" == "true" ]]; then
-              echo "::error::macOS signing/notarization credentials are required because VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true."
+            if [[ "${{ vars.RELEASE_ALLOW_UNSIGNED }}" != "true" ]]; then
+              echo "::error::macOS tag releases fail closed without signing/notarization credentials. Set RELEASE_ALLOW_UNSIGNED=true only for a deliberate unsigned draft exception."
               exit 1
             fi
-            echo "::warning::macOS signing/notarization credentials are absent; creating unsigned draft artifacts."
+            echo "::warning::RELEASE_ALLOW_UNSIGNED=true: creating deliberately unsigned draft macOS artifacts."
           fi
 
       - name: Package macOS artifacts (Development)
@@ -146,11 +146,11 @@ jobs:
         shell: bash
         run: |
           if [[ -z "${{ secrets.WIN_CSC_LINK }}" || -z "${{ secrets.WIN_CSC_KEY_PASSWORD }}" ]]; then
-            if [[ "${{ vars.VENICE_FORGE_REQUIRE_SIGNED_RELEASE }}" == "true" ]]; then
-              echo "::error::Windows signing credentials are required because VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true."
+            if [[ "${{ vars.RELEASE_ALLOW_UNSIGNED }}" != "true" ]]; then
+              echo "::error::Windows tag releases fail closed without signing credentials. Set RELEASE_ALLOW_UNSIGNED=true only for a deliberate unsigned draft exception."
               exit 1
             fi
-            echo "::warning::Windows signing credentials are absent; creating unsigned draft artifacts."
+            echo "::warning::RELEASE_ALLOW_UNSIGNED=true: creating deliberately unsigned draft Windows artifacts."
           fi
 
       - name: Package Windows artifacts (Development)

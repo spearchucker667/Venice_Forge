@@ -1,7 +1,6 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
 import { setSyncFolder, getSyncFolder, getSyncStatus, setSyncEmissionSuppressed, setRendererSessionAttached, startSyncWatcher, stopSyncWatcher, pauseSyncWatcher, acknowledgeOperation } from "../../services/syncFolderWatcher";
 import { redactErrorMessage } from "../../../src/shared/redaction";
-import { isValidProfileStorageId } from "../../../src/utils/profileIdValidation";
 import { validateMutationAuthority } from "../../services/remoteApplyAuthority";
 import { isValidId } from "../../../src/utils/idValidation";
 import { getProfileSessionId } from "../../services/profileSession";
@@ -47,11 +46,11 @@ export function registerSyncHandlers(): void {
     return { ok: true };
   });
 
-  ipcMain.handle("sync:startSync", async (_event, params: { password: string; profileId: string }) => {
-    if (!params || typeof params.password !== "string" || !isValidProfileStorageId(params.profileId)) {
+  ipcMain.handle("sync:startSync", async (event, params: { password?: unknown; profileId?: unknown }) => {
+    if (!params || typeof params.password !== "string") {
       return { ok: false, error: "Invalid sync start payload." };
     }
-    return await startSyncWatcher(params.password, params.profileId);
+    return await startSyncWatcher(params.password, getProfileSessionId(event.sender));
   });
 
   ipcMain.handle("sync:stopSync", async () => {

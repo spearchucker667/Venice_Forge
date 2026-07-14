@@ -90,6 +90,23 @@ vi.mock("../services/secureStore", () => ({
   clearMasterPassword: vi.fn(),
 }));
 
+vi.mock("../services/providerSettingsStore", () => ({
+  disableProvider: vi.fn(),
+  getProviderSettings: vi.fn(() => ({
+    enabledProviders: {},
+    autoFallbackEnabled: false,
+    fallbackOrdering: [],
+    nativeFallbackModels: { anthropic: "claude-3-5-sonnet-latest" },
+  })),
+  isProviderAvailableForFallback: vi.fn((providerId) => providerId === "anthropic" || providerId === "together"),
+  updateProviderSettings: vi.fn((_profileId, update) => ({
+    enabledProviders: update.enabledProviders ?? {},
+    autoFallbackEnabled: update.autoFallbackEnabled ?? false,
+    fallbackOrdering: update.fallbackOrdering ?? [],
+    nativeFallbackModels: { anthropic: "claude-3-5-sonnet-latest" },
+  })),
+}));
+
 vi.mock("../services/logger", () => ({
   logError: vi.fn(),
   logInfo: vi.fn(),
@@ -194,6 +211,11 @@ import {
   isProviderApiKeyConfigured,
   getJinaApiKey,
 } from "../services/secureStore";
+import {
+  disableProvider,
+  getProviderSettings,
+  updateProviderSettings,
+} from "../services/providerSettingsStore";
 
 describe("registerIpcHandlers", () => {
   beforeAll(() => {
@@ -1316,6 +1338,51 @@ describe("registerIpcHandlers", () => {
       expect(isProviderApiKeyConfigured).toHaveBeenCalledWith("groq", "work");
       expect(setProviderApiKey).toHaveBeenCalledWith("groq", "sk-provider", "work");
       expect(deleteProviderApiKey).toHaveBeenCalledWith("groq", "work");
+      expect(disableProvider).toHaveBeenCalledWith("work", "groq");
+    });
+
+    it("binds fallback consent to the session and requires a configured provider key", async () => {
+      const event = sessionCtx();
+      vi.mocked(isProviderApiKeyConfigured).mockImplementation((providerId, profileId) =>
+        providerId === "anthropic" && profileId === "work",
+      );
+
+      await capturedHandlers.get("providerSettings:get")!(event);
+      const accepted = await capturedHandlers.get("providerSettings:update")!(event, {
+        enabledProviders: { anthropic: true },
+        autoFallbackEnabled: true,
+        fallbackOrdering: ["anthropic"],
+      });
+      const rejected = await capturedHandlers.get("providerSettings:update")!(event, {
+        enabledProviders: { together: true },
+      });
+
+      expect(getProviderSettings).toHaveBeenCalledWith("work");
+      expect(updateProviderSettings).toHaveBeenCalledWith("work", expect.objectContaining({
+        enabledProviders: { anthropic: true },
+      }));
+      expect(accepted).toMatchObject({ ok: true });
+      expect(rejected).toMatchObject({ ok: false, error: expect.stringMatching(/not configured/i) });
+    });
+
+    it("rejects duplicate, unknown, and disabled fallback ordering entries", async () => {
+      const event = sessionCtx();
+      vi.mocked(isProviderApiKeyConfigured).mockReturnValue(true);
+      vi.mocked(getProviderSettings).mockReturnValue({
+        enabledProviders: { anthropic: true },
+        autoFallbackEnabled: true,
+        fallbackOrdering: [],
+        nativeFallbackModels: { anthropic: "claude-3-5-sonnet-latest" },
+      });
+      const handler = capturedHandlers.get("providerSettings:update")!;
+
+      await expect(handler(event, { fallbackOrdering: ["anthropic", "anthropic"] }))
+        .resolves.toMatchObject({ ok: false, error: expect.stringMatching(/duplicate/i) });
+      await expect(handler(event, { fallbackOrdering: ["unknown"] }))
+        .resolves.toMatchObject({ ok: false, error: expect.stringMatching(/invalid provider/i) });
+      await expect(handler(event, { fallbackOrdering: ["together"] }))
+        .resolves.toMatchObject({ ok: false, error: expect.stringMatching(/enabled/i) });
+      expect(updateProviderSettings).not.toHaveBeenCalled();
     });
 
     it("binds Jina key status, set, delete, and test to the session profile", async () => {

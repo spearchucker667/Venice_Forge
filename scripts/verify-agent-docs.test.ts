@@ -61,12 +61,27 @@ describe("verify-agent-docs", () => {
       "| Data | Location |",
       "|------|----------|",
       "| Renderer IndexedDB stores | `src/constants/venice.ts` (`STORE_NAMES`) via `src/services/storageService.ts` and `src/services/dbMigrations.ts`; encryption scope is `ENCRYPTED_STORES` in `src/services/storageService.ts` — `diagnostics` is unencrypted, all other stores are AES-GCM |",
+      "Renderer transport: `src/services/desktopBridge.ts`.",
+      "Main handlers: `electron/ipc/handlers/`.",
+      "GET  /image/styles",
+      "GET  /characters",
+      "The canonical registry has 19 top-level tabs including Character Chats.",
       extra,
     ].join("\n");
   }
 
   function writeSupportingFiles() {
     writeDoc("docs/summary_of_work.md", "# Summary of Work\n");
+    writeDoc(
+      "docs/FILE_TREE.md",
+      [
+        "`src/config/tabs.ts`",
+        "`src/services/desktopBridge.ts`",
+        "`electron/ipc/handlers/`",
+        "`electron/services/providerSettingsStore.ts`",
+        "do not copy a numeric tab count",
+      ].join("\n"),
+    );
   }
 
   it("passes when AGENTS.md and copilot-instructions.md are consistent", () => {
@@ -124,6 +139,29 @@ describe("verify-agent-docs", () => {
     const { passed, errors } = verifyAgentDocs(tmpDir);
     expect(passed).toBe(false);
     expect(errors.some((e: string) => e.includes("ground truth"))).toBe(true);
+  });
+
+  // VERIFY-122: Copilot guidance must retain current architecture and tab markers.
+  it("fails when copilot-instructions.md drops a current architecture marker", () => {
+    writeSupportingFiles();
+    writeDoc("AGENTS.md", minimalAgentsMd());
+    writeDoc(
+      ".github/copilot-instructions.md",
+      minimalCopilotMd().replace("19 top-level tabs", "top-level tabs"),
+    );
+    const { passed, errors } = verifyAgentDocs(tmpDir);
+    expect(passed).toBe(false);
+    expect(errors.some((e: string) => e.includes("19 top-level tabs"))).toBe(true);
+  });
+
+  it("fails when the repository map drops a current architecture marker", () => {
+    writeSupportingFiles();
+    writeDoc("AGENTS.md", minimalAgentsMd());
+    writeDoc(".github/copilot-instructions.md", minimalCopilotMd());
+    writeDoc("docs/FILE_TREE.md", "do not copy a numeric tab count\n");
+    const { passed, errors } = verifyAgentDocs(tmpDir);
+    expect(passed).toBe(false);
+    expect(errors.some((e: string) => e.includes("src/config/tabs.ts"))).toBe(true);
   });
 
   it("fails when AGENTS.md and copilot-instructions.md validation lists diverge", () => {

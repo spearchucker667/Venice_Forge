@@ -65,7 +65,7 @@ export function DataStoragePanel({
             onClick={clearAllHistory}
             className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-danger/10 border border-danger/20 text-danger hover:bg-danger/20 transition-colors cursor-pointer"
           >
-            Clear All Local History
+            Clear IndexedDB Data
           </button>
         </div>
       </div>

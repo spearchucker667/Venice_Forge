@@ -1,4 +1,4 @@
-/** @fileoverview VERIFY-044 — media-export-bundle (Phase 2B export). */
+/** @fileoverview VERIFY-044 — media-export-bundle; VERIFY-121 — export truth and audio support. */
 
 import { describe, expect, it } from "vitest";
 import {
@@ -107,11 +107,15 @@ describe("media-export-bundle (VERIFY-044)", () => {
       expect(sidecar.lineage.childrenIds).toEqual(["child-a", "child-b"])
     })
 
-    it("detects jpg / webp / gif / mp4 extensions from the data URL prefix", () => {
+    it("detects image, video, and audio extensions from the data URL prefix", () => {
       expect(buildSidecar(makeItem({ image: "data:image/jpeg;base64,AA" }), "x").mediaFile.extension).toBe("jpg")
       expect(buildSidecar(makeItem({ image: "data:image/webp;base64,AA" }), "x").mediaFile.extension).toBe("webp")
       expect(buildSidecar(makeItem({ image: "data:image/gif;base64,AA" }), "x").mediaFile.extension).toBe("gif")
       expect(buildSidecar(makeItem({ mediaType: "video", image: "data:video/mp4;base64,AA" }), "x").mediaFile.extension).toBe("mp4")
+      const audio = buildSidecar(makeItem({ mediaType: "audio", image: "data:audio/ogg;base64,AA" }), "x")
+      expect(audio.type).toBe("audio")
+      expect(audio.mediaFile.extension).toBe("ogg")
+      expect(validateSidecar(audio)).toBeNull()
     })
 
     it("handles missing / empty image", () => {

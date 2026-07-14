@@ -19,52 +19,57 @@ const UI_SOUND_PACKS: Record<UiSoundPackId, UiSoundPackManifest> = {
     id: 'soft',
     name: 'Soft',
     assets: {
-      primaryClick: '/audio/ui/soft/primary-click.ogg',
-      secondaryClick: '/audio/ui/soft/secondary-click.ogg',
-      toggleOn: '/audio/ui/soft/toggle-on.ogg',
-      toggleOff: '/audio/ui/soft/toggle-off.ogg',
+      primaryClick: 'audio/ui/soft/primary-click.ogg',
+      secondaryClick: 'audio/ui/soft/secondary-click.ogg',
+      toggleOn: 'audio/ui/soft/toggle-on.ogg',
+      toggleOff: 'audio/ui/soft/toggle-off.ogg',
     },
   },
   tactile: {
     id: 'tactile',
     name: 'Tactile',
     assets: {
-      primaryClick: '/audio/ui/tactile/primary-click.ogg',
-      secondaryClick: '/audio/ui/tactile/secondary-click.ogg',
-      toggleOn: '/audio/ui/tactile/toggle-on.ogg',
-      toggleOff: '/audio/ui/tactile/toggle-off.ogg',
+      primaryClick: 'audio/ui/tactile/primary-click.ogg',
+      secondaryClick: 'audio/ui/tactile/secondary-click.ogg',
+      toggleOn: 'audio/ui/tactile/toggle-on.ogg',
+      toggleOff: 'audio/ui/tactile/toggle-off.ogg',
     },
   },
   glass: {
     id: 'glass',
     name: 'Glass',
     assets: {
-      primaryClick: '/audio/ui/glass/primary-click.ogg',
-      secondaryClick: '/audio/ui/glass/secondary-click.ogg',
-      toggleOn: '/audio/ui/glass/toggle-on.ogg',
-      toggleOff: '/audio/ui/glass/toggle-off.ogg',
+      primaryClick: 'audio/ui/glass/primary-click.ogg',
+      secondaryClick: 'audio/ui/glass/secondary-click.ogg',
+      toggleOn: 'audio/ui/glass/toggle-on.ogg',
+      toggleOff: 'audio/ui/glass/toggle-off.ogg',
     },
   },
   retro: {
     id: 'retro',
     name: 'Retro',
     assets: {
-      primaryClick: '/audio/ui/retro/primary-click.ogg',
-      secondaryClick: '/audio/ui/retro/secondary-click.ogg',
-      toggleOn: '/audio/ui/retro/toggle-on.ogg',
-      toggleOff: '/audio/ui/retro/toggle-off.ogg',
+      primaryClick: 'audio/ui/retro/primary-click.ogg',
+      secondaryClick: 'audio/ui/retro/secondary-click.ogg',
+      toggleOn: 'audio/ui/retro/toggle-on.ogg',
+      toggleOff: 'audio/ui/retro/toggle-off.ogg',
     },
   },
   minimal: {
     id: 'minimal',
     name: 'Minimal',
     assets: {
-      primaryClick: '/audio/ui/minimal/primary-click.ogg',
-      secondaryClick: '/audio/ui/minimal/secondary-click.ogg',
-      toggleOn: '/audio/ui/minimal/toggle-on.ogg',
-      toggleOff: '/audio/ui/minimal/toggle-off.ogg',
+      primaryClick: 'audio/ui/minimal/primary-click.ogg',
+      secondaryClick: 'audio/ui/minimal/secondary-click.ogg',
+      toggleOn: 'audio/ui/minimal/toggle-on.ogg',
+      toggleOff: 'audio/ui/minimal/toggle-off.ogg',
     },
   },
+}
+
+export function resolveUiSoundAssetUrl(assetPath: string, baseUrl?: string): string {
+  const base = baseUrl ?? (typeof document !== 'undefined' ? document.baseURI : undefined)
+  return base ? new URL(assetPath, base).href : assetPath
 }
 
 class UiSoundControllerImpl {
@@ -79,13 +84,18 @@ class UiSoundControllerImpl {
   // Rate limiting to prevent distortion when clicking rapidly
   private readonly RATE_LIMIT_MS = 50
 
+  // Captured so init/dispose cycles don't stack redundant listeners on the store.
+  private unsubscribeFromSettings: (() => void) | null = null
+
   public initialize() {
     // We defer AudioContext creation until a user interaction to respect browser autoplay policies,
     // or when explicitly requested via `play()` if they have already interacted.
-    useSettingsStore.subscribe((state) => {
+    // AUDIT-013: keep the unsubscribe handle so teardown can detach the listener.
+    this.unsubscribeFromSettings?.()
+    this.unsubscribeFromSettings = useSettingsStore.subscribe((state) => {
       this.applyPreferences(state.audioPreferences)
     })
-    
+
     const prefs = useSettingsStore.getState().audioPreferences
     this.applyPreferences(prefs)
   }
@@ -107,7 +117,8 @@ class UiSoundControllerImpl {
     if (!this.enabled) return null
     if (!this.audioContext) {
       try {
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        this.audioContext = new AudioContextClass();
       } catch (e) {
         console.warn('Failed to initialize AudioContext for UI sounds', e)
         return null
@@ -131,7 +142,7 @@ class UiSoundControllerImpl {
     const ctx = this.getAudioContext()
     if (!ctx) return
 
-    const loadTasks = Object.values(pack.assets).map((url) => this.loadAsset(ctx, url))
+    const loadTasks = Object.values(pack.assets).map((url) => this.loadAsset(ctx, resolveUiSoundAssetUrl(url)))
     await Promise.allSettled(loadTasks)
   }
 
@@ -179,7 +190,8 @@ class UiSoundControllerImpl {
     const pack = UI_SOUND_PACKS[packId]
     if (!pack) return
 
-    const url = pack.assets[event]
+    const assetPath = pack.assets[event]
+    const url = assetPath ? resolveUiSoundAssetUrl(assetPath) : ''
     if (!url) return
 
     const ctx = this.getAudioContext()
@@ -247,6 +259,12 @@ class UiSoundControllerImpl {
   }
 
   public dispose(): void {
+    // AUDIT-013: detach the settings-store listener before tearing down the controller.
+    const unsubscribe = this.unsubscribeFromSettings
+    if (unsubscribe) {
+      this.unsubscribeFromSettings = null
+      unsubscribe()
+    }
     if (this.audioContext) {
       this.audioContext.close().catch(() => {})
       this.audioContext = null

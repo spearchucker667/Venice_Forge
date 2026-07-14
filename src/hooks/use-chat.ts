@@ -96,6 +96,11 @@ async function pullMemoryContextForSend(userMessage: string, conversationId: str
 /** Module-level rate limiter shared across hook instances and lifetimes. */
 const sceneRateLimiter = new CharacterSceneRateLimiter();
 
+function stopTtsWhenStartingReply(): void {
+  if (useSettingsStore.getState().audioPreferences?.chatTts.stopOnNewReply !== true) return;
+  void import('../services/chatTtsController').then(({ chatTtsController }) => chatTtsController.stop());
+}
+
 function joinInjectedContexts(...contexts: Array<string | undefined>): string {
   return contexts.map((context) => context?.trim()).filter(Boolean).join('\n\n')
 }
@@ -400,6 +405,7 @@ export function useChat() {
       }
 
       addMessage(convId, userMsg)
+      stopTtsWhenStartingReply()
       addMessage(convId, { role: 'assistant', content: '' })
 
       stopRequestedRef.current = false
@@ -450,6 +456,7 @@ export function useChat() {
         deleteMessage(convId, lastAssistantIdx)
       }
 
+      stopTtsWhenStartingReply()
       addMessage(convId, { role: 'assistant', content: '' })
 
       stopRequestedRef.current = false

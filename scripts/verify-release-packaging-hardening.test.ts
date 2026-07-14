@@ -1,5 +1,5 @@
 /** @fileoverview Unit + CLI coverage for verify-release-packaging-hardening
- *  (VERIFY-052 — Phase 2J).
+ *  (VERIFY-052 — Phase 2J; VERIFY-120 — fail-closed release signing).
  *
  *  The test exercises:
  *    - The CLI exits 0 in the current repo (passes on a real checkout).
@@ -111,8 +111,10 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
       "npm run build",
       "Check macOS signing credentials for tag releases",
       "Check Windows signing credentials for tag releases",
-      "VENICE_FORGE_REQUIRE_SIGNED_RELEASE",
-      "creating unsigned draft artifacts",
+      "vars.RELEASE_ALLOW_UNSIGNED",
+      '!= "true"',
+      "deliberately unsigned draft macOS artifacts",
+      "deliberately unsigned draft Windows artifacts",
       "  build-windows:",
       "    steps:",
       "      - name: Package Windows artifacts (Release)",

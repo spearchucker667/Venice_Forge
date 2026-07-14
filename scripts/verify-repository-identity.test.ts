@@ -12,11 +12,15 @@ const {
   ACTIVE_AGENT_DOCS,
   CANONICAL_PATH,
   CANONICAL_REPOSITORY,
+  README_REQUIRED_CUSTODY_MARKERS,
+  README_REQUIRED_TAB_LABELS,
   verifyRepositoryIdentity,
 } = require("./verify-repository-identity.cjs") as {
   ACTIVE_AGENT_DOCS: readonly string[];
   CANONICAL_PATH: string;
   CANONICAL_REPOSITORY: string;
+  README_REQUIRED_CUSTODY_MARKERS: readonly string[];
+  README_REQUIRED_TAB_LABELS: readonly string[];
   verifyRepositoryIdentity: (rootDir: string) => { passed: boolean; errors: string[] };
 };
 
@@ -73,6 +77,39 @@ describe("VERIFY-069 repository identity", () => {
     const result = verifyRepositoryIdentity(rootDir);
     expect(result.errors).toContainEqual(expect.stringContaining(privateProto));
     expect(result.errors).toContainEqual(expect.stringContaining("committed local cache"));
+  });
+
+  it("rejects the stale preview and an API-key custody overclaim", () => {
+    writeAgentDocs();
+    write(
+      "README.md",
+      [
+        "## Current Workspace Map",
+        README_REQUIRED_TAB_LABELS.join(" · "),
+        "---",
+        "![Old preview](./assets/preview.png)",
+        "- **Secure Key Storage:** API credentials use the native Keychain and Windows Credential Manager.",
+      ].join("\n"),
+    );
+
+    const result = verifyRepositoryIdentity(rootDir);
+    expect(result.errors).toContainEqual(expect.stringContaining("stale promotional preview"));
+    expect(result.errors).toContainEqual(expect.stringContaining("secure-storage claim is missing"));
+  });
+
+  it("accepts the source-aligned workspace map and credential custody markers", () => {
+    writeAgentDocs();
+    write(
+      "README.md",
+      [
+        "## Current Workspace Map",
+        README_REQUIRED_TAB_LABELS.join(" · "),
+        "---",
+        `- **Secure Key Storage:** ${README_REQUIRED_CUSTODY_MARKERS.join(" · ")}`,
+      ].join("\n"),
+    );
+
+    expect(verifyRepositoryIdentity(rootDir)).toEqual({ passed: true, errors: [] });
   });
 
   it("supports archive mode using _REPO_EXTRACT_METADATA", () => {

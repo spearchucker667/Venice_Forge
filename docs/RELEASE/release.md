@@ -77,9 +77,9 @@ Triggers:
 - Manual `workflow_dispatch`
 - Version tags matching `v*`
 
-The workflow runs separate Windows, macOS, and Linux packaging jobs, executes `npm ci`, typecheck, tests, build, packaging commands (`dist:win`, `dist:mac`, or `dist:linux`), checksum generation, and verification scripts (`verify:dist:*`), then uploads verified bundles as draft release assets. If signing/notarization secrets are absent, the workflow emits warnings and produces unsigned draft artifacts.
+The workflow runs separate Windows, macOS, and Linux packaging jobs, executes `npm ci`, typecheck, tests, build, packaging commands (`dist:win`, `dist:mac`, or `dist:linux`), checksum generation, and verification scripts (`verify:dist:*`), then uploads verified bundles as draft release assets. Tag releases fail closed when signing/notarization secrets are absent.
 
-**Mandatory for Production Tags**: You must set the repository variable `VENICE_FORGE_REQUIRE_SIGNED_RELEASE=true` to ensure production tag releases fail closed before packaging when any required signing secret is missing. This distinguishes production signed/notarized tag releases from local unsigned builds and workflow-dispatch unsigned drafts. See [SIGNED_ARTIFACT_EVIDENCE.md](SIGNED_ARTIFACT_EVIDENCE.md) for verification evidence.
+**Unsigned exception:** Set the repository variable `RELEASE_ALLOW_UNSIGNED=true` only for a deliberate unsigned draft tag run. The default and production path requires all signing credentials and fails before packaging when any are missing. Remove or reset the variable immediately after the exceptional run. See [SIGNED_ARTIFACT_EVIDENCE.md](SIGNED_ARTIFACT_EVIDENCE.md) for verification evidence.
 
 ## Architecture-Specific macOS Builds
 

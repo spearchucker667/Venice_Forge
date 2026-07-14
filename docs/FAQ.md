@@ -232,5 +232,5 @@ Open a GitHub issue using the bug report template. Include:
 - [LEGAL.md](../LEGAL.md) — Legal and TOS coverage
 - [PLATFORM_SUPPORT.md](DEVELOPMENT/platform-support.md) — Supported platforms
 - [TROUBLESHOOTING.md](DEVELOPMENT/troubleshooting.md) — Common issues and fixes
-- [CHANGELOG.md](audits/CHANGELOG.md) — Version history
+- [summary_of_work.md](summary_of_work.md) — Current development and validation history
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — How to contribute

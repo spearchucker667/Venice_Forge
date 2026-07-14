@@ -24,6 +24,7 @@ const SKIP_FILES = new Set([
   "agent-repair-status-2026-06-16.yaml",
   "kimi-batch-evidence-2026-06-16.yaml",
   "roadmap-verification-2026-06-16.yaml",
+  "exhaustive_repository_file_audit_2026-07-14.yaml",
 ]);
 const violations = [];
 

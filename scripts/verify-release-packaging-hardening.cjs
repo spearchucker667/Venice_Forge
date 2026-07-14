@@ -341,15 +341,15 @@ if (pkg) {
     } else {
       pass(".github/workflows/release.yml runs typecheck, test, and build");
     }
-    if (!release.includes("Check macOS signing credentials for tag releases") || !release.includes("VENICE_FORGE_REQUIRE_SIGNED_RELEASE") || !release.includes("creating unsigned draft artifacts")) {
-      fail(".github/workflows/release.yml must check macOS signing/notarization credentials and support the signed-release fail-closed repository variable");
+    if (!release.includes("Check macOS signing credentials for tag releases") || !release.includes("vars.RELEASE_ALLOW_UNSIGNED") || !release.includes('!= "true"') || !release.includes("deliberately unsigned draft macOS artifacts")) {
+      fail(".github/workflows/release.yml must fail closed for macOS tags unless RELEASE_ALLOW_UNSIGNED=true");
     } else {
-      pass(".github/workflows/release.yml checks macOS signing/notarization credentials with optional fail-closed mode");
+      pass(".github/workflows/release.yml fails closed for macOS tags by default");
     }
-    if (!release.includes("Check Windows signing credentials for tag releases") || !release.includes("VENICE_FORGE_REQUIRE_SIGNED_RELEASE") || !release.includes("creating unsigned draft artifacts")) {
-      fail(".github/workflows/release.yml must check Windows signing credentials and support the signed-release fail-closed repository variable");
+    if (!release.includes("Check Windows signing credentials for tag releases") || !release.includes("vars.RELEASE_ALLOW_UNSIGNED") || !release.includes('!= "true"') || !release.includes("deliberately unsigned draft Windows artifacts")) {
+      fail(".github/workflows/release.yml must fail closed for Windows tags unless RELEASE_ALLOW_UNSIGNED=true");
     } else {
-      pass(".github/workflows/release.yml checks Windows signing credentials with optional fail-closed mode");
+      pass(".github/workflows/release.yml fails closed for Windows tags by default");
     }
     // Linux job must not run Windows packaging scripts
     if (release.includes("dist:win || true")) {

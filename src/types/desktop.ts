@@ -14,6 +14,7 @@ import type {
 import type { ApiConnectivityStatus } from "./api-connectivity";
 import type { MutationOrigin } from "./sync";
 import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope } from "./background-task";
+import type { ProviderId } from "./provider";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
@@ -29,6 +30,22 @@ export interface VeniceForgeProviderApiKey {
   delete: (providerId: string, profileId?: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
+export interface ProviderSettingsSnapshot {
+  enabledProviders: Partial<Record<ProviderId, boolean>>;
+  autoFallbackEnabled: boolean;
+  fallbackOrdering: ProviderId[];
+  nativeFallbackModels: Partial<Record<ProviderId, string>>;
+}
+
+export interface VeniceForgeProviderSettings {
+  get(): Promise<ProviderSettingsSnapshot>;
+  update(input: {
+    enabledProviders?: Record<string, boolean>;
+    autoFallbackEnabled?: boolean;
+    fallbackOrdering?: string[];
+  }): Promise<{ ok: boolean; settings?: ProviderSettingsSnapshot; error?: string }>;
+}
+
 /** Makes Jina API requests from the main process with the profile-scoped key attached. */
 export interface VeniceForgeJina {
   request(input: {
@@ -42,7 +59,7 @@ export interface VeniceForgeJina {
 }
 
 export interface VeniceForgeTts {
-  synthesize(opts: { text: string; model?: string; voice?: string; speed?: number }, cacheEnabled: boolean): Promise<{ ok: boolean; id?: string; error?: string }>;
+  synthesize(opts: { text: string; model?: string; voice?: string; speed?: number }, cacheEnabled: boolean): Promise<{ ok: boolean; id?: string; audioBase64?: string; mimeType?: "audio/mpeg"; cacheMode?: "disk" | "memory"; error?: string }>;
   clearCache(): Promise<{ ok: boolean; error?: string }>;
 }
 
@@ -348,6 +365,7 @@ export interface VeniceForge {
   apiKey: VeniceForgeApiKey;
   jinaApiKey: VeniceForgeApiKey;
   providerApiKey: VeniceForgeProviderApiKey;
+  providerSettings: VeniceForgeProviderSettings;
   jina: VeniceForgeJina;
   tts: VeniceForgeTts;
   app: VeniceForgeApp;

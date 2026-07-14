@@ -29,6 +29,13 @@ import type { ApiConnectivityFailureKind, ApiConnectivityStatus } from "../../..
 import { registerIpcChannel } from "./common";
 import { PROVIDER_REGISTRY } from "../../../src/types/provider";
 import { getProfileSessionId, setProfileSessionId } from "../../services/profileSession";
+import {
+  disableProvider,
+  getProviderSettings,
+  isProviderAvailableForFallback,
+  updateProviderSettings,
+  type ProviderSettingsUpdate,
+} from "../../services/providerSettingsStore";
 
 /** Parses and validates a profile id for IPC use (storage-valid, including "default"). */
 function parseProfileId(profileId: unknown): string {
@@ -367,8 +374,69 @@ export function registerApiKeyHandlers(): void {
     const { providerId } = payload as { providerId: unknown, profileId?: unknown };
     try {
       const validProviderId = parseProviderId(providerId);
-      deleteProviderApiKey(validProviderId, getProfileSessionId(event.sender));
+      const profileId = getProfileSessionId(event.sender);
+      deleteProviderApiKey(validProviderId, profileId);
+      disableProvider(profileId, validProviderId);
       return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  registerIpcChannel("providerSettings:get", (event) => {
+    return getProviderSettings(getProfileSessionId(event.sender));
+  });
+
+  registerIpcChannel("providerSettings:update", (event, payload: unknown) => {
+    try {
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+        throw new Error("Invalid provider settings update.");
+      }
+      const update = payload as ProviderSettingsUpdate;
+      const profileId = getProfileSessionId(event.sender);
+      if (update.enabledProviders !== undefined) {
+        if (!update.enabledProviders || typeof update.enabledProviders !== "object" || Array.isArray(update.enabledProviders)) {
+          throw new Error("Invalid enabled-provider map.");
+        }
+        for (const [providerId, enabled] of Object.entries(update.enabledProviders)) {
+          const validProviderId = parseProviderId(providerId);
+          if (enabled !== true && enabled !== false) throw new Error("Provider enabled state must be boolean.");
+          if (enabled && !isProviderAvailableForFallback(validProviderId)) {
+            throw new Error(`Provider ${validProviderId} is not available for fallback routing.`);
+          }
+          if (enabled && !isProviderApiKeyConfigured(validProviderId, profileId)) {
+            throw new Error(`API key is not configured for provider: ${validProviderId}`);
+          }
+        }
+      }
+      if (update.autoFallbackEnabled !== undefined && typeof update.autoFallbackEnabled !== "boolean") {
+        throw new Error("Automatic fallback state must be boolean.");
+      }
+      if (update.fallbackOrdering !== undefined && !Array.isArray(update.fallbackOrdering)) {
+        throw new Error("Fallback ordering must be an array.");
+      }
+      if (update.fallbackOrdering) {
+        if (update.fallbackOrdering.some((providerId) => typeof providerId !== "string")) {
+          throw new Error("Fallback ordering entries must be provider IDs.");
+        }
+        if (new Set(update.fallbackOrdering).size !== update.fallbackOrdering.length) {
+          throw new Error("Fallback ordering must not contain duplicate providers.");
+        }
+        const enabledProviders = update.enabledProviders ?? getProviderSettings(profileId).enabledProviders;
+        for (const providerId of update.fallbackOrdering) {
+          const validProviderId = parseProviderId(providerId);
+          if (!isProviderAvailableForFallback(validProviderId)) {
+            throw new Error(`Provider ${validProviderId} is not available for fallback routing.`);
+          }
+          if (enabledProviders[validProviderId] !== true) {
+            throw new Error(`Provider ${validProviderId} must be enabled before it is ordered.`);
+          }
+          if (!isProviderApiKeyConfigured(validProviderId, profileId)) {
+            throw new Error(`API key is not configured for provider: ${validProviderId}`);
+          }
+        }
+      }
+      return { ok: true, settings: updateProviderSettings(profileId, update) };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }

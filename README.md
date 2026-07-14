@@ -70,11 +70,18 @@ By prioritizing local data ownership, Venice Forge runs all storage operations l
 - **RP Studio & Scene Composer:** Custom local character card editing (Tavern compatible), persona stacks, scenario definitions, lorebooks, and modular scene prompt compilation.
 - **Token-Based Styling:** Dynamic premium glassmorphism theme system supporting standard dark/light modes and fully custom YAML theme imports.
 
----
+## Current Workspace Map
 
-<p align="center">
-  <img width="" height="" alt="Venice Forge icon" src="./assets/preview.png" />
-</p>
+The navigation below uses the canonical tab labels from `src/config/tabs.ts`; legacy aliases such as `Library`, `Gallery`, `Batch`, and `Diagnostics` are intentionally absent.
+
+```mermaid
+flowchart LR
+  VF["Venice Forge"]
+  VF --> Conversation["Conversation<br/>Chat · Character Chats · History"]
+  VF --> Generate["Generate<br/>Image Studio · Media Studio · Prompts · Scene Composer<br/>Audio Studio · Music Studio · Video Studio · Embeddings<br/>Research · Characters"]
+  VF --> Build["Build<br/>RP Studio · Workflows · Playground"]
+  VF --> System["System<br/>Privacy · Config · Status"]
+```
 
 ---
 
@@ -119,7 +126,7 @@ Roleplay and creative writing features are consolidated into a comprehensive **R
 
 Venice Forge provides a rich multimedia pipeline:
 - **Image Generation:** The Image Studio handles prompts, negatives, seeds, aspect ratios, and model-specific parameters.
-- **Media Studio:** The gallery indexes all outputs. You can select up to 4 images for a side-by-side field diff comparison, walk the parent-child lineage tree of remixed images, and export clean ZIP bundles with sidecar JSON metadata.
+- **Media Studio:** The gallery indexes all outputs. You can select up to 4 images for a side-by-side field diff comparison, walk the parent-child lineage tree of remixed images, and export a redacted JSON manifest with deterministic sidecar filenames. The current export does not assemble or embed a ZIP/media archive.
 - **Audio & Music:** Supports Whisper-powered transcriptions, Text-to-Speech speech queues, and lyrics-driven Music generation.
 - **Video:** Queues asynchronous text/image-to-video requests and polls progress cleanly.
 - **Embeddings:** Evaluates text strings against available embedding models to inspect raw vector arrays.
@@ -130,10 +137,11 @@ Venice Forge provides a rich multimedia pipeline:
 
 Privacy is the core design pillar of Venice Forge:
 - **No Telemetry:** The application does not collect analytics, telemetry, or crash reports.
-- **Secure Key Storage:** plain-text API credentials never sit in database files. On macOS, credentials use the native Keychain; on Windows, a scoped PowerShell bridge writes/reads password-critical keys directly from **Windows Credential Manager**, falling back safely to DPAPI for normal settings.
+- **Secure Key Storage:** In Electron, profile-scoped API keys are encrypted with Electron `safeStorage` and the ciphertext is stored in the owner-only `secure-prefs.json` app-data file. `safeStorage` uses Keychain-backed encryption on macOS and DPAPI on Windows. The scoped Windows Credential Manager bridge is reserved for strict password-verifier records; it does not store API keys. Linux fails closed when OS encryption is unavailable unless the documented plaintext fallback is explicitly enabled.
 - **Profiles & Isolation:** Profiles separate settings, conversations, and API keys. Locked profiles can be password-protected; PBKDF2-SHA256 verifiers are managed entirely in the main process with a 5-attempt brute-force lockout.
 - **Data Redaction:** The Traffic Inspector, application log files, and diagnostics exports automatically strip bearer tokens, API keys (`sk-...`, `vn-...`), local system paths, and raw prompt/response bodies.
 - **Local Family Safe Mode:** Run-time guardrails screen outgoing prompts and inbound scrape responses locally. This is independent of the provider-side Venice API `safe_mode`.
+- **Fallback Provider Consent:** In Electron, fallback-provider enablement, ordering, and provider-native automatic fallback models are profile-scoped and enforced by the main process; renderer request payloads cannot opt a provider in.
 
 ---
 

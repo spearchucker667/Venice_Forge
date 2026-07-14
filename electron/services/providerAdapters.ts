@@ -1,4 +1,5 @@
 import { getProviderApiKey } from './secureStore'
+import { getProviderSettings } from './providerSettingsStore'
 import type { StreamDelta } from './veniceClient'
 import { PROVIDER_REGISTRY } from '../../src/types/provider'
 
@@ -294,15 +295,25 @@ export const providerAdapters: Record<string, AdapterFn> = {
  * Checks if the request is destined for a fallback provider by inspecting the `model` parameter.
  * Fallback models are prefixed with `providerId:` (e.g. `together:meta-llama/...`).
  */
-export function resolveProviderRoute(request: Record<string, unknown>, profileId?: string): { route?: ProviderRoute; error?: string } | null {
+export interface ProviderRouteSelection {
+  providerId: string;
+  model: string;
+}
+
+export function resolveProviderRoute(
+  request: Record<string, unknown>,
+  profileId?: string,
+  selection?: ProviderRouteSelection,
+): { route?: ProviderRoute; error?: string } | null {
   const body = typeof request.body === 'object' && request.body ? request.body as Record<string, unknown> : null
-  if (!body || typeof body.model !== 'string') return null
+  if (!body) return null
 
-  const match = body.model.match(/^([^:]+):(.+)$/)
-  if (!match) return null
+  const match = !selection && typeof body.model === 'string' ? body.model.match(/^([^:]+):(.+)$/) : null
+  if (!selection && !match) return null
 
-  const providerId = match[1]
-  const realModel = match[2]
+  const providerId = selection?.providerId ?? match![1]
+  const realModel = selection?.model ?? match![2]
+  if (!providerId || !realModel) return { error: "Provider and model are required." }
 
   const providerDefinition = PROVIDER_REGISTRY[providerId as keyof typeof PROVIDER_REGISTRY]
   if (!providerDefinition) {
@@ -310,6 +321,10 @@ export function resolveProviderRoute(request: Record<string, unknown>, profileId
   }
   if (providerDefinition.unavailable) {
     return { error: `Provider ${providerId} is not available.` }
+  }
+
+  if (getProviderSettings(profileId).enabledProviders[providerId as keyof typeof PROVIDER_REGISTRY] !== true) {
+    return { error: `Provider ${providerId} is disabled for this profile.` }
   }
 
   if (!Object.prototype.hasOwnProperty.call(providerAdapters, providerId)) {

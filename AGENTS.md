@@ -110,9 +110,10 @@ npm run test:electron   # electron/**/*.test.ts (main / IPC / services)
 npm run test:ingestion  # src/services/ingestion/*.test.ts
 npm run test:ui         # src/components/**/*.test.{ts,tsx} + tests/accessibility
 npm run test:unit       # remaining src/tests/scripts unit tests (catch-all excludes)
+npm run test:contracts  # non-smoke root/tests contract and security guards
 npm run test:ci         # segmented correctness suite without coverage
 ```
-The union of `test:server`, `test:electron`, `test:ingestion`, `test:ui`, and `test:unit` covers every test file except `tests/smoke/electron-smoke.test.ts`, which is handled by `npm run smoke:electron`.
+The union of `test:server`, `test:electron`, `test:ingestion`, `test:ui`, `test:unit`, and `test:contracts` covers every non-smoke test file. Smoke tests remain environment-specific; `tests/smoke/electron-smoke.test.ts` is handled by `npm run smoke:electron`.
 
 ### Packaging
 ```bash
@@ -201,7 +202,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-104`.
+The primary active sequence is `VERIFY-001` through `VERIFY-122`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -309,6 +310,24 @@ registry.
 | `VERIFY-102` | Manual backup export profile binding — Electron exports require a one-time, expiring lease bound to the sender's main-process profile session; profile switches, token reuse, mismatched metadata, and cross-profile records are rejected before encryption, while web/desktop payloads carry encrypted profile provenance. | `electron/ipc/handlers.test.ts`, `src/services/backupExportService.test.ts`, `tests/backup/cross-runtime-backup.test.ts` |
 | `VERIFY-103` | Generated-video remote retrieval — provider download URLs require HTTPS, DNS resolution must contain only public addresses, the connection is pinned to the approved address, redirects are rejected, and MP4 downloads are MIME/empty/timeout/256 MiB bounded before atomic persistence. | `electron/services/generatedVideoDownload.test.ts`, `electron/services/backgroundTaskManager.test.ts` |
 | `VERIFY-104` | Character Chat workspace separation — one compatibility classifier recognizes hosted/local/legacy bindings; Standard Chat excludes character conversations; Character Chats is a distinct searchable top-level workspace; character start actions route there without generic prompt starters. | `src/utils/conversationKind.test.ts`, `src/components/chat/CharacterChatsView.test.tsx`, `src/components/layout/sidebar.test.tsx`, `src/config/tabs.test.ts` |
+| `VERIFY-105` | Main-authoritative fallback-provider consent — enabled state, ordering, and provider-native fallback models are profile-scoped in Electron main; renderer request fields cannot enable a provider or select the automatic fallback model; deleting a provider credential revokes consent. | `electron/services/providerSettingsStore.test.ts`, `electron/services/providerAdapters.test.ts`, `electron/services/veniceClient.adapters.test.ts`, `electron/ipc/handlers.test.ts` |
+| `VERIFY-106` | Parsed Venice API reference provenance — canonical source/retrieval metadata is structured YAML, Swagger provenance version matches parsed `info.version`, retrieval cannot predate the schema or be future-dated, and required paths/fields are checked at semantic object locations rather than raw string markers. | `scripts/verify-venice-api-docs.test.ts` |
+| `VERIFY-107` | Current-only roadmap governance — `docs/ROADMAP.md` contains no closed top-level/history sections or mirrored per-finding audit statuses; the saved exhaustive audit YAML is parsed as the sole per-finding status authority and every closed finding requires closure evidence. | `scripts/verify-roadmap-current.test.ts` |
+| `VERIFY-108` | Background-task plaintext minimization — persisted and legacy-loaded task journals retain only bounded operational metadata; raw request bodies, prompts, lyrics, and unknown nested metadata stay memory-only and are never written back to `tasks.json`. | `electron/services/backgroundTaskManager.test.ts` |
+| `VERIFY-109` | Sync-folder path custody — the configured root and `.vfbackup` descendants must be canonical non-symlink directories; watched files must be direct regular children of blobs/objects and pass `O_NOFOLLOW`, descriptor-stat, and post-open realpath checks. | `electron/services/syncFolderWatcher.test.ts` |
+| `VERIFY-110` | IndexedDB destructive-action truthfulness — the Danger Zone label, confirmation detail, store enumeration, and success receipt describe the IndexedDB-only boundary and explicitly exclude Electron vault files, exports, and sync folders. | `src/components/settings/DataStoragePanel.test.tsx`, `src/hooks/use-data-storage-actions.test.ts` |
+| `VERIFY-111` | Research Browser DNS-rebinding containment — DNS decisions are never cached; every HTTP(S) main-frame and subresource request is revalidated, and a public answer followed by loopback is denied on the second request. | `electron/security/researchBrowserNetworkPolicy.test.ts`, `electron/services/researchBrowserServer.test.ts` |
+| `VERIFY-112` | Segmented CI inventory — `test:ci` includes an explicit non-smoke contract segment covering root package-script tests plus backup, CSP, Electron startup, RP, safety, storage, theme, and document-ingestion guards. | `scripts/verify-ci-contract.test.ts`, `package-scripts.test.ts` |
+| `VERIFY-113` | Reduced-motion feature detection — the hook remains deterministic when `window.matchMedia` is absent and tracks supported media-query changes without leaking listeners. | `src/hooks/usePrefersReducedMotion.test.tsx` |
+| `VERIFY-114` | Main-authoritative Chat TTS boundary — IPC derives the profile from WebContents, rejects malformed model/voice/text/speed/cache inputs before network or filesystem work, keeps memory mode off disk, and returns stable renderer-safe failures. | `electron/services/chatTtsBridge.test.ts`, `electron/ipc/handlers/chatTtsHandlers.test.ts` |
+| `VERIFY-115` | Chat TTS playback lifecycle — memory-only audio uses object URLs, stale async completions cannot replace newer playback, stop invalidates pending work, and request errors remain non-destructive. | `src/services/chatTtsController.test.ts` |
+| `VERIFY-116` | Audio settings runtime wiring — TTS model/voice options come from the live model catalog, persisted selections drive requests, and Clear cache invokes the desktop boundary with truthful success/failure feedback. | `src/components/settings/AudioSpeechPanel.test.tsx` |
+| `VERIFY-117` | Packaged UI-sound resolution — relative sound assets resolve against the renderer document URL so development HTTP and packaged `file:` builds use valid asset paths. | `src/services/uiSoundController.test.ts` |
+| `VERIFY-118` | Sync-start profile authority — `sync:startSync` ignores renderer profile fields and starts under the sender's main-process profile session. | `electron/ipc/handlers/syncHandlers.profile.test.ts` |
+| `VERIFY-119` | Sync setup and ingestion resilience — a failed authenticated folder setup preserves the previous active/persisted path, and incomplete/transient packet reads are retried instead of silently discarded. | `electron/services/syncFolderWatcher.test.ts` |
+| `VERIFY-120` | Release signing fails closed — tag release jobs require configured macOS/Windows signing credentials unless repository administrators deliberately enable the documented unsigned-draft escape hatch. | `scripts/verify-release-packaging-hardening.test.ts` |
+| `VERIFY-121` | Media export truth and audio support — export bundles are redacted JSON manifest/sidecar data rather than promised ZIP archives, and audio records receive valid extensions and sidecar validation. | `src/stores/media-export-bundle.test.ts` |
+| `VERIFY-122` | Agent-facing repository-map parity — Copilot instructions name the current bridge/handler boundaries, endpoint set, and 19-tab registry including Character Chats; the durable file map points to live registries instead of freezing stale counts. | `scripts/verify-agent-docs.test.ts` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 
@@ -434,7 +453,7 @@ No live vision flag from Venice API. Use `modelSupportsVision(modelId)` in `src/
 ## Update These Files
 
 - When changing behavior, packaging, or storage, also update:
-- `README.md`, `docs/audits/CHANGELOG.md` (under `[Unreleased]`), `AGENTS.md`, `.github/copilot-instructions.md`
+- `README.md`, `docs/ROADMAP.md`, `docs/summary_of_work.md`, `AGENTS.md`, `.github/copilot-instructions.md`
 - `docs/summary_of_work.md` — the canonical AI/dev-agent session handoff ledger. See § *Mandatory Session Handoff* above.
 - `docs/ABOUT.md`, `docs/FAQ.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `LEGAL.md`
 
