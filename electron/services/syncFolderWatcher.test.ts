@@ -88,7 +88,10 @@ vi.mock("../../src/shared/redaction", () => ({
   redactErrorMessage: (msg: unknown) => String(msg),
 }));
 
-const tmpDir = "/tmp/sync-test";
+import os from "node:os";
+import path from "node:path";
+
+let tmpDir = "/tmp/sync-test";
 
 async function writeRemotePacket(
   fileName: string,
@@ -122,9 +125,8 @@ describe("syncFolderWatcher", () => {
     __clearInFlightOperationsForTests();
     stopSyncRetryQueue();
     clearPendingRetries();
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sync-test-"));
     await fs.rm("/tmp/userData/sync", { recursive: true, force: true });
-    await fs.mkdir(tmpDir, { recursive: true });
-    await fs.rm(tmpDir, { recursive: true, force: true });
     await fs.mkdir(tmpDir, { recursive: true });
   });
 

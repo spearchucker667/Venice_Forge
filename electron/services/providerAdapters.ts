@@ -312,10 +312,10 @@ export function resolveProviderRoute(request: Record<string, unknown>, profileId
     return { error: `Provider ${providerId} is not available.` }
   }
 
-  const adapter = providerAdapters[providerId]
-  if (!adapter) {
+  if (!Object.prototype.hasOwnProperty.call(providerAdapters, providerId)) {
     return { error: `Unknown or unsupported provider prefix: ${providerId}` }
   }
+  const adapter = providerAdapters[providerId]
 
   // Use the new generic key system `[providerId]_api_key`
   const apiKey = getProviderApiKey(providerId, profileId)

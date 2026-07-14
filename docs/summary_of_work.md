@@ -12,17 +12,27 @@
 
 ### Latest Session Summary
 **Date:** 2026-07-14
-**Task:** Fix incomplete mock for `desktopBridge` in `MasterPasswordDialog.test.tsx` that caused CI failures.
+**Task:** Review and resolve GitHub Code Scanning security alerts.
 
 **Summary of Changes:**
-- Updated the `vi.mock` for `../../services/desktopBridge` in `src/components/settings/MasterPasswordDialog.test.tsx`.
-- Used `importOriginal` to perform partial mocking, ensuring future exports do not break tests.
-- Added `isElectron: vi.fn(() => false)` to satisfy the `profile-store.ts` dependency.
+- **js/trivial-conditional:** Removed a redundant `hasChanges &&` check in `electron/services/backgroundTaskManager.ts`.
+- **js/insecure-temporary-file:** Replaced hardcoded `/tmp/` test directories with secure `fs.mkdtemp` in `electron/services/syncCheckpoint.test.ts` and `electron/services/syncFolderWatcher.test.ts`. Ensured `syncOutbox.ts` temporary file writes use strict `mode: 0o600`.
+- **js/file-system-race (TOCTOU):** 
+  - Refactored `loadBackgroundTasks` in `backgroundTaskManager.ts` to directly read the file and gracefully handle `ENOENT` instead of a prior `fs.access` check.
+  - Refactored `syncFolderWatcher.ts` to open a file descriptor, `stat()` the descriptor for length checks, and then read from the descriptor, closing it in a `finally` block.
+- **js/unvalidated-dynamic-method-call:** Secured dynamic lookup on `providerAdapters` using `Object.prototype.hasOwnProperty.call()` in `providerAdapters.ts`.
+- **js/shell-command-injection-from-environment:** Migrated `verify-backup-sync.test.ts` to use `execFileSync(process.execPath, [SCRIPT])` instead of `execSync("node " + SCRIPT)`.
 
 **Validation:**
-- Successfully ran `npx vitest run src/components/settings/MasterPasswordDialog.test.tsx` locally (1 test passed).
+- Successfully ran targeted tests across updated services: `backgroundTaskManager.test.ts`, `syncFolderWatcher.test.ts`, `syncCheckpoint.test.ts`, and `verify-backup-sync.test.ts`. All 50 tests passed successfully.
 
 **Prior session context retained below:**
+- **2026-07-14 Fix desktopBridge mock (previous session)**
+  - Updated the `vi.mock` for `../../services/desktopBridge` in `src/components/settings/MasterPasswordDialog.test.tsx`.
+  - Used `importOriginal` to perform partial mocking, ensuring future exports do not break tests.
+  - Added `isElectron: vi.fn(() => false)` to satisfy the `profile-store.ts` dependency.
+  - **Validation:** Successfully ran `npx vitest run src/components/settings/MasterPasswordDialog.test.tsx` locally (1 test passed).
+
 - **2026-07-14 Close VF-AUDIT-20260714-T002, Character Chats workspace, UI surface architecture (previous session)**
   - Replaced the generated-video signed-download path's lexical URL check and unbounded `arrayBuffer()` with DNS-aware public-address validation, connection pinning, redirect rejection, a 30-second timeout, MP4 MIME enforcement, and a 256 MiB streamed limit.
   - Preserved the existing durable video pipeline: normalized queue metadata, main-process restart recovery, atomic SHA-256 media persistence, compact `venice-media://` playback references, and idempotent Media Studio upsert.

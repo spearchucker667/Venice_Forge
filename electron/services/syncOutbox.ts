@@ -71,7 +71,7 @@ async function publishManifest(directory: string, filename: string, manifestJson
   }
   const temporary = `${destination}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
   try {
-    await fs.writeFile(temporary, manifestJson, { encoding: "utf8", flag: "wx" });
+    await fs.writeFile(temporary, manifestJson, { encoding: "utf8", flag: "wx", mode: 0o600 });
     if (replace) await fs.rm(destination, { force: true });
     await fs.rename(temporary, destination);
   } finally {

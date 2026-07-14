@@ -118,14 +118,17 @@ function persist(debounceMs = 0): void {
 }
 
 export async function loadBackgroundTasks(): Promise<void> {
+  let raw: string;
   try {
-    await fs.access(TASKS_FILE);
-  } catch {
-    state.tasks = {};
-    return;
+    raw = await fs.readFile(TASKS_FILE, "utf-8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      state.tasks = {};
+      return;
+    }
+    throw err;
   }
   try {
-    const raw = await fs.readFile(TASKS_FILE, "utf-8");
     const tasks = parseTasks(raw);
     state.tasks = Object.fromEntries(tasks.map((t) => [t.id, t]));
   } catch (err) {
@@ -275,7 +278,7 @@ async function applyUpdate(taskId: string, updates: BackgroundTaskUpdate): Promi
   state.tasks[taskId] = updated;
 
   // Debounce non-critical progress updates to avoid disk thrashing
-  const isProgressOnly = hasChanges && updates.status === undefined && updates.error === undefined && updates.resultUrl === undefined;
+  const isProgressOnly = updates.status === undefined && updates.error === undefined && updates.resultUrl === undefined;
   persist(isProgressOnly ? 2000 : 0);
   emit(taskId, updated, updated.profileId);
   return updated;

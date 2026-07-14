@@ -3,16 +3,21 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { promises as fs } from "node:fs";
 import { acknowledgeSyncOperation, collectAcknowledgedEvent, registerSyncDevice } from "./syncCheckpoint";
 
-const root = "/tmp/vf-sync-checkpoint";
+import os from "node:os";
+import path from "node:path";
+
+let root: string;
 const operationId = "a".repeat(64);
-const eventPath = `${root}/blobs/event.json`;
-const checkpointPath = `${root}/objects/current.json`;
+let eventPath: string;
+let checkpointPath: string;
 
 describe("syncCheckpoint", () => {
   beforeEach(async () => {
-    await fs.rm(root, { recursive: true, force: true });
-    await fs.mkdir(`${root}/blobs`, { recursive: true });
-    await fs.mkdir(`${root}/objects`, { recursive: true });
+    root = await fs.mkdtemp(path.join(os.tmpdir(), "vf-sync-checkpoint-"));
+    eventPath = path.join(root, "blobs", "event.json");
+    checkpointPath = path.join(root, "objects", "current.json");
+    await fs.mkdir(path.join(root, "blobs"), { recursive: true });
+    await fs.mkdir(path.join(root, "objects"), { recursive: true });
     await fs.writeFile(eventPath, "event");
     await fs.writeFile(checkpointPath, "checkpoint");
   });

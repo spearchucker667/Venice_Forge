@@ -536,12 +536,18 @@ export async function handleRemoteChange(filePath: string, attempts = 0): Promis
   const filename = path.basename(filePath);
 
   try {
-    const stat = await fs.stat(filePath);
-    if (stat.size > MAX_PACKET_BYTES) {
-      logError("syncFolderWatcher", `Encrypted packet exceeds maximum size for ${filename}`);
-      return true;
+    const fh = await fs.open(filePath, "r");
+    let data: string;
+    try {
+      const stat = await fh.stat();
+      if (stat.size > MAX_PACKET_BYTES) {
+        logError("syncFolderWatcher", `Encrypted packet exceeds maximum size for ${filename}`);
+        return true;
+      }
+      data = await fh.readFile("utf8");
+    } finally {
+      await fh.close();
     }
-    const data = await fs.readFile(filePath, "utf8");
     const manifest: EncryptedBackupManifest = JSON.parse(data);
 
     // Ensure valid version
