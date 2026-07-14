@@ -12,27 +12,28 @@
 
 ### Latest Session Summary
 **Date:** 2026-07-14
-**Task:** Close `VF-AUDIT-20260714-T002`, add a dedicated Character Chats workspace, and validate the existing mesh/surface architecture.
+**Task:** Fix incomplete mock for `desktopBridge` in `MasterPasswordDialog.test.tsx` that caused CI failures.
 
 **Summary of Changes:**
-- Replaced the generated-video signed-download path's lexical URL check and unbounded `arrayBuffer()` with DNS-aware public-address validation, connection pinning, redirect rejection, a 30-second timeout, MP4 MIME enforcement, and a 256 MiB streamed limit.
-- Preserved the existing durable video pipeline: normalized queue metadata, main-process restart recovery, atomic SHA-256 media persistence, compact `venice-media://` playback references, and idempotent Media Studio upsert.
-- Added a canonical standard-versus-character conversation classifier covering current character metadata and legacy hosted/local source markers without rewriting stored conversations.
-- Added a distinct top-level Character Chats workspace with character-only search/history, hosted/local labels, character-aware empty states, and correct hosted/local start-chat routing. Standard Chat now excludes character-bound history and clears character selection on entry.
-- Routed global History results into the correct workspace and updated header/model behavior for both chat surfaces.
-- Reconciled the requested UI-surface work against the live tree and retained the existing app-level mesh overlay, semantic translucent surfaces, soft separators, theme fallbacks, and reduced-transparency behavior; browser QA confirmed the overlay remains non-interactive.
-- Added `VERIFY-103` and `VERIFY-104`, closed `VF-AUDIT-20260714-T002`, and published `docs/reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md` with confirmed, obsolete, deferred, and manually verified findings.
-- Preserved the unrelated in-progress profile/session-security changes already present in the dirty worktree.
+- Updated the `vi.mock` for `../../services/desktopBridge` in `src/components/settings/MasterPasswordDialog.test.tsx`.
+- Used `importOriginal` to perform partial mocking, ensuring future exports do not break tests.
+- Added `isElectron: vi.fn(() => false)` to satisfy the `profile-store.ts` dependency.
 
 **Validation:**
-- Focused implementation tests pass (10 files / 94 tests), followed by a final focused downloader/navigation batch (6 files / 50 tests).
-- Browser QA against the development app passes for standard Chat, Character Chats empty/active states, hosted character routing, distinct navigation, model/source display, absence of generic starters, mesh presence, and non-intercepting mesh pointer behavior.
-- An initial full `npm run ci` under unsupported Node `v26.5.0` failed intermittently in renderer service aggregates; the implicated Venice client test passes in isolation. This result is retained as a toolchain mismatch, not reported as a product pass.
-- Full `npm run ci` passes under the repository-supported Node `v22.23.1` / npm `10.9.8`, including lint, both TypeScript pipelines, all segmented tests, zero-vulnerability audit, contracts, build, release-packaging hardening, and dist verification.
-- Final `verify:repo-handoff-hygiene`, `verify:agent-docs`, `verify:markdown-links` (79 files), and `git diff --check` pass after the report and ledger update.
-- Paid video generation, packaged restart playback, narrow-window capture, and the full light/high-contrast/custom-theme matrix were not run in this session.
+- Successfully ran `npx vitest run src/components/settings/MasterPasswordDialog.test.tsx` locally (1 test passed).
 
 **Prior session context retained below:**
+- **2026-07-14 Close VF-AUDIT-20260714-T002, Character Chats workspace, UI surface architecture (previous session)**
+  - Replaced the generated-video signed-download path's lexical URL check and unbounded `arrayBuffer()` with DNS-aware public-address validation, connection pinning, redirect rejection, a 30-second timeout, MP4 MIME enforcement, and a 256 MiB streamed limit.
+  - Preserved the existing durable video pipeline: normalized queue metadata, main-process restart recovery, atomic SHA-256 media persistence, compact `venice-media://` playback references, and idempotent Media Studio upsert.
+  - Added a canonical standard-versus-character conversation classifier covering current character metadata and legacy hosted/local source markers without rewriting stored conversations.
+  - Added a distinct top-level Character Chats workspace with character-only search/history, hosted/local labels, character-aware empty states, and correct hosted/local start-chat routing. Standard Chat now excludes character-bound history and clears character selection on entry.
+  - Routed global History results into the correct workspace and updated header/model behavior for both chat surfaces.
+  - Reconciled the requested UI-surface work against the live tree and retained the existing app-level mesh overlay, semantic translucent surfaces, soft separators, theme fallbacks, and reduced-transparency behavior; browser QA confirmed the overlay remains non-interactive.
+  - Added `VERIFY-103` and `VERIFY-104`, closed `VF-AUDIT-20260714-T002`, and published `docs/reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md` with confirmed, obsolete, deferred, and manually verified findings.
+  - Preserved the unrelated in-progress profile/session-security changes already present in the dirty worktree.
+  - **Validation:** Focused tests pass; Browser QA passes; Full `npm run ci` passes under supported Node; contracts pass.
+
 - Added all ten reconciled audit findings to the canonical `docs/ROADMAP.md` under namespaced `VF-AUDIT-20260714-T001` through `T010` identifiers; release remains blocked on T001, T002, and T003.
 - Fixed the smallest contained T001 defect: video and music recovery polling now passes the persisted task `profileId` to `performVeniceRequest`, preventing restart polling from silently using the default profile credential.
 - Registered `VERIFY-096` in the manager test, agent guide, and handoff-hygiene namespace.

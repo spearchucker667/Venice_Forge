@@ -6,12 +6,17 @@ import { useProfileStore } from '../../stores/profile-store'
 import { desktopMasterPassword } from '../../services/desktopBridge'
 import { MasterPasswordDialog } from './MasterPasswordDialog'
 
-vi.mock('../../services/desktopBridge', () => ({
-  desktopMasterPassword: {
-    set: vi.fn(),
-    verify: vi.fn(),
-  },
-}))
+vi.mock('../../services/desktopBridge', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services/desktopBridge')>()
+  return {
+    ...actual,
+    isElectron: vi.fn(() => false),
+    desktopMasterPassword: {
+      set: vi.fn(),
+      verify: vi.fn(),
+    },
+  }
+})
 
 describe('MasterPasswordDialog accessibility', () => {
   beforeEach(() => {
