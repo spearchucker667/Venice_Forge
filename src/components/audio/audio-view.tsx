@@ -1,5 +1,7 @@
 import { useState, useRef, useId, useEffect } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
+import { useConfigStore } from '../../stores/config-store'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useTTS, useTranscription } from '../../hooks/use-audio'
@@ -199,6 +201,10 @@ export function AudioView() {
                 <p className="text-[15px] text-text-muted leading-relaxed">{text}</p>
               </div>
             </div>
+          ) : tts.isPending ? (
+            <div className="flex items-center justify-center h-full min-h-[300px]">
+              <GenerationLoadingIndicator state="generating" label="Synthesizing speech…" />
+            </div>
           ) : !text ? (
             <div className="flex items-center justify-center h-full">
               <ExamplePrompts
@@ -217,6 +223,10 @@ export function AudioView() {
               <div className="bg-surface border border-border rounded-xl p-6 text-[15px] text-text-secondary whitespace-pre-wrap leading-relaxed">
                 {transcript}
               </div>
+            </div>
+          ) : transcription.isPending ? (
+            <div className="flex items-center justify-center h-full min-h-[300px]">
+              <GenerationLoadingIndicator state="processing" label="Transcribing audio…" />
             </div>
           ) : (
             <EmptyState>Transcript appears here</EmptyState>

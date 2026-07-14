@@ -5,6 +5,7 @@ import { useBackgroundTaskStore } from "../../stores/background-task-store";
 import { getActiveProfileId } from "../../services/activeProfile";
 import type { BackgroundTaskStatus } from "../../types/background-task";
 import { useSettingsStore } from "../../stores/settings-store";
+import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
 
 const STATUS_BADGE: Record<BackgroundTaskStatus, string> = {
   idle: "bg-surface-muted text-text-muted border-border",
@@ -109,9 +110,20 @@ export function TaskCenterDrawer() {
               return (
                 <div key={task.id} className="rounded-lg border border-border bg-surface-elevated p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-medium text-sm text-text-primary truncate">
-                      {typeLabel} generation
-                    </h3>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <GenerationLoadingIndicator 
+                        size="sm" 
+                        state={
+                          task.status === 'processing' ? 'generating' : 
+                          task.status === 'aborted' ? 'cancelled' : 
+                          task.status === 'timeout' ? 'failed' : 
+                          task.status as any
+                        }
+                      />
+                      <h3 className="font-medium text-sm text-text-primary truncate">
+                        {typeLabel} generation
+                      </h3>
+                    </div>
                     <span className={`shrink-0 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wider ${STATUS_BADGE[task.status]}`}>
                       {task.status}
                     </span>

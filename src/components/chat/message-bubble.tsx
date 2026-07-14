@@ -9,6 +9,7 @@ import type { ConversationCharacterMeta } from '../../types/conversationVault'
 import { cn } from '../../lib/utils'
 import { CharacterAvatar } from '../characters/CharacterAvatar'
 import { useSettingsStore } from '../../stores/settings-store'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 import { maybeRunLocalFamilyGuard } from '../../shared/safety'
 import { copyText } from '../../stores/media-send-to'
 import { useKatexCss } from '../../hooks/useKatexCss'
@@ -402,11 +403,9 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere
             </div>
           )
         ) : (
-          <span className="inline-flex gap-1.5 py-1.5">
-            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot" />
-            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot [animation-delay:200ms]" />
-            <span className="w-1 h-1 rounded-full bg-text-muted animate-pulse-dot [animation-delay:400ms]" />
-          </span>
+          <div className="py-1">
+            <GenerationLoadingIndicator size="sm" state="generating" label="Thinking…" />
+          </div>
         )}
         {injectedContextDisclosure}
         {isAssistant && sceneGeneration && (

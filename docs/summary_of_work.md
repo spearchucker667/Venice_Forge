@@ -12,19 +12,32 @@
 
 ### Latest Session Summary
 **Date:** 2026-07-14
-**Task:** Review and resolve GitHub Code Scanning security alerts.
+**Task:** Replace all content-generation loading animations with Mio animations.
 
 **Summary of Changes:**
-- **js/trivial-conditional:** Removed a redundant `hasChanges &&` check in `electron/services/backgroundTaskManager.ts`.
-- **js/insecure-temporary-file:** Replaced hardcoded `/tmp/` test directories with secure `fs.mkdtemp` in `electron/services/syncCheckpoint.test.ts` and `electron/services/syncFolderWatcher.test.ts`. Ensured `syncOutbox.ts` temporary file writes use strict `mode: 0o600`.
-- **js/file-system-race (TOCTOU):** 
-  - Refactored `loadBackgroundTasks` in `backgroundTaskManager.ts` to directly read the file and gracefully handle `ENOENT` instead of a prior `fs.access` check.
-  - Refactored `syncFolderWatcher.ts` to open a file descriptor, `stat()` the descriptor for length checks, and then read from the descriptor, closing it in a `finally` block.
-- **js/unvalidated-dynamic-method-call:** Secured dynamic lookup on `providerAdapters` using `Object.prototype.hasOwnProperty.call()` in `providerAdapters.ts`.
-- **js/shell-command-injection-from-environment:** Migrated `verify-backup-sync.test.ts` to use `execFileSync(process.execPath, [SCRIPT])` instead of `execSync("node " + SCRIPT)`.
+- **Centralized Animation Engine:** Created `GenerationLoadingIndicator` component and `generation-animation-registry.ts` to manage the Mio animation assets (`assets/mio-xc3-nerdprofeta-gifs/`). Implemented a double-layer `<img />` crossfade technique to ensure smooth transitions between states (idle, waiting, running, jumping, review, looking, waving, failed) without flicker or layout shifts.
+- **Accessibility & Reduced Motion:** Added static PNG fallbacks for all Mio GIFs and wired them to `usePrefersReducedMotion`.
+- **Media Generators:** Replaced all legacy inline CSS spinners and skeleton loaders in `src/components/video/video-view.tsx`, `src/components/music/music-view.tsx`, and `src/components/image/image-view.tsx` with the new component.
+- **Audio Generators:** Added the `GenerationLoadingIndicator` to `src/components/audio/audio-view.tsx` for both Text-to-Speech (TTS) and Transcription active states.
+- **Chat Interfaces:** 
+  - Standard Chat: Replaced the three blinking dots (`animate-pulse-dot`) in `src/components/chat/message-bubble.tsx` and the inline "Thinking..." and "Working..." spinners in `src/components/playground/playground-chat.tsx` with a compact variant of the Mio indicator.
+  - RP Chat: Replaced the inline `Spinner` component during character streaming in `src/components/rp-studio/RpChatView.tsx`.
+- **System Task Center:** Integrated a compact Mio indicator into the header of active tasks in `src/components/status/TaskCenterDrawer.tsx`, mapping `BackgroundTaskStatus` to the corresponding semantic animation state.
+- **Global Toasts:** Added a compact Mio indicator to any toast with `variant === 'progress'` in `src/components/ui/toaster.tsx`.
+- **TypeScript Fixes:** Created `src/assets.d.ts` to declare `*.gif` and `*.png` modules, resolving Vite/tsc import errors for image assets.
 
 **Validation:**
-- Successfully ran targeted tests across updated services: `backgroundTaskManager.test.ts`, `syncFolderWatcher.test.ts`, `syncCheckpoint.test.ts`, and `verify-backup-sync.test.ts`. All 50 tests passed successfully.
+- Successfully ran targeted builds via `npm run typecheck` and `npm run build:web`, all checks passed.
+- Verified absence of visual layout shifts in all replaced components.
+
+**Prior session context retained below:**
+- **2026-07-14 Review and resolve GitHub Code Scanning security alerts (previous session)**
+  - **js/trivial-conditional:** Removed a redundant `hasChanges &&` check in `electron/services/backgroundTaskManager.ts`.
+  - **js/insecure-temporary-file:** Replaced hardcoded `/tmp/` test directories with secure `fs.mkdtemp`.
+  - **js/file-system-race (TOCTOU):** Refactored `loadBackgroundTasks` and `syncFolderWatcher.ts` to use file descriptor `stat()` checks.
+  - **js/unvalidated-dynamic-method-call:** Secured dynamic lookup on `providerAdapters`.
+  - **js/shell-command-injection-from-environment:** Migrated `verify-backup-sync.test.ts` to use `execFileSync`.
+  - **Validation:** All 50 tests passed successfully.
 
 **Prior session context retained below:**
 - **2026-07-14 Fix desktopBridge mock (previous session)**

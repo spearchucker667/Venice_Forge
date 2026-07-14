@@ -1,5 +1,6 @@
 import { useToastStore, type Toast } from '../../stores/toast-store'
 import { cn } from '../../lib/utils'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 
 const VARIANT_STYLES: Record<Toast['variant'], string> = {
   info: 'border-border bg-surface-elevated',
@@ -40,6 +41,9 @@ export function Toaster() {
           )}
         >
           <div className="flex items-start gap-3">
+            {t.variant === 'progress' && (
+              <GenerationLoadingIndicator size="sm" state="processing" />
+            )}
             <div className="flex-1 min-w-0">
               <div className={cn('text-[13.5px] font-medium', VARIANT_TITLE[t.variant])}>{t.title}</div>
               {t.description && (

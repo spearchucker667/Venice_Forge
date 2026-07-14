@@ -4,6 +4,7 @@ import { usePlaygroundStore, type PlaygroundActivity } from '../../stores/playgr
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModelCatalog } from '../../hooks/use-model-catalog'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 import { useAgentModels } from '../../hooks/use-agent-models'
 import { callAgent, DEFAULT_AGENT_MODEL } from '../../lib/playground-agent'
 import { runAgentTools, type RunStep } from '../../lib/playground-agent-tools'
@@ -231,10 +232,7 @@ export function PlaygroundChat() {
                   )}
                 >
                   {m.pending && (!m.activity || m.activity.length === 0) ? (
-                    <span className="text-text-muted inline-flex items-center gap-1.5">
-                      <span className="inline-block w-3 h-3 border-2 border-border border-t-[var(--color-accent)] rounded-full animate-spin" />
-                      Thinking…
-                    </span>
+                    <GenerationLoadingIndicator size="sm" state="generating" label="Thinking…" className="text-text-muted" />
                   ) : m.error ? (
                     <span className="text-red-300/95">{m.error}</span>
                   ) : (
@@ -251,10 +249,7 @@ export function PlaygroundChat() {
                       </div>
                     ))}
                     {m.pending && (
-                      <div className="flex items-center gap-1.5 text-text-muted">
-                        <span className="inline-block w-2 h-2 border border-border border-t-[var(--color-accent)] rounded-full animate-spin" />
-                        <span>Working…</span>
-                      </div>
+                      <GenerationLoadingIndicator size="sm" state="processing" label="Working…" className="text-text-muted mt-1" />
                     )}
                   </div>
                 )}

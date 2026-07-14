@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback, useId } from 'react'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 import { useSettingsStore } from '../../stores/settings-store'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText } from '../ui/shared'
@@ -430,28 +431,14 @@ export function VideoView() {
         ) : (
           <div className="flex items-center justify-center flex-1 text-text-muted text-[15px]">
             {isProcessing ? (
-              <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-                <div className="w-7 h-7 border border-border border-t-accent rounded-full animate-spin" />
-                <span className="text-text-secondary text-center">
-                  {status === 'queued' ? 'Queued — waiting for a slot' : 'Generating your video'}
-                                    {elapsedMs > 0 && (
-                    <span className="block text-[12px] text-text-muted font-mono mt-1">
-                      {formatElapsed(elapsedMs)} · typically 30s–2min
-                    </span>
-                  )}
-                  {progress !== undefined && progress !== null && (
-                    <span className="block text-[12px] text-accent font-mono mt-1">
-                      {progress}%
-                    </span>
-                  )}
-                </span>
-                <button
-                  onClick={cancel}
-                  className="text-[13px] text-text-muted hover:text-text-secondary underline underline-offset-2 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
+              <GenerationLoadingIndicator 
+                state={status === 'queued' ? 'queued' : 'generating'}
+                label={status === 'queued' ? 'Queued — waiting for a slot' : 'Generating your video'}
+                detail={elapsedMs > 0 ? `${formatElapsed(elapsedMs)} · typically 30s–2min` : undefined}
+                progress={progress !== null ? progress : undefined}
+                showCancel={true}
+                onCancel={cancel}
+              />
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <span>Generated videos appear here</span>

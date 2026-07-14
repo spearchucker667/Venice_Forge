@@ -13,6 +13,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRpChatStore } from "../../stores/rp-chat-store";
+import { useStoragePrivacyStore } from "../../stores/storage-privacy-store";
+import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
 import { useCharacterCardStore } from "../../stores/character-card-store";
 import { usePersonaStore } from "../../stores/persona-store";
 import { useLorebookStore } from "../../stores/lorebook-store";
@@ -313,9 +315,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
         })}
         {isStreaming && (
           <div className="mt-4 p-4 rounded-xl border border-border bg-surface shadow-sm">
-            <div className="flex items-center gap-2 text-text-muted text-[12.5px]">
-              <Spinner className="text-text-muted" /> Streaming…
-            </div>
+            <GenerationLoadingIndicator size="sm" state="streaming" label="Streaming…" className="text-text-muted justify-start" />
             {reasoning && (
               <details className="text-text-muted text-[12px] mt-2 group">
                 <summary className="cursor-pointer select-none">Thinking…</summary>

@@ -3,6 +3,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useMusic } from '../../hooks/use-music'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 import { Label, TextArea, PrimaryButton, ErrorText, ExamplePrompts } from '../ui/shared'
 import { GenerationView } from '../ui/generation-view'
 import { cn, generateId } from '../../lib/utils'
@@ -216,23 +217,13 @@ export function MusicView() {
         ) : (
           <div className="flex items-center justify-center flex-1 text-text-muted text-[15px]">
             {isProcessing ? (
-              <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
-                <div className="w-7 h-7 border border-border border-t-accent rounded-full animate-spin" />
-                <span className="text-text-secondary text-center">
-                  {status === 'queued' ? 'Queued — waiting for a slot' : 'Composing your track'}
-                  {elapsedMs > 0 && (
-                    <span className="block text-[12px] text-text-muted font-mono mt-1">
-                      {formatElapsedMusic(elapsedMs)} · typically 20s–90s
-                    </span>
-                  )}
-                </span>
-                <button
-                  onClick={cancel}
-                  className="text-[13px] text-text-muted hover:text-text-secondary underline underline-offset-2 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
+              <GenerationLoadingIndicator 
+                state={status === 'queued' ? 'queued' : 'generating'}
+                label={status === 'queued' ? 'Queued — waiting for a slot' : 'Composing your track'}
+                detail={elapsedMs > 0 ? `${formatElapsedMusic(elapsedMs)} · typically 20s–90s` : undefined}
+                showCancel={true}
+                onCancel={cancel}
+              />
             ) : !prompt ? (
               <ExamplePrompts
                 items={starters}
