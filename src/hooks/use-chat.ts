@@ -407,6 +407,25 @@ export function useChat() {
         const { aborted } = await startStream(convId, streamModel)
         if (!aborted && !stopRequestedRef.current) {
           await maybeAutoGenerateScene(convId)
+          
+          const finalConv = useChatStore.getState().conversations.find((c) => c.id === convId)
+          if (finalConv) {
+            const isAutoRead = finalConv.metadata?.autoReadEnabled ?? useSettingsStore.getState().audioPreferences?.chatTts?.autoReadDefault ?? false
+            if (isAutoRead) {
+              const lastMsg = finalConv.messages[finalConv.messages.length - 1]
+              if (lastMsg && lastMsg.role === 'assistant') {
+                const textToRead = typeof lastMsg.content === 'string' 
+                  ? lastMsg.content 
+                  : lastMsg.content.filter(p => p.type === 'text').map(p => p.text).join('\\n')
+                
+                if (textToRead.trim()) {
+                  import('../services/chatTtsController').then(({ chatTtsController }) => {
+                    chatTtsController.play(lastMsg.id, textToRead).catch(console.error)
+                  })
+                }
+              }
+            }
+          }
         }
       } catch (err) {
         // The stream manager already appends a safe error message for non-
@@ -438,6 +457,25 @@ export function useChat() {
         const { aborted } = await startStream(convId, model)
         if (!aborted && !stopRequestedRef.current) {
           await maybeAutoGenerateScene(convId)
+          
+          const finalConv = useChatStore.getState().conversations.find((c) => c.id === convId)
+          if (finalConv) {
+            const isAutoRead = finalConv.metadata?.autoReadEnabled ?? useSettingsStore.getState().audioPreferences?.chatTts?.autoReadDefault ?? false
+            if (isAutoRead) {
+              const lastMsg = finalConv.messages[finalConv.messages.length - 1]
+              if (lastMsg && lastMsg.role === 'assistant') {
+                const textToRead = typeof lastMsg.content === 'string' 
+                  ? lastMsg.content 
+                  : lastMsg.content.filter(p => p.type === 'text').map(p => p.text).join('\\n')
+                
+                if (textToRead.trim()) {
+                  import('../services/chatTtsController').then(({ chatTtsController }) => {
+                    chatTtsController.play(lastMsg.id, textToRead).catch(console.error)
+                  })
+                }
+              }
+            }
+          }
         }
       } catch (err) {
         logger.error('useChat regenerate failed', err)

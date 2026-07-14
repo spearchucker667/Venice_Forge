@@ -7,6 +7,7 @@ import { useBackgroundTaskStore } from './stores/background-task-store'
 import { ensureProjectsLoaded } from './stores/project-store'
 import { desktopSync } from './services/desktopBridge'
 import { initBackgroundTaskToastBridge } from './services/backgroundTaskToastBridge'
+import { uiSoundController } from './services/uiSoundController'
 import { Sidebar } from './components/layout/sidebar'
 import { Header } from './components/layout/header'
 import { ApiKeyDialog } from './components/layout/api-key-dialog'
@@ -209,6 +210,12 @@ export function App() {
   useEffect(() => {
     ensureProjectsLoaded().catch(() => {})
   }, []);
+
+  // Initialize UI Sound Controller
+  useEffect(() => {
+    uiSoundController.initialize()
+    return () => uiSoundController.dispose()
+  }, [])
 
   // Sync Folder Initialization
   const syncFolderPath = useSettingsStore((s) => s.syncFolderPath);

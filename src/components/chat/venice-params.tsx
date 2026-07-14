@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { useChatStore } from '../../stores/chat-store'
 import { usePromptLibraryStore } from '../../stores/prompt-library-store'
+import { useSettingsStore } from '../../stores/settings-store'
+import { uiSoundController } from '../../services/uiSoundController'
 import { cn } from '../../lib/utils'
 
 export function VeniceParams() {
@@ -29,7 +31,8 @@ export function VeniceParams() {
     setMaxTokens,
     activeConversationId,
     setActiveConversation,
-    conversations
+    conversations,
+    updateConversationMetadata,
   } = useChatStore(
     useShallow((s) => ({
       veniceParams: s.veniceParams,
@@ -45,16 +48,35 @@ export function VeniceParams() {
       activeConversationId: s.activeConversationId,
       setActiveConversation: s.setActiveConversation,
       conversations: s.conversations,
+      updateConversationMetadata: s.updateConversationMetadata,
     })),
   )
   const [showSettings, setShowSettings] = useState(false)
+  
+  const globalAutoRead = useSettingsStore(s => s.audioPreferences?.chatTts?.autoReadDefault ?? false)
+  const setGlobalAutoRead = useSettingsStore(s => s.setChatTtsPreferences)
 
   const activeConv = activeConversationId ? conversations.find(c => c.id === activeConversationId) : null
   const hasMessages = (activeConv?.messages?.length ?? 0) > 0
+  
+  const isAutoRead = activeConv?.metadata?.autoReadEnabled ?? globalAutoRead
+  
+  const toggleAutoRead = () => {
+    if (activeConv) {
+      updateConversationMetadata(activeConv.id, { autoReadEnabled: !isAutoRead })
+    } else {
+      setGlobalAutoRead({ autoReadDefault: !globalAutoRead })
+    }
+  }
 
   return (
     <div className="px-4 py-1.5">
       <div className="flex items-center gap-1">
+        <Pill
+          label="Auto-Read"
+          active={isAutoRead}
+          onClick={toggleAutoRead}
+        />
         <SearchPill
           value={veniceParams.enable_web_search || 'off'}
           onChange={(v) => setVeniceParams({ enable_web_search: v })}
@@ -226,7 +248,10 @@ function SearchPill({ value, onChange }: { value: string; onChange: (v: SearchMo
 function Toggle({ label, active, onChange }: { label: string; active: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
-      onClick={() => onChange(!active)}
+      onClick={() => {
+        uiSoundController.play(!active ? 'toggleOn' : 'toggleOff')
+        onChange(!active)
+      }}
       className="flex items-center gap-2 text-[14px] text-text-muted/60 hover:text-text-secondary transition-colors"
     >
       <div className={cn(

@@ -119,6 +119,7 @@ interface ChatState {
   setConversationModel: (conversationId: string, model: string) => void
   deleteMessage: (conversationId: string, index: number) => void
   setMessageMetadata: (conversationId: string, messageIndex: number, metadataPatch: Record<string, unknown>) => void
+  updateConversationMetadata: (conversationId: string, metadataPatch: Record<string, unknown>) => void
   setConversationMemoryEnabled: (conversationId: string, enabled: boolean) => void
   setStreaming: (streaming: boolean) => void
   setVeniceParams: (params: Partial<VeniceParameters>) => void
@@ -577,6 +578,25 @@ export const useChatStore = create<ChatState>()(
             if (!msg) return c
             msgs[messageIndex] = { ...msg, metadata: { ...msg.metadata, ...metadataPatch } }
             return touchConversation({ ...c, messages: msgs })
+          }),
+        })),
+        
+      updateConversationMetadata: (conversationId, metadataPatch) =>
+        set((s) => ({
+          conversations: s.conversations.map((c) => {
+            if (c.id !== conversationId) return c
+            return touchConversation({
+              ...c,
+              metadata: {
+                tags: c.metadata?.tags ?? [],
+                pinned: c.metadata?.pinned ?? false,
+                archived: c.metadata?.archived ?? false,
+                source: c.metadata?.source ?? 'chat',
+                messageCount: c.metadata?.messageCount ?? (c.messages?.length ?? 0),
+                ...c.metadata,
+                ...metadataPatch,
+              },
+            })
           }),
         })),
 

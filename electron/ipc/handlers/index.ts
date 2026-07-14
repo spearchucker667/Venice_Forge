@@ -11,6 +11,7 @@ import { registerFileHandlers } from "./fileHandlers";
 import { registerSystemHandlers } from "./systemHandlers";
 import { registerSyncHandlers } from "./syncHandlers";
 import { registerBackgroundTaskHandlers } from "./backgroundTaskHandlers";
+import { registerChatTtsHandlers } from "./chatTtsHandlers";
 
 let ipcHandlersRegistered = false;
 
@@ -32,6 +33,7 @@ export function registerIpcHandlers(): void {
   registerFileHandlers();
   registerSystemHandlers();
   registerSyncHandlers();
+  registerChatTtsHandlers();
 
   // ── Background task manager (persistent main-process queue ownership) ──
   registerBackgroundTaskHandlers();

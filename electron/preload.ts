@@ -180,6 +180,15 @@ const veniceForge = {
     },
   },
 
+  tts: {
+    synthesize(opts: { text: string; model?: string; voice?: string; speed?: number }, cacheEnabled: boolean): Promise<{ ok: boolean; id?: string; error?: string }> {
+      return ipcRenderer.invoke("tts:synthesize", opts, cacheEnabled);
+    },
+    clearCache(): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("tts:clearCache");
+    },
+  },
+
   app: {
     /** Returns the current application version.
      *  @returns A promise resolving with the version string.

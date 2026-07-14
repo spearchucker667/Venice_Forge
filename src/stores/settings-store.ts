@@ -27,6 +27,7 @@ export type SettingsSection =
   | 'updates'
   | 'config'
   | 'providers'
+  | 'audio-speech'
 
 const VALID_SETTINGS_SECTIONS = new Set<SettingsSection>([
   'profiles',
@@ -40,6 +41,7 @@ const VALID_SETTINGS_SECTIONS = new Set<SettingsSection>([
   'about',
   'updates',
   'config',
+  'audio-speech',
 ])
 
 /** Defensive coercion: returns null when the value is not a known
@@ -55,6 +57,49 @@ function coerceSettingsSection(value: unknown): SettingsSection | null {
 function safeNormaliseTab(id: string | null | undefined): TabId {
   if (typeof id !== 'string' || !id) return 'chat'
   return normaliseTab(id)
+}
+
+export type UiSoundPackId = 'soft' | 'tactile' | 'glass' | 'retro' | 'minimal'
+
+export interface AudioPreferences {
+  uiSounds: {
+    enabled: boolean;
+    packId: UiSoundPackId;
+    volume: number;
+  };
+
+  chatTts: {
+    showMessageControls: boolean;
+    autoReadDefault: boolean;
+    model?: string;
+    voice?: string;
+    speed: number;
+    volume: number;
+    skipCodeBlocks: boolean;
+    skipUrls: boolean;
+    stopOnNewReply: boolean;
+    cacheEnabled: boolean;
+  };
+}
+
+export const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = {
+  uiSounds: {
+    enabled: false,
+    packId: 'soft',
+    volume: 0.35,
+  },
+  chatTts: {
+    showMessageControls: true,
+    autoReadDefault: false,
+    model: undefined,
+    voice: undefined,
+    speed: 1,
+    volume: 1,
+    skipCodeBlocks: true,
+    skipUrls: true,
+    stopOnNewReply: true,
+    cacheEnabled: true,
+  },
 }
 
 interface SettingsState {
@@ -143,6 +188,12 @@ interface SettingsState {
   setFallbackOrdering: (ordering: string[]) => void
   favoriteHostedCharacterSlugs: string[]
   setFavoriteHostedCharacterSlugs: (slugs: string[]) => void
+
+  // Audio and Speech
+  audioPreferences: AudioPreferences
+  setAudioPreferences: (prefs: Partial<AudioPreferences>) => void
+  setUiSoundPreferences: (prefs: Partial<AudioPreferences['uiSounds']>) => void
+  setChatTtsPreferences: (prefs: Partial<AudioPreferences['chatTts']>) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -224,10 +275,26 @@ export const useSettingsStore = create<SettingsState>()(
       setFavoriteHostedCharacterSlugs: (slugs) => set({
         favoriteHostedCharacterSlugs: [...new Set(slugs.filter((slug) => /^[A-Za-z0-9_-]{1,128}$/.test(slug)))].slice(0, 100),
       }),
+      audioPreferences: DEFAULT_AUDIO_PREFERENCES,
+      setAudioPreferences: (prefs) => set((s) => ({
+        audioPreferences: { ...s.audioPreferences, ...prefs }
+      })),
+      setUiSoundPreferences: (prefs) => set((s) => ({
+        audioPreferences: {
+          ...s.audioPreferences,
+          uiSounds: { ...s.audioPreferences.uiSounds, ...prefs }
+        }
+      })),
+      setChatTtsPreferences: (prefs) => set((s) => ({
+        audioPreferences: {
+          ...s.audioPreferences,
+          chatTts: { ...s.audioPreferences.chatTts, ...prefs }
+        }
+      })),
     }),
     {
       name: 'venice-settings',
-      version: 8,
+      version: 9,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -261,6 +328,18 @@ export const useSettingsStore = create<SettingsState>()(
           favoriteHostedCharacterSlugs: Array.isArray(state.favoriteHostedCharacterSlugs)
             ? [...new Set(state.favoriteHostedCharacterSlugs.filter((slug): slug is string => typeof slug === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(slug)))].slice(0, 100)
             : [],
+            
+          // v9 (audio): audio preferences
+          audioPreferences: {
+            uiSounds: {
+              ...DEFAULT_AUDIO_PREFERENCES.uiSounds,
+              ...(state.audioPreferences?.uiSounds ?? {}),
+            },
+            chatTts: {
+              ...DEFAULT_AUDIO_PREFERENCES.chatTts,
+              ...(state.audioPreferences?.chatTts ?? {}),
+            }
+          }
         } as SettingsState
       },
       merge: (persisted, current) => ({

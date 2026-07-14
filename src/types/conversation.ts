@@ -68,6 +68,7 @@ export interface Conversation {
     character?: ConversationCharacterMeta;
     memoryRetrievalEnabled?: boolean;
     includePriorConversationContext?: boolean;
+    autoReadEnabled?: boolean;
   };
   memory?: {
     summary: string;

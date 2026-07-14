@@ -12,6 +12,19 @@
 
 ### Latest Session Summary
 **Date:** 2026-07-14
+**Task:** Venice Forge Optional Interface Sounds and Chat TTS Integration
+
+**Summary of Changes:**
+- **Centralized Audio Services:** Implemented `uiSoundController` for interface sounds using Web Audio API and `chatTtsBridge` in Electron for secure Text-to-Speech playback. 
+- **TTS Backend:** Created a local `venice-tts://` protocol in the main process to serve TTS audio directly from the user's `tts-cache` directory, ensuring API keys and audio files never leak into the renderer.
+- **Message UI Integration:** Created the `ChatTtsPlayer` component for the assistant `MessageBubble`, offering Play/Pause/Stop/Restart functionality bound to the singleton `chatTtsController`.
+- **Auto-Read Functionality:** Integrated auto-read logic into `src/hooks/use-chat.ts` for both new messages (`send`) and regenerated messages (`regenerate`), executing automatically when the stream completes if enabled.
+- **Per-Chat Overrides:** Added `updateConversationMetadata` to `chat-store.ts` and introduced a per-chat "Auto-Read" pill in the `venice-params.tsx` configuration panel, which falls back to the global `autoReadDefault` setting.
+- **Validation:** 
+  - Verified static invariants via `npm run typecheck` and `npm run lint:eslint` (zero errors or warnings).
+  - Validated UI components via `npm run test:ui` (all 207 tests passed).
+  
+**Prior session context retained below:**
 **Task:** Replace all content-generation loading animations with Mio animations.
 
 **Summary of Changes:**
@@ -27,10 +40,16 @@
 - **TypeScript Fixes:** Created `src/assets.d.ts` to declare `*.gif` and `*.png` modules, resolving Vite/tsc import errors for image assets.
 - **ESLint Fixes:** Removed unused imports in `src/components/audio/audio-view.tsx` and `src/components/rp-studio/RpChatView.tsx`, and resolved an `any` type warning by correctly mapping `BackgroundTaskStatus` to `GenerationVisualState` in `src/components/status/TaskCenterDrawer.tsx`.
 
-**Validation:**
-- Successfully ran targeted builds via `npm run typecheck` and `npm run build:web`, all checks passed.
-- Successfully ran `npm run lint:eslint` ensuring `--max-warnings=0` is satisfied.
-- Verified absence of visual layout shifts in all replaced components.
+- **Validation:**
+  - Successfully ran targeted builds via `npm run typecheck` and `npm run build:web`, all checks passed.
+  - Successfully ran `npm run lint:eslint` ensuring `--max-warnings=0` is satisfied.
+  - Verified absence of visual layout shifts in all replaced components.
+
+**Proxy Error Investigation (2026-07-14):**
+- Investigated the user-reported `ECONNREFUSED 127.0.0.1:3000` during `npm run dev:electron`.
+- Confirmed that `dev:electron` properly injects `window.veniceForge` and uses IPC correctly (no proxy needed).
+- The `http proxy error: /api/session-jina-key` was proven to be caused by an external web browser tab holding open `http://localhost:5173` while Vite started, triggering a fallback to web-mode (which uses `fetch`) because the external browser lacks the `window.veniceForge` desktop context bridge.
+- The errors are isolated to the external browser tab; the Electron application itself operates correctly without the `3000` Express proxy.
 
 **Prior session context retained below:**
 - **2026-07-14 Review and resolve GitHub Code Scanning security alerts (previous session)**

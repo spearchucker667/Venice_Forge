@@ -1,6 +1,7 @@
 import { cn } from '../../lib/utils'
 import { Spinner } from './spinner'
 import { RefreshCw } from 'lucide-react'
+import { uiSoundController } from '../../services/uiSoundController'
 
 export function Label({ children, htmlFor, hint }: { children: React.ReactNode; htmlFor?: string; hint?: string }) {
   return (
@@ -54,7 +55,10 @@ export function PrimaryButton({ onClick, disabled, loading, children, ariaLabel,
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        uiSoundController.play('primaryClick')
+        onClick()
+      }}
       disabled={disabled || loading}
       aria-label={ariaLabel}
       aria-busy={loading || undefined}
@@ -77,7 +81,10 @@ export function GhostButton({ onClick, children, disabled, ariaLabel }: { onClic
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        uiSoundController.play('secondaryClick')
+        onClick()
+      }}
       disabled={disabled}
       aria-label={ariaLabel}
       className={cn(

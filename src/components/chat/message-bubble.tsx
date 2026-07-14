@@ -14,6 +14,7 @@ import { maybeRunLocalFamilyGuard } from '../../shared/safety'
 import { copyText } from '../../stores/media-send-to'
 import { useKatexCss } from '../../hooks/useKatexCss'
 import { CharacterSceneCard } from './CharacterSceneCard'
+import { ChatTtsPlayer } from './ChatTtsPlayer'
 import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
 
 // Relative path so the default avatar resolves correctly both in Vite dev
@@ -122,7 +123,7 @@ interface MessageBubbleProps {
   assistantCharacterCacheKey?: string
 }
 
-function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere, onRegenerateFromHere, onForkFromHere, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl, assistantCharacter, assistantCharacterCacheKey }: MessageBubbleProps) {
+function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteFromHere, onRegenerateFromHere, onForkFromHere, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl, assistantCharacter, assistantCharacterCacheKey }: MessageBubbleProps) {
   useKatexCss()
 
   const [hovering, setHovering] = useState(false)
@@ -424,7 +425,10 @@ function MessageBubbleImpl({ message, onCopy, onDelete, onEdit, onDeleteFromHere
             }}
           />
         )}
-        <div className="mt-0.5">{actions}</div>
+        <div className="mt-0.5 flex items-center gap-2">
+          {actions}
+          {isAssistant && content && <ChatTtsPlayer messageId={index.toString()} text={content} />}
+        </div>
       </div>
     </div>
   )

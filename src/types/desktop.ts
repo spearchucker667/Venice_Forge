@@ -41,6 +41,11 @@ export interface VeniceForgeJina {
   }): Promise<{ ok: boolean; status?: number; body?: unknown; contentType?: string; error?: string }>;
 }
 
+export interface VeniceForgeTts {
+  synthesize(opts: { text: string; model?: string; voice?: string; speed?: number }, cacheEnabled: boolean): Promise<{ ok: boolean; id?: string; error?: string }>;
+  clearCache(): Promise<{ ok: boolean; error?: string }>;
+}
+
 /** Describes a single request sent through the Electron IPC bridge. */
 export interface VeniceForgeRequest {
   endpoint: string;
@@ -344,6 +349,7 @@ export interface VeniceForge {
   jinaApiKey: VeniceForgeApiKey;
   providerApiKey: VeniceForgeProviderApiKey;
   jina: VeniceForgeJina;
+  tts: VeniceForgeTts;
   app: VeniceForgeApp;
   files: VeniceForgeFiles;
   chat: VeniceForgeChat;

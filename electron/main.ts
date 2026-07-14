@@ -28,6 +28,7 @@ export { isValidBridgeHost };
 
 protocol.registerSchemesAsPrivileged([
   { scheme: "venice-character-cache", privileges: { secure: true, standard: true, supportFetchAPI: true } },
+  { scheme: "venice-tts", privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true } },
   { scheme: GENERATED_MEDIA_SCHEME, privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true } },
 ]);
 
@@ -133,9 +134,12 @@ function createWindow(): BrowserWindow {
     logError("render-process-gone", details);
   });
   win.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+    if (isDev) {
+      console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`);
+    }
     const levelStr = ["verbose", "info", "warning", "error"][level] ?? "info";
     const src = sourceId ? ` [${path.basename(sourceId)}:${line}]` : "";
-    const truncated = message.length > 10000 ? message.slice(0, 10000) + "…" : message;
+    const truncated = message && message.length > 10000 ? message.slice(0, 10000) + "…" : message;
     // SAFETY: redact any API keys, bearer tokens, or Venice key patterns from
     // console output before persisting to logs/venice-forge.log. The renderer
     // is sandboxed but a malicious model response or React error boundary
@@ -292,6 +296,25 @@ if (!gotLock) {
       return new Response(bytes, {
         headers: { 'Content-Type': resolved.mimeType, 'Cache-Control': 'private, max-age=31536000, immutable' },
       });
+    });
+    protocol.handle("venice-tts", async (request) => {
+      const parsedUrl = new URL(request.url);
+      const id = parsedUrl.hostname || parsedUrl.pathname.replace(/^\/+/, '');
+      if (!/^[a-f0-9]{64}$/.test(id)) return new Response('Not found', { status: 404 });
+      const ttsPath = path.join(app.getPath('userData'), 'tts-cache', `${id}.mp3`);
+      if (!checkPathContained(ttsPath, path.join(app.getPath('userData'), 'tts-cache'))) {
+        return new Response('Not found', { status: 404 });
+      }
+      try {
+        const stat = await fs.promises.stat(ttsPath);
+        if (!stat.isFile()) throw new Error('Not a file');
+        const bytes = await fs.promises.readFile(ttsPath);
+        return new Response(bytes, {
+          headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'private, max-age=31536000, immutable' },
+        });
+      } catch {
+        return new Response('Not found', { status: 404 });
+      }
     });
     protocol.handle("venice-character-cache", async (request) => {
       const rendererRoot = path.resolve(__dirname, "../../dist");

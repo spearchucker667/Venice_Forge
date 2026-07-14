@@ -23,6 +23,7 @@ import { ConfigPanel } from "./ConfigPanel";
 import { AboutPanel } from "./AboutPanel";
 import { ProfilePanel } from "./ProfilePanel";
 import { BackupSyncPanel } from "./BackupSyncPanel";
+import { AudioSpeechPanel } from "./AudioSpeechPanel";
 import type { PendingConfirm } from "./types";
 
 export function SettingsView() {
@@ -374,6 +375,9 @@ export function SettingsView() {
               Local Config
             </button>
           )}
+          <button onClick={() => setActiveSection("audio-speech")} className={sectionButtonClass("audio-speech")}>
+            Audio & Speech
+          </button>
         </div>
 
         {/* Content panel */}
@@ -463,6 +467,8 @@ export function SettingsView() {
           )}
 
           {activeSection === "config" && isElectron() && <ConfigPanel />}
+
+          {activeSection === "audio-speech" && <AudioSpeechPanel />}
         </div>
       </div>
 
