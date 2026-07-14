@@ -13,7 +13,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRpChatStore } from "../../stores/rp-chat-store";
-import { useStoragePrivacyStore } from "../../stores/storage-privacy-store";
 import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
 import { useCharacterCardStore } from "../../stores/character-card-store";
 import { usePersonaStore } from "../../stores/persona-store";
@@ -21,7 +20,6 @@ import { useLorebookStore } from "../../stores/lorebook-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydration";
 import { GhostButton, Label, PrimaryButton, ErrorText, TextArea } from "../ui/shared";
-import { Spinner } from "../ui/spinner";
 import { avatarDataUri, formatRelativeTime } from "./_shared";
 import { buildRpPrompt } from "../../services/rp/promptBuilderService";
 import { assessRpContext } from "../../shared/safety/characterImportSafety";

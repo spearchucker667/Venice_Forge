@@ -117,7 +117,8 @@ export function TaskCenterDrawer() {
                           task.status === 'processing' ? 'generating' : 
                           task.status === 'aborted' ? 'cancelled' : 
                           task.status === 'timeout' ? 'failed' : 
-                          task.status as any
+                          task.status === 'idle' ? 'queued' :
+                          task.status
                         }
                       />
                       <h3 className="font-medium text-sm text-text-primary truncate">

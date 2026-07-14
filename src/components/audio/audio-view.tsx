@@ -1,6 +1,5 @@
 import { useState, useRef, useId, useEffect } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
-import { useConfigStore } from '../../stores/config-store'
 import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'

@@ -25,9 +25,11 @@
 - **System Task Center:** Integrated a compact Mio indicator into the header of active tasks in `src/components/status/TaskCenterDrawer.tsx`, mapping `BackgroundTaskStatus` to the corresponding semantic animation state.
 - **Global Toasts:** Added a compact Mio indicator to any toast with `variant === 'progress'` in `src/components/ui/toaster.tsx`.
 - **TypeScript Fixes:** Created `src/assets.d.ts` to declare `*.gif` and `*.png` modules, resolving Vite/tsc import errors for image assets.
+- **ESLint Fixes:** Removed unused imports in `src/components/audio/audio-view.tsx` and `src/components/rp-studio/RpChatView.tsx`, and resolved an `any` type warning by correctly mapping `BackgroundTaskStatus` to `GenerationVisualState` in `src/components/status/TaskCenterDrawer.tsx`.
 
 **Validation:**
 - Successfully ran targeted builds via `npm run typecheck` and `npm run build:web`, all checks passed.
+- Successfully ran `npm run lint:eslint` ensuring `--max-warnings=0` is satisfied.
 - Verified absence of visual layout shifts in all replaced components.
 
 **Prior session context retained below:**
