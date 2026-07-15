@@ -96,6 +96,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 - [reports/README.md](reports/README.md) — Guideline explaining audit history and historical report rules.
 - [reports/CANONICAL_REPORT_INDEX.md](reports/CANONICAL_REPORT_INDEX.md) — Navigator for past validation audits.
+- [reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md](reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md) — Current evidence-backed reconciliation of the supplied 2,719-item intended-feature checklist; authoritative for the open verification findings in `ROADMAP.md`.
 - [reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md](reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md) — Current implementation evidence, validation results, and explicit follow-up risks for the 2026-07-12 media/character remediation.
 - [reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md](reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) — Current evidence for signed-video download hardening, dedicated Character Chats navigation, and mesh-surface validation.
 - [reports/historical/final-massive-bug-hunt-with-proof.md](reports/historical/final-massive-bug-hunt-with-proof.md) — Historical audit log of closed validation checks from the v2.1.0 release boundary.

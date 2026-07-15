@@ -1,7 +1,6 @@
 /** @fileoverview Persistent main-process background task manager.
- *  Owns queued video/music/image/research/document tasks, polls async
- *  endpoints from the main process, and persists state across renderer
- *  reloads and application restarts.
+ *  Journals video/music/image/research/document work, polls durable video and
+ *  music queues, and persists state across renderer reloads and restarts.
  */
 
 import { app } from "electron";
@@ -14,7 +13,12 @@ import type {
   BackgroundTaskStatus,
   BackgroundTaskUpdate,
 } from "../../src/types/background-task";
-import { createBackgroundTask, parseTasks, serializeTasks } from "../../src/types/background-task";
+import {
+  createBackgroundTask,
+  isProviderPolledBackgroundTaskType,
+  parseTasks,
+  serializeTasks,
+} from "../../src/types/background-task";
 import { sanitizeErrorText } from "../../src/shared/redaction";
 import { normalizeVideoRetrieveResult } from "../../src/services/video-retrieve-normalizer";
 import { MUSIC_SAFE_ERROR_MESSAGES, toUserFacingMusicError, toUserFacingVideoError } from "../../src/services/task-errors";
@@ -151,7 +155,7 @@ export async function initBackgroundTaskManager(): Promise<void> {
     await loadBackgroundTasks();
     for (const task of Object.values(state.tasks)) {
       if (!isTerminalStatus(task.status)) {
-        if (task.type === "video" || task.type === "music") {
+        if (isProviderPolledBackgroundTaskType(task.type)) {
           startPolling(task.id);
         } else {
           // image, research, document are synchronous/streaming connections that die on restart
@@ -292,7 +296,7 @@ export async function createBackgroundTaskInMain(
   state.tasks[task.id] = task;
   persist();
   emit(task.id, task, task.profileId);
-  if (task.type === "video" || task.type === "music") {
+  if (isProviderPolledBackgroundTaskType(task.type)) {
     startPolling(task.id);
   }
   return task;
@@ -309,7 +313,7 @@ export async function updateBackgroundTaskInMain(
 export async function cancelBackgroundTaskInMain(taskId: string): Promise<BackgroundTask | null> {
   await initBackgroundTaskManager();
   const task = state.tasks[taskId];
-  if (task && (task.type === "video" || task.type === "music")) {
+  if (task && isProviderPolledBackgroundTaskType(task.type)) {
     return applyUpdate(taskId, {
       error: "Provider cancellation is unavailable; generation is still running.",
       metadata: { cancellationUnsupported: true },
@@ -323,6 +327,9 @@ export async function retryBackgroundTaskInMain(taskId: string): Promise<Backgro
   await initBackgroundTaskManager();
   const task = state.tasks[taskId];
   if (!task || !task.queueId) return null;
+  // Synchronous task records intentionally do not persist request bodies, so
+  // only their originating workspace can safely recreate them.
+  if (!isProviderPolledBackgroundTaskType(task.type)) return task;
   const nextAttempt = (task.attemptNumber ?? 1) + 1;
   const updated = await applyUpdate(taskId, {
     status: "queued",
@@ -333,9 +340,7 @@ export async function retryBackgroundTaskInMain(taskId: string): Promise<Backgro
     pollAttempts: 0,
     consecutiveFailures: 0
   });
-  if (updated && (updated.type === "video" || updated.type === "music")) {
-    startPolling(taskId);
-  }
+  if (updated) startPolling(taskId);
   return updated;
 }
 
@@ -364,7 +369,7 @@ function schedulePoll(taskId: string, delayMs: number): void {
 function startPolling(taskId: string): void {
   const task = state.tasks[taskId];
   if (!task || !task.queueId) return;
-  if (task.type !== "video" && task.type !== "music") return;
+  if (!isProviderPolledBackgroundTaskType(task.type)) return;
   if (isTerminalStatus(task.status)) return;
   schedulePoll(taskId, 0);
 }

@@ -3,7 +3,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useChatStore } from '../../stores/chat-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
-import { Select } from '../ui/select'
+import { ModelSelect } from '../ModelSelect'
 import { StatusDot } from '../ui/shared'
 import { HeaderStatusCluster } from '../status/HeaderStatusCluster'
 import { useTaskUIStore } from '../../stores/task-ui-store'
@@ -12,6 +12,7 @@ import { getActiveProfileId } from '../../services/activeProfile'
 import { resolveTab } from '../../config/tabs'
 import { formatModelLabelWithCost } from '../../utils/pricing'
 import { CharacterAvatar } from '../characters/CharacterAvatar'
+import type { ModelInfo, VeniceModel } from '../../types/venice'
 
 interface Props {
   onOpenApiKey: () => void
@@ -27,7 +28,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   )
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const toggleTaskCenter = useTaskUIStore((s) => s.toggleTaskCenter)
-  
+
   const rawTasks = useBackgroundTaskStore((s) => s.tasks)
   const currentProfileId = getActiveProfileId()
   const activeTaskCount = Object.values(rawTasks).filter(
@@ -41,7 +42,11 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
     ? conversations.find((conversation) => conversation.id === activeConversationId)?.model
     : undefined
   const currentModel = hasOwnSelector ? '' : (activeConversationModel || selectedModels[activeTab] || '')
-  const modelOptions = hasOwnSelector ? [] : (models?.map((m) => ({ value: m.id, label: (modelType === 'image' || modelType === 'video') ? formatModelLabelWithCost(m) : m.model_spec?.name || m.id })) ?? [])
+
+  const getModelLabel = (m: ModelInfo) => {
+    return (modelType === 'image' || modelType === 'video') ? formatModelLabelWithCost(m as unknown as VeniceModel) : m.name || m.display_name || m.id;
+  };
+
   const activeCharacter = activeTab === 'character-chats'
     ? conversations.find((conversation) => conversation.id === activeConversationId)?.metadata?.character
     : undefined
@@ -82,8 +87,9 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
         <>
           <div className="w-px h-5 bg-border hidden sm:block" aria-hidden />
           <div className="flex items-center gap-1.5">
-            <Select
+            <ModelSelect
               value={currentModel}
+              models={(models as unknown as ModelInfo[]) || []}
               onChange={(v) => {
                 if ((activeTab === 'chat' || activeTab === 'character-chats') && activeConversationId) {
                   setConversationModel(activeConversationId, v)
@@ -91,8 +97,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
                 }
                 setSelectedModel(activeTab, v)
               }}
-              options={modelOptions}
-              searchable
+              getLabel={getModelLabel}
               placeholder="Select model…"
               ariaLabel="Selected model"
               className="w-36 sm:w-44 xl:w-64"
@@ -103,7 +108,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
                 onClick={() => setActiveConversation(null)}
                 aria-label="New chat"
                 title="New Chat (⌘N)"
-                className="flex items-center justify-center w-8 h-8 rounded-md border border-border hover:border-text-muted hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
+                className="flex items-center justify-center w-8 h-8 rounded-md border border-transparent bg-surface-elevated hover:border-text-muted hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
               </button>
@@ -118,7 +123,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
         type="button"
         onClick={toggleTaskCenter}
         aria-label="Toggle task center"
-        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-border hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
+        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent bg-surface-elevated hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <circle cx="12" cy="12" r="10" />
@@ -140,7 +145,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
         type="button"
         onClick={onOpenApiKey}
         aria-label={hasVeniceKey ? 'API key connected, manage' : 'Connect API key'}
-        className="flex items-center gap-2 text-[13px] px-2.5 py-1.5 rounded-md border border-border hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"
+        className="flex items-center gap-2 text-[13px] px-2.5 py-1.5 rounded-md border border-transparent bg-surface-elevated hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"
       >
         <StatusDot tone={hasVeniceKey ? 'teal' : 'slate'} pulsing={!hasVeniceKey} />
         <span className={`hidden xl:inline ${hasVeniceKey ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>

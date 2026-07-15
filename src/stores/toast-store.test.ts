@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { useToastStore, toast, Toast } from './toast-store'
+import { MAX_TRANSIENT_TOASTS, useToastStore, toast } from './toast-store'
 
 describe('toast-store', () => {
   beforeEach(() => {
@@ -9,8 +8,8 @@ describe('toast-store', () => {
   })
 
   afterEach(() => {
-    vi.useRealTimers()
     vi.clearAllTimers()
+    vi.useRealTimers()
   })
 
   describe('useToastStore', () => {
@@ -31,12 +30,13 @@ describe('toast-store', () => {
     })
 
     it('push with custom duration', () => {
-      const id = useToastStore.getState().push({ variant: 'success', title: 'Custom', duration: 1000 })
-      expect(typeof id).toBe('string')
+      expect(useToastStore.getState().push({ variant: 'success', title: 'Custom', duration: 1000 })).toEqual(
+        expect.any(String),
+      )
     })
 
     it('auto-dismisses toast after duration', () => {
-      const id = useToastStore.getState().push({ variant: 'info', title: 'Auto', duration: 1000 })
+      useToastStore.getState().push({ variant: 'info', title: 'Auto', duration: 1000 })
       expect(useToastStore.getState().toasts).toHaveLength(1)
       
       vi.advanceTimersByTime(999)
@@ -66,6 +66,56 @@ describe('toast-store', () => {
       const { toasts } = useToastStore.getState()
       expect(toasts).toHaveLength(1)
       expect(toasts[0].id).toBe(id2)
+    })
+
+    it('deduplicates by key and keeps the original id', () => {
+      const firstId = useToastStore.getState().push({
+        variant: 'info',
+        title: 'First',
+        dedupeKey: 'same-job',
+      })
+      const secondId = useToastStore.getState().push({
+        variant: 'success',
+        title: 'Updated',
+        dedupeKey: 'same-job',
+      })
+
+      expect(secondId).toBe(firstId)
+      expect(useToastStore.getState().toasts).toHaveLength(1)
+      expect(useToastStore.getState().toasts[0]).toMatchObject({
+        id: firstId,
+        variant: 'success',
+        title: 'Updated',
+      })
+    })
+
+    it('pauses and resumes the auto-dismiss timer', () => {
+      const id = useToastStore.getState().push({ variant: 'info', title: 'Pause', duration: 1000 })
+      vi.advanceTimersByTime(400)
+      useToastStore.getState().pauseToast(id)
+      vi.advanceTimersByTime(1000)
+      expect(useToastStore.getState().toasts).toHaveLength(1)
+
+      useToastStore.getState().resumeToast(id)
+      vi.advanceTimersByTime(599)
+      expect(useToastStore.getState().toasts).toHaveLength(1)
+      vi.advanceTimersByTime(1)
+      expect(useToastStore.getState().toasts).toHaveLength(0)
+    })
+
+    it('limits transient toast concurrency without dropping persistent tasks', () => {
+      const persistentId = useToastStore.getState().push({
+        variant: 'progress',
+        title: 'Task',
+        persistent: true,
+      })
+      for (let index = 0; index < MAX_TRANSIENT_TOASTS + 2; index += 1) {
+        useToastStore.getState().push({ variant: 'info', title: `Transient ${index}` })
+      }
+
+      const { toasts } = useToastStore.getState()
+      expect(toasts.filter((candidate) => !candidate.persistent)).toHaveLength(MAX_TRANSIENT_TOASTS)
+      expect(toasts.some((candidate) => candidate.id === persistentId)).toBe(true)
     })
   })
 

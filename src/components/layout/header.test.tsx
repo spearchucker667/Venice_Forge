@@ -10,7 +10,7 @@ import { useChatStore } from '../../stores/chat-store'
 import { useAuthStore } from '../../stores/auth-store'
 import { TAB_IDS, resolveTab } from '../../config/tabs'
 
-const modelsData = vi.hoisted(() => ({ value: [] as Array<{ id: string; model_spec?: { name?: string } }> }));
+const modelsData = vi.hoisted(() => ({ value: [] as Array<{ id: string; name?: string; model_spec?: { name?: string } }> }));
 
 vi.mock('../../hooks/use-models', () => ({
   useModels: (_type?: string) => ({
@@ -117,8 +117,8 @@ describe('Header component', () => {
       activeConversationId: 'conv-1',
     })
     modelsData.value = [
-      { id: 'model-a', model_spec: { name: 'Model A' } },
-      { id: 'model-b', model_spec: { name: 'Model B' } },
+      { id: 'model-a', name: 'Model A' },
+      { id: 'model-b', name: 'Model B' },
     ]
 
     render(<Header onOpenApiKey={vi.fn()} />)
@@ -146,8 +146,8 @@ describe('Header component', () => {
       activeConversationId: 'conv-1',
     })
     modelsData.value = [
-      { id: 'persisted-model', model_spec: { name: 'Persisted Model' } },
-      { id: 'global-model', model_spec: { name: 'Global Model' } },
+      { id: 'persisted-model', name: 'Persisted Model' },
+      { id: 'global-model', name: 'Global Model' },
     ]
 
     render(<Header onOpenApiKey={vi.fn()} />)

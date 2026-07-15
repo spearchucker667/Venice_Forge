@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils'
 interface SelectProps {
   value: string
   onChange: (value: string) => void
-  options: Array<{ value: string; label: string }>
+  options: Array<{ value: string; label: string; element?: React.ReactNode }>
   placeholder?: string
   searchable?: boolean
   className?: string
@@ -247,7 +247,7 @@ export function Select({ value, onChange, options, placeholder = 'Select...', se
                     'data-[highlighted=true]:bg-accent/10 data-[highlighted=true]:text-text-primary',
                   )}
                 >
-                  {o.label}
+                  {o.element || o.label}
                 </div>
               ))
             )}

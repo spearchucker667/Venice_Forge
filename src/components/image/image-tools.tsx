@@ -3,7 +3,7 @@ import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useImageEdit, useImageUpscale, useBackgroundRemove } from '../../hooks/use-image-tools'
 import { useModels } from '../../hooks/use-models'
 import { useBlobUrl } from '../../hooks/use-blob-url'
-import { Select } from '../ui/select'
+import { ModelSelect } from '../ModelSelect'
 import { Label, TextArea, PrimaryButton, ErrorText, EmptyState } from '../ui/shared'
 import { cn, generateId } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
@@ -12,21 +12,12 @@ import { normalizeError } from '../../services/veniceClient/errors'
 import { useMediaStore } from '../../stores/media-store'
 import { blobToDataUrl } from '../../utils/image'
 import type { MediaOperation } from '../../types/media'
-import type { VeniceModel } from '../../types/venice'
+import type { ModelInfo, VeniceModel } from '../../types/venice'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { inspectImageInput } from '../../services/media-request-adapter'
 
 type Tool = 'edit' | 'upscale' | 'remove-bg'
-type ImageModelChoice = VeniceModel
-
-function modelSpecFor(model: ImageModelChoice): VeniceModel['model_spec'] | undefined {
-  return 'model_spec' in model ? model.model_spec : undefined
-}
-
-function labelForModel(model: ImageModelChoice): string {
-  return modelSpecFor(model)?.name || model.id
-}
 
 export function ImageTools() {
   const editPromptId = useId()
@@ -44,18 +35,20 @@ export function ImageTools() {
   // Edit state
   const [editPrompt, setEditPrompt] = useState('')
   const [editModel, setEditModel] = useState('')
-  const editModelOptions = useMemo(() => {
+  const filteredImageModels = useMemo<Array<ModelInfo & Pick<VeniceModel, 'model_spec'>>>(() => {
     const candidates = imageModels ?? []
     const seen = new Set<string>()
-    return candidates
+    const filtered = candidates
       .filter((model) => IMAGE_EDIT_MODEL_IDS.has(model.id))
       .filter((model) => {
         if (seen.has(model.id)) return false
         seen.add(model.id)
         return true
       })
-      .map((model) => ({ value: model.id, label: labelForModel(model) }))
-      .concat(candidates.length === 0 ? [{ value: DEFAULT_IMAGE_EDIT_MODEL, label: DEFAULT_IMAGE_EDIT_MODEL }] : [])
+    if (filtered.length === 0) {
+      return [{ id: DEFAULT_IMAGE_EDIT_MODEL, name: DEFAULT_IMAGE_EDIT_MODEL }]
+    }
+    return filtered
   }, [imageModels])
 
   // Upscale state
@@ -85,11 +78,11 @@ export function ImageTools() {
   const lastPromptRef = useRef<string>('')
 
   useEffect(() => {
-    if (editModelOptions.length === 0) return
-    if (!editModelOptions.some((option) => option.value === editModel)) {
-      setEditModel(editModelOptions[0].value)
+    if (filteredImageModels.length === 0) return
+    if (!filteredImageModels.some((model) => model.id === editModel)) {
+      setEditModel(filteredImageModels[0].id)
     }
-  }, [editModel, editModelOptions])
+  }, [editModel, filteredImageModels])
 
   useEffect(() => {
     if (!pendingHandoff || pendingHandoff.target !== 'tools') return
@@ -287,7 +280,7 @@ export function ImageTools() {
         {tool === 'edit' && (
           <>
             <div><Label htmlFor={editPromptId}>Edit prompt</Label><TextArea id={editPromptId} value={editPrompt} onChange={setEditPrompt} placeholder="Change the background to a sunset beach..." rows={3} /></div>
-            <div><Label htmlFor={editModelId}>Model</Label><Select id={editModelId} value={editModel} onChange={setEditModel} options={editModelOptions} searchable ariaLabel="Edit model" /></div>
+            <div><Label htmlFor={editModelId}>Model</Label><ModelSelect id={editModelId} value={editModel} onChange={setEditModel} models={filteredImageModels} ariaLabel="Edit model" getLabel={(model) => model.model_spec?.name || model.name || model.id} /></div>
           </>
         )}
 

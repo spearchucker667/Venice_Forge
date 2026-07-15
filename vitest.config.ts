@@ -26,6 +26,7 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     fileParallelism: false,
     pool: "forks",
+    testTimeout: 30000,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

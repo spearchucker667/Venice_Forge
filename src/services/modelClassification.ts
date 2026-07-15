@@ -48,6 +48,24 @@ export function flattenModels(payload: unknown): Record<string, ModelInfo[]> {
   };
   list.forEach((raw) => {
     const m = raw as Record<string, unknown>;
+    const rawTraits = m.traits || m.capabilities || m.features || [];
+    const traitsArr = Array.isArray(rawTraits) ? rawTraits : [];
+
+    const modelSpec = m.model_spec as Record<string, unknown> | undefined;
+    const specPrivacy = modelSpec?.privacy as string | undefined;
+
+    // Determine privacy from model_spec, traits/flags, or default
+    const isPrivate = specPrivacy === 'private' || traitsArr.includes('private') || !!m.is_private || !!m.privateInference;
+    const isAnonymous = specPrivacy === 'anonymized' || traitsArr.includes('anonymous') || !!m.anonymousInference;
+
+    const privacyMode = isPrivate ? 'private' : isAnonymous ? 'anonymous' : 'standard';
+
+    let fidelity: 'high' | 'standard' | undefined = undefined;
+    if (traitsArr.includes('high_fidelity') || traitsArr.includes('high-fidelity')) fidelity = 'high';
+    else if (traitsArr.includes('standard_fidelity') || traitsArr.includes('standard-fidelity') || traitsArr.includes('fast')) fidelity = 'standard';
+    else if (String(m.id || '').toLowerCase().includes('-fast-')) fidelity = 'standard';
+    else if (String(m.id || '').toLowerCase().includes('seedance')) fidelity = 'high';
+
     const normalized: ModelInfo = {
       ...(m as Record<string, unknown>),
       id: String(m.id || m.model || m.name || "unknown-model"),
@@ -55,6 +73,15 @@ export function flattenModels(payload: unknown): Record<string, ModelInfo[]> {
       type: String(m.type || m.model_type || m.modelType || classifyModel(m as unknown as ModelInfo)),
       isFallback: false,
       source: "live",
+      contextLength: (modelSpec?.availableContextTokens as number) ?? (m.contextLength as number) ?? null,
+      maxOutputTokens: (modelSpec?.maxCompletionTokens as number) ?? (m.maxOutputTokens as number) ?? null,
+      privacy: {
+        mode: privacyMode,
+        privateInference: isPrivate,
+        anonymousInference: isAnonymous,
+        source: 'derived'
+      },
+      fidelity
     };
     groups[classifyModel(normalized)].push(normalized);
   });

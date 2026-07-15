@@ -175,7 +175,7 @@ export function MemoryPanel() {
       )}
 
       {/* Settings Options */}
-      <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+      <div className="rounded-xl soft-panel mesh-surface-elevated p-5 space-y-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">Encrypted Conversation Vault</h3>
         <p className="text-[12.5px] text-text-secondary leading-relaxed">
           Configure memory parameters and local indexing structures. Vault records and the index are fully encrypted at rest.
@@ -197,7 +197,7 @@ export function MemoryPanel() {
           </div>
 
           {/* Enable Retrieval */}
-          <div className="flex items-center justify-between border-t border-border/40 pt-3">
+          <div className="flex items-center justify-between soft-separator-y pt-3">
             <div>
               <label className="text-[13.5px] font-medium text-text-primary">Enable memory retrieval</label>
               <p className="text-[12px] text-text-muted mt-0.5">Pulls relevant history facts dynamically to help future prompts.</p>
@@ -211,7 +211,7 @@ export function MemoryPanel() {
           </div>
 
           {/* Show Context Preview */}
-          <div className="flex items-center justify-between border-t border-border/40 pt-3">
+          <div className="flex items-center justify-between soft-separator-y pt-3">
             <div>
               <label className="text-[13.5px] font-medium text-text-primary">Show pulled context before sending</label>
               <p className="text-[12px] text-text-muted mt-0.5">Displays a preview box above the chat input allowing fact pruning.</p>
@@ -225,7 +225,7 @@ export function MemoryPanel() {
           </div>
 
           {/* AI summaries toggle */}
-          <div className="flex items-center justify-between border-t border-border/40 pt-3">
+          <div className="flex items-center justify-between soft-separator-y pt-3">
             <div>
               <label className="text-[13.5px] font-medium text-text-primary">Use AI summaries</label>
               <p className="text-[12px] text-text-muted mt-0.5">Transmits summary material to Venice model for better fact discovery.</p>
@@ -241,7 +241,7 @@ export function MemoryPanel() {
       </div>
 
       {/* Index & Folder Management Actions */}
-      <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+      <div className="rounded-xl soft-panel mesh-surface-elevated p-5 space-y-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">Maintenance Operations</h3>
         <div className="flex flex-wrap gap-3">
           <button
@@ -264,7 +264,7 @@ export function MemoryPanel() {
       </div>
 
       {/* Remembered Facts List */}
-      <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+      <div className="rounded-xl soft-panel mesh-surface-elevated p-5 space-y-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">Curated Facts ({allFacts.length})</h3>
         <p className="text-[12.5px] text-text-secondary">
           These are the key facts extracted locally from your conversation history.

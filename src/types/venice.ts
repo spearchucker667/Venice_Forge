@@ -323,9 +323,18 @@ export interface Conversation {
   createdAt: number
 }
 
+export interface NormalizedModelPrivacy {
+  mode: 'private' | 'anonymous' | 'standard' | 'unknown'
+  privateInference: boolean | null
+  anonymousInference: boolean | null
+  source: 'provider' | 'fallback' | 'derived'
+  disclosure?: string
+}
+
 export interface ModelInfo {
   id: string;
   name?: string;
+  model_spec?: VeniceModel['model_spec'];
   type?: string;
   traits?: unknown;
   isFallback?: boolean;
@@ -339,6 +348,10 @@ export interface ModelInfo {
   modelType?: string;
   capabilities?: ModelCapabilities;
   features?: unknown;
+  contextLength?: number | null;
+  maxOutputTokens?: number | null;
+  privacy?: NormalizedModelPrivacy;
+  fidelity?: 'high' | 'standard';
 }
 
 export interface DiagnosticsEntry {

@@ -104,7 +104,7 @@ export const desktopVenice = {
    */
   async streamChat(
     input: VeniceForgeRequest,
-    onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void,
+    onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => void,
     signal?: AbortSignal
   ): Promise<VeniceForgeResponse> {
     if (!isElectron()) throw new Error("Venice desktop transport is only available in desktop mode.");

@@ -173,4 +173,21 @@ describe('background task polling', () => {
 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:browser-audio')
   })
+
+  it('journals synchronous tasks without polling or offering a false retry', async () => {
+    useBackgroundTaskStore.getState().registerQueueTask('image-one', 'image', 'sync-request')
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(veniceFetch).not.toHaveBeenCalled()
+    expect(useBackgroundTaskStore.getState().activePolls['image-one']).toBeUndefined()
+
+    useBackgroundTaskStore.getState().updateTask('image-one', { status: 'failed', error: 'request failed' })
+    useBackgroundTaskStore.getState().retryTask('image-one')
+
+    expect(useBackgroundTaskStore.getState().tasks['image-one']).toMatchObject({
+      status: 'failed',
+      error: 'request failed',
+    })
+    expect(useBackgroundTaskStore.getState().activePolls['image-one']).toBeUndefined()
+  })
 })

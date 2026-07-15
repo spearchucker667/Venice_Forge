@@ -25,7 +25,7 @@ export async function veniceStreamChat(
     signal,
     dispatch,
     onDelta,
-  }: { signal?: AbortSignal; dispatch?: AppDispatch;    onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void }
+  }: { signal?: AbortSignal; dispatch?: AppDispatch;    onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => void }
 ) {
   const startedAtTime = Date.now();
   const requestHeaders = { "Content-Type": "application/json" };
@@ -50,7 +50,7 @@ export async function veniceStreamChat(
   let accumulatedContent = "";
   let accumulatedReasoning = "";
 
-  const wrappedOnDelta = (chunk: { content: string; reasoning: string; providerRequestId?: string }) => {
+  const wrappedOnDelta = (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => {
     accumulatedContent += chunk.content;
     accumulatedReasoning += chunk.reasoning;
     onDelta(chunk);
@@ -289,7 +289,8 @@ export async function veniceStreamChat(
               json?.choices?.[0]?.message?.reasoning_content ||
               "";
             const providerRequestId = json?.id;
-            if (content || reasoning || providerRequestId) wrappedOnDelta({ content, reasoning, providerRequestId });
+            const usage = json?.usage;
+            if (content || reasoning || providerRequestId || usage) wrappedOnDelta({ content, reasoning, providerRequestId, usage });
           } catch { /* malformed SSE JSON chunk — skip */ }
         }
       }

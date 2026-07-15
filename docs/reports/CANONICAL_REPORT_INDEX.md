@@ -10,6 +10,7 @@ This index maps retained audit and report artifacts to their current authority. 
 | Current TODO roadmap | [`../ROADMAP.md`](../ROADMAP.md) |
 | Documentation source map | [`../DOCS_INDEX.md`](../DOCS_INDEX.md) |
 | Report directory policy | [`README.md`](README.md) |
+| 2026-07-15 intended-feature verification and open finding evidence | [`INTENDED_FEATURE_VERIFICATION_2026-07-15.md`](INTENDED_FEATURE_VERIFICATION_2026-07-15.md) |
 | Media and character remediation evidence | [`MEDIA_CHARACTER_REMEDIATION_REPORT.md`](MEDIA_CHARACTER_REMEDIATION_REPORT.md) |
 | Video gallery, Character Chats, and UI surface remediation | [`VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md`](VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) |
 

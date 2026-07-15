@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback, useId } from 'react'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { useVideoModels, type VideoModelGroup } from '../../hooks/use-models'
 import { useVideo } from '../../hooks/use-video'
-import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
+
 import { useSettingsStore } from '../../stores/settings-store'
 import { Select } from '../ui/select'
 import { Label, TextArea, PrimaryButton, PillGroup, ErrorText } from '../ui/shared'
@@ -39,7 +39,7 @@ export function VideoView() {
   const [audioEnabled, setAudioEnabled] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const { progress, queue, isQueueing, status, videoUrl, error, reset, cancel, elapsedMs, queueId, lastRequest } = useVideo()
+  const { queue, isQueueing, status, videoUrl, error, reset, queueId, lastRequest } = useVideo()
   const isProcessing = status === 'queued' || status === 'processing'
 
   // Resolve current group and constraints
@@ -430,34 +430,20 @@ export function VideoView() {
           </div>
         ) : (
           <div className="flex items-center justify-center flex-1 text-text-muted text-[15px]">
-            {isProcessing ? (
-              <GenerationLoadingIndicator 
-                state={status === 'queued' ? 'queued' : 'generating'}
-                label={status === 'queued' ? 'Queued — waiting for a slot' : 'Generating your video'}
-                detail={elapsedMs > 0 ? `${formatElapsed(elapsedMs)} · typically 30s–2min` : undefined}
-                progress={progress !== null ? progress : undefined}
-                showCancel={true}
-                onCancel={cancel}
-              />
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <span>Generated videos appear here</span>
-                <span className="text-[12px] text-text-muted">Average generation time: 30s–2min</span>
-              </div>
-            )}
+            <div className="flex flex-col items-center gap-2">
+              <span>Generated videos appear here</span>
+              <span className="text-[12px] text-text-muted">Average generation time: 30s–2min</span>
+            </div>
           </div>
         )}
+
     </div>
   )
 
   return <GenerationView controls={controls} output={output} />
 }
 
-function formatElapsed(ms: number): string {
-  const s = Math.floor(ms / 1000)
-  const m = Math.floor(s / 60)
-  return m > 0 ? `${m}m ${s % 60}s` : `${s}s`
-}
+
 
 // Duration slider for models with many duration options (e.g. Kling O3 with 3s-15s)
 function DurationSlider({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {

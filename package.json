@@ -117,7 +117,7 @@
     "test:unit:scripts": "vitest run scripts --exclude 'scripts/verify-document-ingestion.test.ts' --no-file-parallelism",
     "test:unit:types": "vitest run src/types --no-file-parallelism",
     "test:unit": "npm run test:unit:stores && npm run test:unit:services && npm run test:unit:hooks && npm run test:unit:lib && npm run test:unit:shared && npm run test:unit:utils && npm run test:unit:theme && npm run test:unit:scripts && npm run test:unit:types",
-    "test:ui:layout": "vitest run src/components/layout src/components/command-palette tests/accessibility",
+    "test:ui:layout": "vitest run src/App.navigation.test.ts src/App.lazy.test.ts src/App.onboarding.test.ts src/App.skip-link.test.ts src/components/FirstRunModal.test.tsx src/components/OnboardingSplash.test.tsx src/components/layout src/components/command-palette src/components/notifications tests/accessibility",
     "test:ui:chat": "vitest run src/components/chat",
     "test:ui:media:gallery": "vitest run src/components/gallery --no-file-parallelism",
     "test:ui:media:image": "vitest run src/components/image",

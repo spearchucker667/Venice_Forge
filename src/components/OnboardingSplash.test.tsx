@@ -35,23 +35,23 @@ describe('OnboardingSplash', () => {
 
   it('renders the first step on first launch', () => {
     render(<OnboardingSplash />)
-    expect(screen.getByText('Welcome to Venice Forge')).toBeInTheDocument()
-    expect(screen.getByText(/sends requests to the remote providers you configure/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: 'Welcome to Venice Forge' })).toBeInTheDocument()
+    expect(screen.getAllByText(/sends requests to the remote providers you configure/)).toHaveLength(2)
     expect(screen.getByRole('dialog', { name: 'Welcome to Venice Forge' })).toHaveAttribute('aria-modal', 'true')
   })
 
-  it('advances through steps when Next is clicked', () => {
+  it('advances through steps when Continue is clicked', () => {
     render(<OnboardingSplash />)
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    expect(screen.getByText('Profiles')).toBeInTheDocument()
-    expect(screen.getByText(/shared caches remain machine-level/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    expect(screen.getByRole('heading', { level: 3, name: 'Profiles' })).toBeInTheDocument()
+    expect(screen.getAllByText(/shared caches remain machine-level/)).toHaveLength(2)
   })
 
   it('marks onboarding complete on the last step', async () => {
     render(<OnboardingSplash />)
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
     fireEvent.click(screen.getByRole('button', { name: /get started/i }))
     await waitFor(() => {
       expect(useProfileStore.getState().globalOnboardingCompleted).toBe(true)
@@ -68,19 +68,19 @@ describe('OnboardingSplash', () => {
   it('uses accessible copy for the family-safe step', () => {
     render(<OnboardingSplash />)
     // Advance to Family Safe Mode step
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    expect(screen.getByText('Family Safe Mode')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    expect(screen.getByRole('heading', { level: 3, name: 'Family Safe Mode' })).toBeInTheDocument()
     // Accurate copy: master password gates FSM toggling (not generic settings protection).
-    expect(screen.getByText(/master password is required before Family Safe Mode/)).toBeInTheDocument()
+    expect(screen.getAllByText(/master password is required before Family Safe Mode/)).toHaveLength(2)
   })
 
   it('shows both Get Started and Create Profile CTAs on the last step', () => {
     render(<OnboardingSplash />)
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
     expect(screen.getByRole('button', { name: /get started/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /create profile/i })).toBeInTheDocument()
   })
@@ -89,9 +89,9 @@ describe('OnboardingSplash', () => {
   // not just land on Settings → API Keys as the default landing section.
   it('Create Profile opens Settings and requests the Profiles section', () => {
     render(<OnboardingSplash />)
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
-    fireEvent.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
     fireEvent.click(screen.getByRole('button', { name: /create profile/i }))
 
     expect(useProfileStore.getState().globalOnboardingCompleted).toBe(true)

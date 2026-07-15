@@ -4,6 +4,16 @@ export type BackgroundTaskStatus = 'idle' | 'queued' | 'processing' | 'completed
 
 export type BackgroundTaskType = 'video' | 'music' | 'image' | 'research' | 'document'
 
+/** Only these provider jobs expose durable queue retrieval endpoints. */
+export const PROVIDER_POLLED_BACKGROUND_TASK_TYPES = ['video', 'music'] as const
+export type ProviderPolledBackgroundTaskType = typeof PROVIDER_POLLED_BACKGROUND_TASK_TYPES[number]
+
+export function isProviderPolledBackgroundTaskType(
+  type: BackgroundTaskType,
+): type is ProviderPolledBackgroundTaskType {
+  return PROVIDER_POLLED_BACKGROUND_TASK_TYPES.includes(type as ProviderPolledBackgroundTaskType)
+}
+
 export interface BackgroundTask {
   id: string
   type: BackgroundTaskType

@@ -4,6 +4,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useChat } from '../../hooks/use-chat'
 import { toast } from '../../stores/toast-store'
+import { ModelInfo } from '../../types/venice'
 import { DEFAULT_CHAT_MODEL, modelSupportsVision } from '../../constants/venice'
 import { resolveDefaultChatModel } from '../../services/defaultModelResolver'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
@@ -22,6 +23,7 @@ import { getBalancedPromptStarters } from '../../services/promptStarterService'
 import { askDecision } from '../ui/modal-requests'
 import type { PromptStarter } from '../../data/promptStarters'
 import type { MemoryFact, ConversationRecordV1 } from '../../types/conversationVault'
+import { calculateChatContextBudget } from '../../services/chatContextBudget'
 import type { Conversation } from '../../types/conversation'
 import type { ChatMemoryDecision } from '../../hooks/use-chat'
 import { buildChatPayloadContext, buildPriorConversationContextText } from '../../utils/chatPayloadContext'
@@ -263,21 +265,21 @@ export function ChatView() {
   const conversationId = conversation?.id
   const isCharacterBound = Boolean(conversation?.metadata?.character)
   const messageCount = conversation?.messages.length ?? 0
-  
+
   // For character-bound conversations with no messages, show the character's firstMessage as initial assistant message
   const cards = useCharacterCardStore((s) => s.cards)
   const hostedCharacters = useCharacterStore((s) => s.results)
   const fetchHostedCharacter = useCharacterStore((s) => s.fetchBySlug)
   const firstCharacterMessage = useMemo(() => {
     if (!isCharacterBound || messageCount > 0 || !conversation?.metadata?.character) return null
-    
+
     // For local characters, we need to look up the actual card data
     const characterMeta = conversation.metadata.character
     if ('localCharacterId' in characterMeta && characterMeta.localCharacterId) {
       const card = cards.find(c => c.id === characterMeta.localCharacterId)
       return card?.firstMessage || null
     }
-    
+
     return hostedCharacters.find((item) => item.slug === characterMeta.slug)?.greeting || null
   }, [isCharacterBound, messageCount, conversation?.metadata?.character, cards, hostedCharacters])
 
@@ -539,7 +541,7 @@ export function ChatView() {
           </>
         )}
       </div>
-      
+
       {pendingContext && (
         <div aria-live="polite" className="border-t border-border/50 bg-surface-elevated p-4 flex flex-col gap-3 max-w-[960px] mx-auto w-full rounded-t-xl shadow-lg transition-all duration-200">
           <div className="flex items-center justify-between">
@@ -679,19 +681,72 @@ export function ChatView() {
         disableImageAttach={!visionSupported}
         visionUnsupportedModelId={model}
         memoryStatus={effectiveMemoryStatus}
-        settingsControl={(
-          <PriorConversationContextSelector
-            includePriorContext={includePriorContext}
-            onIncludeChange={setIncludePriorContext}
-            conversations={availablePriorConversations}
-            selectedIds={selectedPriorConversationIds}
-            onSelectedIdsChange={setSelectedPriorConversationIds}
-            activeConversation={conversation}
-          />
+        settingsControl={(draftText: string) => (
+          <div className="flex items-center gap-4">
+            <ChatContextMeter conversation={conversation} modelInfo={liveModelRecord} draftText={draftText} />
+            <PriorConversationContextSelector
+              includePriorContext={includePriorContext}
+              onIncludeChange={setIncludePriorContext}
+              conversations={availablePriorConversations}
+              selectedIds={selectedPriorConversationIds}
+              onSelectedIdsChange={setSelectedPriorConversationIds}
+              activeConversation={conversation}
+            />
+          </div>
         )}
       />
     </div>
   )
+}
+
+function ChatContextMeter({ conversation, modelInfo, draftText }: { conversation?: Conversation; modelInfo?: ModelInfo; draftText?: string }) {
+  const globalSystemPrompt = useChatStore(s => s.systemPrompt);
+  const maxTokens = useChatStore(s => s.maxTokens);
+
+  if (!conversation || !modelInfo || !modelInfo.contextLength) return null;
+
+  const tempMessages = [...conversation.messages];
+  if (draftText && draftText.trim()) {
+    tempMessages.push({ id: 'draft', timestamp: Date.now(), role: 'user', content: draftText });
+  }
+
+  const mode = conversation.metadata?.systemPromptMode ?? "inherit";
+  const characterSystemPrompt = conversation.metadata?.character?.systemPrompt;
+  const systemSegments: string[] = [];
+
+  if (mode === "override") {
+    if (conversation.systemPrompt) systemSegments.push(conversation.systemPrompt.trim());
+  } else if (mode === "inherit") {
+    if (conversation.metadata?.character) {
+      if (conversation.systemPrompt) systemSegments.push(conversation.systemPrompt.trim());
+      else if (characterSystemPrompt) systemSegments.push(characterSystemPrompt.trim());
+    } else {
+      if (conversation.systemPrompt) systemSegments.push(conversation.systemPrompt.trim());
+      else if (globalSystemPrompt) systemSegments.push(globalSystemPrompt.trim());
+    }
+  }
+
+  const effectiveSystemPrompt = systemSegments.filter(Boolean).join("\n\n");
+  const budget = calculateChatContextBudget(tempMessages, effectiveSystemPrompt, modelInfo, maxTokens);
+
+  const percent = Math.min(100, Math.max(0, Math.round(budget.percentUsed * 100)));
+  const colorClass = percent > 90 ? 'bg-danger' : percent > 75 ? 'text-accent bg-accent' : 'bg-success';
+  const tokens = Math.round(budget.totalEstimatedInput);
+
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (barRef.current) barRef.current.style.width = `${percent}%`;
+  }, [percent]);
+
+  return (
+    <div className="flex items-center gap-2 text-[11px] text-text-muted cursor-help" title={`~${tokens.toLocaleString()} / ${modelInfo.contextLength.toLocaleString()} tokens`}>
+      <span>Context</span>
+      <div className="h-1.5 w-16 bg-border rounded-full overflow-hidden flex">
+        <div ref={barRef} className={`h-full ${colorClass}`} />
+      </div>
+      <span>{percent}%</span>
+    </div>
+  );
 }
 
 function PriorConversationContextSelector({
@@ -710,8 +765,10 @@ function PriorConversationContextSelector({
   activeConversation?: Conversation;
 }) {
   const setConversationMemoryEnabled = useChatStore((s) => s.setConversationMemoryEnabled)
+  const setConversationSystemPromptMode = useChatStore((s) => s.setConversationSystemPromptMode)
   const { resetMemoryPreview } = useChat()
   const memoryEnabled = activeConversation?.metadata?.memoryRetrievalEnabled === true
+  const systemPromptMode = activeConversation?.metadata?.systemPromptMode || 'inherit'
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -749,6 +806,22 @@ function PriorConversationContextSelector({
       {open && (
       <div role="dialog" aria-label="Chat context" className="absolute bottom-full left-0 z-30 mb-2 w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface-elevated px-3 py-3 shadow-xl">
         <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-text-muted">Chat context</div>
+
+        {activeConversation && (
+          <div className="mb-4">
+            <label className="text-[12px] text-text-secondary block mb-1">System Prompt Mode</label>
+            <select
+              value={systemPromptMode}
+              onChange={(e) => setConversationSystemPromptMode(activeConversation.id, e.target.value as 'inherit' | 'override' | 'disabled')}
+              className="w-full bg-surface border border-border rounded px-2 py-1.5 text-[13px] text-text-primary outline-none focus:border-accent"
+            >
+              <option value="inherit">Inherit from Default Settings</option>
+              <option value="override">Override (Use Chat Settings)</option>
+              <option value="disabled">Disabled</option>
+            </select>
+          </div>
+        )}
+
         {activeConversation && (
           <label className="mb-2 flex items-center justify-between gap-3 text-[13px] text-text-primary">
             <span>Include memory retrieval for this chat</span>

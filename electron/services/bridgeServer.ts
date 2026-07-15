@@ -341,6 +341,7 @@ export function startBridgeServer(
                       finish_reason: null,
                     },
                   ],
+                  usage: chunk.usage,
                 };
                 try {
                   res.write(`data: ${JSON.stringify(sseChunk)}\n\n`);

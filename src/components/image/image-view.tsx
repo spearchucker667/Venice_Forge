@@ -31,7 +31,7 @@ import {
 } from '../../utils/payloadBuilders'
 import { useConfigStore } from '../../stores/config-store'
 import { useImageWorkspaceStore, type ImageGenerateHandoff } from '../../stores/image-workspace-store'
-import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
+
 import { DEFAULT_IMAGE_MODEL } from '../../constants/venice'
 
 
@@ -850,29 +850,14 @@ export function ImageView() {
       )}
       {images.length === 0 ? (
         <div className="flex items-center justify-center h-full">
-          {mutation.isPending ? (
-            <GenerationLoadingIndicator 
-              state="generating"
-              label="Generating image…"
-            />
-          ) : (
-            <ExamplePrompts
-              items={starters}
-              onPick={setPromptClamped}
-              onShuffle={() => setStarters(getPromptStartersForCategory('image', 4))}
-            />
-          )}
+          <ExamplePrompts
+            items={starters}
+            onPick={setPromptClamped}
+            onShuffle={() => setStarters(getPromptStartersForCategory('image', 4))}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-          {mutation.isPending && (
-            <div className="col-span-full flex justify-center py-12">
-              <GenerationLoadingIndicator 
-                state="generating"
-                label="Generating variants…"
-              />
-            </div>
-          )}
           {images.map((img, i) => (
             <div key={img} className="relative group">
               <button type="button" onClick={(event) => { event.currentTarget.focus(); setSelectedImage(img) }} aria-label={`Open generated image ${i + 1}`} className="block w-full rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">

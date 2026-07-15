@@ -6,13 +6,15 @@
  */
 
 import { veniceStreamChat } from "../services/veniceClient";
+import { compileChatPrompt } from "../services/chatPromptCompiler";
 import { useChatStore } from "./chat-store";
 import { useCharacterStore } from "./character-store";
 import { useSettingsStore } from "./settings-store";
 import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
-import type { ChatMessage, ContentPart, VeniceParameters } from "../types/venice";
+import type { ChatMessage, VeniceParameters } from "../types/venice";
 import type { Conversation } from "../types/conversation";
 import * as logger from "../shared/logger";
+import { getModelById } from "../services/modelService";
 
 /** Safe, non-disclosing error text appended to assistant messages when a
  *  chat stream fails. Never include raw exception text, paths, or secrets. */
@@ -60,55 +62,22 @@ export function resolveCharacterSlug(conv: Conversation | undefined): string | n
   return null;
 }
 
-function prependInjectedContext(
-  content: string | ContentPart[],
-  injectedContext?: string,
-): string | ContentPart[] {
-  if (!injectedContext?.trim()) return content;
-
-  if (typeof content === "string") {
-    return `${injectedContext.trim()}\n\n${content}`;
-  }
-
-  const textPartIndex = content.findIndex((part) => part.type === "text");
-  if (textPartIndex === -1) {
-    return [{ type: "text", text: injectedContext.trim() }, ...content];
-  }
-
-  return content.map((part, index) =>
-    index === textPartIndex && part.type === "text"
-      ? { ...part, text: `${injectedContext.trim()}\n\n${part.text}` }
-      : part,
-  );
-}
-
 function buildStreamBody(convId: string, model: string): Record<string, unknown> {
   const state = useChatStore.getState();
   const conv = state.conversations.find((c) => c.id === convId);
   if (!conv) throw new Error(`Conversation ${convId} not found`);
 
-  const requestMessages: ChatMessage[] = conv.messages
-    .filter((m) => m.content !== "")
-    .map((m) => {
-      const content =
-        m.role === "user"
-          ? prependInjectedContext(m.content, m.metadata?.injectedContext)
-          : m.content;
-      return { role: m.role, content };
-    });
+  const modelInfo = getModelById(model);
+  const compiled = compileChatPrompt(
+    conv as unknown as Conversation,
+    state.systemPrompt,
+    modelInfo,
+    state.maxTokens
+  );
 
-  const characterSlug = resolveCharacterSlug(conv);
-  const isHostedCharacter = !!characterSlug;
+  const requestMessages = compiled.messages as ChatMessage[];
 
-  const characterSystemPrompt = conv.metadata?.character?.systemPrompt;
-  const effectiveSystemPrompt = conv.metadata?.character
-    ? (conv.systemPrompt ?? characterSystemPrompt ?? "").trim()
-    : (conv.systemPrompt ?? state.systemPrompt).trim();
-  
-  // Do not send fabricated instructions for hosted characters; only send character_slug.
-  if (effectiveSystemPrompt && !isHostedCharacter) {
-    requestMessages.unshift({ role: "system", content: effectiveSystemPrompt });
-  }
+  const characterSlug = resolveCharacterSlug(conv as unknown as Conversation);
   const veniceParamsForRequest: VeniceParameters = { ...state.veniceParams };
   if (characterSlug) {
     veniceParamsForRequest.character_slug = characterSlug;
@@ -131,6 +100,7 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     model,
     messages: requestMessages,
     stream: true,
+    stream_options: { include_usage: true },
     temperature: state.temperature,
     top_p: state.topP,
     max_tokens: state.maxTokens,
@@ -225,20 +195,33 @@ export async function startStream(
         const body = buildStreamBody(convId, model);
         await veniceStreamChat(body, {
           signal: controller.signal,
-          onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => {
+          onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => {
             if (chunk.content) {
               useChatStore.getState().appendToLastAssistant(convId, chunk.content);
             }
             if (chunk.reasoning) {
               useChatStore.getState().appendReasoningToLastAssistant(convId, chunk.reasoning);
             }
-            if (chunk.providerRequestId) {
+            if (chunk.providerRequestId || chunk.usage) {
               const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
               if (conv) {
                 const lastIdx = conv.messages.length - 1;
                 const msg = conv.messages[lastIdx];
-                if (msg && msg.role === "assistant" && msg.metadata?.providerRequestId !== chunk.providerRequestId) {
-                  useChatStore.getState().setMessageMetadata(convId, lastIdx, { providerRequestId: chunk.providerRequestId });
+                if (msg && msg.role === "assistant") {
+                  const updates: Record<string, unknown> = {};
+                  if (chunk.providerRequestId && msg.metadata?.providerRequestId !== chunk.providerRequestId) {
+                    updates.providerRequestId = chunk.providerRequestId;
+                  }
+                  if (chunk.usage) {
+                    updates.usage = {
+                      promptTokens: chunk.usage.prompt_tokens,
+                      completionTokens: chunk.usage.completion_tokens,
+                      totalTokens: chunk.usage.total_tokens,
+                    };
+                  }
+                  if (Object.keys(updates).length > 0) {
+                    useChatStore.getState().setMessageMetadata(convId, lastIdx, updates);
+                  }
                 }
               }
             }

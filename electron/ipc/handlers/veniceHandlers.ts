@@ -83,6 +83,7 @@ export function registerVeniceHandlers(): void {
             delta: chunk.content,
             reasoning: chunk.reasoning,
             providerRequestId: chunk.providerRequestId,
+            usage: chunk.usage,
           });
         },
       });

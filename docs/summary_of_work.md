@@ -5,23 +5,22 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-15
-**Scope:** Close every remaining confirmed July 14 scan issue (`VF-SCAN-20260715-002` through `004`).
+**Scope:** Remediation and evidence closure for the supplied 2,719-item intended-feature verification checklist.
 
-- Added authenticated, self-describing manual-backup manifest version 3 as `VERIFY-124`. The encrypted payload now authenticates the exact outer metadata, including app/export/source/crypto identifiers, per-store and total counts, tombstones, embedded blobs, explicit exclusions, media inclusion, profile reference, and a canonical SHA-256 payload digest.
-- Preserved version-2 import compatibility. Version-3 imports verify outer/inner metadata equality, payload digest, counts, and profile binding after decryption and before mutation; the import plan surfaces authenticated metadata, legacy status, and structured compatibility/media/exclusion warnings.
-- Kept desktop Argon2id/XChaCha20-Poly1305 and browser PBKDF2/AES-256-GCM paths explicit, and updated the export-format and backup/sync documentation to describe the implemented version-3 envelope rather than aspirational fields.
-- Closed provider/sync scope as `VERIFY-125`: Replicate, AWS Bedrock, Google Vertex, Azure OpenAI, Hugging Face, and Cohere remain deliberately deferred, cannot accept credentials or fallback traffic, and are excluded from the advertised available-provider set. Direct WebDAV/S3 sync and scheduled key rotation are also documented as unavailable instead of implied release features.
-- Added behavioral provider contracts that require every advertised fallback to have a real adapter and model catalog while the exact deferred set stays fail-closed with empty catalogs.
-- Completed a clean Node 22 dependency and release validation matrix. `npm ci` installed 866 packages, `npm audit` reported zero vulnerabilities, and the segmented correctness suite passed all 3,790 tests.
-- The first post-change bundle gate exposed a 602.42 KiB main entry. The manifest helper split alone shifted the graph to 602.60 KiB; moving the immutable prompt catalog to its own deterministic chunk reduced the main entry to 574.31 KiB without relaxing the 600 KiB budget.
-- Removed all closed scan tasks from the current-only roadmap. Manual packaged-app QA remains separate release evidence, not an unresolved code issue.
-- Published the tranche to `main`. Hosted CI on `b94216d` exposed a Windows-only test defect: NTFS reports synthetic mode bits, so the recovery test incorrectly compared them with POSIX `0o600`. The test now always verifies a real file and checks `0o600` only where POSIX modes are enforceable. Replacement commit `53e79c4` passed all nine CI jobs and CodeQL (10/10 check runs successful).
+- Froze repository identity at lowercase `main`, commit `4f47b26830139ad21dc2b5d838e070eccffb5057`, version `2.1.2`, canonical remote, and the supported Node 22 engine. The default shell remains unsupported Node 26.5.0; validation used Node 22.13.1.
+- Retained and updated `docs/reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md`; every supplied checkbox still inherits an explicit top-level status without converting source/test presence into packaged runtime proof.
+- Closed `VF-VERIFY-001`: removed the image-model explicit `any`, used canonical model metadata typing, corrected the UUID-shaped command-palette spy, removed trailing whitespace, and restored zero-warning lint, both TypeScript pipelines and `git diff --check`.
+- Closed `VF-VERIFY-002`: made the mandatory legal copy internally scrollable with a fixed action footer and sequenced legal, onboarding and API-key dialogs so only one modal can be active. Focused tests pass. Rendered checks at 1280×720 and 390×844 each showed one dialog, visible consent and scrollable detail with no runtime errors. The age confirmation was not activated during automation.
+- Closed `VF-VERIFY-003`: defined video/music as the only provider-polled background types; image/research/document remain initiating-request journals. Renderer and main-process retry paths now fail closed for synchronous types, and Task Center omits their invalid Retry action.
+- Closed `VF-VERIFY-004`: removed the competing notification store and routed the compatibility service plus UI through one canonical Zustand store. Added semantic severity tokens, dedupe, bounded transient concurrency, timer cleanup, hover/focus pause/resume, responsive viewport layout, progressbar semantics, legacy action support and focused store/UI tests.
+- Closed `VF-VERIFY-006`: corrected agent guidance from `MAIN` to `main`, reconciled the report/roadmap/summary to commands actually run, and kept static verifier success distinct from runtime/package proof.
+- Wired root onboarding and notification tests into `test:ui:layout`; the authoritative Node 22 `npm run ci` passes through lint, both typechecks, 3,821 segmented tests, zero-vulnerability audit, production build, all contracts and build-output verification.
+- Built and verified the safe local part of `VF-VERIFY-005`: unsigned Apple-silicon DMG/ZIP artifacts, blockmaps, update metadata and six SHA-256 checks all pass. Signing was explicitly skipped because the builder identity is null.
+- Kept `VF-VERIFY-005` open: no API credentials, paid operations, signed/notarized installer, Windows machine, two-device sync setup, screen reader or exact-dirty-commit hosted checks were available. Direct WebDAV/S3 sync, live key rotation and six providers remain explicitly deferred.
 
 ## Open TODO Ledger
 
-No open implementation items from the July 14 scan. Manual packaged-app QA remains separate release evidence.
-
-Detailed acceptance criteria and dependency order remain canonical in `docs/ROADMAP.md`.
+Open work is authoritative in `docs/ROADMAP.md`: only `VF-VERIFY-005` remains. It requires exact-commit packaged, paid-operation, cross-platform, multi-device and accessibility evidence before a release-complete claim.
 
 ## Validation Matrix
 
@@ -29,27 +28,35 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 
 | Command | Result | Evidence |
 |---|---|---|
-| `npm ci` | PASS | Node 22.13.1 / npm 10.9.2; 866 packages installed from the lockfile |
-| `npm audit` | PASS | Zero vulnerabilities |
-| `npm run lint:eslint` | PASS | Zero warnings enforced (`--max-warnings=0`) |
-| `npm run typecheck` | PASS | Renderer and Electron TypeScript pipelines compile cleanly |
-| `npm run test:ci` | PASS | 3,790 tests across server, Electron, ingestion, stores, services, hooks, lib, shared, utils, theme, scripts, types, UI, and contracts |
-| `npx vitest run src/services/backupManifest.test.ts src/services/backupImportPreparation.test.ts src/services/backupImportService.test.ts src/services/backupExportService.test.ts tests/backup/cross-runtime-backup.test.ts src/components/settings/DataStoragePanel.test.tsx electron/services/replaceImportRecovery.test.ts electron/ipc/handlers/syncHandlers.profile.test.ts --fileParallelism=false` | PASS | 8 files / 51 backup format, import preview, compatibility, recovery, and profile-authority tests |
-| `npx vitest run src/types/provider.test.ts src/services/providerRouter.test.ts scripts/verify-provider-adapters.test.ts electron/services/providerSettingsStore.test.ts --fileParallelism=false` | PASS | 4 files / 20 provider scope and fail-closed tests |
-| `npm run verify:provider-adapters` | PASS | 5 files / 36 credential, routing, payload, transport, and deferred-provider tests |
-| `npm run verify:contracts` | PASS | Full static, feature, backup/sync, provider, and release-packaging aggregate |
-| `npm run build` | PASS | Renderer, server, Electron main, and preload built successfully |
-| `npm run verify:dist` | PASS | Version 2.1.2 build outputs verified |
-| `npm run verify:icon` | PASS | ICO and ICNS assets verified |
-| `npm run verify:bundle-budget` | PASS | Main entry 574.31 KiB against the unchanged 600 KiB limit |
-| `npm run verify:archive-clean` | PASS | Archive exclusions and 1,124 tracked paths clean |
-| GitHub Actions CI run `29400983042` (`53e79c4`) | PASS | Coverage, macOS, lint/typecheck, contracts, Windows, segmented tests, build, and both packaged Electron smoke jobs passed |
-| GitHub Actions CodeQL run `29400983046` (`53e79c4`) | PASS | JavaScript and TypeScript analysis passed |
-
-The default shell initially exposed Node 26.5.0 and npm 11.17.0; its `npm ci` completed with an engine warning but is not treated as authoritative. All matrix results above used the pinned Node 22.13.1 runtime. The initial version-3 TDD run failed because the manifest module and preview UI did not yet exist. The first release gate then failed on a stale 602.42 KiB bundle, and the first rebuild remained over budget at 602.60 KiB after the manifest-only split. The final prompt-catalog split passed at 574.31 KiB; no budget was raised.
+| Root/bootstrap identity checks | PASS | Exact root, Electron layout, lowercase `main`, commit, version, remote, engines, tracked/untracked/ignored counts and dirty state recorded. |
+| Initial `npm run ci` / independent typecheck under Node 22.13.1 | FAIL, superseded | Exposed the image-tools explicit `any` and UUID-shaped test return mismatch that were fixed in this session. |
+| Final `npm run ci` under Node 22.13.1 | PASS | Zero-warning lint; renderer/Electron typecheck; 3,821 segmented tests; zero-vulnerability audit; production build; aggregate contracts; build-output verification. |
+| Focused remediation suite | PASS | 95 onboarding/image/command/task/toast regressions, 18 notification store/UI tests, and the expanded 92-test layout segment passed. |
+| `npm audit --audit-level=moderate` | PASS | Zero vulnerabilities. |
+| `npm run build` | PASS | Renderer, server, Electron main and preload outputs built. |
+| `npm run verify:contracts` | PASS | Static, feature, backup/sync, provider and release-packaging aggregates passed. Static contract success is not treated as runtime proof. |
+| `npm run verify:dist` | PASS | Version 2.1.2 build outputs verified; this does not verify installer artifacts under `release/`. |
+| `npm run dist:mac:arm64` | PASS with signing caveat | Built unsigned Apple-silicon DMG/ZIP, blockmaps and update metadata; signing explicitly skipped because identity is null; checksum files generated. |
+| `npm run verify:dist:mac -- --arch arm64` | PASS | DMG, ZIP, update metadata and both blockmaps verified. |
+| `shasum -a 256 -c *.sha256` from `release/` | PASS after cwd correction | All six checksum files verified. The first invocation from the repository root failed because checksum entries are artifact-relative; rerunning from `release/` passed. |
+| `npm run smoke:electron` | SKIPPED | One smoke test was discovered and skipped by the environment; no headed Electron runtime claim is made. |
+| `npm run verify:theme-tokens` | PASS | Notification UI uses semantic success/warning/error tones; 153 themeable files passed. |
+| Browser smoke: `http://localhost:5173/` at 1280×720 | PASS for pre-consent layout | One dialog; consent bounds y=635..679 within 720px viewport; legal detail scrollable. |
+| Browser smoke: `http://localhost:5173/` at 390×844 | PASS for pre-consent layout | One dialog; dialog and consent within viewport; legal detail scrollable. Post-consent click-through was not performed. |
+| GitHub check-runs for `4f47b268` | PASS | 10/10: lint/typecheck, tests, contracts, build, coverage, macOS/Windows sensitive tests, both packaged smoke jobs and CodeQL. Dirty worktree changes are not represented. |
+| `npm run verify:markdown-links` | PASS | 76 tracked Markdown files checked; current report links resolve. |
+| `npm run verify:roadmap-current` | PASS | Roadmap contains current work only. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene contract remains green. |
+| `git diff --check` | PASS | No whitespace errors remain. |
 
 ## Session History
 
+- **2026-07-15 — Intended-feature remediation closure:** Closed local findings `VF-VERIFY-001`–`004` and `006`; restored lint/type/diff gates; repaired first-run modal sequencing and desktop/mobile reachability; narrowed background-task polling to durable provider queues; unified and hardened notifications; added segmented CI ownership for new UI tests; passed 3,821-test Node 22 CI; built/verified checksummed unsigned Apple-silicon DMG/ZIP artifacts; and left signed/paid/cross-platform/manual evidence (`VF-VERIFY-005`) open.
+- **2026-07-15 — Evidence-backed intended-feature verification:** Reconciled all 2,719 supplied checklist rows through explicit status inheritance; found broken lint/typecheck, first-run viewport/modal defects, incomplete background-task coverage, notification evidence gaps and absent current packaged/manual proof; created and indexed the current verification report; reopened `VF-VERIFY-001` through `006`; passed 3,790 tests/build/contracts/dist/audit while recording the failing gates and runtime smoke honestly.
+- **2026-07-15 — Earlier feature-verification claim (superseded):** An earlier dirty-tree entry claimed 100% implementation and a local `feature_verification_report.md`. The named report was not present and the live rerun disproved the completion claim; use the current report and roadmap instead.
+- **2026-07-15 — Earlier context/model UI work (current validation supersedes):** Added draft token-budget UI and model-fidelity presentation in the dirty worktree. The current rerun finds lint/typecheck failures, so the earlier clean-gate statement is not current evidence.
+- **2026-07-15 — Earlier notification migration work (unfinished):** Added a custom Zustand notification service/components and migrated selected generation/context progress. The implementation is not Radix-backed, remains partly untracked, and needs the tests/semantic-token/timer work recorded as `VF-VERIFY-004`.
+- **2026-07-15 — Earlier prompt/UI refactor (current validation supersedes):** Added `chatPromptCompiler.ts`, `mesh-surface`, and `soft-separator` work in the dirty tree. The current validation matrix is authoritative for gate status.
 - **2026-07-15 — Main publish and hosted CI closure:** pushed the completed audit remediation; diagnosed the first hosted Windows failure as a non-portable POSIX-mode assertion; retained the security check on supporting filesystems; and confirmed replacement commit `53e79c4` with 10/10 successful GitHub check runs, including CI, platform tests/builds, packaged smoke tests, coverage, and CodeQL.
 - **2026-07-15 — Remaining July 14 scan closure (`VERIFY-124`–`VERIFY-125`):** shipped authenticated manual-backup manifest v3 with version-2 compatibility and verified import previews; made the six deferred providers and unavailable WebDAV/S3/key-rotation scope fail closed and release-truthful; completed clean Node 22 dependency/audit/lint/type/test/contracts/build/dist/icon/bundle/archive validation; fixed the exposed bundle regression without raising its limit; and closed `VF-SCAN-20260715-002` through `004`.
 - **2026-07-15 — Transactional replace-import recovery (`VERIFY-123`):** fully staged and validated incoming backups before mutation; added profile-bound durable encrypted recovery, coordinated IndexedDB/main-store clearing, automatic rollback, one-click retained recovery, desktop-only Replace All, and failure-injection/profile-authority/permission coverage; removed closed `VF-SCAN-20260715-001` from the current-only roadmap; fixed two order-dependent test baselines; passed lint, typecheck, 3,782 segmented tests, aggregate contracts, and production build.

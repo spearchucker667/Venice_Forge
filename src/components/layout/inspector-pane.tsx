@@ -245,7 +245,7 @@ export function InspectorPane() {
                   key={log.id}
                   onClick={() => setSelectedLogId(log.id)}
                   className={cn(
-                    'text-left p-2.5 border-b border-border/40 transition-colors w-full cursor-pointer flex flex-col gap-0.5',
+                    'text-left p-2.5 soft-separator-y transition-colors w-full cursor-pointer flex flex-col gap-0.5',
                     isSelected
                       ? 'bg-accent/10 text-accent font-medium'
                       : 'hover:bg-surface-elevated/40 text-text-secondary',
@@ -292,7 +292,7 @@ export function InspectorPane() {
         <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-w-0">
           {selectedLog ? (
             <div className="space-y-4 text-[12px] min-w-0">
-              <div className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono select-all text-[12px] space-y-0.5">
+              <div className="p-2 soft-panel mesh-surface-elevated/40 rounded-md font-mono select-all text-[12px] space-y-0.5">
                 <div>
                   <span className="text-text-muted font-bold">Time:</span>{' '}
                   {new Date(selectedLog.timestamp).toLocaleTimeString()}
@@ -485,7 +485,7 @@ export function InspectorPane() {
                 <span className="font-semibold text-text-secondary select-none">
                   Request Headers
                 </span>
-                <pre className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-36">
+                <pre className="p-2 soft-panel mesh-surface-elevated/40 rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-36">
                   {JSON.stringify(selectedLog.requestHeaders, null, 2)}
                 </pre>
               </div>
@@ -494,7 +494,7 @@ export function InspectorPane() {
                 <span className="font-semibold text-text-secondary select-none">
                   Request Body
                 </span>
-                <pre className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-48">
+                <pre className="p-2 soft-panel mesh-surface-elevated/40 rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-48">
                   {selectedLog.requestBody
                     ? JSON.stringify(selectedLog.requestBody, null, 2)
                     : '[Empty]'}
@@ -513,7 +513,7 @@ export function InspectorPane() {
                   <span className="font-semibold text-text-secondary select-none">
                     Response Body
                   </span>
-                  <pre className="p-2 bg-surface-elevated/40 border border-border rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-60">
+                  <pre className="p-2 soft-panel mesh-surface-elevated/40 rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-60">
                     {selectedLog.responseBody
                       ? JSON.stringify(selectedLog.responseBody, null, 2)
                       : '[Pending or Empty]'}

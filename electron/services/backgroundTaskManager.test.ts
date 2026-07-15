@@ -263,6 +263,16 @@ describe("backgroundTaskManager", () => {
     vi.useRealTimers();
   });
 
+  it("does not move synchronous tasks into an unowned retry queue", async () => {
+    const task = await createBackgroundTaskInMain({ type: "image", queueId: "sync-request", profileId: "p1" });
+    await updateBackgroundTaskInMain(task.id, { status: "failed", error: "request failed" });
+
+    const retried = await retryBackgroundTaskInMain(task.id);
+
+    expect(retried).toMatchObject({ status: "failed", error: "request failed" });
+    expect(performVeniceRequest).not.toHaveBeenCalled();
+  });
+
   it("redacts secrets in metadata before persisting", async () => {
     await createBackgroundTaskInMain({
       type: "video",

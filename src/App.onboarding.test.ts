@@ -10,7 +10,8 @@ describe('App.tsx onboarding splash wiring', () => {
     expect(source).toMatch(/import \{ OnboardingSplash \} from ['"]\.\/components\/OnboardingSplash['"]/)
   })
 
-  it('renders OnboardingSplash only after the first-run modal is acknowledged', () => {
-    expect(source).toMatch(/\{firstRunAcked && <OnboardingSplash \/>\}/)
+  it('renders exactly one onboarding gate at a time', () => {
+    expect(source).toMatch(/open=\{apiKeyOpen && firstRunAcked && globalOnboardingCompleted\}/)
+    expect(source).toMatch(/\{firstRunAcked && !globalOnboardingCompleted && <OnboardingSplash \/>\}/)
   })
 })

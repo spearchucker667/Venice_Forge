@@ -25,6 +25,14 @@ export interface ConversationMessage {
     injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed";
     providerRequestId?: string;
     sceneGeneration?: CharacterSceneGenerationResult;
+    usage?: {
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      estimated?: boolean;
+      contextLimit?: number;
+      contextPercent?: number;
+    };
   };
 }
 
@@ -69,6 +77,7 @@ export interface Conversation {
     memoryRetrievalEnabled?: boolean;
     includePriorConversationContext?: boolean;
     autoReadEnabled?: boolean;
+    systemPromptMode?: "inherit" | "override" | "disabled";
   };
   memory?: {
     summary: string;

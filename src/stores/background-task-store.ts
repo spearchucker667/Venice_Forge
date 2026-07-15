@@ -4,7 +4,12 @@ import { isElectron } from '../services/desktopBridge'
 import { desktopBackgroundTask } from '../services/desktopBridge'
 import { MUSIC_SAFE_ERROR_MESSAGES, toUserFacingMusicError, toUserFacingVideoError } from '../services/task-errors'
 import { normalizeVideoRetrieveResult } from '../services/video-retrieve-normalizer'
-import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope } from '../types/background-task'
+import {
+  isProviderPolledBackgroundTaskType,
+  type BackgroundTask,
+  type BackgroundTaskCreateInput,
+  type BackgroundTaskIpcEnvelope,
+} from '../types/background-task'
 import { getActiveProfileId } from '../services/activeProfile'
 import { buildAudioRetrieveRequest, buildVideoRetrieveRequest } from '../services/media-request-adapter'
 import { normalizeAudioRetrieveResponse } from '../services/audio-retrieve-normalizer'
@@ -165,7 +170,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
   cancelTask: (taskId) => {
     const task = get().tasks[taskId]
     if (!task) return
-    if (task.type === 'video' || task.type === 'music') {
+    if (isProviderPolledBackgroundTaskType(task.type)) {
       get().updateTask(taskId, {
         error: 'Provider cancellation is unavailable; generation is still running.',
         metadata: { ...task.metadata, cancellationUnsupported: true },
@@ -202,7 +207,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
 
   retryTask: (taskId) => {
     const task = get().tasks[taskId]
-    if (!task || !task.queueId) return
+    if (!task || !task.queueId || !isProviderPolledBackgroundTaskType(task.type)) return
     get().updateTask(taskId, { status: 'queued', error: undefined })
     if (isElectron()) {
       get().ensureDesktopSubscription()
@@ -219,8 +224,9 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
     const task = tasks[taskId]
     if (!task || !task.queueId) return
 
-    // Sync tasks don't need polling
-    if (task.type === 'image' || task.type === 'research' || task.type === 'document') return
+    // Image, research, and document work is owned and completed by the
+    // initiating request. Those task records are journals, not provider queues.
+    if (!isProviderPolledBackgroundTaskType(task.type)) return
 
     if (activePolls[taskId]) {
       clearInterval(activePolls[taskId])
@@ -358,7 +364,6 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
             schedule(POLL_INTERVAL_MS)
           }
         }
-        // TODO: implement image and research types if needed
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         const latestTask = get().tasks[taskId]

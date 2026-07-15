@@ -16,6 +16,10 @@ vi.mock("../services/veniceClient", () => ({
   veniceFetch: vi.fn(),
 }));
 
+vi.mock("../services/modelService", () => ({
+  getModelById: vi.fn().mockReturnValue({ contextLength: 2000000, maxOutputTokens: 4096 }),
+}));
+
 vi.mock("../stores/toast-store", () => ({
   toast: { warn: vi.fn(), error: vi.fn(), success: vi.fn(), info: vi.fn() },
 }));

@@ -15,7 +15,7 @@ interface ChatInputProps {
   disableImageAttach?: boolean
   visionUnsupportedModelId?: string
   memoryStatus?: ChatMemoryStatus
-  settingsControl?: ReactNode
+  settingsControl?: ReactNode | ((draft: string) => ReactNode)
 }
 
 const SUPPORTED_ATTACHMENT_ACCEPT = [
@@ -261,7 +261,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
                 </svg>
               </button>
               <MemoryStatusIndicator status={memoryStatus} />
-              {settingsControl}
+              {typeof settingsControl === 'function' ? settingsControl(value) : settingsControl}
             </div>
             {isStreaming ? (
               <button

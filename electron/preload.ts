@@ -44,11 +44,11 @@ const veniceForge = {
      *  @param onDelta Callback invoked for each streamed text delta.
      *  @returns A promise that settles when the stream ends or errors.
      */
-    streamChat(input: VeniceRequest, onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void) {
+    streamChat(input: VeniceRequest, onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => void) {
       const signalId = input.signalId || globalThis.crypto.randomUUID();
-      const listener = (_event: Electron.IpcRendererEvent, payload: { signalId: string; delta: string; reasoning?: string; providerRequestId?: string }) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: { signalId: string; delta: string; reasoning?: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => {
         if (payload.signalId === signalId && typeof payload.delta === "string") {
-          onDelta({ content: payload.delta, reasoning: payload.reasoning || "", providerRequestId: payload.providerRequestId });
+          onDelta({ content: payload.delta, reasoning: payload.reasoning || "", providerRequestId: payload.providerRequestId, usage: payload.usage });
         }
       };
       ipcRenderer.on("venice:streamDelta", listener);

@@ -1,6 +1,6 @@
 import { useBackgroundTaskStore } from '../stores/background-task-store'
 import { toast } from '../stores/toast-store'
-import { BackgroundTask } from '../types/background-task'
+import { isProviderPolledBackgroundTaskType, type BackgroundTask } from '../types/background-task'
 import { useSettingsStore } from '../stores/settings-store'
 
 /**
@@ -97,12 +97,12 @@ export function initBackgroundTaskToastBridge() {
             description: task.error || 'An error occurred.',
             persistent: true, // Phase 7: Keep failures persistent
             actions: [
-              {
+              ...(isProviderPolledBackgroundTaskType(task.type) ? [{
                 id: 'retry',
                 label: 'Retry',
-                kind: 'retry-task',
+                kind: 'retry-task' as const,
                 onClick: () => useBackgroundTaskStore.getState().retryTask(taskId)
-              },
+              }] : []),
               {
                 id: 'dismiss',
                 label: 'Dismiss',

@@ -27,13 +27,17 @@ const cacheStorage = {
 };
 
 /** localStorage key for the model cache. */
-const CACHE_KEY = "venice-forge-models-cache";
+const CACHE_KEY = "venice-forge-models-cache-v2";
 
 /** Cache time-to-live in milliseconds (5 minutes). */
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+/** Current schema version for the cache */
+const CACHE_SCHEMA_VERSION = 2;
+
 /** Shape of the persisted model cache entry. */
 interface ModelsCache {
+  schemaVersion: number;
   grouped: Record<string, ModelInfo[]>;
   fetchedAt: number;
   isStale?: boolean;
@@ -57,6 +61,7 @@ function readCache(): ModelsCache | null {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
     if (!isValidGroupedModels(parsed.grouped)) return null;
+    if (parsed.schemaVersion !== CACHE_SCHEMA_VERSION) return null;
     if (typeof parsed.fetchedAt !== "number" || !Number.isFinite(parsed.fetchedAt)) return null;
     const isStale = Date.now() - parsed.fetchedAt > CACHE_TTL_MS;
     return { ...parsed, grouped: parsed.grouped as Record<string, ModelInfo[]>, isStale };
@@ -71,7 +76,7 @@ function readCache(): ModelsCache | null {
  */
 function writeCache(grouped: Record<string, ModelInfo[]>): void {
   try {
-    cacheStorage.set(CACHE_KEY, JSON.stringify({ grouped, fetchedAt: Date.now() }));
+    cacheStorage.set(CACHE_KEY, JSON.stringify({ schemaVersion: CACHE_SCHEMA_VERSION, grouped, fetchedAt: Date.now() }));
   } catch (err) {
     warn("[modelService] Failed to cache models in browser storage:", err);
   }
@@ -121,4 +126,20 @@ export async function refreshModels(dispatch: AppDispatch, force = false): Promi
       });
     }
   }
+}
+
+/**
+ * Synchronously retrieves model metadata from the localStorage cache.
+ * @param modelId The ID of the model to look up.
+ * @returns The ModelInfo if found, or undefined.
+ */
+export function getModelById(modelId: string): ModelInfo | undefined {
+  const cached = readCache();
+  if (!cached) return undefined;
+
+  for (const group of Object.values(cached.grouped)) {
+    const found = group.find((m) => m.id === modelId);
+    if (found) return found;
+  }
+  return undefined;
 }

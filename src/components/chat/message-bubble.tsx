@@ -437,6 +437,15 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
               <ChatTtsPlayer messageId={index.toString()} text={content} />
             </Suspense>
           )}
+          {isAssistant && !!message.metadata?.usage && (
+            <div className="ml-auto flex items-center text-[10px] uppercase font-mono tracking-wider text-text-muted/60" title="Tokens used for this message">
+              <span className="hidden sm:inline">P:</span>{String((message.metadata.usage as { promptTokens?: number }).promptTokens || 0)}
+              <span className="mx-1">•</span>
+              <span className="hidden sm:inline">C:</span>{String((message.metadata.usage as { completionTokens?: number }).completionTokens || 0)}
+              <span className="mx-1">=</span>
+              <span className="font-semibold text-text-muted">{String((message.metadata.usage as { totalTokens?: number }).totalTokens || 0)}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

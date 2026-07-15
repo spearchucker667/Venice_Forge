@@ -344,7 +344,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   toast.error(msg)
                 }
               }}
-              className="text-[12px] normal-case tracking-normal border border-border rounded px-1.5 py-0.5 hover:bg-surface-elevated"
+              className="text-[12px] normal-case tracking-normal border border-transparent bg-surface-elevated rounded px-1.5 py-0.5 hover:border-text-muted"
               title="Create new project"
             >
               + New
@@ -357,7 +357,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               const id = e.currentTarget.value || null
               useProjectStore.getState().setActiveProject(id)
             }}
-            className="w-full text-[12.5px] rounded-md border border-border bg-bg/60 px-2 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="w-full text-[12.5px] rounded-md mesh-input px-2 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             aria-label="Active project"
             title="Switch active project"
           >
@@ -392,7 +392,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   await useProjectStore.getState().renameProject(activeProjectId, name)
                   toast.success('Project renamed')
                 }}
-                className="rounded border border-border px-1.5 py-0.5 hover:bg-surface-elevated"
+                className="rounded border border-transparent bg-surface-elevated px-1.5 py-0.5 hover:border-text-muted"
               >
                 Rename
               </button>
@@ -408,7 +408,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   await useProjectStore.getState().archiveProject(activeProjectId)
                   toast.success('Project archived')
                 }}
-                className="rounded border border-border px-1.5 py-0.5 hover:bg-surface-elevated"
+                className="rounded border border-transparent bg-surface-elevated px-1.5 py-0.5 hover:border-text-muted"
               >
                 Archive
               </button>
@@ -426,7 +426,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   if (ok) toast.success('Project deleted')
                   else toast.error('Project cannot be deleted while media or conversations reference it. Archive it instead.')
                 }}
-                className="rounded border border-border px-1.5 py-0.5 hover:bg-surface-elevated text-danger"
+                className="rounded border border-transparent bg-surface-elevated px-1.5 py-0.5 hover:border-text-muted text-danger"
               >
                 Delete
               </button>

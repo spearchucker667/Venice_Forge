@@ -117,10 +117,11 @@ interface ChatState {
   ) => { removed: ConversationMessage[]; retained: ConversationMessage[] } | null
   forkConversation: (conversationId: string, messageId: string) => string | null
   setConversationModel: (conversationId: string, model: string) => void
+  setConversationSystemPromptMode: (conversationId: string, mode: 'inherit' | 'override' | 'disabled') => void
+  setConversationMemoryEnabled: (conversationId: string, enabled: boolean) => void
   deleteMessage: (conversationId: string, index: number) => void
   setMessageMetadata: (conversationId: string, messageIndex: number, metadataPatch: Record<string, unknown>) => void
   updateConversationMetadata: (conversationId: string, metadataPatch: Record<string, unknown>) => void
-  setConversationMemoryEnabled: (conversationId: string, enabled: boolean) => void
   setStreaming: (streaming: boolean) => void
   setVeniceParams: (params: Partial<VeniceParameters>) => void
   setSystemPrompt: (prompt: string) => void
@@ -600,6 +601,26 @@ export const useChatStore = create<ChatState>()(
           }),
         })),
 
+      setConversationSystemPromptMode: (conversationId, mode) =>
+        set((state) => {
+          const index = state.conversations.findIndex((c) => c.id === conversationId);
+          if (index === -1) return state;
+          const conversations = [...state.conversations];
+          const c = conversations[index];
+          conversations[index] = {
+            ...c,
+            metadata: {
+              tags: c.metadata?.tags ?? [],
+              pinned: c.metadata?.pinned ?? false,
+              archived: c.metadata?.archived ?? false,
+              source: c.metadata?.source ?? 'chat',
+              messageCount: c.metadata?.messageCount ?? (c.messages?.length ?? 0),
+              ...c.metadata,
+              systemPromptMode: mode,
+            }
+          };
+          return { conversations };
+        }),
       setConversationMemoryEnabled: (conversationId, enabled) =>
         set((s) => ({
           conversations: s.conversations.map((c) => {

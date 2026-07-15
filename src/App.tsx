@@ -3,6 +3,7 @@ import { useSettingsStore, type Tab } from './stores/settings-store'
 import { useChatStore } from './stores/chat-store'
 import { useAuthStore } from './stores/auth-store'
 import { useConfigStore } from './stores/config-store'
+import { useProfileStore } from './stores/profile-store'
 import { useBackgroundTaskStore } from './stores/background-task-store'
 import { ensureProjectsLoaded } from './stores/project-store'
 import { desktopSync } from './services/desktopBridge'
@@ -170,12 +171,13 @@ export const TAB_ORDER: readonly TabId[] = CANONICAL_TAB_ORDER;
 
 export function App() {
   const needsUnlock = useAuthStore((s) => !s.isConfigured && !s.apiKey)
-  const [apiKeyOpen, setApiKeyOpen] = useState(needsUnlock)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   // LEGAL: show the 18+ age-gate on first launch. Persists via FIRST_RUN_ACK_KEY.
   const [firstRunAcked, setFirstRunAcked] = useState<boolean>(
     () => typeof window !== "undefined" && localStorage.getItem(FIRST_RUN_ACK_KEY) === "1" /* localStorage-allowed: first-run legal ack */
   )
+  const globalOnboardingCompleted = useProfileStore((s) => s.globalOnboardingCompleted)
+  const [apiKeyOpen, setApiKeyOpen] = useState(needsUnlock)
   // Phase 1 command palette (⌘K / Ctrl+K)
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false)
   const activeTab = useSettingsStore((s) => s.activeTab)
@@ -304,13 +306,16 @@ export function App() {
           <InspectorPane />
         </div>
       </div>
-      <ApiKeyDialog open={apiKeyOpen} onClose={() => setApiKeyOpen(false)} />
+      <ApiKeyDialog
+        open={apiKeyOpen && firstRunAcked && globalOnboardingCompleted}
+        onClose={() => setApiKeyOpen(false)}
+      />
       <FirstRunModal
         open={!firstRunAcked}
         onAcknowledge={acknowledgeFirstRun}
         onDismiss={() => { /* cannot dismiss the age gate; user must acknowledge */ }}
       />
-      {firstRunAcked && <OnboardingSplash />}
+      {firstRunAcked && !globalOnboardingCompleted && <OnboardingSplash />}
       <Toaster />
       <ModalRequestHost />
       <CommandPalette
