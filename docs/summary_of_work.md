@@ -15,6 +15,7 @@ This is the active handoff and validation ledger. The canonical current-work led
 - Completed a clean Node 22 dependency and release validation matrix. `npm ci` installed 866 packages, `npm audit` reported zero vulnerabilities, and the segmented correctness suite passed all 3,790 tests.
 - The first post-change bundle gate exposed a 602.42 KiB main entry. The manifest helper split alone shifted the graph to 602.60 KiB; moving the immutable prompt catalog to its own deterministic chunk reduced the main entry to 574.31 KiB without relaxing the 600 KiB budget.
 - Removed all closed scan tasks from the current-only roadmap. Manual packaged-app QA remains separate release evidence, not an unresolved code issue.
+- Published the tranche to `main`. Hosted CI on `b94216d` exposed a Windows-only test defect: NTFS reports synthetic mode bits, so the recovery test incorrectly compared them with POSIX `0o600`. The test now always verifies a real file and checks `0o600` only where POSIX modes are enforceable. Replacement commit `53e79c4` passed all nine CI jobs and CodeQL (10/10 check runs successful).
 
 ## Open TODO Ledger
 
@@ -42,11 +43,14 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 | `npm run verify:icon` | PASS | ICO and ICNS assets verified |
 | `npm run verify:bundle-budget` | PASS | Main entry 574.31 KiB against the unchanged 600 KiB limit |
 | `npm run verify:archive-clean` | PASS | Archive exclusions and 1,124 tracked paths clean |
+| GitHub Actions CI run `29400983042` (`53e79c4`) | PASS | Coverage, macOS, lint/typecheck, contracts, Windows, segmented tests, build, and both packaged Electron smoke jobs passed |
+| GitHub Actions CodeQL run `29400983046` (`53e79c4`) | PASS | JavaScript and TypeScript analysis passed |
 
 The default shell initially exposed Node 26.5.0 and npm 11.17.0; its `npm ci` completed with an engine warning but is not treated as authoritative. All matrix results above used the pinned Node 22.13.1 runtime. The initial version-3 TDD run failed because the manifest module and preview UI did not yet exist. The first release gate then failed on a stale 602.42 KiB bundle, and the first rebuild remained over budget at 602.60 KiB after the manifest-only split. The final prompt-catalog split passed at 574.31 KiB; no budget was raised.
 
 ## Session History
 
+- **2026-07-15 — Main publish and hosted CI closure:** pushed the completed audit remediation; diagnosed the first hosted Windows failure as a non-portable POSIX-mode assertion; retained the security check on supporting filesystems; and confirmed replacement commit `53e79c4` with 10/10 successful GitHub check runs, including CI, platform tests/builds, packaged smoke tests, coverage, and CodeQL.
 - **2026-07-15 — Remaining July 14 scan closure (`VERIFY-124`–`VERIFY-125`):** shipped authenticated manual-backup manifest v3 with version-2 compatibility and verified import previews; made the six deferred providers and unavailable WebDAV/S3/key-rotation scope fail closed and release-truthful; completed clean Node 22 dependency/audit/lint/type/test/contracts/build/dist/icon/bundle/archive validation; fixed the exposed bundle regression without raising its limit; and closed `VF-SCAN-20260715-002` through `004`.
 - **2026-07-15 — Transactional replace-import recovery (`VERIFY-123`):** fully staged and validated incoming backups before mutation; added profile-bound durable encrypted recovery, coordinated IndexedDB/main-store clearing, automatic rollback, one-click retained recovery, desktop-only Replace All, and failure-injection/profile-authority/permission coverage; removed closed `VF-SCAN-20260715-001` from the current-only roadmap; fixed two order-dependent test baselines; passed lint, typecheck, 3,782 segmented tests, aggregate contracts, and production build.
 - **2026-07-15 — July 14 ZIP-scan reconciliation + first audit tranche:** retained the supplied scan folder as tracked snapshot evidence; moved current task authority entirely to `docs/ROADMAP.md` after preserving the legacy audit-YAML deletion; verified that the archive-link, bundle-budget, sync-test-budget, and lint/Electron non-termination findings were superseded in the live tree; opened four proof-backed scan tranches for replace-import recovery, manifest/preview metadata, deferred provider/sync scope, and clean release revalidation; corrected current-vs-legacy backup crypto UI/docs; and passed lint, typecheck, full Electron tests, focused regressions, Markdown, bundle, backup/sync, roadmap, and aggregate contract validation.
