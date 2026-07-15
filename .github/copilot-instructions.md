@@ -11,8 +11,8 @@
 - Stack: Electron 42, React 19, TypeScript strict, Zustand, Vitest
 - Node: `>=22.13.0 <23.0.0`
 
-Do not use historical paths such as
-/Users/super_user/Projects/Venice_Forge. Before editing,
+Do not use historical repository names such as
+`Windows-Venice-API-connector`. Before editing,
 run the local-only repository-root bootstrap check in `AGENTS.md`. Never put
 that absolute-path assertion in CI.
 

@@ -21,6 +21,7 @@ import { useSettingsStore } from "../../stores/settings-store";
 import { DEFAULT_IMAGE_MODEL, FALLBACK_MODELS } from "../../constants/venice";
 import { buildImagePayload } from "../../utils/payloadBuilders";
 import { extractImages } from "../../utils/image";
+import { redactErrorMessage } from "../../shared/redaction";
 
 const STANDARD_FILTER = [
   { value: "standard", label: "Standard" },
@@ -138,8 +139,7 @@ export function CharacterLibrary({ onEdit }: Props) {
         },
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const raw = String((res.data as any).choices?.[0]?.message?.content ?? "");
+      const raw = extractChatMessageContent(res.data);
       const parsed = safeParseCharacterJson(raw);
       const validated = validateCreateMeResponse(parsed);
       if (!validated) {
@@ -232,8 +232,7 @@ export function CharacterLibrary({ onEdit }: Props) {
         onEdit(saved.id);
       }
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error(String((err as any).message || err));
+      toast.error(redactErrorMessage(err));
     } finally {
       setIsCreatingMe(false);
     }
@@ -503,6 +502,18 @@ export function CharacterLibrary({ onEdit }: Props) {
       </div>
     </div>
   );
+}
+
+function extractChatMessageContent(value: unknown): string {
+  if (!value || typeof value !== "object") return "";
+  const choices = (value as Record<string, unknown>).choices;
+  if (!Array.isArray(choices)) return "";
+  const first = choices[0];
+  if (!first || typeof first !== "object") return "";
+  const message = (first as Record<string, unknown>).message;
+  if (!message || typeof message !== "object") return "";
+  const content = (message as Record<string, unknown>).content;
+  return typeof content === "string" ? content : "";
 }
 
 function CardTile({

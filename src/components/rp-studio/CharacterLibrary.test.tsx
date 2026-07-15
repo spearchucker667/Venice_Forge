@@ -133,6 +133,25 @@ describe("CharacterLibrary — Create Me avatar-mandatory guard (RELEASE-BLOCKER
     expect(mocks.upsertMock).not.toHaveBeenCalled();
   });
 
+  it("redacts secrets and local paths from Create Me failures", async () => {
+    mocks.veniceFetchMock.mockRejectedValueOnce(
+      new Error("Bearer sensitive-token from /Users/example/private/config.json"),
+    );
+
+    render(<CharacterLibrary onEdit={vi.fn()} />);
+    fireEvent.change(screen.getByPlaceholderText("Auto-create prompt..."), {
+      target: { value: "Make me a captain" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /create me/i }));
+
+    await waitFor(() => expect(mocks.toastErrorMock).toHaveBeenCalledTimes(1));
+    const displayed = String(mocks.toastErrorMock.mock.calls[0]?.[0]);
+    expect(displayed).toContain("[REDACTED]");
+    expect(displayed).toContain("[REDACTED-PATH]");
+    expect(displayed).not.toContain("sensitive-token");
+    expect(displayed).not.toContain("/Users/example");
+  });
+
   it("does NOT call upsert when the model payload contains unknown keys (schema bloat)", async () => {
     const bloated = JSON.stringify({
       name: "X",

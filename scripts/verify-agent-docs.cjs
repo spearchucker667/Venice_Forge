@@ -12,6 +12,8 @@ const DOCS = [
 
 const THIN_POINTERS = ['CLAUDE.md', 'GEMINI.md', '.cursorrules', '.windsurfrules'];
 
+const CANONICAL_ROOT = '/Users/super_user/Projects/Venice_Forge';
+
 const VALIDATION_REGEX = /npm run lint:eslint[\s\S]*?npm run build/m;
 
 const STORAGE_GROUND_TRUTH = [
@@ -109,6 +111,18 @@ function verifyAgentDocs(repoRoot) {
 
     if (!content.includes('docs/summary_of_work.md')) {
       errorSet.add(`ERROR: ${doc} does not contain the required string 'docs/summary_of_work.md'.`);
+    }
+
+    const forbidsCanonicalRoot = new RegExp(
+      `(?:do not use|historical paths?)[\\s\\S]{0,100}${CANONICAL_ROOT.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}`,
+      'i',
+    ).test(content);
+    if (forbidsCanonicalRoot) {
+      errorSet.add(`ERROR: ${doc} contradicts the canonical repository root by telling agents not to use it.`);
+    }
+
+    if (/CodeQL is configured through GitHub(?:'s)? default setup/i.test(content)) {
+      errorSet.add(`ERROR: ${doc} describes stale CodeQL default setup; reference .github/workflows/codeql.yml.`);
     }
 
     // No references to absent docs/TODO.md or root CHANGELOG.md

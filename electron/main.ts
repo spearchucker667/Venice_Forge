@@ -23,6 +23,7 @@ import { isValidBridgeHost } from "./utils/bridgeHost";
 import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
 import { setupResearchBrowserIpc } from "./services/researchBrowserServer";
 import { GENERATED_MEDIA_SCHEME, resolveGeneratedMedia } from './services/generatedMediaStore';
+import { readRegularFileNoFollow } from "./utils/secureFile";
 
 export { isValidBridgeHost };
 
@@ -306,9 +307,7 @@ if (!gotLock) {
         return new Response('Not found', { status: 404 });
       }
       try {
-        const stat = await fs.promises.stat(ttsPath);
-        if (!stat.isFile()) throw new Error('Not a file');
-        const bytes = await fs.promises.readFile(ttsPath);
+        const bytes = await readRegularFileNoFollow(ttsPath);
         return new Response(bytes, {
           headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'private, max-age=31536000, immutable' },
         });

@@ -4,8 +4,8 @@
 > **GitHub:** `spearchucker667/Venice_Forge`
 > **Version:** 2.1.2
 >
-> Do not use historical paths such as
-> /Users/super_user/Projects/Venice_Forge/. Always run the
+> Do not use historical repository names such as
+> `Windows-Venice-API-connector`. Always run the
 > local-only root bootstrap check below before editing.
 > Always work on `main` branch
 
@@ -202,7 +202,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-125`.
+The primary active sequence is `VERIFY-001` through `VERIFY-126`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -331,6 +331,7 @@ registry.
 | `VERIFY-123` | Transactional replace import — the incoming backup is fully decrypted and schema-validated before mutation; desktop creates a verified, profile-bound encrypted recovery artifact with restrictive permissions; replace clears both IndexedDB and main-managed stores, automatically rolls back failed applies, exposes retained one-click recovery, excludes diagnostics, and remains unavailable in browser mode. | `electron/services/replaceImportRecovery.test.ts`, `electron/ipc/handlers/syncHandlers.profile.test.ts`, `src/services/backupImportPreparation.test.ts`, `src/services/replaceImportService.test.ts`, `src/components/settings/DataStoragePanel.test.tsx` |
 | `VERIFY-124` | Version-3 manual backup metadata — new exports carry app/format/source/crypto/key/content/exclusion metadata, an authenticated copy inside the ciphertext, deterministic per-store/tombstone/blob/media counts, and a SHA-256 payload binding; import verifies outer vs encrypted metadata and content while retaining version-2 and browser compatibility and rendering structured warnings. | `src/services/backupManifest.test.ts`, `src/services/backupImportPreparation.test.ts`, `src/services/backupImportService.test.ts`, `src/services/backupExportService.test.ts`, `tests/backup/cross-runtime-backup.test.ts`, `src/components/settings/DataStoragePanel.test.tsx` |
 | `VERIFY-125` | Deferred provider/sync scope — Replicate, AWS Bedrock, Google Vertex AI, Azure OpenAI, Hugging Face, and Cohere remain fail-closed and absent from advertised fallback routing/model catalogs; implemented fallback providers retain real adapters and models; direct WebDAV/S3-compatible sync, live sync-set key rotation, and scheduled provider-key rotation are explicitly not release capabilities. | `scripts/verify-provider-adapters.test.ts`, `electron/services/providerSettingsStore.test.ts`, `electron/services/providerAdapters.test.ts`, `electron/services/veniceClient.adapters.test.ts` |
+| `VERIFY-126` | Local protocol file reads use a no-follow file descriptor and validate that same descriptor as a regular file before consuming bytes, preventing path-swap and symlink races. | `electron/utils/secureFile.test.ts` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 
@@ -363,7 +364,7 @@ POST /chat/completions, /image/{generate,upscale,edit,multi-edit},
 
 **Audit:** `npm audit --audit-level=moderate` is a release gate for both production and build-time dependencies; CI workflows and the local `ci` script use the same scope.
 
-**Static analysis (CodeQL):** CodeQL is configured through GitHub's default setup for this repository (not a tracked workflow file). Open alerts appear in `Security → Code Scanning`. The current set of defended false positives is documented in `SECURITY.md` and annotated at each call site.
+**Static analysis (CodeQL):** CodeQL is configured by the tracked advanced workflow at `.github/workflows/codeql.yml`. Open alerts appear in `Security → Code Scanning`. The current set of defended false positives is documented in `SECURITY.md` and annotated at each call site.
 
 ---
 

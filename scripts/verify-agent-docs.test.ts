@@ -177,6 +177,27 @@ describe("verify-agent-docs", () => {
     expect(errors.some((e: string) => e.includes("diverging validation"))).toBe(true);
   });
 
+  it("fails when guidance tells agents not to use the canonical root", () => {
+    writeSupportingFiles();
+    writeDoc(
+      "AGENTS.md",
+      `${minimalAgentsMd()}\nCanonical: /Users/super_user/Projects/Venice_Forge\nDo not use /Users/super_user/Projects/Venice_Forge.`,
+    );
+    writeDoc(".github/copilot-instructions.md", minimalCopilotMd());
+    const { passed, errors } = verifyAgentDocs(tmpDir);
+    expect(passed).toBe(false);
+    expect(errors.some((e: string) => e.includes("contradicts the canonical repository root"))).toBe(true);
+  });
+
+  it("fails when guidance claims CodeQL uses default setup", () => {
+    writeSupportingFiles();
+    writeDoc("AGENTS.md", `${minimalAgentsMd()}\nCodeQL is configured through GitHub's default setup.`);
+    writeDoc(".github/copilot-instructions.md", minimalCopilotMd());
+    const { passed, errors } = verifyAgentDocs(tmpDir);
+    expect(passed).toBe(false);
+    expect(errors.some((e: string) => e.includes("stale CodeQL default setup"))).toBe(true);
+  });
+
   // AUDIT-013 / AUDIT-014 regression guards: Cursor / Windsurf pointer parity.
   function validPointer(): string {
     return "Read [AGENTS.md](AGENTS.md) first. Follow [docs/summary_of_work.md](docs/summary_of_work.md).\n";

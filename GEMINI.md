@@ -13,8 +13,8 @@ Canonical repository instructions live in [AGENTS.md](AGENTS.md). Follow AGENTS.
 - Stack: Electron 42, React 19, TypeScript strict, Zustand, Vitest
 - Node: `>=22.13.0 <23.0.0`
 
-Run the local bootstrap check in `AGENTS.md` before editing. Do not
-use /Users/super_user/Projects/Venice_Forge; the check is
+Run the local bootstrap check in `AGENTS.md` before editing. Do not use the
+historical repository name `Windows-Venice-API-connector`; the check is
 local-only and must never be added to CI.
 
 ```bash

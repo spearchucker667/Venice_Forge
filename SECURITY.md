@@ -311,13 +311,17 @@ The tracked `.github/workflows/codeql.yml` workflow automatically runs CodeQL an
 
 The authoritative open-alert count lives in
 [Security → Code Scanning](https://github.com/spearchucker667/Venice_Forge/security/code-scanning).
-A snapshot taken on 2026-06-22 shows **29 open CodeQL findings**: one error
-(`js/log-injection`), eleven warnings, and seventeen notes. The warnings cover
-areas such as `file-access-to-http`, `incomplete-multi-character-sanitization`,
-`remote-property-injection`, and `incomplete-url-substring-sanitization`; the
-notes are mostly `unused-local-variable` and `missing-space-in-concatenation`.
-These findings are triaged in priority order; the live view always reflects the
-current state.
+A snapshot taken on 2026-07-15 shows **six open high-severity alerts**. Alert
+178 (`js/file-system-race`) identified the TTS custom-protocol check/read race;
+the local remediation now reads through an `O_NOFOLLOW` descriptor and is
+locked by `VERIFY-126`, but the alert remains open until the eventual commit is
+analyzed. Alerts 183/185 flag the encrypted sync watcher even though it opens
+with `O_NOFOLLOW`, validates and bounds the opened descriptor, and reads from
+that descriptor; alert 184 is the paired test fixture. Alerts 181/182 flag
+substring checks in the local Venice API documentation verifier, which does not
+authorize requests or select an outbound destination. Full source evidence and
+dismissal rationale are retained in the 2026-07-15 repository audit package.
+The live view always reflects the current state.
 
 Two intentional suppressions in `server.ts` are annotated at the call site with
 `// nosec:js/<rule-id>` plus an inline justification:

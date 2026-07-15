@@ -5,23 +5,22 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-15
-**Scope:** Remediation and evidence closure for the supplied 2,719-item intended-feature verification checklist.
+**Scope:** Comprehensive live-repository audit, low-risk remediation, evidence package, documentation reconciliation, and closure validation from clean baseline `f735b101f85fdad82e879335f63d5c13b1b24d1b`.
 
-- Froze repository identity at lowercase `main`, exact implementation commit `6257f294abfc3e36bef5a55d869f6748e4c162b2`, version `2.1.2`, canonical remote, and the supported Node 22 engine. The default shell remains unsupported Node 26.5.0; validation used Node 22.13.1.
-- Retained and updated `docs/reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md`; every supplied checkbox still inherits an explicit top-level status without converting source/test presence into packaged runtime proof.
-- Closed `VF-VERIFY-001`: removed the image-model explicit `any`, used canonical model metadata typing, corrected the UUID-shaped command-palette spy, removed trailing whitespace, and restored zero-warning lint, both TypeScript pipelines and `git diff --check`.
-- Closed `VF-VERIFY-002`: made the mandatory legal copy internally scrollable with a fixed action footer and sequenced legal, onboarding and API-key dialogs so only one modal can be active. Focused tests pass. Rendered checks at 1280×720 and 390×844 each showed one dialog, visible consent and scrollable detail with no runtime errors. The age confirmation was not activated during automation.
-- Closed `VF-VERIFY-003`: defined video/music as the only provider-polled background types; image/research/document remain initiating-request journals. Renderer and main-process retry paths now fail closed for synchronous types, and Task Center omits their invalid Retry action.
-- Closed `VF-VERIFY-004`: removed the competing notification store and routed the compatibility service plus UI through one canonical Zustand store. Added semantic severity tokens, dedupe, bounded transient concurrency, timer cleanup, hover/focus pause/resume, responsive viewport layout, progressbar semantics, legacy action support and focused store/UI tests.
-- Closed `VF-VERIFY-006`: corrected agent guidance from `MAIN` to `main`, reconciled the report/roadmap/summary to commands actually run, and kept static verifier success distinct from runtime/package proof.
-- Wired root onboarding and notification tests into `test:ui:layout`; the authoritative Node 22 `npm run ci` passes through lint, both typechecks, 3,821 segmented tests, zero-vulnerability audit, production build, all contracts and build-output verification.
-- Built and verified the safe local part of `VF-VERIFY-005`: unsigned Apple-silicon DMG/ZIP artifacts, blockmaps, update metadata and six SHA-256 checks all pass. Signing was explicitly skipped because the builder identity is null.
-- Confirmed exact implementation commit `6257f294` passes all nine hosted CI jobs and CodeQL, including coverage, macOS/Windows sensitive tests, and both packaged Electron smoke jobs. Kept `VF-VERIFY-005` open because no API credentials, paid operations, signed/notarized installers, two-device sync setup or complete screen-reader/high-zoom/theme/sound matrix were available. Direct WebDAV/S3 sync, live key rotation and six providers remain explicitly deferred.
-- Re-ran a tracked-source implementation-gap sweep: no retained top-level feature group or production TODO/FIXME backlog is missing. Explicit non-implementations are the documented fail-closed provider/sync/rotation scope, a dry-run-only orphan-maintenance preview, and an unsupported Jina robots-header option; none is advertised as available.
+- Audited 1,143 tracked files, 823 renderer/Electron source files, 365 test files and 86 baseline Markdown files from a clean lowercase `main` worktree under supported Node 22.13.1. The default shell's Node 26.5.0 remained unsupported and was not used for validation.
+- Created and indexed the complete 18-report evidence package at `docs/audits/VENICE_FORGE_REPOSITORY_AUDIT_2026-07-15/`, including architecture, inventory, Electron/IPC review, all 19 registered feature surfaces, findings, deletion contracts, command evidence, dismissed leads and runtime-only risks. `docs/ROADMAP.md` remains the only current-work authority.
+- Fixed `VF-AUDIT-002`: replaced the TTS custom-protocol `stat` plus path-based read race with a validated `O_NOFOLLOW` descriptor read; registered `VERIFY-126` and added regular-file, directory and symlink regressions.
+- Fixed `VF-AUDIT-003`: removed explicit `any` response traversal from CharacterLibrary and routed caught exception text through canonical secret/path redaction; a component regression proves bearer tokens and local paths never reach the toast.
+- Fixed `VF-AUDIT-004`: corrected the canonical-root contradiction across all agent surfaces, documented the tracked advanced CodeQL workflow, and extended the agent-doc verifier/tests so both defects fail closed.
+- Triaged six live CodeQL alerts: the TTS race is locally fixed; sync-watcher alerts are defended by no-follow descriptor validation/reads; the paired test alert is test-only; two documentation-verifier URL substring alerts are not request authorization boundaries. Updated `SECURITY.md` with current, non-secret disposition.
+- Confirmed live GitHub governance drift (`VF-AUDIT-001`): `main` has no protection and Actions default tokens are write-enabled despite repository policy. Kept this as an explicit administrator action rather than mutating external settings without a reviewed ruleset.
+- Proved `debug-webcrypto.cjs` and `test_playwright.js` have no static, dynamic, build, package, workflow, test, documentation or history-based compatibility purpose. The work order prohibited automatic deletion, so both remain owner-approved `VF-AUDIT-005` candidates.
+- Found no advertised source-level feature gap, tracked secret, dependency vulnerability, broken current Markdown link, tracked archive/backup contaminant, empty file, case collision or unguarded Venice/IPC boundary. Dependency updates remain bounded maintenance (`VF-AUDIT-006`), not an audit-time upgrade.
+- Passed final Node 22 install, zero-warning lint, both typechecks, full segmented CI, zero-vulnerability audit, production build, all contracts, build-output verification, 4,284-test coverage above every threshold, archive-clean, and unsigned Apple-silicon DMG/ZIP/artifact/checksum verification. Headed Electron smoke was discovered but skipped by its environment gate; signing, paid/API, two-device, Windows and accessibility evidence remains open.
 
 ## Open TODO Ledger
 
-Open work is authoritative in `docs/ROADMAP.md`: only `VF-VERIFY-005` remains. It requires exact-commit packaged, paid-operation, cross-platform, multi-device and accessibility evidence before a release-complete claim.
+Open work is authoritative in `docs/ROADMAP.md`: `VF-VERIFY-005` (signed/paid/multi-device/accessibility evidence), `VF-AUDIT-001` (GitHub protection/token defaults), `VF-AUDIT-005` (owner-approved debug-probe deletion), and `VF-AUDIT-006` (bounded dependency refreshes). The three local P2 audit defects are closed with regression evidence.
 
 ## Validation Matrix
 
@@ -29,29 +28,25 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 
 | Command | Result | Evidence |
 |---|---|---|
-| Root/bootstrap identity checks | PASS | Exact root, Electron layout, lowercase `main`, commit, version, remote, engines, tracked/untracked/ignored counts and dirty state recorded. |
-| Initial `npm run ci` / independent typecheck under Node 22.13.1 | FAIL, superseded | Exposed the image-tools explicit `any` and UUID-shaped test return mismatch that were fixed in this session. |
-| Final `npm run ci` under Node 22.13.1 | PASS | Zero-warning lint; renderer/Electron typecheck; 3,821 segmented tests; zero-vulnerability audit; production build; aggregate contracts; build-output verification. |
-| Focused remediation suite | PASS | 95 onboarding/image/command/task/toast regressions, 18 notification store/UI tests, and the expanded 92-test layout segment passed. |
-| `npm audit --audit-level=moderate` | PASS | Zero vulnerabilities. |
-| `npm run build` | PASS | Renderer, server, Electron main and preload outputs built. |
-| `npm run verify:contracts` | PASS | Static, feature, backup/sync, provider and release-packaging aggregates passed. Static contract success is not treated as runtime proof. |
-| `npm run verify:dist` | PASS | Version 2.1.2 build outputs verified; this does not verify installer artifacts under `release/`. |
-| `npm run dist:mac:arm64` | PASS with signing caveat | Built unsigned Apple-silicon DMG/ZIP, blockmaps and update metadata; signing explicitly skipped because identity is null; checksum files generated. |
+| Root/bootstrap, Git and inventory sweeps | PASS | Correct root, clean initial `main`, baseline `f735b101`, supported runtime, exact counts, duplicate/size/history/deletion evidence and environment-variable names recorded without values. |
+| `npm ci` under Node 22.13.1 | PASS | 866 packages installed; 867 audited; zero vulnerabilities. |
+| Focused remediation suite | PASS | 3 files / 28 tests for secure descriptor reads, CharacterLibrary redaction and agent-doc drift. |
+| Initial `npm run ci` | FAIL, superseded | Reached contracts after all tests/audit/build passed; new `VERIFY-126` exposed the hygiene verifier's stale maximum of 125. The introduced contract mismatch was fixed without weakening validation. |
+| Final `npm run ci` | PASS | Zero-warning lint; renderer/Electron typecheck; full segmented tests; zero-vulnerability audit; build; all static/feature/release contracts; dist-output verification. |
+| `npm run test:coverage` | PASS | 360 files / 4,284 tests; statements 72.33%, branches 64.09%, functions 70.40%, lines 75.59%; all thresholds exceeded. |
+| `npm run smoke:electron` | SKIPPED | One test discovered and intentionally skipped by the environment gate; no headed-runtime claim. |
+| `npm run dist:mac:arm64` | PASS with signing caveat | Built unsigned Apple-silicon DMG/ZIP, blockmaps and update metadata; signing skipped because identity was explicitly null; six checksum files generated. |
 | `npm run verify:dist:mac -- --arch arm64` | PASS | DMG, ZIP, update metadata and both blockmaps verified. |
-| `shasum -a 256 -c *.sha256` from `release/` | PASS after cwd correction | All six checksum files verified. The first invocation from the repository root failed because checksum entries are artifact-relative; rerunning from `release/` passed. |
-| `npm run smoke:electron` | SKIPPED | One smoke test was discovered and skipped by the environment; no headed Electron runtime claim is made. |
-| `npm run verify:theme-tokens` | PASS | Notification UI uses semantic success/warning/error tones; 153 themeable files passed. |
-| Browser smoke: `http://localhost:5173/` at 1280×720 | PASS for pre-consent layout | One dialog; consent bounds y=635..679 within 720px viewport; legal detail scrollable. |
-| Browser smoke: `http://localhost:5173/` at 390×844 | PASS for pre-consent layout | One dialog; dialog and consent within viewport; legal detail scrollable. Post-consent click-through was not performed. |
-| GitHub Actions for `6257f294abfc3e36bef5a55d869f6748e4c162b2` | PASS | All nine CI jobs plus CodeQL: lint/typecheck, tests, contracts, build, coverage, macOS/Windows sensitive tests and both packaged Electron smoke jobs. |
-| `npm run verify:markdown-links` | PASS | 76 tracked Markdown files checked; current report links resolve. |
-| `npm run verify:roadmap-current` | PASS | Roadmap contains current work only. |
-| `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene contract remains green. |
-| `git diff --check` | PASS | No whitespace errors remain. |
+| `shasum -a 256 -c *.sha256` from `release/` | PASS | All six artifact/metadata checksum files verified. |
+| `npm run verify:archive-clean` | PASS | Archive exclusions and all 1,143 tracked paths are clean. |
+| High-signal tracked secret scan | PASS after classification | 30 candidates were placeholders, fixtures, API examples or data markers; history scanner is not configured locally. |
+| Live GitHub settings queries | FAIL / finding | Branch protection endpoint returned 404; Actions default permission is write. Recorded as `VF-AUDIT-001`. |
+| Final Markdown/agent-doc/roadmap/handoff verifiers | PASS | 95 Markdown files checked; agent guidance, current-only roadmap and handoff namespace contracts pass after ledger updates. |
+| `git diff --check` / `git status --short` | PASS with expected changes | No whitespace errors; only the documented audit/remediation changes are present and no unrelated baseline work was displaced. |
 
 ## Session History
 
+- **2026-07-15 — Comprehensive repository audit and remediation:** Audited the clean `f735b101` baseline across architecture, code, Electron/IPC, security, all 19 feature surfaces, tests, docs, dependencies, CI, packaging and hygiene; produced the complete 18-report evidence package; fixed the TTS filesystem race, CharacterLibrary error disclosure and agent-guidance drift with `VERIFY-126` and regressions; triaged six CodeQL alerts; opened GitHub-governance, approved-deletion and dependency-maintenance work; passed final Node 22 CI, 4,284-test coverage, unsigned arm64 package/artifact/checksum validation and archive-clean; and preserved signed/paid/multi-device/accessibility limits explicitly.
 - **2026-07-15 — Exact-commit hosted evidence reconciliation:** Rechecked the supplied exhaustive feature checklist against the live clean `main` tree; found no new retained implementation gap or production TODO/FIXME backlog; confirmed commit `6257f294` with all nine hosted CI jobs plus CodeQL green, including macOS/Windows packaged smoke; removed stale claims that hosted evidence was absent; and kept signed/paid/multi-device/accessibility proof plus explicitly deferred providers/transports/rotation open without converting them into success.
 - **2026-07-15 — Intended-feature remediation closure:** Closed local findings `VF-VERIFY-001`–`004` and `006`; restored lint/type/diff gates; repaired first-run modal sequencing and desktop/mobile reachability; narrowed background-task polling to durable provider queues; unified and hardened notifications; added segmented CI ownership for new UI tests; passed 3,821-test Node 22 CI; built/verified checksummed unsigned Apple-silicon DMG/ZIP artifacts; and left signed/paid/cross-platform/manual evidence (`VF-VERIFY-005`) open.
 - **2026-07-15 — Evidence-backed intended-feature verification:** Reconciled all 2,719 supplied checklist rows through explicit status inheritance; found broken lint/typecheck, first-run viewport/modal defects, incomplete background-task coverage, notification evidence gaps and absent current packaged/manual proof; created and indexed the current verification report; reopened `VF-VERIFY-001` through `006`; passed 3,790 tests/build/contracts/dist/audit while recording the failing gates and runtime smoke honestly.
