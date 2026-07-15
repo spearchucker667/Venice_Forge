@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { error as logError } from "../shared/logger";
+import { uiSoundController } from "../services/uiSoundController";
 
 interface Props {
   children: ReactNode;
@@ -39,13 +40,14 @@ export class ErrorBoundary extends Component<Props, State> {
             <button
               className="btn primary"
               onClick={() => {
+                uiSoundController.play('primaryClick');
                 if (this.props.onReset) this.props.onReset();
                 this.setState({ hasError: false });
               }}
             >
               Try again
             </button>
-            <button className="btn" onClick={() => window.location.reload()}>Reload application</button>
+            <button className="btn" onClick={() => { uiSoundController.play('secondaryClick'); window.location.reload(); }}>Reload application</button>
           </div>
         </div>
       );

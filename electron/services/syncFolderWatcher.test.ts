@@ -735,6 +735,7 @@ describe("syncFolderWatcher", () => {
 
   // Task 13 regression guard: bounded applied-operations journal compaction.
   it("does not exceed MAX_JOURNAL_ENTRIES after many operations", async () => {
+    vi.useFakeTimers();
     for (let i = 0; i < MAX_JOURNAL_ENTRIES + 1001; i++) {
       await recordAppliedOperation(`op-${i}`, "conversations", "applied", undefined, false);
     }
@@ -745,6 +746,7 @@ describe("syncFolderWatcher", () => {
   });
 
   it("does not exceed MAX_JOURNAL_ENTRIES when every recent operation is a tombstone", async () => {
+    vi.useFakeTimers();
     for (let i = 0; i < MAX_JOURNAL_ENTRIES + 1001; i++) {
       await recordAppliedOperation(`tombstone-op-${i}`, "tombstones", "applied", undefined, false);
     }

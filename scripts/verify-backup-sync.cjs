@@ -60,6 +60,7 @@ const SYSTEM_HANDLERS_FILE = path.join(REPO, "electron/ipc/handlers/systemHandle
 const RP_HANDLERS_FILE = path.join(REPO, "electron/ipc/rpHandlers.ts");
 const BACKUP_EXPORT_FILE = path.join(REPO, "src/services/backupExportService.ts");
 const BACKUP_IMPORT_FILE = path.join(REPO, "src/services/backupImportService.ts");
+const SYNC_PACKET_IMPORTER_FILE = path.join(REPO, "src/services/syncPacketImporter.ts");
 const SYNC_ENGINE_FILE = path.join(REPO, "src/services/syncEngine.ts");
 const SYNC_DELETE_COORDINATOR_FILE = path.join(REPO, "src/services/syncDeleteCoordinator.ts");
 const BACKUP_PANEL_FILE = path.join(REPO, "src/components/settings/BackupSyncPanel.tsx");
@@ -181,6 +182,9 @@ function runStaticChecks() {
   mustContain(BACKUP_IMPORT_FILE, "src/services/backupImportService.ts exports", [
     "export async function parseAndImportBackup",
     "export async function previewBackup",
+  ]);
+
+  mustContain(SYNC_PACKET_IMPORTER_FILE, "src/services/syncPacketImporter.ts exports", [
     "export async function importDecryptedPacket",
   ]);
 
@@ -225,12 +229,12 @@ function runStaticChecks() {
     "manifest.version !== BACKUP_SCHEMA_VERSION",
   ]);
 
-  mustContain(BACKUP_IMPORT_FILE, "backupImportService tombstone handling", [
+  mustContain(SYNC_PACKET_IMPORTER_FILE, "syncPacketImporter tombstone handling", [
     'storeName === "tombstones"',
     "TombstoneService.saveTombstone",
   ]);
 
-  mustContain(BACKUP_IMPORT_FILE, "backupImportService conflict-copy logic", [
+  mustContain(SYNC_PACKET_IMPORTER_FILE, "syncPacketImporter conflict-copy logic", [
     "_conflict_",
     "preserveStores",
   ]);

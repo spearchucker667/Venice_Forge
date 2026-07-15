@@ -1,7 +1,7 @@
 import React from "react";
 import { ImportPlanModal } from "./ImportPlanModal";
 import { toast } from "../../stores/toast-store";
-import { desktopFiles } from "../../services/desktopBridge";
+import { desktopFiles, isElectron } from "../../services/desktopBridge";
 import { previewBackup, parseAndImportBackup, ImportPlanModel } from "../../services/backupImportService";
 import { listConversations } from "../../services/chatStorage";
 import { useChatStore } from "../../stores/chat-store";
@@ -56,21 +56,26 @@ export function DataStoragePanel({
 
     try {
       if (mode === "newProfile" && newProfileName) {
-        const _newProfile = useProfileStore.getState().addProfile(newProfileName);
-        // Switch to it (this will reload the app if we just do requestSwitchProfile).
-        // Wait, if we switch profile, it reloads! The import won't happen!
-        // We MUST import to the CURRENT profile, or we must switch WITHOUT reloading?
-        // Let's create the profile, and then we need a way to import into THAT profile's storage.
-        // Actually, we can just switch profile, and let the user do the import again? No.
-        // What if we save the manifest to a temp file, switch profile, and auto-import on next load?
-        // No, let's just use merge or replace for now if newProfile is hard due to reload.
-        // BUT we need to support newProfile because of the audit finding.
+        const newProfile = useProfileStore.getState().addProfile(newProfileName);
         
-        // Let's try to just do replace and merge, but wait: we can also create the profile,
-        // and since it's just IDB + some files, actually we can't easily write to another profile's DB in Electron because the main process uses activeProfileId.
-        // But wait! If we are in the renderer, StorageService uses active profile ID.
-        // We can't change it without reloading.
-        toast.error("New Profile import not fully implemented due to reload constraints.");
+        // Update profile store state manually so we don't trigger the built-in reload of requestSwitchProfile
+        useProfileStore.setState({ activeProfileId: newProfile.id });
+        
+        // Temporarily switch active profile id at the storage layer without reloading yet
+        const { setActiveProfileId } = await import("../../services/activeProfile");
+        setActiveProfileId(newProfile.id);
+        if (isElectron()) {
+          const { desktopProfilePassword } = await import("../../services/desktopBridge");
+          await desktopProfilePassword.activate(newProfile.id);
+        }
+        
+        // Now perform the import! StorageService and backupImportService will read the new active profile id
+        const summary = await parseAndImportBackup(manifestToImport, password);
+        
+        toast.success(`Import complete into new profile: ${summary.recordsImported} imported. Reloading...`);
+        
+        // Give the toast a moment to render before reloading
+        setTimeout(() => window.location.reload(), 1500);
         return;
       }
 

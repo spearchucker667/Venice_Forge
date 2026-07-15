@@ -1,6 +1,7 @@
 import { useToastStore, type Toast } from '../../stores/toast-store'
 import { cn } from '../../lib/utils'
 import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
+import { uiSoundController } from '../../services/uiSoundController'
 
 const VARIANT_STYLES: Record<Toast['variant'], string> = {
   info: 'border-border bg-surface-elevated',
@@ -64,6 +65,7 @@ export function Toaster() {
                       key={action.id}
                       type="button"
                       onClick={() => {
+                        uiSoundController.play('secondaryClick')
                         if (action.onClick) action.onClick();
                         if (action.kind === 'dismiss') dismiss(t.id);
                       }}
@@ -77,7 +79,7 @@ export function Toaster() {
               {t.action && !t.actions && (
                 <button
                   type="button"
-                  onClick={() => { t.action?.onClick(); dismiss(t.id) }}
+                  onClick={() => { uiSoundController.play('secondaryClick'); t.action?.onClick(); dismiss(t.id) }}
                   className="mt-1.5 text-[12.5px] font-medium text-text-secondary hover:text-text-primary underline underline-offset-2"
                 >
                   {t.action.label}
@@ -86,7 +88,7 @@ export function Toaster() {
             </div>
             <button
               type="button"
-              onClick={() => dismiss(t.id)}
+              onClick={() => { uiSoundController.play('secondaryClick'); dismiss(t.id) }}
               aria-label="Dismiss notification"
               className="text-text-muted hover:text-text-secondary transition-colors p-0.5 -m-0.5 shrink-0 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-text-muted/30"
             >

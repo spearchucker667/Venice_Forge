@@ -40,7 +40,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [chat-model-selection.md](chat-model-selection.md) — Per-conversation model precedence, provider defaults, and fallback reconciliation.
 - [memory-isolation.md](memory-isolation.md) — Conversation-scoped memory retrieval, exclusions, and preview lifecycle.
 - [rp-token-counting.md](rp-token-counting.md) — Compiled prompt estimates and over-budget save behavior.
-- [developer/image-model-capabilities.md](developer/image-model-capabilities.md) — Image model capability registry, Seedream model reference, and guide for adding future models.
+- [DEVELOPMENT/image-model-capabilities.md](DEVELOPMENT/image-model-capabilities.md) — Image model capability registry, Seedream model reference, and guide for adding future models.
 
 ---
 

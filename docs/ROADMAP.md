@@ -4,7 +4,7 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 
 ## Current Work
 
-No current implementation tasks remain from the 2026-07-14 repository-wide audit.
+No current implementation tasks. The 2026-07-15 follow-up closed the in-progress `syncPacketImporter` extraction (and the related `vi.mock` spy repair in `src/services/syncEngine.test.ts`), finished the UI-sound wiring across `CollapsibleSection` / `ConfirmModal` / `ErrorBoundary` / `TabButton` / `DataStoragePanel` / `ImportPlanModal` / `shared` / `toaster`, removed an untracked `test-compact.js` debug artifact, and consolidated `docs/developer/image-model-capabilities.md` under `docs/DEVELOPMENT/`. The Open TODO Ledger in `docs/summary_of_work.md` is empty; every `AUDIT-NNN` finding in the authoritative audit YAML remains `status: closed`. Any new work must be raised as a fresh entry here before code lands.
 
 ## Authoritative Status Sources
 

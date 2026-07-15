@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { uiSoundController } from "../../services/uiSoundController";
 
 type TextRequestOptions = {
   title: string;
@@ -90,6 +91,7 @@ export function ModalRequestHost() {
 
   function cancelRequest() {
     if (!request) return;
+    uiSoundController.play('secondaryClick')
     if (request.kind === "text") request.resolve(null);
     else request.resolve(false);
     closeRequest();
@@ -97,6 +99,7 @@ export function ModalRequestHost() {
 
   function acceptRequest() {
     if (!request) return;
+    uiSoundController.play('primaryClick')
     if (request.kind === "text") {
       const validationError = request.options.validate?.(value) ?? null;
       if (validationError) {

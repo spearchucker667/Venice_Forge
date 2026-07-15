@@ -1,4 +1,5 @@
 import React, { useState, useId } from "react";
+import { uiSoundController } from "../services/uiSoundController";
 
 export function CollapsibleSection({ title, children, defaultOpen = false }: { title: React.ReactNode, children: React.ReactNode, defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -12,7 +13,10 @@ export function CollapsibleSection({ title, children, defaultOpen = false }: { t
         type="button"
         aria-expanded={open}
         aria-controls={contentId}
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          uiSoundController.play('secondaryClick');
+          setOpen(!open);
+        }}
         className="flex w-full items-center justify-between px-4 py-3 text-xs font-semibold text-text-secondary transition-colors duration-200 hover:bg-surface-elevated"
       >
         <span>{title}</span>

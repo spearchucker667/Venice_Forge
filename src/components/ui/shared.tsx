@@ -111,7 +111,10 @@ export function PillGroup({ options, value, onChange, ariaLabel, labelledBy }: {
           type="button"
           role="radio"
           aria-checked={o.value === value}
-          onClick={() => onChange(o.value)}
+          onClick={() => {
+            uiSoundController.play('secondaryClick')
+            onChange(o.value)
+          }}
           className={cn(
             'text-[13px] font-medium px-2.5 py-1 rounded-md border transition-all duration-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-focus-ring',
             o.value === value
@@ -154,7 +157,10 @@ export function ExamplePrompts({ items, onPick, title = 'Try one of these', onSh
         {onShuffle && (
           <button
             type="button"
-            onClick={onShuffle}
+            onClick={() => {
+              uiSoundController.play('secondaryClick')
+              onShuffle()
+            }}
             className="text-[12px] text-[var(--color-accent)] hover:opacity-85 flex items-center gap-1 cursor-pointer transition-opacity"
             title="Shuffle suggestions"
           >
@@ -168,7 +174,10 @@ export function ExamplePrompts({ items, onPick, title = 'Try one of these', onSh
           <button
             key={text}
             type="button"
-            onClick={() => onPick(text)}
+            onClick={() => {
+              uiSoundController.play('secondaryClick')
+              onPick(text)
+            }}
             className="group text-left px-3.5 py-3 rounded-xl border border-border/60 bg-surface-muted hover:border-border-strong hover:bg-surface-elevated transition-all text-[13.5px] text-text-secondary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
           >
             <span className="flex items-start gap-2">

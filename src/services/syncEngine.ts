@@ -1,4 +1,4 @@
-import { importDecryptedPacket } from "./backupImportService";
+import { importDecryptedPacket } from "./syncPacketImporter";
 import { desktopSync } from "./desktopBridge";
 import type { MutationOrigin, SyncStoreName } from "../types/sync";
 import type { SyncRuntimeStatus } from "../types/desktop";

@@ -4,7 +4,7 @@ import FDBFactory from "fake-indexeddb/lib/FDBFactory";
 import { deleteSyncableRecord } from "./syncDeleteCoordinator";
 import StorageService from "./storageService";
 import { TombstoneService } from "./tombstoneService";
-import { importDecryptedPacket } from "./backupImportService";
+import { importDecryptedPacket } from "./syncPacketImporter";
 import * as desktopBridge from "./desktopBridge";
 import type { SyncStoreName } from "../types/sync";
 

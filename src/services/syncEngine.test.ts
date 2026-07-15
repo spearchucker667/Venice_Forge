@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { initSyncEngine, stopSyncEngine, pauseSyncEngine, reattachSyncEngine } from "./syncEngine";
 import * as desktopBridge from "./desktopBridge";
-import { importDecryptedPacket } from "./backupImportService";
+import { importDecryptedPacket } from "./syncPacketImporter";
 
 vi.mock("./desktopBridge", () => ({
   isElectron: vi.fn().mockReturnValue(true),
@@ -21,7 +21,7 @@ vi.mock("./desktopBridge", () => ({
   },
 }));
 
-vi.mock("./backupImportService", () => ({
+vi.mock("./syncPacketImporter", () => ({
   importDecryptedPacket: vi.fn().mockResolvedValue({ ok: true }),
 }));
 

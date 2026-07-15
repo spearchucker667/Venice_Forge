@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { uiSoundController } from "../services/uiSoundController";
 
 interface ConfirmModalProps {
   /** Whether the modal is visible. */
@@ -83,15 +84,15 @@ export function ConfirmModal({
           </p>
         )}
         <div className="flex items-center justify-end gap-3">
-          <button ref={cancelRef} className="btn" onClick={onCancel}>
+          <button ref={cancelRef} className="btn" onClick={() => { uiSoundController.play('secondaryClick'); onCancel() }}>
             {cancelLabel}
           </button>
           {tertiaryAction && (
-            <button className="btn" onClick={tertiaryAction.onClick}>
+            <button className="btn" onClick={() => { uiSoundController.play('secondaryClick'); tertiaryAction.onClick() }}>
               {tertiaryAction.label}
             </button>
           )}
-          <button className={`btn ${confirmTone}`} onClick={onConfirm}>
+          <button className={`btn ${confirmTone}`} onClick={() => { uiSoundController.play('primaryClick'); onConfirm() }}>
             {confirmLabel}
           </button>
         </div>

@@ -1,4 +1,5 @@
 import React from "react";
+import { uiSoundController } from "../services/uiSoundController";
 
 interface TabButtonProps {
   id: string;
@@ -32,7 +33,10 @@ export function TabButton({
   return (
     <button
       className={`${baseClasses} ${layoutClasses} ${stateClasses} ${className}`.trim()}
-      onClick={() => onClick(id)}
+      onClick={() => {
+        uiSoundController.play('secondaryClick')
+        onClick(id)
+      }}
       aria-current={active ? "page" : undefined}
       aria-label={iconOnly ? label : undefined}
       title={label}

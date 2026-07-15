@@ -143,11 +143,12 @@ export function ImportPlanModal({
               (selectedMode === "replace" && !hasExported) ||
               (selectedMode === "newProfile" && !newProfileName.trim())
             }
+            // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR
             className={`px-4 py-2 rounded-lg text-[13px] font-medium transition-colors ${
               selectedMode === "replace"
-                ? "bg-danger text-white hover:bg-danger/90 disabled:opacity-50"
+                ? "bg-danger text-white hover:bg-danger/90 disabled:opacity-50" // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR
                 : selectedMode === "newProfile"
-                ? "bg-success text-white hover:bg-success/90 disabled:opacity-50"
+                ? "bg-success text-white hover:bg-success/90 disabled:opacity-50" // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR
                 : "bg-accent text-accent-foreground hover:bg-accent-light disabled:opacity-50"
             }`}
           >
