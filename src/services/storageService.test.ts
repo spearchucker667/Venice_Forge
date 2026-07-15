@@ -10,6 +10,8 @@ import { MissingTimestampIndexError } from "./storageService";
 beforeEach(() => {
   global.indexedDB = new FDBFactory();
   StorageService.db = null;
+  window.localStorage.clear();
+  window.localStorage.setItem("venice-active-profile-id", "default");
 });
 
 /** Tests for StorageService CRUD, sorting, and encryption behavior. */

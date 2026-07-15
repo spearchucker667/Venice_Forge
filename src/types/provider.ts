@@ -124,3 +124,18 @@ export const PROVIDER_REGISTRY: Record<ProviderId, ProviderDefinition> = {
     unavailable: true,
   },
 }
+
+/** Providers intentionally deferred in this release. They accept no keys or traffic. */
+export const DEFERRED_PROVIDER_IDS = [
+  'replicate',
+  'aws_bedrock',
+  'google_vertex',
+  'azure_openai',
+  'huggingface',
+  'cohere',
+] as const satisfies readonly ProviderId[]
+
+/** Non-primary providers with implemented adapters, catalogs, and secure key custody. */
+export const AVAILABLE_FALLBACK_PROVIDER_IDS = Object.values(PROVIDER_REGISTRY)
+  .filter((provider) => provider.id !== 'venice' && provider.unavailable !== true)
+  .map((provider) => provider.id)

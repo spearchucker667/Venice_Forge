@@ -12,7 +12,7 @@ vi.mock("electron", () => ({
   app: { getPath: vi.fn(() => userDataPath) },
 }));
 
-import { disableProvider, getProviderSettings, updateProviderSettings } from "./providerSettingsStore";
+import { disableProvider, getProviderSettings, isProviderAvailableForFallback, updateProviderSettings } from "./providerSettingsStore";
 
 describe("providerSettingsStore", () => {
   beforeEach(() => {
@@ -47,5 +47,11 @@ describe("providerSettingsStore", () => {
       enabledProviders: { together: true },
       fallbackOrdering: ["together"],
     });
+  });
+
+  it("never accepts deferred providers into credential-backed fallback routing", () => {
+    for (const providerId of ["replicate", "aws_bedrock", "google_vertex", "azure_openai", "huggingface", "cohere"]) {
+      expect(isProviderAvailableForFallback(providerId)).toBe(false);
+    }
   });
 });

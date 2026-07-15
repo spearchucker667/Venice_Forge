@@ -71,7 +71,7 @@ Renderer code must use typed services from `src/services/desktopBridge.ts`; it m
 - `docs/DOCS_INDEX.md`: current versus historical documentation routing.
 - `docs/ROADMAP.md`: current unfinished work only.
 - `docs/summary_of_work.md`: active session handoff and commands actually run.
-- `docs/audits/exhaustive_repository_file_audit_2026-07-14.yaml`: authoritative per-finding record for the completed 2026-07-14 audit.
+- `docs/audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/`: retained ZIP-scan report and machine-readable status input; current unfinished work is reconciled into `docs/ROADMAP.md`.
 
 ## Regenerating a Mechanical Inventory
 

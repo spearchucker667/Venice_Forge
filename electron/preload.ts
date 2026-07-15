@@ -579,7 +579,7 @@ const veniceForge = {
     acknowledgeOperation(input: { operationId: string; ok: boolean }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:acknowledgeOperation", input);
     },
-    beginBackupExport(): Promise<{ ok: boolean; profileId?: string; token?: string; error?: string }> {
+    beginBackupExport(): Promise<{ ok: boolean; profileId?: string; deviceId?: string; token?: string; error?: string }> {
       return ipcRenderer.invoke("sync:beginBackupExport");
     },
     encryptBackup(input: { payload: string, password: string, token: string }): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }> {
@@ -587,6 +587,15 @@ const veniceForge = {
     },
     decryptBackup(input: { ciphertext: string, salt: string, iv: string, password: string }): Promise<{ ok: boolean; data?: string; error?: string }> {
       return ipcRenderer.invoke("sync:decryptBackup", input);
+    },
+    createReplaceImportRecovery(input: { manifest: import("../src/types/desktop").EncryptedBackupManifestTransport; password: string }): Promise<{ ok: boolean; recovery?: import("../src/types/desktop").ReplaceImportRecoveryTransport; error?: string }> {
+      return ipcRenderer.invoke("sync:createReplaceImportRecovery", input);
+    },
+    getLatestReplaceImportRecovery(): Promise<{ ok: boolean; recovery?: import("../src/types/desktop").ReplaceImportRecoveryTransport | null; error?: string }> {
+      return ipcRenderer.invoke("sync:getLatestReplaceImportRecovery");
+    },
+    loadReplaceImportRecovery(input: { id: string; password: string }): Promise<{ ok: boolean; manifest?: import("../src/types/desktop").EncryptedBackupManifestTransport; error?: string }> {
+      return ipcRenderer.invoke("sync:loadReplaceImportRecovery", input);
     },
     onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string; remoteApplyToken: string }) => void) {
       const listener = (_event: Electron.IpcRendererEvent, eventData: { storeName: string; id: string; operationId: string; recordJson: string; remoteApplyToken: string }) => callback(eventData);

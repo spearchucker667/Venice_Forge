@@ -1,9 +1,7 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { encryptPayload as electronEncrypt, decryptPayload as electronDecrypt } from "../../electron/services/backupCrypto";
-import { createEncryptedBackup, downloadEncryptedBackup } from "../../src/services/backupExportService";
-import { BACKUP_SCHEMA_VERSION } from "../../electron/services/backupCrypto";
-import { toBase64 } from "../../src/services/backupCryptoWeb";
+import { createEncryptedBackup } from "../../src/services/backupExportService";
 
 // Mock the desktop functions (Web mode)
 vi.mock("../../src/services/desktopBridge", () => ({
@@ -70,8 +68,7 @@ describe("cross-runtime backup compatibility", () => {
   playground: [],
   tombstones: []
 });
-  const webProfileBoundPayload = JSON.stringify({
-    _veniceForgeBackup: { profileId: "default" },
+  const webProfileBoundPayload = {
     images: [],
     chats: [{ id: "test1", content: "test chat content", profileId: "default" }],
     settings: [{ id: "setting1", value: "test setting", profileId: "default" }],
@@ -92,7 +89,7 @@ describe("cross-runtime backup compatibility", () => {
     visualWorkflows: [],
     playground: [],
     tombstones: [],
-  });
+  };
 
   it("should create backups that can be decrypted by both runtimes", async () => {
     // Create Electron backup (traditional format)
@@ -118,7 +115,13 @@ describe("cross-runtime backup compatibility", () => {
       webBackup.iv,
       testPassword
     );
-    expect(webDecrypted).toBe(webProfileBoundPayload);
+    const parsedWebPayload = JSON.parse(webDecrypted);
+    expect(parsedWebPayload._veniceForgeBackup).toMatchObject({
+      profileId: "default",
+      manifestMetadata: webBackup.metadata,
+    });
+    delete parsedWebPayload._veniceForgeBackup;
+    expect(parsedWebPayload).toEqual(webProfileBoundPayload);
     
     // Electron backup should be decryptable by Web (this requires proper mocking)
     // We'll test this by creating an Electron backup in WebCrypto-compatible format

@@ -15,11 +15,24 @@ import {
   desktopSync
 } from "./desktopBridge";
 import type { SyncStoreName } from "../types/sync";
-import { BACKUP_SCHEMA_VERSION, SALT_BYTE_LENGTH, IV_BYTE_LENGTH, deriveBackupKey, toBase64, EncryptedBackupManifest } from "./backupCryptoWeb";
+import { SALT_BYTE_LENGTH, IV_BYTE_LENGTH, deriveBackupKey, toBase64, EncryptedBackupManifest } from "./backupCryptoWeb";
 import { sanitizePortableData } from "./syncDataSanitizer";
 import { getActiveProfileId } from "./activeProfile";
 import { BACKUP_PROFILE_METADATA_KEY, backupRecordBelongsToProfile } from "../shared/backupProfile";
+import { version as appVersion } from "../../package.json";
+const MANUAL_BACKUP_MANIFEST_VERSION = 3;
 
+const PORTABLE_BACKUP_EXCLUSIONS = [
+  "credentials",
+  "diagnostics",
+  "machine-local paths",
+  "sync configuration",
+];
+
+function createWebExportDeviceRef(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return `web-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
 
 /** Fetch all records for a specific store, routing to IPC if needed in Desktop mode. */
 export async function fetchStoreRecords(storeName: SyncStoreName): Promise<unknown[]> {
@@ -70,10 +83,11 @@ export async function createEncryptedBackup(password: string): Promise<Encrypted
   const rendererProfileId = getActiveProfileId();
   let profileId = rendererProfileId;
   let exportToken: string | undefined;
+  let deviceRef = "";
 
   if (isElectron()) {
     const lease = await desktopSync.beginBackupExport();
-    if (!lease.ok || !lease.profileId || !lease.token) {
+    if (!lease.ok || !lease.profileId || !lease.token || !lease.deviceId) {
       throw new Error(lease.error || "Failed to begin backup export.");
     }
     if (lease.profileId !== rendererProfileId) {
@@ -81,11 +95,12 @@ export async function createEncryptedBackup(password: string): Promise<Encrypted
     }
     profileId = lease.profileId;
     exportToken = lease.token;
+    deviceRef = lease.deviceId;
+  } else {
+    deviceRef = createWebExportDeviceRef();
   }
 
-  const data: Record<string, unknown> = {
-    [BACKUP_PROFILE_METADATA_KEY]: { profileId },
-  };
+  const portableData: Record<string, unknown> = {};
 
   for (const storeName of STORE_NAMES) {
     if (storeName === "diagnostics") continue;
@@ -93,20 +108,38 @@ export async function createEncryptedBackup(password: string): Promise<Encrypted
       throw new Error("Backup export profile session changed during collection. Retry the export.");
     }
     const sanitized = sanitizePortableData(await fetchStoreRecords(storeName as SyncStoreName)) as unknown[];
-    data[storeName] = sanitized.filter((record) => backupRecordBelongsToProfile(record, profileId));
+    portableData[storeName] = sanitized.filter((record) => backupRecordBelongsToProfile(record, profileId));
   }
 
   if (getActiveProfileId() !== profileId) {
     throw new Error("Backup export profile session changed during collection. Retry the export.");
   }
-  const jsonPayload = JSON.stringify(data);
+  const exportedAt = new Date().toISOString();
+  const { buildBackupManifestMetadata } = await import("./backupManifest");
+  const metadata = await buildBackupManifestMetadata({
+    data: portableData,
+    appVersion,
+    exportedAt,
+    runtime: isElectron() ? "electron" : "web",
+    deviceRef,
+    profileId,
+    crypto: isElectron()
+      ? { algorithm: "XChaCha20-Poly1305", kdf: "Argon2id", keyVersion: 1 }
+      : { algorithm: "AES-256-GCM", kdf: "PBKDF2-SHA-256", keyVersion: 1 },
+    exclusions: PORTABLE_BACKUP_EXCLUSIONS,
+  });
+  const jsonPayload = JSON.stringify({
+    [BACKUP_PROFILE_METADATA_KEY]: { profileId, manifestMetadata: metadata },
+    ...portableData,
+  });
 
   if (isElectron()) {
     const res = await desktopSync.encryptBackup(jsonPayload, password, exportToken!);
     if (!res.ok || !res.data) throw new Error(res.error || "Encryption failed in main process");
     return {
-      version: BACKUP_SCHEMA_VERSION,
-      exportedAt: new Date().toISOString(),
+      version: MANUAL_BACKUP_MANIFEST_VERSION,
+      exportedAt,
+      metadata,
       salt: res.data.salt,
       iv: res.data.iv,
       ciphertext: res.data.ciphertext
@@ -121,8 +154,9 @@ export async function createEncryptedBackup(password: string): Promise<Encrypted
   const ciphertextBuffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encodedPayload);
 
   return {
-    version: BACKUP_SCHEMA_VERSION,
-    exportedAt: new Date().toISOString(),
+    version: MANUAL_BACKUP_MANIFEST_VERSION,
+    exportedAt,
+    metadata,
     salt: toBase64(salt),
     iv: toBase64(iv),
     ciphertext: toBase64(ciphertextBuffer),

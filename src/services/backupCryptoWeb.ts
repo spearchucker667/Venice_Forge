@@ -1,3 +1,6 @@
+import type { BackupManifestMetadata } from "./backupManifest";
+
+/** Sync-packet and legacy manual-backup envelope version. */
 export const BACKUP_SCHEMA_VERSION = 2;
 export const PBKDF2_ITERATIONS = 210000;
 export const SALT_BYTE_LENGTH = 16;
@@ -6,6 +9,7 @@ export const IV_BYTE_LENGTH = 12;
 export interface EncryptedBackupManifest {
   version: number;
   exportedAt: string;
+  metadata?: BackupManifestMetadata;
   salt: string; // base64
   iv: string; // base64
   ciphertext: string; // base64

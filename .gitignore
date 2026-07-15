@@ -23,6 +23,9 @@ docs/audits/*
 !docs/audits/*.md
 !docs/audits/*.yaml
 !docs/audits/*.yml
+!docs/audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/
+!docs/audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/*.md
+!docs/audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/*.json
 !docs/audits/visual-snapshots/
 !docs/audits/visual-snapshots/*.png
 

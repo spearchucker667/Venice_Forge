@@ -55,12 +55,23 @@ describe("backupExportService", () => {
       subtle: {
         importKey: vi.fn().mockResolvedValue("key-material"),
         deriveKey: vi.fn().mockResolvedValue({} as CryptoKey),
+        digest: vi.fn().mockImplementation(async (_algorithm, input: Uint8Array) => {
+          const { createHash } = await import("node:crypto");
+          return createHash("sha256").update(input).digest().buffer;
+        }),
         encrypt: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
       },
     });
 
     const manifest = await createEncryptedBackup(password);
-    expect(manifest.version).toBe(2);
+    expect(manifest.version).toBe(3);
+    expect(manifest.metadata).toMatchObject({
+      format: "venice-forge-manual-backup",
+      formatVersion: 3,
+      appVersion: "2.1.2",
+      source: { runtime: "web" },
+      crypto: { algorithm: "AES-256-GCM", kdf: "PBKDF2-SHA-256", keyVersion: 1 },
+    });
     expect(manifest.salt).toBeTruthy();
     expect(manifest.iv).toBeTruthy();
     expect(manifest.ciphertext).toBeTruthy();
@@ -69,7 +80,7 @@ describe("backupExportService", () => {
   it("delegates encryption to the desktop bridge in Electron mode", async () => {
     mockIsElectron.mockReturnValue(true);
     localStorage.setItem("venice-active-profile-id", "work");
-    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "work", token: "lease-token" });
+    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "work", deviceId: "device-work", token: "lease-token" });
     mockEncryptBackup.mockResolvedValue({
       ok: true,
       data: { salt: "salt", iv: "iv", ciphertext: "cipher" },
@@ -79,10 +90,17 @@ describe("backupExportService", () => {
     expect(mockBeginBackupExport).toHaveBeenCalledTimes(1);
     expect(mockEncryptBackup).toHaveBeenCalledWith(expect.any(String), "password", "lease-token");
     const payload = JSON.parse(mockEncryptBackup.mock.calls[0][0]);
-    expect(payload._veniceForgeBackup).toEqual({ profileId: "work" });
+    expect(payload._veniceForgeBackup).toEqual({
+      profileId: "work",
+      manifestMetadata: manifest.metadata,
+    });
     expect(manifest).toEqual({
-      version: 2,
+      version: 3,
       exportedAt: expect.any(String),
+      metadata: expect.objectContaining({
+        source: expect.objectContaining({ runtime: "electron", deviceRef: "device-work" }),
+        crypto: { algorithm: "XChaCha20-Poly1305", kdf: "Argon2id", keyVersion: 1 },
+      }),
       salt: "salt",
       iv: "iv",
       ciphertext: "cipher",
@@ -91,7 +109,7 @@ describe("backupExportService", () => {
 
   it("throws when desktop encryption fails", async () => {
     mockIsElectron.mockReturnValue(true);
-    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "default", token: "lease-token" });
+    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "default", deviceId: "device-default", token: "lease-token" });
     mockEncryptBackup.mockResolvedValue({ ok: false, error: "Encryption failed" });
 
     await expect(createEncryptedBackup("password")).rejects.toThrow("Encryption failed");
@@ -100,7 +118,7 @@ describe("backupExportService", () => {
   it("rejects export when the renderer profile does not match the main-process lease", async () => {
     mockIsElectron.mockReturnValue(true);
     localStorage.setItem("venice-active-profile-id", "work");
-    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "default", token: "lease-token" });
+    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "default", deviceId: "device-default", token: "lease-token" });
 
     await expect(createEncryptedBackup("password")).rejects.toThrow(/profile session changed/i);
     expect(mockEncryptBackup).not.toHaveBeenCalled();

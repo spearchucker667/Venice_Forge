@@ -60,7 +60,7 @@ By prioritizing local data ownership, Venice Forge runs all storage operations l
 
 ## Feature Highlights
 
-- **Local-First Backup & Sync:** Manually export/import encrypted backups, or use a background sync folder (e.g. iCloud, Dropbox) with automated end-to-end encrypted packet syncing and robust conflict resolution.
+- **Local-First Backup & Sync:** Manually export/import encrypted backups, or use a background sync folder (e.g. iCloud, Dropbox) with automated end-to-end encrypted packet syncing and robust conflict resolution. Venice Forge does not implement WebDAV, S3-compatible, or other direct remote-sync protocols.
 - **Streaming AI Conversations:** Experience highly responsive model outputs with full Markdown and LaTeX support.
 - **Projects & Workspaces:** Organize your chat histories, generation parameters, and media assets into logical local projects.
 - **Model-Aware Image Generation:** Image Studio UI dynamically hides fields unsupported by the selected image model, preventing payload errors.
@@ -141,7 +141,7 @@ Privacy is the core design pillar of Venice Forge:
 - **Profiles & Isolation:** Profiles separate settings, conversations, and API keys. Locked profiles can be password-protected; PBKDF2-SHA256 verifiers are managed entirely in the main process with a 5-attempt brute-force lockout.
 - **Data Redaction:** The Traffic Inspector, application log files, and diagnostics exports automatically strip bearer tokens, API keys (`sk-...`, `vn-...`), local system paths, and raw prompt/response bodies.
 - **Local Family Safe Mode:** Run-time guardrails screen outgoing prompts and inbound scrape responses locally. This is independent of the provider-side Venice API `safe_mode`.
-- **Fallback Provider Consent:** In Electron, fallback-provider enablement, ordering, and provider-native automatic fallback models are profile-scoped and enforced by the main process; renderer request payloads cannot opt a provider in.
+- **Fallback Provider Consent:** In Electron, fallback-provider enablement, ordering, and provider-native automatic fallback models are profile-scoped and enforced by the main process; renderer request payloads cannot opt a provider in. Replicate, AWS Bedrock, Google Vertex AI, Azure OpenAI, Hugging Face, and Cohere are explicitly deferred and cannot accept keys or traffic in this release. Provider keys can be manually removed/replaced; scheduled key rotation is not implemented.
 
 ---
 

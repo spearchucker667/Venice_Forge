@@ -329,7 +329,7 @@ export function BackupSyncPanel() {
           <div className="flex flex-col gap-2 p-3 bg-accent/5 border border-accent/10 rounded-lg text-sm text-text-secondary">
             <div className="flex items-center space-x-2">
               <ShieldCheck size={16} className="text-success" />
-              <span>All data is AES-256-GCM encrypted before being written to this folder.</span>
+              <span>Sync packets use Argon2id-derived XChaCha20-Poly1305 encryption before being written to this folder.</span>
             </div>
             <div className="flex items-center space-x-2 text-text-muted text-xs">
               <HardDrive size={14} />

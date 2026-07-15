@@ -6,8 +6,10 @@ function run() {
   const vitestPackageJson = require(vitestPackage);
   const vitestBinary = resolve(dirname(vitestPackage), vitestPackageJson.bin.vitest);
   const tests = [
+    'scripts/verify-provider-adapters.test.ts',
     'electron/ipc/validation.test.ts',
     'electron/services/providerAdapters.test.ts',
+    'electron/services/providerSettingsStore.test.ts',
     'electron/services/veniceClient.adapters.test.ts',
   ];
 

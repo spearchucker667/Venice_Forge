@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow } from "electron";
+import { app, ipcMain, dialog, BrowserWindow } from "electron";
 import { setSyncFolder, getSyncFolder, getSyncStatus, setSyncEmissionSuppressed, setRendererSessionAttached, startSyncWatcher, stopSyncWatcher, pauseSyncWatcher, acknowledgeOperation } from "../../services/syncFolderWatcher";
 import { redactErrorMessage } from "../../../src/shared/redaction";
 import { validateMutationAuthority } from "../../services/remoteApplyAuthority";
@@ -6,6 +6,8 @@ import { isValidId } from "../../../src/utils/idValidation";
 import { getProfileSessionId } from "../../services/profileSession";
 import crypto from "node:crypto";
 import { validateBackupPayloadProfile } from "../../../src/shared/backupProfile";
+import type { EncryptedBackupManifest } from "../../services/backupCrypto";
+import { getDeviceId } from "../../services/syncConfig";
 
 const BACKUP_EXPORT_LEASE_MS = 5 * 60 * 1000;
 const backupExportLeases = new WeakMap<Electron.WebContents, { token: string; profileId: string; expiresAt: number }>();
@@ -153,13 +155,14 @@ export function registerSyncHandlers(): void {
   // Manual Backup Support
   ipcMain.handle("sync:beginBackupExport", async (event) => {
     const profileId = getProfileSessionId(event.sender);
+    const deviceId = await getDeviceId();
     const token = crypto.randomUUID();
     backupExportLeases.set(event.sender, {
       token,
       profileId,
       expiresAt: Date.now() + BACKUP_EXPORT_LEASE_MS,
     });
-    return { ok: true, token, profileId };
+    return { ok: true, token, profileId, deviceId };
   });
 
   ipcMain.handle("sync:encryptBackup", async (event, params: { payload: string, password: string, token: string }) => {
@@ -194,6 +197,55 @@ export function registerSyncHandlers(): void {
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error";
       return { ok: false, error: redactErrorMessage(errorMsg) };
+    }
+  });
+
+  ipcMain.handle("sync:createReplaceImportRecovery", async (event, input: { manifest?: unknown; password?: unknown }) => {
+    if (!input || typeof input.password !== "string" || !input.manifest || typeof input.manifest !== "object") {
+      return { ok: false, error: "Invalid replace-import recovery payload." };
+    }
+    try {
+      const { persistReplaceImportRecovery } = await import("../../services/replaceImportRecovery");
+      const recovery = await persistReplaceImportRecovery(
+        app.getPath("userData"),
+        getProfileSessionId(event.sender),
+        input.manifest as EncryptedBackupManifest,
+        input.password,
+      );
+      return { ok: true, recovery };
+    } catch (err: unknown) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("sync:getLatestReplaceImportRecovery", async (event) => {
+    try {
+      const { getLatestReplaceImportRecovery } = await import("../../services/replaceImportRecovery");
+      const recovery = await getLatestReplaceImportRecovery(
+        app.getPath("userData"),
+        getProfileSessionId(event.sender),
+      );
+      return { ok: true, recovery };
+    } catch (err: unknown) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("sync:loadReplaceImportRecovery", async (event, input: { id?: unknown; password?: unknown }) => {
+    if (!input || typeof input.id !== "string" || typeof input.password !== "string") {
+      return { ok: false, error: "Invalid replace-import recovery request." };
+    }
+    try {
+      const { loadReplaceImportRecovery } = await import("../../services/replaceImportRecovery");
+      const manifest = await loadReplaceImportRecovery(
+        app.getPath("userData"),
+        getProfileSessionId(event.sender),
+        input.id,
+        input.password,
+      );
+      return { ok: true, manifest };
+    } catch (err: unknown) {
+      return { ok: false, error: redactErrorMessage(err) };
     }
   });
 }

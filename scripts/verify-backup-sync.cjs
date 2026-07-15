@@ -19,15 +19,16 @@
  *  5. `src/services/backupExportService.ts` exports `createEncryptedBackup`
  *     and `downloadEncryptedBackup`.
  *  6. `src/services/backupImportService.ts` exports `parseAndImportBackup`,
- *     `previewBackup`, and `importDecryptedPacket`.
+ *     `previewBackup`, `prepareBackupImport`, `applyPreparedBackup`, and
+ *     `importDecryptedPacket`.
  *  7. `src/services/syncEngine.ts` exports `initSyncEngine`, `stopSyncEngine`,
  *     `pauseSyncEngine`, and `emitLocalChange`; `src/services/syncDeleteCoordinator.ts`
  *     exports the authoritative `deleteSyncableRecord`.
  *  8. `src/components/settings/BackupSyncPanel.tsx` reads/writes the sync
  *     folder path through `useSettingsStore` and checks status via
  *     `res.status === "running"`.
- *  9. `electron/preload.ts` exposes `sync.setEmissionSuppressed` and
- *     `sync.encryptBackup` / `sync.decryptBackup`.
+ *  9. `electron/preload.ts` exposes the encryption and profile-bound
+ *     replace-import recovery methods.
  * 10. Desktop save/delete handlers (`electron/ipc/handlers/systemHandlers.ts`
  *     and `electron/ipc/rpHandlers.ts`) import `emitSyncPacket` /
  *     `emitSyncTombstone` from `electron/services/syncBridge`.
@@ -60,11 +61,18 @@ const SYSTEM_HANDLERS_FILE = path.join(REPO, "electron/ipc/handlers/systemHandle
 const RP_HANDLERS_FILE = path.join(REPO, "electron/ipc/rpHandlers.ts");
 const BACKUP_EXPORT_FILE = path.join(REPO, "src/services/backupExportService.ts");
 const BACKUP_IMPORT_FILE = path.join(REPO, "src/services/backupImportService.ts");
+const BACKUP_MANIFEST_FILE = path.join(REPO, "src/services/backupManifest.ts");
+const REPLACE_IMPORT_FILE = path.join(REPO, "src/services/replaceImportService.ts");
+const REPLACE_RECOVERY_FILE = path.join(REPO, "electron/services/replaceImportRecovery.ts");
 const SYNC_PACKET_IMPORTER_FILE = path.join(REPO, "src/services/syncPacketImporter.ts");
 const SYNC_ENGINE_FILE = path.join(REPO, "src/services/syncEngine.ts");
 const SYNC_DELETE_COORDINATOR_FILE = path.join(REPO, "src/services/syncDeleteCoordinator.ts");
 const BACKUP_PANEL_FILE = path.join(REPO, "src/components/settings/BackupSyncPanel.tsx");
 const PRELOAD_FILE = path.join(REPO, "electron/preload.ts");
+const BACKUP_SYNC_DOC_FILE = path.join(REPO, "docs/backup-and-sync.md");
+const EXPORT_FORMAT_DOC_FILE = path.join(REPO, "docs/data-export-format.md");
+const SECURITY_MODEL_DOC_FILE = path.join(REPO, "docs/security-model.md");
+const SYNC_THREAT_MODEL_DOC_FILE = path.join(REPO, "docs/sync-threat-model.md");
 
 let failures = 0;
 function check(label, ok, detail) {
@@ -170,6 +178,9 @@ function runStaticChecks() {
     'ipcMain.handle("sync:writePacket"',
     'ipcMain.handle("sync:encryptBackup"',
     'ipcMain.handle("sync:decryptBackup"',
+    'ipcMain.handle("sync:createReplaceImportRecovery"',
+    'ipcMain.handle("sync:getLatestReplaceImportRecovery"',
+    'ipcMain.handle("sync:loadReplaceImportRecovery"',
     'ipcMain.handle("sync:applyRemoteMutation"',
     'validateMutationAuthority("remote-sync"',
   ]);
@@ -182,6 +193,32 @@ function runStaticChecks() {
   mustContain(BACKUP_IMPORT_FILE, "src/services/backupImportService.ts exports", [
     "export async function parseAndImportBackup",
     "export async function previewBackup",
+    "export async function prepareBackupImport",
+    "export async function applyPreparedBackup",
+  ]);
+
+  mustContain(BACKUP_MANIFEST_FILE, "src/services/backupManifest.ts version-3 metadata", [
+    "export const MANUAL_BACKUP_MANIFEST_VERSION = 3",
+    "export async function buildBackupManifestMetadata",
+    "export async function verifyBackupManifestMetadata",
+    "payloadSha256",
+    "embeddedBlobCount",
+  ]);
+
+  mustContain(REPLACE_IMPORT_FILE, "src/services/replaceImportService.ts recovery orchestration", [
+    "export async function replaceBackupWithRecovery",
+    "export async function restoreReplaceImportRecovery",
+    "export async function clearCurrentProfileForReplace",
+    "await prepareBackupImport(manifest, password)",
+    "await applyPreparedBackup(recovery.prepared)",
+  ]);
+
+  mustContain(REPLACE_RECOVERY_FILE, "electron/services/replaceImportRecovery.ts durable recovery", [
+    "export async function persistReplaceImportRecovery",
+    "export async function getLatestReplaceImportRecovery",
+    "export async function loadReplaceImportRecovery",
+    "validateBackupPayloadProfile",
+    "mode: 0o600",
   ]);
 
   mustContain(SYNC_PACKET_IMPORTER_FILE, "src/services/syncPacketImporter.ts exports", [
@@ -203,12 +240,25 @@ function runStaticChecks() {
     "useSettingsStore",
     "setSyncFolderPath",
     'runtimeStatus.mainWatcher === "running"',
+    "Argon2id-derived XChaCha20-Poly1305",
   ]);
+
+  for (const [file, label] of [
+    [BACKUP_SYNC_DOC_FILE, "backup-and-sync crypto copy"],
+    [EXPORT_FORMAT_DOC_FILE, "data-export-format crypto copy"],
+    [SECURITY_MODEL_DOC_FILE, "security-model crypto copy"],
+    [SYNC_THREAT_MODEL_DOC_FILE, "sync-threat-model crypto copy"],
+  ]) {
+    mustContain(file, label, ["Argon2id", "XChaCha20-Poly1305", "PBKDF2", "AES-256-GCM"]);
+  }
 
   mustContain(PRELOAD_FILE, "electron/preload.ts sync bridge", [
     "setEmissionSuppressed",
     "encryptBackup",
     "decryptBackup",
+    "createReplaceImportRecovery",
+    "getLatestReplaceImportRecovery",
+    "loadReplaceImportRecovery",
   ]);
 
   mustContain(SYSTEM_HANDLERS_FILE, "systemHandlers sync bridge usage", [
@@ -226,7 +276,9 @@ function runStaticChecks() {
   // Phase 9 source-level contract checks
   mustContain(BACKUP_IMPORT_FILE, "backupImportService manifest validation", [
     'throw new Error("Malformed encrypted backup manifest.")',
-    "manifest.version !== BACKUP_SCHEMA_VERSION",
+    "manifest.version !== LEGACY_MANUAL_BACKUP_VERSION",
+    "manifest.version !== MANUAL_BACKUP_MANIFEST_VERSION",
+    "verifyBackupManifestMetadata",
   ]);
 
   mustContain(SYNC_PACKET_IMPORTER_FILE, "syncPacketImporter tombstone handling", [

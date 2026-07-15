@@ -15,6 +15,7 @@ import type { ApiConnectivityStatus } from "./api-connectivity";
 import type { MutationOrigin } from "./sync";
 import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope } from "./background-task";
 import type { ProviderId } from "./provider";
+import type { BackupManifestMetadata } from "../services/backupManifest";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
@@ -385,6 +386,20 @@ export interface VeniceForge {
   researchBrowser?: import('./researchBrowser').ResearchBrowserPreloadApi;
 }
 
+export interface EncryptedBackupManifestTransport {
+  version: number;
+  exportedAt: string;
+  metadata?: BackupManifestMetadata;
+  salt: string;
+  iv: string;
+  ciphertext: string;
+}
+
+export interface ReplaceImportRecoveryTransport {
+  id: string;
+  createdAt: string;
+}
+
 export interface ElectronSyncAPI {
   /** Opens a directory picker for the user to choose the sync folder. */
   chooseSyncFolder(): Promise<{ ok: boolean; path?: string; canceled?: boolean; error?: string }>;
@@ -420,11 +435,16 @@ export interface ElectronSyncAPI {
   onRemoteChange(callback: (event: { storeName: string; id: string; operationId: string; recordJson: string; remoteApplyToken: string }) => void): () => void;
   
   /** Encrypt a manual backup payload */
-  beginBackupExport(): Promise<{ ok: boolean; profileId?: string; token?: string; error?: string }>;
+  beginBackupExport(): Promise<{ ok: boolean; profileId?: string; deviceId?: string; token?: string; error?: string }>;
   encryptBackup(input: { payload: string, password: string, token: string }): Promise<{ ok: boolean; data?: { salt: string, iv: string, ciphertext: string }; error?: string }>;
   
   /** Decrypt a manual backup payload */
   decryptBackup(input: { ciphertext: string, salt: string, iv: string, password: string }): Promise<{ ok: boolean; data?: string; error?: string }>;
+
+  /** Persists and verifies a profile-bound recovery artifact before destructive replace. */
+  createReplaceImportRecovery(input: { manifest: EncryptedBackupManifestTransport; password: string }): Promise<{ ok: boolean; recovery?: ReplaceImportRecoveryTransport; error?: string }>;
+  getLatestReplaceImportRecovery(): Promise<{ ok: boolean; recovery?: ReplaceImportRecoveryTransport | null; error?: string }>;
+  loadReplaceImportRecovery(input: { id: string; password: string }): Promise<{ ok: boolean; manifest?: EncryptedBackupManifestTransport; error?: string }>;
 }
 
 declare global {

@@ -76,6 +76,8 @@ describe("BackupSyncPanel", () => {
   it("shows paused state when folder exists but sync is not running", async () => {
     render(<BackupSyncPanel />);
     await waitFor(() => expect(screen.getByText("Paused")).toBeTruthy());
+    expect(screen.getByText(/Argon2id-derived XChaCha20-Poly1305/)).toBeTruthy();
+    expect(screen.queryByText(/All data is AES-256-GCM encrypted/)).toBeNull();
   });
 
   it("shows error state when main watcher reports an error", async () => {

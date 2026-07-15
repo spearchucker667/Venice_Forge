@@ -1,12 +1,12 @@
 # Venice Forge Roadmap
 
-This is the canonical ledger for current unfinished work only. Closed execution history and validation evidence belong in `docs/summary_of_work.md`; historical reports belong under `docs/reports/historical/`.
+This is the canonical ledger for current unfinished work only. Closed execution history and validation evidence belong in `docs/summary_of_work.md`; retained scan reports are audit input, not current status authority.
 
 ## Current Work
 
-No current implementation tasks. The 2026-07-15 follow-up closed the in-progress `syncPacketImporter` extraction (and the related `vi.mock` spy repair in `src/services/syncEngine.test.ts`), finished the UI-sound wiring across `CollapsibleSection` / `ConfirmModal` / `ErrorBoundary` / `TabButton` / `DataStoragePanel` / `ImportPlanModal` / `shared` / `toaster`, removed an untracked `test-compact.js` debug artifact, and consolidated `docs/developer/image-model-capabilities.md` under `docs/DEVELOPMENT/`. The Open TODO Ledger in `docs/summary_of_work.md` is empty; every `AUDIT-NNN` finding in the authoritative audit YAML remains `status: closed`. Any new work must be raised as a fresh entry here before code lands.
+No open implementation items. Manual packaged-app QA remains separate release evidence and is not represented as a code defect.
 
-## Authoritative Status Sources
+## Audit Input
 
-- `docs/audits/exhaustive_repository_file_audit_2026-07-14.yaml` is the authoritative per-finding audit record and contains closure evidence for every finding.
-- `docs/summary_of_work.md` records the completed remediation session and commands actually run.
+- `docs/audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/VENICE_FORGE_EXTENSIVE_SCAN_2026-07-14.md` is retained snapshot evidence from `Venice_Forge-clean-20260714-233458.zip`.
+- Every claim from that report must be reconciled against the live tree before implementation or closure. Current task status exists only in this roadmap; session evidence belongs in `docs/summary_of_work.md`.

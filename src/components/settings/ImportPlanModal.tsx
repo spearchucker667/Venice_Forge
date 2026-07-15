@@ -1,23 +1,21 @@
 import React, { useState } from "react";
 import type { ImportPlanModel } from "../../services/backupImportService";
-import { FolderPlus, Merge, Trash2, ShieldAlert } from "lucide-react";
+import { FolderPlus, Merge, Trash2, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export interface ImportPlanModalProps {
   open: boolean;
   plan: ImportPlanModel | null;
-  hasExported: boolean;
+  replaceAvailable: boolean;
   onConfirm: (mode: "merge" | "replace" | "newProfile", newProfileName?: string) => void;
   onCancel: () => void;
-  onExportRequest: () => void;
 }
 
 export function ImportPlanModal({
   open,
   plan,
-  hasExported,
+  replaceAvailable,
   onConfirm,
   onCancel,
-  onExportRequest,
 }: ImportPlanModalProps) {
   const [selectedMode, setSelectedMode] = useState<"merge" | "replace" | "newProfile">("merge");
   const [newProfileName, setNewProfileName] = useState("");
@@ -35,6 +33,42 @@ export function ImportPlanModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          {plan.manifest && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                {plan.manifest.metadataVerified
+                  ? <ShieldCheck className="text-success" size={16} />
+                  : <ShieldAlert className="text-warning" size={16} />}
+                <h3 className="text-sm font-medium text-text-primary">
+                  {plan.manifest.metadataVerified ? "Authenticated Backup Metadata" : "Legacy Backup Metadata"}
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px] text-text-secondary bg-surface border border-border/50 rounded-lg p-3">
+                <span>Format: v{plan.manifest.version}{plan.manifest.appVersion ? ` / app ${plan.manifest.appVersion}` : ""}</span>
+                <span>Exported: {new Date(plan.manifest.exportedAt).toLocaleString()}</span>
+                {plan.manifest.sourceRuntime && <span>Source: {plan.manifest.sourceRuntime} / {plan.manifest.sourceDeviceRef}</span>}
+                {plan.manifest.sourceProfileRef && <span>Profile ref: {plan.manifest.sourceProfileRef}</span>}
+                {plan.manifest.algorithm && <span>Crypto: {plan.manifest.algorithm} / {plan.manifest.kdf} / key v{plan.manifest.keyVersion}</span>}
+                <span>{plan.manifest.tombstoneCount} tombstones / {plan.manifest.embeddedBlobCount} embedded blobs</span>
+                {plan.manifest.payloadSha256 && <span className="sm:col-span-2 break-all">Payload SHA-256: {plan.manifest.payloadSha256}</span>}
+              </div>
+              {plan.warnings?.length > 0 && (
+                <div className="space-y-2" aria-label="Import warnings">
+                  {plan.warnings.map((warning) => (
+                    <div
+                      key={warning.code}
+                      className={`rounded-lg border p-2 text-[12px] ${warning.severity === "warning"
+                        ? "border-warning/30 bg-warning/10 text-warning"
+                        : "border-border/50 bg-surface text-text-secondary"}`}
+                    >
+                      {warning.message}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-text-primary">Data Changes Preview</h3>
             <div className="space-y-2">
@@ -100,20 +134,24 @@ export function ImportPlanModal({
             </div>
           </div>
 
-          {selectedMode === "replace" && !hasExported && (
-            <div className="p-3 bg-danger/10 border border-danger/20 rounded-lg flex items-start gap-3">
-              <ShieldAlert className="text-danger shrink-0 mt-0.5" size={16} />
-              <div className="flex flex-col gap-2">
-                <span className="text-[13px] text-danger font-medium">Safety Backup Required</span>
-                <span className="text-[12px] text-danger/80">You must export your current local data before replacing it.</span>
-                <button
-                  onClick={onExportRequest}
-                  className="px-3 py-1.5 self-start bg-danger/10 hover:bg-danger/20 text-danger rounded text-[12px] font-medium border border-danger/20 transition-colors"
-                >
-                  Export Current Data Now
-                </button>
+          {selectedMode === "replace" && (
+            replaceAvailable ? (
+              <div className="p-3 bg-success/10 border border-success/20 rounded-lg flex items-start gap-3">
+                <ShieldCheck className="text-success shrink-0 mt-0.5" size={16} />
+                <div className="flex flex-col gap-1">
+                  <span className="text-[13px] text-success font-medium">Automatic Recovery Enabled</span>
+                  <span className="text-[12px] text-text-secondary">The desktop app will stage this backup, create and verify an encrypted recovery artifact, then roll back automatically if replacement fails.</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-3 bg-danger/10 border border-danger/20 rounded-lg flex items-start gap-3">
+                <ShieldAlert className="text-danger shrink-0 mt-0.5" size={16} />
+                <div className="flex flex-col gap-1">
+                  <span className="text-[13px] text-danger font-medium">Replace Unavailable in Web Mode</span>
+                  <span className="text-[12px] text-danger/80">Use Merge or New Profile. Durable replace recovery requires the Venice Forge desktop app.</span>
+                </div>
+              </div>
+            )
           )}
 
           {selectedMode === "newProfile" && (
@@ -140,7 +178,7 @@ export function ImportPlanModal({
           <button
             onClick={() => onConfirm(selectedMode, newProfileName)}
             disabled={
-              (selectedMode === "replace" && !hasExported) ||
+              (selectedMode === "replace" && !replaceAvailable) ||
               (selectedMode === "newProfile" && !newProfileName.trim())
             }
             // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR

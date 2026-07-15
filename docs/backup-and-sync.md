@@ -5,9 +5,13 @@ Venice Forge is designed with a strictly local-first architecture. To ensure you
 ## Key Concepts
 
 - **Local-First**: By default, all your data (chats, character cards, images, personas) never leaves your machine. 
-- **Privacy by Default**: All exported or synced data is encrypted on your local machine using AES-256-GCM before it is written anywhere else.
+- **Privacy by Default**: Desktop backups and sync packets are encrypted locally with Argon2id-derived XChaCha20-Poly1305 before they are written anywhere else. Browser-mode manual backups use the Web Crypto PBKDF2/AES-256-GCM compatibility format.
 - **Opt-In**: Syncing is completely optional. If you never enable it, nothing changes.
 - **Provider Agnostic**: You provide the cloud! By designating a specific folder on your hard drive (e.g., inside an iCloud Drive, Dropbox, Syncthing, or Google Drive folder) as your "Sync Folder", the app will write encrypted packets there. Your cloud provider syncs those encrypted packets, and your other Venice Forge installations read them.
+
+### Current scope
+
+Venice Forge implements manual `.vfbackup` export/import and one local sync-folder transport. It does not contain built-in WebDAV, S3-compatible, or proprietary cloud-provider clients. Those transports are deferred; using a folder managed by Dropbox, iCloud, Syncthing, OneDrive, or a similar tool does not give that provider plaintext access because Venice Forge writes encrypted packets. Sync-set key rotation is also deferred: changing a passphrase currently means establishing a new sync set and re-enrolling devices, not rotating a live set in place.
 
 ## Manual Encrypted Backup
 
@@ -24,7 +28,9 @@ Instead of relying on a real-time sync folder, you can generate a single `.vfbac
 1. On your destination machine, go to **Config** > **Data & Storage** > **Backup & Sync**.
 2. Click **Import Backup** and select your `.vfbackup` file.
 3. Enter the exact passphrase used to encrypt the backup.
-4. Review the decrypted record-count preview, then confirm the merge. Existing divergent records are preserved as conflict copies where supported. Replace mode is not exposed until its pre-replacement safety-backup contract is implemented and tested.
+4. Review the decrypted preview, then confirm the import. Version-3 backups show authenticated app/source/crypto/key metadata, per-store and tombstone/blob/media counts, exclusions, a payload SHA-256, and structured compatibility warnings. Version-2 backups remain importable and are labeled legacy because that metadata is unavailable. Existing divergent records are preserved as conflict copies where supported. Merge and import-to-new-profile are available in desktop and browser modes.
+
+Desktop **Replace All** is a recovery-guarded operation. Venice Forge fully decrypts and validates the incoming payload before mutation, creates and verifies an encrypted profile-bound snapshot of the current data under the Electron `userData` directory, and then clears and applies the replacement across IndexedDB and main-process-managed stores. If clearing or apply fails, the app automatically restores the snapshot. The newest retained pre-replace snapshot also appears as **Pre-Replace Recovery** with a one-click restore action; restoring requires the same passphrase used for that replace operation. Recovery files use owner-only directory/file permissions and are isolated by active profile. Browser mode does not offer Replace All because it cannot provide the same main-authoritative durable recovery boundary.
 
 ## Sync Folder Setup (Automated Sync)
 
@@ -58,7 +64,7 @@ To keep you safe, the following data is **never** synced or backed up, even if y
 
 Persona images and other user-authored media are included in manual encrypted backups. Sync packets remain encrypted and are subject to the active store/data classification; credentials and sync-folder configuration are always removed.
 
-Packets are AES-256-GCM envelopes written atomically under `.vfbackup/blobs/`. Store names and record IDs are allowlisted, records must agree with their envelope ID, oversized or malformed packets are rejected, and abandoned temporary files are removed when the watcher starts.
+New desktop sync packets are Argon2id/XChaCha20-Poly1305 envelopes written atomically under `.vfbackup/blobs/`. The desktop decryptor retains PBKDF2/AES-256-GCM compatibility for legacy 12-byte-IV envelopes. Store names and record IDs are allowlisted, records must agree with their envelope ID, oversized or malformed packets are rejected, and abandoned temporary files are removed when the watcher starts.
 
 You must manually configure your API keys on each device you use.
 

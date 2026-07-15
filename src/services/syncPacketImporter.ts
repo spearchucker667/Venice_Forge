@@ -32,7 +32,7 @@ export interface SyncableRecord {
   messages?: Record<string, unknown>[];
 }
 
-export const IMPORTABLE_STORES = new Set<string>([...STORE_NAMES, "tombstones"]);
+export const IMPORTABLE_STORES = new Set<string>(STORE_NAMES.filter((storeName) => storeName !== "diagnostics"));
 
 /** Saves a record to a specific store, routing to IPC if needed in Desktop mode. */
 export async function saveStoreRecord(

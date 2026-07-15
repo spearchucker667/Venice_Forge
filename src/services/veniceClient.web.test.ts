@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppDispatch } from "../types/app";
 import { veniceFetch, veniceStreamChat } from "./veniceClient";
 import { useInspectorStore } from "../stores/inspector-store";
+import { useSettingsStore } from "../stores/settings-store";
 
 const originalFetch = globalThis.fetch;
 
@@ -14,6 +15,9 @@ describe("veniceClient web regressions", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
+    // Persisted Zustand state can survive across serial jsdom test files.
+    // Keep these safety regressions independent of suite execution order.
+    useSettingsStore.setState({ localFamilySafeModeEnabled: true });
   });
 
   afterEach(() => {

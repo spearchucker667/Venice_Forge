@@ -1,89 +1,116 @@
-# Data Export Format (.vfbackup)
+# Data Export Format (`.vfbackup`)
 
-This document describes the technical structure and cryptography of Venice Forge's `.vfbackup` manual export files and the Encrypted Sync Folder packets.
+This document describes the current manual-backup and encrypted sync-folder envelopes implemented by Venice Forge 2.1.2.
 
-## Overall Architecture
-Venice Forge uses a privacy-first local sync model. The application persists data locally in IndexedDB and JSON files. When data leaves the local `appData` folder for a backup or a sync folder, it is wrapped in an encryption boundary. 
+## Trust Boundary
 
-The primary goals of this format are:
-1. Ensure all user-created data (chats, prompts, characters, lorebooks, media) is strongly encrypted.
-2. Ensure metadata cannot be tampered with to cause application corruption on import.
-3. Exclude strictly local secrets (API keys, machine paths).
-4. Provide a forward/backward-compatible envelope for future migrations.
+In Electron, passphrase-based encryption and decryption run in the main process through typed preload/IPC methods. The renderer collects the passphrase for the operation but does not receive derived keys. Browser-mode manual backup is a compatibility path and uses Web Crypto in the renderer because there is no Electron main process.
 
-## Cryptography
+Provider credentials, authorization tokens, passphrases, sync-folder settings, and machine-local absolute paths are removed from portable payloads before encryption.
 
-All encryption is handled by the **Main Process**. The renderer process (UI) never has direct access to the raw passphrase or the generated encryption keys, ensuring memory isolation.
+## Current Encryption Formats
 
-- **Algorithm**: `AES-256-GCM` (Galois/Counter Mode).
-- **Key Derivation**: `PBKDF2` with `SHA-256`, using 210,000 iterations.
-- **Salts & IVs**: 
-  - A unique 16-byte random salt is generated for key derivation.
-  - A unique 12-byte initialization vector (IV) is generated for every encryption operation.
-- **Authentication**: GCM automatically produces a 16-byte authentication tag, which is appended to the ciphertext. This ensures data integrity and prevents chosen-ciphertext attacks.
+New Electron manual backups and sync packets use:
 
-## Manual Backup (.vfbackup)
+- Argon2id with libsodium's moderate operations and memory limits;
+- a unique 16-byte salt;
+- XChaCha20-Poly1305 authenticated encryption with a unique 24-byte nonce;
+- a 16-byte authentication tag stored with the ciphertext.
 
-A `.vfbackup` file is a plain JSON text file containing an `EncryptedBackupManifest`. 
+Browser-mode manual backups use PBKDF2-SHA-256 with 210,000 iterations and AES-256-GCM with a 12-byte IV. The Electron decryptor also retains this PBKDF2/AES-GCM path for legacy 12-byte-IV envelopes. Version-3 manual backups declare the algorithm and KDF in authenticated metadata; version-2 compatibility still uses IV/nonce length to select the decryptor.
 
-### `EncryptedBackupManifest` Schema
+## Encrypted Manifest
+
+New manual backups use a version-3 outer envelope. Individual sync packets and legacy manual backups retain the version-2 envelope.
 
 ```typescript
 export interface EncryptedBackupManifest {
-  format: "venice-forge-backup";
-  formatVersion: 1;
-  createdAt: number;        // Unix ms timestamp
-  appVersion: string;       // e.g., "2.1.2"
-  deviceId: string;         // A unique identifier for the exporting machine
-  profileId: string;        // The Venice Forge profile ID used during export
-  
-  // Encryption Metadata
-  encryption: {
-    algorithm: "aes-256-gcm";
-    kdf: "pbkdf2";
-    iterations: 210000;
+  version: number;      // 3 for new manual backups; 2 for legacy/sync
+  exportedAt: string;   // ISO-8601 timestamp
+  metadata?: {
+    format: "venice-forge-manual-backup";
+    formatVersion: 3;
+    appVersion: string;
+    source: { runtime: "electron" | "web"; deviceRef: string; profileRef: string };
+    crypto: { algorithm: string; kdf: string; keyVersion: number };
+    contents: {
+      totalRecords: number;
+      storeCounts: Record<string, number>;
+      tombstoneCount: number;
+      embeddedBlobCount: number;
+      includesMedia: boolean;
+      exclusions: string[];
+      payloadSha256: string;
+    };
   };
-  
-  // Base64 Encoded Crypto Parameters
-  salt: string;
-  iv: string;
-  
-  // Base64 Encoded Ciphertext (includes the 16-byte auth tag at the end)
-  ciphertext: string;       
+  salt: string;         // Base64
+  iv: string;           // Base64 24-byte nonce or legacy/browser 12-byte IV
+  ciphertext: string;   // authenticated ciphertext encoding
 }
 ```
 
-### The Plaintext Payload
+Electron-created ciphertext may be encoded as `ciphertext:authenticationTag`; combined ciphertext-and-tag Base64 remains accepted for the browser/compatibility path.
 
-When the `ciphertext` is successfully decrypted, it yields a UTF-8 JSON string representing a dictionary of stores to an array of `SyncableRecord` items.
+The outer metadata contains no record titles, prompts, messages, credentials, profile names, or machine-local paths. The profile reference is a truncated SHA-256 reference rather than the raw profile ID. The exact metadata object is also embedded inside the authenticated ciphertext. Import requires the outer and encrypted copies to match, recomputes the canonical portable-payload SHA-256, and independently verifies store, tombstone, embedded-data-URL, and media counts before presenting metadata as authenticated.
+
+## Manual Backup Payload
+
+After decryption, a `.vfbackup` payload is a JSON object containing encrypted profile provenance plus allowlisted store arrays:
 
 ```json
 {
-  "character_cards": [
+  "_veniceForgeBackup": {
+    "profileId": "default",
+    "manifestMetadata": {
+      "format": "venice-forge-manual-backup",
+      "formatVersion": 3,
+      "appVersion": "2.1.2"
+    }
+  },
+  "conversations": [
     {
-      "id": "char_abc123",
-      "name": "Example Character",
-      "updatedAt": 1718000000000,
-      "deviceId": "machine_A",
-      "revisionId": "uuid-v4-abc",
-      "baseRevisionId": "uuid-v4-xyz"
+      "id": "conversation-1",
+      "updatedAt": 1784100000000
     }
   ],
-  "chats": [
-    // ...
-  ]
+  "character_cards": []
 }
 ```
 
-## Sync Folder Packets (.enc)
+The Electron export path obtains a one-time, expiring, profile-bound lease before encryption. The main process rejects a reused or mismatched lease and verifies that exported records belong to the active profile.
 
-When "Sync Folder" mode is enabled, Venice Forge continuously monitors local storage for changes. When a record is updated, it is exported as a standalone packet file inside the Sync Folder.
+Import preview reports authenticated format/app/source/crypto/key metadata, export time, tombstone/blob/media counts, exclusions, the payload SHA-256, structured compatibility warnings, and per-store new, modified, conflict, and identical counts. Every import fully decrypts and validates the payload, store names, record shapes, IDs, duplicate IDs, tombstones, metadata binding, content hash, and declared counts before mutation. Version-2 backups remain importable and are explicitly labeled as legacy because those authenticated metadata fields are unavailable. Merge and new-profile imports avoid a global pre-clear.
 
-### File Naming Convention
-Packets follow the pattern: `{storeName}_{id}.enc`
-Example: `character_cards_char_abc123.enc`
+Desktop Replace All creates and verifies a profile-bound encrypted recovery manifest under Electron `userData` before clearing any importable store. The coordinated clear covers both renderer IndexedDB and main-process-managed stores; diagnostics are intentionally non-portable and are neither imported nor cleared. A failed clear or apply automatically rolls back from the already prepared recovery payload. The newest retained recovery can also be restored from the Data & Storage panel, and restore itself first preserves the current state as another recovery artifact. Recovery directories and files use owner-only permissions, corrupt artifacts are ignored, and recovery load revalidates active-profile provenance. Browser-mode Replace All is disabled because the browser cannot provide this durable main-authoritative boundary.
 
-### File Structure
-The `.enc` file uses the exact same `EncryptedBackupManifest` structure as the `.vfbackup` format, except the `ciphertext` contains only a single JSON-serialized record.
+## Sync Folder Packets
 
-This atomic object-level encryption prevents merge conflicts on the filesystem level (e.g. Dropbox creating conflicted copies of a monolithic database file), and delegates conflict resolution to Venice Forge's application layer logic.
+Sync writes one encrypted object packet per record mutation under `.vfbackup/blobs/`. The decrypted payload contains:
+
+```typescript
+{
+  _storeName: string;
+  _id: string;
+  _operationId: string;
+  _sourceDeviceId: string;
+  _syncSetId: string;
+  _keyId: string;
+  _profileId: string;
+  data: Record<string, unknown>;
+}
+```
+
+The operation ID is a SHA-256 digest over the store, record ID, and serialized record. The watcher validates the store and record IDs, active sync-set/key identity, profile identity, source device, packet size, and decrypted record identity before renderer delivery. Writes use a durable encrypted outbox followed by atomic publication, and acknowledgments/checkpoints make repeated delivery idempotent.
+
+Tombstones use the same packet boundary and represent deletions. Conflict copies or message-level merges preserve supported divergent records; settings-like records use deterministic last-write-wins ordering.
+
+## Compatibility and Migration
+
+- New manual exports use manifest version 3; imports accept versions 3 and 2.
+- Sync packets continue to use version 2 and are not manual-backup manifests.
+- Version-3 outer metadata must match the copy inside authenticated ciphertext and the recomputed content hash/counts.
+- A 24-byte nonce selects Argon2id/XChaCha20-Poly1305 decryption.
+- A 12-byte IV selects the legacy/browser PBKDF2/AES-256-GCM path.
+- Authentication failure, malformed Base64, invalid lengths, unknown stores, invalid IDs, cross-profile packets, and cross-sync-set packets fail closed.
+
+See [`backup-and-sync.md`](backup-and-sync.md), [`security-model.md`](security-model.md), and [`sync-threat-model.md`](sync-threat-model.md) for user workflow and threat-boundary details.

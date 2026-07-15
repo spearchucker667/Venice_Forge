@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import _sodium from "libsodium-wrappers-sumo";
+import type { BackupManifestMetadata } from "../../src/services/backupManifest";
 
 export const BACKUP_SCHEMA_VERSION = 2; // Bumped version for .vfbackup structure
 export const PBKDF2_ITERATIONS = 210000;
@@ -20,6 +21,7 @@ function decodeBase64(value: string, label: string, expectedLength?: number): Bu
 export interface EncryptedBackupManifest {
   version: number;
   exportedAt: string;
+  metadata?: BackupManifestMetadata;
   salt: string; // base64
   iv: string; // base64
   ciphertext: string; // base64

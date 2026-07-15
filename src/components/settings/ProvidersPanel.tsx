@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../../stores/auth-store'
 import { useSettingsStore } from '../../stores/settings-store'
-import { PROVIDER_REGISTRY, type ProviderId } from '../../types/provider'
+import {
+  AVAILABLE_FALLBACK_PROVIDER_IDS,
+  DEFERRED_PROVIDER_IDS,
+  PROVIDER_REGISTRY,
+  type ProviderId,
+} from '../../types/provider'
 import { PrimaryButton } from '../ui/shared'
 import { desktopProviderSettings, isElectron } from '../../services/desktopBridge'
 
 export function resolveFeatureAvailability(providerId: string, feature: string): boolean {
   if (providerId === 'venice') return true
   const def = PROVIDER_REGISTRY[providerId as ProviderId]
-  if (!def) return false
+  if (!def || def.unavailable) return false
   return (def.supportedTypes as string[]).includes(feature)
 }
 
@@ -108,6 +113,7 @@ export function ProvidersPanel() {
   const providers = Object.values(PROVIDER_REGISTRY)
     // Don't show Venice in fallback providers list, it's the primary provider managed in ApiKeysPanel
     .filter(p => p.id !== 'venice')
+  const availableProviderIds = new Set<string>(AVAILABLE_FALLBACK_PROVIDER_IDS)
 
   return (
     <div className="space-y-6">
@@ -115,6 +121,9 @@ export function ProvidersPanel() {
         <h2 className="text-xl font-semibold">Fallback Providers</h2>
         <p className="text-sm text-[var(--color-text-secondary)]">
           Configure API keys for fallback providers. These will only be used if explicitly enabled and when Venice models are unavailable or you request a specific fallback model.
+        </p>
+        <p className="text-xs text-[var(--color-text-muted)]">
+          Deferred in this release (no key entry, routing, or traffic): {DEFERRED_PROVIDER_IDS.join(', ')}. Provider keys are replaced or removed manually; scheduled key rotation is not implemented.
         </p>
       </div>
 
@@ -159,13 +168,13 @@ export function ProvidersPanel() {
               value={fallbackInput}
               onChange={(e) => {
                 setFallbackInput(e.target.value);
-                const parts = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                const parts = e.target.value.split(',').map(s => s.trim()).filter(s => availableProviderIds.has(s));
                 setFallbackOrdering(parts);
               }}
               onBlur={() => { void persistRoutingSettings({ fallbackOrdering }) }}
             />
             <p className="text-xs text-[var(--color-text-muted)] mt-1">
-              Providers will be tried in this exact order. Ensure you have enabled them below. Available: {providers.map(p => p.id).join(', ')}
+              Providers will be tried in this exact order. Ensure you have enabled them below. Available: {AVAILABLE_FALLBACK_PROVIDER_IDS.join(', ')}
             </p>
           </div>
         )}
@@ -188,7 +197,7 @@ export function ProvidersPanel() {
                     {provider.label}
                     {isUnavailable && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 uppercase tracking-wider font-semibold">
-                        Unavailable
+                        Deferred
                       </span>
                     )}
                   </h3>

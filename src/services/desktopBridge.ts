@@ -2,7 +2,7 @@
 
 // Code Owner: fayeblade (@spearchucker667)
 import "../types/desktop";
-import type { ProviderSettingsSnapshot, SyncRuntimeStatus, VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
+import type { EncryptedBackupManifestTransport, ProviderSettingsSnapshot, SyncRuntimeStatus, VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
 import type { ApiConnectivityStatus } from "../types/api-connectivity";
 import type { Conversation } from "../types/conversation";
 import type {
@@ -587,7 +587,7 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.onRemoteChange(callback);
     return () => {};
   },
-  async beginBackupExport(): Promise<{ ok: boolean; profileId?: string; token?: string; error?: string }> {
+  async beginBackupExport(): Promise<{ ok: boolean; profileId?: string; deviceId?: string; token?: string; error?: string }> {
     if (isElectron()) return window.veniceForge!.sync.beginBackupExport();
     return { ok: false, error: "Not supported in Web" };
   },
@@ -597,6 +597,18 @@ export const desktopSync = {
   },
   async decryptBackup(ciphertext: string, salt: string, iv: string, password: string): Promise<{ ok: boolean; data?: string; error?: string }> {
     if (isElectron()) return window.veniceForge!.sync.decryptBackup({ ciphertext, salt, iv, password });
+    return { ok: false, error: "Not supported in Web" };
+  },
+  async createReplaceImportRecovery(params: { manifest: EncryptedBackupManifestTransport; password: string }) {
+    if (isElectron()) return window.veniceForge!.sync.createReplaceImportRecovery(params);
+    return { ok: false, error: "Not supported in Web" };
+  },
+  async getLatestReplaceImportRecovery() {
+    if (isElectron()) return window.veniceForge!.sync.getLatestReplaceImportRecovery();
+    return { ok: false, error: "Not supported in Web" };
+  },
+  async loadReplaceImportRecovery(params: { id: string; password: string }) {
+    if (isElectron()) return window.veniceForge!.sync.loadReplaceImportRecovery(params);
     return { ok: false, error: "Not supported in Web" };
   },
 };

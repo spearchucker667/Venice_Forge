@@ -39,6 +39,10 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            // The bundled prompt catalog is immutable data and is shared by several
+            // lazy views. Keep it out of the startup entry so adding prompts cannot
+            // silently consume the main-app bundle budget.
+            if (id.endsWith('/src/data/promptStarters.ts')) return 'prompt-starters';
             if (id.includes('node_modules')) {
               if (id.includes('/pdfjs-dist/')) return 'vendor-pdfjs';
               if (id.includes('/lucide-react/')) return 'vendor-lucide';

@@ -4,7 +4,7 @@ The sync folder is treated as attacker-controlled storage. A cloud provider or a
 
 Controls:
 
-- AES-256-GCM authentication rejects wrong passphrases and modified ciphertext/tags.
+- Argon2id-derived XChaCha20-Poly1305 authentication rejects wrong passphrases and modified ciphertext/tags for current desktop packets; the decryptor retains PBKDF2-derived AES-256-GCM support for legacy packets.
 - The main process owns keys and folder approval; renderer-supplied arbitrary paths are rejected.
 - Store names and IDs are allowlisted and payload IDs must match envelope IDs.
 - Content-addressed operation IDs make duplicate delivery idempotent.

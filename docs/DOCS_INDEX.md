@@ -87,7 +87,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 - [ROADMAP.md](ROADMAP.md) — Canonical current-work-only task ledger; closed work and historical validation stay in the session ledger and historical reports.
 - [summary_of_work.md](summary_of_work.md) — Active session ledger (recent sessions only).
-- [audits/exhaustive_repository_file_audit_2026-07-14.yaml](audits/exhaustive_repository_file_audit_2026-07-14.yaml) — Completed authoritative 2026-07-14 file-audit record; all per-finding closure evidence lives here.
+- [audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/VENICE_FORGE_EXTENSIVE_SCAN_2026-07-14.md](audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/VENICE_FORGE_EXTENSIVE_SCAN_2026-07-14.md) — Retained scan of the July 14 clean ZIP; snapshot evidence only. Live unfinished work is reconciled into `ROADMAP.md`.
 - [archives/session-history-pre-2026-07-11.md](archives/session-history-pre-2026-07-11.md) — Archived dated session records.
 
 ---
