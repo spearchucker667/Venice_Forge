@@ -11,7 +11,6 @@ describe("DataStoragePanel", () => {
     render(
       <DataStoragePanel
         exportData={vi.fn()}
-        importData={vi.fn()}
         clearLocalSettings={vi.fn()}
         clearAllHistory={clearAllHistory}
       />,

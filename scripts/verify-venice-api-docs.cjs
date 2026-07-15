@@ -169,7 +169,8 @@ function verifyVeniceApiDocs(rootDir, options = {}) {
 }
 
 function main() {
-  const failures = verifyVeniceApiDocs(process.cwd());
+  const repoRoot = path.resolve(__dirname, "..");
+  const failures = verifyVeniceApiDocs(repoRoot);
   if (failures.length > 0) {
     console.error("Venice API docs verification failed:");
     for (const failure of failures) console.error(`- ${failure}`);

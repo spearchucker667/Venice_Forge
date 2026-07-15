@@ -88,7 +88,7 @@ export function SettingsView() {
   // The hook returns the 4 async action functions used by the
   // "Data & Storage operations" panel and preserves the safety-mode
   // 3-way choice (P0) end-to-end.
-  const { clearLocalSettings, clearAllHistory, exportData, importData } = useDataStorageActions({
+  const { clearLocalSettings, clearAllHistory, exportData } = useDataStorageActions({
     setSystemPrompt,
     setVeniceParams,
     setLocalFamilySafeModeEnabled,
@@ -448,7 +448,6 @@ export function SettingsView() {
           {activeSection === "data" && (
             <DataStoragePanel
               exportData={exportData}
-              importData={importData}
               clearLocalSettings={clearLocalSettings}
               clearAllHistory={clearAllHistory}
             />

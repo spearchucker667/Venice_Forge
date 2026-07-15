@@ -39,6 +39,18 @@ export interface ImportSummary {
   tombstonesApplied: number;
 }
 
+export interface ImportPlanModel {
+  totalRecords: number;
+  stores: Array<{
+    storeName: string;
+    records: number; // total in backup
+    newRecords: number;
+    modifiedRecords: number;
+    conflicts: number;
+    identical: number;
+  }>;
+}
+
 const IMPORTABLE_STORES = new Set<string>([...STORE_NAMES, "tombstones"]);
 
 function validateManifest(manifest: EncryptedBackupManifest): void {
@@ -333,12 +345,64 @@ export async function importDecryptedPacket(
   }
 }
 
-/** Parses a manual backup manifest and previews the number of records. */
-export async function previewBackup(manifest: EncryptedBackupManifest, password: string): Promise<{ totalRecords: number; stores: Array<{ storeName: string; records: number }> }> {
+/** Parses a manual backup manifest and previews the detailed import plan. */
+export async function previewBackup(manifest: EncryptedBackupManifest, password: string): Promise<ImportPlanModel> {
   const decrypted = JSON.parse(await decryptBackup(manifest, password)) as Record<string, unknown>;
-  const stores = Object.entries(decrypted).filter(([storeName, records]) => IMPORTABLE_STORES.has(storeName) && Array.isArray(records))
-    .map(([storeName, records]) => ({ storeName, records: (records as unknown[]).length }));
-  return { totalRecords: stores.reduce((sum, store) => sum + store.records, 0), stores };
+  const plan: ImportPlanModel = { totalRecords: 0, stores: [] };
+
+  for (const [storeName, records] of Object.entries(decrypted)) {
+    if (!IMPORTABLE_STORES.has(storeName) || !Array.isArray(records)) continue;
+    
+    let newRecords = 0;
+    let modifiedRecords = 0;
+    let conflicts = 0;
+    let identical = 0;
+
+    const importedRecords = records as SyncableRecord[];
+    let localRecords: SyncableRecord[] = [];
+    try {
+      localRecords = await fetchStoreRecords(storeName as SyncStoreName);
+    } catch {
+      // If we can't fetch (e.g. store doesn't exist), assume all are new
+    }
+
+    const localMap = new Map(localRecords.map(r => [r.id, r]));
+
+    for (const imported of importedRecords) {
+      const local = localMap.get(imported.id);
+      if (!local) {
+        newRecords++;
+      } else {
+        const isConflict = 
+          imported.deviceId && local.deviceId && imported.deviceId !== local.deviceId &&
+          imported.revisionId && local.revisionId && 
+          imported.revisionId !== local.revisionId &&
+          imported.baseRevisionId !== local.revisionId && 
+          local.baseRevisionId !== imported.revisionId;
+          
+        if (isConflict) {
+          conflicts++;
+        } else {
+          // LWW comparison
+          const cmp = compareSyncRecords(imported, local);
+          if (cmp > 0) modifiedRecords++;
+          else identical++;
+        }
+      }
+    }
+
+    plan.stores.push({
+      storeName,
+      records: importedRecords.length,
+      newRecords,
+      modifiedRecords,
+      conflicts,
+      identical,
+    });
+    plan.totalRecords += importedRecords.length;
+  }
+
+  return plan;
 }
 
 /** 

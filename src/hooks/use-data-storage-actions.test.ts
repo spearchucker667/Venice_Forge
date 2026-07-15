@@ -75,7 +75,6 @@ vi.mock("../services/storageService", () => ({
 
 import { useDataStorageActions } from "./use-data-storage-actions";
 import { toast } from "../stores/toast-store";
-import { desktopFiles } from "../services/desktopBridge";
 
 function buildSetters() {
   return {
@@ -100,7 +99,6 @@ describe("useDataStorageActions", () => {
     expect(typeof result.current.clearLocalSettings).toBe("function");
     expect(typeof result.current.clearAllHistory).toBe("function");
     expect(typeof result.current.exportData).toBe("function");
-    expect(typeof result.current.importData).toBe("function");
   });
 
   it("clearLocalSettings delegates to setPendingConfirm (does not call setters directly)", async () => {
@@ -161,17 +159,6 @@ describe("useDataStorageActions", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("importData returns cleanly when the file picker is cancelled (IPC returns null)", async () => {
-    const setters = buildSetters();
-    const { result } = renderHook(() =>
-      useDataStorageActions({ ...setters }),
-    );
-    await expect(
-      act(async () => {
-        await result.current.importData("test-password");
-      }),
-    ).resolves.toBeUndefined();
-  });
 
   it("T-119 / VERIFY-055: exportData failure toasts a safe message, not raw exception text", async () => {
     const setters = buildSetters();
@@ -193,27 +180,6 @@ describe("useDataStorageActions", () => {
     );
   });
 
-  it("T-120 / VERIFY-055: importData failure toasts a safe message, not raw exception text", async () => {
-    const setters = buildSetters();
-    vi.mocked(desktopFiles).importJsonString.mockRejectedValueOnce(
-      new Error("Unexpected token at /Users/sensitive/path/backup.json:12"),
-    );
-
-    const { result } = renderHook(() =>
-      useDataStorageActions({ ...setters }),
-    );
-
-    await act(async () => {
-      await result.current.importData("test-password");
-    });
-
-    expect(toast.error).toHaveBeenCalledWith(
-      "Import failed. Please check the file and try again.",
-    );
-    expect(toast.error).not.toHaveBeenCalledWith(
-      expect.stringContaining("/Users/sensitive/path/backup.json"),
-    );
-  });
 
   it("clearLocalSettings and clearAllHistory are referentially stable across re-renders", () => {
     const setters = buildSetters();

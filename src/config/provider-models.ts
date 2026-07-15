@@ -11,7 +11,19 @@ export type FallbackModelDef = VeniceModel & { _type: 'text' | 'image' }
 
 export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
   venice: [], // Venice is the primary provider; its models come from the live /models API.
-  google_gemini: [],
+  google_gemini: [
+    {
+      id: 'google_gemini:gemini-2.5-pro',
+      object: 'model',
+      created: Date.now(),
+      owned_by: 'google_gemini',
+      _type: 'text',
+      model_spec: {
+        name: 'Gemini 2.5 Pro',
+        capabilities: { supportsVision: true, supportsFunctionCalling: true },
+      }
+    }
+  ],
   together: [
     {
       id: 'together:meta-llama/Llama-3-70b-chat-hf',
@@ -84,7 +96,19 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
       }
     }
   ],
-  fireworks: [],
+  fireworks: [
+    {
+      id: 'fireworks:accounts/fireworks/models/llama-v3p1-70b-instruct',
+      object: 'model',
+      created: Date.now(),
+      owned_by: 'fireworks',
+      _type: 'text',
+      model_spec: {
+        name: 'Llama 3.1 70B (Fireworks)',
+        capabilities: { supportsVision: false, supportsFunctionCalling: true },
+      }
+    }
+  ],
   replicate: [],
   aws_bedrock: [],
   google_vertex: [],
@@ -103,7 +127,19 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
       }
     }
   ],
-  perplexity: [],
+  perplexity: [
+    {
+      id: 'perplexity:llama-3-sonar-large-32k-online',
+      object: 'model',
+      created: Date.now(),
+      owned_by: 'perplexity',
+      _type: 'text',
+      model_spec: {
+        name: 'Sonar Large Online',
+        capabilities: { supportsVision: false, supportsFunctionCalling: false },
+      }
+    }
+  ],
   cohere: []
 }
 

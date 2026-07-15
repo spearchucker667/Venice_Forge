@@ -34,12 +34,13 @@
 import { useCallback } from "react";
 import { useChatStore } from "../stores/chat-store";
 import { toast } from "../stores/toast-store";
-import { isElectron, desktopFiles, desktopConfig } from "../services/desktopBridge";
-import { listConversations } from "../services/chatStorage";
+import { isElectron, desktopConfig } from "../services/desktopBridge";
 import type { Memory } from "../services/memoryService";
 import type { ExportPayload } from "../services/exportImport";
 import StorageService from "../services/storageService";
 import { STORE_NAMES } from "../constants/venice";
+import { createEncryptedBackup, downloadEncryptedBackup } from "../services/backupExportService";
+
 
 /** Shape of the local-state setters that the hook needs to drive. */
 export interface DataStorageActionsOptions {
@@ -64,7 +65,6 @@ export interface DataStorageActions {
   clearLocalSettings: () => Promise<void>;
   clearAllHistory: () => Promise<void>;
   exportData: (password: string) => Promise<void>;
-  importData: (password: string) => Promise<void>;
 }
 
 /**
@@ -130,7 +130,6 @@ export function useDataStorageActions(
 
   const exportData = useCallback(async (password: string) => {
     try {
-      const { createEncryptedBackup, downloadEncryptedBackup } = await import("../services/backupExportService");
       const manifest = await createEncryptedBackup(password);
       const ok = await downloadEncryptedBackup(manifest);
       if (ok) toast.success("Encrypted backup exported successfully.");
@@ -139,40 +138,7 @@ export function useDataStorageActions(
     }
   }, []);
 
-  /**
-   * Import is gated by a 3-way safety choice (P0) when the imported
-   * payload would disable either Family Safe Mode or Venice API Safe
-   * Mode. The 3-way choice is implemented inline because it needs
-   * `setPendingConfirm` + the same cancel/tertiary/dismiss refs that
-   * the SettingsView modal uses; callers do not need to pass anything
-   * extra.
-   */
-  const importData = useCallback(async (password: string) => {
-    try {
-      const json = await desktopFiles.importJsonString();
-      if (!json) return;
-
-      const { parseAndImportBackup, previewBackup } = await import("../services/backupImportService");
-      const manifest = JSON.parse(json);
-      const preview = await previewBackup(manifest, password);
-      setPendingConfirm({
-        message: `Import ${preview.totalRecords.toLocaleString()} encrypted backup records?`,
-        detail: preview.stores.map((store) => `${store.storeName}: ${store.records}`).join(" · "),
-        onConfirm: async () => {
-          const summary = await parseAndImportBackup(manifest, password);
-          toast.success(`Import complete: ${summary.recordsImported} imported, ${summary.recordsSkipped} skipped, ${summary.tombstonesApplied} tombstones applied.`);
-          window.dispatchEvent(new Event("venice:backup-imported"));
-          const convs = await listConversations();
-          useChatStore.getState().setConversations(convs);
-        },
-      });
-
-    } catch {
-      toast.error("Import failed. Please check the file and try again.");
-    }
-  }, [setPendingConfirm]);
-
-  return { clearLocalSettings, clearAllHistory, exportData, importData };
+  return { clearLocalSettings, clearAllHistory, exportData };
 }
 
 // Re-export `Memory` and `ExportPayload` so consumers can import the

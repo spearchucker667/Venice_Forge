@@ -735,7 +735,7 @@ describe("syncFolderWatcher", () => {
 
   // Task 13 regression guard: bounded applied-operations journal compaction.
   it("does not exceed MAX_JOURNAL_ENTRIES after many operations", async () => {
-    for (let i = 0; i < MAX_JOURNAL_ENTRIES + 100; i++) {
+    for (let i = 0; i < MAX_JOURNAL_ENTRIES + 1001; i++) {
       await recordAppliedOperation(`op-${i}`, "conversations", "applied", undefined, false);
     }
     await flushAppliedOperationsJournal();
@@ -745,14 +745,14 @@ describe("syncFolderWatcher", () => {
   });
 
   it("does not exceed MAX_JOURNAL_ENTRIES when every recent operation is a tombstone", async () => {
-    for (let i = 0; i < MAX_JOURNAL_ENTRIES + 100; i++) {
+    for (let i = 0; i < MAX_JOURNAL_ENTRIES + 1001; i++) {
       await recordAppliedOperation(`tombstone-op-${i}`, "tombstones", "applied", undefined, false);
     }
     await flushAppliedOperationsJournal();
 
     const journal = await loadAppliedOperationsJournal();
     expect(journal.operations).toHaveLength(MAX_JOURNAL_ENTRIES);
-    expect(journal.operations[0].operationId).toBe("tombstone-op-100");
-    expect(journal.operations.at(-1)?.operationId).toBe(`tombstone-op-${MAX_JOURNAL_ENTRIES + 99}`);
+    expect(journal.operations[0].operationId).toBe("tombstone-op-1001");
+    expect(journal.operations.at(-1)?.operationId).toBe(`tombstone-op-${MAX_JOURNAL_ENTRIES + 1000}`);
   });
 });

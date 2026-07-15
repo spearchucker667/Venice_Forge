@@ -11,6 +11,7 @@ import { cn } from '../../lib/utils'
 import { toast } from '../../stores/toast-store'
 import { DEFAULT_AGENT_MODEL } from '../../lib/playground-agent'
 import { askDecision } from '../ui/modal-requests'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 
 export function PlaygroundView() {
   const draft = usePlaygroundStore((s) => s.draft)
@@ -221,7 +222,7 @@ export function PlaygroundView() {
             >
               {isRunning ? (
                 <>
-                  <span className="w-2.5 h-2.5 border-2 border-green-300/60 border-t-transparent rounded-full animate-spin" />
+                  <GenerationLoadingIndicator size="sm" state="processing" />
                   <span className="hidden sm:inline">Running…</span>
                 </>
               ) : (

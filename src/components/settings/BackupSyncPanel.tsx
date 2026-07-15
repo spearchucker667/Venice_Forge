@@ -5,6 +5,7 @@ import { toast } from "../../stores/toast-store";
 import { FolderOpen, HardDrive, ShieldCheck, Activity } from "lucide-react";
 import { initSyncEngine, pauseSyncEngine, reattachSyncEngine } from "../../services/syncEngine";
 import type { SyncRuntimeStatus } from "../../types/desktop";
+import { useConflicts } from "../../hooks/use-conflicts";
 
 const OFFLINE_STATUS: SyncRuntimeStatus = {
   configured: false,
@@ -21,6 +22,7 @@ export function BackupSyncPanel() {
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const passphraseRef = React.useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { conflicts, loading: conflictsLoading, loadConflicts, resolveConflict } = useConflicts();
 
   useEffect(() => {
     setSyncFolder(settingsSyncFolder || null);
@@ -86,6 +88,16 @@ export function BackupSyncPanel() {
 
   const isSyncActive = runtimeStatus.mainWatcher === "running" && runtimeStatus.rendererSessionAttached;
   const isRendererDetached = runtimeStatus.mainWatcher === "running" && !runtimeStatus.rendererSessionAttached;
+
+  useEffect(() => {
+    if (isSyncActive) {
+      loadConflicts();
+      // Listen for window event venice:backup-imported or similar? 
+      // Continuous sync imports might happen anytime.
+      const interval = setInterval(loadConflicts, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [isSyncActive, loadConflicts]);
 
   const handleChooseFolder = async () => {
     try {
@@ -343,17 +355,59 @@ export function BackupSyncPanel() {
           </div>
         </div>
         <div className="p-4">
-          <p className="text-sm text-text-secondary italic">
-            {isSyncActive
-              ? "Sync is active. New changes will be automatically merged. (Conflict resolution UI is under development)."
-              : runtimeStatus.mainWatcher === "error"
+          {!isSyncActive ? (
+            <p className="text-sm text-text-secondary italic">
+              {runtimeStatus.mainWatcher === "error"
                 ? `Sync error: ${runtimeStatus.degradedReason}`
                 : isRendererDetached
                   ? "The main process watcher is running but the renderer session is detached. Re-enter the passphrase to reattach."
                   : syncFolder
                     ? "Sync is configured but not fully active. Enter the passphrase and start sync."
                     : "Enable sync to monitor activity."}
-          </p>
+            </p>
+          ) : conflictsLoading && conflicts.length === 0 ? (
+            <p className="text-sm text-text-secondary">Checking for conflicts...</p>
+          ) : conflicts.length === 0 ? (
+            <p className="text-sm text-text-secondary italic text-success">Sync is active. No conflicts found.</p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-text-secondary font-medium mb-2">
+                Found {conflicts.length} conflict{conflicts.length === 1 ? "" : "s"}. Resolve them below:
+              </p>
+              {conflicts.map((conflict) => (
+                <div key={conflict.conflictId} className="bg-surface border border-border/50 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h5 className="text-[13px] font-medium text-text-primary">
+                        {conflict.storeName} - {conflict.originalRecord.name || conflict.originalRecord.title || "Untitled"}
+                      </h5>
+                      <p className="text-[11px] text-text-muted">ID: {conflict.originalId}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => resolveConflict(conflict, "keep_original")}
+                      className="px-3 py-1.5 bg-surface-elevated hover:bg-accent/10 hover:text-accent text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
+                    >
+                      Keep Local
+                    </button>
+                    <button
+                      onClick={() => resolveConflict(conflict, "keep_conflict")}
+                      className="px-3 py-1.5 bg-surface-elevated hover:bg-warning/10 hover:text-warning text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
+                    >
+                      Keep Remote
+                    </button>
+                    <button
+                      onClick={() => resolveConflict(conflict, "keep_both")}
+                      className="px-3 py-1.5 bg-surface-elevated hover:bg-success/10 hover:text-success text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
+                    >
+                      Keep Both
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

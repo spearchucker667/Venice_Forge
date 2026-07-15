@@ -215,9 +215,11 @@ async function saveAppliedOperationsJournal(): Promise<void> {
   }
 }
 
+const COMPACTION_BATCH = 1000;
+
 function compactJournal(): void {
   const total = appliedOperationsJournal.operations.length;
-  if (total <= MAX_JOURNAL_ENTRIES) return;
+  if (total <= MAX_JOURNAL_ENTRIES + COMPACTION_BATCH) return;
 
   const cutoff = Date.now() - JOURNAL_COMPACTION_DAYS * 24 * 60 * 60 * 1000;
 
