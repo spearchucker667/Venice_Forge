@@ -180,8 +180,8 @@ export function assessLocalEnvFilePermissions(
 export function checkLocalEnvFilePermissionsOnce(): EnvPermissionsAnalysis {
   return assessLocalEnvFilePermissions({
     envSnapshot: {
-      VENICE_API_KEY: process.env.VENICE_API_KEY,
-      JINA_API_KEY: process.env.JINA_API_KEY,
+      VENICE_API_KEY: process.env["VENICE_API_KEY"],
+      JINA_API_KEY: process.env["JINA_API_KEY"],
     },
   });
 }
