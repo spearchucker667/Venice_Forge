@@ -51,7 +51,14 @@ describe("replaceImportRecovery", () => {
     await expect(loadReplaceImportRecovery(root, "work", metadata.id, "password")).resolves.toEqual(manifest);
 
     const file = path.join(root, "replace-import-recovery", "work", `${metadata.id}.json`);
-    expect((await fs.stat(file)).mode & 0o777).toBe(0o600);
+    const fileStat = await fs.stat(file);
+    expect(fileStat.isFile()).toBe(true);
+    // Windows does not implement POSIX permission bits and reports a synthetic
+    // mode even when writeFile/chmod receive 0o600. Keep the security assertion
+    // on platforms where the filesystem can actually enforce that contract.
+    if (process.platform !== "win32") {
+      expect(fileStat.mode & 0o777).toBe(0o600);
+    }
     expect(decryptPayload).toHaveBeenCalledWith(manifest.ciphertext, manifest.salt, manifest.iv, "password");
   });
 
