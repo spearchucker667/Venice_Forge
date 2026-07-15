@@ -25,6 +25,7 @@ import { ProfilePanel } from "./ProfilePanel";
 import { BackupSyncPanel } from "./BackupSyncPanel";
 import { AudioSpeechPanel } from "./AudioSpeechPanel";
 import type { PendingConfirm } from "./types";
+import { IMAGE_EDIT_MODEL_IDS } from "../../constants/venice";
 
 export function SettingsView() {
   const { isConfigured: veniceConfigured, setApiKey, clearApiKey } = useAuthStore();
@@ -98,9 +99,12 @@ export function SettingsView() {
   // Load models
   const { data: textModels } = useModels("text");
   const { data: imageModels } = useModels("image");
+  // Exclude image-edit models from the text-to-image selector.
+  // Edit models appear only in the Image Tools panel's own model picker.
+  const textToImageModels = imageModels?.filter((m) => !IMAGE_EDIT_MODEL_IDS.has(m.id));
 
   const currentChatModel = selectedModels["chat"] || textModels?.[0]?.id || "";
-  const currentImageModel = selectedModels["image"] || imageModels?.[0]?.id || "";
+  const currentImageModel = selectedModels["image"] || textToImageModels?.[0]?.id || "";
 
   async function updateSafetySetting(
     key: "local_family_safe_mode_enabled" | "venice_api_safe_mode",
@@ -412,7 +416,7 @@ export function SettingsView() {
               currentChatModel={currentChatModel}
               currentImageModel={currentImageModel}
               textModels={textModels}
-              imageModels={imageModels}
+              imageModels={textToImageModels}
               systemPrompt={systemPrompt}
               setSystemPrompt={setSystemPrompt}
               veniceParams={veniceParams}

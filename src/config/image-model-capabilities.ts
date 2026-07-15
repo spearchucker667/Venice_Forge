@@ -4,6 +4,14 @@
  *  optional resolution, optional quality, and features (negative
  *  prompt, seed) each image model supports.
  *
+ *  Seedream model families (verified against docs/Venice_swagger_api.yaml):
+ *   - seedream-v5-pro, seedream-v5-lite, seedream-v4: text-to-image
+ *     via POST /api/v1/image/generate; aspect_ratio mode per live constraints.
+ *   - seedream-v5-pro-edit, seedream-v5-lite-edit, seedream-v4-edit:
+ *     image-edit via POST /api/v1/image/edit; EditImageRequest schema
+ *     (image, model, prompt, aspect_ratio, resolution, output_format,
+ *     safe_mode). NO return_binary, NO modelId in new code.
+ *
  *  Sources of truth (verified against docs/Venice_swagger_api.yaml):
  *   - Venice swagger: width/height 64..1280, divisible by 64
  *   - /models endpoint returns `model.model_spec.constraints` with
@@ -26,11 +34,24 @@ export type ImageDimensionMode =
   | "fixed"
   | "unknown";
 
+/**
+ * Discriminates between text-to-image models (POST /api/v1/image/generate)
+ * and image-edit models (POST /api/v1/image/edit).
+ * Defaults to 'text-to-image' when omitted for backwards compatibility.
+ */
+export type ImageModelOperation = "text-to-image" | "image-edit";
+
 export type ImageQuality = "low" | "medium" | "high" | "auto";
 
 export interface ImageModelCapabilities {
   modelId: string;
   label: string;
+  /**
+   * Discriminates between text-to-image (POST /api/v1/image/generate) and
+   * image-edit (POST /api/v1/image/edit) models. Omitted entries default to
+   * 'text-to-image' to preserve backwards compatibility.
+   */
+  operation?: ImageModelOperation;
   dimensionMode: ImageDimensionMode;
   widthHeightOptions?: Array<{ width: number; height: number; label: string }>;
   aspectRatios?: Array<{ id: string; label: string }>;
@@ -84,6 +105,34 @@ const COMMON_ASPECT_RATIOS = [
   { id: "21:9", label: "Ultrawide (21:9)" },
 ];
 
+/**
+ * Aspect ratio presets for image-edit models (EditImageRequest schema).
+ * Source: docs/Venice_swagger_api.yaml EditImageRequest.aspect_ratio enum.
+ * Includes "auto" which infers the closest ratio from the input image.
+ */
+const EDIT_ASPECT_RATIOS = [
+  { id: "auto", label: "Auto (infer from image)" },
+  { id: "1:1", label: "Square (1:1)" },
+  { id: "3:2", label: "Photo (3:2)" },
+  { id: "16:9", label: "Landscape (16:9)" },
+  { id: "21:9", label: "Ultrawide (21:9)" },
+  { id: "9:16", label: "Portrait (9:16)" },
+  { id: "2:3", label: "Portrait (2:3)" },
+  { id: "3:4", label: "Portrait (3:4)" },
+  { id: "4:5", label: "Portrait (4:5)" },
+];
+
+/**
+ * Resolution presets for image-edit models (EditImageRequest schema).
+ * Source: docs/Venice_swagger_api.yaml EditImageRequest.resolution.
+ * Note: Swagger uses uppercase "1K", "2K", "4K".
+ */
+const EDIT_RESOLUTIONS = [
+  { id: "1K", label: "1K" },
+  { id: "2K", label: "2K" },
+  { id: "4K", label: "4K" },
+];
+
 /** Common resolution presets used by aspect-resolution models. */
 const COMMON_RESOLUTIONS = [
   { id: "1k", label: "1K" },
@@ -121,11 +170,18 @@ const SD_WIDTH_HEIGHT_PAIRS: ImageModelCapabilities["widthHeightOptions"] = [
  *
  * Text-only models (e.g. `venice-uncensored-1-2`) MUST NOT be registered here
  * because they do not expose `/image/generate` constraints.
+ *
+ * IMPORTANT: Seedream = image generation/editing (NOT video, NOT Seedance).
+ *   - Text-to-image: seedream-v5-pro, seedream-v5-lite, seedream-v4
+ *     → POST /api/v1/image/generate
+ *   - Image-edit: seedream-v5-pro-edit, seedream-v5-lite-edit, seedream-v4-edit
+ *     → POST /api/v1/image/edit
  */
 const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
   {
     modelId: "flux-dev",
     label: "Flux Dev",
+    operation: "text-to-image",
     dimensionMode: "widthHeight",
     widthHeightOptions: SD_WIDTH_HEIGHT_PAIRS,
     defaultDimensions: { width: 1024, height: 1024 },
@@ -134,11 +190,12 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
     supportsVariants: true,
     supportsReferences: false,
     referenceLimit: 0,
-    patternMatch: /^flux/i,
+    patternMatch: /^flux(?!.*edit)/i,
   },
   {
     modelId: "flux-dev-schnell",
     label: "Flux Dev Schnell",
+    operation: "text-to-image",
     dimensionMode: "widthHeight",
     widthHeightOptions: SD_WIDTH_HEIGHT_PAIRS,
     defaultDimensions: { width: 1024, height: 1024 },
@@ -151,6 +208,7 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
   {
     modelId: "z-image-turbo",
     label: "Z Image Turbo",
+    operation: "text-to-image",
     dimensionMode: "widthHeight",
     widthHeightOptions: SD_WIDTH_HEIGHT_PAIRS,
     defaultDimensions: { width: 1024, height: 1024 },
@@ -164,6 +222,7 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
   {
     modelId: "hidream-i-flux-dev",
     label: "HiDream I Flux Dev",
+    operation: "text-to-image",
     dimensionMode: "widthHeight",
     widthHeightOptions: SD_WIDTH_HEIGHT_PAIRS,
     defaultDimensions: { width: 1024, height: 1024 },
@@ -177,6 +236,7 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
   {
     modelId: "sdxl",
     label: "SDXL",
+    operation: "text-to-image",
     dimensionMode: "widthHeight",
     widthHeightOptions: SD_WIDTH_HEIGHT_PAIRS,
     defaultDimensions: { width: 1024, height: 1024 },
@@ -190,6 +250,7 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
   {
     modelId: "nano-banana-v1",
     label: "Nano Banana",
+    operation: "text-to-image",
     dimensionMode: "aspectResolution",
     aspectRatios: COMMON_ASPECT_RATIOS,
     resolutions: COMMON_RESOLUTIONS,
@@ -201,11 +262,12 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
     supportsVariants: true,
     supportsReferences: false,
     referenceLimit: 0,
-    patternMatch: /^nano/i,
+    patternMatch: /^nano(?!.*edit)/i,
   },
   {
     modelId: "venice-character-reference-v1",
     label: "Venice Character Reference (Beta)",
+    operation: "text-to-image",
     dimensionMode: "widthHeight",
     widthHeightOptions: SD_WIDTH_HEIGHT_PAIRS,
     defaultDimensions: { width: 1024, height: 1024 },
@@ -214,6 +276,122 @@ const IMAGE_MODEL_CAPABILITIES: ImageModelCapabilities[] = [
     supportsVariants: true,
     supportsReferences: true,
     referenceLimit: 2,
+  },
+
+  // ── Seedream text-to-image models ─────────────────────────────────────────
+  // Source: POST /api/v1/image/generate (GenerateImageRequest schema).
+  // These use aspect_ratio mode. Live /models constraints will refine
+  // the exact ratios; COMMON_ASPECT_RATIOS is the safe static default.
+  // NEVER use these models with /image/edit.
+  {
+    modelId: "seedream-v5-pro",
+    label: "Seedream V5 Pro",
+    operation: "text-to-image",
+    dimensionMode: "aspectRatio",
+    aspectRatios: COMMON_ASPECT_RATIOS,
+    defaultDimensions: { aspectRatio: "1:1" },
+    supportsNegativePrompt: false,
+    supportsSeed: true,
+    supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
+    supportsHideWatermark: true,
+    supportsReturnBinary: false,
+  },
+  {
+    modelId: "seedream-v5-lite",
+    label: "Seedream V5 Lite",
+    operation: "text-to-image",
+    dimensionMode: "aspectRatio",
+    aspectRatios: COMMON_ASPECT_RATIOS,
+    defaultDimensions: { aspectRatio: "1:1" },
+    supportsNegativePrompt: false,
+    supportsSeed: true,
+    supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
+    supportsHideWatermark: true,
+    supportsReturnBinary: false,
+  },
+  {
+    modelId: "seedream-v4",
+    label: "Seedream V4",
+    operation: "text-to-image",
+    dimensionMode: "aspectRatio",
+    aspectRatios: COMMON_ASPECT_RATIOS,
+    defaultDimensions: { aspectRatio: "1:1" },
+    supportsNegativePrompt: false,
+    supportsSeed: true,
+    supportsVariants: true,
+    supportsReferences: false,
+    referenceLimit: 0,
+    supportsHideWatermark: true,
+    supportsReturnBinary: false,
+  },
+
+  // ── Seedream image-edit models ────────────────────────────────────────────
+  // Source: POST /api/v1/image/edit (EditImageRequest schema).
+  // Fields: image (required), model, prompt (required), aspect_ratio,
+  //         resolution, output_format, safe_mode.
+  // DO NOT emit return_binary, modelId, enhance, enhancePrompt.
+  // NEVER use these models with /image/generate.
+  {
+    modelId: "seedream-v5-pro-edit",
+    label: "Seedream V5 Pro (Edit)",
+    operation: "image-edit",
+    dimensionMode: "aspectRatio",
+    aspectRatios: EDIT_ASPECT_RATIOS,
+    resolutions: EDIT_RESOLUTIONS,
+    defaultDimensions: { aspectRatio: "auto", resolution: "1K" },
+    supportsNegativePrompt: false,
+    supportsSeed: false,
+    supportsVariants: false,
+    supportsReferences: false,
+    referenceLimit: 0,
+    supportsHideWatermark: false,
+    supportsReturnBinary: false,
+    supportsSteps: false,
+    supportsCfgScale: false,
+    supportsStyle: false,
+  },
+  {
+    modelId: "seedream-v5-lite-edit",
+    label: "Seedream V5 Lite (Edit)",
+    operation: "image-edit",
+    dimensionMode: "aspectRatio",
+    aspectRatios: EDIT_ASPECT_RATIOS,
+    resolutions: EDIT_RESOLUTIONS,
+    defaultDimensions: { aspectRatio: "auto", resolution: "1K" },
+    supportsNegativePrompt: false,
+    supportsSeed: false,
+    supportsVariants: false,
+    supportsReferences: false,
+    referenceLimit: 0,
+    supportsHideWatermark: false,
+    supportsReturnBinary: false,
+    supportsSteps: false,
+    supportsCfgScale: false,
+    supportsStyle: false,
+  },
+  {
+    modelId: "seedream-v4-edit",
+    label: "Seedream V4 (Edit)",
+    operation: "image-edit",
+    dimensionMode: "aspectRatio",
+    aspectRatios: EDIT_ASPECT_RATIOS,
+    resolutions: EDIT_RESOLUTIONS,
+    defaultDimensions: { aspectRatio: "auto", resolution: "1K" },
+    supportsNegativePrompt: false,
+    supportsSeed: false,
+    supportsVariants: false,
+    supportsReferences: false,
+    referenceLimit: 0,
+    supportsHideWatermark: false,
+    supportsReturnBinary: false,
+    supportsSteps: false,
+    supportsCfgScale: false,
+    supportsStyle: false,
+    patternMatch: /^seedream.*edit/i,
   },
 ];
 
@@ -265,6 +443,26 @@ function normaliseConstraints(
   };
 }
 
+/**
+ * Canonical IDs for the three Seedream text-to-image models.
+ * Use these when you need to identify Seedream generate models programmatically.
+ */
+export const SEEDREAM_TEXT_TO_IMAGE_IDS: ReadonlySet<string> = new Set([
+  "seedream-v5-pro",
+  "seedream-v5-lite",
+  "seedream-v4",
+]);
+
+/**
+ * Canonical IDs for the three Seedream image-edit models.
+ * These are used with POST /api/v1/image/edit, not /image/generate.
+ */
+export const SEEDREAM_EDIT_IDS: ReadonlySet<string> = new Set([
+  "seedream-v5-pro-edit",
+  "seedream-v5-lite-edit",
+  "seedream-v4-edit",
+]);
+
 /** Returns the known capabilities for a given model ID.
  *  Falls back to widthHeight mode with all common pairs for unknown models. */
 export function getImageModelCapabilities(modelId: string): ImageModelCapabilities {
@@ -288,6 +486,31 @@ export function getImageModelCapabilities(modelId: string): ImageModelCapabiliti
     supportsReferences: false,
     referenceLimit: 0,
   };
+}
+
+/**
+ * Returns capabilities for a model, asserting it is a text-to-image model.
+ * Returns null if the model is registered as an image-edit model.
+ * Unknown models (not in registry) are assumed text-to-image (safe default).
+ */
+export function getTextToImageModelCapabilities(
+  modelId: string,
+): ImageModelCapabilities | null {
+  const caps = getImageModelCapabilities(modelId);
+  if (caps.operation === "image-edit") return null;
+  return caps;
+}
+
+/**
+ * Returns capabilities for a model, asserting it is an image-edit model.
+ * Returns null if the model is not registered as an image-edit model.
+ */
+export function getEditModelCapabilities(
+  modelId: string,
+): ImageModelCapabilities | null {
+  const caps = getImageModelCapabilities(modelId);
+  if (caps.operation !== "image-edit") return null;
+  return caps;
 }
 
 /** Build dimension options for the model, preferring live `/models`

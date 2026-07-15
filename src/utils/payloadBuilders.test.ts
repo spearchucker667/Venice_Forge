@@ -511,3 +511,79 @@ describe("buildImagePayload — safe_mode + chat seed helpers together", () => {
     expect(payload.seed).toBe(42);
   });
 });
+
+// ── Seedream request-builder contract tests ────────────────────────────────
+
+describe("buildImagePayload — Seedream text-to-image contract (VERIFY-SEEDREAM-001)", () => {
+  const SEEDREAM_T2I_IDS = ["seedream-v5-pro", "seedream-v5-lite", "seedream-v4"];
+
+  it("emits model field (not modelId) for Seedream text-to-image models", () => {
+    for (const modelId of SEEDREAM_T2I_IDS) {
+      const payload = buildImagePayload(modelId, {
+        prompt: "A sunset over the mountains",
+        aspectRatio: "16:9",
+        supportsReturnBinary: false,
+      });
+      expect(payload.model).toBe(modelId);
+      expect(payload).not.toHaveProperty("modelId");
+    }
+  });
+
+  it("does NOT emit return_binary for Seedream text-to-image models when supportsReturnBinary=false", () => {
+    for (const modelId of SEEDREAM_T2I_IDS) {
+      const payload = buildImagePayload(modelId, {
+        prompt: "A sunset over the mountains",
+        aspectRatio: "16:9",
+        supportsReturnBinary: false,
+      });
+      expect(payload).not.toHaveProperty("return_binary");
+    }
+  });
+
+  it("does NOT emit modelId for Seedream text-to-image models", () => {
+    for (const modelId of SEEDREAM_T2I_IDS) {
+      const payload = buildImagePayload(modelId, {
+        prompt: "A cat in a garden",
+        aspectRatio: "1:1",
+      });
+      expect(payload).not.toHaveProperty("modelId");
+    }
+  });
+
+  it("does NOT emit enhance, enhancePrompt, enhanceCreativity fields", () => {
+    for (const modelId of SEEDREAM_T2I_IDS) {
+      const payload = buildImagePayload(modelId, {
+        prompt: "A landscape",
+        aspectRatio: "16:9",
+      });
+      expect(payload).not.toHaveProperty("enhance");
+      expect(payload).not.toHaveProperty("enhancePrompt");
+      expect(payload).not.toHaveProperty("enhanceCreativity");
+    }
+  });
+
+  it("emits aspect_ratio and NOT width/height for Seedream text-to-image models", () => {
+    for (const modelId of SEEDREAM_T2I_IDS) {
+      const payload = buildImagePayload(modelId, {
+        prompt: "A mountain range",
+        aspectRatio: "16:9",
+        supportsReturnBinary: false,
+      });
+      expect(payload.aspect_ratio).toBe("16:9");
+      expect(payload).not.toHaveProperty("width");
+      expect(payload).not.toHaveProperty("height");
+    }
+  });
+
+  it("does NOT emit negative_prompt for Seedream text-to-image when supportsNegativePrompt=false", () => {
+    for (const modelId of SEEDREAM_T2I_IDS) {
+      const payload = buildImagePayload(modelId, {
+        prompt: "A mountain range",
+        negative: "blurry",
+        aspectRatio: "16:9",
+        supportsNegativePrompt: false,
+      });
+      expect(payload).not.toHaveProperty("negative_prompt");
+    }
+  });
+});

@@ -332,3 +332,24 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
     expect(screen.queryByRole('option', { name: 'Text Only Model' })).toBeNull()
   })
 })
+
+// ── Seedream model constant verification tests (VERIFY-SEEDREAM-002) ─────────
+// These tests verify that IMAGE_EDIT_MODEL_IDS (which drives the edit selector
+// filter in image-tools.tsx) correctly includes Seedream edit models and excludes
+// Seedream text-to-image models. This is a pure constant test.
+
+describe('IMAGE_EDIT_MODEL_IDS — Seedream edit model constants (VERIFY-SEEDREAM-002)', () => {
+  it('IMAGE_EDIT_MODEL_IDS includes all three Seedream edit models', async () => {
+    const { IMAGE_EDIT_MODEL_IDS } = await import('../../constants/venice')
+    expect(IMAGE_EDIT_MODEL_IDS.has('seedream-v5-pro-edit')).toBe(true)
+    expect(IMAGE_EDIT_MODEL_IDS.has('seedream-v5-lite-edit')).toBe(true)
+    expect(IMAGE_EDIT_MODEL_IDS.has('seedream-v4-edit')).toBe(true)
+  })
+
+  it('IMAGE_EDIT_MODEL_IDS does NOT include Seedream text-to-image models', async () => {
+    const { IMAGE_EDIT_MODEL_IDS } = await import('../../constants/venice')
+    expect(IMAGE_EDIT_MODEL_IDS.has('seedream-v5-pro')).toBe(false)
+    expect(IMAGE_EDIT_MODEL_IDS.has('seedream-v5-lite')).toBe(false)
+    expect(IMAGE_EDIT_MODEL_IDS.has('seedream-v4')).toBe(false)
+  })
+})

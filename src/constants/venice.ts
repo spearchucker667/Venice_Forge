@@ -19,7 +19,10 @@ export const FALLBACK_MODELS = {
     { id: "lustify-sdxl", type: "image", name: "lustify-sdxl", traits: ["fallback"], isFallback: true, source: "fallback" },
     { id: "z-image-turbo", type: "image", name: "z-image-turbo", traits: ["fallback"], isFallback: true, source: "fallback" },
     { id: "nano-banana-pro", type: "image", name: "nano-banana-pro", traits: ["fallback"], isFallback: true, source: "fallback" },
-    { id: "venice-sd35", type: "image", name: "venice-sd35", traits: ["fallback"], isFallback: true, source: "fallback" }
+    { id: "venice-sd35", type: "image", name: "venice-sd35", traits: ["fallback"], isFallback: true, source: "fallback" },
+    { id: "seedream-v5-pro", type: "image", name: "seedream-v5-pro", traits: ["fallback"], isFallback: true, source: "fallback" },
+    { id: "seedream-v5-lite", type: "image", name: "seedream-v5-lite", traits: ["fallback"], isFallback: true, source: "fallback" },
+    { id: "seedream-v4", type: "image", name: "seedream-v4", traits: ["fallback"], isFallback: true, source: "fallback" }
   ],
   audio: [
     { id: "tts-kokoro", type: "audio", name: "tts-kokoro", traits: ["fallback", "tts"], isFallback: true, source: "fallback" },
