@@ -7,7 +7,7 @@ This is the active handoff and validation ledger. The canonical current-work led
 **Date:** 2026-07-15
 **Scope:** Remediation and evidence closure for the supplied 2,719-item intended-feature verification checklist.
 
-- Froze repository identity at lowercase `main`, commit `4f47b26830139ad21dc2b5d838e070eccffb5057`, version `2.1.2`, canonical remote, and the supported Node 22 engine. The default shell remains unsupported Node 26.5.0; validation used Node 22.13.1.
+- Froze repository identity at lowercase `main`, exact implementation commit `6257f294abfc3e36bef5a55d869f6748e4c162b2`, version `2.1.2`, canonical remote, and the supported Node 22 engine. The default shell remains unsupported Node 26.5.0; validation used Node 22.13.1.
 - Retained and updated `docs/reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md`; every supplied checkbox still inherits an explicit top-level status without converting source/test presence into packaged runtime proof.
 - Closed `VF-VERIFY-001`: removed the image-model explicit `any`, used canonical model metadata typing, corrected the UUID-shaped command-palette spy, removed trailing whitespace, and restored zero-warning lint, both TypeScript pipelines and `git diff --check`.
 - Closed `VF-VERIFY-002`: made the mandatory legal copy internally scrollable with a fixed action footer and sequenced legal, onboarding and API-key dialogs so only one modal can be active. Focused tests pass. Rendered checks at 1280×720 and 390×844 each showed one dialog, visible consent and scrollable detail with no runtime errors. The age confirmation was not activated during automation.
@@ -16,7 +16,8 @@ This is the active handoff and validation ledger. The canonical current-work led
 - Closed `VF-VERIFY-006`: corrected agent guidance from `MAIN` to `main`, reconciled the report/roadmap/summary to commands actually run, and kept static verifier success distinct from runtime/package proof.
 - Wired root onboarding and notification tests into `test:ui:layout`; the authoritative Node 22 `npm run ci` passes through lint, both typechecks, 3,821 segmented tests, zero-vulnerability audit, production build, all contracts and build-output verification.
 - Built and verified the safe local part of `VF-VERIFY-005`: unsigned Apple-silicon DMG/ZIP artifacts, blockmaps, update metadata and six SHA-256 checks all pass. Signing was explicitly skipped because the builder identity is null.
-- Kept `VF-VERIFY-005` open: no API credentials, paid operations, signed/notarized installer, Windows machine, two-device sync setup, screen reader or exact-dirty-commit hosted checks were available. Direct WebDAV/S3 sync, live key rotation and six providers remain explicitly deferred.
+- Confirmed exact implementation commit `6257f294` passes all nine hosted CI jobs and CodeQL, including coverage, macOS/Windows sensitive tests, and both packaged Electron smoke jobs. Kept `VF-VERIFY-005` open because no API credentials, paid operations, signed/notarized installers, two-device sync setup or complete screen-reader/high-zoom/theme/sound matrix were available. Direct WebDAV/S3 sync, live key rotation and six providers remain explicitly deferred.
+- Re-ran a tracked-source implementation-gap sweep: no retained top-level feature group or production TODO/FIXME backlog is missing. Explicit non-implementations are the documented fail-closed provider/sync/rotation scope, a dry-run-only orphan-maintenance preview, and an unsupported Jina robots-header option; none is advertised as available.
 
 ## Open TODO Ledger
 
@@ -43,7 +44,7 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 | `npm run verify:theme-tokens` | PASS | Notification UI uses semantic success/warning/error tones; 153 themeable files passed. |
 | Browser smoke: `http://localhost:5173/` at 1280×720 | PASS for pre-consent layout | One dialog; consent bounds y=635..679 within 720px viewport; legal detail scrollable. |
 | Browser smoke: `http://localhost:5173/` at 390×844 | PASS for pre-consent layout | One dialog; dialog and consent within viewport; legal detail scrollable. Post-consent click-through was not performed. |
-| GitHub check-runs for `4f47b268` | PASS | 10/10: lint/typecheck, tests, contracts, build, coverage, macOS/Windows sensitive tests, both packaged smoke jobs and CodeQL. Dirty worktree changes are not represented. |
+| GitHub Actions for `6257f294abfc3e36bef5a55d869f6748e4c162b2` | PASS | All nine CI jobs plus CodeQL: lint/typecheck, tests, contracts, build, coverage, macOS/Windows sensitive tests and both packaged Electron smoke jobs. |
 | `npm run verify:markdown-links` | PASS | 76 tracked Markdown files checked; current report links resolve. |
 | `npm run verify:roadmap-current` | PASS | Roadmap contains current work only. |
 | `npm run verify:repo-handoff-hygiene` | PASS | Handoff hygiene contract remains green. |
@@ -51,6 +52,7 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 
 ## Session History
 
+- **2026-07-15 — Exact-commit hosted evidence reconciliation:** Rechecked the supplied exhaustive feature checklist against the live clean `main` tree; found no new retained implementation gap or production TODO/FIXME backlog; confirmed commit `6257f294` with all nine hosted CI jobs plus CodeQL green, including macOS/Windows packaged smoke; removed stale claims that hosted evidence was absent; and kept signed/paid/multi-device/accessibility proof plus explicitly deferred providers/transports/rotation open without converting them into success.
 - **2026-07-15 — Intended-feature remediation closure:** Closed local findings `VF-VERIFY-001`–`004` and `006`; restored lint/type/diff gates; repaired first-run modal sequencing and desktop/mobile reachability; narrowed background-task polling to durable provider queues; unified and hardened notifications; added segmented CI ownership for new UI tests; passed 3,821-test Node 22 CI; built/verified checksummed unsigned Apple-silicon DMG/ZIP artifacts; and left signed/paid/cross-platform/manual evidence (`VF-VERIFY-005`) open.
 - **2026-07-15 — Evidence-backed intended-feature verification:** Reconciled all 2,719 supplied checklist rows through explicit status inheritance; found broken lint/typecheck, first-run viewport/modal defects, incomplete background-task coverage, notification evidence gaps and absent current packaged/manual proof; created and indexed the current verification report; reopened `VF-VERIFY-001` through `006`; passed 3,790 tests/build/contracts/dist/audit while recording the failing gates and runtime smoke honestly.
 - **2026-07-15 — Earlier feature-verification claim (superseded):** An earlier dirty-tree entry claimed 100% implementation and a local `feature_verification_report.md`. The named report was not present and the live rerun disproved the completion claim; use the current report and roadmap instead.

@@ -67,13 +67,13 @@ The validation command column identifies the minimum closure command, not a clai
 | 29 | Storage, privacy, diagnostics, inspector (51) | PARTIAL | High | Encrypted store registry, privacy dashboard, diagnostics redaction, traffic inspector and tests/verifiers exist. | Storage totals/cleanup, corrupt records, restart, safe export, traffic truncation/redaction and no-telemetry claims need live and network-observation evidence. | Storage/privacy/status verifiers plus runtime inspection |
 | 30 | Electron security boundaries (72) | PARTIAL | Critical | Context isolation, preload allowlist, IPC validation, CSP, guard pipeline, network boundaries and security tests pass in local CI. | Packaged navigation/download/window-open containment, secure-storage failure, secret/log scan, and renderer/main authority require current packaged evidence. | Security/contracts tests plus packaged adversarial QA |
 | 31 | Performance, reliability, lifecycle (54) | UNVERIFIED | High | Some timeout, retry, abort, shutdown, pagination and performance utilities/tests exist. | No measured startup, memory/CPU, large-library, offline, sleep/wake, shutdown, crash/recovery or main-thread responsiveness evidence was produced. | Profiling plus lifecycle/offline QA |
-| 32 | Automated testing and validation (170) | PARTIAL | Critical | Node 22 `npm run ci` exits zero through lint, both typechecks, 3,821 segmented tests, audit, build, contracts and dist-output verification; new first-run/notification tests are owned by `test:ui:layout`. | Packaged E2E on macOS and Windows and hosted checks for the eventual exact commit remain absent. | `npm run ci` plus platform packaged E2E |
-| 33 | CI, governance, audit hygiene (50) | PARTIAL | High | CI workflows and contract/audit verifiers exist; remote identity is correct. Baseline commit `4f47b268` has 10/10 successful GitHub checks, including both packaged smoke jobs and CodeQL. | Existing ledger claimed a missing report and “100% verification.” The dirty worktree diverges from that green commit and cannot have hosted proof until committed. Reconcile docs, keep this report indexed, and obtain hosted checks for the eventual exact release commit. | Local CI plus hosted CI/CodeQL on exact release commit |
+| 32 | Automated testing and validation (170) | PARTIAL | Critical | Node 22 `npm run ci` exits zero through lint, both typechecks, 3,821 segmented tests, audit, build, contracts and dist-output verification. Exact implementation commit `6257f294` also passes hosted coverage plus macOS/Windows sensitive tests and packaged Electron smoke. | The packaged jobs prove startup smoke, not the supplied authenticated paid-operation, failure-injection, installer/update, restart and full manual matrices. | `npm run ci` plus platform packaged E2E |
+| 33 | CI, governance, audit hygiene (50) | PARTIAL | High | CI workflows and contract/audit verifiers exist; remote identity is correct. Exact implementation commit `6257f294` passes all nine CI jobs and CodeQL, including coverage, platform-sensitive tests and both packaged smoke jobs. | The earlier unsupported “100% verification” claim is superseded. Documentation-only evidence reconciliation after that implementation commit still requires its local documentation contracts; hosted code proof must not be relabeled as signed/manual release proof. | Local documentation contracts plus hosted CI/CodeQL on the implementation commit |
 | 34 | Packaging, distribution, updates (53) | PARTIAL | Critical | An unsigned Apple-silicon DMG/ZIP, blockmaps and update metadata were built; `verify:dist:mac -- --arch arm64` and all generated SHA-256 files pass. | Signing was explicitly skipped because no identity is configured. Install/launch/update/notarization and Windows/Linux artifacts remain unverified. | Platform dist commands, checksum, signature/notary and packaged smoke |
-| 35 | Documentation, legal, guidance (60) | PARTIAL | High | README, legal/privacy/security, backup/sync, development/release docs and index exist. | The active ledger contained unsupported “100%” claims and named a report not found in the tree. Documentation accuracy must be rechecked after confirmed fixes and exact packaged QA. | Markdown/agent/repository/roadmap verifiers plus content review |
+| 35 | Documentation, legal, guidance (60) | PARTIAL | High | README, legal/privacy/security, backup/sync, development/release docs and index exist; the unsupported “100%” claim was superseded and this current report is indexed. | Documentation describes implemented and deferred scope accurately, but authenticated packaged behavior and the full manual matrix remain external evidence gaps. | Markdown/agent/repository/roadmap verifiers plus content review |
 | 36 | End-to-end manual QA matrix (148) | UNVERIFIED | High | One local web-mode startup smoke was run at 1280×720 without entering credentials. | Clean macOS/Windows installs, all paid operations, restart, two-device sync, screen reader, themes and keyboard-only flows were not performed. Execute and retain artifacts; do not infer these results from unit tests. | Supplied manual QA matrix |
 | 37 | Report template (0) | NOT APPLICABLE | None | Template only; this report uses its required fields for concrete findings below. | None. | None |
-| 38 | Final definition of done (35) | PARTIAL | Critical | Local code, test, build, contracts, diff and first-run viewport gates pass. | Packaged/paid/cross-platform/manual and exact-commit hosted evidence remain incomplete, so the final definition of done is not met. | Full closure matrix |
+| 38 | Final definition of done (35) | PARTIAL | Critical | Local code, test, build, contracts, diff and first-run viewport gates pass; exact implementation commit `6257f294` passes hosted CI, coverage, CodeQL, platform-sensitive tests and macOS/Windows packaged startup smoke. | Signed installer/update, paid-operation, multi-device and full manual/accessibility evidence remain incomplete, so the release definition of done is not met. | Full closure matrix |
 
 ## Concrete findings and TODOs
 
@@ -121,7 +121,7 @@ The validation command column identifies the minimum closure command, not a clai
 ### P1 — VF-VERIFY-005: packaged and paid-operation evidence is absent
 
 - **Status:** `UNVERIFIED`.
-- **Subsystem/root cause:** No current `release/` artifacts or exact-commit macOS/Windows run evidence were available, and no API credentials were used.
+- **Subsystem/root cause:** Exact-commit hosted macOS/Windows packaged startup smoke now passes and unsigned local Apple-silicon artifacts exist, but no signing identities, API credentials, second device or complete assistive-technology matrix were available.
 - **User impact:** core paid operations, secure storage, installer behavior, restart recovery, signing/update claims and cross-platform support remain release risks.
 - **Required implementation:** After code gates pass, build exact release artifacts and execute the supplied clean-install and paid-operation matrix without recording secrets.
 - **Automated validation:** Platform dist/verify/checksum/smoke workflows and hosted CI/CodeQL for the exact commit.
@@ -182,8 +182,8 @@ These must remain visibly unavailable and fail closed.
 
 ### Release blockers
 
-1. No current packaged macOS/Windows clean-install, signing/update or paid-operation evidence.
-2. No hosted CI/CodeQL evidence can exist yet for the dirty worktree changes; baseline commit `4f47b268` is green 10/10.
+1. No signed/notarized macOS or signed Windows clean-install/update and paid-operation evidence.
+2. No two-device convergence or complete screen-reader/high-zoom/theme/sound evidence.
 
 ## Explicitly unverified evidence
 
@@ -191,7 +191,7 @@ These must remain visibly unavailable and fail closed.
 - Any row requiring a real Venice/Jina/fallback-provider credential or paid operation.
 - Any row requiring application restart, OS secure storage, native window/display behavior, WebContentsView, filesystem dialogs, downloads, signing/notarization, installer/update behavior, or a second machine.
 - Screen reader, 200% zoom, high DPI, reduced motion, sound preference, light/system/custom theme and macOS/Windows clean-install matrices.
-- Current release artifact hashes, signatures, notarization and update metadata. Baseline commit checks are green; the dirty changes remain unhosted.
+- Signed release artifact hashes, signatures, notarization and installer/update behavior. Exact implementation commit `6257f294` is green in hosted CI and CodeQL; that does not prove signing or manual release behavior.
 
 ## Validation evidence
 
@@ -210,7 +210,7 @@ These must remain visibly unavailable and fail closed.
 | `npm run smoke:electron` | SKIPPED by test environment: 1 smoke test discovered, 1 skipped; no headed Electron display proof produced |
 | `npm run verify:theme-tokens` | PASS: notification severity styling uses semantic tone tokens |
 | Local rendered smoke at `http://localhost:5173/`, 1280×720 and 390×844 | PASS for pre-consent layout: one dialog, consent within viewport, legal detail scrollable; no runtime errors. Post-consent click-through not performed. |
-| GitHub checks for baseline commit `4f47b268` | PASS: 10/10, including lint/typecheck, tests, contracts, build, coverage, macOS/Windows sensitive tests, macOS/Windows packaged smoke, and CodeQL |
+| GitHub Actions for exact implementation commit `6257f294abfc3e36bef5a55d869f6748e4c162b2` | PASS: all nine CI jobs plus CodeQL, including lint/typecheck, tests, contracts, build, coverage, macOS/Windows sensitive tests and both packaged Electron smoke jobs |
 | `npm run verify:markdown-links` | PASS: 76 tracked Markdown files checked and current report links resolve |
 | `npm run verify:roadmap-current` | PASS |
 | `npm run verify:repo-handoff-hygiene` | PASS |
