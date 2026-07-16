@@ -1,6 +1,7 @@
 // VERIFY-091 regression guard: sync folder watcher validates, encrypts, and suppresses local emission.
 // VERIFY-109 regression guard: sync roots and watched descendants reject symlinks and path escapes.
 // VERIFY-119 regression guard: failed setup rolls back and transient remote files remain retryable.
+// VERIFY-130 regression guard: sync-side media opt-in gate (P1 #7).
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
@@ -50,6 +51,8 @@ import {
   __clearInFlightOperationsForTests,
   initSyncFolderWatcher,
   handleRemoteChange,
+  isSyncMediaEnabled,
+  SYNC_MEDIA_STORE_NAMES,
 } from "./syncFolderWatcher";
 import {
   initSyncRetryQueue,
@@ -308,6 +311,61 @@ describe("syncFolderWatcher", () => {
     expect(result2).toEqual({ ok: true });
     const blobs2 = await fs.readdir(`${tmpDir}/.vfbackup/blobs`);
     expect(blobs2.length).toBe(1);
+  });
+
+  // VERIFY-130 — sync-side media opt-in (P1 #7). The opt-in is captured at
+  // `startSyncWatcher` and consumed inside `writePacket` before encryption.
+  it("reports media opt-in as disabled by default", async () => {
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password");
+    expect(isSyncMediaEnabled()).toBe(false);
+    expect(getSyncStatus().includeMedia).toBe(false);
+    expect(SYNC_MEDIA_STORE_NAMES.has("images")).toBe(true);
+    expect(SYNC_MEDIA_STORE_NAMES.has("files")).toBe(true);
+    expect(SYNC_MEDIA_STORE_NAMES.has("rp_assets")).toBe(true);
+    expect(SYNC_MEDIA_STORE_NAMES.has("conversations")).toBe(false);
+  });
+
+  it("reports media opt-in as enabled when startSyncWatcher receives true", async () => {
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password", "default", true);
+    expect(isSyncMediaEnabled()).toBe(true);
+    expect(getSyncStatus().includeMedia).toBe(true);
+  });
+
+  it("silently drops media packet writes when opt-in is disabled", async () => {
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password");
+    expect(isSyncMediaEnabled()).toBe(false);
+
+    const mediaPayload = '{"id":"media-1","image":"data:image/png;base64,' + "A".repeat(1024) + '"}';
+    const result = await writePacket("images", "media-1", mediaPayload);
+    expect(result).toEqual({ ok: true, skipped: "media-disabled" });
+
+    const blobs = await fs.readdir(`${tmpDir}/.vfbackup/blobs`);
+    expect(blobs.length).toBe(0);
+  });
+
+  it("encrypts and writes media packets when opt-in is enabled", async () => {
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password", "default", true);
+    expect(isSyncMediaEnabled()).toBe(true);
+
+    const mediaPayload = '{"id":"media-1","image":"data:image/png;base64,' + "A".repeat(1024) + '"}';
+    const result = await writePacket("images", "media-1", mediaPayload);
+    expect(result).toEqual({ ok: true });
+
+    const blobs = await fs.readdir(`${tmpDir}/.vfbackup/blobs`);
+    expect(blobs.length).toBe(1);
+  });
+
+  it("resets media opt-in when stopSyncWatcher is called", async () => {
+    await setSyncFolder(tmpDir);
+    await startSyncWatcher("password", "default", true);
+    expect(isSyncMediaEnabled()).toBe(true);
+
+    await stopSyncWatcher();
+    expect(isSyncMediaEnabled()).toBe(false);
   });
 
   it("accepts a tombstone packet whose envelope id equals the tombstone id", async () => {

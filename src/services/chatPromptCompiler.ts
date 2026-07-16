@@ -93,7 +93,30 @@ export function compileChatPrompt(
     compacted = true;
     const firstNonSystemIndex = requestMessages.findIndex((m) => m.role !== "system");
     if (firstNonSystemIndex === -1) break;
-    requestMessages.splice(firstNonSystemIndex, 1);
+
+    const firstMsg = requestMessages[firstNonSystemIndex];
+    const nextMsg = requestMessages[firstNonSystemIndex + 1];
+
+    // Remove a complete conversational turn whenever possible.
+    // A turn is a user message followed by its assistant reply. Removing only one
+    // side can leave an orphan assistant message at the front of the history,
+    // which violates provider role-ordering requirements and makes the context
+    // incoherent. Always remove 2 messages when the oldest non-system pair is
+    // user→assistant; fall back to removing just one only when the oldest message
+    // is an unpaired user request or an isolated assistant message.
+    const removeCount =
+      firstMsg.role === "user" && nextMsg?.role === "assistant" ? 2 : 1;
+
+    requestMessages.splice(firstNonSystemIndex, removeCount);
+
+    // Post-splice guard: if the oldest remaining non-system message is now an
+    // assistant message (e.g. the pair before it was partially removed), strip it
+    // so we never send an assistant-first history to the provider.
+    const afterSpliceIdx = requestMessages.findIndex((m) => m.role !== "system");
+    if (afterSpliceIdx !== -1 && requestMessages[afterSpliceIdx].role === "assistant") {
+      requestMessages.splice(afterSpliceIdx, 1);
+    }
+
     budget = calculateChatContextBudget(
       requestMessages,
       isHostedCharacter ? effectiveSystemPrompt : "",
@@ -104,11 +127,12 @@ export function compileChatPrompt(
 
   if (compacted && compactionId) {
     const removedCount = initialMessagesCount - requestMessages.length;
+    const turnWord = removedCount === 1 ? "message" : "messages";
     notify.update(compactionId, {
       severity: "info",
-      title: "Context compacted",
-      message: `Removed ${removedCount} old message${removedCount !== 1 ? 's' : ''} to fit within context limits.`,
-      durationMs: 4500
+      title: "Context truncated",
+      message: `Removed ${removedCount} old ${turnWord} to fit within context limits. Start a new chat or use a model with a larger context window to preserve full history.`,
+      durationMs: 5500
     });
   }
 

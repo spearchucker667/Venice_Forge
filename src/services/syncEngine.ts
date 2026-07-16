@@ -71,7 +71,7 @@ function registerRemoteChangeListener(): void {
   });
 }
 
-export async function initSyncEngine(password: string): Promise<SyncEngineStartResult> {
+export async function initSyncEngine(password: string, includeMedia = false): Promise<SyncEngineStartResult> {
   if (typeof window === "undefined") {
     const error = "Sync Engine disabled: No desktop bridge available (Web Mode)";
     console.warn(`[SyncEngine] ${error}`);
@@ -95,8 +95,10 @@ export async function initSyncEngine(password: string): Promise<SyncEngineStartR
     return { ok: false, status: "error", error };
   }
 
-  // Pass password to main process to start the watcher and enable decryption
-  const startResult = await desktopSync.startSync({ password, profileId: getActiveProfileId() });
+  // Pass password to main process to start the watcher and forward the
+  // VERIFY-130 media opt-in so the main-process `writePacket` gate stays
+  // in sync with the backup export opt-in (cf. getBackupMediaStoreNames()).
+  const startResult = await desktopSync.startSync({ password, profileId: getActiveProfileId(), includeMedia });
   if (!startResult.ok) {
     const error = startResult.error || "Failed to start sync in main process.";
     console.error(`[SyncEngine] ${error}`);

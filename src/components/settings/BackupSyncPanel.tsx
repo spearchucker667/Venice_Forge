@@ -12,11 +12,16 @@ const OFFLINE_STATUS: SyncRuntimeStatus = {
   mainWatcher: "stopped",
   rendererSessionAttached: false,
   authenticated: false,
+  includeMedia: false,
 };
 
 export function BackupSyncPanel() {
   const settingsSyncFolder = useSettingsStore((s) => s.syncFolderPath);
   const setSettingsSyncFolder = useSettingsStore((s) => s.setSyncFolderPath);
+  // VERIFY-130: sync media opt-in. Defaults to false — media blobs are
+  // never auto-synced without an explicit user checkbox tick.
+  const syncIncludeMedia = useSettingsStore((s) => s.syncIncludeMedia);
+  const setSyncIncludeMedia = useSettingsStore((s) => s.setSyncIncludeMedia);
   const [syncFolder, setSyncFolder] = useState<string | null>(settingsSyncFolder || null);
   const [runtimeStatus, setRuntimeStatus] = useState<SyncRuntimeStatus>(OFFLINE_STATUS);
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
@@ -50,6 +55,7 @@ export function BackupSyncPanel() {
           rendererSessionAttached: res.rendererSessionAttached,
           authenticated: res.authenticated,
           degradedReason: res.degradedReason,
+          includeMedia: res.includeMedia === true,
         };
         setRuntimeStatus(initialStatus);
 
@@ -124,7 +130,7 @@ export function BackupSyncPanel() {
     }
     setIsTransitioning(true);
     try {
-      const result = await initSyncEngine(passphrase);
+      const result = await initSyncEngine(passphrase, syncIncludeMedia);
       if (!result.ok) {
         toast.error(result.error || "Failed to start sync.");
         setRuntimeStatus((prev) => ({
@@ -142,9 +148,12 @@ export function BackupSyncPanel() {
         rendererSessionAttached: true,
         authenticated: true,
         degradedReason: undefined,
+        includeMedia: syncIncludeMedia,
       }));
       if (passphraseRef.current) passphraseRef.current.value = "";
-      toast.success("Sync started.");
+      toast.success(syncIncludeMedia
+        ? "Sync started — media blobs will be synced."
+        : "Sync started — media is opt-in.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Failed to start sync: ${msg}`);
@@ -206,7 +215,7 @@ export function BackupSyncPanel() {
     }
     setIsTransitioning(true);
     try {
-      const result = await initSyncEngine(passphrase);
+      const result = await initSyncEngine(passphrase, syncIncludeMedia);
       if (!result.ok) {
         toast.error(result.error || "Failed to reattach sync session.");
         return;
@@ -217,6 +226,7 @@ export function BackupSyncPanel() {
         rendererSessionAttached: true,
         authenticated: true,
         degradedReason: undefined,
+        includeMedia: syncIncludeMedia,
       }));
       if (passphraseRef.current) passphraseRef.current.value = "";
       toast.success("Sync session reattached.");
@@ -291,6 +301,24 @@ export function BackupSyncPanel() {
 
           {syncFolder && (
             <div className="pt-2 flex items-center space-x-4">
+              <label className="flex items-center space-x-2 text-sm text-text-secondary select-none">
+                <input
+                  type="checkbox"
+                  checked={syncIncludeMedia}
+                  disabled={isSyncActive || isTransitioning}
+                  onChange={(e) => setSyncIncludeMedia(e.target.checked)}
+                  className="h-4 w-4 rounded border-border/50 bg-surface accent-accent"
+                  aria-label="Include media blobs in sync packets"
+                />
+                <span>
+                  Include media blobs <span className="text-text-muted">(images, files, RP assets)</span>
+                </span>
+              </label>
+            </div>
+          )}
+
+          {syncFolder && (
+            <div className="pt-1 flex items-center space-x-4">
               <input
                 ref={passphraseRef}
                 type="password"
@@ -368,44 +396,73 @@ export function BackupSyncPanel() {
           ) : conflictsLoading && conflicts.length === 0 ? (
             <p className="text-sm text-text-secondary">Checking for conflicts...</p>
           ) : conflicts.length === 0 ? (
-            <p className="text-sm text-text-secondary italic text-success">Sync is active. No conflicts found.</p>
+            <p className="text-sm text-text-secondary italic text-success">
+              Sync is active. No conflicts found.
+              {runtimeStatus.includeMedia
+                ? " Media blobs are included."
+                : " Media blobs are excluded (opt-in)."}
+            </p>
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-text-secondary font-medium mb-2">
                 Found {conflicts.length} conflict{conflicts.length === 1 ? "" : "s"}. Resolve them below:
               </p>
-              {conflicts.map((conflict) => (
-                <div key={conflict.conflictId} className="bg-surface border border-border/50 rounded-lg p-3 space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h5 className="text-[13px] font-medium text-text-primary">
-                        {conflict.storeName} - {conflict.originalRecord.name || conflict.originalRecord.title || "Untitled"}
-                      </h5>
-                      <p className="text-[11px] text-text-muted">ID: {conflict.originalId}</p>
+              {conflicts.map((conflict) => {
+                const winnerLabel =
+                  conflict.provenance?.winningDeviceId ||
+                  (typeof conflict.originalRecord?.deviceId === "string"
+                    ? conflict.originalRecord.deviceId
+                    : "current");
+                const loserLabel =
+                  conflict.provenance?.losingDeviceId ||
+                  (typeof conflict.conflictRecord?.deviceId === "string"
+                    ? conflict.conflictRecord.deviceId
+                    : "incoming");
+                const winnerTitle = conflict.originalRecord?.name || conflict.originalRecord?.title || "Untitled";
+                const loserTitleRaw =
+                  conflict.conflictRecord?.name || conflict.conflictRecord?.title || "(untitled)";
+                const loserTitle = String(loserTitleRaw).replace(/ \(Conflict from .*\)$/, "");
+                return (
+                  <div key={conflict.conflictId} className="bg-surface border border-border/50 rounded-lg p-3 space-y-2">
+                    <div className="flex justify-between items-start gap-3">
+                      <div>
+                        <h5 className="text-[13px] font-medium text-text-primary">
+                          {conflict.storeName} — {winnerTitle}
+                        </h5>
+                        <p className="text-[11px] text-text-muted">ID: {conflict.originalId}</p>
+                        <p className="text-[11px] text-text-secondary mt-1">
+                          Sync kept <span className="font-semibold">{winnerLabel}</span>; the conflicting
+                          {" "}<span className="font-semibold">{loserLabel}</span> revision
+                          {" "}({loserTitle}) is preserved until you resolve the conflict.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => resolveConflict(conflict, "keep_original")}
+                        className="px-3 py-1.5 bg-surface-elevated hover:bg-accent/10 hover:text-accent text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
+                        title="Keep the revision currently saved at this id and discard the conflicting copy."
+                      >
+                        Keep {winnerLabel} copy
+                      </button>
+                      <button
+                        onClick={() => resolveConflict(conflict, "keep_conflict")}
+                        className="px-3 py-1.5 bg-surface-elevated hover:bg-warning/10 hover:text-warning text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
+                        title={`Replace the current revision with the ${loserLabel} copy.`}
+                      >
+                        Use {loserLabel} copy
+                      </button>
+                      <button
+                        onClick={() => resolveConflict(conflict, "keep_both")}
+                        className="px-3 py-1.5 bg-surface-elevated hover:bg-success/10 hover:text-success text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
+                        title={`Keep the current revision and save the ${loserLabel} copy as a separate record.`}
+                      >
+                        Save {loserLabel} as copy
+                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={() => resolveConflict(conflict, "keep_original")}
-                      className="px-3 py-1.5 bg-surface-elevated hover:bg-accent/10 hover:text-accent text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
-                    >
-                      Keep Local
-                    </button>
-                    <button
-                      onClick={() => resolveConflict(conflict, "keep_conflict")}
-                      className="px-3 py-1.5 bg-surface-elevated hover:bg-warning/10 hover:text-warning text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
-                    >
-                      Keep Remote
-                    </button>
-                    <button
-                      onClick={() => resolveConflict(conflict, "keep_both")}
-                      className="px-3 py-1.5 bg-surface-elevated hover:bg-success/10 hover:text-success text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
-                    >
-                      Keep Both
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

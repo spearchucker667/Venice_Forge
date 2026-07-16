@@ -202,7 +202,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-127`.
+The primary active sequence is `VERIFY-001` through `VERIFY-131`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -333,6 +333,10 @@ registry.
 | `VERIFY-125` | Deferred provider/sync scope — Replicate, AWS Bedrock, Google Vertex AI, Azure OpenAI, Hugging Face, and Cohere remain fail-closed and absent from advertised fallback routing/model catalogs; implemented fallback providers retain real adapters and models; direct WebDAV/S3-compatible sync, live sync-set key rotation, and scheduled provider-key rotation are explicitly not release capabilities. | `scripts/verify-provider-adapters.test.ts`, `electron/services/providerSettingsStore.test.ts`, `electron/services/providerAdapters.test.ts`, `electron/services/veniceClient.adapters.test.ts` |
 | `VERIFY-126` | Local protocol file reads use a no-follow file descriptor and validate that same descriptor as a regular file before consuming bytes, preventing path-swap and symlink races. | `electron/utils/secureFile.test.ts` |
 | `VERIFY-127` | ST Card Studio V2 JSON/PNG mapping, main-owned file/opaque-handle boundary, creator-note exclusion, post-history placement, and focused compatibility suite remain wired into aggregate contracts. | `scripts/verify-character-card-v2.cjs`, `scripts/verify-character-card-png.cjs`, `scripts/verify-character-card-security.cjs` |
+| `VERIFY-128` | Sync conflict provenance (P1 #5) — `syncPacketImporter` writes `winningSource` / `winningRevisionId` / `losingRevisionId` into the conflict record and the resolver honours explicit `keepLocal` / `keepRemote` / `keepBoth` semantics. | `src/services/syncPacketImporter.test.ts`, `src/hooks/use-conflicts.test.ts` |
+| `VERIFY-129` | Edited chat messages detected as conflicts (P1 #6) — `compareSyncMessages` routes same-id / diverged-content pairs into the conflict path instead of silently discarding one side. | `src/shared/syncConvergence.test.ts`, `src/services/syncPacketImporter.test.ts` |
+| `VERIFY-130` | Media backup and sync opt-in (P1 #7) — `createEncryptedBackup` excludes `images | files | rp_assets` unless `includeMedia=true`; `startSyncWatcher(..., includeMedia)` mirrors the same opt-in; uiSurface renders a single canonical media opt-in; `SYNC_MEDIA_STORE_NAMES` and `getBackupMediaStoreNames()` stay in lock-step; `writePacket` returns `{ ok, skipped: "media-disabled" }` for media stores when disabled. | `src/services/backupExportService.test.ts`, `electron/services/syncFolderWatcher.test.ts`, `src/components/settings/BackupSyncPanel.test.tsx` |
+| `VERIFY-131` | Privacy dashboard wording truth (P1 #8) — the Exclusions card no longer claims prompts/history/media are "strictly local and never included in safe summaries or exports"; instead it renders a 4-row truth table (`Safe privacy summary` / `Safe diagnostics JSON` / `Encrypted backup` / `Sync folder`) marking media as opt-in for backup+sync rows and "Always redacted" for the safe-summary / safe-diagnostics rows. | `src/components/privacy/StoragePrivacyDashboard.test.tsx` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 

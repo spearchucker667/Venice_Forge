@@ -44,6 +44,7 @@ describe("BackupSyncPanel", () => {
     authenticated: boolean;
     configured: boolean;
     degradedReason?: string;
+    includeMedia?: boolean;
   }> = {}) {
     return {
       ok: true as const,
@@ -53,6 +54,7 @@ describe("BackupSyncPanel", () => {
       rendererSessionAttached: overrides.rendererSessionAttached ?? false,
       authenticated: overrides.authenticated ?? false,
       degradedReason: overrides.degradedReason,
+      includeMedia: overrides.includeMedia,
     };
   }
 
@@ -64,7 +66,7 @@ describe("BackupSyncPanel", () => {
     mockInitSyncEngine.mockResolvedValue({ ok: true, status: "running" });
     mockPauseSyncEngine.mockResolvedValue({ ok: true, status: "paused" });
     mockReattachSyncEngine.mockResolvedValue({ ok: true, status: "running" });
-    useSettingsStore.setState({ syncFolderPath: "" });
+    useSettingsStore.setState({ syncFolderPath: "", syncIncludeMedia: false });
   });
 
   it("shows active state when main watcher is running and renderer session is attached", async () => {
@@ -126,9 +128,25 @@ describe("BackupSyncPanel", () => {
     await user.click(screen.getByText("Start Sync"));
 
     await waitFor(() => {
-      expect(mockInitSyncEngine).toHaveBeenCalledWith("secret-passphrase");
+      expect(mockInitSyncEngine).toHaveBeenCalledWith("secret-passphrase", false);
     });
     await waitFor(() => expect(screen.getByText("Active")).toBeTruthy());
+  });
+
+  it("forwards the media opt-in to the renderer sync engine when the user checks the box", async () => {
+    mockGetSyncFolder.mockResolvedValue(runtimeStatus({ mainWatcher: "stopped" }));
+    useSettingsStore.setState({ syncIncludeMedia: true });
+    render(<BackupSyncPanel />);
+    await waitFor(() => expect(screen.getByText("Start Sync")).toBeTruthy());
+
+    const input = screen.getByPlaceholderText("Enter Encryption Passphrase");
+    const user = userEvent.setup();
+    await user.type(input, "secret-passphrase");
+    await user.click(screen.getByText("Start Sync"));
+
+    await waitFor(() => {
+      expect(mockInitSyncEngine).toHaveBeenCalledWith("secret-passphrase", true);
+    });
   });
 
   it("does not transition to active when sync engine initialization fails", async () => {
@@ -143,7 +161,7 @@ describe("BackupSyncPanel", () => {
     await user.click(screen.getByText("Start Sync"));
 
     await waitFor(() => {
-      expect(mockInitSyncEngine).toHaveBeenCalledWith("bad");
+      expect(mockInitSyncEngine).toHaveBeenCalledWith("bad", false);
     });
     await waitFor(() => expect(screen.getByText("Error")).toBeTruthy());
     expect(screen.getByText(/Main process refused to start/)).toBeTruthy();

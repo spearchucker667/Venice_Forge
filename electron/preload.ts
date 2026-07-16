@@ -567,7 +567,7 @@ const veniceForge = {
     setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:setSyncFolder", input);
     },
-    startSync(input: { password: string; profileId: string }): Promise<{ ok: boolean; error?: string }> {
+    startSync(input: { password: string; profileId: string; includeMedia?: boolean }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("sync:startSync", input);
     },
     applyRemoteMutation(input: { storeName: string; id: string; recordJson?: string; delete?: boolean; remoteApplyToken: string }): Promise<{ ok: boolean; error?: string }> {

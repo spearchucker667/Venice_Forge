@@ -38,7 +38,7 @@ describe("syncHandlers profile authority", () => {
     await handlers.get("sync:startSync")!({ sender }, { password: "passphrase", profileId: "forged" });
 
     expect(getProfileSessionId).toHaveBeenCalledWith(sender);
-    expect(startSyncWatcher).toHaveBeenCalledWith("passphrase", "work");
+    expect(startSyncWatcher).toHaveBeenCalledWith("passphrase", "work", false);
   });
 
   it("derives replace-recovery profile authority from the sender", async () => {

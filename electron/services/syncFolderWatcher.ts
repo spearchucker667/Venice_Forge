@@ -27,6 +27,19 @@ let degradedReason: string | undefined;
 let localEmissionSuppressed = false;
 let currentSyncIdentity: SyncIdentity | null = null;
 let currentProfileId: string | null = null;
+let currentIncludeMedia = false;
+/**
+ * Sync-side media opt-in (VERIFY-130). When `false` (the default),
+ * `writePacket` silently drops writes for media stores so base64-heavy
+ * blobs never reach the encrypted sync folder. Pair with the
+ * renderer-side opt-in gate in `src/services/backupExportService.ts`.
+ */
+export const SYNC_MEDIA_STORE_NAMES: ReadonlySet<string> = new Set([
+  "images",
+  "files",
+  "rp_assets",
+]);
+
 interface InFlightOperation {
   storeName: string;
   sourceDeviceId?: string;
@@ -448,12 +461,17 @@ export async function initSyncFolderWatcher(mainWindow: BrowserWindow) {
   initSyncRetryQueue((filePath, attempts) => handleRemoteChange(filePath, attempts));
 }
 
-export async function startSyncWatcher(password: string, profileId = "default"): Promise<{ ok: boolean; error?: string }> {
+export async function startSyncWatcher(
+  password: string,
+  profileId = "default",
+  includeMedia = false,
+): Promise<{ ok: boolean; error?: string }> {
   if (!password) return { ok: false, error: "Sync passphrase is required." };
   if (!isValidProfileStorageId(profileId)) return { ok: false, error: "Invalid sync profileId." };
   currentPassword = password;
   currentSyncIdentity = null;
   currentProfileId = profileId;
+  currentIncludeMedia = Boolean(includeMedia);
   authenticated = true;
   degradedReason = undefined;
   initSyncRetryQueue((filePath, attempts) => handleRemoteChange(filePath, attempts));
@@ -461,6 +479,7 @@ export async function startSyncWatcher(password: string, profileId = "default"):
     stopSyncRetryQueue();
     currentPassword = null;
     currentProfileId = null;
+    currentIncludeMedia = false;
     authenticated = false;
     syncStatus = "error";
     degradedReason = "Sync folder not configured.";
@@ -474,6 +493,8 @@ export async function startSyncWatcher(password: string, profileId = "default"):
       watcher = null;
     }
     currentPassword = null;
+    currentProfileId = null;
+    currentIncludeMedia = false;
     authenticated = false;
     syncStatus = "error";
     degradedReason = result.error;
@@ -487,6 +508,7 @@ export async function stopSyncWatcher(): Promise<{ ok: boolean; error?: string }
   currentPassword = null;
   currentSyncIdentity = null;
   currentProfileId = null;
+  currentIncludeMedia = false;
   authenticated = false;
   rendererSessionAttached = false;
   degradedReason = undefined;
@@ -507,6 +529,7 @@ export async function pauseSyncWatcher(): Promise<{ ok: boolean; error?: string 
   currentPassword = null;
   currentSyncIdentity = null;
   currentProfileId = null;
+  currentIncludeMedia = false;
   authenticated = false;
   rendererSessionAttached = false;
   degradedReason = undefined;
@@ -524,7 +547,16 @@ export function getSyncStatus() {
     authenticated,
     degradedReason,
     profileId: currentProfileId ?? undefined,
+    includeMedia: currentIncludeMedia,
   };
+}
+
+/**
+ * Test/debug accessor. Returns whether media-store packets are currently
+ * allowed to be encrypted and written into the sync folder.
+ */
+export function isSyncMediaEnabled(): boolean {
+  return currentIncludeMedia;
 }
 
 /** Notifies the watcher whether the renderer sync session is attached. */
@@ -745,7 +777,7 @@ export async function handleRemoteChange(filePath: string, attempts = 0): Promis
 }
 
 /** Write an encrypted packet to the sync folder. */
-export async function writePacket(storeName: string, id: string, recordJson: string): Promise<{ ok: boolean; error?: string }> {
+export async function writePacket(storeName: string, id: string, recordJson: string): Promise<{ ok: boolean; error?: string; skipped?: string }> {
   if (localEmissionSuppressed) return { ok: true };
   if (!currentSyncPath) return { ok: false, error: "Sync folder not configured." };
   if (!currentPassword) return { ok: false, error: "Sync is not active (no password)." };
@@ -756,7 +788,16 @@ export async function writePacket(storeName: string, id: string, recordJson: str
   if (!SYNC_STORE_ALLOWLIST.has(storeName)) {
     return { ok: false, error: `Invalid storeName: ${storeName}` };
   }
-  
+
+  // VERIFY-130 sync-media opt-in gate. Media stores (images, files, rp_assets)
+  // are intentionally skipped unless the caller explicitly opted in via
+  // `startSyncWatcher(..., includeMedia=true)`. The renderer must surface
+  // the canonical list through `getBackupMediaStoreNames()` so the opt-in
+  // checkbox and the actual filter stay in lock-step.
+  if (!currentIncludeMedia && SYNC_MEDIA_STORE_NAMES.has(storeName)) {
+    return { ok: true, skipped: "media-disabled" };
+  }
+
   if (!id || typeof id !== "string" || !/^[a-zA-Z0-9_.:-]{1,256}$/.test(id) || id.includes("..")) {
     return { ok: false, error: "Invalid id" };
   }

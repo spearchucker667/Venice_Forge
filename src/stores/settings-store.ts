@@ -178,6 +178,10 @@ interface SettingsState {
   // Sync Provider Settings
   syncFolderPath: string
   setSyncFolderPath: (path: string) => void
+  // VERIFY-130: Sync media opt-in. Defaults to false — sync ingestion and
+  // outgoing packets skip `images | files | rp_assets` unless the user ticks.
+  syncIncludeMedia: boolean
+  setSyncIncludeMedia: (includeMedia: boolean) => void
 
   // Fallback Providers
   enabledProviders: Record<string, boolean>
@@ -262,6 +266,10 @@ export const useSettingsStore = create<SettingsState>()(
       syncFolderPath: '',
       setSyncFolderPath: (path) => set({ syncFolderPath: path }),
 
+      // VERIFY-130: media is never auto-synced without explicit user opt-in.
+      syncIncludeMedia: false,
+      setSyncIncludeMedia: (includeMedia) => set({ syncIncludeMedia: includeMedia }),
+
       // Fallback Providers
       enabledProviders: {},
       setEnabledProvider: (providerId, enabled) => set((state) => ({
@@ -294,7 +302,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'venice-settings',
-      version: 9,
+      version: 10,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -339,7 +347,11 @@ export const useSettingsStore = create<SettingsState>()(
               ...DEFAULT_AUDIO_PREFERENCES.chatTts,
               ...(state.audioPreferences?.chatTts ?? {}),
             }
-          }
+          },
+          // v10 (VERIFY-130): backup/sync media opt-in defaults to off. We
+          // never auto-persist the user's first media opt-out; we only
+          // perserve an explicit on-state that already lives in storage.
+          syncIncludeMedia: state.syncIncludeMedia === true,
         } as SettingsState
       },
       merge: (persisted, current) => ({

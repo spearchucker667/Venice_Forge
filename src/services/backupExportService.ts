@@ -29,6 +29,20 @@ const PORTABLE_BACKUP_EXCLUSIONS = [
   "sync configuration",
 ];
 
+// Media stores are excluded from manual backups and from sync emission
+// by default. The 3.0 beta audit (P1 #7) requires an explicit opt-in so
+// audio/video assets do not silently leave the user's machine without
+// a visible acknowledgement.
+export const BACKUP_MEDIA_STORES: readonly SyncStoreName[] = ["images", "files", "rp_assets"];
+
+export interface EncryptedBackupOptions {
+  includeCharacterCardDrafts?: boolean;
+  // Forwarded to `desktopSync.startSync` and to local store iteration.
+  // Defaults to false so media blobs never cross the network unless the
+  // user explicitly ticked the opt-in.
+  includeMedia?: boolean;
+}
+
 function createWebExportDeviceRef(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(8));
   return `web-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
@@ -79,7 +93,10 @@ export async function fetchStoreRecords(storeName: SyncStoreName): Promise<unkno
 }
 
 /** Creates an encrypted backup manifest containing all syncable data. */
-export async function createEncryptedBackup(password: string, options: { includeCharacterCardDrafts?: boolean } = {}): Promise<EncryptedBackupManifest> {
+export async function createEncryptedBackup(
+  password: string,
+  options: EncryptedBackupOptions = {}
+): Promise<EncryptedBackupManifest> {
   const rendererProfileId = getActiveProfileId();
   let profileId = rendererProfileId;
   let exportToken: string | undefined;
@@ -100,11 +117,24 @@ export async function createEncryptedBackup(password: string, options: { include
     deviceRef = createWebExportDeviceRef();
   }
 
+  const includeMedia = options.includeMedia === true;
+  const mediaStoreSet = new Set<string>(BACKUP_MEDIA_STORES);
+
   const portableData: Record<string, unknown> = {};
+  const excludedStoreNames: string[] = [];
+  const mediaStoreNames = new Set<string>();
 
   for (const storeName of STORE_NAMES) {
     if (storeName === "diagnostics") continue;
     if (storeName === "characterCardDrafts" && options.includeCharacterCardDrafts !== true) continue;
+    if (mediaStoreSet.has(storeName)) {
+      mediaStoreNames.add(storeName);
+      if (!includeMedia) {
+        excludedStoreNames.push(storeName);
+        portableData[storeName] = [];
+        continue;
+      }
+    }
     if (getActiveProfileId() !== profileId) {
       throw new Error("Backup export profile session changed during collection. Retry the export.");
     }
@@ -117,6 +147,12 @@ export async function createEncryptedBackup(password: string, options: { include
   }
   const exportedAt = new Date().toISOString();
   const { buildBackupManifestMetadata } = await import("./backupManifest");
+  const exclusionList = [...PORTABLE_BACKUP_EXCLUSIONS];
+  if (!includeMedia) {
+    exclusionList.push(
+      `media stores skipped by default: ${sortedStoreList([...mediaStoreNames]).join(", ")}`,
+    );
+  }
   const metadata = await buildBackupManifestMetadata({
     data: portableData,
     appVersion,
@@ -127,7 +163,7 @@ export async function createEncryptedBackup(password: string, options: { include
     crypto: isElectron()
       ? { algorithm: "XChaCha20-Poly1305", kdf: "Argon2id", keyVersion: 1 }
       : { algorithm: "AES-256-GCM", kdf: "PBKDF2-SHA-256", keyVersion: 1 },
-    exclusions: PORTABLE_BACKUP_EXCLUSIONS,
+    exclusions: exclusionList,
   });
   const jsonPayload = JSON.stringify({
     [BACKUP_PROFILE_METADATA_KEY]: { profileId, manifestMetadata: metadata },
@@ -162,6 +198,22 @@ export async function createEncryptedBackup(password: string, options: { include
     iv: toBase64(iv),
     ciphertext: toBase64(ciphertextBuffer),
   };
+}
+
+/**
+ * Returns the canonical list of syncable store names whose contents may
+ * include user-generated media blobs (encoded image attachments,
+ * Research Workspace file uploads, RP character assets). These stores
+ * are skipped during manual backup export and skipped during sync
+ * emission unless the caller opts in via `EncryptedBackupOptions.includeMedia`
+ * or its sync counterpart.
+ */
+export function getBackupMediaStoreNames(): readonly SyncStoreName[] {
+  return BACKUP_MEDIA_STORES;
+}
+
+function sortedStoreList(names: readonly string[]): string[] {
+  return [...names].sort((a, b) => a.localeCompare(b));
 }
 
 export async function downloadEncryptedBackup(manifest: EncryptedBackupManifest): Promise<boolean> {

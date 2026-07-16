@@ -304,7 +304,7 @@ export function resolveProviderRoute(
   request: Record<string, unknown>,
   profileId?: string,
   selection?: ProviderRouteSelection,
-): { route?: ProviderRoute; error?: string } | null {
+): { route?: ProviderRoute; error?: string; unsupported?: boolean } | null {
   const body = typeof request.body === 'object' && request.body ? request.body as Record<string, unknown> : null
   if (!body) return null
 
@@ -340,7 +340,27 @@ export function resolveProviderRoute(
 
   const route = adapter(realModel, apiKey, request.endpoint as string, body)
   if (!route) {
-    return { error: `Provider ${providerId} does not support endpoint ${request.endpoint}` }
+    return { error: `Provider ${providerId} does not support endpoint ${request.endpoint}`, unsupported: true }
+  }
+
+  // Strip Venice-specific parameters that third-party OpenAI-compatible providers
+  // do not accept. Forwarding these causes 400 errors and can leak internal
+  // request structure to external APIs.
+  if (route.transformBody) {
+    const originalTransformBody = route.transformBody;
+    route.transformBody = (b: Record<string, unknown>, m: string) => {
+      const transformed = originalTransformBody(b, m);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { venice_parameters, ...sanitized } = transformed;
+      return sanitized;
+    };
+  } else {
+    // No existing transformBody: add one that strips venice_parameters.
+    route.transformBody = (b: Record<string, unknown>, _m: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { venice_parameters, ...sanitized } = b;
+      return { ...sanitized, model: realModel };
+    };
   }
 
   return { route }

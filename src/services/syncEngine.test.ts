@@ -53,7 +53,7 @@ describe("syncEngine", () => {
   it("initializes and registers remote-change listener", async () => {
     const result = await initSyncEngine("password");
     expect(result).toEqual({ ok: true, status: "running" });
-    expect(mockStartSync).toHaveBeenCalledWith({ password: "password", profileId: "default" });
+    expect(mockStartSync).toHaveBeenCalledWith({ password: "password", profileId: "default", includeMedia: false });
     expect(mockOnRemoteChange).toHaveBeenCalled();
     expect(window.addEventListener).toHaveBeenCalledWith("venice:storage-saved", expect.any(Function));
     expect(mockSetRendererSessionAttached).toHaveBeenCalledWith({ attached: true });

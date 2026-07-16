@@ -277,20 +277,65 @@ export function StoragePrivacyDashboard() {
           </section>
         </div>
 
-        {/* Exclusions */}
-        <section className="p-4 rounded-lg bg-surface-muted border border-border space-y-2">
+        {/* Exclusions — VERIFY-131: 4-row truth table replacing false "never" claim (P1 #8) */}
+        <section
+            className="p-4 rounded-lg bg-surface-muted border border-border space-y-3"
+            data-testid="privacy-exclusions-section"
+        >
             <h3 className="text-xs font-bold text-text-muted uppercase">Privacy Exclusions</h3>
             <p className="text-[12px] text-text-secondary leading-relaxed">
-                The following data is strictly local and <strong>never</strong> included in safe summaries or exports:
+                Different surfaces have different redaction boundaries. Inspect the truth table below before relying on it for export decisions.
             </p>
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                {["API Keys", "Bearer Tokens", "Raw Prompt Text", "Full Message History", "Media Blobs", "Absolute Local Paths"].map(ex => (
-                    <li key={ex} className="text-[12px] text-text-muted flex items-center gap-1.5">
-                        <span className="h-1 w-1 rounded-full bg-text-muted" />
-                        {ex}
-                    </li>
-                ))}
-            </ul>
+                        <div className="overflow-x-auto mt-2">
+                <table className="w-full text-[12px] text-left border-collapse" data-testid="privacy-exclusions-table">
+                    <thead>
+                        <tr className="text-text-muted uppercase text-[10px] tracking-wide">
+                            <th className="font-bold px-2 py-1 soft-separator-y">Surface</th>
+                            <th className="font-bold px-2 py-1 soft-separator-y">Prompts</th>
+                            <th className="font-bold px-2 py-1 soft-separator-y">History</th>
+                            <th className="font-bold px-2 py-1 soft-separator-y">Media Blobs</th>
+                            <th className="font-bold px-2 py-1 soft-separator-y">Paths &amp; Keys</th>
+                        </tr>
+                    </thead>
+                    <tbody data-testid="privacy-exclusions-rows">
+                        <tr>
+                            <td className="px-2 py-1 soft-separator-y font-mono">Safe privacy summary</td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Always redacted</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Always redacted</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Always redacted</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Always redacted</Badge></td>
+                        </tr>
+                        <tr>
+                            <td className="px-2 py-1 soft-separator-y font-mono">Safe diagnostics JSON</td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Always redacted</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Always redacted</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Always redacted</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Always redacted</Badge></td>
+                        </tr>
+                        <tr>
+                            <td className="px-2 py-1 soft-separator-y font-mono">Encrypted backup</td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="amber">Included</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="amber">Included</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="amber">Opt-in only</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Keys never exported</Badge></td>
+                        </tr>
+                        <tr>
+                            <td className="px-2 py-1 soft-separator-y font-mono">Sync folder</td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="amber">Included</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="amber">Included</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="amber">Opt-in only</Badge></td>
+                            <td className="px-2 py-1 soft-separator-y"><Badge color="emerald">Keys never synced</Badge></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p className="text-[11px] text-text-muted leading-relaxed">
+                Prompts and history appear in encrypted backups and the sync folder because both are
+                end-to-end encrypted to a user-supplied passphrase. Media blobs (images, files, RP
+                assets) require an explicit opt-in toggle in the Backup &amp; Sync panel — excluded by
+                default. API keys, bearer tokens, and absolute local paths are never written into any
+                export, syncup, or diagnostic summary.
+            </p>
         </section>
       </main>
     </div>

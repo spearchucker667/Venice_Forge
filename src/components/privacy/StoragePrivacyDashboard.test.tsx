@@ -1,4 +1,4 @@
-// VERIFY-056 regression guard
+// VERIFY-056 + VERIFY-131 regression guards
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StoragePrivacyDashboard, mapPrivacyCategoryToTab } from "./StoragePrivacyDashboard";
@@ -130,5 +130,57 @@ describe("StoragePrivacyDashboard", () => {
     const reviewBtn = screen.getByText("Review");
     fireEvent.click(reviewBtn);
     expect(setActiveTab).toHaveBeenCalledWith("media");
+  });
+});
+
+// VERIFY-131 — P1 #8 dashboard wording rewrite (false "never" claim replaced with truth table)
+describe("StoragePrivacyDashboard VERIFY-131 privacy exclusions truth table", () => {
+  beforeEach(() => {
+    mockStore({
+      inventory: {
+        stores: [],
+        issues: [],
+        generatedAt: new Date().toISOString(),
+      } satisfies StorageInventoryResult,
+      maintenancePlan: {
+        version: 1 as const,
+        generatedAt: new Date().toISOString(),
+        actions: [],
+        issues: [],
+        warnings: [],
+      } satisfies StorageMaintenancePlan,
+    });
+  });
+
+  it("does not advertise the false 'never' wording (P1 #8)", () => {
+    render(<StoragePrivacyDashboard />);
+    // The old badge copy claimed prompts/history/media "strictly local and never included" — that wording must be gone.
+    expect(screen.queryByText(/strictly local/i)).toBeNull();
+    expect(screen.queryByText(/never\s+included\s+in\s+safe\s+summaries/i)).toBeNull();
+  });
+
+  it("renders a 4-row privacy-exclusions truth table", () => {
+    render(<StoragePrivacyDashboard />);
+    const section = screen.getByTestId("privacy-exclusions-section");
+    expect(section).toBeTruthy();
+    const rowsContainer = screen.getByTestId("privacy-exclusions-rows");
+    expect(rowsContainer.children.length).toBe(4);
+    expect(rowsContainer.textContent).toContain("Safe privacy summary");
+    expect(rowsContainer.textContent).toContain("Safe diagnostics JSON");
+    expect(rowsContainer.textContent).toContain("Encrypted backup");
+    expect(rowsContainer.textContent).toContain("Sync folder");
+  });
+
+  it('marks media blobs as "Opt-in only" for backup and sync rows', () => {
+    render(<StoragePrivacyDashboard />);
+    const optInBadges = screen.getAllByText("Opt-in only");
+    expect(optInBadges.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('marks safe-summary and safe-diagnostics surfaces as "Always redacted" for every column (P1 #8)', () => {
+    render(<StoragePrivacyDashboard />);
+    // Safe privacy summary (4 cols) + Safe diagnostics JSON (4 cols) = 8 "Always redacted" badges.
+    const alwaysRedacted = screen.getAllByText("Always redacted");
+    expect(alwaysRedacted.length).toBeGreaterThanOrEqual(8);
   });
 });

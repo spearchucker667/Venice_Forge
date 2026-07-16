@@ -122,6 +122,12 @@ export interface SyncRuntimeStatus {
   authenticated: boolean;
   degradedReason?: string;
   profileId?: string;
+  /**
+   * True when the running sync session has opted in to sync media blobs
+   * (images, files, rp_assets). Default-false mirrors the
+   * `EncryptedBackupOptions.includeMedia` opt-in.
+   */
+  includeMedia?: boolean;
 }
 
 /** Exposes application-level helpers available through the preload bridge. */
@@ -416,7 +422,7 @@ export interface ElectronSyncAPI {
   setSyncFolder(input: { path: string }): Promise<{ ok: boolean; error?: string }>;
 
   /** Starts the sync watcher with the given password. Main process uses this to decrypt incoming sync blobs. */
-  startSync(input: { password: string; profileId: string }): Promise<{ ok: boolean; error?: string }>;
+  startSync(input: { password: string; profileId: string; includeMedia?: boolean }): Promise<{ ok: boolean; error?: string }>;
 
   /** Stops the sync watcher and clears the password from main process memory. */
   stopSync(): Promise<{ ok: boolean; error?: string }>;

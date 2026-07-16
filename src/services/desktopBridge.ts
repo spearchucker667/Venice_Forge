@@ -547,7 +547,7 @@ export const desktopSync = {
     if (isElectron()) return window.veniceForge!.sync.setSyncFolder(params);
     return { ok: false, error: "Not in Electron" };
   },
-  async startSync(params: { password: string; profileId: string }) {
+  async startSync(params: { password: string; profileId: string; includeMedia?: boolean }) {
     if (isElectron()) return window.veniceForge!.sync.startSync(params);
     return { ok: false, error: "Not in Electron" };
   },

@@ -48,11 +48,12 @@ export function registerSyncHandlers(): void {
     return { ok: true };
   });
 
-  ipcMain.handle("sync:startSync", async (event, params: { password?: unknown; profileId?: unknown }) => {
+  ipcMain.handle("sync:startSync", async (event, params: { password?: unknown; profileId?: unknown; includeMedia?: unknown }) => {
     if (!params || typeof params.password !== "string") {
       return { ok: false, error: "Invalid sync start payload." };
     }
-    return await startSyncWatcher(params.password, getProfileSessionId(event.sender));
+    const includeMedia = params.includeMedia === true;
+    return await startSyncWatcher(params.password, getProfileSessionId(event.sender), includeMedia);
   });
 
   ipcMain.handle("sync:stopSync", async () => {

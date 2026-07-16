@@ -390,6 +390,20 @@ export async function performVeniceRequest(
       const response = await performSingleVeniceRequest(currentRequest, wrappedOptions, providerSelection);
       lastResponse = response;
 
+      // If the adapter reported that this provider does not support the requested
+      // endpoint (e.g. a chat-only provider receiving an image request), skip it
+      // and continue to the next provider in the chain. This is not a terminal
+      // failure — it just means the provider is incompatible with this request.
+      const responseBody = response.body as Record<string, unknown> | null;
+      if (
+        !response.ok &&
+        responseBody?._adapterNotSupported === true &&
+        providerId !== 'venice'
+      ) {
+        logError(`Provider ${providerId} does not support this endpoint, skipping in fallback chain.`);
+        continue;
+      }
+
       // Error policy: Only fallback on 5xx or rate limits (429), or 408 Timeout.
       if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status)) {
         return response; // Success, or a client error (e.g. 400 Bad Request, 401 Auth) that shouldn't be retried
@@ -430,7 +444,10 @@ async function performSingleVeniceRequest(
       status: 400,
       statusText: "Bad Request",
       headers: {},
-      body: { error: fallbackRouteResult.error },
+      // _adapterNotSupported signals the outer fallback loop to skip this
+      // provider and continue to the next one, rather than surfacing the
+      // error to the caller as a terminal failure.
+      body: { error: fallbackRouteResult.error, _adapterNotSupported: fallbackRouteResult.unsupported === true },
       contentType: "application/json",
     };
   }

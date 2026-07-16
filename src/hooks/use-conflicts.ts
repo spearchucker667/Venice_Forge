@@ -1,6 +1,11 @@
 import { useState, useCallback } from "react";
 import { fetchStoreRecords, saveStoreRecord, deleteStoreRecord } from "../services/backupImportService";
 import type { SyncStoreName } from "../types/sync";
+import {
+  readSyncConflictProvenance,
+  type SyncConflictProvenance,
+  SYNC_CONFLICT_META_KEY,
+} from "../services/syncPacketImporter";
 
 export interface ConflictItem {
   storeName: SyncStoreName;
@@ -10,6 +15,44 @@ export interface ConflictItem {
   originalRecord: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   conflictRecord: any;
+  /**
+   * Authoritative provenance for this conflict. When present, it overrides
+   * any id-suffix inference. Legacy records (created before P1 #5 fix)
+   * have no `_meta` block and fall back to suffix inference.
+   */
+  provenance?: SyncConflictProvenance | null;
+}
+
+export interface ResolveConflictResult {
+  ok: boolean;
+  error?: string;
+}
+
+function cleanConflictSuffix(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  return value.replace(/ \(Conflict from .*\)$/, "");
+}
+
+function deriveLegacyProvenance(
+  originalRecord: { deviceId?: unknown },
+  conflictRecord: { deviceId?: unknown },
+): SyncConflictProvenance {
+  // Legacy reconciliation: the conflict record carries the losing revision,
+  // and the originalId record carries the winning revision. We do not know
+  // which "device" wrote the winner vs. loser from the legacy format, so the
+  // device names are best-effort.
+  return {
+    kind: "sync-conflict",
+    conflictIdentity: "legacy",
+    originalRecordId: "",
+    winningSource: "local",
+    winningRevisionId: null,
+    winningDeviceId: typeof originalRecord?.deviceId === "string" ? originalRecord.deviceId : "this-device",
+    losingSource: "imported",
+    losingRevisionId: null,
+    losingDeviceId: typeof conflictRecord?.deviceId === "string" ? conflictRecord.deviceId : "remote-device",
+    recordedAt: new Date(0).toISOString(),
+  };
 }
 
 export function useConflicts() {
@@ -32,12 +75,15 @@ export function useConflicts() {
               const originalId = record.id.split("_conflict_")[0];
               const originalRecord = recordMap.get(originalId);
               if (originalRecord) {
+                const provenance =
+                  readSyncConflictProvenance(record) ?? deriveLegacyProvenance(originalRecord, record);
                 foundConflicts.push({
                   storeName,
                   originalId,
                   conflictId: record.id,
                   originalRecord,
                   conflictRecord: record,
+                  provenance,
                 });
               }
             }
@@ -52,28 +98,41 @@ export function useConflicts() {
     }
   }, []);
 
-  const resolveConflict = async (conflict: ConflictItem, action: "keep_original" | "keep_conflict" | "keep_both") => {
+  /**
+   * Resolve a sync conflict. The action enum preserves the legacy mapping so
+   * existing callers (`BackupSyncPanel.tsx`) keep working, but the resolved
+   * semantics are now labelled per provenance ("Keep at <winnerDeviceId> copy"
+   * vs. "Keep at <loserDeviceId> copy") in the UI.
+   *
+   * Truth table:
+   *   keep_original → keep the WINNING revision (the one currently sitting
+   *                   at `originalId`); drop the losing copy.
+   *   keep_conflict → replace the WINNING revision with the LOSING one
+   *                   (i.e. swap the merge winner); drop the loser copy.
+   *   keep_both     → keep the WINNING revision in place AND promote the
+   *                   loser copy to a sibling record (id suffix `_copy_<ts>`).
+   */
+  const resolveConflict = async (
+    conflict: ConflictItem,
+    action: "keep_original" | "keep_conflict" | "keep_both",
+  ): Promise<ResolveConflictResult> => {
     const { storeName, originalId, conflictId, originalRecord, conflictRecord } = conflict;
 
     try {
       if (action === "keep_original") {
-        // Original wins, just delete the conflict record
+        // Original (winner) wins, just delete the conflict record
         await deleteStoreRecord(storeName, conflictId, "local-user");
       } else if (action === "keep_conflict") {
         // Overwrite original with conflict data, but keep original's ID and bump timestamp
         const newRecord = {
           ...conflictRecord,
           id: originalId,
-          name: originalRecord.name, // optionally restore the original name? No, let the conflict name win if it has one, but strip the "(Conflict from...)" if possible
+          name: cleanConflictSuffix(originalRecord.name),
           updatedAt: Date.now(),
+          [SYNC_CONFLICT_META_KEY]: undefined,
         };
-        // Clean up name if it has the conflict suffix
-        if (newRecord.name && typeof newRecord.name === "string") {
-          newRecord.name = newRecord.name.replace(/ \(Conflict from .*\)$/, "");
-        }
-        if (newRecord.title && typeof newRecord.title === "string") {
-          newRecord.title = newRecord.title.replace(/ \(Conflict from .*\)$/, "");
-        }
+        newRecord.name = cleanConflictSuffix(newRecord.name);
+        newRecord.title = cleanConflictSuffix(newRecord.title);
         await saveStoreRecord(storeName, newRecord, "local-user");
         await deleteStoreRecord(storeName, conflictId, "local-user");
       } else if (action === "keep_both") {
@@ -83,13 +142,18 @@ export function useConflicts() {
           ...conflictRecord,
           id: newId,
           updatedAt: Date.now(),
+          [SYNC_CONFLICT_META_KEY]: undefined,
         };
-        // Keep the "(Conflict...)" name to distinguish it, or change to "(Copy)"
-        if (newRecord.name && typeof newRecord.name === "string") {
-          newRecord.name = newRecord.name.replace(/ \(Conflict from .*\)$/, " (Resolved Copy)");
-        }
-        if (newRecord.title && typeof newRecord.title === "string") {
-          newRecord.title = newRecord.title.replace(/ \(Conflict from .*\)$/, " (Resolved Copy)");
+        newRecord.name = cleanConflictSuffix(newRecord.name);
+        newRecord.title = cleanConflictSuffix(newRecord.title);
+        // Annotate the copy so the user can tell which revision it came from
+        const winnerDevice =
+          conflict.provenance?.winningDeviceId ||
+          (typeof originalRecord.deviceId === "string" ? originalRecord.deviceId : "winner");
+        if (typeof newRecord.name === "string") {
+          newRecord.name = `${newRecord.name} (Copy from ${winnerDevice})`;
+        } else if (typeof newRecord.title === "string") {
+          newRecord.title = `${newRecord.title} (Copy from ${winnerDevice})`;
         }
         await saveStoreRecord(storeName, newRecord, "local-user");
         await deleteStoreRecord(storeName, conflictId, "local-user");

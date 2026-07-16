@@ -18,7 +18,11 @@ import { STORE_NAMES } from "../constants/venice";
 import { validateTombstone } from "../shared/syncProtocol";
 import { toEpochMilliseconds } from "../shared/syncTimestamp";
 import { createConflictIdentity } from "../shared/syncConflictIdentity";
-import { compareSyncMessages, compareSyncRecords } from "../shared/syncConvergence";
+import {
+  compareSyncMessages,
+  compareSyncRecords,
+  findMessageContentDivergences,
+} from "../shared/syncConvergence";
 
 export interface SyncableRecord {
   id: string;
@@ -30,6 +34,53 @@ export interface SyncableRecord {
   name?: string;
   title?: string;
   messages?: Record<string, unknown>[];
+}
+
+/**
+ * Provenance metadata embedded on every conflict record created during sync.
+ * The previous design inferred which revision was "local" vs. "remote" purely
+ * from the presence of the `_conflict_` id suffix, which silently inverted the
+ * Keep Local / Keep Remote button semantics whenever the imported revision
+ * won the merge. THIS block is the canonical source of truth and overrides
+ * any id-suffix inference in the resolver UI.
+ */
+export interface SyncConflictProvenance {
+  kind: "sync-conflict";
+  conflictIdentity: string;
+  originalRecordId: string;
+  winningSource: "local" | "imported";
+  winningRevisionId: string | null;
+  winningDeviceId: string;
+  losingSource: "local" | "imported";
+  losingRevisionId: string | null;
+  losingDeviceId: string;
+  recordedAt: string;
+}
+
+export const SYNC_CONFLICT_META_KEY = "_meta";
+
+export function readSyncConflictProvenance(record: unknown): SyncConflictProvenance | null {
+  if (!record || typeof record !== "object") return null;
+  const meta = (record as Record<string, unknown>)[SYNC_CONFLICT_META_KEY];
+  if (!meta || typeof meta !== "object") return null;
+  const candidate = meta as Partial<SyncConflictProvenance>;
+  if (candidate.kind !== "sync-conflict") return null;
+  if (candidate.winningSource !== "local" && candidate.winningSource !== "imported") return null;
+  if (candidate.losingSource !== "local" && candidate.losingSource !== "imported") return null;
+  if (typeof candidate.conflictIdentity !== "string") return null;
+  if (typeof candidate.originalRecordId !== "string") return null;
+  return {
+    kind: "sync-conflict",
+    conflictIdentity: candidate.conflictIdentity,
+    originalRecordId: candidate.originalRecordId,
+    winningSource: candidate.winningSource,
+    winningRevisionId: typeof candidate.winningRevisionId === "string" ? candidate.winningRevisionId : null,
+    winningDeviceId: typeof candidate.winningDeviceId === "string" ? candidate.winningDeviceId : "",
+    losingSource: candidate.losingSource,
+    losingRevisionId: typeof candidate.losingRevisionId === "string" ? candidate.losingRevisionId : null,
+    losingDeviceId: typeof candidate.losingDeviceId === "string" ? candidate.losingDeviceId : "",
+    recordedAt: typeof candidate.recordedAt === "string" ? candidate.recordedAt : new Date(0).toISOString(),
+  };
 }
 
 export const IMPORTABLE_STORES = new Set<string>(STORE_NAMES.filter((storeName) => storeName !== "diagnostics" && storeName !== "characterCardDrafts"));
@@ -257,6 +308,7 @@ export async function importDecryptedPacket(
         if (preserveStores.includes(storeName)) {
           const importedWins = compareSyncRecords(imported, local) > 0;
           const loser = importedWins ? local : imported;
+          const winner = importedWins ? imported : local;
           const conflictIdentity = await createConflictIdentity({
             storeName,
             recordId: id,
@@ -264,15 +316,28 @@ export async function importDecryptedPacket(
             remoteRevisionId: loser.revisionId,
           });
           const newId = `${id}_conflict_${conflictIdentity.slice(0, 16)}`;
+          const localDeviceRef = typeof local.deviceId === "string" ? local.deviceId : "this-device";
+          const importedDeviceRef = typeof imported.deviceId === "string" ? imported.deviceId : "remote";
           const conflictRecord = {
             ...loser,
             id: newId,
             name: loser.name ? `${loser.name} (Conflict from ${loser.deviceId || "Remote"})` : undefined,
             title: loser.title ? `${loser.title} (Conflict from ${loser.deviceId || "Remote"})` : undefined,
+            [SYNC_CONFLICT_META_KEY]: {
+              kind: "sync-conflict",
+              conflictIdentity,
+              originalRecordId: id,
+              winningSource: importedWins ? "imported" : "local",
+              winningRevisionId: winner.revisionId ?? null,
+              winningDeviceId: importedWins ? importedDeviceRef : localDeviceRef,
+              losingSource: importedWins ? "local" : "imported",
+              losingRevisionId: loser.revisionId ?? null,
+              losingDeviceId: importedWins ? localDeviceRef : importedDeviceRef,
+              recordedAt: new Date().toISOString(),
+            },
           };
           await saveStoreRecord(storeName, conflictRecord, importOrigin, remoteApplyToken);
           if (storeName === "character_cards") {
-            const winner = importedWins ? imported : local;
             const { mergeCharacterCardConflict } = await import("./characterCards/characterCardSyncMerge");
             await saveStoreRecord(storeName, mergeCharacterCardConflict(winner as unknown as Record<string, unknown>, loser as unknown as Record<string, unknown>), importOrigin, remoteApplyToken);
           } else if (importedWins) await saveStoreRecord(storeName, imported, importOrigin, remoteApplyToken);
@@ -280,17 +345,73 @@ export async function importDecryptedPacket(
           // Message-level append merge
           const localMessages = local.messages || [];
           const importedMessages = imported.messages || [];
-          
-          const localMsgIds = new Set(localMessages.map((m: Record<string, unknown>) => m.id));
-          const newMessages = importedMessages.filter((m: Record<string, unknown>) => !localMsgIds.has(m.id as string));
-          
-          if (newMessages.length > 0) {
-            const mergedRecord = {
+
+          // Flag same-id / diverged-content messages so a local edit
+          // (or an imported edit) is never silently dropped. The divergent
+          // imported copy is preserved as a `_conflict_<identity>` record
+          // so the resolver UI can surface both edits for manual review.
+          const divergences = findMessageContentDivergences(
+            localMessages as Array<Record<string, unknown>>,
+            importedMessages as Array<Record<string, unknown>>,
+          );
+          const divergenceByMsgId = new Map<string, { local: Record<string, unknown>; imported: Record<string, unknown> }>();
+          for (const divergence of divergences) divergenceByMsgId.set(divergence.id, divergence);
+
+          // Treat the conversation itself as a conflict when any of its messages
+          // were edited on both sides — only then do we fall back to the
+          // whole-record conflict shape and skip the append merge.
+          if (divergences.length > 0 && importOrigin !== "manual-import") {
+            // For whole-record merges (the imported has a *newer* revisionId
+            // for the same conversation id and only diverges on one or two
+            // edits), fork every diverged imported message into its own
+            // conflict record so the user can pick edit-by-edit.
+            for (const divergence of divergences) {
+              const conflictIdentity = await createConflictIdentity({
+                storeName,
+                recordId: `${id}:msg:${divergence.id}`,
+                sourceDeviceId: typeof divergence.local.deviceId === "string" ? divergence.local.deviceId : "this-device",
+                remoteRevisionId: typeof divergence.imported.revisionId === "string" ? divergence.imported.revisionId : undefined,
+              });
+              const newMsgId = `${divergence.id}_conflict_${conflictIdentity.slice(0, 16)}`;
+              const conflictMessage = {
+                ...divergence.imported,
+                id: newMsgId,
+                [SYNC_CONFLICT_META_KEY]: {
+                  kind: "sync-conflict",
+                  conflictIdentity,
+                  originalRecordId: divergence.id,
+                  winningSource: "local",
+                  winningRevisionId: typeof divergence.local.revisionId === "string" ? divergence.local.revisionId : null,
+                  winningDeviceId: typeof divergence.local.deviceId === "string" ? divergence.local.deviceId : "this-device",
+                  losingSource: "imported",
+                  losingRevisionId: typeof divergence.imported.revisionId === "string" ? divergence.imported.revisionId : null,
+                  losingDeviceId: typeof divergence.imported.deviceId === "string" ? divergence.imported.deviceId : "remote",
+                  recordedAt: new Date().toISOString(),
+                },
+              };
+              const parentRef = { parentRecordId: id, parentMessageId: divergence.id };
+              await saveStoreRecord(storeName, { ...conflictMessage, ...parentRef }, importOrigin, remoteApplyToken);
+            }
+            // Mark the conflict metadata on the surviving local conversation.
+            const localWithProvenance = {
               ...local,
-              messages: [...localMessages, ...newMessages].sort(compareSyncMessages),
-              updatedAt: Math.max(toEpochMilliseconds(local.updatedAt) ?? 0, importedUpdateEpoch)
+              divergedMessageIds: divergences.map((d) => d.id),
             };
-            await saveStoreRecord(storeName, mergedRecord, importOrigin, remoteApplyToken);
+            await saveStoreRecord(storeName, localWithProvenance, importOrigin, remoteApplyToken);
+          } else {
+            const localMsgIds = new Set(localMessages.map((m: Record<string, unknown>) => m.id));
+            const newMessages = importedMessages.filter(
+              (m: Record<string, unknown>) =>
+                !localMsgIds.has(m.id as string) && !divergenceByMsgId.has(m.id as string),
+            );
+            if (newMessages.length > 0) {
+              const mergedRecord = {
+                ...local,
+                messages: [...localMessages, ...newMessages].sort(compareSyncMessages),
+                updatedAt: Math.max(toEpochMilliseconds(local.updatedAt) ?? 0, importedUpdateEpoch),
+              };
+              await saveStoreRecord(storeName, mergedRecord, importOrigin, remoteApplyToken);
+            }
           }
         } else {
           // No conflict merge logic, just LWW
