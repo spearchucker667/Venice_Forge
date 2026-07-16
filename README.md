@@ -90,13 +90,13 @@ flowchart LR
 | Area | Status | Purpose |
 | :--- | :---: | :--- |
 | **Chat** | Beta | Streaming conversations, projects, prompt injects, attachments, classical/agent modes |
-| **Image Studio** | Beta | Model-aware image generation, recipe editing, upscaling, enhancer controls |
+| **Image Studio** | Beta | Model-aware generation, prompt enhancement, image editing, background removal, and API-compliant 2×/4× upscaling |
 | **Media Studio** | Beta | Visual gallery, multi-image comparison, lineage tracking, metadata bundle exports |
 | **Prompts** | Beta | Prompt Library with global/project scopes, version chains, and Tag manager |
 | **Audio/Music/Video** | Experimental | Whisper transcripts, speech generation, lyrics-driven music, and async video queues |
 | **Research** | Experimental | Integrated search/scrape runner with Jina and Venice search synthesis |
 | **Characters & RP** | Beta | SillyTavern-compatible Card Studio, local cards, personas, lorebooks, multi-character chats, and scene compiler |
-| **Workflows & Canvas** | Experimental | Template-based automation chains and interactive playground builder |
+| **Workflow Templates** | Experimental | Versioned template-based automation chains; visual graph building remains in Playground |
 
 ---
 

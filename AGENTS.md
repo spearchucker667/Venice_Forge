@@ -2,7 +2,7 @@
 
 > **Canonical repository root:** `/Users/super_user/Projects/Venice_Forge`
 > **GitHub:** `spearchucker667/Venice_Forge`
-> **Version:** 2.1.2
+> **Version:** 3.0.0-beta.1
 >
 > Do not use historical repository names such as
 > `Windows-Venice-API-connector`. Always run the

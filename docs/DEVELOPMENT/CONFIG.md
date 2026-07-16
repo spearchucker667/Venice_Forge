@@ -1,6 +1,6 @@
 # Venice Forge — Local Master Config
 
-> Last updated: 2.1.0
+> Document revision: 2026-07-16. Product version is sourced from `package.json`.
 
 Venice Forge reads a small, optional set of YAML files at startup to let
 developers and power users configure behavior without using the UI. API keys

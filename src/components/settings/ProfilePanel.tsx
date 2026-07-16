@@ -19,6 +19,7 @@ export function ProfilePanel() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [profileDeleteError, setProfileDeleteError] = useState('')
   const passwordDialogRef = useRef<HTMLDivElement>(null)
   const passwordInputRef = useRef<HTMLInputElement>(null)
   const passwordInputId = useId()
@@ -198,12 +199,13 @@ export function ProfilePanel() {
                   <button type="button" onClick={async () => {
                     const confirmed = await askDecision({
                       title: 'Delete profile?',
-                      detail: `"${p.name}" will be removed. Renderer IndexedDB records, profile-scoped local settings, API keys, and the profile password verifier will be purged where possible. Desktop conversation-vault files and shared caches are not profile-scoped and may remain.`,
+                      detail: `"${p.name}" will be removed. Its Conversation Vault, renderer records, profile-scoped local settings, API keys, and password verifier will be purged. Shared global caches are retained.`,
                       actionLabel: 'Delete',
                       danger: true,
                     })
                     if (confirmed) {
-                      await deleteProfile(p.id)
+                      const result = await deleteProfile(p.id)
+                      setProfileDeleteError(result.ok ? '' : result.error ?? 'Profile deletion failed.')
                     }
                   }} className="text-[12px] text-danger hover:underline px-2 py-1" aria-label={`Delete ${p.name}`}>
                     Delete
@@ -213,6 +215,8 @@ export function ProfilePanel() {
             </li>
           ))}
         </ul>
+
+        {profileDeleteError && <p role="alert" className="text-[12.5px] text-danger">{profileDeleteError}</p>}
 
         <form onSubmit={handleAdd} className="flex gap-2 mt-4 pt-4 soft-separator-y">
           <input

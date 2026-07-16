@@ -22,12 +22,13 @@ Current public readiness status:
 
 - **18+ Age Restriction.** Use of the application is strictly restricted to adults aged 18 and older, acknowledging the inherent risks of unfiltered AI image generation (including CSAM).
 - **Privacy-conscious defaults.** Venice Forge keeps API keys out of the renderer process, redacts secret-like values from safe exports and diagnostics, and avoids first-party telemetry. Provider-bound requests still leave the device when you send them.
-- **Offline-first storage.** Images, settings, and web-fallback conversations live in encrypted renderer IndexedDB stores. Current desktop conversations use the encrypted Conversation Vault under the app data directory; older `chat-history/*.json` files may still exist as plaintext legacy migration or backup artifacts. There is no cloud sync or telemetry.
+- **Offline-first storage.** Images, settings, and web-fallback conversations live in encrypted renderer IndexedDB stores. Current desktop conversations use the encrypted Conversation Vault under the app data directory; older `chat-history/*.json` files may still exist as plaintext legacy migration or backup artifacts. There is no first-party hosted sync service or telemetry. Optional encrypted backup and user-selected sync-folder features can write ciphertext into a third-party-managed folder.
 - **Unified Creative Suite.** Provide a seamless, visual interface for the full spectrum of Venice multimodal capabilities.
 - **Reproducible builds.** TypeScript strict mode, Node 22 CI, and `npm ci` ensure every build starts from a known state.
 
 > [!NOTE]
-> Venice Forge is fully stabilized under v2.1.2 following a major codebase merge, security triage, and validation pass.
+> [!IMPORTANT]
+> Venice Forge is currently a 3.0 beta. Automated validation is substantial, but signed cross-platform packaging, paid-provider operations, two-machine sync, and headed accessibility/theme/sound QA remain release acceptance work.
 
 ## Architecture
 
@@ -94,7 +95,7 @@ tabs are:
 | Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
 | Characters | Browse Venice hosted characters via the official `/characters` API, filter by adult / web-enabled flags, and start character chats using `venice_parameters.character_slug` |
 | RP Studio | Local-first RP workspace with ST Card Studio: Tavern V1 / Character Card V2 JSON and V2 PNG import/export, ten-step card editing, encrypted drafts, versions, embedded/linked lorebooks, disposable test turns, personas, multi-character chats, scoped memory, and scene image generation. Lazy-loaded. |
-| Workflows | Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching. Lazy-loaded. |
+| Workflow Templates | Versioned reusable automation chains with compiled run plans. The separate Playground owns interactive visual graph building. Lazy-loaded. |
 | Privacy | Storage inventory, safe privacy summaries, and non-destructive maintenance actions |
 | Playground | Conversational agent that builds and edits workflows on a live canvas using plain language. Lazy-loaded. |
 | Config | API key management, theme selection (built-in + custom export/import), import/export |

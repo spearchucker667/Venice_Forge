@@ -3,11 +3,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { purgeProfileData } from "./profilePurge";
 
 vi.mock("./desktopBridge", () => ({
+  isElectron: vi.fn(() => false),
+  desktopProfilePurge: { purge: vi.fn() },
   desktopApiKey: { delete: vi.fn(() => Promise.resolve({ ok: true })) },
   desktopJinaApiKey: { delete: vi.fn(() => Promise.resolve({ ok: true })) },
   desktopProviderApiKey: { delete: vi.fn(() => Promise.resolve({ ok: true })) },
   desktopProfilePassword: { clear: vi.fn(() => Promise.resolve({ ok: true })) },
-}));
+  }));
 
 vi.mock("./storageService", () => ({
   default: {
@@ -15,7 +17,7 @@ vi.mock("./storageService", () => ({
   },
 }));
 
-import { desktopApiKey, desktopJinaApiKey, desktopProfilePassword, desktopProviderApiKey } from "./desktopBridge";
+import { desktopApiKey, desktopJinaApiKey, desktopProfilePassword, desktopProviderApiKey, desktopProfilePurge, isElectron } from "./desktopBridge";
 import { PROVIDER_REGISTRY } from "../types/provider";
 import StorageService from "./storageService";
 
@@ -67,5 +69,26 @@ describe("purgeProfileData", () => {
     // These do not start with a Venice-owned prefix and must survive.
     expect(localStorage.getItem("thirdparty_work")).toBe("sensitive");
     expect(localStorage.getItem("unrelated_work_suffix")).toBe("also-unrelated");
+  });
+
+  it("uses the main-authoritative transaction in Electron mode", async () => {
+    vi.mocked(isElectron).mockReturnValueOnce(true);
+    vi.mocked(desktopProfilePurge.purge).mockResolvedValueOnce({
+      ok: true,
+      profileId: "work",
+      steps: {
+        conversationVault: { ok: true, removed: true },
+        veniceApiKey: { ok: true },
+        jinaApiKey: { ok: true },
+        providerApiKeys: { ok: true, removed: 2 },
+        passwordVerifier: { ok: true },
+      },
+    });
+
+    const result = await purgeProfileData("work");
+    expect(desktopProfilePurge.purge).toHaveBeenCalledWith("work");
+    expect(result).toMatchObject({ mainProcessPurgeOk: true, providerApiKeysRemoved: 2 });
+    expect(desktopApiKey.delete).not.toHaveBeenCalled();
+    expect(desktopProviderApiKey.delete).not.toHaveBeenCalled();
   });
 });

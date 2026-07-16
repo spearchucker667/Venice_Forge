@@ -176,6 +176,10 @@ vi.mock("../services/conversationVault", () => ({
   archiveConversation: vi.fn(async () => ({ ok: true })),
 }));
 
+vi.mock("../services/profilePurge", () => ({
+  purgeMainProfileData: vi.fn(async (profileId: string) => ({ ok: true, profileId, steps: {} })),
+}));
+
 vi.mock("../services/characterCardStorage", () => ({
   saveCharacterCard: vi.fn(async () => ({ ok: true })),
   deleteCharacterCard: vi.fn(async () => ({ ok: true })),
@@ -207,6 +211,7 @@ vi.mock("../services/backupCrypto", () => ({
 import { registerIpcHandlers } from "./handlers";
 import { resetIpcRateLimitForTests } from "../utils/rateLimit";
 import * as syncBridge from "../services/syncBridge";
+import { purgeMainProfileData } from "../services/profilePurge";
 import { __resetRemoteApplyGrantsForTests, issueRemoteApplyGrant } from "../services/remoteApplyAuthority";
 import {
   __resetProfileSessionsForTests,
@@ -276,6 +281,18 @@ describe("registerIpcHandlers", () => {
     expect(getProfilePasswordLockoutSeconds).toHaveBeenCalledWith("work");
     expect(clearProfilePassword).toHaveBeenCalledWith("work");
     expect(getProfileSessionId(sender)).toBe("work");
+  });
+
+  it("binds profile purge to the active authenticated session", async () => {
+    const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+    const event = { sender };
+    setProfileSessionId(sender, "work");
+    const handler = capturedHandlers.get("profile:purge");
+
+    await expect(handler!(event, "other")).resolves.toMatchObject({ ok: false });
+    expect(purgeMainProfileData).not.toHaveBeenCalled();
+    await expect(handler!(event, "work")).resolves.toMatchObject({ ok: true, profileId: "work" });
+    expect(purgeMainProfileData).toHaveBeenCalledWith("work");
   });
 
   it("activates unprotected profiles and rejects an incorrect protected-profile password", async () => {

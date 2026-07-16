@@ -97,12 +97,14 @@ export async function refreshModels(dispatch: AppDispatch, force = false): Promi
   if (cached) {
     dispatch({ type: "SET_MODELS", models: cached.grouped, fallback: false });
     const cachedModels = Object.values(cached.grouped).flat();
-    replaceCanonicalModels(cachedModels);
+    replaceCanonicalModels(cachedModels, cached.grouped);
     useModelCatalogRuntimeStore.getState().markReady({
+      type: "all",
       totalCount: cachedModels.length,
       countsByType: Object.fromEntries(Object.entries(cached.grouped).map(([type, models]) => [type, models.length])),
       source: "cache",
       liveModelIds: cachedModels.map((model) => model.id),
+      modelsByType: Object.fromEntries(Object.entries(cached.grouped).map(([type, models]) => [type, models.map((model) => model.id)])),
     });
     const isStale = !!cached.isStale;
     if (!force && !isStale) {
@@ -112,7 +114,7 @@ export async function refreshModels(dispatch: AppDispatch, force = false): Promi
   }
 
   try {
-    useModelCatalogRuntimeStore.getState().markLoading();
+    useModelCatalogRuntimeStore.getState().markLoading("all");
     const { data } = await veniceFetch("/models?type=all", {
       method: "GET",
       dispatch,
@@ -123,16 +125,18 @@ export async function refreshModels(dispatch: AppDispatch, force = false): Promi
     const grouped = flattenModels(data);
     const liveModels = Object.values(grouped).flat();
     writeCache(grouped);
-    replaceCanonicalModels(liveModels);
+    replaceCanonicalModels(liveModels, grouped);
     useModelCatalogRuntimeStore.getState().markReady({
+      type: "all",
       totalCount: liveModels.length,
       countsByType: Object.fromEntries(Object.entries(grouped).map(([type, models]) => [type, models.length])),
       source: "live",
       liveModelIds: liveModels.map((model) => model.id),
+      modelsByType: Object.fromEntries(Object.entries(grouped).map(([type, models]) => [type, models.map((model) => model.id)])),
     });
     dispatch({ type: "SET_MODELS", models: grouped, fallback: false });
   } catch (err: unknown) {
-    useModelCatalogRuntimeStore.getState().markError(err, Boolean(cached));
+    useModelCatalogRuntimeStore.getState().markError(err, Boolean(cached), "all");
     // If we already served cached data, swallow the error silently.
     if (!cached) {
       // Do NOT propagate raw exception text (paths, upstream bodies, secrets)

@@ -5,7 +5,8 @@ import { getEnabledProviderModels } from '../config/provider-models'
 
 import { useSettingsStore } from '../stores/settings-store'
 import { useModelCatalogRuntimeStore } from '../stores/model-catalog-runtime-store'
-import { replaceCanonicalModels } from '../services/modelCatalogCache'
+import { mergeCanonicalModels, replaceCanonicalModels } from '../services/modelCatalogCache'
+import { flattenModels } from '../services/modelClassification'
 
 interface UseModelsOptions {
   enabled?: boolean
@@ -25,25 +26,34 @@ export function useModels(type?: string, options: UseModelsOptions = {}) {
     enabled: options.enabled ?? true,
     queryFn: async () => {
       const runtime = useModelCatalogRuntimeStore.getState()
-      runtime.markLoading()
+      const queryType = normalizedType ?? 'all'
+      runtime.markLoading(queryType)
       try {
         const response = await venice<ModelsResponse>(
         `/models${normalizedType ? `?type=${normalizedType}` : ''}`,
         { noAuth: true },
         )
         const liveModels = response.data.filter((model) => !model.model_spec?.offline)
-        replaceCanonicalModels(liveModels)
-        const countKey = normalizedType ?? 'all'
+        const grouped = normalizedType ? null : flattenModels(liveModels)
+        if (normalizedType) mergeCanonicalModels(normalizedType, liveModels)
+        else replaceCanonicalModels(liveModels, grouped ?? undefined)
+        const countKey = queryType
         useModelCatalogRuntimeStore.getState().markReady({
+          type: queryType,
           totalCount: liveModels.length,
-          countsByType: { [countKey]: liveModels.length },
+          countsByType: grouped
+            ? { all: liveModels.length, ...Object.fromEntries(Object.entries(grouped).map(([key, models]) => [key, models.length])) }
+            : { [countKey]: liveModels.length },
           source: 'live',
           liveModelIds: liveModels.map((model) => model.id),
+          modelsByType: grouped
+            ? Object.fromEntries(Object.entries(grouped).map(([key, models]) => [key, models.map((model) => model.id)]))
+            : { [queryType]: liveModels.map((model) => model.id) },
         })
         return response
       } catch (error) {
         const current = useModelCatalogRuntimeStore.getState()
-        current.markError(error, current.totalCount > 0)
+        current.markError(error, current.totalCount > 0, queryType)
         throw error
       }
     },

@@ -7,7 +7,7 @@ This is the user-facing privacy summary for Venice Forge. For the full technical
 ## 1. Local-First Architecture
 Venice Forge is designed around a **local-first** philosophy. The default behavior is to keep your data under your custody on your own machine.
 - **Your Chats & Media:** All your conversation logs, generated images, research sessions, character cards, encrypted character-card drafts, and workflows are stored locally on your device.
-- **No Cloud Synchronization:** Venice Forge does not operate any centralized cloud database. We do not sync your local data or creations to any external servers.
+- **No First-Party Hosted Sync:** Venice Forge does not operate a centralized sync service or require a cloud account. If you opt into sync-folder mode, the app writes encrypted packets to a folder you select; iCloud, Dropbox, OneDrive, Syncthing, or another folder provider may then copy that ciphertext off-device.
 - **No Telemetry or Tracking:** Venice Forge does not collect analytics, crash reports, usage telemetry, or identifier tokens.
 
 ---
@@ -31,13 +31,23 @@ Because Venice Forge is a client app, your data does leave your device when you 
 ## 4. Local Encryption
 Your local data is protected from casual disk inspection:
 - **IndexedDB:** Stores for settings, media metadata, scenes, and workflows are encrypted using AES-GCM.
+- **Renderer threat boundary:** The non-extractable Web Crypto key is stored in same-origin IndexedDB. This reduces casual offline inspection, but code executing in the renderer origin can ask Web Crypto to use the key. It is not equivalent to the main-process Conversation Vault key protected by OS secure storage.
 - **Character-card drafts:** Restart-recoverable drafts are encrypted local records. They are excluded from sync and default backups; manual encrypted backup includes them only when you explicitly opt in.
 - **Conversation Vault:** Current desktop conversation records are stored under `conversations/` as AES-256-GCM encrypted files.
 - **Master & Profile Passwords:** Setting a password gates entry to profiles or safety config. Verification is handled entirely in the main process with salted PBKDF2-SHA256.
 
+## 5. Backup, Export, and Sync
+
+- **Portable JSON export:** Redacted, versioned application data intended for portability; credentials and machine-local paths are excluded.
+- **Encrypted `.vfbackup`:** Password-encrypted snapshot with previewed merge/new-profile import and desktop recovery-guarded Replace All.
+- **Encrypted sync folder:** Opt-in replicated encrypted packets in a user-selected folder. Venice Forge provides no first-party hosted transport.
+- **Safe diagnostics/privacy summaries:** Sanitized metadata for support; raw prompts, tokens, base64 media, and full local paths are excluded.
+
+Secrets are excluded by default. Character-card drafts and media are included only through their explicit backup options.
+
 ---
 
-## 5. Further Reading
+## 6. Further Reading
 For complete specifications on data storage, network allowlists, and safety guards, see:
 - [Detailed Privacy & Security Model](docs/legal/PRIVACY.md)
 - [Vulnerability Reporting Policy](SECURITY.md)

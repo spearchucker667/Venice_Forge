@@ -23,6 +23,7 @@ vi.mock("../services/profilePurge", () => ({
     passwordRemoved: true,
     localStorageKeysRemoved: 1,
     indexedDBStoresScanned: 1,
+    mainProcessPurgeOk: true,
   })),
 }));
 
@@ -42,6 +43,7 @@ describe("useProfileStore", () => {
       globalOnboardingCompleted: false,
     });
     vi.clearAllMocks();
+    vi.mocked(isElectron).mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -144,6 +146,7 @@ describe("useProfileStore", () => {
   });
 
   it("refuses to delete an inactive Electron profile before it is activated", async () => {
+    vi.mocked(isElectron).mockReturnValue(true);
     useProfileStore.setState({
       profiles: [
         { id: "default", name: "Default", onboardingCompleted: false },
@@ -155,6 +158,22 @@ describe("useProfileStore", () => {
     await useProfileStore.getState().deleteProfile("work");
 
     expect(purgeProfileData).not.toHaveBeenCalled();
+    expect(useProfileStore.getState().profiles.some((profile) => profile.id === "work")).toBe(true);
+  });
+
+  it("retains profile metadata when the main-process purge is partial", async () => {
+    vi.mocked(isElectron).mockReturnValue(true);
+    vi.mocked(purgeProfileData).mockResolvedValueOnce({ mainProcessPurgeOk: false } as never);
+    useProfileStore.setState({
+      profiles: [
+        { id: "default", name: "Default", onboardingCompleted: false },
+        { id: "work", name: "Work", onboardingCompleted: false },
+      ],
+      activeProfileId: "work",
+    });
+
+    const result = await useProfileStore.getState().deleteProfile("work");
+    expect(result.ok).toBe(false);
     expect(useProfileStore.getState().profiles.some((profile) => profile.id === "work")).toBe(true);
   });
 

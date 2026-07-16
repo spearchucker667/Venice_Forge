@@ -73,10 +73,10 @@ export function createStorageMaintenancePlan(inventory: StorageInventoryResult):
   if (inventory.issues.length > 0) {
     actions.push({
         id: "archive-orphans",
-        label: "Archive Orphans",
-        description: "Move items referring to missing projects to the archive.",
-        destructive: true,
-        requiresConfirmation: true,
+        label: "Analyze Orphan References",
+        description: "Review items that refer to missing projects. No records are changed.",
+        destructive: false,
+        requiresConfirmation: false,
         affectedCategories: ["prompts", "scenes", "workflows", "media"],
         dryRunOnly: true, // Only dry-run for now until backend support is verified
     });

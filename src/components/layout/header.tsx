@@ -39,7 +39,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const tabDesc = resolveTab(activeTab)
   const hasOwnSelector = tabDesc?.modelSelectorOwner === 'view' || !tabDesc?.modelType
   const modelType = tabDesc?.modelType || 'text'
-  const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
+  const { data: models } = useModels(modelType, { enabled: !hasOwnSelector })
   const currentModel = hasOwnSelector ? '' : (activeConversationModel || selectedModels[activeTab] || '')
 
   const getModelLabel = useCallback((m: ModelInfo) => {

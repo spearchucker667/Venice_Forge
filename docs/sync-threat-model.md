@@ -14,3 +14,5 @@ Controls:
 - Tombstones represent deletions; secrets and absolute paths are excluded.
 
 Remaining availability risks include provider deletion, quota exhaustion, and delayed/conflicting delivery. Users should retain periodic manual `.vfbackup` files outside the live sync folder.
+
+Renderer compromise is a separate threat from hostile sync storage. A script running in the renderer origin can ask Web Crypto to use the non-extractable IndexedDB key, so renderer encryption is not an isolation boundary against XSS, a same-user debugger, or malicious renderer code. Main-process sync/vault keys are not exposed to the renderer. Moving more renderer stores behind typed main-process cryptography is future hardening, not a claim about the current format.

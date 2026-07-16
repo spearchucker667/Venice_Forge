@@ -43,6 +43,22 @@ export function getIndexFile(profileId = "default"): string {
   return path.join(getProfileConversationsDir(profileId), "memory-index.v1.json.enc");
 }
 
+export async function purgeProfileConversationVault(profileId: string): Promise<{ removed: boolean }> {
+  if (!isValidProfileStorageId(profileId)) throw new Error("Invalid profile id.");
+  if (profileId === "default") throw new Error("The default profile vault cannot be purged.");
+  await writeQueue.drainPrefix(`${profileId}:`);
+  const profileRoot = getProfileConversationsDir(profileId);
+  let removed = true;
+  try {
+    await fs.access(profileRoot);
+  } catch {
+    removed = false;
+  }
+  await fs.rm(profileRoot, { recursive: true, force: true });
+  cachedManifests.delete(profileId);
+  return { removed };
+}
+
 function scopedEncryptionId(profileId: string, id: string): string {
   return profileId === "default" ? id : `profile:${profileId}:${id}`;
 }

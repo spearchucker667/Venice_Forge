@@ -50,6 +50,24 @@ describe("useModels canonical catalog lifecycle", () => {
       totalCount: 1,
       countsByType: { text: 1 },
       liveModelIds: ["live"],
+      loadedTypes: ["text"],
+      modelsByType: { text: ["live"] },
+    });
+  });
+
+  it("preserves typed catalog metadata across modality loads", async () => {
+    veniceMock
+      .mockResolvedValueOnce({ object: "list", data: [{ id: "text-live", object: "model", created: 0, owned_by: "venice" }] })
+      .mockResolvedValueOnce({ object: "list", data: [{ id: "image-live", object: "model", created: 0, owned_by: "venice" }] });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const textQuery = renderHook(() => useModels("text"), { wrapper: createWrapper(client) });
+    await waitFor(() => expect(textQuery.result.current.isSuccess).toBe(true));
+    const imageQuery = renderHook(() => useModels("image"), { wrapper: createWrapper(client) });
+    await waitFor(() => expect(imageQuery.result.current.isSuccess).toBe(true));
+
+    expect(useModelCatalogRuntimeStore.getState()).toMatchObject({
+      loadedTypes: ["text", "image"],
+      modelsByType: { text: ["text-live"], image: ["image-live"] },
     });
   });
 

@@ -368,10 +368,20 @@ export interface VeniceForgeProfilePassword {
   clear(profileId: string): Promise<{ ok: boolean; error?: string }>;
 }
 
+export interface VeniceForgeProfilePurge {
+  purge(profileId: string): Promise<{
+    ok: boolean;
+    profileId?: string;
+    steps?: Record<string, { ok: boolean; removed?: boolean | number; error?: string }>;
+    error?: string;
+  }>;
+}
+
 export interface VeniceForge {
   credentials: VeniceForgeCredentials;
   masterPassword: VeniceForgeMasterPassword;
   profilePassword: VeniceForgeProfilePassword;
+  profilePurge: VeniceForgeProfilePurge;
   readonly isDesktop: true;
   venice: VeniceForgeVenice;
   apiKey: VeniceForgeApiKey;

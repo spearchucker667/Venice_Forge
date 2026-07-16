@@ -2,18 +2,20 @@
 
 This index maps retained audit and report artifacts to their current authority. Historical reports are evidence only. If any report conflicts with live source, package scripts, workflow files, `docs/summary_of_work.md`, or `docs/ROADMAP.md`, rerun validation and trust the live repository.
 
-## Current Authorities
+## Authority and Evidence Routing
 
-| Purpose | Current authority |
+| Purpose | Routed document |
 |---|---|
 | Session ledger and validation record | [`../summary_of_work.md`](../summary_of_work.md) |
 | Current TODO roadmap | [`../ROADMAP.md`](../ROADMAP.md) |
 | Documentation source map | [`../DOCS_INDEX.md`](../DOCS_INDEX.md) |
 | Report directory policy | [`README.md`](README.md) |
-| 2026-07-15 intended-feature verification and open finding evidence | [`INTENDED_FEATURE_VERIFICATION_2026-07-15.md`](INTENDED_FEATURE_VERIFICATION_2026-07-15.md) |
-| 2026-07-15 comprehensive repository audit evidence | [`../audits/VENICE_FORGE_REPOSITORY_AUDIT_2026-07-15/00-executive-summary.md`](../audits/VENICE_FORGE_REPOSITORY_AUDIT_2026-07-15/00-executive-summary.md) |
-| Media and character remediation evidence | [`MEDIA_CHARACTER_REMEDIATION_REPORT.md`](MEDIA_CHARACTER_REMEDIATION_REPORT.md) |
-| Video gallery, Character Chats, and UI surface remediation | [`VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md`](VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) |
+| 2026-07-15 intended-feature snapshot evidence | [`INTENDED_FEATURE_VERIFICATION_2026-07-15.md`](INTENDED_FEATURE_VERIFICATION_2026-07-15.md) |
+| 2026-07-16 immutable audit input and remediation evidence | [`../audits/Venice_Forge_Deep_Scan_2026-07-16.md`](../audits/Venice_Forge_Deep_Scan_2026-07-16.md), [`../audits/Venice_Forge_Deep_Scan_2026-07-16_IMPLEMENTATION_TODO.md`](../audits/Venice_Forge_Deep_Scan_2026-07-16_IMPLEMENTATION_TODO.md), and [`../audits/Venice_Forge_Deep_Scan_2026-07-16_REMEDIATION_REPORT.md`](../audits/Venice_Forge_Deep_Scan_2026-07-16_REMEDIATION_REPORT.md) |
+| 2026-07-12/13 media and character snapshot evidence | [`MEDIA_CHARACTER_REMEDIATION_REPORT.md`](MEDIA_CHARACTER_REMEDIATION_REPORT.md) |
+| 2026-07-15 video, Character Chats, and UI snapshot evidence | [`VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md`](VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) |
+
+Only the first four rows are current operational authorities. Dated evidence rows are immutable inputs and never override the live tree or roadmap.
 
 ## Historical Report Map
 

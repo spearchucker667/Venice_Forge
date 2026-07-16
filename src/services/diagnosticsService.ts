@@ -41,6 +41,7 @@ import { useScenarioStore } from "../stores/scenario-store";
 import { useResearchStore } from "../stores/research-store";
 import { useStoragePrivacyStore } from "../stores/storage-privacy-store";
 import { useModelCatalogRuntimeStore } from "../stores/model-catalog-runtime-store";
+import { resolveTab } from "../config/tabs";
 import {
   buildSafeApiKeyMetadata,
   type SafeApiKeyStorage,
@@ -162,9 +163,17 @@ function getApiKeyStorage(auth: ReturnType<typeof useAuthStore.getState>): SafeA
 function buildModelStatus(): AppStatusItem {
   const catalog = useModelCatalogRuntimeStore.getState();
   const settings = useSettingsStore.getState();
-  const unavailableSelection = Object.entries(settings.selectedModels ?? {}).find(([, modelId]) => (
-    typeof modelId === "string" && modelId.length > 0 && !catalog.liveModelIds.includes(modelId)
-  ));
+  const unavailableSelection = Object.entries(settings.selectedModels ?? {}).find(([selectionKey, modelId]) => {
+    if (typeof modelId !== "string" || modelId.length === 0) return false;
+    const modelType = resolveTab(selectionKey)?.modelType ?? (selectionKey === "rp-studio" ? "text" : undefined);
+    if (!modelType) return false;
+    const authoritative = catalog.loadedTypes.includes("all") || catalog.loadedTypes.includes(modelType);
+    if (!authoritative) return false;
+    const authoritativeIds = catalog.loadedTypes.includes("all")
+      ? catalog.liveModelIds
+      : catalog.modelsByType[modelType] ?? [];
+    return !authoritativeIds.includes(modelId);
+  });
   switch (catalog.status) {
     case "idle":
       return makeItem("model", "Model", "unknown", "Model catalog has not been requested.");

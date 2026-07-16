@@ -127,6 +127,12 @@ const veniceForge = {
     },
   },
 
+  profilePurge: {
+    purge(profileId: string) {
+      return ipcRenderer.invoke("profile:purge", profileId);
+    },
+  },
+
   apiKey: {
     isConfigured: (profileId?: string) => {
       return ipcRenderer.invoke("apiKey:isConfigured", profileId);

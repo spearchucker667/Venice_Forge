@@ -204,6 +204,20 @@ describe("computeAppStatusSnapshot (VERIFY-045)", () => {
     expect(s.model.summary).toBe("1 models loaded.");
     expect(s.model.detail).toMatch(/missing.*not present/i);
   });
+
+  it("does not validate an unloaded modality against a partial catalog", () => {
+    useModelCatalogRuntimeStore.getState().markReady({
+      type: "text",
+      totalCount: 1,
+      countsByType: { text: 1 },
+      source: "live",
+      liveModelIds: ["text-model"],
+      modelsByType: { text: ["text-model"] },
+    });
+    useSettingsStore.setState({ selectedModels: { chat: "text-model", image: "valid-but-unloaded-image" } } as never);
+    const s = computeAppStatusSnapshot();
+    expect(s.model.severity).toBe("ok");
+  });
 });
 
 describe("computeSafeDiagnosticsSnapshot (VERIFY-045)", () => {

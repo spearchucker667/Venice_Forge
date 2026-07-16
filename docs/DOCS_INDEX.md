@@ -49,6 +49,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 ## 4. Architecture / Design Docs
 
 - [design/THEME_SYSTEM.md](design/THEME_SYSTEM.md) — Theme variables, contrast checking, and custom YAML palette integration.
+- [design/LOADING_AND_SURFACE_CONTRACT.md](design/LOADING_AND_SURFACE_CONTRACT.md) — Semantic loading, reduced-motion, mesh structure, and interactive-border rules.
 - [design/CHARACTER_RP.md](design/CHARACTER_RP.md) — Local Character RP architecture and memory boundaries.
 - [design/ST_CARD_STUDIO.md](design/ST_CARD_STUDIO.md) — ST Card Studio compatibility decisions, trust boundaries, integration inventory, and phase gates.
 - [reference/CHARACTER_CARD_V2_COMPATIBILITY.md](reference/CHARACTER_CARD_V2_COMPATIBILITY.md) — Supported formats, mappings, limits, and runtime semantics.
@@ -80,6 +81,13 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [legal/TRADEMARKS.md](legal/TRADEMARKS.md) — Venice.ai and external trademark nominative-use notices.
 - [security-model.md](security-model.md) — Credential, IPC, safety, and portable-data boundaries.
 - [sync-threat-model.md](sync-threat-model.md) — Attacker model and mitigations for untrusted sync folders.
+- [privacy.md](privacy.md) — User privacy implications of encrypted backup and third-party-managed sync folders.
+- [sync-troubleshooting.md](sync-troubleshooting.md) — Safe recovery, passphrase-loss, conflict, and two-device troubleshooting.
+- [DEVELOPMENT/sync-architecture.md](DEVELOPMENT/sync-architecture.md) — Main/renderer trust boundary, packet lifecycle, conflicts, tombstones, and recovery.
+- [DEVELOPMENT/sync-testing.md](DEVELOPMENT/sync-testing.md) — Automated fixtures and two-device manual QA protocol.
+- [DEVELOPMENT/sync-provider-interface.md](DEVELOPMENT/sync-provider-interface.md) — Fail-closed contract for deferred WebDAV/S3-compatible transports.
+- [DEVELOPMENT/testing.md](DEVELOPMENT/testing.md) — Named test shards, measured durations, and regression escalation bounds.
+- [DEVELOPMENT/performance-baselines.md](DEVELOPMENT/performance-baselines.md) — Bundle/render profiling matrix required before monolith refactors.
 
 ---
 
@@ -97,8 +105,9 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 - [ROADMAP.md](ROADMAP.md) — Canonical current-work-only task ledger; closed work and historical validation stay in the session ledger and historical reports.
 - [summary_of_work.md](summary_of_work.md) — Active session ledger (recent sessions only).
-- [audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/VENICE_FORGE_EXTENSIVE_SCAN_2026-07-14.md](audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/VENICE_FORGE_EXTENSIVE_SCAN_2026-07-14.md) — Retained scan of the July 14 clean ZIP; snapshot evidence only. Live unfinished work is reconciled into `ROADMAP.md`.
-- [audits/VENICE_FORGE_REPOSITORY_AUDIT_2026-07-15/00-executive-summary.md](audits/VENICE_FORGE_REPOSITORY_AUDIT_2026-07-15/00-executive-summary.md) — Current comprehensive repository-audit evidence package; open work is reconciled into `ROADMAP.md`, not maintained independently here.
+- [audits/Venice_Forge_Deep_Scan_2026-07-16.md](audits/Venice_Forge_Deep_Scan_2026-07-16.md) — Immutable July 16 snapshot-audit hypothesis inventory; live status remains in `ROADMAP.md`.
+- [audits/Venice_Forge_Deep_Scan_2026-07-16_IMPLEMENTATION_TODO.md](audits/Venice_Forge_Deep_Scan_2026-07-16_IMPLEMENTATION_TODO.md) — Per-finding verification and implementation evidence for the July 16 scan; not a competing current-work authority.
+- [audits/Venice_Forge_Deep_Scan_2026-07-16_REMEDIATION_REPORT.md](audits/Venice_Forge_Deep_Scan_2026-07-16_REMEDIATION_REPORT.md) — Final July 16 classification, correction, validation, and external-QA evidence; not a competing current-work authority.
 - [archives/session-history-pre-2026-07-11.md](archives/session-history-pre-2026-07-11.md) — Archived dated session records.
 
 ---
@@ -107,9 +116,9 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 - [reports/README.md](reports/README.md) — Guideline explaining audit history and historical report rules.
 - [reports/CANONICAL_REPORT_INDEX.md](reports/CANONICAL_REPORT_INDEX.md) — Navigator for past validation audits.
-- [reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md](reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md) — Current evidence-backed reconciliation of the supplied 2,719-item intended-feature checklist; authoritative for the open verification findings in `ROADMAP.md`.
-- [reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md](reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md) — Current implementation evidence, validation results, and explicit follow-up risks for the 2026-07-12 media/character remediation.
-- [reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md](reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) — Current evidence for signed-video download hardening, dedicated Character Chats navigation, and mesh-surface validation.
+- [reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md](reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md) — Historical snapshot reconciliation of the supplied intended-feature checklist.
+- [reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md](reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md) — Historical 2026-07-12/13 media/character implementation evidence.
+- [reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md](reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) — Historical 2026-07-15 video, Character Chats, and UI evidence.
 - [reports/historical/final-massive-bug-hunt-with-proof.md](reports/historical/final-massive-bug-hunt-with-proof.md) — Historical audit log of closed validation checks from the v2.1.0 release boundary.
 
 ---

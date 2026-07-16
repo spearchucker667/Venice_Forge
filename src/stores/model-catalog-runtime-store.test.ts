@@ -21,8 +21,60 @@ describe("model catalog runtime state", () => {
       totalCount: 0,
       countsByType: { text: 0 },
       lastError: null,
+      loadedTypes: ["text"],
+      modelsByType: { text: [] },
     });
     expect(useModelCatalogRuntimeStore.getState().lastSuccessAt).not.toBeNull();
+  });
+
+  it("tracks authoritative completeness per type and replaces only that type", () => {
+    const runtime = useModelCatalogRuntimeStore.getState();
+    runtime.markReady({
+      type: "text",
+      totalCount: 1,
+      countsByType: { text: 1 },
+      source: "live",
+      liveModelIds: ["text-old"],
+      modelsByType: { text: ["text-old"] },
+    });
+    runtime.markReady({
+      type: "image",
+      totalCount: 1,
+      countsByType: { image: 1 },
+      source: "live",
+      liveModelIds: ["image-model"],
+      modelsByType: { image: ["image-model"] },
+    });
+    runtime.markReady({
+      type: "text",
+      totalCount: 1,
+      countsByType: { text: 1 },
+      source: "live",
+      liveModelIds: ["text-new"],
+      modelsByType: { text: ["text-new"] },
+    });
+
+    expect(useModelCatalogRuntimeStore.getState()).toMatchObject({
+      loadedTypes: ["text", "image"],
+      modelsByType: { text: ["text-new"], image: ["image-model"] },
+      statusByType: { text: "ready", image: "ready" },
+    });
+  });
+
+  it("treats cached catalog data as stale rather than authoritative", () => {
+    useModelCatalogRuntimeStore.getState().markReady({
+      type: "text",
+      totalCount: 1,
+      countsByType: { text: 1 },
+      source: "cache",
+      liveModelIds: ["cached"],
+      modelsByType: { text: ["cached"] },
+    });
+    expect(useModelCatalogRuntimeStore.getState()).toMatchObject({
+      status: "stale",
+      loadedTypes: [],
+      statusByType: { text: "stale" },
+    });
   });
 
   it("keeps cached data stale on failure and never treats fallbacks as live", () => {

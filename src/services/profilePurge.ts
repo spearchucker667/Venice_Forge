@@ -7,8 +7,8 @@
  * every profile-scoped surface that the renderer can reach.
  *
  * Limits:
- *   - Main-process filesystem chat history (desktop) is keyed by conversation
- *     id, not by profile id, so it is intentionally NOT purged here.
+ *   - Desktop Conversation Vault and secure-store cleanup is performed by one
+ *     main-authoritative profile transaction bound to the active session.
  *   - Shared caches (model cache, character image cache, etc.) are global and
  *     are not profile-scoped.
  *   - The default profile is never purged; deleting it only removes metadata.
@@ -20,6 +20,8 @@ import {
   desktopJinaApiKey,
   desktopProviderApiKey,
   desktopProfilePassword,
+  desktopProfilePurge,
+  isElectron,
 } from "./desktopBridge";
 import { PROVIDER_REGISTRY } from "../types/provider";
 import StorageService from "./storageService";
@@ -64,6 +66,7 @@ export interface ProfilePurgeResult {
   passwordRemoved: boolean;
   localStorageKeysRemoved: number;
   indexedDBStoresScanned: number;
+  mainProcessPurgeOk: boolean;
 }
 
 /**
@@ -80,6 +83,7 @@ export async function purgeProfileData(profileId: string): Promise<ProfilePurgeR
       passwordRemoved: false,
       localStorageKeysRemoved: 0,
       indexedDBStoresScanned: 0,
+      mainProcessPurgeOk: false,
     };
   }
 
@@ -91,34 +95,32 @@ export async function purgeProfileData(profileId: string): Promise<ProfilePurgeR
     passwordRemoved: false,
     localStorageKeysRemoved: 0,
     indexedDBStoresScanned: 0,
+    mainProcessPurgeOk: false,
   };
 
-  // 1. Secure-store credentials (desktop only; web stubs return ok=false).
-  try {
-    const venice = await desktopApiKey.delete(profileId);
-    result.veniceApiKeyRemoved = venice.ok;
-  } catch {
-    /* ignore */
-  }
-  try {
-    const jina = await desktopJinaApiKey.delete(profileId);
-    result.jinaApiKeyRemoved = jina.ok;
-  } catch {
-    /* ignore */
-  }
-  for (const providerId of Object.keys(PROVIDER_REGISTRY)) {
+  // 1. Desktop uses one active-session-bound transaction for vault + secure
+  // store cleanup. Web mode retains the renderer/server-session cleanup path.
+  if (isElectron()) {
     try {
-      const provider = await desktopProviderApiKey.delete(providerId);
-      if (provider.ok) result.providerApiKeysRemoved += 1;
+      const main = await desktopProfilePurge.purge(profileId);
+      result.mainProcessPurgeOk = main.ok;
+      result.veniceApiKeyRemoved = main.steps?.veniceApiKey?.ok === true;
+      result.jinaApiKeyRemoved = main.steps?.jinaApiKey?.ok === true;
+      result.providerApiKeysRemoved = typeof main.steps?.providerApiKeys?.removed === "number" ? main.steps.providerApiKeys.removed : 0;
+      result.passwordRemoved = main.steps?.passwordVerifier?.ok === true;
     } catch {
       /* ignore */
     }
-  }
-  try {
-    const pw = await desktopProfilePassword.clear(profileId);
-    result.passwordRemoved = pw.ok;
-  } catch {
-    /* ignore */
+  } else {
+    try { result.veniceApiKeyRemoved = (await desktopApiKey.delete(profileId)).ok; } catch { /* ignore */ }
+    try { result.jinaApiKeyRemoved = (await desktopJinaApiKey.delete(profileId)).ok; } catch { /* ignore */ }
+    for (const providerId of Object.keys(PROVIDER_REGISTRY)) {
+      try {
+        const provider = await desktopProviderApiKey.delete(providerId);
+        if (provider.ok) result.providerApiKeysRemoved += 1;
+      } catch { /* ignore */ }
+    }
+    try { result.passwordRemoved = (await desktopProfilePassword.clear(profileId)).ok; } catch { /* ignore */ }
   }
 
   // 2. localStorage profile-scoped keys. We remove both the known Zustand

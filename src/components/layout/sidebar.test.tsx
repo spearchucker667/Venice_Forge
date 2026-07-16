@@ -67,7 +67,7 @@ describe('Sidebar controls', () => {
 
   it('shows the complete labeled menu on initial desktop render', () => {
     render(<Sidebar />)
-    for (const label of ['Chat', 'History', 'Image Studio', 'Media Studio', 'Prompts', 'Research', 'Characters', 'RP Studio', 'Workflows', 'Privacy', 'Config', 'Status']) {
+    for (const label of ['Chat', 'History', 'Image Studio', 'Media Studio', 'Prompts', 'Research', 'Characters', 'RP Studio', 'Workflow Templates', 'Privacy', 'Config', 'Status']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
   })

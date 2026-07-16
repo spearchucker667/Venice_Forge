@@ -57,7 +57,7 @@ describe('profile-store broadcast deduplication', () => {
       globalOnboardingCompleted: false,
     })
     vi.mocked(setActiveProfileId).mockClear()
-    vi.mocked(purgeProfileData).mockResolvedValue({} as never)
+    vi.mocked(purgeProfileData).mockResolvedValue({ mainProcessPurgeOk: true } as never)
   })
 
   it('requestSwitchProfile calls setActiveProfileId exactly once', async () => {

@@ -1,5 +1,7 @@
 # Intended-Feature Verification Report — 2026-07-15
 
+> **HISTORICAL SNAPSHOT — NOT CURRENT STATE.** This report is bound to the commit/version recorded below. Current work is authoritative only in [`../ROADMAP.md`](../ROADMAP.md); current command evidence belongs in [`../summary_of_work.md`](../summary_of_work.md).
+
 ## Scope and status inheritance
 
 This report reconciles the 4,266-line supplied checklist against the live Electron repository at commit `4f47b26830139ad21dc2b5d838e070eccffb5057` with the existing dirty worktree preserved. The checklist contains 2,719 checkbox lines. Each checkbox inherits the status of its numbered top-level feature row below unless a more specific exception is listed under Findings. This gives every supplied checkbox an explicit disposition without pretending that source presence or a static string verifier proves runtime behavior.

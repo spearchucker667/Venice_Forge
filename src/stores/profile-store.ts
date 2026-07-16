@@ -31,7 +31,7 @@ export interface ProfileState {
   requestSwitchProfile: (id: string, password?: string) => Promise<{ ok: boolean; error?: string }>
   updateProfile: (id: string, data: Partial<UserProfile>) => void
   /** Deletes a profile and purges its scoped data. Resolves when purge is complete. */
-  deleteProfile: (id: string) => Promise<void>
+  deleteProfile: (id: string) => Promise<{ ok: boolean; error?: string }>
   setMasterPasswordSet: (set: boolean) => void
 }
 
@@ -111,16 +111,16 @@ export const useProfileStore = create<ProfileState>()(
       },
 
       deleteProfile: async (id) => {
-        if (id === DEFAULT_PROFILE_ID) return
-        if (!isUserCreatableProfileId(id)) return
+        if (id === DEFAULT_PROFILE_ID) return { ok: false, error: 'The default profile cannot be deleted.' }
+        if (!isUserCreatableProfileId(id)) return { ok: false, error: 'Invalid profile id.' }
         // Desktop credential/password purge is session-authoritative. Require
         // the target profile to be activated before its destructive cleanup.
-        if (isElectron() && id !== get().activeProfileId) return
+        if (isElectron() && id !== get().activeProfileId) return { ok: false, error: 'Activate the profile before deleting it.' }
 
-        // Purge all renderer-reachable profile-scoped data before removing
-        // the metadata record. Failures are best-effort and logged by the
-        // purge service; we always proceed with metadata removal.
-        await purgeProfileData(id)
+        const purge = await purgeProfileData(id)
+        if (isElectron() && !purge.mainProcessPurgeOk) {
+          return { ok: false, error: 'Profile data could not be fully purged. The profile was retained so deletion can be retried.' }
+        }
 
         set((state) => {
           const profiles = state.profiles.filter(p => p.id !== id)
@@ -134,6 +134,7 @@ export const useProfileStore = create<ProfileState>()(
           }
           return { profiles, activeProfileId: activeId }
         })
+        return { ok: true }
       },
 
       setMasterPasswordSet: (setVal) => {

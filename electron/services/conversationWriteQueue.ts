@@ -25,4 +25,14 @@ export class ConversationWriteQueue {
     this.pending.set(id, next);
     return next as Promise<T>;
   }
+
+  /** Waits until every currently queued operation whose id starts with the
+   * supplied prefix settles. Used before deleting a profile-owned vault so a
+   * late write cannot recreate it after purge. */
+  async drainPrefix(prefix: string): Promise<void> {
+    const matching = [...this.pending.entries()]
+      .filter(([id]) => id.startsWith(prefix))
+      .map(([, pending]) => pending.catch(() => undefined));
+    await Promise.all(matching);
+  }
 }

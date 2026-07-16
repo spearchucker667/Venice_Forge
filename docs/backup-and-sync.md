@@ -4,7 +4,7 @@ Venice Forge is designed with a strictly local-first architecture. To ensure you
 
 ## Key Concepts
 
-- **Local-First**: By default, all your data (chats, character cards, images, personas) never leaves your machine. 
+- **Local-First**: By default, your durable workspace stays on your machine. Provider-bound requests leave the device when invoked, and opt-in sync can place encrypted packets in a third-party-managed folder.
 - **Privacy by Default**: Desktop backups and sync packets are encrypted locally with Argon2id-derived XChaCha20-Poly1305 before they are written anywhere else. Browser-mode manual backups use the Web Crypto PBKDF2/AES-256-GCM compatibility format.
 - **Opt-In**: Syncing is completely optional. If you never enable it, nothing changes.
 - **Provider Agnostic**: You provide the cloud! By designating a specific folder on your hard drive (e.g., inside an iCloud Drive, Dropbox, Syncthing, or Google Drive folder) as your "Sync Folder", the app will write encrypted packets there. Your cloud provider syncs those encrypted packets, and your other Venice Forge installations read them.

@@ -75,7 +75,7 @@ Renderer code must use typed services from `src/services/desktopBridge.ts`; it m
 - `docs/DOCS_INDEX.md`: current versus historical documentation routing.
 - `docs/ROADMAP.md`: current unfinished work only.
 - `docs/summary_of_work.md`: active session handoff and commands actually run.
-- `docs/audits/VENICE_FORGE_SCAN_EVIDENCE_2026-07-14/`: retained ZIP-scan report and machine-readable status input; current unfinished work is reconciled into `docs/ROADMAP.md`.
+- `docs/audits/Venice_Forge_Deep_Scan_2026-07-16.md`: retained ZIP-scan hypothesis inventory; current unfinished work is reconciled into `docs/ROADMAP.md` and per-finding evidence is recorded beside the audit.
 
 ## Regenerating a Mechanical Inventory
 

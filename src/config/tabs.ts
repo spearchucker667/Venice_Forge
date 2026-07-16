@@ -86,7 +86,7 @@ export const TAB_REGISTRY: readonly TabDescriptor[] = [
   { id: 'search', label: 'Research', group: 'generate', subtitle: 'Deep research and web scraping' },
   { id: 'characters', label: 'Characters', group: 'generate', subtitle: 'Configure roleplay characters' },
   { id: 'rp-studio', label: 'RP Studio', group: 'build', lazy: true, subtitle: 'Roleplay character and scenario workshop' },
-  { id: 'workflows', label: 'Workflows', group: 'build', lazy: true, subtitle: 'Chain models visually' },
+  { id: 'workflows', label: 'Workflow Templates', group: 'build', lazy: true, subtitle: 'Build reusable automation chains' },
   { id: 'privacy', label: 'Privacy', group: 'system', subtitle: 'Manage storage and privacy settings' },
   { id: 'playground', label: 'Playground', group: 'build', lazy: true, subtitle: 'Build workflows by chatting' },
   { id: 'settings', label: 'Config', group: 'system', subtitle: 'App configuration' },

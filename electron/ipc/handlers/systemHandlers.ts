@@ -73,6 +73,18 @@ function parseSaveOrigin(raw: unknown): [string, null] | [null, import("../../..
 }
 
 export function registerSystemHandlers(): void {
+  registerIpcChannel("profile:purge", async (event, requestedProfileId: unknown) => {
+    try {
+      if (typeof requestedProfileId !== "string") throw new Error("Invalid profile id.");
+      const sessionProfileId = getProfileSessionId(event.sender);
+      if (requestedProfileId !== sessionProfileId) throw new Error("Profile purge is limited to the active authenticated profile.");
+      const { purgeMainProfileData } = await import("../../services/profilePurge");
+      return await purgeMainProfileData(sessionProfileId);
+    } catch (error) {
+      return { ok: false, error: redactErrorMessage(error) };
+    }
+  });
+
   registerIpcChannel("app:proxyScrape", async (_event, url: unknown) => {
     try {
       if (typeof url !== "string") {

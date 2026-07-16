@@ -1,33 +1,42 @@
-# Venice Forge — Code Owners 
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners 
-# 
-# Primary maintainer and owner: @spearchucker667 
-# Review requests are automatically assigned based on these patterns. 
+# Venice Forge — Code Owners
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Primary maintainer and owner: @spearchucker667
+# Review requests are automatically assigned based on these patterns.
 
-# Global fallback — all files 
-* @spearchucker667 
+# Global fallback — all files
+* @spearchucker667
 
-# Core application logic 
-/src/ @spearchucker667 
-/electron/ @spearchucker667 
-/server.ts @spearchucker667 
+# Core application logic
+/src/ @spearchucker667
+/electron/ @spearchucker667
+/server.ts @spearchucker667
 
-# Build & packaging configuration 
-/vite.config.ts @spearchucker667 
-/electron-builder.config.cjs @spearchucker667 
-/tsconfig.json @spearchucker667 
-/tsconfig.electron.json @spearchucker667 
+# Build, dependencies, packaging, and verification
+/package.json @spearchucker667
+/package-lock.json @spearchucker667
+/scripts/ @spearchucker667
+/vite.config.ts @spearchucker667
+/electron-builder.config.cjs @spearchucker667
+/tsconfig.json @spearchucker667
+/tsconfig.electron.json @spearchucker667
 
-# CI / CD workflows 
-/.github/workflows/ @spearchucker667 
+# Repository governance and CI/CD
+/.github/CODEOWNERS @spearchucker667
+/.github/workflows/ @spearchucker667
+/AGENTS.md @spearchucker667
 
-# Security-critical files 
-/src/shared/validation.ts @spearchucker667 
-/electron/ipc/validation.ts @spearchucker667 
-/electron/services/secureStore.ts @spearchucker667 
-/src/services/cryptoService.ts @spearchucker667 
+# Security-critical files
+/src/shared/validation.ts @spearchucker667
+/electron/ipc/validation.ts @spearchucker667
+/electron/services/secureStore.ts @spearchucker667
+/electron/services/profilePurge.ts @spearchucker667
+/electron/services/conversationVault.ts @spearchucker667
+/src/services/cryptoService.ts @spearchucker667
+/SECURITY.md @spearchucker667
+/PRIVACY.md @spearchucker667
+/LEGAL.md @spearchucker667
 
-# Documentation 
-docs/ @spearchucker667 
-README.md @spearchucker667 
-SECURITY.md @spearchucker667
+# Documentation
+/docs/ @spearchucker667
+/README.md @spearchucker667

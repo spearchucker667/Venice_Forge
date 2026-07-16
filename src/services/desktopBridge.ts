@@ -1261,3 +1261,10 @@ export const desktopProfilePassword = {
     return window.veniceForge!.profilePassword.clear(profileId);
   },
 };
+
+export const desktopProfilePurge = {
+  async purge(profileId: string) {
+    if (!isElectron()) return { ok: false, error: "Profile vault purge is only available in desktop mode." };
+    return window.veniceForge!.profilePurge.purge(profileId);
+  },
+};

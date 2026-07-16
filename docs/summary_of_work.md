@@ -5,6 +5,18 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-16
+**Scope:** Reconcile every finding in the supplied July 16 deep-scan audit against the live `main` tree, implement the confirmed defects, classify stale/deferred/accepted-design claims, and preserve the remaining external QA boundary.
+
+- **P0 model-catalog correctness:** typed model refreshes now replace only their modality while preserving authoritative cross-modality state; runtime status is tracked by type; diagnostics validate selections only against loaded catalog scopes; and Header avoids redundant full-catalog requests where a view owns its selector.
+- **P0 profile erasure:** profile deletion now invokes a main-authoritative transaction that drains and removes the profile Conversation Vault plus Venice, Jina, deferred-provider, and password credentials. Partial erasure keeps the profile metadata so the operation can be retried instead of falsely reporting success.
+- **Documentation, ownership, and release truth:** version, privacy, sync, backup/export, crypto-boundary, feature-scope, report-authority, and README language were reconciled. Missing sync/testing/performance/design documents were added and indexed. A release-metadata verifier now prevents version/readiness drift, and `.github/CODEOWNERS` now covers dependency, verification, governance, security-critical profile/vault, and root legal/privacy surfaces.
+- **Scope and hygiene:** the product surface is explicitly **Workflow Templates**, the unreachable alternate workflow canvas and other production-unreachable modules were removed, deferred provider placeholders were removed while fail-closed adapter behavior remains, storage maintenance now truthfully exposes orphan-reference analysis, and the two root debug probes were deleted.
+- **Finding disposition:** all 22 audit IDs are classified in the implementation ledger and final remediation report: 16 confirmed fixes, two stale/already-fixed findings, three accepted-design findings, and one measured-performance deferral. The separate signed/paid/two-device/accessibility/theme/sound/reduced-motion matrix remains under `VF-VERIFY-005` because it requires external environments or credentials.
+- **Validation:** focused and subsystem suites passed throughout; final broad `npm run test:ci` passed 3,906 tests; lint, typecheck, Markdown, bundle, build, provider, repository-hygiene, roadmap, and static-contract gates passed. Local runtime remained Node `v26.5.0`, so a clean-install claim under the declared Node 22 engine is intentionally not made.
+
+### Previous same-day session detail — responsiveness/model status
+
+**Date:** 2026-07-16
 **Scope:** Implement the responsiveness and model-status remediation reconciled from the supplied clean-snapshot work order. Added the canonical live model-catalog runtime owner, explicit auth hydration, deterministic model-query identity/invalidation, reactive lightweight status computation, buffered chat streaming, O(1) dirty marking, prioritized persistence, narrow Header/Sidebar/task subscriptions, stable model options, and `VERIFY-138` regression coverage.
 
 - **Model catalog and diagnostics:** `src/stores/model-catalog-runtime-store.ts` owns `idle | loading | ready | stale | error`, live/cache/fallback provenance, per-type counts, live model IDs, attempt/success timestamps, and redacted errors. `useModels` uses the primitive key `['models', normalizedType, enabledProviderKey]`, publishes the live Venice response before appending fallback models, and supports `enabled: false`. Diagnostics no longer infer catalog health from `selectedModels`; a missing selection is a separate warning while a loaded empty catalog remains a successful load.
@@ -15,7 +27,7 @@ This is the active handoff and validation ledger. The canonical current-work led
 - **Legacy model adapter:** TanStack Query remains the remote/cache owner. `modelCatalogCache` is the in-memory metadata adapter used by chat prompt compilation; the legacy reducer-facing model service now publishes through the same runtime status and consults the canonical cache before its defensive localStorage migration fallback.
 - **Validation:** focused 12-file remediation run passed 136/136; the final dirty-persistence regression file passed 9/9; `npm run lint`, all three requested verifiers, `npm run build`, and final `npm run test:ci` (3,913/3,913) passed. Local runtime was Node `v26.5.0` / npm `11.17.0`; no Node 22 claim is made for this local run.
 
-### Previous same-day session detail
+### Earlier same-day session detail — P0 audit closure
 
 **Date:** 2026-07-16
 **Scope:** Close all six P0 data-integrity blockers from the `VENICE_FORGE_3_0_BETA_DETAILED_REMEDIATION_TODO_2026-07-15` follow-on report, layered on top of the P1 audit closure already on `main`. Authored the missing `VERIFY-136` regression test, extended both the AGENTS.md registry and the `verify-repo-handoff-hygiene` scanner to `VERIFY-001..VERIFY-137`, fortified the `manual-import` conflict-branch proof with a `VERIFY-137` annotation, and reran every validation gate before staging the conventional fix commit.
@@ -42,7 +54,7 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
-No new open task was introduced by the responsiveness/model-status remediation. Current unfinished work remains exactly the four items in `docs/ROADMAP.md`: `VF-VERIFY-005`, `VF-AUDIT-001`, `VF-AUDIT-005`, and `VF-AUDIT-006`. The historical closure detail below is retained as evidence, not current task authority.
+The July 16 deep-scan automated findings are all fixed or explicitly classified. Current unfinished work remains exactly the three items in `docs/ROADMAP.md`: external signed/paid/two-device/accessibility QA (`VF-VERIFY-005`), GitHub repository safeguards (`VF-AUDIT-001`), and bounded dependency refreshes (`VF-AUDIT-006`). The historical closure detail below is retained as evidence, not current task authority.
 
 All seven P1 release blockers from the 2026-07-15 beta audit are now closed in code:
 
@@ -61,6 +73,24 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
 
 The current remediation evidence is listed first. Earlier same-day evidence is retained below as historical context.
+
+### July 16 deep-scan reconciliation
+
+| Command | Result | Evidence |
+|---|---|---|
+| Root/bootstrap, branch, runtime and dirty-tree inventory | PASS | Canonical root and `main` confirmed at starting commit `1b5beff`; Node `v26.5.0` / npm `11.17.0` recorded; pre-existing audit-evidence deletions preserved. |
+| Focused catalog/header/diagnostics suites | PASS | 38/38 tests pass after typed catalog replacement and no-redundant-header-fetch assertions. |
+| Focused profile purge/vault/IPC/store suites | PASS | 153/153 tests pass, including main-authoritative purge, idempotence, active-session authorization, and retryable partial failure. |
+| Workflow/navigation suites | PASS | 104/104 workflow tests, 12/12 template tests, and 39/39 navigation/sidebar tests pass. |
+| Storage/provider suites | PASS | 21/21 focused tests pass; provider-adapter verifier passes 36/36. |
+| `npm run test:ci` | PASS | 3,906 tests pass across every required automated shard in 174.76 seconds. |
+| `npm run lint:eslint`; `npm run typecheck` | PASS | Whole-tree ESLint exits with zero warnings; renderer and Electron TypeScript pipelines exit 0. |
+| `npm run verify:markdown-links`; bundle/archive/agent-doc/handoff/roadmap verifiers | PASS | Final documentation pass checks 94 Markdown files; repository hygiene contracts pass after authority and link reconciliation. |
+| `npm run build` | PASS | Renderer, Electron, and server production outputs build; principal renderer chunks remain within the enforced bundle budget. |
+| `npm run verify:release-metadata` | PASS | Package, AGENTS, About UI, legal and release-readiness statements are consistent. |
+| `npm run verify:contracts` | PASS | Full static, feature, and release aggregation passes; release-packaging hardening reports 103/103 checks. |
+| Staged `git diff --check` | PASS WITH DOCUMENTED INPUT EXCEPTION | All remediation/implementation paths pass. The verbatim supplied audit source retains six intentional two-space Markdown hard breaks that the generic checker reports as trailing whitespace. |
+| Clean install under declared Node 22; packaged/external QA | NOT RUN | Current shell is Node 26; signed/paid/two-device/accessibility/theme/sound/reduced-motion evidence remains external under `VF-VERIFY-005`. |
 
 ### Current responsiveness/model-status remediation run (`VERIFY-138`)
 
@@ -98,6 +128,8 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | `npm run build` | PASS | `dist/` (Vite), `dist-electron/electron/` (tsc), and `dist/server.cjs` (esbuild, 92.9 kB) all built cleanly. |
 
 ## Session History
+
+- **2026-07-16 — Deep-scan verification and remediation:** reconciled all 22 supplied audit findings against the live tree; fixed 16 confirmed issues across typed model catalog state, main-authoritative profile erasure, documentation/release truth, feature naming, dead-code and debug-probe hygiene, storage maintenance, deferred-provider scope, and README terminology; classified two findings as stale/already fixed, three as accepted design, and one performance concern as deferred pending measured evidence; preserved the pre-existing user deletions; passed focused suites, lint, typecheck, 3,906-test `test:ci`, Markdown, bundle, build, provider and repository-hygiene gates; retained only the external release/QA matrix in the canonical roadmap.
 
 - **2026-07-16 — Responsiveness and model-status remediation (`VERIFY-138`):** replaced selected-model-derived health with a canonical redacted live catalog runtime; added explicit independent auth hydration and model-query invalidation; removed tab-driven heavy diagnostics work and disabled the closed-drawer query; buffered 1,000 provider deltas into one bounded mutation in the deterministic fixture; replaced the global O(n) dirty subscription with explicit ID-targeted commits and prioritized persistence; maintained lightweight conversation summaries so 1,000 raw deltas do not rerender/reindex Header or Sidebar; switched ChatView's prior-context UI to those summaries while resolving full selected conversations only at send time; memoized model options and narrowed task/model/character selectors; adapted the legacy model service to the canonical runtime/cache; registered `VERIFY-138`; passed focused 136/136, final dirty-persistence 9/9, status/provider/network verifiers, final post-narrowing lint/typecheck, focused UI 40/40, production build, and broad segmented `test:ci` 3,913/3,913. Node/npm evidence is `v26.5.0` / `11.17.0`.
 

@@ -48,17 +48,25 @@ privacy or complete safety protection.
   enforced in the main process with `crypto.timingSafeEqual` and per-profile
   lockout after five failed attempts. This is an in-app switch gate, not an
   OS account or disk-encryption boundary.
-- **Profile deletion:** deleting a profile best-effort purges the profile
-  password verifier, Venice/Jina API keys for that profile, profile-scoped
-  `localStorage` keys, and IndexedDB records tagged with the profile id.
-  Filesystem chat history under `userData/chat-history/` is not keyed by
-  profile and remains intact.
+- **Profile deletion:** deleting an active non-default profile invokes a
+  main-process transaction that drains pending Conversation Vault writes,
+  removes that profile's vault directory and secure-store credentials, and
+  returns redacted per-store results. Renderer localStorage/IndexedDB records
+  are then purged. Metadata is retained when main-process cleanup is partial so
+  the deletion can be retried. Legacy `userData/chat-history/` files are not
+  profile-scoped and remain migration artifacts.
 - **Diagnostics:** the `diagnostics` store is intentionally unencrypted because
   it contains sanitized timing/status metadata only. Safe diagnostics exclude
   API keys, bearer tokens, raw prompt content, base64 media, and full local
   absolute paths.
 - **No cloud sync:** Venice Forge does not sync your local data to a Venice
   Forge-operated cloud service.
+- **Renderer encryption boundary:** encrypted renderer stores use a
+  non-extractable AES-GCM `CryptoKey` held in same-origin IndexedDB. This
+  protects against casual offline database inspection, but compromised
+  renderer code can request cryptographic operations with that key. The
+  desktop Conversation Vault keeps its key and filesystem operations in the
+  main process behind OS `safeStorage`, which is a stronger boundary.
 
 ## Local Safety and Privacy Boundaries
 

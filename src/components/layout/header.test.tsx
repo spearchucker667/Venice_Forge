@@ -12,11 +12,10 @@ import { useAuthStore } from '../../stores/auth-store'
 import { TAB_IDS, resolveTab } from '../../config/tabs'
 
 const modelsData = vi.hoisted(() => ({ value: [] as Array<{ id: string; name?: string; model_spec?: { name?: string } }> }));
+const useModelsMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../hooks/use-models', () => ({
-  useModels: (_type?: string) => ({
-    data: modelsData.value,
-  }),
+  useModels: useModelsMock,
 }));
 
 describe('Header component', () => {
@@ -36,6 +35,13 @@ describe('Header component', () => {
       apiKey: 'test-key',
     })
     modelsData.value = []
+    useModelsMock.mockImplementation(() => ({ data: modelsData.value }))
+  })
+
+  it('disables header-owned catalog work when the active tab has no header selector', () => {
+    useSettingsStore.setState({ activeTab: 'media' })
+    render(<Header onOpenApiKey={vi.fn()} />)
+    expect(useModelsMock).toHaveBeenLastCalledWith('text', { enabled: false })
   })
 
   it('renders correctly for every TAB_IDS entry', () => {

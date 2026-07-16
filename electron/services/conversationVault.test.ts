@@ -51,6 +51,7 @@ import {
   deleteConversation,
   isValidConversationId,
   getRecordPath,
+  purgeProfileConversationVault,
   _resetVaultCache_TEST_ONLY,
 } from "./conversationVault";
 
@@ -245,6 +246,19 @@ describe("ConversationVault core and services", () => {
       expect((await deleteConversation(sharedId, "work")).ok).toBe(true);
       expect(await getConversation(sharedId, "work")).toBeNull();
       expect((await getConversation(sharedId, "default"))?.title).toBe("Default vault record");
+    });
+
+    it("purges one non-default profile vault without touching the default vault", async () => {
+      const defaultRecord = makeRecord({ id: "default-kept" });
+      const workRecord = makeRecord({ id: "work-removed" });
+      await saveConversation(defaultRecord, "default");
+      await saveConversation(workRecord, "work");
+
+      await expect(purgeProfileConversationVault("default")).rejects.toThrow(/default/i);
+      expect((await purgeProfileConversationVault("work")).removed).toBe(true);
+      expect(await getConversation("work-removed", "work")).toBeNull();
+      expect((await getConversation("default-kept", "default"))?.id).toBe("default-kept");
+      expect((await purgeProfileConversationVault("work")).removed).toBe(false);
     });
 
     it("8. Write serialization enqueues parallel writes sequentially", async () => {
