@@ -5,6 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-16
+**Scope:** Review and resolve open pull requests from Dependabot.
+
+- **PR Review and Resolution:** Reviewed 5 open dependabot pull requests.
+- **Merge:** Merged PRs 39 (setup-node bump) and 37 (action-gh-release bump) because all CI checks passed.
+- **Close:** Closed PRs 40, 38, and 36 because their CI checks failed.
+- **Validation:** Relied on the hosted CI status to decide merge vs. close. No local compilation was required for these dependency bumps.
+
+### Previous same-day session detail — deep-scan audit
+
+**Date:** 2026-07-16
 **Scope:** Reconcile every finding in the supplied July 16 deep-scan audit against the live `main` tree, implement the confirmed defects, classify stale/deferred/accepted-design claims, and preserve the remaining external QA boundary.
 
 - **P0 model-catalog correctness:** typed model refreshes now replace only their modality while preserving authoritative cross-modality state; runtime status is tracked by type; diagnostics validate selections only against loaded catalog scopes; and Header avoids redundant full-catalog requests where a view owns its selector.
@@ -74,6 +84,15 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 
 The current remediation evidence is listed first. Earlier same-day evidence is retained below as historical context.
 
+### PR Review
+
+| Command | Result | Evidence |
+|---|---|---|
+| `gh pr list` | PASS | Listed 5 open PRs. |
+| `gh pr checks <pr>` | PASS | Checked CI status for all PRs. |
+| `gh pr merge <pr>` | PASS | Merged PRs 39 and 37. |
+| `gh pr close <pr>` | PASS | Closed PRs 40, 38, 36. |
+
 ### July 16 deep-scan reconciliation
 
 | Command | Result | Evidence |
@@ -128,6 +147,8 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | `npm run build` | PASS | `dist/` (Vite), `dist-electron/electron/` (tsc), and `dist/server.cjs` (esbuild, 92.9 kB) all built cleanly. |
 
 ## Session History
+
+- **2026-07-16 — Dependabot PR resolution:** reviewed five open dependabot pull requests; merged PRs 39 and 37 (passed CI checks); closed PRs 40, 38, and 36 due to failing CI checks.
 
 - **2026-07-16 — Deep-scan verification and remediation:** reconciled all 22 supplied audit findings against the live tree; fixed 16 confirmed issues across typed model catalog state, main-authoritative profile erasure, documentation/release truth, feature naming, dead-code and debug-probe hygiene, storage maintenance, deferred-provider scope, and README terminology; classified two findings as stale/already fixed, three as accepted design, and one performance concern as deferred pending measured evidence; preserved the pre-existing user deletions; passed focused suites, lint, typecheck, 3,906-test `test:ci`, Markdown, bundle, build, provider and repository-hygiene gates; retained only the external release/QA matrix in the canonical roadmap.
 
