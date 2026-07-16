@@ -104,14 +104,27 @@ export function registerSyncHandlers(): void {
         case "conversations": {
           const storage = await import("../../services/chatStorage");
           const profileId = getProfileSessionId(event.sender);
-          if (deleting) await storage.deleteConversation(input.id, profileId);
-          else await storage.saveConversation(record, profileId);
+          // VERIFY-134: capture the storage layer's per-call result and
+          // forward any non-ok outcome. Pre-fix the silent fall-through
+          // returned ok:true even when saveConversation rejected an
+          // invalid schema or deleteConversation failed to unlink the
+          // file, masking partial application on the renderer side.
+          const result: { ok: boolean; error?: string } = deleting
+            ? await storage.deleteConversation(input.id, profileId)
+            : await storage.saveConversation(record, profileId);
+          if (!result.ok) {
+            return { ok: false, error: `conversations(${deleting ? "delete" : "save"}): ${result.error ?? "rejected"}` };
+          }
           break;
         }
         case "character_cards": {
           const storage = await import("../../services/characterCardStorage");
-          if (deleting) await storage.deleteCharacterCard(input.id);
-          else await storage.saveCharacterCard(record);
+          const result = deleting
+            ? await storage.deleteCharacterCard(input.id)
+            : await storage.saveCharacterCard(record);
+          if (!(result as { ok: boolean }).ok) {
+            return { ok: false, error: `character_cards(${deleting ? "delete" : "save"}): ${(result as { ok: boolean; error?: string }).error ?? "rejected"}` };
+          }
           break;
         }
         case "personas":
@@ -122,14 +135,24 @@ export function registerSyncHandlers(): void {
           const target = input.storeName === "personas" ? stores.personaStore
             : input.storeName === "lorebooks" ? stores.lorebookStore
               : input.storeName === "rp_assets" ? stores.rpAssetStore : stores.scenarioStore;
-          if (deleting) await target.remove(input.id);
-          else await target.save(record);
+          const result = deleting
+            ? await target.remove(input.id)
+            : await target.save(record);
+          // VERIFY-134: rpStore save/remove return { ok } shapes; surface
+          // them through the IPC boundary the same way the storage layer does.
+          if (!result.ok) {
+            return { ok: false, error: `${input.storeName}(${deleting ? "delete" : "save"}): ${result.error ?? "rejected"}` };
+          }
           break;
         }
         case "rp_chats": {
           const storage = await import("../../services/rpChatStorage");
-          if (deleting) await storage.deleteRpChat(input.id);
-          else await storage.saveRpChat(record);
+          const result = deleting
+            ? await storage.deleteRpChat(input.id)
+            : await storage.saveRpChat(record);
+          if (!(result as { ok: boolean }).ok) {
+            return { ok: false, error: `rp_chats(${deleting ? "delete" : "save"}): ${(result as { ok: boolean; error?: string }).error ?? "rejected"}` };
+          }
           break;
         }
         default:

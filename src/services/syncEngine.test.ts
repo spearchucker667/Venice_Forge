@@ -1,8 +1,12 @@
 // VERIFY-089 regression guard: sync engine forwards local saves to the desktop bridge,
 // applies remote tombstones, and is idempotent. Local deletes are coordinated
 // synchronously by StorageService before the target record is removed.
+// VERIFY-136 regression guard: emitLocalChange bubbles writePacket failures so
+// manual flush, push tests, and pagehide flush can observe and log real
+// {ok:false} and `{ok:true, skipped:"media-disabled"}` outcomes instead of a
+// synthetic success.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { initSyncEngine, stopSyncEngine, pauseSyncEngine, reattachSyncEngine } from "./syncEngine";
+import { initSyncEngine, stopSyncEngine, pauseSyncEngine, reattachSyncEngine, emitLocalChange } from "./syncEngine";
 import * as desktopBridge from "./desktopBridge";
 import { importDecryptedPacket } from "./syncPacketImporter";
 
@@ -242,5 +246,72 @@ describe("syncEngine", () => {
     expect(result).toEqual({ ok: false, status: "error", error: expect.stringContaining("not authenticated") });
     expect(mockOnRemoteChange).not.toHaveBeenCalled();
     expect(mockSetRendererSessionAttached).not.toHaveBeenCalledWith({ attached: true });
+  });
+
+  describe("emitLocalChange writePacket outcome (VERIFY-136)", () => {
+    it("returns the writePacket result so callers can observe real failures", async () => {
+      await initSyncEngine("password");
+      mockWritePacket.mockResolvedValueOnce({ ok: false, error: "main denied: schema mismatch" });
+      const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const result = await emitLocalChange("conversations", { id: "conv-x", title: "t" }, "conv-x");
+
+      expect(mockWritePacket).toHaveBeenCalledWith({
+        storeName: "conversations",
+        id: "conv-x",
+        recordJson: expect.any(String),
+      });
+      expect(result).toEqual({ ok: false, error: "main denied: schema mismatch" });
+      expect(errSpy).toHaveBeenCalledWith(expect.stringContaining("writePacket rejected"));
+      errSpy.mockRestore();
+    });
+
+    it("returns the writePacket result on success without logging", async () => {
+      await initSyncEngine("password");
+      mockWritePacket.mockResolvedValueOnce({ ok: true });
+      const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const result = await emitLocalChange("conversations", { id: "conv-ok" }, "conv-ok");
+
+      expect(result).toEqual({ ok: true });
+      expect(errSpy).not.toHaveBeenCalled();
+      errSpy.mockRestore();
+    });
+
+    it("labels the main-side media opt-out skipped path in the error detail", async () => {
+      await initSyncEngine("password");
+      mockWritePacket.mockResolvedValueOnce({ ok: true, skipped: "media-disabled" } as never);
+      const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const result = await emitLocalChange("images", { id: "img-1" }, "img-1");
+
+      // Skipped is opt-in, not a failure — no error log, but the outcome is observable.
+      expect(result).toEqual({ ok: true, skipped: "media-disabled" });
+      expect(errSpy).not.toHaveBeenCalledWith(expect.stringContaining("writePacket rejected"));
+      errSpy.mockRestore();
+    });
+
+    it("returns a structured failure when writePacket throws", async () => {
+      await initSyncEngine("password");
+      mockWritePacket.mockRejectedValueOnce(new Error("IPC channel closed"));
+      const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const result = await emitLocalChange("conversations", { id: "conv-x" }, "conv-x");
+
+      expect(result).toEqual({ ok: false, error: "IPC channel closed" });
+      expect(errSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to emit local change"),
+        expect.any(Error),
+      );
+      errSpy.mockRestore();
+    });
+
+    it("does not invoke writePacket when sync is not active", async () => {
+      // Engine never started, syncActive flag stays false.
+      mockWritePacket.mockClear();
+      const result = await emitLocalChange("conversations", { id: "nope" }, "nope");
+      expect(mockWritePacket).not.toHaveBeenCalled();
+      expect(result).toBeUndefined();
+    });
   });
 });

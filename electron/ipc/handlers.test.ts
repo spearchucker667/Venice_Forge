@@ -176,6 +176,29 @@ vi.mock("../services/conversationVault", () => ({
   archiveConversation: vi.fn(async () => ({ ok: true })),
 }));
 
+vi.mock("../services/characterCardStorage", () => ({
+  saveCharacterCard: vi.fn(async () => ({ ok: true })),
+  deleteCharacterCard: vi.fn(async () => ({ ok: true })),
+}));
+
+vi.mock("../services/rpChatStorage", () => ({
+  saveRpChat: vi.fn(async () => ({ ok: true })),
+  deleteRpChat: vi.fn(async () => ({ ok: true })),
+}));
+
+vi.mock("../services/rpStores", () => {
+  const makeStore = () => ({
+    save: vi.fn(async () => ({ ok: true })),
+    remove: vi.fn(async () => ({ ok: true })),
+  });
+  return {
+    personaStore: makeStore(),
+    lorebookStore: makeStore(),
+    rpAssetStore: makeStore(),
+    scenarioStore: makeStore(),
+  };
+});
+
 vi.mock("../services/backupCrypto", () => ({
   encryptPayload: vi.fn(async () => ({ salt: "salt", iv: "iv", ciphertext: "cipher" })),
   decryptPayload: vi.fn(async () => "{}"),
@@ -1558,6 +1581,106 @@ describe("registerIpcHandlers", () => {
         expect.objectContaining({ id: "conv-authorized" }),
         "work",
       );
+    });
+
+    // VERIFY-134: pre-fix, applyRemoteMutation returned { ok: true }
+    // regardless of whether the storage layer accepted the write or
+    // delete, masking partial application on the renderer side. Each
+    // store arm now bubbles the failure through the IPC response.
+    it("surfaces conversations save failure as {ok:false}", async () => {
+      const handler = capturedHandlers.get("sync:applyRemoteMutation");
+      const storage = await import("../services/chatStorage");
+      vi.mocked(storage.saveConversation).mockResolvedValueOnce({ ok: false, error: "schema rejected" });
+      const token = issueRemoteApplyGrant("a".repeat(64), "conversations", "conv-bubbles");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "default");
+      const result = await handler?.({ sender }, {
+        storeName: "conversations",
+        id: "conv-bubbles",
+        recordJson: JSON.stringify({ id: "conv-bubbles", title: "Remote" }),
+        remoteApplyToken: token,
+      });
+      expect(result).toEqual({ ok: false, error: "conversations(save): schema rejected" });
+    });
+
+    it("surfaces conversations delete failure as {ok:false}", async () => {
+      const handler = capturedHandlers.get("sync:applyRemoteMutation");
+      const storage = await import("../services/chatStorage");
+      vi.mocked(storage.deleteConversation).mockResolvedValueOnce({ ok: false });
+      const token = issueRemoteApplyGrant("b".repeat(64), "conversations", "conv-bubbles-del");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "default");
+      const result = await handler?.({ sender }, {
+        storeName: "conversations",
+        id: "conv-bubbles-del",
+        delete: true,
+        remoteApplyToken: token,
+      });
+      expect(result).toEqual({ ok: false, error: "conversations(delete): rejected" });
+    });
+
+    it("surfaces character_cards save failure as {ok:false}", async () => {
+      const handler = capturedHandlers.get("sync:applyRemoteMutation");
+      const storage = await import("../services/characterCardStorage");
+      vi.mocked(storage.saveCharacterCard).mockResolvedValueOnce({ ok: false, error: "atomic-write failed" });
+      const token = issueRemoteApplyGrant("c".repeat(64), "character_cards", "card-bubbles");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "default");
+      const result = await handler?.({ sender }, {
+        storeName: "character_cards",
+        id: "card-bubbles",
+        recordJson: JSON.stringify({ id: "card-bubbles", name: "Card" }),
+        remoteApplyToken: token,
+      });
+      expect(result).toEqual({ ok: false, error: "character_cards(save): atomic-write failed" });
+    });
+
+    it("surfaces rp_chats delete failure as {ok:false}", async () => {
+      const handler = capturedHandlers.get("sync:applyRemoteMutation");
+      const storage = await import("../services/rpChatStorage");
+      vi.mocked(storage.deleteRpChat).mockResolvedValueOnce({ ok: false });
+      const token = issueRemoteApplyGrant("d".repeat(64), "rp_chats", "chat-bubbles");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "default");
+      const result = await handler?.({ sender }, {
+        storeName: "rp_chats",
+        id: "chat-bubbles",
+        delete: true,
+        remoteApplyToken: token,
+      });
+      expect(result).toEqual({ ok: false, error: "rp_chats(delete): rejected" });
+    });
+
+    it("surfaces rpStores persona save failure as {ok:false}", async () => {
+      const handler = capturedHandlers.get("sync:applyRemoteMutation");
+      const stores = await import("../services/rpStores");
+      vi.mocked(stores.personaStore.save).mockResolvedValueOnce({ ok: false, error: "disk full" });
+      const token = issueRemoteApplyGrant("e".repeat(64), "personas", "persona-bubbles");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "default");
+      const result = await handler?.({ sender }, {
+        storeName: "personas",
+        id: "persona-bubbles",
+        recordJson: JSON.stringify({ id: "persona-bubbles", name: "P" }),
+        remoteApplyToken: token,
+      });
+      expect(result).toEqual({ ok: false, error: "personas(save): disk full" });
+    });
+
+    it("surfaces rpStores lorebooks remove failure as {ok:false}", async () => {
+      const handler = capturedHandlers.get("sync:applyRemoteMutation");
+      const stores = await import("../services/rpStores");
+      vi.mocked(stores.lorebookStore.remove).mockResolvedValueOnce({ ok: false });
+      const token = issueRemoteApplyGrant("0".repeat(64), "lorebooks", "lore-bubbles");
+      const sender = { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents;
+      setProfileSessionId(sender, "default");
+      const result = await handler?.({ sender }, {
+        storeName: "lorebooks",
+        id: "lore-bubbles",
+        delete: true,
+        remoteApplyToken: token,
+      });
+      expect(result).toEqual({ ok: false, error: "lorebooks(delete): rejected" });
     });
   });
 });

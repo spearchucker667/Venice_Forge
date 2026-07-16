@@ -16,7 +16,11 @@ import { useChatStore } from "../../stores/chat-store";
 import { useProfileStore } from "../../stores/profile-store";
 
 export interface DataStoragePanelProps {
-  exportData: (password: string, includeCharacterCardDrafts?: boolean) => Promise<void> | void;
+  exportData: (
+    password: string,
+    includeCharacterCardDrafts?: boolean,
+    includeMedia?: boolean,
+  ) => Promise<void> | void;
   clearLocalSettings: () => Promise<void> | void;
   clearAllHistory: () => Promise<void> | void;
 }
@@ -33,6 +37,11 @@ export function DataStoragePanel({
   const [recovery, setRecovery] = React.useState<ReplaceImportRecoveryMetadata | null>(null);
   const [restoringRecovery, setRestoringRecovery] = React.useState(false);
   const [includeCharacterCardDrafts, setIncludeCharacterCardDrafts] = React.useState(false);
+  // VERIFY-130 / 3.0 beta P1 #7: media stores (images / files / rp_assets) are
+  // excluded from manual encrypted backups by default. The user must
+  // explicitly opt-in per export — see the audit finding for the visible-
+  // acknowledgement requirement.
+  const [includeMedia, setIncludeMedia] = React.useState(false);
 
   const refreshRecovery = React.useCallback(async () => {
     if (!isElectron()) return;
@@ -50,7 +59,7 @@ export function DataStoragePanel({
 
   const handleExport = async () => {
     try {
-      await exportData(password, includeCharacterCardDrafts);
+      await exportData(password, includeCharacterCardDrafts, includeMedia);
     } catch {
       // toast already handled by exportData
     }
@@ -92,7 +101,16 @@ export function DataStoragePanel({
         // Now perform the import! StorageService and backupImportService will read the new active profile id
         const summary = await parseAndImportBackup(manifestToImport, password);
         
-        toast.success(`Import complete into new profile: ${summary.recordsImported} imported. Reloading...`);
+        // VERIFY-135: surface skipped / tombstone-partial status as a
+        // warning so a partial backup import never reads as "all green".
+        if (summary.recordsImported === 0 && summary.recordsSkipped > 0) {
+          toast.warn(
+            `Nothing imported into new profile: ${summary.recordsSkipped} skipped`,
+            "No records applied; check the backup's manifest and target profile.",
+          );
+        } else {
+          toast.success(`Import complete into new profile: ${summary.recordsImported} imported. Reloading...`);
+        }
         
         // Give the toast a moment to render before reloading
         setTimeout(() => window.location.reload(), 1500);
@@ -107,7 +125,21 @@ export function DataStoragePanel({
       } else {
         summary = await parseAndImportBackup(manifestToImport, password);
       }
-      toast.success(`Import complete: ${summary.recordsImported} imported, ${summary.recordsSkipped} skipped, ${summary.tombstonesApplied} tombstones applied.`);
+      // VERIFY-135: surface skipped / tombstone-partial status as a
+      // warning so a partial backup import never reads as "all green".
+      if (summary.recordsImported === 0 && summary.recordsSkipped > 0) {
+        toast.warn(
+          `Nothing imported: ${summary.recordsSkipped} skipped`,
+          "No records applied; check the backup's manifest and target profile.",
+        );
+      } else if (summary.recordsImported > 0 && summary.recordsSkipped > 0) {
+        toast.warn(
+          `Partial import: ${summary.recordsImported} imported, ${summary.recordsSkipped} skipped`,
+          `${summary.tombstonesApplied} tombstones applied. Inspect the skipped count before relying on this backup.`,
+        );
+      } else {
+        toast.success(`Import complete: ${summary.recordsImported} imported, ${summary.recordsSkipped} skipped, ${summary.tombstonesApplied} tombstones applied.`);
+      }
       window.dispatchEvent(new Event("venice:backup-imported"));
       const convs = await listConversations();
       useChatStore.getState().setConversations(convs);
@@ -160,6 +192,15 @@ export function DataStoragePanel({
             className="w-64 px-3 py-1.5 rounded-lg border border-border bg-surface text-[13px] text-text-primary focus:outline-none focus:border-accent"
           />
           <label className="flex items-center gap-2 text-[12.5px] text-text-secondary"><input type="checkbox" checked={includeCharacterCardDrafts} onChange={(event) => setIncludeCharacterCardDrafts(event.target.checked)} /> Include encrypted local ST Card drafts (drafts never sync)</label>
+          <label className="flex items-center gap-2 text-[12.5px] text-text-secondary">
+            <input
+              type="checkbox"
+              data-testid="backup-include-media"
+              checked={includeMedia}
+              onChange={(event) => setIncludeMedia(event.target.checked)}
+            />
+            Include media in this backup (images, files, RP assets — encrypted with the rest of the backup)
+          </label>
           <div className="flex flex-wrap gap-2.5">
             <button
               onClick={handleExport}

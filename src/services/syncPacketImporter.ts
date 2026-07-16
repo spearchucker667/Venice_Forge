@@ -247,8 +247,21 @@ export async function importDecryptedPacket(
       if (!validation.ok) {
         return { ok: false, error: `Malformed tombstone: ${validation.error}` };
       }
-      await TombstoneService.saveTombstone(validation.tombstone);
-      await deleteStoreRecord(validation.tombstone.storeName, validation.tombstone.recordId, importOrigin, remoteApplyToken);
+      // VERIFY-132: Both tombstone steps must complete for the import to be
+      // declared successful. Previously either step could throw silently into
+      // the outer try/catch and the caller still saw ok:true. Capture each
+      // step's outcome explicitly so a half-applied tombstone state cannot be
+      // misreported as success.
+      try {
+        await TombstoneService.saveTombstone(validation.tombstone);
+      } catch (err: unknown) {
+        return { ok: false, error: `tombstone-save: ${err instanceof Error ? err.message : "unknown"}` };
+      }
+      try {
+        await deleteStoreRecord(validation.tombstone.storeName, validation.tombstone.recordId, importOrigin, remoteApplyToken);
+      } catch (err: unknown) {
+        return { ok: false, error: `tombstone-delete: ${err instanceof Error ? err.message : "unknown"}` };
+      }
       return { ok: true };
     }
 
@@ -285,6 +298,16 @@ export async function importDecryptedPacket(
       // Both exist, check for divergence
       let isConflict = false;
       if (importOrigin === "manual-import") {
+        // VERIFY-137: Manual-import envelopes must enter the same conflict
+        // branch the remote-sync path uses. Pre-fix this branch was omitted
+        // for manual imports, so divergent same-id edited messages slipped
+        // through into the merge filter below that explicitly removed
+        // `divergenceByMsgId`. The result: a manual-import backup could
+        // report `{ok:true}` while one side of a same-id edit was silently
+        // discarded. Forcing `isConflict = true` here means every manual
+        // import now routes the edited messages into the same
+        // `mergeStores` forking path used for remote-sync and writes the
+        // whole conversation back as a single schema-valid record.
         // For manual imports, any divergence in updatedAt is treated as a conflict
         // to prevent silent data loss or unexpected silent overwrites.
         const localUpdate = toEpochMilliseconds(local.updatedAt) ?? 0;
@@ -357,14 +380,32 @@ export async function importDecryptedPacket(
           const divergenceByMsgId = new Map<string, { local: Record<string, unknown>; imported: Record<string, unknown> }>();
           for (const divergence of divergences) divergenceByMsgId.set(divergence.id, divergence);
 
-          // Treat the conversation itself as a conflict when any of its messages
-          // were edited on both sides — only then do we fall back to the
-          // whole-record conflict shape and skip the append merge.
-          if (divergences.length > 0 && importOrigin !== "manual-import") {
-            // For whole-record merges (the imported has a *newer* revisionId
-            // for the same conversation id and only diverges on one or two
-            // edits), fork every diverged imported message into its own
-            // conflict record so the user can pick edit-by-edit.
+          // Treat the conversation itself as a conflict whenever any of its
+          // messages were edited on both sides. Manual imports and remote
+          // sync both honour the same "edit-vs-edit" routing — a divergent
+          // imported copy is never silently appended nor silently dropped
+          // just because the sides happen to have the same message ID.
+          if (divergences.length > 0) {
+            // VERIFY-133: Divergent imported edits must NOT be saved as
+            // independent top-level records. Older code took the bare
+            // message-shaped `conflictMessage` (which has no `messages`
+            // array) and wrote it to the `conversations` store, where
+            // `chatStorage.saveConversation` rejects it as an invalid
+            // Conversation schema. The whole-merge fallback now embeds both
+            // edits into the surviving local conversation:
+            //   - the diverged IMPORTED copy is forked into a sibling
+            //     message inside the same `messages` array under a fresh
+            //     `<id>_conflict_<identity>` id plus the canonical
+            //     `_meta` provenance block, so both edits are preserved
+            //     and a future per-message conflict UI can find them.
+            //   - the surviving LOCAL conversation gets a
+            //     `divergedMessageIds` annotation pointing at the
+            //     ORIGIN message ids (not the forked ones) so callers can
+            //     discover the conflict without scanning message contents.
+            //   - the merge still writes only conversation-shaped records
+            //     — schema rejection is no longer possible.
+            const forkedDivergentMessages: Array<Record<string, unknown>> = [];
+            const divergentLocalIds = new Set(divergences.map((d) => d.id));
             for (const divergence of divergences) {
               const conflictIdentity = await createConflictIdentity({
                 storeName,
@@ -373,7 +414,7 @@ export async function importDecryptedPacket(
                 remoteRevisionId: typeof divergence.imported.revisionId === "string" ? divergence.imported.revisionId : undefined,
               });
               const newMsgId = `${divergence.id}_conflict_${conflictIdentity.slice(0, 16)}`;
-              const conflictMessage = {
+              const forkedMessage = {
                 ...divergence.imported,
                 id: newMsgId,
                 [SYNC_CONFLICT_META_KEY]: {
@@ -389,15 +430,20 @@ export async function importDecryptedPacket(
                   recordedAt: new Date().toISOString(),
                 },
               };
-              const parentRef = { parentRecordId: id, parentMessageId: divergence.id };
-              await saveStoreRecord(storeName, { ...conflictMessage, ...parentRef }, importOrigin, remoteApplyToken);
+              forkedDivergentMessages.push(forkedMessage);
             }
-            // Mark the conflict metadata on the surviving local conversation.
-            const localWithProvenance = {
+            const localMsgIds = new Set(localMessages.map((m: Record<string, unknown>) => m.id));
+            const freshImportedMessages = importedMessages.filter(
+              (m: Record<string, unknown>) =>
+                !localMsgIds.has(m.id as string) && !divergentLocalIds.has(m.id as string),
+            );
+            const mergedRecord = {
               ...local,
+              messages: [...localMessages, ...forkedDivergentMessages, ...freshImportedMessages].sort(compareSyncMessages),
               divergedMessageIds: divergences.map((d) => d.id),
+              updatedAt: Math.max(toEpochMilliseconds(local.updatedAt) ?? 0, importedUpdateEpoch),
             };
-            await saveStoreRecord(storeName, localWithProvenance, importOrigin, remoteApplyToken);
+            await saveStoreRecord(storeName, mergedRecord, importOrigin, remoteApplyToken);
           } else {
             const localMsgIds = new Set(localMessages.map((m: Record<string, unknown>) => m.id));
             const newMessages = importedMessages.filter(

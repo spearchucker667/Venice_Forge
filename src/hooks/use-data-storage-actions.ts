@@ -64,7 +64,17 @@ export interface DataStorageActionsOptions {
 export interface DataStorageActions {
   clearLocalSettings: () => Promise<void>;
   clearAllHistory: () => Promise<void>;
-  exportData: (password: string) => Promise<void>;
+  /**
+   * Export an encrypted backup. `includeCharacterCardDrafts` toggles the
+   * local-only ST Card drafts store (defaults off). `includeMedia`
+   * toggles sync of the `images`, `files`, and `rp_assets` stores
+   * (defaults off — see VERIFY-130 / 3.0 beta P1 #7).
+   */
+  exportData: (
+    password: string,
+    includeCharacterCardDrafts?: boolean,
+    includeMedia?: boolean,
+  ) => Promise<void>;
 }
 
 /**
@@ -128,15 +138,25 @@ export function useDataStorageActions(
     });
   }, [setPendingConfirm]);
 
-  const exportData = useCallback(async (password: string, includeCharacterCardDrafts = false) => {
-    try {
-      const manifest = await createEncryptedBackup(password, { includeCharacterCardDrafts });
-      const ok = await downloadEncryptedBackup(manifest);
-      if (ok) toast.success("Encrypted backup exported successfully.");
-    } catch {
-      toast.error("Export failed. Please try again.");
-    }
-  }, []);
+  const exportData = useCallback(
+    async (
+      password: string,
+      includeCharacterCardDrafts = false,
+      includeMedia = false,
+    ): Promise<void> => {
+      try {
+        const manifest = await createEncryptedBackup(password, {
+          includeCharacterCardDrafts,
+          includeMedia,
+        });
+        const ok = await downloadEncryptedBackup(manifest);
+        if (ok) toast.success("Encrypted backup exported successfully.");
+      } catch {
+        toast.error("Export failed. Please try again.");
+      }
+    },
+    [],
+  );
 
   return { clearLocalSettings, clearAllHistory, exportData };
 }

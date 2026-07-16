@@ -116,18 +116,23 @@ export function useConflicts() {
     conflict: ConflictItem,
     action: "keep_original" | "keep_conflict" | "keep_both",
   ): Promise<ResolveConflictResult> => {
-    const { storeName, originalId, conflictId, originalRecord, conflictRecord } = conflict;
+    const { storeName, originalId, conflictId, conflictRecord } = conflict;
 
     try {
       if (action === "keep_original") {
         // Original (winner) wins, just delete the conflict record
         await deleteStoreRecord(storeName, conflictId, "local-user");
       } else if (action === "keep_conflict") {
-        // Overwrite original with conflict data, but keep original's ID and bump timestamp
+        // Winner is replaced with the losing revision. Preserve the
+        // *losing* record's identity-bearing fields (name/title) — those
+        // belong to the revision the user just chose — and only clean
+        // the trailing " (Conflict from …)" annotation that was added
+        // when the loser was preserved. Do NOT overwrite with
+        // `originalRecord.name`, which would silently clobber the loser's
+        // identity with the winning revision the user is replacing.
         const newRecord = {
           ...conflictRecord,
           id: originalId,
-          name: cleanConflictSuffix(originalRecord.name),
           updatedAt: Date.now(),
           [SYNC_CONFLICT_META_KEY]: undefined,
         };
@@ -136,7 +141,11 @@ export function useConflicts() {
         await saveStoreRecord(storeName, newRecord, "local-user");
         await deleteStoreRecord(storeName, conflictId, "local-user");
       } else if (action === "keep_both") {
-        // Promote the conflict record to a normal record
+        // Promote the conflict record to a sibling record. The "copy"
+        // carries the LOSING revision (the user's `Use <loser> copy` +
+        // `Save <loser> as copy` flow), so the annotation label must
+        // come from `losingDeviceId` — not the winner's device, which
+        // is the revision the user *also* kept.
         const newId = `${originalId}_copy_${Date.now()}`;
         const newRecord = {
           ...conflictRecord,
@@ -146,14 +155,13 @@ export function useConflicts() {
         };
         newRecord.name = cleanConflictSuffix(newRecord.name);
         newRecord.title = cleanConflictSuffix(newRecord.title);
-        // Annotate the copy so the user can tell which revision it came from
-        const winnerDevice =
-          conflict.provenance?.winningDeviceId ||
-          (typeof originalRecord.deviceId === "string" ? originalRecord.deviceId : "winner");
+        const losingDevice =
+          conflict.provenance?.losingDeviceId ||
+          (typeof conflictRecord.deviceId === "string" ? conflictRecord.deviceId : "remote");
         if (typeof newRecord.name === "string") {
-          newRecord.name = `${newRecord.name} (Copy from ${winnerDevice})`;
+          newRecord.name = `${newRecord.name} (Copy from ${losingDevice})`;
         } else if (typeof newRecord.title === "string") {
-          newRecord.title = `${newRecord.title} (Copy from ${winnerDevice})`;
+          newRecord.title = `${newRecord.title} (Copy from ${losingDevice})`;
         }
         await saveStoreRecord(storeName, newRecord, "local-user");
         await deleteStoreRecord(storeName, conflictId, "local-user");

@@ -233,8 +233,26 @@ export async function emitLocalChange(storeName: SyncStoreName, record: unknown,
 
   try {
     const recordJson = JSON.stringify(sanitizePortableData(record));
-    await desktopSync.writePacket({ storeName, id, recordJson });
+    // VERIFY-136: capture writePacket's { ok, error? } result.
+    // Pre-fix the function discarded the return value inside its try/catch,
+    // so a synthetic { ok: false, error: "..." } (no throw) path was
+    // surfaced as a silent success. We now bubble the structured outcome
+    // so callers (manual flush, push tests, pagehide flush) can observe
+    // and log real failures. The desktop-side writePacket widens the
+    // type with `skipped` for media-disabled opt-outs; we read whichever
+    // keys exist on the return value.
+    const result = await desktopSync.writePacket({ storeName, id, recordJson });
+    if (!result.ok) {
+      const detailParts = [
+        result.error ? `: ${result.error}` : "",
+        "skipped" in result && typeof (result as { skipped?: unknown }).skipped === "string"
+          ? ` (skipped: ${(result as { skipped?: string }).skipped})` : "",
+      ].filter(Boolean).join("");
+      console.error(`[SyncEngine] writePacket rejected for ${storeName} ${id}${detailParts}`);
+    }
+    return result;
   } catch (err) {
     console.error(`[SyncEngine] Failed to emit local change for ${storeName} ${id}:`, err);
+    return { ok: false, error: err instanceof Error ? err.message : "writePacket threw" };
   }
 }

@@ -75,6 +75,7 @@ vi.mock("../services/storageService", () => ({
 
 import { useDataStorageActions } from "./use-data-storage-actions";
 import { toast } from "../stores/toast-store";
+import * as backupExportService from "../services/backupExportService";
 
 function buildSetters() {
   return {
@@ -157,6 +158,60 @@ describe("useDataStorageActions", () => {
         await result.current.exportData("test-password");
       }),
     ).resolves.toBeUndefined();
+  });
+
+  it("VERIFY-130 (P1 #7): exportData forwards includeMedia=false by default to createEncryptedBackup", async () => {
+    const createSpy = vi
+      .spyOn(backupExportService, "createEncryptedBackup")
+      .mockResolvedValue({ version: 2, exportedAt: "", salt: "", iv: "", ciphertext: "" });
+    const setters = buildSetters();
+    const { result } = renderHook(() => useDataStorageActions({ ...setters }));
+
+    await act(async () => {
+      await result.current.exportData("test-password");
+    });
+
+    expect(createSpy).toHaveBeenCalledWith(
+      "test-password",
+      expect.objectContaining({ includeCharacterCardDrafts: false, includeMedia: false }),
+    );
+    createSpy.mockRestore();
+  });
+
+  it("VERIFY-130 (P1 #7): exportData forwards includeMedia=true to createEncryptedBackup", async () => {
+    const createSpy = vi
+      .spyOn(backupExportService, "createEncryptedBackup")
+      .mockResolvedValue({ version: 2, exportedAt: "", salt: "", iv: "", ciphertext: "" });
+    const setters = buildSetters();
+    const { result } = renderHook(() => useDataStorageActions({ ...setters }));
+
+    await act(async () => {
+      await result.current.exportData("test-password", false, true);
+    });
+
+    expect(createSpy).toHaveBeenCalledWith(
+      "test-password",
+      expect.objectContaining({ includeCharacterCardDrafts: false, includeMedia: true }),
+    );
+    createSpy.mockRestore();
+  });
+
+  it("VERIFY-130 (P1 #7): exportData forwards includeCharacterCardDrafts independently from includeMedia", async () => {
+    const createSpy = vi
+      .spyOn(backupExportService, "createEncryptedBackup")
+      .mockResolvedValue({ version: 2, exportedAt: "", salt: "", iv: "", ciphertext: "" });
+    const setters = buildSetters();
+    const { result } = renderHook(() => useDataStorageActions({ ...setters }));
+
+    await act(async () => {
+      await result.current.exportData("test-password", true, false);
+    });
+
+    expect(createSpy).toHaveBeenCalledWith(
+      "test-password",
+      expect.objectContaining({ includeCharacterCardDrafts: true, includeMedia: false }),
+    );
+    createSpy.mockRestore();
   });
 
 

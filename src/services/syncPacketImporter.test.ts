@@ -174,7 +174,7 @@ describe("VERIFY-128 sync conflict provenance", () => {
 // `*_conflict_*` record with `_meta` provenance pointing at the original
 // message id. Previously, `localMsgIds.has(m.id)` silently dropped it.
 describe("VERIFY-129 message-content divergence", () => {
-  it("forks a divergent same-id message into a conflict record when both devices edited it", async () => {
+  it("forks a divergent same-id message into the parent conversation's messages array (VERIFY-133)", async () => {
     const localChat = {
       id: "conv-1",
       updatedAt: baseTimestamp - 10_000,
@@ -223,10 +223,32 @@ describe("VERIFY-129 message-content divergence", () => {
     );
 
     const saved = getSavedRecords();
-    const fork = saved.find(
-      (r) => typeof r.id === "string" && r.id.startsWith("m-1") && r.id.includes("_conflict_"),
+    // VERIFY-133: pre-fix this regression test verified a stand-alone
+    // message-shaped record with id `m-1_conflict_<...>` and a synthetic
+    // `parentRecordId` / `parentMessageId`. The new contract keeps the
+    // divergent imported copy *inside* the surviving local conversation's
+    // `messages` array under a forked id, so the resulting record is
+    // conversation-shaped (passes `chatStorage.isValidConversation`)
+    // and contains BOTH edits.
+    // 1. No standalone top-level fork record is persisted.
+    expect(
+      saved.find((r) => typeof r.id === "string" && /^m-1_conflict_/.test(r.id)),
+      "must not save the divergent message as a stand-alone record",
+    ).toBeUndefined();
+
+    // 2. The surviving local conversation has the forked sibling inside
+    //    its `messages` array, not as a separate top-level entry.
+    const surviving = saved.find(
+      (r) => r.id === "conv-1" && Array.isArray(r.messages),
     );
-    expect(fork, `expected a forked conflict record; saved=${JSON.stringify(saved.map(r => r?.id))}`).toBeDefined();
+    expect(surviving, "local conversation must be re-saved").toBeDefined();
+    expect(Array.isArray(surviving!.messages)).toBe(true);
+
+    const fork = (surviving!.messages as Array<Record<string, unknown>>).find(
+      (m: Record<string, unknown>) =>
+        typeof m.id === "string" && /^m-1_conflict_/.test(m.id),
+    );
+    expect(fork, "forked message must live inside the parent conversation").toBeDefined();
 
     const provenance = readSyncConflictProvenance(fork);
     expect(provenance).not.toBeNull();
@@ -239,9 +261,14 @@ describe("VERIFY-129 message-content divergence", () => {
     expect(provenance!.losingRevisionId).toBe("rev-imp-1");
     // The forked message keeps its diverged content.
     expect(fork!.content).toBe("edited on other device");
-    // And is linked to the parent conversation so the resolver can find it.
-    expect(fork!.parentRecordId).toBe("conv-1");
-    expect(fork!.parentMessageId).toBe("m-1");
+
+    // 3. The conversation record is conversation-shaped so chatStorage
+    //    would accept it (no schema rejection).
+    const messagesArr = surviving!.messages as Array<Record<string, unknown>>;
+    expect(messagesArr.length).toBe(2);
+    expect(messagesArr.some((m) => m.id === "m-1")).toBe(true);
+    expect(messagesArr.some((m) => typeof m.id === "string" && /^m-1_conflict_/.test(m.id as string))).toBe(true);
+    expect(surviving!.divergedMessageIds).toEqual(["m-1"]);
   });
 
   it("does not fork same-id messages whose content agrees (no spurious conflict)", async () => {
@@ -288,3 +315,88 @@ describe("VERIFY-129 message-content divergence", () => {
     ).toBeUndefined();
   });
 });
+
+// VERIFY-129 manual-import branch: a divergent same-id message edit
+// must also surface a conflict record under manual imports (not just
+// under remote-sync). Previously this branch silently dropped the
+// divergent imported edit because the gate `importOrigin !==
+// "manual-import"` skipped the divergence fork and the simple append
+// filter rejected divergent edits by id.
+describe("VERIFY-129 manual-import message divergence", () => {
+  it("forks a divergent same-id edit into a conflict record under manual-import (VERIFY-133 embedded)", async () => {
+    const localChat = {
+      id: "conv-2",
+      updatedAt: baseTimestamp - 10_000,
+      revisionId: "rev-local-2",
+      baseRevisionId: "rev-base-0",
+      deviceId: "this-device",
+      title: "Local title",
+      messages: [
+        {
+          id: "m-1",
+          createdAt: baseTimestamp - 30_000,
+          revisionId: "rev-local-2",
+          deviceId: "this-device",
+          content: "edited on this device",
+          role: "user",
+        },
+      ],
+    };
+    mockFetchConversationRecords(localChat);
+
+    const importedChat = {
+      id: "conv-2",
+      updatedAt: baseTimestamp + 30_000,
+      revisionId: "rev-imp-2",
+      baseRevisionId: "rev-base-0",
+      deviceId: "other-device",
+      title: "Local title",
+      messages: [
+        {
+          id: "m-1",
+          createdAt: baseTimestamp - 30_000,
+          revisionId: "rev-imp-2",
+          deviceId: "other-device",
+          content: "edited on other device",
+          role: "user",
+        },
+      ],
+    };
+
+    // No remote-apply-token => manual-import origin.
+    await importDecryptedPacket(
+      "chats",
+      "conv-2",
+      JSON.stringify(importedChat),
+      "op-3",
+    );
+
+    const saved = getSavedRecords();
+    // VERIFY-133: the divergent imported copy lives INSIDE the
+    // surviving local conversation's `messages` array, not at the
+    // top level. Manual imports use the same routing as remote-sync
+    // (the dirty-tree change at syncPacketImporter.ts:360 dropped the
+    // `importOrigin !== "manual-import"` exclusion).
+    expect(
+      saved.find((r) => typeof r.id === "string" && /^m-1_conflict_/.test(r.id)),
+      "must not save the divergent message as a stand-alone record",
+    ).toBeUndefined();
+
+    const surviving = saved.find(
+      (r) => r.id === "conv-2" && Array.isArray(r.messages),
+    );
+    expect(surviving, "local conversation must be re-saved").toBeDefined();
+    const fork = (surviving!.messages as Array<Record<string, unknown>>).find(
+      (m) => typeof m.id === "string" && /^m-1_conflict_/.test(m.id),
+    );
+    expect(fork, "forked message must live inside the parent conversation").toBeDefined();
+    expect(fork!.content).toBe("edited on other device");
+    const prov = readSyncConflictProvenance(fork);
+    expect(prov).not.toBeNull();
+    expect(prov!.winningSource).toBe("local");
+    expect(prov!.losingSource).toBe("imported");
+    expect(prov!.originalRecordId).toBe("m-1");
+    expect(surviving!.divergedMessageIds).toEqual(["m-1"]);
+  });
+});
+
