@@ -148,8 +148,8 @@ describe('chat-store multimodal content round-trip (P1-001 regression guard)', (
   it('preserves assistant delta accumulation on a string content turn (streaming path)', () => {
     const convId = useChatStore.getState().createConversation('llama-3.3-70b')
     useChatStore.getState().addMessage(convId, { role: 'assistant', content: '' })
-    useChatStore.getState().appendToLastAssistant(convId, 'Hello')
-    useChatStore.getState().appendToLastAssistant(convId, ' world')
+    useChatStore.getState().appendAssistantStreamDelta(convId, { content: 'Hello' })
+    useChatStore.getState().appendAssistantStreamDelta(convId, { content: ' world' })
     const conv = useChatStore.getState().conversations.find((c) => c.id === convId)
     expect(conv!.messages[0].content).toBe('Hello world')
   })

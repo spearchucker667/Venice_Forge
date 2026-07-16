@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import { Profiler } from 'react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -43,6 +44,7 @@ describe('Sidebar controls', () => {
     })
     useChatStore.setState({
       conversations: [],
+      conversationSummaries: [],
       activeConversationId: null,
       _hasLoadedHistory: true,
     })
@@ -68,6 +70,42 @@ describe('Sidebar controls', () => {
     for (const label of ['Chat', 'History', 'Image Studio', 'Media Studio', 'Prompts', 'Research', 'Characters', 'RP Studio', 'Workflows', 'Privacy', 'Config', 'Status']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
+  })
+
+  it('keeps 1,000-summary history renders bounded during 1,000 raw stream mutations', () => {
+    const now = Date.now()
+    const conversations = Array.from({ length: 1000 }, (_, index) => ({
+      id: `perf-${index}`,
+      title: `Conversation ${index}`,
+      model: `model-${index % 500}`,
+      createdAt: now - index,
+      updatedAt: now - index,
+      messages: index === 0
+        ? Array.from({ length: 100 }, (__, messageIndex) => ({
+            id: `message-${messageIndex}`,
+            role: messageIndex === 99 ? 'assistant' as const : 'user' as const,
+            content: '',
+            timestamp: now,
+          }))
+        : [],
+      metadata: { tags: [], pinned: false, archived: false, source: 'chat' as const, messageCount: index === 0 ? 100 : 0 },
+    }))
+    useChatStore.getState().setConversations(conversations)
+    useChatStore.setState({ activeConversationId: 'perf-0' })
+    let commits = 0
+    render(
+      <Profiler id="sidebar" onRender={() => { commits += 1 }}>
+        <Sidebar />
+      </Profiler>,
+    )
+    const baseline = commits
+    act(() => {
+      for (let index = 0; index < 1000; index += 1) {
+        useChatStore.getState().appendAssistantStreamDelta('perf-0', { content: 'x' })
+      }
+    })
+    expect(commits).toBe(baseline)
+    expect(screen.getAllByRole('listitem').length).toBeLessThanOrEqual(200)
   })
 
   it('forces persisted collapsed state open during hydration while allowing in-session collapse', () => {

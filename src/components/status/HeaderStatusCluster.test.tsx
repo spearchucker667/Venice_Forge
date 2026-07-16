@@ -1,13 +1,15 @@
 /** @fileoverview VERIFY-045 — Phase 2C HeaderStatusCluster tests. */
 
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../services/desktopBridge", () => ({
   isElectron: () => false,
   desktopApiKey: { isConfigured: () => Promise.resolve(false) },
   desktopJinaApiKey: { isConfigured: () => Promise.resolve(false) },
+  desktopProviderApiKey: { isConfigured: () => Promise.resolve(false) },
+  desktopProviderSettings: { get: () => Promise.resolve({}) },
   desktopApp: { getDiagnostics: () => Promise.resolve({}) },
   desktopConversations: { list: () => Promise.resolve({ ok: false, records: [], error: "mock" }) },
   desktopChat: { list: () => Promise.resolve({ ok: false, conversations: [], truncated: false, totalScanned: 0, error: "mock" }) },
@@ -30,6 +32,8 @@ function reset() {
     isConfigured: false,
     jinaApiKey: null,
     jinaIsConfigured: false,
+    hydrationStatus: "ready",
+    hydrationError: null,
   } as never);
   useSettingsStore.setState({
     activeTab: "chat",
@@ -124,13 +128,14 @@ describe("HeaderStatusCluster (VERIFY-045)", () => {
     }
   });
 
-  it("recompute on activeTab change keeps severity in sync", () => {
-    useAuthStore.setState({ isConfigured: true, apiKey: "k" } as never);
-    useStatusStore.getState().recompute();
+  it("auth changes update severity without tab navigation", () => {
     const before = screen.queryByTestId("status-indicator-apiKey");
     // Not rendered yet.
     expect(before).toBeNull();
     render(<HeaderStatusCluster />);
+    act(() => {
+      useAuthStore.setState({ isConfigured: true, apiKey: "k", hydrationStatus: "ready" } as never);
+    });
     expect(screen.getByTestId("status-indicator-apiKey").dataset.severity).toBe("ok");
   });
 });

@@ -19,6 +19,70 @@ import { DEFAULT_CHAT_MODEL } from '../constants/venice'
 import { assertValidId } from '../utils/idValidation'
 import StorageService from '../services/storageService'
 
+export interface ConversationSummary {
+  id: string
+  title: string
+  kind: 'standard' | 'character'
+  model: string
+  createdAt: number
+  updatedAt: number
+  projectId?: string | null
+  archivedAt?: number | null
+  character?: ConversationCharacterMeta
+  searchablePreview: string
+}
+
+const fallbackSummaryCollections = new WeakMap<Conversation[], ConversationSummary[]>()
+
+export function selectConversationSummaries(
+  state: Pick<ChatState, 'conversations' | 'conversationSummaries'>,
+): ConversationSummary[] {
+  const firstConversationId = state.conversations[0]?.id
+  const firstSummaryId = state.conversationSummaries[0]?.id
+  if (state.conversations.length === state.conversationSummaries.length && firstConversationId === firstSummaryId) {
+    return state.conversationSummaries
+  }
+  const cached = fallbackSummaryCollections.get(state.conversations)
+  if (cached) return cached
+  const summaries = state.conversations.map(toConversationSummary)
+  fallbackSummaryCollections.set(state.conversations, summaries)
+  return summaries
+}
+
+function toConversationSummary(conversation: Conversation): ConversationSummary {
+  const character = conversation.metadata?.character
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    kind: character ? 'character' : 'standard',
+    model: conversation.model,
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+    projectId: conversation.memory?.projectRefs?.[0] ?? null,
+    archivedAt: conversation.metadata?.archived ? conversation.updatedAt : null,
+    character,
+    searchablePreview: buildConversationSearchPreview(conversation),
+  }
+}
+
+function buildConversationSearchPreview(conversation: Conversation): string {
+  return [
+    conversation.title,
+    ...(conversation.messages ?? []).flatMap((message) => [
+      contentToSearchText(message.content),
+      typeof message.reasoning_content === 'string' ? message.reasoning_content : '',
+    ]),
+  ].join('\n').toLowerCase()
+}
+
+export function selectActiveConversationModel(state: ChatState): string | undefined {
+  return state.conversations.find((conversation) => conversation.id === state.activeConversationId)?.model
+}
+
+export function selectActiveConversationCharacter(state: ChatState): ConversationCharacterMeta | undefined {
+  return state.conversations.find((conversation) => conversation.id === state.activeConversationId)?.metadata?.character
+}
+
 const asyncStorageAdapter: StateStorage = {
   getItem: async (name) => {
     try {
@@ -61,6 +125,7 @@ const asyncStorageAdapter: StateStorage = {
 
 interface ChatState {
   conversations: Conversation[]
+  conversationSummaries: ConversationSummary[]
   activeConversationId: string | null
   isStreaming: boolean
   veniceParams: VeniceParameters
@@ -107,8 +172,7 @@ interface ChatState {
   restoreConversation: (conv: Conversation) => Promise<void>
   setPendingContext: (context: PulledMemoryContext | null) => void
   addMessage: (conversationId: string, message: ChatMessage) => void
-  appendToLastAssistant: (conversationId: string, token: string) => void
-  appendReasoningToLastAssistant: (conversationId: string, token: string) => void
+  appendAssistantStreamDelta: (conversationId: string, delta: AssistantStreamDelta) => void
   updateMessage: (conversationId: string, messageId: string, update: { content: ConversationMessage['content']; updatedAt: number }) => boolean
   truncateConversationAfterMessage: (
     conversationId: string,
@@ -129,6 +193,41 @@ interface ChatState {
   setTopP: (p: number) => void
   setMaxTokens: (t: number) => void
   getActiveConversation: () => Conversation | undefined
+}
+
+export interface AssistantStreamDelta {
+  content?: string
+  reasoning?: string
+  providerRequestId?: string
+  usage?: { promptTokens: number; completionTokens: number; totalTokens: number }
+}
+
+export type ConversationMutationPriority = 'stream-delta' | 'message-boundary' | 'structural'
+
+function commitConversationMutation(
+  set: (updater: (state: ChatState) => Partial<ChatState>) => void,
+  conversationId: string,
+  mutate: (conversation: Conversation) => Conversation,
+  priority: ConversationMutationPriority,
+): void {
+  let updatedConversation: Conversation | null = null
+  set((state) => {
+    const index = state.conversations.findIndex((conversation) => conversation.id === conversationId)
+    if (index < 0) return {}
+    const current = state.conversations[index]
+    const updated = mutate(current)
+    if (updated === current) return {}
+    updatedConversation = updated
+    const conversations = [...state.conversations]
+    conversations[index] = updated
+    if (priority === 'stream-delta') return { conversations }
+    const conversationSummaries = [...state.conversationSummaries]
+    const summaryIndex = conversationSummaries.findIndex((summary) => summary.id === conversationId)
+    if (summaryIndex >= 0) conversationSummaries[summaryIndex] = toConversationSummary(updated)
+    else conversationSummaries.unshift(toConversationSummary(updated))
+    return { conversations, conversationSummaries }
+  })
+  if (updatedConversation) markDirtyConversation(conversationId, updatedConversation, priority)
 }
 
 /**
@@ -174,6 +273,7 @@ export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
       conversations: [],
+      conversationSummaries: [],
       activeConversationId: null,
       isStreaming: false,
       veniceParams: {
@@ -187,7 +287,14 @@ export const useChatStore = create<ChatState>()(
       _hasLoadedHistory: false,
       pendingContext: null,
 
-      setConversations: (conversations) => set({ conversations: conversations.map(ensureStableMessageIds), _hasLoadedHistory: true }),
+      setConversations: (conversations) => {
+        const stable = conversations.map(ensureStableMessageIds)
+        set({
+          conversations: stable,
+          conversationSummaries: stable.map(toConversationSummary),
+          _hasLoadedHistory: true,
+        })
+      },
       setPendingContext: (context) => set({ pendingContext: context }),
 
       createConversation: (model) => {
@@ -218,9 +325,11 @@ export const useChatStore = create<ChatState>()(
         }
         set((s) => ({
           conversations: [conv, ...s.conversations],
+          conversationSummaries: [toConversationSummary(conv), ...s.conversationSummaries],
           activeConversationId: id,
           _hasLoadedHistory: true,
         }))
+        markDirtyConversation(id, conv, 'structural')
         return id
       },
 
@@ -274,9 +383,11 @@ export const useChatStore = create<ChatState>()(
         }
         set((s) => ({
           conversations: [conv, ...s.conversations],
+          conversationSummaries: [toConversationSummary(conv), ...s.conversationSummaries],
           activeConversationId: id,
           _hasLoadedHistory: true,
         }))
+        markDirtyConversation(id, conv, 'structural')
         return id
       },
 
@@ -328,9 +439,11 @@ export const useChatStore = create<ChatState>()(
         }
         set((s) => ({
           conversations: [conv, ...s.conversations],
+          conversationSummaries: [toConversationSummary(conv), ...s.conversationSummaries],
           activeConversationId: id,
           _hasLoadedHistory: true,
         }))
+        markDirtyConversation(id, conv, 'structural')
         return id
       },
 
@@ -389,6 +502,7 @@ export const useChatStore = create<ChatState>()(
           if (deleted.length > 0) {
             set((s) => ({
               conversations: s.conversations.filter((c) => !deletedSet.has(c.id)),
+              conversationSummaries: s.conversationSummaries.filter((summary) => !deletedSet.has(summary.id)),
               activeConversationId: deletedSet.has(s.activeConversationId || '')
                 ? null
                 : s.activeConversationId,
@@ -408,16 +522,17 @@ export const useChatStore = create<ChatState>()(
         const restored = touchConversation(conv)
         set((s) => {
           if (s.conversations.some((c) => c.id === restored.id)) return s
-          return { conversations: [restored, ...s.conversations] }
+          return {
+            conversations: [restored, ...s.conversations],
+            conversationSummaries: [toConversationSummary(restored), ...s.conversationSummaries],
+          }
         })
         markDirtyConversation(restored.id, restored)
         await flushConversationSave(restored.id)
       },
 
-      addMessage: (conversationId, message) =>
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
+      addMessage: (conversationId, message) => {
+        commitConversationMutation(set, conversationId, (c) => {
             const persistedContent: ConversationMessage['content'] =
               typeof message.content === 'string'
                 ? message.content
@@ -440,40 +555,33 @@ export const useChatStore = create<ChatState>()(
               updated.title = titleSeed.slice(0, 50) || 'New Chat'
             }
             return updated
-          }),
-        })),
+        }, 'message-boundary')
+      },
 
-      appendToLastAssistant: (conversationId, token) =>
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
+      appendAssistantStreamDelta: (conversationId, delta) => {
+        if (!delta.content && !delta.reasoning && !delta.providerRequestId && !delta.usage) return
+        commitConversationMutation(set, conversationId, (c) => {
             const msgs = [...(c.messages ?? [])]
             const last = msgs[msgs.length - 1]
-            if (last?.role === 'assistant' && typeof last.content === 'string') {
-              msgs[msgs.length - 1] = { ...last, content: last.content + token }
+            if (last?.role !== 'assistant' || typeof last.content !== 'string') return c
+            const metadata = { ...last.metadata }
+            if (delta.providerRequestId) metadata.providerRequestId = delta.providerRequestId
+            if (delta.usage) metadata.usage = delta.usage
+            msgs[msgs.length - 1] = {
+              ...last,
+              content: last.content + (delta.content ?? ''),
+              reasoning_content: (last.reasoning_content || '') + (delta.reasoning ?? ''),
+              metadata,
             }
-            return touchConversation({ ...c, messages: msgs })
-          }),
-        })),
-
-      appendReasoningToLastAssistant: (conversationId, token) =>
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
-            const msgs = [...(c.messages ?? [])]
-            const last = msgs[msgs.length - 1]
-            if (last?.role === 'assistant') {
-              msgs[msgs.length - 1] = { ...last, reasoning_content: (last.reasoning_content || '') + token }
-            }
-            return touchConversation({ ...c, messages: msgs })
-          }),
-        })),
+            // Streaming text is deliberately excluded from sidebar summary
+            // freshness. The message boundary/final save owns updatedAt.
+            return touchConversation({ ...c, messages: msgs }, c.updatedAt)
+        }, 'stream-delta')
+      },
 
       updateMessage: (conversationId, messageId, update) => {
         let updated = false
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
+        commitConversationMutation(set, conversationId, (c) => {
             const messages = (c.messages ?? []).map((message) => {
               if (message.id !== messageId) return message
               updated = true
@@ -486,16 +594,13 @@ export const useChatStore = create<ChatState>()(
               }
             })
             return updated ? touchConversation({ ...c, messages }, update.updatedAt) : c
-          }),
-        }))
+        }, 'structural')
         return updated
       },
 
       truncateConversationAfterMessage: (conversationId, messageId, options) => {
         let result: { removed: ConversationMessage[]; retained: ConversationMessage[] } | null = null
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
+        commitConversationMutation(set, conversationId, (c) => {
             const index = (c.messages ?? []).findIndex((message) => message.id === messageId)
             if (index < 0) return c
             const cutAt = options.includeSelected ? index : index + 1
@@ -503,8 +608,7 @@ export const useChatStore = create<ChatState>()(
             const removed = c.messages.slice(cutAt)
             result = { retained, removed }
             return touchConversation({ ...c, messages: retained })
-          }),
-        }))
+        }, 'structural')
         return result
       },
 
@@ -543,49 +647,44 @@ export const useChatStore = create<ChatState>()(
         }, now)
         set((s) => ({
           conversations: [fork, ...s.conversations],
+          conversationSummaries: [toConversationSummary(fork), ...s.conversationSummaries],
           activeConversationId: forkId,
           pendingContext: null,
         }))
+        markDirtyConversation(forkId, fork, 'structural')
         return forkId
       },
 
       setConversationModel: (conversationId, model) => {
         const normalized = model.trim()
         if (!normalized) return
-        set((s) => ({
-          conversations: s.conversations.map((conversation) =>
-            conversation.id === conversationId
-              ? touchConversation({ ...conversation, model: normalized })
-              : conversation,
-          ),
-        }))
+        commitConversationMutation(
+          set,
+          conversationId,
+          (conversation) => touchConversation({ ...conversation, model: normalized }),
+          'structural',
+        )
       },
 
-      deleteMessage: (conversationId, index) =>
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
+      deleteMessage: (conversationId, index) => {
+        commitConversationMutation(set, conversationId, (c) => {
             const msgs = (c.messages ?? []).filter((_, i) => i !== index)
             return touchConversation({ ...c, messages: msgs })
-          }),
-        })),
+        }, 'structural')
+      },
 
-      setMessageMetadata: (conversationId, messageIndex, metadataPatch) =>
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
+      setMessageMetadata: (conversationId, messageIndex, metadataPatch) => {
+        commitConversationMutation(set, conversationId, (c) => {
             const msgs = [...(c.messages ?? [])]
             const msg = msgs[messageIndex]
             if (!msg) return c
             msgs[messageIndex] = { ...msg, metadata: { ...msg.metadata, ...metadataPatch } }
             return touchConversation({ ...c, messages: msgs })
-          }),
-        })),
+        }, 'structural')
+      },
         
-      updateConversationMetadata: (conversationId, metadataPatch) =>
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
+      updateConversationMetadata: (conversationId, metadataPatch) => {
+        commitConversationMutation(set, conversationId, (c) => {
             return touchConversation({
               ...c,
               metadata: {
@@ -598,16 +697,11 @@ export const useChatStore = create<ChatState>()(
                 ...metadataPatch,
               },
             })
-          }),
-        })),
+        }, 'structural')
+      },
 
-      setConversationSystemPromptMode: (conversationId, mode) =>
-        set((state) => {
-          const index = state.conversations.findIndex((c) => c.id === conversationId);
-          if (index === -1) return state;
-          const conversations = [...state.conversations];
-          const c = conversations[index];
-          conversations[index] = {
+      setConversationSystemPromptMode: (conversationId, mode) => {
+        commitConversationMutation(set, conversationId, (c) => ({
             ...c,
             metadata: {
               tags: c.metadata?.tags ?? [],
@@ -618,13 +712,10 @@ export const useChatStore = create<ChatState>()(
               ...c.metadata,
               systemPromptMode: mode,
             }
-          };
-          return { conversations };
-        }),
-      setConversationMemoryEnabled: (conversationId, enabled) =>
-        set((s) => ({
-          conversations: s.conversations.map((c) => {
-            if (c.id !== conversationId) return c
+          }), 'structural')
+      },
+      setConversationMemoryEnabled: (conversationId, enabled) => {
+        commitConversationMutation(set, conversationId, (c) => {
             return touchConversation({
               ...c,
               metadata: {
@@ -637,8 +728,8 @@ export const useChatStore = create<ChatState>()(
                 memoryRetrievalEnabled: enabled,
               },
             })
-          }),
-        })),
+        }, 'structural')
+      },
 
       setStreaming: (streaming) => set({ isStreaming: streaming }),
 
@@ -703,13 +794,18 @@ export const useChatStore = create<ChatState>()(
 
 const dirtyConversations: Map<string, Conversation> = new Map()
 let saveTimer: ReturnType<typeof setTimeout> | null = null
-const DEBOUNCE_MS = 500
+const STREAM_CHECKPOINT_MS = 1500
+const MESSAGE_BOUNDARY_MS = 100
 /** Prevent the dirty map from growing without bound if a huge number of
  *  conversations mutate in a short window. Crossing the limit flushes
  *  immediately rather than waiting for the debounce. */
 const MAX_DIRTY_CONVERSATIONS = 1000
 
-function markDirtyConversation(id: string, conv: Conversation): void {
+function markDirtyConversation(
+  id: string,
+  conv: Conversation,
+  priority: ConversationMutationPriority = 'message-boundary',
+): void {
   assertValidId(id, 'markDirtyConversation')
   dirtyConversations.set(id, conv)
   if (dirtyConversations.size > MAX_DIRTY_CONVERSATIONS) {
@@ -719,7 +815,7 @@ function markDirtyConversation(id: string, conv: Conversation): void {
     }
     void flushAllPendingSaves()
   } else {
-    scheduleFlush()
+    scheduleFlush(priority, id)
   }
 }
 
@@ -727,12 +823,22 @@ function forgetDirtyConversation(id: string): void {
   dirtyConversations.delete(id)
 }
 
-function scheduleFlush(): void {
+function scheduleFlush(priority: ConversationMutationPriority, id: string): void {
+  if (priority === 'structural') {
+    void flushConversationSave(id).catch((error) => {
+      logger.error('[chat] structural conversation save failed', redactErrorMessage(error))
+    })
+    return
+  }
+  // Stream chunks never reset an existing checkpoint. A continuous stream
+  // therefore writes at most once per checkpoint window instead of postponing
+  // persistence forever or saving every token.
+  if (priority === 'stream-delta' && saveTimer !== null) return
   if (saveTimer !== null) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
     saveTimer = null
     void flushAllPendingSaves()
-  }, DEBOUNCE_MS)
+  }, priority === 'stream-delta' ? STREAM_CHECKPOINT_MS : MESSAGE_BOUNDARY_MS)
 }
 
 async function writeConversation(conv: Conversation): Promise<void> {
@@ -766,7 +872,14 @@ async function flushConversationSave(id: string): Promise<void> {
   const conv = dirtyConversations.get(id)
   if (!conv) return
   await writeConversation(conv)
-  dirtyConversations.delete(id)
+  // A newer mutation may have replaced this entry while the async write was
+  // in flight. Only clear the exact snapshot that reached durable storage.
+  if (dirtyConversations.get(id) === conv) dirtyConversations.delete(id)
+}
+
+/** Flushes one conversation at a message/stream boundary. */
+export async function flushConversationSaveNow(id: string): Promise<void> {
+  await flushConversationSave(id)
 }
 
 /**
@@ -791,7 +904,7 @@ export async function flushAllPendingSaves(): Promise<void> {
   for (const [id, conv] of pending) {
     try {
       await writeConversation(conv)
-      dirtyConversations.delete(id)
+      if (dirtyConversations.get(id) === conv) dirtyConversations.delete(id)
     } catch (err) {
       logger.error('[chat] flush conversation save failed', redactErrorMessage(err))
     }
@@ -817,15 +930,6 @@ let cleanupUnloadListeners: (() => void) | undefined
  * them between specs so they do not leak across test files.
  */
 export { cleanupUnloadListeners }
-
-// BUG-React#15 regression guard: capture the dirty-tracking subscription's
-// unsubscribe handle so its lifecycle is observable for tests and future
-// HMR replays. Declared ABOVE the `if (typeof window !== 'undefined')`
-// block so the assignment inside that branch does not hit a TDZ when the
-// module first evaluates in jsdom.
-let unsubscribeDirtyTracking: (() => void) | undefined
-/** Exported for test cleanup only, mirroring `cleanupUnloadListeners`. */
-export { unsubscribeDirtyTracking }
 
 // Sync conversations with Desktop backend
 if (typeof window !== 'undefined') {
@@ -911,11 +1015,9 @@ if (typeof window !== 'undefined') {
       .catch((err) => logger.error("[chat] legacy bootstrap threw", err));
   })
 
-  // Save changes — debounced, with flush-on-unload so a pending edit is
-  // not silently dropped when the renderer tab closes.
-  // We track BOTH the active and any non-active conversation that mutated
-  // during the debounce window. `markDirtyConversation` is the entry point
-  // called from the subscribe callback below.
+  // Flush explicit O(1) dirty entries on unload. Durable actions call
+  // commitConversationMutation/markDirtyConversation directly; there is no
+  // process-lifetime subscription scanning the full collection.
   cleanupUnloadListeners = (() => {
     const onBeforeUnload = () => {
       // Fire-and-forget: the browser may not await this promise, but the
@@ -932,30 +1034,4 @@ if (typeof window !== 'undefined') {
       window.removeEventListener("pagehide", onPageHide)
     }
   })()
-
-  // BUG-React#15 regression guard: capture the unsubscribe handle so the
-  // dirty-tracking subscription's lifecycle is observable. The subscription
-  // itself stays attached for the renderer process lifetime — Electron does
-  // not reload the renderer mid-session, so no production code calls the
-  // unsubscribe. Tests and potential HMR replays can use this handle.
-  unsubscribeDirtyTracking = useChatStore.subscribe((state, prevState) => {
-    // If any conversation's identity changed (i.e. it was replaced in
-    // the conversations array, which Zustand does on `set` with a
-    // fresh object), mark it dirty. This catches BOTH the active
-    // conversation (e.g. addMessage) AND non-active ones (e.g. delete
-    // a message in a background chat via the Search panel).
-    //
-    // Build a Map of previous conversations by id so the per-item lookup
-    // is O(1) instead of O(n); the whole subscription is now O(n).
-    const prevById = new Map<string, Conversation>()
-    for (const p of prevState.conversations) {
-      prevById.set(p.id, p)
-    }
-    for (const c of state.conversations) {
-      const prev = prevById.get(c.id)
-      if (prev !== c) {
-        markDirtyConversation(c.id, c)
-      }
-    }
-  })
 }

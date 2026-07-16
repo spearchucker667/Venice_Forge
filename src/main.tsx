@@ -9,6 +9,7 @@ import { refreshConfig } from "./stores/config-store";
 import { useAuthStore } from "./stores/auth-store";
 import { syncPrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { redactErrorDetails, sanitizeErrorText } from "./shared/redaction";
+import { registerModelQueryClient } from "./services/modelQueryCoordinator";
 
 syncPrefersReducedMotion();
 
@@ -20,6 +21,7 @@ const queryClient = new QueryClient({
     },
   },
 });
+registerModelQueryClient(queryClient);
 
 window.addEventListener("unhandledrejection", (event) => {
   console.error("[venice-forge] Unhandled rejection:", event.reason instanceof Error

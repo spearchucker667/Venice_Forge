@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { ModelInfo } from "../types/venice";
 import { Select } from "./ui/select";
 import { Lock } from "lucide-react";
@@ -22,7 +22,7 @@ export function ModelSelect({
   placeholder?: string;
   getLabel?: (model: ModelInfo) => string;
 }) {
-  const options = (models || []).map((m) => {
+  const options = useMemo(() => (models || []).map((m) => {
     const label = getLabel ? getLabel(m) : m.name || m.id;
     return {
       value: m.id,
@@ -42,7 +42,7 @@ export function ModelSelect({
         </div>
       ),
     };
-  });
+  }), [models, getLabel]);
 
   return (
     <Select

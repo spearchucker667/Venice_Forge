@@ -202,7 +202,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-137`.
+The primary active sequence is `VERIFY-001` through `VERIFY-138`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -343,6 +343,7 @@ registry.
 | `VERIFY-135` | Manual-import bridges surface partial failures (P0 #3) — when `useDataStorageActions` finishes a partial bridge, it routes through a 3-way toast branch (`zero-imported+some-skipped` → `warn`, partial → `warn`, clean → `success`) instead of always returning `success`; the partial-import path captures the actual `mergedCount`/`skippedCount` so the user sees a real reason for the gap. | `src/hooks/use-data-storage-actions.ts`, `src/hooks/use-data-storage-actions.test.ts`, `src/components/settings/DataStoragePanel.test.tsx` |
 | `VERIFY-136` | `emitLocalChange` surfaces desktop `writePacket` outcomes (P0 #6) — the renderer-side sync engine captures `desktopSync.writePacket()`'s return and forwards it as `emitLocalChange(...)`'s result, so `{ok:false,error}` flows back to manual-flush / push tests / pagehide flush and `{ok:true,skipped:"media-disabled"}` remains explicit rather than silently masquerading as success; the engine logs rejected outcomes via `console.error` and never throws. | `src/services/syncEngine.ts`, `src/services/syncEngine.test.ts` |
 | `VERIFY-137` | Manual imports preserve divergent same-id edits instead of discarding (P0 #4) — the conflict branch in `syncPacketImporter` covers the `manual-import` envelope alongside the existing revision paths, and the merge filter no longer drops detected `contentConflicts` whose `revisionId` matches the local transcript. This keeps the import from looking successful when one side of a conflict is silently swallowed. | `src/services/syncPacketImporter.ts`, `src/services/syncPacketImporter.test.ts` |
+| `VERIFY-138` | Model catalog status is owned by live runtime metadata rather than selected-model state; auth hydration remains explicit across the mount timeout; model-query keys are deterministic and key changes invalidate the catalog; streamed chat deltas are buffered into bounded mutations, summaries avoid raw-token fan-out, and persistence uses throttled checkpoints plus final flushes. | `src/hooks/use-models.test.tsx`, `src/stores/model-catalog-runtime-store.test.ts`, `src/stores/auth-store.test.ts`, `src/services/diagnosticsService.test.ts`, `src/components/layout/header.test.tsx`, `src/components/layout/sidebar.test.tsx`, `src/stores/chat-store.dirty.test.ts`, `src/stores/chat-stream-manager.test.ts` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 

@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useStatusStore } from "../../stores/status-store";
+import { useModelCatalogRuntimeStore } from "../../stores/model-catalog-runtime-store";
 import { useSettingsStore, type Tab } from "../../stores/settings-store";
 import { useModels } from "../../hooks/use-models";
 import { toast } from "../../stores/toast-store";
@@ -139,7 +140,7 @@ export function DiagnosticsDrawer() {
   // The model status is the only category that benefits from a
   // manual catalog refresh. We use the existing useModels hook so
   // we do not introduce a parallel model service.
-  const models = useModels("text")
+  const models = useModels("text", { enabled: drawerOpen })
 
   // Track a small transient status string for the "Copy safe
   // diagnostics" button so the test can observe the click handler
@@ -151,7 +152,8 @@ export function DiagnosticsDrawer() {
     // exact same data they see in the drawer. The service builder
     // re-runs only when the underlying stores have changed (via
     // the store's `recompute` action), so this is cheap.
-    const safe = computeSafeDiagnosticsSnapshot()
+    const currentStatus = useStatusStore.getState().status
+    const safe = computeSafeDiagnosticsSnapshot(currentStatus)
     const json = serialiseSafeDiagnosticsSnapshot(safe)
     const ok = await copyText(json)
     if (ok) {
@@ -177,6 +179,17 @@ export function DiagnosticsDrawer() {
   // button below. The hook's existing error state is surfaced via
   // the Models state.
   const modelsError = models.error ? redactErrorMessage(models.error) : null
+  const refreshModels = useCallback(async () => {
+    const result = await models.refetch()
+    useStatusStore.getState().recompute()
+    if (result.isSuccess) {
+      const catalog = useModelCatalogRuntimeStore.getState()
+      const liveCount = catalog.countsByType.text ?? catalog.totalCount
+      toast.success(`${liveCount} live models refreshed`)
+    } else {
+      toast.error(redactErrorMessage(result.error ?? "Model catalog refresh failed"))
+    }
+  }, [models])
 
   // Build a unique ordered list of (id, label, item) for the
   // sections we actually want to render. The SECTION_ORDER has
@@ -294,7 +307,7 @@ export function DiagnosticsDrawer() {
               {key === "api" && (
                 <button
                   type="button"
-                  onClick={() => models.refetch()}
+                  onClick={() => void refreshModels()}
                   data-testid="diagnostics-action-api-refresh"
                   className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                 >
@@ -305,7 +318,7 @@ export function DiagnosticsDrawer() {
                 <div className="space-y-1">
                   <button
                     type="button"
-                    onClick={() => models.refetch()}
+                    onClick={() => void refreshModels()}
                     data-testid="diagnostics-action-model-refresh"
                     className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                   >

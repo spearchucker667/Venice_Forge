@@ -128,8 +128,8 @@ describe('chat-store dirty tracking for non-active saves (BUG-CHAT-DIRTY regress
       conversations: [],
       activeConversationId: null,
     } as never)
-    saveMock.mockResolvedValueOnce({ ok: false, error: 'temporary vault failure' })
-    chatSaveMock.mockResolvedValueOnce({ ok: false, error: 'temporary legacy failure' })
+    saveMock.mockResolvedValue({ ok: false, error: 'temporary vault failure' })
+    chatSaveMock.mockResolvedValue({ ok: false, error: 'temporary legacy failure' })
 
     const id = useChatStore.getState().createConversation('llama-3.3-70b')
     useChatStore.getState().addMessage(id, { role: 'user', content: 'retry me' })
@@ -139,8 +139,27 @@ describe('chat-store dirty tracking for non-active saves (BUG-CHAT-DIRTY regress
     expect(_debugGetDirtyConversationIds()).toContain(id)
 
     saveMock.mockResolvedValue({ ok: true, id })
+    chatSaveMock.mockResolvedValue({ ok: true })
     await flushAllPendingSaves()
 
+    expect(_debugGetDirtyConversationIds()).not.toContain(id)
+  })
+
+  it('does not let an older in-flight write clear a newer dirty snapshot', async () => {
+    useChatStore.setState({ conversations: [], activeConversationId: null } as never)
+    let resolveFirst!: (value: { ok: true; id: string }) => void
+    saveMock.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveFirst = resolve
+    }))
+
+    const id = useChatStore.getState().createConversation('model')
+    useChatStore.getState().addMessage(id, { role: 'user', content: 'newer' })
+    resolveFirst({ ok: true, id })
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(_debugGetDirtyConversationIds()).toContain(id)
+    await flushAllPendingSaves()
     expect(_debugGetDirtyConversationIds()).not.toContain(id)
   })
 
@@ -152,10 +171,15 @@ describe('chat-store dirty tracking for non-active saves (BUG-CHAT-DIRTY regress
 
     const a = useChatStore.getState().createConversation('llama-3.3-70b')
     const b = useChatStore.getState().createConversation('mistral-31-24b')
+    await Promise.resolve()
     saveMock.mockClear()
 
-    useChatStore.getState().addMessage(a, { role: 'user', content: 'A2' })
-    useChatStore.getState().deleteMessage(b, 0) // non-active mutation
+    useChatStore.getState().addMessage(a, { role: 'assistant', content: '' })
+    useChatStore.getState().addMessage(b, { role: 'assistant', content: '' })
+    await vi.advanceTimersByTimeAsync(100)
+    saveMock.mockClear()
+    useChatStore.getState().appendAssistantStreamDelta(a, { content: 'A2' })
+    useChatStore.getState().appendAssistantStreamDelta(b, { content: 'B2' })
 
     // Debounce has not fired (fake timers).
     expect(saveMock).not.toHaveBeenCalled()
@@ -170,6 +194,23 @@ describe('chat-store dirty tracking for non-active saves (BUG-CHAT-DIRTY regress
     const savedIds = saveMock.mock.calls.map((c) => c[0].id)
     expect(savedIds).toContain(a)
     expect(savedIds).toContain(b)
+  })
+
+  it('checkpoints continuous stream deltas at most once per 1.5 second window', async () => {
+    useChatStore.setState({ conversations: [], activeConversationId: null } as never)
+    const id = useChatStore.getState().createConversation('model')
+    useChatStore.getState().addMessage(id, { role: 'assistant', content: '' })
+    await vi.advanceTimersByTimeAsync(100)
+    saveMock.mockClear()
+
+    for (let index = 0; index < 100; index += 1) {
+      useChatStore.getState().appendAssistantStreamDelta(id, { content: 'x' })
+    }
+    await vi.advanceTimersByTimeAsync(1499)
+    expect(saveMock).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1)
+    expect(saveMock).toHaveBeenCalledTimes(1)
+    expect(saveMock.mock.calls[0][0].messages.at(-1)?.content).toBe('x'.repeat(100))
   })
 
   it(

@@ -6,7 +6,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { ChatView } from "./chat-view";
-import { _debugGetDirtyConversationIds, useChatStore } from "../../stores/chat-store";
+import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { toast } from "../../stores/toast-store";
@@ -251,7 +251,10 @@ describe("ChatView", () => {
     expect(updated.metadata?.source).toBe("chat");
     expect(updated.metadata?.character).toBeUndefined();
     expect(updated.metadata?.memoryRetrievalEnabled).toBe(false);
-    expect(_debugGetDirtyConversationIds()).toContain("character-chat-1");
+    expect(useChatStore.getState().conversationSummaries[0]).toMatchObject({
+      id: "character-chat-1",
+      kind: "standard",
+    });
   });
 
   it("keeps prior conversation context off by default when sending", async () => {

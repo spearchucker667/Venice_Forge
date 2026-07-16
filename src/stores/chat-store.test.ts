@@ -300,7 +300,7 @@ describe('chat-store desktopBridge routing', () => {
   it('appends to last assistant message', async () => {
     const id = useChatStore.getState().createConversation('llama-3')
     useChatStore.getState().addMessage(id, { role: 'assistant', content: 'Hello' })
-    useChatStore.getState().appendToLastAssistant(id, ' World')
+    useChatStore.getState().appendAssistantStreamDelta(id, { content: ' World' })
     const conv = useChatStore.getState().getActiveConversation()
     expect(conv?.messages?.[0].content).toBe('Hello World')
   })
@@ -308,7 +308,7 @@ describe('chat-store desktopBridge routing', () => {
   it('appends reasoning to last assistant message', async () => {
     const id = useChatStore.getState().createConversation('llama-3')
     useChatStore.getState().addMessage(id, { role: 'assistant', content: 'Final' })
-    useChatStore.getState().appendReasoningToLastAssistant(id, 'Thinking...')
+    useChatStore.getState().appendAssistantStreamDelta(id, { reasoning: 'Thinking...' })
     const conv = useChatStore.getState().getActiveConversation()
     expect(conv?.messages?.[0].reasoning_content).toBe('Thinking...')
   })
@@ -382,18 +382,18 @@ describe('chat-store desktopBridge routing', () => {
     expect(conv?.messages?.[0].content).toEqual([{ type: 'text', text: 'hello' }])
   })
 
-  it('ignores appendToLastAssistant if last message is not assistant or not string', async () => {
+  it('ignores appendAssistantStreamDelta content if last message is not assistant or not string', async () => {
     const id = useChatStore.getState().createConversation('llama-3')
     useChatStore.getState().addMessage(id, { role: 'user', content: 'hello' })
-    useChatStore.getState().appendToLastAssistant(id, ' world')
+    useChatStore.getState().appendAssistantStreamDelta(id, { content: ' world' })
     const conv = useChatStore.getState().getActiveConversation()
     expect(conv?.messages?.[0].content).toBe('hello')
   })
 
-  it('ignores appendReasoningToLastAssistant if last message is not assistant', async () => {
+  it('ignores appendAssistantStreamDelta reasoning if last message is not assistant', async () => {
     const id = useChatStore.getState().createConversation('llama-3')
     useChatStore.getState().addMessage(id, { role: 'user', content: 'hello' })
-    useChatStore.getState().appendReasoningToLastAssistant(id, 'thinking...')
+    useChatStore.getState().appendAssistantStreamDelta(id, { reasoning: 'thinking...' })
     const conv = useChatStore.getState().getActiveConversation()
     expect(conv?.messages?.[0].reasoning_content).toBeUndefined()
   })

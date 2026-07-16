@@ -7,7 +7,7 @@
 
 import { veniceStreamChat } from "../services/veniceClient";
 import { compileChatPrompt } from "../services/chatPromptCompiler";
-import { useChatStore } from "./chat-store";
+import { flushConversationSaveNow, useChatStore, type AssistantStreamDelta } from "./chat-store";
 import { useCharacterStore } from "./character-store";
 import { useSettingsStore } from "./settings-store";
 import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
@@ -118,6 +118,40 @@ let activeController: AbortController | null = null;
 let activeConvId: string | null = null;
 let activeGeneration = 0;
 const listeners = new Set<(state: StreamState) => void>();
+const pendingStreamDeltas = new Map<string, AssistantStreamDelta>();
+const streamFlushTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const STREAM_FLUSH_MS = 40;
+
+function flushStreamDelta(convId: string): void {
+  const timer = streamFlushTimers.get(convId);
+  if (timer) clearTimeout(timer);
+  streamFlushTimers.delete(convId);
+  const delta = pendingStreamDeltas.get(convId);
+  if (!delta) return;
+  pendingStreamDeltas.delete(convId);
+  useChatStore.getState().appendAssistantStreamDelta(convId, delta);
+}
+
+function bufferStreamDelta(
+  convId: string,
+  chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } },
+): void {
+  const pending = pendingStreamDeltas.get(convId) ?? {};
+  pending.content = (pending.content ?? '') + (chunk.content ?? '');
+  pending.reasoning = (pending.reasoning ?? '') + (chunk.reasoning ?? '');
+  if (chunk.providerRequestId) pending.providerRequestId = chunk.providerRequestId;
+  if (chunk.usage) {
+    pending.usage = {
+      promptTokens: chunk.usage.prompt_tokens,
+      completionTokens: chunk.usage.completion_tokens,
+      totalTokens: chunk.usage.total_tokens,
+    };
+  }
+  pendingStreamDeltas.set(convId, pending);
+  if (!streamFlushTimers.has(convId)) {
+    streamFlushTimers.set(convId, setTimeout(() => flushStreamDelta(convId), STREAM_FLUSH_MS));
+  }
+}
 
 function notifyListeners(): void {
   const snapshot: StreamState = {
@@ -161,6 +195,7 @@ export function subscribeToStreamState(
 
 /** Abort the active stream, if any. The stream promise resolves as aborted. */
 export function stopStream(): void {
+  if (activeConvId) flushStreamDelta(activeConvId);
   activeController?.abort();
 }
 
@@ -196,39 +231,13 @@ export async function startStream(
         await veniceStreamChat(body, {
           signal: controller.signal,
           onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => {
-            if (chunk.content) {
-              useChatStore.getState().appendToLastAssistant(convId, chunk.content);
-            }
-            if (chunk.reasoning) {
-              useChatStore.getState().appendReasoningToLastAssistant(convId, chunk.reasoning);
-            }
-            if (chunk.providerRequestId || chunk.usage) {
-              const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
-              if (conv) {
-                const lastIdx = conv.messages.length - 1;
-                const msg = conv.messages[lastIdx];
-                if (msg && msg.role === "assistant") {
-                  const updates: Record<string, unknown> = {};
-                  if (chunk.providerRequestId && msg.metadata?.providerRequestId !== chunk.providerRequestId) {
-                    updates.providerRequestId = chunk.providerRequestId;
-                  }
-                  if (chunk.usage) {
-                    updates.usage = {
-                      promptTokens: chunk.usage.prompt_tokens,
-                      completionTokens: chunk.usage.completion_tokens,
-                      totalTokens: chunk.usage.total_tokens,
-                    };
-                  }
-                  if (Object.keys(updates).length > 0) {
-                    useChatStore.getState().setMessageMetadata(convId, lastIdx, updates);
-                  }
-                }
-              }
-            }
+            bufferStreamDelta(convId, chunk);
           },
         });
+        flushStreamDelta(convId);
         return { aborted: false };
       } catch (err) {
+        flushStreamDelta(convId);
         if (err instanceof DOMException && err.name === "AbortError") {
           return { aborted: true };
         }
@@ -243,12 +252,16 @@ export async function startStream(
         }
         
         logger.error("chat stream manager failed", err);
-        useChatStore.getState().appendToLastAssistant(convId, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`);
+        useChatStore.getState().appendAssistantStreamDelta(convId, { content: `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]` });
         return { aborted: false };
       }
     }
     return { aborted: false };
   } finally {
+    flushStreamDelta(convId);
+    void flushConversationSaveNow(convId).catch((error) => {
+      logger.error("chat stream final persistence failed", error);
+    });
     if (activeGeneration === generation) {
       activeController = null;
       activeConvId = null;

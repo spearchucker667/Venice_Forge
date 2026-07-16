@@ -5,6 +5,19 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-16
+**Scope:** Implement the responsiveness and model-status remediation reconciled from the supplied clean-snapshot work order. Added the canonical live model-catalog runtime owner, explicit auth hydration, deterministic model-query identity/invalidation, reactive lightweight status computation, buffered chat streaming, O(1) dirty marking, prioritized persistence, narrow Header/Sidebar/task subscriptions, stable model options, and `VERIFY-138` regression coverage.
+
+- **Model catalog and diagnostics:** `src/stores/model-catalog-runtime-store.ts` owns `idle | loading | ready | stale | error`, live/cache/fallback provenance, per-type counts, live model IDs, attempt/success timestamps, and redacted errors. `useModels` uses the primitive key `['models', normalizedType, enabledProviderKey]`, publishes the live Venice response before appending fallback models, and supports `enabled: false`. Diagnostics no longer infer catalog health from `selectedModels`; a missing selection is a separate warning while a loaded empty catalog remains a successful load.
+- **Auth hydration and invalidation:** `auth-store` publishes `idle | checking | ready | error`, commits the Venice secure-storage result before slower Jina/provider checks, redacts inspection failures, and invalidates `['models']` after Venice key set/clear or a successful configured-state transition through `modelQueryCoordinator`. The 2.5-second mount race can render the UI without converting an unfinished check into a final missing-key result.
+- **Reactive lightweight status:** `status-store` subscribes narrowly to auth, catalog, relevant settings, and project changes; the Header cluster no longer recomputes on tab navigation. Ordinary recomputation builds only `AppStatusSnapshot`; the heavier safe snapshot is generated when the drawer opens or the user copies diagnostics. The closed diagnostics drawer passes `enabled: false` to `useModels`, and manual refresh inspects the query result before reporting a redacted count/error.
+- **Stream/persistence topology:** `chat-stream-manager` accumulates content, reasoning, request ID, and usage into a per-conversation 40 ms buffer and flushes on completion, retry, error, cancellation, and finalization. `chat-store` replaces the two append actions with one `appendAssistantStreamDelta`, removes the process-lifetime O(n) conversation subscription, and routes durable changes through an explicit target-ID mutation helper. Stream persistence checkpoints at 1.5 seconds, message boundaries at 100 ms, structural changes start an immediate write, unload flushes every dirty ID, and identity checks prevent an older async write from clearing a newer snapshot.
+- **Render containment:** Header reads active model/character selectors rather than the conversation array, background-task count is a primitive selector, and model labels/options are memoized. Sidebar reads maintained `ConversationSummary[]` records with bounded 200-row rendering; stream-only content does not change the summary/search-preview collection. Deterministic fixtures cover 1,000 summaries, 100 active messages, 500 models, and 1,000 raw deltas.
+- **Legacy model adapter:** TanStack Query remains the remote/cache owner. `modelCatalogCache` is the in-memory metadata adapter used by chat prompt compilation; the legacy reducer-facing model service now publishes through the same runtime status and consults the canonical cache before its defensive localStorage migration fallback.
+- **Validation:** focused 12-file remediation run passed 136/136; the final dirty-persistence regression file passed 9/9; `npm run lint`, all three requested verifiers, `npm run build`, and final `npm run test:ci` (3,913/3,913) passed. Local runtime was Node `v26.5.0` / npm `11.17.0`; no Node 22 claim is made for this local run.
+
+### Previous same-day session detail
+
+**Date:** 2026-07-16
 **Scope:** Close all six P0 data-integrity blockers from the `VENICE_FORGE_3_0_BETA_DETAILED_REMEDIATION_TODO_2026-07-15` follow-on report, layered on top of the P1 audit closure already on `main`. Authored the missing `VERIFY-136` regression test, extended both the AGENTS.md registry and the `verify-repo-handoff-hygiene` scanner to `VERIFY-001..VERIFY-137`, fortified the `manual-import` conflict-branch proof with a `VERIFY-137` annotation, and reran every validation gate before staging the conventional fix commit.
 
 - **P0 #1 — edited imported messages saved as invalid conversation records (`VERIFY-133`, shipped earlier session).** Divergent-edit fork in `src/services/syncPacketImporter.ts:379` writes a real `Conversation`-shaped record with the divergent message inlined into `messages`, not a message-shaped orphan.
@@ -29,7 +42,7 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
-Open work is authoritative in `docs/ROADMAP.md` and consists of the post-3.0-beta P0/P1 closure follow-ups plus broader P2 scope: `VF-VERIFY-005` (signed/paid/multi-device/accessibility evidence), `VF-AUDIT-001` (GitHub protection/token defaults), `VF-AUDIT-005` (owner-approved debug-probe deletion), `VF-AUDIT-006` (bounded dependency refreshes), the P2 audit gaps left over from the 2026-07-15 beta audit (`P2 #1` translation stripping, `P2 #2` partial graceful-degradation on unsupported fallback models, `P2 #3` dry-run Jina config import, `P2 #4` additional keyboard-shortcut coverage, `P2 #5` additional a11y coverage, `P2 #6` scoped permissions audit, and the leftover UX findings about conflict-name/source-device labelling and the per-record destructive truncation in chat compaction), and the deferred P3 audit ("Compaction is destructive truncation", "Backup & Sync gaps: Stop/Disable/Clear/Sync Now/Key rotation", "Separate encrypted content-addressed blob layer for large media", "verify:markdown-links session-history archive", "exact-duplicate branding/agent-rule canonicalization", "compatibility wrappers and same-name schema/stream module ownership", and the loose-end P3 findings in the 2026-07-15 follow-up report). ST Card Studio is delivered. The previously-listed "All seven P1 blockers closed" line below is retained as historical evidence; the new "All six P0 blockers closed" line below records the 2026-07-16 follow-on remediation.
+No new open task was introduced by the responsiveness/model-status remediation. Current unfinished work remains exactly the four items in `docs/ROADMAP.md`: `VF-VERIFY-005`, `VF-AUDIT-001`, `VF-AUDIT-005`, and `VF-AUDIT-006`. The historical closure detail below is retained as evidence, not current task authority.
 
 All seven P1 release blockers from the 2026-07-15 beta audit are now closed in code:
 
@@ -47,7 +60,29 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
 
-This run added the six P0 blockers and `VERIFY-132..137`. Earlier P1 commands remain in the immediately-preceding validated run and are reproduced here for completeness only when re-run.
+The current remediation evidence is listed first. Earlier same-day evidence is retained below as historical context.
+
+### Current responsiveness/model-status remediation run (`VERIFY-138`)
+
+| Command | Result | Evidence |
+|---|---|---|
+| Root/bootstrap check + `git status --short --branch` | PASS | Canonical root resolved, required files/directories present, clean starting tree on `main`; the final tree contains only this session's remediation and ledger changes. |
+| `node --version`; `npm --version` | PASS | Node `v26.5.0`; npm `11.17.0`. This records the actual local runtime and does not claim Node 22 parity. |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript pipelines both exit 0. |
+| Focused 12-file remediation Vitest run | PASS | 136/136 tests pass across catalog, auth, diagnostics/status, Header/Sidebar, chat dirty tracking, and stream manager surfaces. |
+| `npm run lint` | PASS | Whole-tree ESLint exits 0 with zero warnings and both TypeScript pipelines pass. |
+| Final `src/stores/chat-store.dirty.test.ts` rerun | PASS | 9/9 tests pass, including the in-flight-old-write/newer-dirty-snapshot race guard. |
+| `npm run verify:status-diagnostics` | PASS | VERIFY-045 static status/diagnostics contract passes. |
+| `npm run verify:provider-adapters` | PASS | 36/36 provider adapter behavioral contracts pass. |
+| `npm run verify:network-boundaries` | PASS | Network-boundary verifier reports OK. |
+| Final `DiagnosticsDrawer.test.tsx` rerun | PASS | 13/13 tests pass after the manual-refresh toast was corrected to read the canonical live Venice count rather than the query list with appended fallbacks. |
+| `npm run build` | PASS | Final Vite renderer, 92.9 kB server bundle, and Electron main/preload outputs build successfully after the live-count correction. |
+| `npm run test:ci` | PASS | Final broad segmented run passes 3,913/3,913 tests: server 59; Electron 682; ingestion 65; unit 2,579; UI 307; contracts 221. The subsequent live-count-only toast correction passed final lint/typecheck, its 13-test Drawer file, and production build. |
+| Final post-narrowing `npm run lint`; focused Header/Sidebar/ChatView tests; `npm run build` | PASS | Whole-tree ESLint plus both TypeScript pipelines pass; the three subscription-sensitive UI files pass 40/40; Vite, the 92.9 kB server bundle, and Electron main/preload build after ChatView switched its prior-context UI from full conversations to lightweight summaries. |
+
+### Earlier same-day P0 run (historical)
+
+This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 commands are retained only where that run actually repeated them.
 
 | Command | Result | Evidence |
 |---|---|---|
@@ -63,6 +98,8 @@ This run added the six P0 blockers and `VERIFY-132..137`. Earlier P1 commands re
 | `npm run build` | PASS | `dist/` (Vite), `dist-electron/electron/` (tsc), and `dist/server.cjs` (esbuild, 92.9 kB) all built cleanly. |
 
 ## Session History
+
+- **2026-07-16 — Responsiveness and model-status remediation (`VERIFY-138`):** replaced selected-model-derived health with a canonical redacted live catalog runtime; added explicit independent auth hydration and model-query invalidation; removed tab-driven heavy diagnostics work and disabled the closed-drawer query; buffered 1,000 provider deltas into one bounded mutation in the deterministic fixture; replaced the global O(n) dirty subscription with explicit ID-targeted commits and prioritized persistence; maintained lightweight conversation summaries so 1,000 raw deltas do not rerender/reindex Header or Sidebar; switched ChatView's prior-context UI to those summaries while resolving full selected conversations only at send time; memoized model options and narrowed task/model/character selectors; adapted the legacy model service to the canonical runtime/cache; registered `VERIFY-138`; passed focused 136/136, final dirty-persistence 9/9, status/provider/network verifiers, final post-narrowing lint/typecheck, focused UI 40/40, production build, and broad segmented `test:ci` 3,913/3,913. Node/npm evidence is `v26.5.0` / `11.17.0`.
 
 - **2026-07-16 — 3.0-beta P0 audit follow-on closure (P0 #1–#6; VERIFY-132..137):** closed the six data-integrity blockers from `VENICE_FORGE_3_0_BETA_DETAILED_REMEDIATION_TODO_2026-07-15` against the P1 closure already shipped. `src/services/syncEngine.ts:230` (`emitLocalChange`) now captures and returns the `{ ok, error, skipped }` payload from `desktopSync.writePacket()` instead of swallowing it; five new regression tests in `src/services/syncEngine.test.ts` (result surface, success path, structured-throw path, `media-disabled` skip label, and the inactive-sync early return) lock the contract end-to-end. `src/services/syncPacketImporter.ts:300` (`importOrigin === "manual-import"`) is now annotated with a `// VERIFY-137:` proof that the branch routes into the conflict path; the corresponding regression test in `syncPacketImporter.test.ts` confirms an externally-imported divergent edit (same id, different content) produces a real `_conflict_<id>` record rather than being silently dropped by the merge filter. `AGENTS.md` extended from `VERIFY-001..VERIFY-131` to `VERIFY-001..VERIFY-137` with six new registry rows documenting which P0 defect each guard locks; `scripts/verify-repo-handoff-hygiene.cjs` loop bound bumped from `id <= 131` to `id <= 137` and the namespace comment refreshed so the scanner doesn't flag the new IDs as "unexpected". The previously-shipped P0 fix sites (`syncPacketImporter` divergent-edit fork at line 379, `electron/ipc/handlers.ts` storage-failure chain at line 1072, `syncPacketImporter` tombstone-rejection guard at line 250, `use-data-storage-actions` import-bridge toast.warn path) all remained green under the new tests. Whole-tree `npm run lint:eslint` (zero warnings), `npm run typecheck` (renderer + Electron) clean after two narrow test-side `as never` / `as Array<Record<string,unknown>>` casts were added to bridge the narrow renderer type and the broad `unknown` saved-record shape, full `npm test` 4,372/4,374 green with 2 skipped smoke tests in ~217 s, `npm run verify:contracts` 103/103, `verify-repo-handoff-hygiene` clean, `verify:safety-guard` and `verify:markdown-links` clean, `npm run build` (renderer + Electron + server bundle) clean. Updated `docs/summary_of_work.md` with a fresh Latest Session Summary, Open TODO Ledger, Validation Matrix, and a Session History entry. Conventional commit + push to `main` follows.
 

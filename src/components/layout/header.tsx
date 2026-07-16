@@ -1,18 +1,19 @@
 import { useShallow } from 'zustand/shallow'
 import { useSettingsStore } from '../../stores/settings-store'
-import { useChatStore } from '../../stores/chat-store'
+import { selectActiveConversationCharacter, selectActiveConversationModel, useChatStore } from '../../stores/chat-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
 import { ModelSelect } from '../ModelSelect'
 import { StatusDot } from '../ui/shared'
 import { HeaderStatusCluster } from '../status/HeaderStatusCluster'
 import { useTaskUIStore } from '../../stores/task-ui-store'
-import { useBackgroundTaskStore } from '../../stores/background-task-store'
+import { selectActiveTaskCount, useBackgroundTaskStore } from '../../stores/background-task-store'
 import { getActiveProfileId } from '../../services/activeProfile'
 import { resolveTab } from '../../config/tabs'
 import { formatModelLabelWithCost } from '../../utils/pricing'
 import { CharacterAvatar } from '../characters/CharacterAvatar'
 import type { ModelInfo, VeniceModel } from '../../types/venice'
+import { useCallback, useMemo } from 'react'
 
 interface Props {
   onOpenApiKey: () => void
@@ -23,33 +24,27 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const { activeTab, selectedModels, setSelectedModel, toggleSidebar } = useSettingsStore(
     useShallow((s) => ({ activeTab: s.activeTab, selectedModels: s.selectedModels, setSelectedModel: s.setSelectedModel, toggleSidebar: s.toggleSidebar })),
   )
-  const { activeConversationId, conversations, setActiveConversation, setConversationModel } = useChatStore(
-    useShallow((s) => ({ activeConversationId: s.activeConversationId, conversations: s.conversations, setActiveConversation: s.setActiveConversation, setConversationModel: s.setConversationModel }))
+  const { activeConversationId, setActiveConversation, setConversationModel } = useChatStore(
+    useShallow((s) => ({ activeConversationId: s.activeConversationId, setActiveConversation: s.setActiveConversation, setConversationModel: s.setConversationModel }))
   )
+  const activeConversationModel = useChatStore(selectActiveConversationModel)
+  const activeCharacter = useChatStore(selectActiveConversationCharacter)
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
+  const authHydrationStatus = useAuthStore((state) => state.hydrationStatus)
   const toggleTaskCenter = useTaskUIStore((s) => s.toggleTaskCenter)
 
-  const rawTasks = useBackgroundTaskStore((s) => s.tasks)
   const currentProfileId = getActiveProfileId()
-  const activeTaskCount = Object.values(rawTasks).filter(
-    t => t.profileId === currentProfileId && (t.status === 'queued' || t.status === 'processing')
-  ).length
+  const taskCountSelector = useMemo(() => selectActiveTaskCount(currentProfileId), [currentProfileId])
+  const activeTaskCount = useBackgroundTaskStore(taskCountSelector)
   const tabDesc = resolveTab(activeTab)
   const hasOwnSelector = tabDesc?.modelSelectorOwner === 'view' || !tabDesc?.modelType
   const modelType = tabDesc?.modelType || 'text'
   const { data: models } = useModels(hasOwnSelector ? undefined : modelType)
-  const activeConversationModel = activeTab === 'chat' || activeTab === 'character-chats'
-    ? conversations.find((conversation) => conversation.id === activeConversationId)?.model
-    : undefined
   const currentModel = hasOwnSelector ? '' : (activeConversationModel || selectedModels[activeTab] || '')
 
-  const getModelLabel = (m: ModelInfo) => {
+  const getModelLabel = useCallback((m: ModelInfo) => {
     return (modelType === 'image' || modelType === 'video') ? formatModelLabelWithCost(m as unknown as VeniceModel) : m.name || m.display_name || m.id;
-  };
-
-  const activeCharacter = activeTab === 'character-chats'
-    ? conversations.find((conversation) => conversation.id === activeConversationId)?.metadata?.character
-    : undefined
+  }, [modelType]);
 
   return (
     <header className="flex items-center gap-3 h-14 px-3 soft-separator-y mesh-surface mesh-header shrink-0 shell-region">
@@ -144,12 +139,12 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
       <button
         type="button"
         onClick={onOpenApiKey}
-        aria-label={hasVeniceKey ? 'API key connected, manage' : 'Connect API key'}
+        aria-label={authHydrationStatus === 'checking' ? 'Checking API key' : hasVeniceKey ? 'API key connected, manage' : 'Connect API key'}
         className="flex items-center gap-2 text-[13px] px-2.5 py-1.5 rounded-md border border-transparent bg-surface-elevated hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"
       >
-        <StatusDot tone={hasVeniceKey ? 'teal' : 'slate'} pulsing={!hasVeniceKey} />
+        <StatusDot tone={hasVeniceKey ? 'teal' : 'slate'} pulsing={authHydrationStatus === 'checking' || !hasVeniceKey} />
         <span className={`hidden xl:inline ${hasVeniceKey ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>
-          {hasVeniceKey ? 'Connected' : 'Connect API key'}
+          {authHydrationStatus === 'checking' ? 'Checking key…' : hasVeniceKey ? 'Connected' : 'Connect API key'}
         </span>
       </button>
     </header>

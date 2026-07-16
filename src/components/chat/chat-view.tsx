@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { useChatStore } from '../../stores/chat-store'
+import { selectConversationSummaries, useChatStore, type ConversationSummary } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useChat } from '../../hooks/use-chat'
@@ -50,7 +50,7 @@ export function ChatView() {
     const id = s.activeConversationId
     return id ? s.conversations.find((c) => c.id === id) : undefined
   })
-  const conversations = useChatStore((s) => s.conversations)
+  const conversationSummaries = useChatStore(selectConversationSummaries)
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat)
   const currentProjectId = useSettingsStore((s) => s.activeProjectId)
@@ -135,8 +135,8 @@ export function ChatView() {
   // change conversations or the active id.
   const activeConversationId = conversation?.id
   const availablePriorConversations = useMemo(
-    () => conversations.filter((item) => item.id !== activeConversationId),
-    [conversations, activeConversationId],
+    () => conversationSummaries.filter((item) => item.id !== activeConversationId),
+    [conversationSummaries, activeConversationId],
   )
 
   const handleSend = useCallback((message: string, attachments?: IngestedAttachment[]) => {
@@ -154,15 +154,14 @@ export function ChatView() {
       availableConversations: availablePriorConversations.map((item) => ({
         id: item.id,
         title: item.title,
-        projectId: item.memory?.projectRefs?.[0] ?? null,
-        archivedAt: item.metadata?.archived ? item.updatedAt : null,
+        projectId: item.projectId ?? null,
+        archivedAt: item.archivedAt ?? null,
       })),
       currentProjectId,
     })
     for (const warning of payloadContext.warnings) toast.warn('Prior context skipped', warning)
-    const selectedConversations = availablePriorConversations.filter((item) =>
-      payloadContext.includedConversationIds.includes(item.id),
-    )
+    const includedIds = new Set(payloadContext.includedConversationIds)
+    const selectedConversations = useChatStore.getState().conversations.filter((item) => includedIds.has(item.id))
     const priorContextText = includePriorContext
       ? buildPriorConversationContextText(selectedConversations)
       : ''
@@ -759,7 +758,7 @@ function PriorConversationContextSelector({
 }: {
   includePriorContext: boolean;
   onIncludeChange: (value: boolean) => void;
-  conversations: Conversation[];
+  conversations: ConversationSummary[];
   selectedIds: string[];
   onSelectedIdsChange: (ids: string[]) => void;
   activeConversation?: Conversation;

@@ -6,6 +6,8 @@ vi.mock("../services/desktopBridge", () => ({
   isElectron: () => false,
   desktopApiKey: { isConfigured: () => Promise.resolve(false) },
   desktopJinaApiKey: { isConfigured: () => Promise.resolve(false) },
+  desktopProviderApiKey: { isConfigured: () => Promise.resolve(false) },
+  desktopProviderSettings: { get: () => Promise.resolve({}) },
   desktopApp: { getDiagnostics: () => Promise.resolve({}) },
   desktopConversations: { list: () => Promise.resolve({ ok: false, records: [], error: "mock" }) },
   desktopChat: { list: () => Promise.resolve({ ok: false, conversations: [], truncated: false, totalScanned: 0, error: "mock" }) },
@@ -27,6 +29,8 @@ function reset() {
     isConfigured: false,
     jinaApiKey: null,
     jinaIsConfigured: false,
+    hydrationStatus: "ready",
+    hydrationError: null,
   } as never);
   useSettingsStore.setState({
     activeTab: "chat",
@@ -81,13 +85,16 @@ describe("useStatusStore (VERIFY-045)", () => {
     expect(s.isRefreshing).toBe(false);
   });
 
-  it("recompute refreshes status + snapshot from current store state", () => {
+  it("recompute refreshes lightweight status without rebuilding the safe snapshot", () => {
+    useStatusStore.getState().recompute();
     const before = useStatusStore.getState().status.apiKey.severity;
+    const snapshotBefore = useStatusStore.getState().snapshot;
     expect(before).toBe("error");
     useAuthStore.setState({ isConfigured: true, apiKey: "k" } as never);
     useStatusStore.getState().recompute();
     const after = useStatusStore.getState().status.apiKey.severity;
     expect(after).toBe("ok");
+    expect(useStatusStore.getState().snapshot).toBe(snapshotBefore);
   });
 
   it("refresh is non-overlapping (concurrent calls are no-ops)", async () => {

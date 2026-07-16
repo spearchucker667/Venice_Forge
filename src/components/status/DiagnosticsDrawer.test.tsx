@@ -8,18 +8,24 @@ vi.mock("../../services/desktopBridge", () => ({
   isElectron: () => false,
   desktopApiKey: { isConfigured: () => Promise.resolve(false) },
   desktopJinaApiKey: { isConfigured: () => Promise.resolve(false) },
+  desktopProviderApiKey: { isConfigured: () => Promise.resolve(false) },
+  desktopProviderSettings: { get: () => Promise.resolve({}) },
   desktopApp: { getDiagnostics: () => Promise.resolve({}) },
   desktopConversations: { list: () => Promise.resolve({ ok: false, records: [], error: "mock" }) },
   desktopChat: { list: () => Promise.resolve({ ok: false, conversations: [], truncated: false, totalScanned: 0, error: "mock" }) },
 }));
 
+const modelHook = vi.hoisted(() => ({ calls: [] as Array<{ enabled?: boolean }> }));
 vi.mock("../../hooks/use-models", () => ({
-  useModels: () => ({
+  useModels: (_type?: string, options?: { enabled?: boolean }) => {
+    modelHook.calls.push(options ?? {});
+    return ({
     data: undefined,
     isFetching: false,
     error: null,
-    refetch: vi.fn(),
-  }),
+    refetch: vi.fn(async () => ({ isSuccess: true, data: [], error: null })),
+    });
+  },
 }));
 
 import { DiagnosticsDrawer } from "./DiagnosticsDrawer";
@@ -33,6 +39,7 @@ import { useToastStore } from "../../stores/toast-store";
 import { _resetAuditCounters_TEST_ONLY } from "../../shared/safety";
 
 function reset() {
+  modelHook.calls = [];
   _resetAuditCounters_TEST_ONLY();
   useAuthStore.setState({
     apiKey: null,
@@ -40,6 +47,8 @@ function reset() {
     isConfigured: false,
     jinaApiKey: null,
     jinaIsConfigured: false,
+    hydrationStatus: "ready",
+    hydrationError: null,
   } as never);
   useSettingsStore.setState({
     activeTab: "chat",
@@ -86,6 +95,7 @@ describe("DiagnosticsDrawer (VERIFY-045)", () => {
   it("does not render when the drawer is closed", () => {
     render(<DiagnosticsDrawer />);
     expect(screen.queryByTestId("diagnostics-drawer")).toBeNull();
+    expect(modelHook.calls.at(-1)).toEqual({ enabled: false });
   });
 
   it("renders the drawer when the status store says it is open", () => {

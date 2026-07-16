@@ -21,6 +21,9 @@ import {
 } from "../services/diagnosticsService";
 import type { AppStatusSnapshot, SafeDiagnosticsSnapshot } from "../types/status";
 import { useAuthStore } from "./auth-store";
+import { useModelCatalogRuntimeStore } from "./model-catalog-runtime-store";
+import { useSettingsStore } from "./settings-store";
+import { useProjectStore } from "./project-store";
 
 interface StatusStoreState {
   status: AppStatusSnapshot;
@@ -44,7 +47,8 @@ function initialSnapshot(): AppStatusSnapshot {
 }
 
 function initialSafeSnapshot(): SafeDiagnosticsSnapshot {
-  return computeSafeDiagnosticsSnapshot();
+  const status = initialSnapshot();
+  return computeSafeDiagnosticsSnapshot(status);
 }
 
 export const useStatusStore = create<StatusStoreState>((set, get) => ({
@@ -56,10 +60,7 @@ export const useStatusStore = create<StatusStoreState>((set, get) => ({
   focusedSectionId: null,
 
   recompute: () => {
-    set({
-      status: computeAppStatusSnapshot(),
-      snapshot: computeSafeDiagnosticsSnapshot(),
-    });
+    set({ status: computeAppStatusSnapshot() });
   },
 
   refresh: async () => {
@@ -71,9 +72,9 @@ export const useStatusStore = create<StatusStoreState>((set, get) => ({
       // "Refresh Models" action and the model hook caches for
       // 5 minutes by default.
       await useAuthStore.getState().checkConfiguration();
+      const status = computeAppStatusSnapshot();
       set({
-        status: computeAppStatusSnapshot(),
-        snapshot: computeSafeDiagnosticsSnapshot(),
+        status,
         lastRefreshedAt: new Date().toISOString(),
       });
     } catch {
@@ -88,7 +89,13 @@ export const useStatusStore = create<StatusStoreState>((set, get) => ({
   },
 
   openDrawer: (focusSectionId) => {
-    set({ drawerOpen: true, focusedSectionId: focusSectionId ?? null });
+    const status = computeAppStatusSnapshot();
+    set({
+      drawerOpen: true,
+      focusedSectionId: focusSectionId ?? null,
+      status,
+      snapshot: computeSafeDiagnosticsSnapshot(status),
+    });
   },
   closeDrawer: () => {
     set({ drawerOpen: false, focusedSectionId: null });
@@ -97,3 +104,37 @@ export const useStatusStore = create<StatusStoreState>((set, get) => ({
     set({ focusedSectionId: id });
   },
 }));
+
+// Explicit narrow subscriptions keep the header reactive without tying health
+// recomputation to navigation or creating store-to-store write cycles.
+useAuthStore.subscribe((state, previous) => {
+  if (
+    state.hydrationStatus !== previous.hydrationStatus ||
+    state.hydrationError !== previous.hydrationError ||
+    state.isConfigured !== previous.isConfigured ||
+    state.jinaIsConfigured !== previous.jinaIsConfigured ||
+    state.configuredProviders !== previous.configuredProviders
+  ) useStatusStore.getState().recompute();
+});
+
+useModelCatalogRuntimeStore.subscribe((state, previous) => {
+  if (
+    state.status !== previous.status ||
+    state.totalCount !== previous.totalCount ||
+    state.lastError !== previous.lastError
+  ) useStatusStore.getState().recompute();
+});
+
+useSettingsStore.subscribe((state, previous) => {
+  if (
+    state.selectedModels !== previous.selectedModels ||
+    state.enabledProviders !== previous.enabledProviders ||
+    state.activeProjectId !== previous.activeProjectId ||
+    state.localFamilySafeModeEnabled !== previous.localFamilySafeModeEnabled ||
+    state.veniceApiSafeMode !== previous.veniceApiSafeMode
+  ) useStatusStore.getState().recompute();
+});
+
+useProjectStore.subscribe((state, previous) => {
+  if (state.projects !== previous.projects) useStatusStore.getState().recompute();
+});

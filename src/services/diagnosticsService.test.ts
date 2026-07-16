@@ -28,6 +28,7 @@ import { useProjectStore } from "../stores/project-store";
 import { useMediaStore } from "../stores/media-store";
 import { useChatStore } from "../stores/chat-store";
 import { _resetAuditCounters_TEST_ONLY } from "../shared/safety";
+import { useModelCatalogRuntimeStore } from "../stores/model-catalog-runtime-store";
 
 function resetStores() {
   _resetAuditCounters_TEST_ONLY();
@@ -37,6 +38,8 @@ function resetStores() {
     isConfigured: false,
     jinaApiKey: null,
     jinaIsConfigured: false,
+    hydrationStatus: "ready",
+    hydrationError: null,
   } as never);
   useSettingsStore.setState({
     activeTab: "chat",
@@ -67,6 +70,7 @@ function resetStores() {
     _hasLoadedHistory: true,
     pendingContext: null,
   });
+  useModelCatalogRuntimeStore.getState().reset();
 }
 
 beforeEach(() => {
@@ -175,10 +179,30 @@ describe("computeAppStatusSnapshot (VERIFY-045)", () => {
     expect(s.model.severity).toBe("unknown");
   });
 
-  it("model is ok when any model is selected", () => {
-    useSettingsStore.setState({ selectedModels: { chat: "venice-uncensored-1-2" } } as never);
+  it("model is ok after a successful catalog load without requiring a selection", () => {
+    useModelCatalogRuntimeStore.getState().markReady({
+      totalCount: 2,
+      countsByType: { text: 2 },
+      source: "live",
+      liveModelIds: ["a", "b"],
+    });
     const s = computeAppStatusSnapshot();
     expect(s.model.severity).toBe("ok");
+    expect(s.model.summary).toBe("2 models loaded.");
+  });
+
+  it("reports a missing selected model separately from a healthy catalog", () => {
+    useModelCatalogRuntimeStore.getState().markReady({
+      totalCount: 1,
+      countsByType: { text: 1 },
+      source: "live",
+      liveModelIds: ["available"],
+    });
+    useSettingsStore.setState({ selectedModels: { chat: "missing" } } as never);
+    const s = computeAppStatusSnapshot();
+    expect(s.model.severity).toBe("warn");
+    expect(s.model.summary).toBe("1 models loaded.");
+    expect(s.model.detail).toMatch(/missing.*not present/i);
   });
 });
 

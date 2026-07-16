@@ -40,6 +40,7 @@ import { usePersonaStore } from "../stores/persona-store";
 import { useScenarioStore } from "../stores/scenario-store";
 import { useResearchStore } from "../stores/research-store";
 import { useStoragePrivacyStore } from "../stores/storage-privacy-store";
+import { useModelCatalogRuntimeStore } from "../stores/model-catalog-runtime-store";
 import {
   buildSafeApiKeyMetadata,
   type SafeApiKeyStorage,
@@ -80,6 +81,15 @@ function buildApiStatus(): AppStatusItem {
   // diagnostics drawer offers an explicit "Test API" action that
   // runs the request when the user wants it.
   const auth = useAuthStore.getState();
+  if (auth.hydrationStatus === "idle") {
+    return makeItem("api", "API", "unknown", "Venice API key has not been checked yet.");
+  }
+  if (auth.hydrationStatus === "checking") {
+    return makeItem("api", "API", "unknown", "Checking Venice secure-storage configuration…");
+  }
+  if (auth.hydrationStatus === "error") {
+    return makeItem("api", "API", "error", auth.hydrationError || "Venice secure-storage inspection failed.");
+  }
   const hasKey = selectHasVeniceKey(auth);
   if (!hasKey) {
     return makeItem(
@@ -105,6 +115,15 @@ function buildApiStatus(): AppStatusItem {
 
 function buildApiKeyStatus(): AppStatusItem {
   const auth = useAuthStore.getState();
+  if (auth.hydrationStatus === "idle") {
+    return makeItem("apiKey", "API Key", "unknown", "Venice API key has not been checked yet.");
+  }
+  if (auth.hydrationStatus === "checking") {
+    return makeItem("apiKey", "API Key", "unknown", "Checking Venice API-key configuration…");
+  }
+  if (auth.hydrationStatus === "error") {
+    return makeItem("apiKey", "API Key", "error", auth.hydrationError || "Secure-storage inspection failed.");
+  }
   if (auth.isConfigured) {
     return makeItem(
       "apiKey",
@@ -141,28 +160,36 @@ function getApiKeyStorage(auth: ReturnType<typeof useAuthStore.getState>): SafeA
 }
 
 function buildModelStatus(): AppStatusItem {
-  // Model status is the cached snapshot — it is unknown until the user
-  // visits Image Studio (or any tab that triggers useModels). We treat
-  // the absence of any selected model as a warn, not an error, so
-  // users on the Config / Status tabs do not see a red indicator.
+  const catalog = useModelCatalogRuntimeStore.getState();
   const settings = useSettingsStore.getState();
-  const selectedModels = settings.selectedModels ?? {};
-  const hasAnySelection = Object.values(selectedModels).some((v) => typeof v === "string" && v.length > 0);
-  if (!hasAnySelection) {
-    return makeItem(
-      "model",
-      "Model",
-      "unknown",
-      "No generation model has been selected yet. Open Image Studio or Chat to choose one.",
-      { actionLabel: "Open Image Studio", actionTargetTabId: "image" },
-    );
+  const unavailableSelection = Object.entries(settings.selectedModels ?? {}).find(([, modelId]) => (
+    typeof modelId === "string" && modelId.length > 0 && !catalog.liveModelIds.includes(modelId)
+  ));
+  switch (catalog.status) {
+    case "idle":
+      return makeItem("model", "Model", "unknown", "Model catalog has not been requested.");
+    case "loading":
+      return makeItem("model", "Model", "unknown", "Loading the model catalog…");
+    case "ready": {
+      if (unavailableSelection) {
+        const [modelType, modelId] = unavailableSelection;
+        return makeItem("model", "Model", "warn", `${catalog.totalCount} models loaded.`, {
+          detail: `Selected model “${modelId}” is not present in the current catalog (${modelType}).`,
+        });
+      }
+      return makeItem("model", "Model", "ok", `${catalog.totalCount} models loaded.`);
+    }
+    case "stale":
+      return makeItem(
+        "model",
+        "Model",
+        "warn",
+        `Using a cached model catalog from ${catalog.lastSuccessAt ?? "an earlier request"}.`,
+        { detail: catalog.lastError ?? undefined },
+      );
+    case "error":
+      return makeItem("model", "Model", "error", catalog.lastError || "Model catalog could not be loaded.");
   }
-  return makeItem(
-    "model",
-    "Model",
-    "ok",
-    "Model selection cached. Refresh from the diagnostics drawer to validate against the live catalog.",
-  );
 }
 
 function buildStorageStatus(): AppStatusItem {
@@ -347,8 +374,9 @@ export function computeAppStatusSnapshot(): AppStatusSnapshot {
 }
 
 /** Computes the safe, JSON-serialisable diagnostics snapshot. */
-export function computeSafeDiagnosticsSnapshot(): SafeDiagnosticsSnapshot {
-  const statuses = computeAppStatusSnapshot();
+export function computeSafeDiagnosticsSnapshot(
+  statuses: AppStatusSnapshot = computeAppStatusSnapshot(),
+): SafeDiagnosticsSnapshot {
   const settings = useSettingsStore.getState();
   const projects = useProjectStore.getState().projects;
   const media = useMediaStore.getState().items;

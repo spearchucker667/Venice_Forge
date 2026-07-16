@@ -6,6 +6,8 @@ import { isValidModelListResponse } from "../utils/veniceValidation";
 import { warn } from "../shared/logger";
 import type { AppDispatch } from "../types/app";
 import type { ModelInfo } from "../types/venice";
+import { useModelCatalogRuntimeStore } from "../stores/model-catalog-runtime-store";
+import { getCanonicalModelById, replaceCanonicalModels } from "./modelCatalogCache";
 
 /**
  * Explicit cache-only localStorage helper.
@@ -94,6 +96,14 @@ export async function refreshModels(dispatch: AppDispatch, force = false): Promi
   // Serve cached data immediately (even if stale) to reduce perceived latency.
   if (cached) {
     dispatch({ type: "SET_MODELS", models: cached.grouped, fallback: false });
+    const cachedModels = Object.values(cached.grouped).flat();
+    replaceCanonicalModels(cachedModels);
+    useModelCatalogRuntimeStore.getState().markReady({
+      totalCount: cachedModels.length,
+      countsByType: Object.fromEntries(Object.entries(cached.grouped).map(([type, models]) => [type, models.length])),
+      source: "cache",
+      liveModelIds: cachedModels.map((model) => model.id),
+    });
     const isStale = !!cached.isStale;
     if (!force && !isStale) {
       return; // Fresh — no background refresh needed.
@@ -102,6 +112,7 @@ export async function refreshModels(dispatch: AppDispatch, force = false): Promi
   }
 
   try {
+    useModelCatalogRuntimeStore.getState().markLoading();
     const { data } = await veniceFetch("/models?type=all", {
       method: "GET",
       dispatch,
@@ -110,9 +121,18 @@ export async function refreshModels(dispatch: AppDispatch, force = false): Promi
       validator: isValidModelListResponse,
     });
     const grouped = flattenModels(data);
+    const liveModels = Object.values(grouped).flat();
     writeCache(grouped);
+    replaceCanonicalModels(liveModels);
+    useModelCatalogRuntimeStore.getState().markReady({
+      totalCount: liveModels.length,
+      countsByType: Object.fromEntries(Object.entries(grouped).map(([type, models]) => [type, models.length])),
+      source: "live",
+      liveModelIds: liveModels.map((model) => model.id),
+    });
     dispatch({ type: "SET_MODELS", models: grouped, fallback: false });
   } catch (err: unknown) {
+    useModelCatalogRuntimeStore.getState().markError(err, Boolean(cached));
     // If we already served cached data, swallow the error silently.
     if (!cached) {
       // Do NOT propagate raw exception text (paths, upstream bodies, secrets)
@@ -134,6 +154,8 @@ export async function refreshModels(dispatch: AppDispatch, force = false): Promi
  * @returns The ModelInfo if found, or undefined.
  */
 export function getModelById(modelId: string): ModelInfo | undefined {
+  const canonical = getCanonicalModelById(modelId);
+  if (canonical) return canonical;
   const cached = readCache();
   if (!cached) return undefined;
 

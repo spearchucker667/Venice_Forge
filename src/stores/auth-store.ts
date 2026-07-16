@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { desktopApiKey, desktopJinaApiKey, desktopProviderApiKey, desktopProviderSettings } from '../services/desktopBridge' // TARGET Bridge
 import { PROVIDER_REGISTRY, type ProviderId } from '../types/provider'
+import { redactErrorMessage } from '../shared/redaction'
+import { invalidateModelQueries } from '../services/modelQueryCoordinator'
+import { useModelCatalogRuntimeStore } from './model-catalog-runtime-store'
+
+export type AuthHydrationStatus = 'idle' | 'checking' | 'ready' | 'error'
 
 export interface AuthState {
   apiKey: string | null
@@ -8,6 +13,8 @@ export interface AuthState {
   isConfigured: boolean
   jinaApiKey: string | null
   jinaIsConfigured: boolean
+  hydrationStatus: AuthHydrationStatus
+  hydrationError: string | null
   checkConfiguration: () => Promise<void>
   setApiKey: (key: string, remember?: { passphrase?: string }) => Promise<void>
   clearApiKey: () => Promise<void>
@@ -30,28 +37,34 @@ export const useAuthStore = create<AuthState>()((set) => ({
   isConfigured: false,
   jinaApiKey: null,
   jinaIsConfigured: false,
+  hydrationStatus: 'idle',
+  hydrationError: null,
   configuredProviders: {},
 
   checkConfiguration: async () => {
+    set({ hydrationStatus: 'checking', hydrationError: null })
     const providerIds = Object.keys(PROVIDER_REGISTRY) as ProviderId[]
-    
-    const [configured, jinaConfigured, , ...providerConfigs] = await Promise.all([
-      desktopApiKey.isConfigured(),
-      desktopJinaApiKey.isConfigured(),
-      desktopProviderSettings.get(),
-      ...providerIds.map(id => desktopProviderApiKey.isConfigured(id))
-    ])
-    
-    const configuredProviders = providerIds.reduce((acc, id, index) => {
-      acc[id] = providerConfigs[index]
-      return acc
-    }, {} as Record<string, boolean>)
+    try {
+      const previousConfigured = useAuthStore.getState().isConfigured
+      const configured = await desktopApiKey.isConfigured()
+      set({ isConfigured: configured })
+      if (configured !== previousConfigured) void invalidateModelQueries()
 
-    set({ 
-      isConfigured: configured, 
-      jinaIsConfigured: jinaConfigured,
-      configuredProviders
-    })
+      const jinaConfigured = await desktopJinaApiKey.isConfigured()
+      set({ jinaIsConfigured: jinaConfigured })
+
+      await desktopProviderSettings.get()
+      const providerConfigs = await Promise.all(
+        providerIds.map(id => desktopProviderApiKey.isConfigured(id)),
+      )
+      const configuredProviders = providerIds.reduce((acc, id, index) => {
+        acc[id] = providerConfigs[index]
+        return acc
+      }, {} as Record<string, boolean>)
+      set({ configuredProviders, hydrationStatus: 'ready', hydrationError: null })
+    } catch (error) {
+      set({ hydrationStatus: 'error', hydrationError: redactErrorMessage(error) })
+    }
   },
 
   setApiKey: async (key) => {
@@ -60,11 +73,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
       throw new Error("Failed to save API key.")
     }
     set({ isConfigured: true, apiKey: null })
+    useModelCatalogRuntimeStore.getState().reset()
+    await invalidateModelQueries()
   },
 
   clearApiKey: async () => {
     await desktopApiKey.delete()
     set({ isConfigured: false, apiKey: null })
+    useModelCatalogRuntimeStore.getState().reset()
+    await invalidateModelQueries()
   },
 
   setJinaApiKey: async (key) => {

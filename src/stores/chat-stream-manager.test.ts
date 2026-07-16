@@ -97,6 +97,44 @@ describe("chat-stream-manager", () => {
     expect(last?.reasoning_content).toBe("thinking");
   });
 
+  it("batches 1,000 raw deltas into one conversation mutation and preserves final output", async () => {
+    // VERIFY-138 regression guard
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "assistant", content: "" });
+    const append = vi.spyOn(useChatStore.getState(), "appendAssistantStreamDelta");
+
+    mockedVeniceStreamChat.mockImplementationOnce((_payload, opts) => {
+      for (let index = 0; index < 1000; index += 1) {
+        opts.onDelta?.({ content: "x", reasoning: index % 10 === 0 ? "r" : "" });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    await startStream(convId, "llama-3.3-70b");
+
+    expect(append).toHaveBeenCalledTimes(1);
+    const last = useChatStore.getState().conversations[0].messages.at(-1)!;
+    expect(last.content).toBe("x".repeat(1000));
+    expect(last.reasoning_content).toBe("r".repeat(100));
+  });
+
+  it("flushes buffered content before cancellation completes", async () => {
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "assistant", content: "" });
+    mockedVeniceStreamChat.mockImplementationOnce((_payload, opts) => {
+      opts.onDelta?.({ content: "buffered", reasoning: "" });
+      return new Promise<void>((_, reject) => {
+        opts.signal!.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+      });
+    });
+
+    const pending = startStream(convId, "llama-3.3-70b");
+    stopStream();
+    await pending;
+
+    expect(useChatStore.getState().conversations[0].messages.at(-1)?.content).toBe("buffered");
+  });
+
   it("sets store.isStreaming true while streaming and false when done", async () => {
     const convId = useChatStore.getState().createConversation("llama-3.3-70b");
     useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });

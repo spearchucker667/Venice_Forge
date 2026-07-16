@@ -1,7 +1,8 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
 import { useSettingsStore, type Tab } from '../../stores/settings-store'
-import { useChatStore } from '../../stores/chat-store'
+import { selectConversationSummaries, useChatStore, type ConversationSummary } from '../../stores/chat-store'
+import { useShallow } from 'zustand/shallow'
 import { useProjectStore } from '../../stores/project-store'
 import { toast } from '../../stores/toast-store'
 import { VeniceLogo, VeniceWordmark } from '../ui/logo'
@@ -14,7 +15,6 @@ import { contentToSearchText, contentToMarkdownText } from '../../utils/messageC
 import { DEFAULT_CHAT_MODEL } from '../../constants/venice'
 import { getConversationDisplayTitle } from '../../utils/conversationDisplayTitle'
 import { CharacterAvatar } from '../characters/CharacterAvatar'
-import { getConversationKind } from '../../utils/conversationKind'
 
 function ChatIcon() {
   return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>)
@@ -146,7 +146,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const setLocalFamilySafeModeEnabled = useSettingsStore((s) => s.setLocalFamilySafeModeEnabled)
   const showInspector = useSettingsStore((s) => s.showInspector)
   const setShowInspector = useSettingsStore((s) => s.setShowInspector)
-  const conversations = useChatStore((s) => s.conversations)
+  const conversationSummaries = useChatStore(useShallow(selectConversationSummaries))
   const activeConversationId = useChatStore((s) => s.activeConversationId)
   const activeProjectId = useSettingsStore((s) => s.activeProjectId)
   const projects = useProjectStore((s) => s.projects)
@@ -205,27 +205,18 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
 
   const deferredSearch = useDeferredValue(search)
   const standardConversations = useMemo(
-    () => conversations.filter((conversation) => getConversationKind(conversation) === 'standard'),
-    [conversations],
+    () => conversationSummaries.filter((conversation) => conversation.kind === 'standard'),
+    [conversationSummaries],
   )
-  const searchIndexCache = useRef(new Map<string, { updatedAt: number, text: string }>())
   const searchIndex = useMemo(() => {
     if (!historyExpanded || !deferredSearch.trim()) return []
-    const cache = searchIndexCache.current
-    return standardConversations.map((conversation) => {
-      let entry = cache.get(conversation.id)
-      if (!entry || entry.updatedAt !== conversation.updatedAt) {
-        entry = { updatedAt: conversation.updatedAt, text: buildConversationSearchText(conversation) }
-        cache.set(conversation.id, entry)
-      }
-      return { conversation, text: entry.text }
-    })
+    return standardConversations.map((conversation) => ({ conversation, text: conversation.searchablePreview }))
   }, [standardConversations, deferredSearch, historyExpanded])
   const searchResult = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase()
     if (!query) return { conversations: standardConversations.slice(0, MAX_CONVERSATION_SEARCH_RESULTS), totalMatches: standardConversations.length }
 
-    const matches: Conversation[] = []
+    const matches: ConversationSummary[] = []
     let totalMatches = 0
     for (const entry of searchIndex) {
       if (!entry.text.includes(query)) continue
@@ -236,7 +227,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   }, [deferredSearch, searchIndex, standardConversations])
   const filtered = searchResult.conversations
 
-  const handleDelete = async (conv: Conversation) => {
+  const handleDelete = async (conv: ConversationSummary) => {
+    const durableConversation = useChatStore.getState().conversations.find((candidate) => candidate.id === conv.id)
     await deleteConversation(conv.id)
     toast.error('Conversation deleted', conv.title || 'Untitled', {
       label: 'Undo',
@@ -248,7 +240,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
         // which would be lost on the next reload because the canonical
         // source of truth is the JSON file under `chat-history/`.
         try {
-          await useChatStore.getState().restoreConversation(conv)
+          if (!durableConversation) throw new Error('Conversation is no longer available to restore.')
+          await useChatStore.getState().restoreConversation(durableConversation)
           toast.success('Conversation restored')
         } catch (err) {
           toast.fromError(err, 'Failed to restore')
@@ -257,7 +250,9 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
     })
   }
 
-  const exportConversation = (conv: Conversation) => {
+  const exportConversation = (summary: ConversationSummary) => {
+    const conv = useChatStore.getState().conversations.find((candidate) => candidate.id === summary.id)
+    if (!conv) return
     const md = conversationToMarkdown(conv)
     const blob = new Blob([md], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
@@ -277,7 +272,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
     onMobileClose?.()
   }
 
-  const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId)
+  const activeConversation = conversationSummaries.find((conversation) => conversation.id === activeConversationId)
 
   useEffect(() => {
     if (!chatOptionsOpen) return
@@ -657,7 +652,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
 }
 
 function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
-  conv: Conversation
+  conv: ConversationSummary
   isActive: boolean
   onSelect: () => void
   onDelete: () => void
@@ -704,7 +699,7 @@ function ConversationRow({ conv, isActive, onSelect, onDelete, onExport }: {
         aria-current={isActive ? 'page' : undefined}
         className="min-w-0 flex flex-1 items-center gap-2 truncate text-left rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
       >
-        {conv.metadata?.character && <CharacterAvatar character={conv.metadata.character} cacheKey={`sidebar-${conv.id}`} size="sm" />}
+        {conv.character && <CharacterAvatar character={conv.character} cacheKey={`sidebar-${conv.id}`} size="sm" />}
         <span className="truncate">{getConversationDisplayTitle(conv)}</span>
       </button>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">

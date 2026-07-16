@@ -55,6 +55,12 @@ interface BackgroundTaskState {
   ensureDesktopSubscription: () => Promise<void>
 }
 
+export function selectActiveTaskCount(profileId: string) {
+  return (state: Pick<BackgroundTaskState, 'tasks'>): number => Object.values(state.tasks).filter(
+    (task) => task.profileId === profileId && (task.status === 'queued' || task.status === 'processing'),
+  ).length
+}
+
 export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => ({
   tasks: {},
   activePolls: {},

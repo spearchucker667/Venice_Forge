@@ -40,16 +40,23 @@ vi.mock("../services/desktopBridge", () => ({
 
 import { desktopApiKey, desktopJinaApiKey } from "../services/desktopBridge";
 import { selectHasVeniceKey, useAuthStore } from "./auth-store";
+import { registerModelQueryClient } from "../services/modelQueryCoordinator";
+
+const invalidateQueries = vi.fn(async () => undefined);
+registerModelQueryClient({ invalidateQueries } as never);
 
 describe("configured Venice key gating", () => {
   beforeEach(() => {
     bridgeMocks.setApiKey.mockReset();
     bridgeMocks.setJinaApiKey.mockReset();
+    invalidateQueries.mockClear();
     useAuthStore.setState({
       apiKey: null,
       isConfigured: false,
       jinaApiKey: null,
       jinaIsConfigured: false,
+      hydrationStatus: "idle",
+      hydrationError: null,
     });
   });
 
@@ -111,7 +118,33 @@ describe("configured Venice key gating", () => {
 
     expect(desktopApiKey.isConfigured).toHaveBeenCalled();
     expect(desktopJinaApiKey.isConfigured).toHaveBeenCalled();
-    expect(useAuthStore.getState()).toMatchObject({ isConfigured: true, jinaIsConfigured: false });
+    expect(useAuthStore.getState()).toMatchObject({ isConfigured: true, jinaIsConfigured: false, hydrationStatus: "ready" });
+  });
+
+  it("publishes Venice readiness before slower fallback-provider checks finish", async () => {
+    let resolveJina!: (value: boolean) => void;
+    vi.mocked(desktopApiKey.isConfigured).mockResolvedValueOnce(true);
+    vi.mocked(desktopJinaApiKey.isConfigured).mockReturnValueOnce(new Promise((resolve) => {
+      resolveJina = resolve;
+    }));
+
+    const checking = useAuthStore.getState().checkConfiguration();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(useAuthStore.getState()).toMatchObject({ isConfigured: true, hydrationStatus: "checking" });
+    resolveJina(false);
+    await checking;
+    expect(useAuthStore.getState().hydrationStatus).toBe("ready");
+  });
+
+  it("invalidates the model query after setting and clearing the Venice key", async () => {
+    bridgeMocks.setApiKey.mockResolvedValue({ ok: true });
+    vi.mocked(desktopApiKey.delete).mockResolvedValue({ ok: true } as never);
+    await useAuthStore.getState().setApiKey("venice_secret_fixture");
+    await useAuthStore.getState().clearApiKey();
+    expect(invalidateQueries).toHaveBeenCalledTimes(2);
+    expect(invalidateQueries).toHaveBeenNthCalledWith(1, { queryKey: ["models"] });
   });
 
   it("clearApiKey calls delete on desktopBridge and updates state", async () => {

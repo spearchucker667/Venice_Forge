@@ -438,7 +438,7 @@ export function useChat() {
         // abort failures. Log any unexpected synchronous throw without
         // leaking raw error text to the UI.
         logger.error('useChat send failed', err)
-        useChatStore.getState().appendToLastAssistant(convId, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`)
+        useChatStore.getState().appendAssistantStreamDelta(convId, { content: `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]` })
       }
     },
     [addMessage, createConversation, startStream, maybeAutoGenerateScene],
@@ -486,7 +486,7 @@ export function useChat() {
         }
       } catch (err) {
         logger.error('useChat regenerate failed', err)
-        useChatStore.getState().appendToLastAssistant(convId, `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`)
+        useChatStore.getState().appendAssistantStreamDelta(convId, { content: `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]` })
       }
     },
     [addMessage, deleteMessage, startStream, maybeAutoGenerateScene],

@@ -20,9 +20,8 @@
  *     sidebar or the model selector.
  */
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useStatusStore } from "../../stores/status-store";
-import { useSettingsStore } from "../../stores/settings-store";
 import {
   StatusIndicator,
 } from "./StatusIndicator";
@@ -54,14 +53,6 @@ export interface HeaderStatusClusterProps {
 export function HeaderStatusCluster({ status: statusOverride, compact = false }: HeaderStatusClusterProps) {
   const status = useStatusStore((s) => s.status)
   const openDrawer = useStatusStore((s) => s.openDrawer)
-  const recompute = useStatusStore((s) => s.recompute)
-
-  // Recompute the snapshot whenever the active tab changes so a
-  // user who navigates from Media Studio to Status sees fresh state.
-  const activeTab = useSettingsStore((s) => s.activeTab)
-  useEffect(() => {
-    recompute()
-  }, [activeTab, recompute])
 
   const snapshot = statusOverride ?? status
   const items = useMemo(() => {

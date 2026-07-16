@@ -4,18 +4,49 @@ import type { ModelsResponse, VeniceModel, VideoConstraints } from '../types/ven
 import { getEnabledProviderModels } from '../config/provider-models'
 
 import { useSettingsStore } from '../stores/settings-store'
+import { useModelCatalogRuntimeStore } from '../stores/model-catalog-runtime-store'
+import { replaceCanonicalModels } from '../services/modelCatalogCache'
 
-export function useModels(type?: string) {
+interface UseModelsOptions {
+  enabled?: boolean
+}
+
+export function useModels(type?: string, options: UseModelsOptions = {}) {
   const enabledProviders = useSettingsStore(s => s.enabledProviders)
   const normalizedType = type === 'chat' ? 'text' : type === 'embeddings' ? 'embedding' : type;
+  const enabledProviderKey = Object.entries(enabledProviders)
+    .filter(([, enabled]) => enabled)
+    .map(([id]) => id)
+    .sort()
+    .join(',')
 
   return useQuery({
-    queryKey: ['models', type, enabledProviders],
-    queryFn: () =>
-      venice<ModelsResponse>(
+    queryKey: ['models', normalizedType ?? 'all', enabledProviderKey],
+    enabled: options.enabled ?? true,
+    queryFn: async () => {
+      const runtime = useModelCatalogRuntimeStore.getState()
+      runtime.markLoading()
+      try {
+        const response = await venice<ModelsResponse>(
         `/models${normalizedType ? `?type=${normalizedType}` : ''}`,
         { noAuth: true },
-      ),
+        )
+        const liveModels = response.data.filter((model) => !model.model_spec?.offline)
+        replaceCanonicalModels(liveModels)
+        const countKey = normalizedType ?? 'all'
+        useModelCatalogRuntimeStore.getState().markReady({
+          totalCount: liveModels.length,
+          countsByType: { [countKey]: liveModels.length },
+          source: 'live',
+          liveModelIds: liveModels.map((model) => model.id),
+        })
+        return response
+      } catch (error) {
+        const current = useModelCatalogRuntimeStore.getState()
+        current.markError(error, current.totalCount > 0)
+        throw error
+      }
+    },
     staleTime: 5 * 60 * 1000,
     select: (data) => {
       const liveModels = data.data

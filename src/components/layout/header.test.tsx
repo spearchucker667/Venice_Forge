@@ -1,7 +1,8 @@
 // Regression guards: VERIFY-066 (accessible New Chat label), VERIFY-073
 // (header model selector updates conversation.model and respects persisted model).
 import '@testing-library/jest-dom/vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
+import { Profiler } from 'react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Header } from './header'
@@ -70,6 +71,25 @@ describe('Header component', () => {
 
       unmount()
     }
+  })
+
+  it('does not rerender for 100 raw assistant-content mutations', () => {
+    modelsData.value = Array.from({ length: 500 }, (_, index) => ({ id: `model-${index}`, name: `Model ${index}` }))
+    const id = useChatStore.getState().createConversation('model-a')
+    useChatStore.getState().addMessage(id, { role: 'assistant', content: '' })
+    let commits = 0
+    render(
+      <Profiler id="header" onRender={() => { commits += 1 }}>
+        <Header onOpenApiKey={vi.fn()} />
+      </Profiler>,
+    )
+    const baseline = commits
+    act(() => {
+      for (let index = 0; index < 100; index += 1) {
+        useChatStore.getState().appendAssistantStreamDelta(id, { content: 'x' })
+      }
+    })
+    expect(commits).toBe(baseline)
   })
 
   it('verifies that model selector is present only for chat, image, audio, music, and embeddings', () => {
