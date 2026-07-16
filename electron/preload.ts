@@ -464,6 +464,21 @@ const veniceForge = {
     delete(id: string, origin: MutationOrigin = "local-user"): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("characterCards:delete", { id, origin });
     },
+    chooseImportFile() {
+      return ipcRenderer.invoke("characterCards:chooseImportFile");
+    },
+    applyImport(payload: import("../src/types/character-card-files").CharacterCardImportApplyOptions) {
+      return ipcRenderer.invoke("characterCards:applyImport", payload);
+    },
+    undoImport(payload: { handle: string }) {
+      return ipcRenderer.invoke("characterCards:undoImport", payload);
+    },
+    exportJson(payload: { cardId: string; profile?: "standard" | "privacy-reduced" }) {
+      return ipcRenderer.invoke("characterCards:exportJson", payload);
+    },
+    exportPng(payload: { cardId: string; profile?: "standard" | "privacy-reduced" }) {
+      return ipcRenderer.invoke("characterCards:exportPng", payload);
+    },
   },
 
   personas: {

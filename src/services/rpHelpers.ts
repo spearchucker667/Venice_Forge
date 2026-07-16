@@ -197,7 +197,7 @@ export async function saveCharacterPromptToLibrary(characterId: string): Promise
 /** Create a new RP chat seeded with the given character. The chat is
  *  routed to the rp-studio tab; the caller can re-fetch the chat
  *  via `useRpChatStore.getById`. Returns the new chat id or null. */
-export async function startChatForCharacter(characterId: string, opts?: { title?: string; modelId?: string }): Promise<string | null> {
+export async function startChatForCharacter(characterId: string, opts?: { title?: string; modelId?: string; greeting?: "primary" | "random" | "none" | { alternateIndex: number } }): Promise<string | null> {
   const card = useCharacterCardStore.getState().getById(characterId);
   if (!card) return null;
   const settings = useSettingsStore.getState();
@@ -225,6 +225,18 @@ export async function startChatForCharacter(characterId: string, opts?: { title?
     modelId,
     scenario: card.scenario,
     adult: card.adult === true,
+    greeting: (() => {
+      const choice = opts?.greeting ?? "primary";
+      if (choice === "none") return { mode: "none" as const, characterId: card.id };
+      if (choice === "primary") return { mode: "primary" as const, characterId: card.id, ...(card.firstMessage ? { content: card.firstMessage } : {}) };
+      if (choice === "random") {
+        const greetings = [card.firstMessage, ...(card.alternateGreetings ?? [])].filter((value): value is string => Boolean(value));
+        const index = greetings.length ? Math.floor(Math.random() * greetings.length) : -1;
+        return { mode: "random" as const, characterId: card.id, ...(index >= 0 ? { index, content: greetings[index] } : {}) };
+      }
+      const content = card.alternateGreetings?.[choice.alternateIndex];
+      return { mode: "alternate" as const, characterId: card.id, index: choice.alternateIndex, ...(content ? { content } : {}) };
+    })(),
   });
   if (chatId) {
     useRpChatStore.getState().setActive(chatId);

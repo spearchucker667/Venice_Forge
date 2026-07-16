@@ -3,11 +3,9 @@
  *
  * Two formats are supported:
  *   1. The native `CharacterCardExport` envelope (round-trip safe).
- *   2. A "basic Tavern-style" card shape — the bare minimum mapping
- *      from the SillyTavern v1 / v2 spec (first_mes / mes_example /
- *      system_prompt / creator_notes) into our `CharacterCardV1` shape.
- *      Anything else in the input is ignored; secrets are redacted
- *      before persistence.
+ *   2. Tavern V1 JSON through the authoritative character-card adapter.
+ *   3. Character Card V2 JSON with lossless recognized fields, bounded
+ *      extension preservation, and separate personality/greeting semantics.
  *
  * **Safety:**
  *   - Imports never include API keys, bearer tokens, or `Authorization`
@@ -31,8 +29,16 @@ import { isPromptSecretLike, redactPromptSecrets } from "../types/prompt-library
 import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../safetyHydration";
 import { assessCharacterImport } from "../shared/safety/characterImportSafety";
 import { SafetyGuardBlockedError } from "../shared/safety";
+import {
+  detectCharacterCardFormat,
+  CHARACTER_CARD_JSON_MAX_BYTES,
+  mapV1ToInternal,
+  mapV2ToInternal,
+  normalizeCharacterBook,
+  preserveExtensions,
+  type CharacterCardImportWarning,
+} from "./characterCards/characterCardAdapter";
 
-const MAX_INPUT_BYTES = 8 * 1024 * 1024;
 const EXAMPLE_DIALOGUE_MAX = 8;
 const EXAMPLE_TEXT_MAX = 2_000;
 
@@ -128,10 +134,29 @@ export function exportCharacterCards(cards: readonly CharacterCardV1[]): Charact
       createdAt: typeof raw.createdAt === "number" ? raw.createdAt : Date.now(),
       updatedAt: typeof raw.updatedAt === "number" ? raw.updatedAt : Date.now(),
     };
+    const warnings: CharacterCardImportWarning[] = [];
     if (scenario) clean.scenario = scenario;
     if (firstMessage) clean.firstMessage = firstMessage;
     if (raw.modelId) clean.modelId = safeString(raw.modelId, 200);
     if (raw.author) clean.author = safeString(raw.author, 200);
+    if (typeof raw.personality === "string") clean.personality = safeRedactedString(raw.personality);
+    if (typeof raw.creatorNotes === "string") clean.creatorNotes = safeRedactedString(raw.creatorNotes);
+    if (typeof raw.postHistoryInstructions === "string") {
+      clean.postHistoryInstructions = safeRedactedString(raw.postHistoryInstructions);
+    }
+    if (Array.isArray(raw.alternateGreetings)) {
+      clean.alternateGreetings = raw.alternateGreetings
+        .slice(0, 32)
+        .map((greeting) => safeRedactedString(greeting));
+    }
+    if (typeof raw.characterVersion === "string") clean.characterVersion = safeString(raw.characterVersion, 64);
+    clean.tavernExtensions = preserveExtensions(raw.tavernExtensions, warnings, "tavernExtensions");
+    const embeddedBook = normalizeCharacterBook(raw.embeddedCharacterBook, warnings);
+    if (embeddedBook) clean.embeddedCharacterBook = embeddedBook;
+    if (typeof raw.rawExampleDialogue === "string") {
+      clean.rawExampleDialogue = safeRedactedString(raw.rawExampleDialogue);
+    }
+    if (raw.sourceFormat) clean.sourceFormat = raw.sourceFormat;
     const meta = safeMetadata(raw.metadata);
     if (meta) clean.metadata = meta;
     // Avatar bytes are dropped — the export is text-only.
@@ -148,94 +173,7 @@ export function exportCharacterCards(cards: readonly CharacterCardV1[]): Charact
 export interface CharacterCardImportResult {
   imported: CharacterCardV1[];
   skipped: { reason: string; name?: string }[];
-}
-
-function newId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `c_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e9).toString(36)}`;
-}
-
-function pick<T>(...vals: T[]): T | undefined {
-  for (const v of vals) if (v !== undefined && v !== null) return v;
-  return undefined;
-}
-
-interface TavernLikeFields {
-  name?: unknown;
-  character_name?: unknown;
-  description?: unknown;
-  system_prompt?: unknown;
-  personality?: unknown;
-  scenario?: unknown;
-  first_mes?: unknown;
-  mes_example?: unknown;
-  creator_notes?: unknown;
-  tags?: unknown;
-  creator?: unknown;
-  character_version?: unknown;
-  alternate_greetings?: unknown;
-  data?: TavernLikeFields | undefined;
-}
-
-function readTavernShape(input: unknown): TavernLikeFields | null {
-  if (!input || typeof input !== "object") return null;
-  const r = input as Record<string, unknown>;
-  if (r.data && typeof r.data === "object") {
-    return r.data as TavernLikeFields;
-  }
-  return r as TavernLikeFields;
-}
-
-function parseTavernCard(input: unknown, now: number): CharacterCardV1 | null {
-  const t = readTavernShape(input);
-  if (!t) return null;
-  const name = safeString(t.name ?? t.character_name, 200);
-  if (!name) return null;
-  const descriptionRaw = safeString(t.description ?? t.personality, CARD_FIELD_MAX);
-  const systemPromptRaw = safeString(t.system_prompt ?? "", CARD_FIELD_MAX);
-  if (isPromptSecretLike(descriptionRaw) || isPromptSecretLike(systemPromptRaw)) return null;
-  const description = safeRedactedString(t.description ?? t.personality, CARD_FIELD_MAX);
-  const systemPrompt = safeRedactedString(t.system_prompt ?? "", CARD_FIELD_MAX);
-  const scenario = safeRedactedString(pick(t.scenario) ?? "", CARD_FIELD_MAX);
-  const firstMessageRaw = safeString(pick(t.first_mes) ?? "", CARD_FIELD_MAX);
-  if (firstMessageRaw && isPromptSecretLike(firstMessageRaw)) return null;
-  const firstMessage = safeRedactedString(pick(t.first_mes) ?? "", CARD_FIELD_MAX);
-  const creator = safeRedactedString(pick(t.creator, t.creator_notes) ?? "", 200);
-  const tags = safeTags(t.tags);
-  const example = redactPromptSecrets(safeString(pick(t.mes_example) ?? "", EXAMPLE_TEXT_MAX));
-  const examples: CharacterExampleDialogue[] = example
-    ? [{ speaker: "Example", text: example }]
-    : [];
-  const altGreetings = Array.isArray(t.alternate_greetings)
-    ? t.alternate_greetings
-        .map((g) => redactPromptSecrets(safeString(g, EXAMPLE_TEXT_MAX)))
-        .filter((g) => g.length > 0)
-        .slice(0, EXAMPLE_DIALOGUE_MAX - examples.length)
-    : [];
-  for (const g of altGreetings) {
-    examples.push({ speaker: "Greeting", text: g });
-  }
-  const meta: Record<string, unknown> = {};
-  if (creator) meta.creator = creator;
-  if (typeof t.character_version === "string") meta.importedVersion = t.character_version.slice(0, 64);
-  meta.importedFrom = "tavern";
-  return {
-    schema: "CharacterCardV1",
-    id: newId(),
-    name,
-    description,
-    systemPrompt,
-    scenario: scenario || undefined,
-    firstMessage: firstMessage || undefined,
-    tags,
-    adult: false,
-    exampleDialogues: examples,
-    createdAt: now,
-    updatedAt: now,
-    metadata: safeMetadata(meta) ?? {},
-  };
+  warnings: CharacterCardImportWarning[];
 }
 
 function parseNativeEnvelope(input: unknown, now: number): CharacterCardV1 | null {
@@ -254,7 +192,8 @@ function parseNativeEnvelope(input: unknown, now: number): CharacterCardV1 | nul
   const firstMessageRaw = r.firstMessage ? safeString(r.firstMessage, CARD_FIELD_MAX) : undefined;
   if (firstMessageRaw && isPromptSecretLike(firstMessageRaw)) return null;
   const firstMessage = r.firstMessage ? safeRedactedString(r.firstMessage, CARD_FIELD_MAX) : undefined;
-  return {
+  const warnings: CharacterCardImportWarning[] = [];
+  const card: CharacterCardV1 = {
     schema: "CharacterCardV1",
     id: r.id as string,
     name,
@@ -271,6 +210,28 @@ function parseNativeEnvelope(input: unknown, now: number): CharacterCardV1 | nul
     ...(typeof r.author === "string" ? { author: safeRedactedString(r.author, 200) } : {}),
     ...(r.metadata && typeof r.metadata === "object" ? { metadata: safeMetadata(r.metadata) ?? {} } : {}),
   };
+  if (typeof r.personality === "string") card.personality = safeRedactedString(r.personality);
+  if (typeof r.creatorNotes === "string") card.creatorNotes = safeRedactedString(r.creatorNotes);
+  if (typeof r.postHistoryInstructions === "string") {
+    card.postHistoryInstructions = safeRedactedString(r.postHistoryInstructions);
+  }
+  if (Array.isArray(r.alternateGreetings)) {
+    card.alternateGreetings = r.alternateGreetings.slice(0, 32).map((greeting) => safeRedactedString(greeting));
+  }
+  if (typeof r.characterVersion === "string") card.characterVersion = safeString(r.characterVersion, 64);
+  card.tavernExtensions = preserveExtensions(r.tavernExtensions, warnings, "tavernExtensions");
+  const embeddedBook = normalizeCharacterBook(r.embeddedCharacterBook, warnings);
+  if (embeddedBook) card.embeddedCharacterBook = embeddedBook;
+  if (typeof r.rawExampleDialogue === "string") card.rawExampleDialogue = safeRedactedString(r.rawExampleDialogue);
+  if (
+    r.sourceFormat === "venice-forge" ||
+    r.sourceFormat === "tavern-v1-json" ||
+    r.sourceFormat === "card-v2-json" ||
+    r.sourceFormat === "card-v2-png"
+  ) {
+    card.sourceFormat = r.sourceFormat;
+  }
+  return card;
 }
 
 /**
@@ -281,15 +242,15 @@ function parseNativeEnvelope(input: unknown, now: number): CharacterCardV1 | nul
 export async function parseCharacterCardImport(
   raw: string | unknown,
 ): Promise<CharacterCardImportResult> {
-  if (typeof raw === "string" && raw.length > MAX_INPUT_BYTES) {
-    return { imported: [], skipped: [{ reason: "Input exceeds 8 MiB cap" }] };
+  if (typeof raw === "string" && new TextEncoder().encode(raw).byteLength > CHARACTER_CARD_JSON_MAX_BYTES) {
+    return { imported: [], skipped: [{ reason: "Input exceeds 8 MiB cap" }], warnings: [] };
   }
   let parsed: unknown;
   if (typeof raw === "string") {
     try {
       parsed = JSON.parse(raw);
     } catch (err) {
-      return { imported: [], skipped: [{ reason: `Invalid JSON: ${err instanceof Error ? err.message : "parse failed"}` }] };
+      return { imported: [], skipped: [{ reason: `Invalid JSON: ${err instanceof Error ? err.message : "parse failed"}` }], warnings: [] };
     }
   } else {
     parsed = raw;
@@ -303,10 +264,7 @@ export async function parseCharacterCardImport(
     const r = parsed as Record<string, unknown>;
     if (r.version === RP_CARD_EXPORT_VERSION && Array.isArray(r.cards)) {
       candidates.push(...(r.cards as unknown[]));
-    } else if (r.schema === "CharacterCardV1" || r.data) {
-      candidates.push(parsed);
     } else {
-      // Heuristic: if it has `name` + (`system_prompt` or `description`), treat as Tavern.
       candidates.push(parsed);
     }
   }
@@ -314,17 +272,22 @@ export async function parseCharacterCardImport(
   const imported: CharacterCardV1[] = [];
   const skipped: { reason: string; name?: string }[] = [];
   const enabled = getEffectiveRendererLocalFamilySafeModeEnabled();
+  const warnings: CharacterCardImportWarning[] = [];
 
   for (const cand of candidates) {
     let card: CharacterCardV1 | null = null;
     if (cand && typeof cand === "object") {
-      const r = cand as Record<string, unknown>;
-      if (r.schema === "CharacterCardV1") {
+      const detect = detectCharacterCardFormat(cand);
+
+      if (detect.format === "venice-forge") {
         card = parseNativeEnvelope(cand, now);
-      } else {
-        card = parseTavernCard(cand, now);
+      } else if (detect.format === "card-v2-json") {
+        card = mapV2ToInternal(detect.data, warnings);
+      } else if (detect.format === "tavern-v1-json") {
+        card = mapV1ToInternal(detect.data, warnings);
       }
     }
+
     if (!card) {
       skipped.push({ reason: "Invalid card shape" });
       continue;
@@ -341,5 +304,5 @@ export async function parseCharacterCardImport(
     imported.push(card);
   }
 
-  return { imported, skipped };
+  return { imported, skipped, warnings };
 }

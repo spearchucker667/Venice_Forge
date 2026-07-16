@@ -176,7 +176,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
       setError("Could not assemble prompt.");
       return;
     }
-    const { assembly, systemMessages, recentMessages, userMessage } = built;
+    const { assembly, systemMessages, recentMessages, postHistoryMessages, userMessage } = built;
 
     const userMsg = await appendUserMessage(chat.id, text);
     if (!userMsg) {
@@ -201,6 +201,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
           const prefix = m.role === "character" || m.role === "narrator" ? `[${m.role}] ` : "";
           return { role, content: `${prefix}${m.content}` };
         }),
+        ...postHistoryMessages,
         { role: "user" as const, content: userMessage.content },
       ];
       await veniceStreamChat(
@@ -378,7 +379,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
     </div>
   );
 
-  function buildRpContext(text: string): { assembly: PromptAssemblyResult; systemMessages: Array<{ role: "system"; content: string }>; recentMessages: Array<{ role: "user" | "assistant" | "character" | "narrator"; content: string; characterId?: string }>; userMessage: { role: "user"; content: string } } | null {
+  function buildRpContext(text: string): { assembly: PromptAssemblyResult; systemMessages: Array<{ role: "system"; content: string }>; recentMessages: Array<{ role: "user" | "assistant" | "character" | "narrator"; content: string; characterId?: string }>; postHistoryMessages: Array<{ role: "system"; content: string }>; userMessage: { role: "user"; content: string } } | null {
     const ctx = buildContextForTrace(text);
     if (!ctx) return null;
     const result = buildRpPrompt(ctx);
@@ -390,6 +391,7 @@ export function RpChatView({ chatId, onBack, onOpenScene, onOpenDebug }: Props) 
         content: m.content,
         ...(m.characterId ? { characterId: m.characterId } : {}),
       })),
+      postHistoryMessages: (result.postHistoryMessages ?? []).map((message) => ({ role: "system" as const, content: message.content })),
       userMessage: result.userMessage,
     };
   }

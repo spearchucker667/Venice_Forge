@@ -128,9 +128,9 @@ export function useDataStorageActions(
     });
   }, [setPendingConfirm]);
 
-  const exportData = useCallback(async (password: string) => {
+  const exportData = useCallback(async (password: string, includeCharacterCardDrafts = false) => {
     try {
-      const manifest = await createEncryptedBackup(password);
+      const manifest = await createEncryptedBackup(password, { includeCharacterCardDrafts });
       const ok = await downloadEncryptedBackup(manifest);
       if (ok) toast.success("Encrypted backup exported successfully.");
     } catch {

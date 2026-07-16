@@ -171,6 +171,9 @@ export const STORE_NAMES = [
   "ai_memory",
   "files",
   "character_cards",
+  // ST Card Studio autosave records; encrypted, excluded from sync, and
+  // excluded from backups unless explicitly requested.
+  "characterCardDrafts",
   "personas",
   "lorebooks",
   "rp_chats",
@@ -206,7 +209,7 @@ export const STORE_NAMES = [
 export const DB_NAME = "venice_canvas_studio_v1";
 
 /** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store; 11 for Phase 2G Workflow Templates "workflowTemplates" store; 12 for Phase 2I Research Workspace "researchSessions" store; 13 for Phase 2J visualWorkflows store; 14 for Phase 2K playground store; 15 for multi-profile profileId index on every store; 16 for Phase 2G Sync tombstones store. */
-export const DB_VERSION = 16;
+export const DB_VERSION = 17;
 
 /**
  * Known vision-capable model ids. This is a conservative fallback for when

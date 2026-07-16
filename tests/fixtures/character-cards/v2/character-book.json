@@ -1,0 +1,46 @@
+{
+  "spec": "chara_card_v2",
+  "spec_version": "2.0",
+  "data": {
+    "name": "Book Test",
+    "description": "Synthetic embedded-book fixture.",
+    "personality": "Attentive.",
+    "scenario": "A test archive.",
+    "first_mes": "Welcome to the archive.",
+    "mes_example": "",
+    "creator_notes": "",
+    "system_prompt": "",
+    "post_history_instructions": "",
+    "alternate_greetings": [],
+    "character_book": {
+      "name": "Synthetic Archive",
+      "description": "Fixture-only lore.",
+      "scan_depth": 4,
+      "token_budget": 256,
+      "recursive_scanning": false,
+      "extensions": { "fixture.book": true },
+      "entries": [
+        {
+          "id": 101,
+          "name": "Beacon",
+          "keys": ["beacon"],
+          "secondary_keys": ["signal"],
+          "content": "The beacon is synthetic test data.",
+          "enabled": true,
+          "constant": false,
+          "selective": true,
+          "case_sensitive": false,
+          "insertion_order": 10,
+          "priority": 5,
+          "position": "before_char",
+          "comment": "Fixture entry",
+          "extensions": { "fixture.entry": true }
+        }
+      ]
+    },
+    "tags": ["synthetic"],
+    "creator": "Venice Forge Tests",
+    "character_version": "1.0.0",
+    "extensions": {}
+  }
+}

@@ -23,6 +23,10 @@ import { assessCharacterImport } from "../../shared/safety/characterImportSafety
 import { SafetyGuardBlockedError } from "../../shared/safety";
 import StorageService from "../storageService";
 import { getEffectiveRendererLocalFamilySafeModeEnabled } from "../../safetyHydration";
+import {
+  normalizeCompatibilityObject,
+  normalizeEmbeddedCharacterBook,
+} from "../../shared/characterCardCompatibility";
 
 const STORE = "character_cards" as const;
 const ID_RE = isValidRpId;
@@ -34,16 +38,26 @@ export function normalizeCard(input: unknown): CharacterCardV1 | null {
   const r = input as Record<string, unknown>;
   const id = typeof r.id === "string" ? r.id.trim() : "";
   if (!ID_RE(id)) return null;
-  const name = typeof r.name === "string" ? r.name.trim().slice(0, 200) : "";
-  if (!name) return null;
+  const sourceFormat =
+    r.sourceFormat === "venice-forge" ||
+    r.sourceFormat === "tavern-v1-json" ||
+    r.sourceFormat === "card-v2-json" ||
+    r.sourceFormat === "card-v2-png"
+      ? r.sourceFormat
+      : undefined;
+  const isExternalV2 = sourceFormat === "card-v2-json" || sourceFormat === "card-v2-png";
+  const name = typeof r.name === "string"
+    ? (isExternalV2 ? r.name : r.name.trim()).slice(0, 200)
+    : "";
+  if (!name && sourceFormat !== "card-v2-json" && sourceFormat !== "card-v2-png") return null;
   const description = typeof r.description === "string" ? r.description.slice(0, CARD_FIELD_MAX) : "";
   const systemPrompt = typeof r.systemPrompt === "string" ? r.systemPrompt.slice(0, CARD_FIELD_MAX) : "";
   const scenario = typeof r.scenario === "string" ? r.scenario.slice(0, CARD_FIELD_MAX) : undefined;
   const tags = Array.isArray(r.tags)
     ? (r.tags
         .filter((t): t is string => typeof t === "string")
-        .map((t) => t.trim().toLowerCase())
-        .filter((t) => t.length > 0 && t.length <= 64))
+        .map((t) => (isExternalV2 ? t : t.trim().toLowerCase()))
+        .filter((t) => (isExternalV2 ? t.length <= 64 : t.length > 0 && t.length <= 64)))
     : [];
   if (tags.length > MAX_TAGS) tags.length = MAX_TAGS;
   const modelId = typeof r.modelId === "string" ? r.modelId.trim() : undefined;
@@ -124,6 +138,26 @@ export function normalizeCard(input: unknown): CharacterCardV1 | null {
           if (snapFirst) vOut.snapshot.firstMessage = snapFirst;
           if (snapModel) vOut.snapshot.modelId = snapModel;
           if (snapAuthor) vOut.snapshot.author = snapAuthor;
+          if (typeof snap.personality === "string") vOut.snapshot.personality = snap.personality.slice(0, CARD_FIELD_MAX);
+          if (typeof snap.creatorNotes === "string") vOut.snapshot.creatorNotes = snap.creatorNotes.slice(0, CARD_FIELD_MAX);
+          if (typeof snap.postHistoryInstructions === "string") {
+            vOut.snapshot.postHistoryInstructions = snap.postHistoryInstructions.slice(0, CARD_FIELD_MAX);
+          }
+          if (Array.isArray(snap.alternateGreetings)) {
+            vOut.snapshot.alternateGreetings = snap.alternateGreetings
+              .filter((greeting): greeting is string => typeof greeting === "string")
+              .slice(0, 32)
+              .map((greeting) => greeting.slice(0, CARD_FIELD_MAX));
+          }
+          if (typeof snap.characterVersion === "string") {
+            vOut.snapshot.characterVersion = snap.characterVersion.slice(0, 64);
+          }
+          vOut.snapshot.tavernExtensions = normalizeCompatibilityObject(snap.tavernExtensions);
+          const snapshotBook = normalizeEmbeddedCharacterBook(snap.embeddedCharacterBook);
+          if (snapshotBook) vOut.snapshot.embeddedCharacterBook = snapshotBook;
+          if (typeof snap.rawExampleDialogue === "string") {
+            vOut.snapshot.rawExampleDialogue = snap.rawExampleDialogue.slice(0, CARD_FIELD_MAX);
+          }
           return vOut;
         })
         .filter((v): v is NonNullable<CharacterCardV1["versions"]>[number] => v !== null))
@@ -176,6 +210,30 @@ export function normalizeCard(input: unknown): CharacterCardV1 | null {
   const archivedAt = typeof r.archivedAt === "number" ? r.archivedAt : undefined;
   if (archivedAt !== undefined) out.archivedAt = archivedAt;
 
+  // ---- Phase 2H (ST Card Studio) Compatibility additions ----
+  const personality = typeof r.personality === "string" ? r.personality.slice(0, CARD_FIELD_MAX) : undefined;
+  const creatorNotes = typeof r.creatorNotes === "string" ? r.creatorNotes.slice(0, CARD_FIELD_MAX) : undefined;
+  const postHistoryInstructions = typeof r.postHistoryInstructions === "string" ? r.postHistoryInstructions.slice(0, CARD_FIELD_MAX) : undefined;
+  const alternateGreetings = Array.isArray(r.alternateGreetings)
+    ? r.alternateGreetings.filter((g): g is string => typeof g === "string").map((g) => g.slice(0, CARD_FIELD_MAX))
+    : [];
+  const characterVersion = typeof r.characterVersion === "string" ? r.characterVersion.slice(0, 64) : undefined;
+
+  const tavernExtensions = normalizeCompatibilityObject(r.tavernExtensions);
+  const embeddedCharacterBook = normalizeEmbeddedCharacterBook(r.embeddedCharacterBook);
+
+  const rawExampleDialogue = typeof r.rawExampleDialogue === "string" ? r.rawExampleDialogue.slice(0, CARD_FIELD_MAX) : undefined;
+
+  if (personality !== undefined) out.personality = personality;
+  if (creatorNotes !== undefined) out.creatorNotes = creatorNotes;
+  if (postHistoryInstructions !== undefined) out.postHistoryInstructions = postHistoryInstructions;
+  out.alternateGreetings = alternateGreetings;
+  if (characterVersion !== undefined) out.characterVersion = characterVersion;
+  out.tavernExtensions = tavernExtensions;
+  if (embeddedCharacterBook !== undefined) out.embeddedCharacterBook = embeddedCharacterBook;
+  if (rawExampleDialogue !== undefined) out.rawExampleDialogue = rawExampleDialogue;
+  if (sourceFormat !== undefined) out.sourceFormat = sourceFormat;
+
   if (contextFiles && contextFiles.length > 0) out.contextFiles = contextFiles;
   if (typeof r.webSearch === "boolean") out.webSearch = r.webSearch;
   // urlScrapingProvider replaces the legacy `urlScraping: boolean`. Backcompat:
@@ -200,6 +258,11 @@ export function normalizeCard(input: unknown): CharacterCardV1 | null {
   if (typeof r.enableThoughts === "boolean") out.enableThoughts = r.enableThoughts;
   if (typeof r.temperature === "number") out.temperature = r.temperature;
   if (typeof r.topP === "number") out.topP = r.topP;
+  out.schemaVersion = RP_SCHEMA_VERSION;
+  if (typeof r.revisionId === "string") out.revisionId = r.revisionId.slice(0, 128);
+  if (typeof r.baseRevisionId === "string") out.baseRevisionId = r.baseRevisionId.slice(0, 128);
+  if (typeof r.deviceId === "string") out.deviceId = r.deviceId.slice(0, 128);
+  if (typeof r.deletedAt === "number") out.deletedAt = r.deletedAt;
 
   return out;
 }

@@ -32,9 +32,12 @@ export const fallbackTokenCounter: TokenCounter = {
 
 export function compileCharacterEditorPrompt(card: CharacterCardV1): string {
   return [
+    card.systemPrompt?.trim() ? `[System prompt]\n${card.systemPrompt.trim()}` : '',
     buildCharactersBlock([card]),
     card.scenario?.trim() ? `[Scenario]\n${card.scenario.trim()}` : '',
     card.firstMessage?.trim() ? `[First message]\n${card.firstMessage.trim()}` : '',
+    card.postHistoryInstructions?.trim() ? `[Post-history instructions]\n${card.postHistoryInstructions.trim()}` : '',
+    card.rawExampleDialogue?.trim() ? `[Raw examples]\n${card.rawExampleDialogue.trim()}` : '',
     ...(card.contextFiles ?? []).map((file) => `[Context: ${file.name}]\n${file.content}`),
   ].filter(Boolean).join('\n\n')
 }

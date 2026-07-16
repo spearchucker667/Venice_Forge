@@ -136,8 +136,8 @@ describe("characterCardImportExport", () => {
       expect(c.id).toMatch(/^[a-zA-Z0-9_.-]+$/);
       expect(c.metadata?.importedFrom).toBe("tavern");
       expect(c.metadata?.importedVersion).toBe("1.2.3");
-      expect(c.exampleDialogues.length).toBe(1);
-      expect(c.exampleDialogues[0]!.speaker).toBe("Greeting");
+      expect(c.exampleDialogues.length).toBe(0);
+      expect(c.alternateGreetings).toEqual(["Welcome back."]);
     });
 
     it("imports an array of mixed native + Tavern records", async () => {
@@ -228,8 +228,8 @@ describe("characterCardImportExport", () => {
       expect(c.scenario).toContain("[REDACTED]");
       expect(c.exampleDialogues[0]!.text).not.toContain(longKey);
       expect(c.exampleDialogues[0]!.text).toContain("[REDACTED]");
-      expect(c.exampleDialogues[1]!.text).not.toContain(longKey);
-      expect(c.exampleDialogues[1]!.text).toContain("[REDACTED]");
+      expect(c.alternateGreetings![0]!).not.toContain(longKey);
+      expect(c.alternateGreetings![0]!).toContain("[REDACTED]");
       expect(c.metadata?.creator).not.toContain(longKey);
       expect(c.metadata?.creator).toContain("[REDACTED]");
     });

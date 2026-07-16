@@ -14,6 +14,7 @@ import { usePromptLibraryStore, resolvePromptProjectId } from '../../stores/prom
 import { toast } from '../../stores/toast-store'
 import { redactErrorMessage } from '../../shared/redaction'
 import type { MediaItem } from '../../types/media'
+import { createCharacterCardDraftFromMedia } from '../../services/characterCards/characterCardStudioHandoff'
 import { generateId } from '../../lib/utils'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
 import { isElectron, desktopMedia } from '../../services/desktopBridge'
@@ -872,6 +873,19 @@ export function ImageView() {
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
               </button>
+              <button
+                type="button"
+                onClick={async (event) => {
+                  event.stopPropagation();
+                  const media = useMediaStore.getState().items.find((item) => item.image === img);
+                  if (!media) { toast.error('Save the image to Media Studio before creating a card.'); return; }
+                  await createCharacterCardDraftFromMedia(media.id);
+                  useSettingsStore.getState().setActiveTab('rp-studio');
+                  toast.success('ST Card draft created');
+                }}
+                className="absolute bottom-2 left-2 rounded-lg border border-accent bg-overlay px-2 py-1 text-[11px] text-accent opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100"
+                data-testid="image-create-st-card"
+              >Create ST Card</button>
             </div>
           ))}
         </div>

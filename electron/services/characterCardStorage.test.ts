@@ -121,6 +121,56 @@ describe("characterCardStorage", () => {
       expect(loaded!.avatar).toBeUndefined();
     });
 
+    it("round-trips Character Card V2 compatibility fields and version snapshots", async () => {
+      const card = makeCard({
+        id: "card-v2-roundtrip",
+        personality: "Careful and curious",
+        creatorNotes: "Display only",
+        postHistoryInstructions: "Answer the latest message",
+        firstMessage: "Hello",
+        alternateGreetings: ["Welcome", "Good evening"],
+        characterVersion: "2.0.1",
+        tavernExtensions: { "fixture.namespace": { enabled: true } },
+        embeddedCharacterBook: {
+          extensions: {},
+          entries: [{ keys: ["archive"], content: "Synthetic lore", extensions: {}, enabled: true, insertion_order: 1 }],
+        },
+        rawExampleDialogue: "{{user}}: Hi\n{{char}}: Hello",
+        sourceFormat: "card-v2-json",
+        versions: [{
+          id: "version-1",
+          createdAt: 1,
+          snapshot: {
+            name: "Aria",
+            description: "Original",
+            systemPrompt: "Original prompt",
+            tags: [],
+            adult: false,
+            exampleDialogues: [],
+            personality: "Original personality",
+            tavernExtensions: { "fixture.version": 1 },
+          },
+        }],
+        currentVersionId: "version-1",
+      });
+      expect(await saveCharacterCard(card)).toEqual({ ok: true });
+      const loaded = await readCharacterCard(card.id);
+      expect(loaded).toMatchObject({
+        personality: card.personality,
+        creatorNotes: card.creatorNotes,
+        postHistoryInstructions: card.postHistoryInstructions,
+        alternateGreetings: card.alternateGreetings,
+        characterVersion: card.characterVersion,
+        tavernExtensions: card.tavernExtensions,
+        rawExampleDialogue: card.rawExampleDialogue,
+        sourceFormat: card.sourceFormat,
+        currentVersionId: "version-1",
+        schemaVersion: 3,
+      });
+      expect(loaded?.embeddedCharacterBook?.entries).toHaveLength(1);
+      expect(loaded?.versions?.[0]?.snapshot.personality).toBe("Original personality");
+    });
+
     it("persists avatar bytes to a separate avatar.png file", async () => {
       // 1x1 transparent PNG base64.
       const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";

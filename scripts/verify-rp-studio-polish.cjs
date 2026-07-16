@@ -65,7 +65,7 @@ if (!migrations.includes("toVersion: 10") || !migrations.includes("rpScenarios")
 
 console.log("[verify:rp-studio-polish] Checking Command Palette integration...");
 const palette = readFileSync("src/components/command-palette/CommandPalette.tsx", "utf8");
-for (const token of ["RP Studio", "New Character", "New Scenario"]) {
+for (const token of ["RP Studio", "Create ST Card", "New Scenario"]) {
   if (!palette.includes(token)) {
     console.error(`[verify:rp-studio-polish] Command Palette missing token: ${token}`);
     process.exit(1);

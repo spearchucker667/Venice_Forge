@@ -12,6 +12,7 @@ import { registerSystemHandlers } from "./systemHandlers";
 import { registerSyncHandlers } from "./syncHandlers";
 import { registerBackgroundTaskHandlers } from "./backgroundTaskHandlers";
 import { registerChatTtsHandlers } from "./chatTtsHandlers";
+import { registerCharacterCardFileHandlers } from "../characterCardFileHandlers";
 
 let ipcHandlersRegistered = false;
 
@@ -34,6 +35,7 @@ export function registerIpcHandlers(): void {
   registerSystemHandlers();
   registerSyncHandlers();
   registerChatTtsHandlers();
+  registerCharacterCardFileHandlers();
 
   // ── Background task manager (persistent main-process queue ownership) ──
   registerBackgroundTaskHandlers();

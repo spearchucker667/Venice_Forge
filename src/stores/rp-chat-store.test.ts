@@ -173,6 +173,15 @@ describe("VERIFY-025 RP chat creation persistence", () => {
     expect(useRpChatStore.getState().activeChatId).toBe("rp-chat-1");
   });
 
+  it("persists the selected greeting exactly once as conversation metadata and history", async () => {
+    mocks.save.mockImplementation(async (chat) => chat);
+    await useRpChatStore.getState().createChat({ ...init, greeting: { mode: "alternate", characterId: "c_1", index: 1, content: "Alternate hello" } });
+    const saved = mocks.save.mock.calls[0][0];
+    expect(saved.metadata.greetingSelection).toEqual({ mode: "alternate", characterId: "c_1", index: 1 });
+    expect(saved.messages).toEqual([expect.objectContaining({ role: "character", characterId: "c_1", content: "Alternate hello" })]);
+    expect(saved.messages).toHaveLength(1);
+  });
+
   it("keeps failed creations out of UI state and surfaces a safe persistence error", async () => {
     mocks.save.mockRejectedValue(new Error("Config is still hydrating"));
 

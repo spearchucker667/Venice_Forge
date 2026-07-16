@@ -174,17 +174,11 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
   },
 
   importCards: async (json) => {
-    let parsed: unknown;
-    try { parsed = JSON.parse(json); } catch { return 0; }
-    if (!parsed || typeof parsed !== "object") return 0;
-    const p = parsed as Record<string, unknown>;
-    if (p.version !== RP_CARD_EXPORT_VERSION || p.app !== "Venice Forge") return 0;
-    const arr = Array.isArray(p.cards) ? p.cards : [];
+    const { parseCharacterCardImport } = await import("../services/characterCardImportExport");
+    const result = await parseCharacterCardImport(json);
     let count = 0;
-    for (const raw of arr) {
-      const normalized = normalizeCard(raw);
-      if (!normalized) continue;
-      const saved = await get().upsert(normalized);
+    for (const card of result.imported) {
+      const saved = await get().upsert(card);
       if (saved) count++;
     }
     return count;
@@ -238,6 +232,14 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
         adult: current.adult,
         exampleDialogues: current.exampleDialogues,
         firstMessage: current.firstMessage,
+        personality: current.personality,
+        creatorNotes: current.creatorNotes,
+        postHistoryInstructions: current.postHistoryInstructions,
+        alternateGreetings: current.alternateGreetings,
+        characterVersion: current.characterVersion,
+        tavernExtensions: current.tavernExtensions,
+        embeddedCharacterBook: current.embeddedCharacterBook,
+        rawExampleDialogue: current.rawExampleDialogue,
       },
     };
     const versions = [...(current.versions ?? []), ver];
@@ -262,6 +264,14 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
       adult: ver.snapshot.adult,
       exampleDialogues: ver.snapshot.exampleDialogues,
       firstMessage: ver.snapshot.firstMessage,
+      personality: ver.snapshot.personality,
+      creatorNotes: ver.snapshot.creatorNotes,
+      postHistoryInstructions: ver.snapshot.postHistoryInstructions,
+      alternateGreetings: ver.snapshot.alternateGreetings,
+      characterVersion: ver.snapshot.characterVersion,
+      tavernExtensions: ver.snapshot.tavernExtensions,
+      embeddedCharacterBook: ver.snapshot.embeddedCharacterBook,
+      rawExampleDialogue: ver.snapshot.rawExampleDialogue,
       currentVersionId: versionId,
       updatedAt: Date.now(),
     };

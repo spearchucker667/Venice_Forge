@@ -48,6 +48,13 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 - [design/THEME_SYSTEM.md](design/THEME_SYSTEM.md) — Theme variables, contrast checking, and custom YAML palette integration.
 - [design/CHARACTER_RP.md](design/CHARACTER_RP.md) — Local Character RP architecture and memory boundaries.
+- [design/ST_CARD_STUDIO.md](design/ST_CARD_STUDIO.md) — ST Card Studio compatibility decisions, trust boundaries, integration inventory, and phase gates.
+- [reference/CHARACTER_CARD_V2_COMPATIBILITY.md](reference/CHARACTER_CARD_V2_COMPATIBILITY.md) — Supported formats, mappings, limits, and runtime semantics.
+- [security/ST_CARD_IMPORT_THREAT_MODEL.md](security/ST_CARD_IMPORT_THREAT_MODEL.md) — Card/PNG/IPC/AI trust boundaries and logging rules.
+- [user/ST_CARD_STUDIO.md](user/ST_CARD_STUDIO.md) — Import, editing, draft, chat, and export guide.
+- [developer/CHARACTER_CARD_CODEC.md](developer/CHARACTER_CARD_CODEC.md) — Main-process PNG codec contract.
+- [developer/CHARACTER_CARD_MAPPINGS.md](developer/CHARACTER_CARD_MAPPINGS.md) — External/internal and character-book mappings.
+- [testing/CHARACTER_CARD_FIXTURES.md](testing/CHARACTER_CARD_FIXTURES.md) — Synthetic fixture policy and validation commands.
 - [design/MEDIA_STUDIO.md](design/MEDIA_STUDIO.md) — Media Studio command center actions, visual diffs, and lineage trees.
 - [design/MEMORY.md](design/MEMORY.md) — Semantic memory store structure and injection disclosures.
 - [design/LOREBOOKS.md](design/LOREBOOKS.md) — Lorebook JSON formats and key trigger injection.
@@ -80,6 +87,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [RELEASE/signing-and-notarization.md](RELEASE/signing-and-notarization.md) — Certificate setups and macOS app quarantine workarounds.
 - [RELEASE/repository-settings.md](RELEASE/repository-settings.md) — GitHub environments and branch protections.
 - [RELEASE/SIGNED_ARTIFACT_EVIDENCE.md](RELEASE/SIGNED_ARTIFACT_EVIDENCE.md) — Cryptographic verification hashes of released binaries.
+- [RELEASE/ST_CARD_STUDIO_MIGRATION.md](RELEASE/ST_CARD_STUDIO_MIGRATION.md) — Character schema, draft, import/export, sync, and compatibility migration notes.
 
 ---
 

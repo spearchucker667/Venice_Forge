@@ -22,6 +22,7 @@ const KIND_TONE: Record<PromptAssemblyTraceEntry["kind"], string> = {
   "lorebook-entry": "border-pink-400/30 text-pink-300",
   "memory": "border-rose-400/30 text-rose-300",
   "recent-message": "border-border text-text-secondary",
+  "post-history-instruction": "border-orange-400/30 text-orange-300",
   "active-turn-instruction": "border-emerald-400/30 text-emerald-300",
   "user-message": "border-border text-text-primary",
 };

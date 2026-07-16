@@ -43,6 +43,10 @@ export default defineConfig(() => {
             // lazy views. Keep it out of the startup entry so adding prompts cannot
             // silently consume the main-app bundle budget.
             if (id.endsWith('/src/data/promptStarters.ts')) return 'prompt-starters';
+            // Sync packet parsing and conflict resolution are invoked only for
+            // remote/manual imports. Isolate them from the startup entry so
+            // format-specific merge logic cannot inflate the shell bundle.
+            if (id.endsWith('/src/services/syncPacketImporter.ts')) return 'sync-packet-importer';
             if (id.includes('node_modules')) {
               if (id.includes('/pdfjs-dist/')) return 'vendor-pdfjs';
               if (id.includes('/lucide-react/')) return 'vendor-lucide';

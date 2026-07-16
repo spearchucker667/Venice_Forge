@@ -5,7 +5,7 @@ import { PromptDebugDrawer } from './PromptDebugDrawer'
 import type { PromptAssemblyResult } from '../../types/rp'
 
 const assembly: PromptAssemblyResult = {
-  systemMessages: [], recentMessages: [], userMessage: { role: 'user', content: 'Hello' }, trace: [], budgetExceeded: false, totalSystemChars: 0,
+  systemMessages: [], recentMessages: [], postHistoryMessages: [], userMessage: { role: 'user', content: 'Hello' }, trace: [], budgetExceeded: false, totalSystemChars: 0,
 }
 
 describe('PromptDebugDrawer accessibility', () => {

@@ -8,4 +8,6 @@ Local Family Safe Mode and Venice provider `safe_mode` are separate controls. Th
 
 Portable data excludes API keys, authorization tokens, passwords, passphrases, secrets, sync-folder settings, and machine-local paths. Import and sync accept only allowlisted stores, validate record IDs, reject malformed/oversized envelopes, and preserve divergent user content instead of silently overwriting it.
 
+ST Card Studio keeps PNG parsing, filesystem paths, dialogs, and persisted provider credentials outside the renderer. Import previews use sender-scoped expiring opaque handles. Vision requests resolve durable local media IDs, treat visible text as untrusted, require strict structured output, support cancellation, and never persist generated content until the user applies it. Character-card sync keeps a full losing conflict copy; only greetings, tags, non-conflicting extension namespaces, book entries, versions, and metadata are safely unioned.
+
 See [SECURITY.md](../SECURITY.md), [backup-and-sync.md](backup-and-sync.md), and [sync-threat-model.md](sync-threat-model.md).

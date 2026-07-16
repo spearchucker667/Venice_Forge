@@ -20,3 +20,7 @@ Official resources:
 - Privacy Policy: https://venice.ai/legal/privacy
 - API Documentation: https://docs.venice.ai
 - Brand Guidelines: https://venice.ai/brand
+
+## Character Card interoperability
+
+The ST Card Studio codec, adapters, and UI were independently implemented against the public Character Card V2 data format and observed interoperability requirements. No AIRole source code was copied or substantially adapted; therefore no additional AIRole source attribution is attached to implementation files.

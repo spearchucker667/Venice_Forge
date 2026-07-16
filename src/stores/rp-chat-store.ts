@@ -44,6 +44,7 @@ export interface RpChatState {
     modelId: string;
     scenario?: string;
     adult?: boolean;
+    greeting?: { mode: "primary" | "alternate" | "random" | "none"; characterId: string; index?: number; content?: string };
   }) => Promise<string | null>;
   setActive: (id: string | null) => void;
   setStreaming: (s: boolean) => void;
@@ -123,7 +124,7 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
     }
   },
 
-  createChat: async ({ title, characterIds, personaId, lorebookIds, modelId, scenario, adult }) => {
+  createChat: async ({ title, characterIds, personaId, lorebookIds, modelId, scenario, adult, greeting }) => {
     const id = svcGenerateId();
     const now = Date.now();
     const safeIds = characterIds.slice(0, MAX_ACTIVE_CHARACTERS);
@@ -136,9 +137,9 @@ export const useRpChatStore = create<RpChatState>((set, get) => ({
       lorebookIds: [...lorebookIds],
       modelId,
       ...(scenario ? { scenario } : {}),
-      messages: [],
+      messages: greeting?.content ? [{ id: newMessageId(), role: "character", characterId: greeting.characterId, content: greeting.content, createdAt: now }] : [],
       adult: adult === true,
-      metadata: { pinned: false, archived: false, tags: [] },
+      metadata: { pinned: false, archived: false, tags: [], ...(greeting ? { greetingSelection: { mode: greeting.mode, characterId: greeting.characterId, ...(greeting.index !== undefined ? { index: greeting.index } : {}) } } : {}) },
       createdAt: now,
       updatedAt: now,
     };

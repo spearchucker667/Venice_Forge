@@ -22,6 +22,9 @@ import { useCharacterCardStore } from '../stores/character-card-store'
 import { startNormalChatForCharacter } from '../services/rpHelpers'
 import { avatarDataUri } from './rp-studio/_shared'
 import { CharacterAvatar } from './characters/CharacterAvatar'
+import { createBlankCharacterCardDraft } from '../services/characterCards/characterCardStudioHandoff'
+import { desktopCharacterCards } from '../services/desktopBridge'
+import { validateCharacterCardAuthoring } from '../types/character-card-spec'
 import { askDecision } from './ui/modal-requests'
 import { AccessibleDialog } from './ui/AccessibleDialog'
 import { toast } from '../stores/toast-store'
@@ -400,6 +403,7 @@ export function CharactersView() {
         <div className="flex-none space-y-3 p-5 soft-panel bg-surface/40">
           <div><h2 className="text-[17px] font-semibold text-text-primary">Characters</h2><p className="text-[12.5px] text-text-muted">Hosted and locally authored characters in one hub.</p></div>
           {hubNav}
+          <div className="flex flex-wrap gap-2"><button type="button" onClick={async () => { await createBlankCharacterCardDraft(); setActiveTab('rp-studio') }} className="rounded bg-accent px-3 py-1.5 text-[12px] text-accent-fg">Create ST Card</button><button type="button" onClick={() => { setActiveTab('rp-studio'); toast.info('Use Import card in the Character Library to review the mandatory preview.') }} className="rounded border border-border px-3 py-1.5 text-[12px] text-text-secondary">Import ST Card</button><button type="button" onClick={() => { setActiveTab('rp-studio'); toast.info('Open Drafts in the Character Library.') }} className="rounded border border-border px-3 py-1.5 text-[12px] text-text-secondary">Drafts</button></div>
         </div>
         <div className="flex-1 overflow-y-auto p-5">
           {visibleHostedCards.length > 0 && (
@@ -414,7 +418,7 @@ export function CharactersView() {
               const meta = { id: card.id, localCharacterId: card.id, name: card.name, photoUrl: avatarDataUri(card.avatar), modelId: card.modelId }
               return (
                 <article key={card.id} className="rounded-xl border border-border p-4 mesh-surface-elevated">
-                  <div className="flex gap-3"><CharacterAvatar character={meta} cacheKey={`hub-local-${card.id}`} size="lg" /><div className="min-w-0"><h3 className="truncate font-semibold text-text-primary">{card.name}</h3><span className="text-[11px] uppercase text-accent">Local</span></div></div>
+                  <div className="flex gap-3"><CharacterAvatar character={meta} cacheKey={`hub-local-${card.id}`} size="lg" /><div className="min-w-0"><h3 className="truncate font-semibold text-text-primary">{card.name}</h3><div className="flex flex-wrap gap-1"><span className="text-[11px] uppercase text-accent">{card.sourceFormat === 'tavern-v1-json' ? 'V1 Imported' : card.sourceFormat === 'card-v2-json' ? 'V2 JSON' : card.sourceFormat === 'card-v2-png' ? 'V2 PNG' : 'VF Native'}</span>{validateCharacterCardAuthoring(card).length > 0 && <span className="text-[11px] uppercase text-warning">Needs Validation</span>}</div></div></div>
                   <p className="mt-3 line-clamp-3 text-[12.5px] text-text-secondary">{card.description || 'No description'}</p>
                   <div className="mt-2 flex flex-wrap gap-1">{card.tags.slice(0, 4).map((tag) => <span key={tag} className="rounded bg-surface px-2 py-0.5 text-[11px] text-text-muted">{tag}</span>)}</div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
@@ -422,6 +426,7 @@ export function CharactersView() {
                     <button type="button" onClick={() => setActiveTab('rp-studio')} className="rounded border border-border px-2 py-1.5 text-text-secondary">Edit</button>
                     <button type="button" onClick={() => void upsertLocalCard({ ...card, id: crypto.randomUUID(), name: `${card.name} Copy`, createdAt: Date.now(), updatedAt: Date.now() })} className="rounded border border-border px-2 py-1.5 text-text-secondary">Duplicate</button>
                     <button type="button" onClick={() => void upsertLocalCard({ ...card, metadata: { ...card.metadata, favorite: card.metadata?.favorite !== true }, updatedAt: Date.now() })} className="rounded border border-border px-2 py-1.5 text-text-secondary">{card.metadata?.favorite === true ? 'Unfavorite' : 'Favorite'}</button>
+                    <button type="button" onClick={async () => { const result = await desktopCharacterCards.exportJson({ cardId: card.id, profile: 'standard' }); if (!result.ok) toast.error(result.error ?? 'Export failed') }} className="col-span-2 rounded border border-border px-2 py-1.5 text-text-secondary">Export ST Card JSON</button>
                     <button type="button" onClick={async () => { if (await askDecision({ title: `Delete ${card.name}?`, detail: 'This removes the locally owned character card.', actionLabel: 'Delete', danger: true })) await removeLocalCard(card.id) }} className="col-span-2 rounded border border-danger/40 px-2 py-1.5 text-danger">Delete local character</button>
                   </div>
                 </article>

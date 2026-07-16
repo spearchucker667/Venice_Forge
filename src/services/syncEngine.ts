@@ -218,7 +218,7 @@ function handleStorageSaved(e: Event) {
   const { store, record, id, origin } = customEvent.detail;
   // Diagnostics is explicitly excluded from sync. Tombstones are sync metadata
   // and are emitted by the authoritative delete coordinator, not re-routed here.
-  if (store === "diagnostics" || store === "tombstones") return;
+  if (store === "diagnostics" || store === "tombstones" || store === "characterCardDrafts") return;
   // Only local-user mutations should auto-emit sync packets. Undefined origin
   // is treated as local-user for back-compat with older storage event emitters.
   if (origin !== undefined && origin !== "local-user") return;

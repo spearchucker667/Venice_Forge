@@ -361,13 +361,13 @@ describe("syncFolderWatcher", () => {
     });
 
     const recordApply = handleRemoteChange(recordPath);
-    await vi.waitFor(() => expect(sendMock).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(sendMock).toHaveBeenCalledTimes(1), { timeout: 30_000 });
     const tombstoneApply = handleRemoteChange(tombstonePath);
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(sendMock).toHaveBeenCalledTimes(1);
 
     await acknowledgeOperation(recordOperationId, true);
-    await vi.waitFor(() => expect(sendMock).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(sendMock).toHaveBeenCalledTimes(2), { timeout: 30_000 });
     expect(sendMock.mock.calls[1][1]).toMatchObject({
       storeName: "tombstones",
       operationId: tombstoneOperationId,

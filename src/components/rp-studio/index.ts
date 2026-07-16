@@ -4,7 +4,6 @@
 
 export { RpStudioView } from "./RpStudioView";
 export { CharacterLibrary } from "./CharacterLibrary";
-export { CharacterEditor } from "./CharacterEditor";
 export { PersonaManager } from "./PersonaManager";
 export { LorebookManager } from "./LorebookManager";
 export { RpChatList } from "./RpChatList";

@@ -13,7 +13,7 @@ Venice Forge's existing **Characters** tab discovers characters hosted at `api.v
 | Surface | Description |
 |---|---|
 | **Character Library** | Grid of local character cards with avatar, name, age, description, adult tag, tags. Search & filter. |
-| **Character Editor** | Full editor: name, author, system prompt, description, scenario, tags, example dialogues, avatar upload (PNG/JPEG/WebP ≤ 1 MiB), model selection, adult flag. Family Safe Mode runs the local preflight on save when enabled; Adult Mode records a skipped local decision. |
+| **ST Card Studio / Character Editor** | Ten-step Character Card V2 editor with standards-aware empty fields, creator notes, personality, post-history instructions, greeting carousel/reorder, raw examples, extension JSON, embedded/linked books, prompt trace, disposable test turn, verified export, encrypted drafts, and proposal-only AI generation/refinement. |
 | **Persona Manager** | One or more user personas (name, reference, description, tags). One is "active" per session. |
 | **Lorebook Manager** | World-info books with keyword-triggered entries. Each entry: keys, content, insertion mode (`before_char` / `after_char` / `at_depth`), whole-word match, constant. |
 | **RP Chat** | Multi-character chat (up to 8 active characters per chat). Per-message role: `user` / `character` / `narrator` / `system` / `tool`. Streaming via Venice text models. Family Safe Mode checks each dispatch when enabled; Adult Mode skips the local filter. |

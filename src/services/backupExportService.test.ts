@@ -105,6 +105,15 @@ describe("backupExportService", () => {
       iv: "iv",
       ciphertext: "cipher",
     });
+    expect(mockGetItems).not.toHaveBeenCalledWith("characterCardDrafts");
+  });
+
+  it("includes local character-card drafts only with explicit opt-in", async () => {
+    mockIsElectron.mockReturnValue(true);
+    mockBeginBackupExport.mockResolvedValue({ ok: true, profileId: "default", deviceId: "device-default", token: "lease-token" });
+    mockEncryptBackup.mockResolvedValue({ ok: true, data: { salt: "salt", iv: "iv", ciphertext: "cipher" } });
+    await createEncryptedBackup("password", { includeCharacterCardDrafts: true });
+    expect(mockGetItems).toHaveBeenCalledWith("characterCardDrafts");
   });
 
   it("throws when desktop encryption fails", async () => {

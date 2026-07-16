@@ -19,6 +19,8 @@ import { RecipeCompatibilityCard } from "./recipe-compatibility-card";
 import { usePromptLibraryStore, resolvePromptProjectId } from "../../stores/prompt-library-store";
 import { toast } from "../../stores/toast-store";
 import { copyText } from "../../stores/media-send-to";
+import { createCharacterCardDraftFromMedia } from "../../services/characterCards/characterCardStudioHandoff";
+import { useSettingsStore } from "../../stores/settings-store";
 
 interface MediaInspectorProps {
   item: MediaItem;
@@ -480,6 +482,17 @@ export function MediaInspector({
               <Settings className="h-3 w-3" /> Use settings
             </button>
           )}
+          {item.mediaType === "image" && <button
+            type="button"
+            onClick={async () => {
+              await createCharacterCardDraftFromMedia(item.id);
+              useSettingsStore.getState().setActiveTab("rp-studio");
+              toast.success("ST Card draft created", "The durable Media Studio asset is linked as the avatar source.");
+              onClose();
+            }}
+            className="inline-flex items-center gap-1 rounded-md border border-accent px-2 py-1 text-[12px] text-accent hover:bg-accent/10"
+            data-testid="inspector-create-st-card"
+          ><ImagePlus className="h-3 w-3" /> Create ST Card</button>}
           {onUseRecipe && (
             <button
               type="button"

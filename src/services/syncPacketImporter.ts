@@ -32,7 +32,7 @@ export interface SyncableRecord {
   messages?: Record<string, unknown>[];
 }
 
-export const IMPORTABLE_STORES = new Set<string>(STORE_NAMES.filter((storeName) => storeName !== "diagnostics"));
+export const IMPORTABLE_STORES = new Set<string>(STORE_NAMES.filter((storeName) => storeName !== "diagnostics" && storeName !== "characterCardDrafts"));
 
 /** Saves a record to a specific store, routing to IPC if needed in Desktop mode. */
 export async function saveStoreRecord(
@@ -271,7 +271,11 @@ export async function importDecryptedPacket(
             title: loser.title ? `${loser.title} (Conflict from ${loser.deviceId || "Remote"})` : undefined,
           };
           await saveStoreRecord(storeName, conflictRecord, importOrigin, remoteApplyToken);
-          if (importedWins) await saveStoreRecord(storeName, imported, importOrigin, remoteApplyToken);
+          if (storeName === "character_cards") {
+            const winner = importedWins ? imported : local;
+            const { mergeCharacterCardConflict } = await import("./characterCards/characterCardSyncMerge");
+            await saveStoreRecord(storeName, mergeCharacterCardConflict(winner as unknown as Record<string, unknown>, loser as unknown as Record<string, unknown>), importOrigin, remoteApplyToken);
+          } else if (importedWins) await saveStoreRecord(storeName, imported, importOrigin, remoteApplyToken);
         } else if (mergeStores.includes(storeName)) {
           // Message-level append merge
           const localMessages = local.messages || [];

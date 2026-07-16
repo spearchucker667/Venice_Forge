@@ -174,6 +174,34 @@ describe("character-card-store", () => {
     expect(saved!.metadata).toEqual({ ok: "string", n: 42, b: true, n2: null });
   });
 
+  it("includes every ST compatibility field in version snapshots and restores it", async () => {
+    const saved = await useCharacterCardStore.getState().upsert(baseCard({
+      personality: "First personality",
+      creatorNotes: "First notes",
+      postHistoryInstructions: "First post-history",
+      alternateGreetings: ["First alternate"],
+      characterVersion: "1.0",
+      tavernExtensions: { "fixture.namespace": { version: 1 } },
+      embeddedCharacterBook: { extensions: {}, entries: [] },
+      rawExampleDialogue: "First raw example",
+    }));
+    expect(saved).not.toBeNull();
+    const versioned = await useCharacterCardStore.getState().addVersion(saved!.id, "ST snapshot");
+    const versionId = versioned?.currentVersionId;
+    expect(versionId).toBeTruthy();
+    await useCharacterCardStore.getState().upsert({
+      ...versioned!,
+      personality: "Changed personality",
+      creatorNotes: "Changed notes",
+    });
+    const restored = await useCharacterCardStore.getState().setCurrentVersion(saved!.id, versionId!);
+    expect(restored?.personality).toBe("First personality");
+    expect(restored?.creatorNotes).toBe("First notes");
+    expect(restored?.alternateGreetings).toEqual(["First alternate"]);
+    expect(restored?.tavernExtensions).toEqual({ "fixture.namespace": { version: 1 } });
+    expect(restored?.rawExampleDialogue).toBe("First raw example");
+  });
+
   it("load fetches cards and sorts them by updatedAt", async () => {
     const cards = [baseCard({ id: "c_1", updatedAt: 1 }), baseCard({ id: "c_2", updatedAt: 2 })];
     vi.spyOn(characterCardService, "listCharacterCards").mockResolvedValue(cards);

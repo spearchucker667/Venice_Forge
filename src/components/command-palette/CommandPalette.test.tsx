@@ -409,6 +409,7 @@ describe("CommandPalette — Phase 2B selection-aware Media Studio commands", ()
 import { useCharacterCardStore } from '../../stores/character-card-store'
 import { useScenarioStore } from '../../stores/scenario-store'
 import * as rpHelpers from '../../services/rpHelpers'
+import * as studioHandoff from '../../services/characterCards/characterCardStudioHandoff'
 
 describe("CommandPalette — Phase 2F RP Studio commands", () => {
   beforeEach(() => {
@@ -431,10 +432,10 @@ describe("CommandPalette — Phase 2F RP Studio commands", () => {
     expect(useSettingsStore.getState().activeTab).toBe('rp-studio')
   })
 
-  it("New Character creates blank character and routes to rp-studio", () => {
-    const createBlank = vi.spyOn(useCharacterCardStore.getState(), 'createBlank')
+  it("Create ST Card creates a local-only draft and routes to rp-studio", async () => {
+    const createBlank = vi.spyOn(studioHandoff, 'createBlankCharacterCardDraft').mockResolvedValue('draft-1')
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />)
-    act(() => {
+    await act(async () => {
       fireEvent.click(screen.getByTestId("command-palette-new-character"))
     })
     expect(createBlank).toHaveBeenCalled()

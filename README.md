@@ -115,7 +115,7 @@ Venice Forge includes an embedded **Research Browser** that utilizes Electron's 
 ## Characters, RP Studio, Memory, and Lorebooks
 
 Roleplay and creative writing features are consolidated into a comprehensive **RP Studio**:
-- **Character Cards:** Create, edit, and export Tavern V1/V2 and native character cards. Imports run a strict secret-stripping filter.
+- **ST Card Studio:** Create, preview-import, edit, version, test, and verified-export Tavern V1 / Character Card V2 JSON and V2 PNG cards. Main-owned file dialogs, bounded PNG validation, secret filtering, lossless compatibility fields, encrypted local drafts, typed AI refinement proposals, alternate greetings, and embedded lorebook compilation preserve the app’s existing storage and safety boundaries. See [the user guide](docs/user/ST_CARD_STUDIO.md).
 - **Personas & Scenarios:** Manage user identity stacks and contextual background circumstances separately.
 - **Lorebooks:** Define key-value triggers that inject world context or character history into the prompt window dynamically.
 - **Memory Injection:** Active chats automatically query IndexedDB-backed semantic memories. Injected context is disclosed to users via a collapsible audit pill in the conversation UI.

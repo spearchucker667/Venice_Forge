@@ -36,6 +36,7 @@ import type {
   RpPromptContext,
   UserPersonaV1,
 } from "../../types/rp";
+import { mapCharacterBookV2ToLorebookV1 } from "../characterCards/characterBookAdapter";
 
 /** Static safety preamble. Kept short and stable; never contains user content. */
 export const SAFETY_PREAMBLE =
@@ -110,7 +111,7 @@ export function buildCharactersBlock(characters: CharacterCardV1[]): string {
   return characters
     .map((c) => {
       const desc = c.description ? c.description.trim() : "";
-      const sys = c.systemPrompt ? c.systemPrompt.trim() : "";
+      const personality = c.personality ? c.personality.trim() : "";
       const instructions = c.instructions ? c.instructions.trim() : "";
       const ex = c.exampleDialogues
         .filter((d) => d.speaker && d.text)
@@ -119,13 +120,33 @@ export function buildCharactersBlock(characters: CharacterCardV1[]): string {
       return block(
         `[Character: ${c.name}]`,
         desc,
+        personality ? `[Personality]\n${personality}` : undefined,
         instructions ? `[Creator instructions]\n${instructions}` : undefined,
-        sys,
         ex ? `Example exchanges:\n${ex}` : undefined,
       );
     })
     .filter((s) => s.length > 0)
     .join("\n\n");
+}
+
+/** Replaces only the first placeholder occurrence; replacement text is never recursively expanded. */
+export function replaceOriginalOnce(template: string, original: string): string {
+  const index = template.indexOf("{{original}}");
+  return index < 0 ? template : `${template.slice(0, index)}${original}${template.slice(index + "{{original}}".length)}`;
+}
+
+export function resolveCharacterSystemPrompt(
+  cardPrompt: string | undefined,
+  globalPrompt: string | undefined,
+  behavior: NonNullable<RpPromptContext["characterSystemPromptBehavior"]> = "respect-card",
+): string {
+  const card = cardPrompt?.trim() ?? "";
+  const global = globalPrompt?.trim() ?? "";
+  const expanded = replaceOriginalOnce(card, global);
+  if (behavior === "prefer-global") return global || expanded;
+  if (behavior === "append-global") return card.includes("{{original}}") ? expanded : [expanded, global].filter(Boolean).join("\n\n");
+  if (behavior === "prepend-global") return card.includes("{{original}}") ? expanded : [global, expanded].filter(Boolean).join("\n\n");
+  return expanded || global;
 }
 
 /** Assembles the persona block. */
@@ -245,8 +266,10 @@ export function buildRpPrompt(ctx: RpPromptContext): PromptAssemblyResult {
   systemMessages.push({ role: "system", content: SAFETY_PREAMBLE });
   trace.push({ id: tid("safety-preamble", "static"), kind: "safety-preamble", label: "Safety preamble", chars: SAFETY_PREAMBLE.length, included: true });
 
-  // 2. Model identity.
-  const modelSys = ctx.modelSystemPrompt?.trim() ?? "";
+  const expectedCard = ctx.characters.find((card) => card.id === (ctx.expectedCharacterId ?? ctx.rpChat.characterIds[0])) ?? ctx.characters[0];
+  // 2. System prompt. A card prompt replaces/falls back to the global prompt
+  // according to the explicit behavior; it is not duplicated in the character definition.
+  const modelSys = resolveCharacterSystemPrompt(expectedCard?.systemPrompt, ctx.modelSystemPrompt, ctx.characterSystemPromptBehavior);
   if (modelSys) {
     systemMessages.push({ role: "system", content: modelSys });
     trace.push({ id: tid("model-identity", "model"), kind: "model-identity", label: "Model identity", chars: modelSys.length, included: true });
@@ -290,7 +313,10 @@ export function buildRpPrompt(ctx: RpPromptContext): PromptAssemblyResult {
 
   // 6. Lorebooks.
   const recentWindow = buildTriggerWindow(ctx.rpChat.messages, ctx.recentMessageBudget);
-  for (const lb of ctx.lorebooks) {
+  const embeddedLorebooks = activeCards.flatMap((card) => card.embeddedCharacterBook
+    ? [mapCharacterBookV2ToLorebookV1(card.embeddedCharacterBook, { id: `embedded-${card.id}`, characterId: card.id, now: card.updatedAt })]
+    : []);
+  for (const lb of [...ctx.lorebooks, ...embeddedLorebooks]) {
     const triggered = lb.entries.filter((e) => entryTriggers(e, recentWindow));
     if (triggered.length === 0) {
       trace.push({ id: tid("lorebook", lb.id), kind: "lorebook-entry", label: `Lorebook: ${lb.name}`, chars: 0, included: false, reason: "no-trigger", sourceId: lb.id });
@@ -348,6 +374,14 @@ export function buildRpPrompt(ctx: RpPromptContext): PromptAssemblyResult {
   }
   trace.push({ id: tid("recent-message", "list"), kind: "recent-message", label: `Recent messages (${recent.length})`, chars: recent.reduce((s, m) => s + m.content.length, 0), included: recent.length > 0 });
 
+  // Post-history stays outside the pre-history system block so provider
+  // adapters can place it immediately before the final generation boundary.
+  const postHistory = replaceOriginalOnce(expectedCard?.postHistoryInstructions?.trim() ?? "", ctx.globalPostHistoryInstruction?.trim() ?? "") || ctx.globalPostHistoryInstruction?.trim() || "";
+  const postHistoryMessages = postHistory
+    ? [{ role: "system" as const, content: postHistory, ...(expectedCard ? { characterId: expectedCard.id } : {}) }]
+    : [];
+  trace.push({ id: tid("post-history-instruction", expectedCard?.id ?? "none"), kind: "post-history-instruction", label: "Post-history instruction", chars: postHistory.length, included: postHistory.length > 0, ...(postHistory ? {} : { reason: "empty" as const }) });
+
   // 9. Active-turn instruction — names the responding character(s).
   const expected = resolveExpectedCharacterIds(ctx);
   const expectedNames = expected
@@ -397,6 +431,7 @@ export function buildRpPrompt(ctx: RpPromptContext): PromptAssemblyResult {
   return {
     systemMessages,
     recentMessages,
+    postHistoryMessages,
     userMessage,
     trace,
     totalSystemChars: total,

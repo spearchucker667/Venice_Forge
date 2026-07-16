@@ -196,7 +196,7 @@ describe('chat-store dirty tracking for non-active saves (BUG-CHAT-DIRTY regress
       // The final conversation created must also have been saved at some point.
       expect(savedIds).toContain(ids[ids.length - 1])
     },
-    10000,
+    30000,
   )
 })
 

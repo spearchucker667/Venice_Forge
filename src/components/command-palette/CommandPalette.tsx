@@ -32,6 +32,7 @@ import { useScenarioStore } from '../../stores/scenario-store'
 import { useStoragePrivacyStore } from '../../stores/storage-privacy-store'
 import { useResearchStore } from '../../stores/research-store'
 import { startChatForCharacter } from '../../services/rpHelpers'
+import { createBlankCharacterCardDraft } from '../../services/characterCards/characterCardStudioHandoff'
 import { readBoundedJsonFile } from '../../utils/file-reader'
 import { askText } from '../ui/modal-requests'
 
@@ -604,17 +605,17 @@ export function CommandPalette({ open, onClose, onToggle }: CommandPaletteProps)
           </button>
           <button
             data-command-item
-            onClick={() => {
+            onClick={async () => {
               setActiveTab('rp-studio');
-              useCharacterCardStore.getState().createBlank();
-              toast.success('Created new character');
+              await createBlankCharacterCardDraft();
+              toast.success('Created local ST Card draft');
               onClose();
               setQuery('');
             }}
             className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-new-character"
           >
-            New Character
+            Create ST Card
           </button>
           <button
             data-command-item

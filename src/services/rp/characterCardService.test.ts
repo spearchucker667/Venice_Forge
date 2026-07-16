@@ -146,6 +146,43 @@ describe("normalizeCard", () => {
     // We just verify trim + lowercase + size cap.
     expect(out!.tags).toEqual(["foo", "bar", "ok"]);
   });
+
+  it("migrates Character Card V2 compatibility fields idempotently", () => {
+    const input = {
+      ...baseCard(),
+      personality: "Methodical",
+      creatorNotes: "Display only",
+      postHistoryInstructions: "Respond directly",
+      alternateGreetings: ["Hello", "Welcome"],
+      characterVersion: "2.4",
+      tavernExtensions: { "fixture.namespace": { enabled: true } },
+      embeddedCharacterBook: {
+        extensions: {},
+        entries: [{ keys: ["archive"], content: "Synthetic lore", extensions: {}, enabled: true, insertion_order: 1 }],
+      },
+      rawExampleDialogue: "{{user}}: Hi\n{{char}}: Hello",
+      sourceFormat: "card-v2-json" as const,
+    };
+    const once = normalizeCard(input);
+    const twice = normalizeCard(once);
+    expect(twice).toEqual(once);
+    expect(once?.schemaVersion).toBe(3);
+    expect(once?.personality).toBe("Methodical");
+    expect(once?.tavernExtensions).toEqual(input.tavernExtensions);
+    expect(once?.embeddedCharacterBook?.entries).toHaveLength(1);
+  });
+
+  it("persists a format-valid V2 card whose required external strings are empty", () => {
+    const out = normalizeCard({
+      ...baseCard(),
+      name: "",
+      description: "",
+      systemPrompt: "",
+      sourceFormat: "card-v2-json",
+    });
+    expect(out).not.toBeNull();
+    expect(out?.name).toBe("");
+  });
 });
 
 describe("generateId", () => {

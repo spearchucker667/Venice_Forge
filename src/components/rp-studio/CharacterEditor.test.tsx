@@ -11,6 +11,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "fake-indexeddb/auto";
 
+vi.mock("../../hooks/use-models", () => ({
+  useModels: () => ({ data: [
+    { id: "test-text", object: "model", created: 1, owned_by: "test", model_spec: { availableContextTokens: 16_000, capabilities: { supportsVision: false } } },
+    { id: "test-vision", object: "model", created: 1, owned_by: "test", model_spec: { availableContextTokens: 16_000, capabilities: { supportsVision: true } } },
+  ] }),
+}));
+
 const fixtures = vi.hoisted(() => {
   const sampleCard = {
     schema: "CharacterCardV1",
@@ -238,6 +245,11 @@ beforeEach(() => {
 });
 
 describe("CharacterEditor — Workflow section", () => {
+  it("shows standards-aware validation", () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+    expect(screen.getByText(/primary greeting is recommended for chat readiness/i)).toBeInTheDocument();
+  });
+
   it("renders the Workflow section with 5 action controls", () => {
     render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
     expect(screen.getByTestId("character-editor-workflow")).toBeInTheDocument();
@@ -496,12 +508,9 @@ describe("CharacterEditor — guard regressions (RELEASE-BLOCKER #6)", () => {
     expect(checkbox.checked).toBe(true);
   });
 
-  it("blocks Save when the avatar file upload yields a non-image mime type", async () => {
-    // The avatar is a hard save-block. The "rejects non-image file type"
-    // surface error and the "rejects file larger than MAX_AVATAR_BYTES"
-    // surface error both leave the draft without an avatar. Saving after
-    // either rejection must therefore NOT invoke upsert — combined with the
-    // editable Save button proves the avatar gate is enforced.
+  it("rejects a non-image avatar without rejecting an otherwise valid V2 JSON card", async () => {
+    // V2 JSON cards do not require an avatar. The invalid file is discarded,
+    // while Save remains available for interoperable JSON-only cards.
     mocks.upsertMock.mockReset();
     const { container } = render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
     const avatarInput = container.querySelector("input[accept^='image']") as HTMLInputElement;
@@ -511,10 +520,7 @@ describe("CharacterEditor — guard regressions (RELEASE-BLOCKER #6)", () => {
       expect(screen.getByText(/Avatar must be a supported image file/i)).toBeInTheDocument();
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    // The Save button remains operable but does not call upsert because the
-    // draft still lacks a valid avatar (visual regression: no new toast
-    // emitted).
-    expect(mocks.upsertMock).not.toHaveBeenCalled();
+    expect(mocks.upsertMock).toHaveBeenCalledWith(expect.objectContaining({ avatar: undefined }));
   });
 
   it("preserves the legacy urlScraping boolean migration to 'brave'/'off'", async () => {

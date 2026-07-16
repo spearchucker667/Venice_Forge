@@ -78,8 +78,15 @@ function collectCharacterText(card: CharacterCardV1): Record<string, unknown> {
   return {
     name: card.name,
     description: card.description,
+    personality: card.personality ?? "",
     systemPrompt: card.systemPrompt,
     scenario: card.scenario ?? "",
+    firstMessage: card.firstMessage ?? "",
+    alternateGreetings: card.alternateGreetings ?? [],
+    postHistoryInstructions: card.postHistoryInstructions ?? "",
+    rawExampleDialogue: card.rawExampleDialogue ?? "",
+    characterBook: card.embeddedCharacterBook,
+    extensions: card.tavernExtensions,
     exampleDialogues: card.exampleDialogues.map((d) => `${d.speaker}: ${d.text}`),
   };
 }

@@ -16,7 +16,7 @@ import { useChatStore } from "../../stores/chat-store";
 import { useProfileStore } from "../../stores/profile-store";
 
 export interface DataStoragePanelProps {
-  exportData: (password: string) => Promise<void> | void;
+  exportData: (password: string, includeCharacterCardDrafts?: boolean) => Promise<void> | void;
   clearLocalSettings: () => Promise<void> | void;
   clearAllHistory: () => Promise<void> | void;
 }
@@ -32,6 +32,7 @@ export function DataStoragePanel({
   const [manifestToImport, setManifestToImport] = React.useState<EncryptedBackupManifest | null>(null);
   const [recovery, setRecovery] = React.useState<ReplaceImportRecoveryMetadata | null>(null);
   const [restoringRecovery, setRestoringRecovery] = React.useState(false);
+  const [includeCharacterCardDrafts, setIncludeCharacterCardDrafts] = React.useState(false);
 
   const refreshRecovery = React.useCallback(async () => {
     if (!isElectron()) return;
@@ -49,7 +50,7 @@ export function DataStoragePanel({
 
   const handleExport = async () => {
     try {
-      await exportData(password);
+      await exportData(password, includeCharacterCardDrafts);
     } catch {
       // toast already handled by exportData
     }
@@ -158,6 +159,7 @@ export function DataStoragePanel({
             placeholder="Backup Password"
             className="w-64 px-3 py-1.5 rounded-lg border border-border bg-surface text-[13px] text-text-primary focus:outline-none focus:border-accent"
           />
+          <label className="flex items-center gap-2 text-[12.5px] text-text-secondary"><input type="checkbox" checked={includeCharacterCardDrafts} onChange={(event) => setIncludeCharacterCardDrafts(event.target.checked)} /> Include encrypted local ST Card drafts (drafts never sync)</label>
           <div className="flex flex-wrap gap-2.5">
             <button
               onClick={handleExport}

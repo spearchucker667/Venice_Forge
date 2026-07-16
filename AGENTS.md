@@ -202,7 +202,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-126`.
+The primary active sequence is `VERIFY-001` through `VERIFY-127`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -332,6 +332,7 @@ registry.
 | `VERIFY-124` | Version-3 manual backup metadata — new exports carry app/format/source/crypto/key/content/exclusion metadata, an authenticated copy inside the ciphertext, deterministic per-store/tombstone/blob/media counts, and a SHA-256 payload binding; import verifies outer vs encrypted metadata and content while retaining version-2 and browser compatibility and rendering structured warnings. | `src/services/backupManifest.test.ts`, `src/services/backupImportPreparation.test.ts`, `src/services/backupImportService.test.ts`, `src/services/backupExportService.test.ts`, `tests/backup/cross-runtime-backup.test.ts`, `src/components/settings/DataStoragePanel.test.tsx` |
 | `VERIFY-125` | Deferred provider/sync scope — Replicate, AWS Bedrock, Google Vertex AI, Azure OpenAI, Hugging Face, and Cohere remain fail-closed and absent from advertised fallback routing/model catalogs; implemented fallback providers retain real adapters and models; direct WebDAV/S3-compatible sync, live sync-set key rotation, and scheduled provider-key rotation are explicitly not release capabilities. | `scripts/verify-provider-adapters.test.ts`, `electron/services/providerSettingsStore.test.ts`, `electron/services/providerAdapters.test.ts`, `electron/services/veniceClient.adapters.test.ts` |
 | `VERIFY-126` | Local protocol file reads use a no-follow file descriptor and validate that same descriptor as a regular file before consuming bytes, preventing path-swap and symlink races. | `electron/utils/secureFile.test.ts` |
+| `VERIFY-127` | ST Card Studio V2 JSON/PNG mapping, main-owned file/opaque-handle boundary, creator-note exclusion, post-history placement, and focused compatibility suite remain wired into aggregate contracts. | `scripts/verify-character-card-v2.cjs`, `scripts/verify-character-card-png.cjs`, `scripts/verify-character-card-security.cjs` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 

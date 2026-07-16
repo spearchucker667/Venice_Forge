@@ -113,3 +113,7 @@ privacy or complete safety protection.
 
 For the full guard contract, verification commands, and maintainer guidance,
 see [SECURITY.md](../../SECURITY.md).
+
+## ST Card Studio
+
+Character-card drafts are encrypted local records, excluded from synchronization by default, and included in manual encrypted backups only when draft inclusion is explicitly selected. Image analysis sends the selected owned local image and requested generation context to the selected Venice model through the existing credential-isolated request path. API keys, local filesystem paths, sync metadata, and provider-only URLs are not placed in standard Character Card V2 exports.

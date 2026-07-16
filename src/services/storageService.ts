@@ -36,6 +36,7 @@ const ENCRYPTED_STORES: StoreName[] = [
   "ai_memory",
   "files",
   "character_cards",
+  "characterCardDrafts",
   "personas",
   "lorebooks",
   "rp_chats",

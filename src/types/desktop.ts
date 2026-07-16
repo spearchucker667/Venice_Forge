@@ -201,6 +201,11 @@ export interface VeniceForgeCharacterCards {
   get(id: string): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }>;
   save(card: CharacterCardV1, origin?: MutationOrigin): Promise<{ ok: boolean; card: CharacterCardV1 | null; error?: string }>;
   delete(id: string, origin?: MutationOrigin): Promise<{ ok: boolean; error?: string }>;
+  chooseImportFile(): Promise<import("./character-card-files").CharacterCardImportChoiceResult>;
+  applyImport(payload: import("./character-card-files").CharacterCardImportApplyOptions): Promise<import("./character-card-files").CharacterCardImportApplyResult>;
+  undoImport(payload: { handle: string }): Promise<{ ok: boolean; cardId?: string; error?: string }>;
+  exportJson(payload: { cardId: string; profile?: "standard" | "privacy-reduced" }): Promise<import("./character-card-files").CharacterCardExportResult>;
+  exportPng(payload: { cardId: string; profile?: "standard" | "privacy-reduced" }): Promise<import("./character-card-files").CharacterCardExportResult>;
 }
 
 /** Character RP Studio: user persona persistence. */

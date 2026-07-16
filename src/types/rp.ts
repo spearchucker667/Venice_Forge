@@ -10,6 +10,8 @@
  * This is enforced at every persist boundary (services/rp/* and electron/services/*).
  */
 
+import type { JsonObject, CharacterBookV2Dto } from "./character-card-spec";
+
 /** Maximum length of any text field on a card before truncation. */
 export const CARD_FIELD_MAX = 32_000;
 
@@ -32,8 +34,10 @@ export const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
  *  v2 (Phase 2F) added optional `versions`/`currentVersionId`/`firstMessage`/
  *      `metadata` to `CharacterCardV1`, optional `projectId`/`scope` to
  *      `UserPersonaV1`, and optional `projectId`/`characterId`/`scope` to
- *      `LorebookV1`. v2 is fully backward-compatible — v1 records load unchanged. */
-export const RP_SCHEMA_VERSION = 2;
+ *      `LorebookV1`. v2 is fully backward-compatible — v1 records load unchanged.
+ *  v3 adds optional Character Card V2 compatibility fields and expands version
+ *      snapshots without changing existing record identifiers or avatar storage. */
+export const RP_SCHEMA_VERSION = 3;
 
 /** Phase 2F scenario export envelope version. */
 export const RP_SCENARIO_VERSION = 1;
@@ -140,6 +144,18 @@ export interface CharacterCardV1 {
   metadata?: Record<string, unknown>;
   /** Unix ms. `undefined` = active; non-null = archived at that time. */
   archivedAt?: number | null;
+
+  // ---- Phase 2H (ST Card Studio) Compatibility additions ----
+  personality?: string;
+  creatorNotes?: string;
+  postHistoryInstructions?: string;
+  alternateGreetings?: string[];
+  characterVersion?: string;
+  tavernExtensions?: JsonObject;
+  embeddedCharacterBook?: CharacterBookV2Dto;
+  rawExampleDialogue?: string;
+  sourceFormat?: "venice-forge" | "tavern-v1-json" | "card-v2-json" | "card-v2-png";
+
   // ---- Phase 2G Sync Metadata ----
   deletedAt?: number | null;
   schemaVersion?: number;
@@ -167,6 +183,14 @@ export interface CharacterCardVersion {
     adult: boolean;
     exampleDialogues: CharacterExampleDialogue[];
     firstMessage?: string;
+    personality?: string;
+    creatorNotes?: string;
+    postHistoryInstructions?: string;
+    alternateGreetings?: string[];
+    characterVersion?: string;
+    tavernExtensions?: JsonObject;
+    embeddedCharacterBook?: CharacterBookV2Dto;
+    rawExampleDialogue?: string;
   };
 }
 
@@ -255,6 +279,7 @@ export interface RpChatV1 {
     pinned: boolean;
     archived: boolean;
     tags: string[];
+    greetingSelection?: { mode: "primary" | "alternate" | "random" | "none"; characterId: string; index?: number };
   };
   createdAt: number;
   updatedAt: number;
@@ -403,6 +428,10 @@ export interface RpPromptContext {
   memories: RpMemoryV1[];
   /** Model identity (system prompt). */
   modelSystemPrompt?: string;
+  /** Global/default post-history instruction, resolved once by the compiler. */
+  globalPostHistoryInstruction?: string;
+  /** Explicit card/global system-prompt precedence. */
+  characterSystemPromptBehavior?: "respect-card" | "prefer-global" | "append-global" | "prepend-global";
   /** The user message about to be sent. */
   currentUserMessage: string;
   /** Maximum total characters of the assembled system block. */
@@ -425,6 +454,7 @@ export interface PromptAssemblyTraceEntry {
     | "lorebook-entry"
     | "memory"
     | "recent-message"
+    | "post-history-instruction"
     | "active-turn-instruction"
     | "user-message";
   label: string;
@@ -441,6 +471,8 @@ export interface PromptAssemblyResult {
   systemMessages: { role: "system"; content: string; name?: string }[];
   /** User/assistant messages for the recent turn history. */
   recentMessages: { role: "user" | "assistant" | "character" | "narrator" | "tool"; content: string; characterId?: string; name?: string }[];
+  /** Instructions placed after history and immediately before the final user turn. */
+  postHistoryMessages: { role: "system"; content: string; characterId?: string }[];
   /** The final user message (verbatim). */
   userMessage: { role: "user"; content: string };
   /** Trace entries, one per candidate block in deterministic order. */

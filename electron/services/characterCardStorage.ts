@@ -24,6 +24,11 @@ import {
   RP_SCHEMA_VERSION,
 } from "../../src/types/rp";
 import { isValidId as isCanonicalValidId } from "../../src/utils/idValidation";
+import {
+  normalizeCompatibilityJson,
+  normalizeCompatibilityObject,
+  normalizeEmbeddedCharacterBook,
+} from "../../src/shared/characterCardCompatibility";
 import { logError, logInfo } from "./logger";
 
 /** Sub-directory under userData where character cards live. */
@@ -204,8 +209,17 @@ export async function saveCharacterCard(input: unknown): Promise<SaveCardOutcome
   const c = input as Record<string, unknown>;
   const id = c.id;
   if (!isValidId(id)) return { ok: false, error: "invalid card id" };
+  const sourceFormat =
+    c.sourceFormat === "venice-forge" ||
+    c.sourceFormat === "tavern-v1-json" ||
+    c.sourceFormat === "card-v2-json" ||
+    c.sourceFormat === "card-v2-png"
+      ? c.sourceFormat
+      : undefined;
   const name = clampString(c.name, CARD_FIELD_MAX);
-  if (!name) return { ok: false, error: "card name is required" };
+  if (!name && sourceFormat !== "card-v2-json" && sourceFormat !== "card-v2-png") {
+    return { ok: false, error: "card name is required" };
+  }
   const description = clampString(c.description, CARD_FIELD_MAX);
   const systemPrompt = clampString(c.systemPrompt, CARD_FIELD_MAX);
   const scenario = c.scenario === undefined ? undefined : clampString(c.scenario, CARD_FIELD_MAX);
@@ -257,6 +271,49 @@ export async function saveCharacterCard(input: unknown): Promise<SaveCardOutcome
     createdAt,
     updatedAt,
   };
+  if (typeof c.firstMessage === "string") card.firstMessage = clampString(c.firstMessage, CARD_FIELD_MAX);
+  if (typeof c.personality === "string") card.personality = clampString(c.personality, CARD_FIELD_MAX);
+  if (typeof c.creatorNotes === "string") card.creatorNotes = clampString(c.creatorNotes, CARD_FIELD_MAX);
+  if (typeof c.postHistoryInstructions === "string") {
+    card.postHistoryInstructions = clampString(c.postHistoryInstructions, CARD_FIELD_MAX);
+  }
+  if (Array.isArray(c.alternateGreetings)) {
+    card.alternateGreetings = c.alternateGreetings
+      .filter((greeting): greeting is string => typeof greeting === "string")
+      .slice(0, 32)
+      .map((greeting) => greeting.slice(0, CARD_FIELD_MAX));
+  }
+  if (typeof c.characterVersion === "string") card.characterVersion = c.characterVersion.slice(0, 64);
+  card.tavernExtensions = normalizeCompatibilityObject(c.tavernExtensions);
+  const embeddedCharacterBook = normalizeEmbeddedCharacterBook(c.embeddedCharacterBook);
+  if (embeddedCharacterBook) card.embeddedCharacterBook = embeddedCharacterBook;
+  if (typeof c.rawExampleDialogue === "string") {
+    card.rawExampleDialogue = c.rawExampleDialogue.slice(0, CARD_FIELD_MAX);
+  }
+  if (sourceFormat) card.sourceFormat = sourceFormat;
+  const versions = normalizeCompatibilityJson(c.versions);
+  if (Array.isArray(versions)) card.versions = versions as unknown as NonNullable<CharacterCardV1["versions"]>;
+  if (typeof c.currentVersionId === "string" && isValidId(c.currentVersionId)) {
+    card.currentVersionId = c.currentVersionId;
+  }
+  const metadata = normalizeCompatibilityObject(c.metadata);
+  if (Object.keys(metadata).length > 0) card.metadata = metadata;
+  if (typeof c.archivedAt === "number" && Number.isFinite(c.archivedAt)) card.archivedAt = c.archivedAt;
+  if (typeof c.instructions === "string") card.instructions = c.instructions.slice(0, CARD_FIELD_MAX);
+  const contextFiles = normalizeCompatibilityJson(c.contextFiles);
+  if (Array.isArray(contextFiles)) card.contextFiles = contextFiles as unknown as NonNullable<CharacterCardV1["contextFiles"]>;
+  if (typeof c.webSearch === "boolean") card.webSearch = c.webSearch;
+  if (c.urlScrapingProvider === "off" || c.urlScrapingProvider === "brave" || c.urlScrapingProvider === "google") {
+    card.urlScrapingProvider = c.urlScrapingProvider;
+  }
+  if (typeof c.enableThoughts === "boolean") card.enableThoughts = c.enableThoughts;
+  if (typeof c.temperature === "number" && Number.isFinite(c.temperature)) card.temperature = c.temperature;
+  if (typeof c.topP === "number" && Number.isFinite(c.topP)) card.topP = c.topP;
+  card.schemaVersion = RP_SCHEMA_VERSION;
+  if (typeof c.revisionId === "string") card.revisionId = c.revisionId.slice(0, 128);
+  if (typeof c.baseRevisionId === "string") card.baseRevisionId = c.baseRevisionId.slice(0, 128);
+  if (typeof c.deviceId === "string") card.deviceId = c.deviceId.slice(0, 128);
+  if (typeof c.deletedAt === "number" && Number.isFinite(c.deletedAt)) card.deletedAt = c.deletedAt;
 
   await ensureCardDir(id);
 

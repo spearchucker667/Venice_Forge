@@ -65,6 +65,7 @@ Express/Vite web development mode.
 │   ├── ipc/                            # IPC handlers and validation
 │   │   ├── handlers.ts
 │   │   ├── handlers.test.ts
+│   │   ├── characterCardFileHandlers.ts # Main-owned ST Card dialogs, preview handles, import/export, undo
 │   │   ├── rpHandlers.ts               # 20 RP Studio IPC channels
 │   │   ├── updates.ts
 │   │   ├── updates.test.ts
@@ -73,6 +74,7 @@ Express/Vite web development mode.
 │   ├── services/                       # Main-process services (storage, logging, secure store, Venice client, chat history, media)
 │   │   ├── bridgeServer.ts             # Loopback Express headless bridge (127.0.0.1, bearer token, safety)
 │   │   ├── characterCardStorage.ts     # Atomic-write + corruption-recovery local character-card store
+│   │   ├── characterCardPngCodec.ts    # Bounded CRC-valid V2 PNG parser/generator
 │   │   ├── chatStorage.ts              # Conversation persistence (atomic write, pagination)
 │   │   ├── configService.ts            # YAML config load + key import/redaction (VERIFY-024)
 │   │   ├── conversationVault.ts        # Encrypted at-rest conversation vault
@@ -98,6 +100,9 @@ Express/Vite web development mode.
 │   ├── assets/branding/                # Symlink-style branding assets
 │   └── bootstrap-theme.js
 ├── scripts/                            # Build, packaging, and verification scripts
+│   ├── verify-character-card-v2.cjs    # ST Card schema/adapter/fixture contract
+│   ├── verify-character-card-png.cjs   # PNG boundary and hostile-fixture contract
+│   └── verify-character-card-security.cjs # IPC, prompt, and generation security contract
 │   ├── checksum-release.cjs
 │   ├── create-cjs-package.cjs          # Builds the CJS package.json next to dist-electron/
 │   ├── dev-tools/                      # Local-only developer tooling (Playwright captures)

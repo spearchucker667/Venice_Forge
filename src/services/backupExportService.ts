@@ -79,7 +79,7 @@ export async function fetchStoreRecords(storeName: SyncStoreName): Promise<unkno
 }
 
 /** Creates an encrypted backup manifest containing all syncable data. */
-export async function createEncryptedBackup(password: string): Promise<EncryptedBackupManifest> {
+export async function createEncryptedBackup(password: string, options: { includeCharacterCardDrafts?: boolean } = {}): Promise<EncryptedBackupManifest> {
   const rendererProfileId = getActiveProfileId();
   let profileId = rendererProfileId;
   let exportToken: string | undefined;
@@ -104,6 +104,7 @@ export async function createEncryptedBackup(password: string): Promise<Encrypted
 
   for (const storeName of STORE_NAMES) {
     if (storeName === "diagnostics") continue;
+    if (storeName === "characterCardDrafts" && options.includeCharacterCardDrafts !== true) continue;
     if (getActiveProfileId() !== profileId) {
       throw new Error("Backup export profile session changed during collection. Retry the export.");
     }

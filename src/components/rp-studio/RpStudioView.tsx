@@ -12,9 +12,8 @@
  * their safety-sensitive save buttons while the banner is showing.
  */
 
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { CharacterLibrary } from "./CharacterLibrary";
-import { CharacterEditor } from "./CharacterEditor";
 import { PersonaManager } from "./PersonaManager";
 import { LorebookManager } from "./LorebookManager";
 import { RpChatList } from "./RpChatList";
@@ -26,6 +25,12 @@ import type { PromptAssemblyResult } from "../../types/rp";
 import { PillGroup } from "../ui/shared";
 import { useRendererConfigHydrated } from "../../safetyHydration";
 import { isElectron } from "../../services/desktopBridge";
+import { useCharacterCardStore } from "../../stores/character-card-store";
+
+const CharacterEditor = lazy(async () => {
+  const module = await import("./CharacterEditor");
+  return { default: module.CharacterEditor };
+});
 
 const SUB_TABS = [
   { id: "library", label: "Characters" },
@@ -47,6 +52,11 @@ export function RpStudioView() {
   const [sceneView, setSceneView] = useState<SceneSubView>("generate");
   const hydrated = useRendererConfigHydrated();
   const showHydrationBanner = isElectron() && !hydrated;
+  const externallyEditingCardId = useCharacterCardStore((state) => state.editingId);
+
+  useEffect(() => {
+    if (externallyEditingCardId) { setSub("library"); setEditingCardId(externallyEditingCardId); }
+  }, [externallyEditingCardId]);
 
   useEffect(() => {
     setEditingCardId(null);
@@ -99,7 +109,9 @@ export function RpStudioView() {
 
       <div className="flex-1 min-h-0 relative">
         {sub === "library" && (editingCardId ? (
-          <CharacterEditor cardId={editingCardId} onClose={() => setEditingCardId(null)} disabled={showHydrationBanner} />
+          <Suspense fallback={<div className="flex h-full items-center justify-center text-[12px] text-text-muted" role="status">Loading ST Card Studio…</div>}>
+            <CharacterEditor cardId={editingCardId} onClose={() => setEditingCardId(null)} disabled={showHydrationBanner} />
+          </Suspense>
         ) : (
           <CharacterLibrary onEdit={(id) => setEditingCardId(id)} />
         ))}

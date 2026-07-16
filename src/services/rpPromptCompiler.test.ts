@@ -78,6 +78,26 @@ function lorebook(overrides: Partial<LorebookV1> = {}): LorebookV1 {
 }
 
 describe("rpPromptCompiler", () => {
+  it("applies card/global system precedence and one-pass original expansion", () => {
+    const base = { rpChat: chat(), characters: [character({ systemPrompt: "CARD {{original}} {{original}}" })], lorebooks: [], memories: [], currentUserMessage: "hi", modelSystemPrompt: "GLOBAL" };
+    const respected = compileRpPrompt(base);
+    expect(respected.systemPrompt).toContain("CARD GLOBAL {{original}}");
+    expect(respected.systemPrompt.match(/CARD GLOBAL/g)).toHaveLength(1);
+    const preferred = compileRpPrompt({ ...base, characterSystemPromptBehavior: "prefer-global" });
+    expect(preferred.systemPrompt).toContain("GLOBAL");
+    expect(preferred.systemPrompt).not.toContain("CARD GLOBAL");
+  });
+
+  it("keeps creator notes out, places post-history separately, and compiles embedded books through LorebookV1", () => {
+    const out = compileRpPrompt({
+      rpChat: chat({ messages: [{ id: "m1", role: "user", content: "Tell me about Ada", createdAt: 1 }] }),
+      characters: [character({ creatorNotes: "NEVER PROMPT THIS", postHistoryInstructions: "AFTER {{original}}", embeddedCharacterBook: { extensions: {}, entries: [{ keys: ["Ada"], content: "Ada is an engineer.", extensions: {}, enabled: true, insertion_order: 0, constant: false }] } })],
+      lorebooks: [], memories: [], currentUserMessage: "Ada?", globalPostHistoryInstruction: "GLOBAL AFTER",
+    });
+    expect(out.systemPrompt).not.toContain("NEVER PROMPT THIS");
+    expect(out.postHistoryMessages).toEqual([expect.objectContaining({ content: "AFTER GLOBAL AFTER" })]);
+    expect(out.sections.some((section) => section.kind === "lorebook-entry" && section.included)).toBe(true);
+  });
   it("emits the canonical section order", () => {
     const out = compileRpPrompt({
       rpChat: chat(),

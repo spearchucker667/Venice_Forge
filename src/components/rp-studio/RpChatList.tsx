@@ -203,6 +203,7 @@ export function RpChatList({ onOpen }: Props) {
               modelId: init.modelId,
               scenario: init.scenario,
               adult: init.adult,
+              greeting: init.greeting,
             });
             if (id) {
               setCreating(false);
@@ -230,7 +231,7 @@ export function NewChatDialog({
   adultFilter,
 }: {
   onClose: () => void;
-  onCreate: (init: { title: string; characterIds: string[]; personaId: string | null; lorebookIds: string[]; modelId: string; scenario: string | undefined; adult: boolean }) => Promise<string | null>;
+  onCreate: (init: { title: string; characterIds: string[]; personaId: string | null; lorebookIds: string[]; modelId: string; scenario: string | undefined; adult: boolean; greeting?: { mode: "primary" | "alternate" | "random" | "none"; characterId: string; index?: number; content?: string } }) => Promise<string | null>;
   cards: CharacterCardV1[];
   personas: UserPersonaV1[];
   lorebooks: LorebookV1[];
@@ -243,6 +244,7 @@ export function NewChatDialog({
   const [selectedLorebooks, setSelectedLorebooks] = useState<string[]>([]);
   const [modelId, setModelId] = useState(defaultModel);
   const [scenario, setScenario] = useState("");
+  const [greetingChoice, setGreetingChoice] = useState("primary");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -280,6 +282,21 @@ export function NewChatDialog({
       return;
     }
     const adult = resolvedCards.some((c) => c.adult);
+    const greetingCard = resolvedCards[0];
+    const greeting = (() => {
+      if (!greetingCard || greetingChoice === "none") return greetingCard ? { mode: "none" as const, characterId: greetingCard.id } : undefined;
+      if (greetingChoice === "random") {
+        const candidates = [greetingCard.firstMessage, ...(greetingCard.alternateGreetings ?? [])].filter((value): value is string => Boolean(value));
+        const index = candidates.length ? Math.floor(Math.random() * candidates.length) : -1;
+        return { mode: "random" as const, characterId: greetingCard.id, ...(index >= 0 ? { index, content: candidates[index] } : {}) };
+      }
+      if (greetingChoice.startsWith("alternate:")) {
+        const index = Number(greetingChoice.split(":")[1]);
+        const content = greetingCard.alternateGreetings?.[index];
+        return { mode: "alternate" as const, characterId: greetingCard.id, index, ...(content ? { content } : {}) };
+      }
+      return { mode: "primary" as const, characterId: greetingCard.id, ...(greetingCard.firstMessage ? { content: greetingCard.firstMessage } : {}) };
+    })();
     // Mandatory safety guard for batch character import.
     const decision = assessCharacterBatchImport(resolvedCards, getEffectiveRendererLocalFamilySafeModeEnabled());
     if (!decision.allow || decision.action === "block") {
@@ -295,6 +312,7 @@ export function NewChatDialog({
       modelId,
       scenario: scenario.trim() || undefined,
       adult,
+      ...(greeting ? { greeting } : {}),
     });
     setSaving(false);
     if (!id) {
@@ -343,6 +361,15 @@ export function NewChatDialog({
               {FALLBACK_MODELS.text.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="rp-greeting">Opening greeting</Label>
+            <select id="rp-greeting" value={greetingChoice} onChange={(event) => setGreetingChoice(event.target.value)} className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary">
+              <option value="primary">Use primary greeting</option>
+              {(cards.find((card) => card.id === selectedCards[0])?.alternateGreetings ?? []).map((_, index) => <option key={index} value={`alternate:${index}`}>Alternate greeting {index + 1}</option>)}
+              <option value="random">Random greeting</option>
+              <option value="none">Start without greeting</option>
             </select>
           </div>
           <div>

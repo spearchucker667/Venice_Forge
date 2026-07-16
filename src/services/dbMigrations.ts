@@ -230,6 +230,15 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 17,
+    description: "Add encrypted local-only ST Card Studio drafts",
+    up(db) {
+      if (!db.objectStoreNames.contains("characterCardDrafts")) {
+        db.createObjectStore("characterCardDrafts", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**

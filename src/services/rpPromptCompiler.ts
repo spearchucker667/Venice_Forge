@@ -68,6 +68,7 @@ export type RpSectionKind =
   | "memory"
   | "example-dialogue"
   | "recent-message"
+  | "post-history-instruction"
   | "first-message"
   | "active-turn-instruction"
   | "user-message";
@@ -118,6 +119,8 @@ export interface RpCompileInput {
   lorebooks: LorebookV1[];
   memories: RpMemoryV1[];
   modelSystemPrompt?: string;
+  globalPostHistoryInstruction?: string;
+  characterSystemPromptBehavior?: "respect-card" | "prefer-global" | "append-global" | "prepend-global";
   currentUserMessage: string;
   /** Soft cap on the total system block (chars). Defaults to 16_000. */
   systemBlockBudget?: number;
@@ -140,6 +143,7 @@ export interface RpCompileResult {
   /** User/assistant/character/narrator messages for the recent turn
    *  history. Empty when there is no recent turn. */
   recentMessages: { role: "user" | "assistant" | "character" | "narrator" | "tool"; content: string; characterId?: string; name?: string }[];
+  postHistoryMessages: { role: "system"; content: string; characterId?: string }[];
   /** The user message (verbatim). */
   userMessage: { role: "user"; content: string };
   /** Optional first message from the expected character. Rendered as
@@ -224,6 +228,8 @@ export function compileRpPrompt(input: RpCompileInput): RpCompileResult {
     lorebooks: input.lorebooks,
     memories: input.memories,
     modelSystemPrompt: input.modelSystemPrompt,
+    globalPostHistoryInstruction: input.globalPostHistoryInstruction,
+    characterSystemPromptBehavior: input.characterSystemPromptBehavior,
     currentUserMessage: input.currentUserMessage,
     systemBlockBudget: systemBudget,
     recentMessageBudget: recentBudget,
@@ -333,7 +339,13 @@ export function compileRpPrompt(input: RpCompileInput): RpCompileResult {
   const includedSystemSections = sections.filter(
     (s) => s.included && s.kind !== "user-message" && s.kind !== "recent-message",
   );
-  const systemPrompt = includedSystemSections.map((s) => s.content).filter(Boolean).join("\n\n");
+  const addedSystemSections = includedSystemSections.filter((section) =>
+    section.kind === "prompt-library" || section.kind === "scene-compiler" || section.kind === "example-dialogue",
+  );
+  const systemPrompt = [
+    inner.systemMessages.map((message) => message.content).filter(Boolean).join("\n\n"),
+    ...addedSystemSections.map((section) => section.content),
+  ].filter(Boolean).join("\n\n");
   const totalSystemChars = includedSystemSections.reduce((acc, s) => acc + s.chars, 0);
   const totalSystemTokens = includedSystemSections.reduce((acc, s) => acc + s.tokens, 0);
 
@@ -353,6 +365,7 @@ export function compileRpPrompt(input: RpCompileInput): RpCompileResult {
     sections,
     systemPrompt,
     recentMessages: inner.recentMessages,
+    postHistoryMessages: inner.postHistoryMessages,
     userMessage: inner.userMessage,
     warnings,
     totalSystemChars,
@@ -384,6 +397,7 @@ function mapTraceKind(kind: string): RpSectionKind {
     case "lorebook-entry":
     case "memory":
     case "recent-message":
+    case "post-history-instruction":
     case "active-turn-instruction":
     case "user-message":
       return kind;
@@ -404,6 +418,7 @@ function traceKindContent(
   if (t.kind === "user-message") {
     return inner.userMessage?.content ?? "";
   }
+  if (t.kind === "post-history-instruction") return inner.postHistoryMessages[0]?.content ?? "";
   if (t.kind === "recent-message") {
     const idx = Number(t.id.split(":").pop() ?? "-1");
     if (Number.isFinite(idx) && idx >= 0 && idx < inner.recentMessages.length) {

@@ -1,0 +1,23 @@
+{
+  "spec": "chara_card_v2",
+  "spec_version": "2.0",
+  "data": {
+    "name": "Extension Test",
+    "description": "Synthetic extension preservation fixture.",
+    "personality": "Methodical.",
+    "scenario": "A test harness.",
+    "first_mes": "Ready.",
+    "mes_example": "",
+    "creator_notes": "No third-party content.",
+    "system_prompt": "Remain a synthetic test fixture.",
+    "post_history_instructions": "",
+    "alternate_greetings": [],
+    "tags": ["synthetic"],
+    "creator": "Venice Forge Tests",
+    "character_version": "1.0.0",
+    "extensions": {
+      "fixture.alpha": { "nested": { "value": 7 }, "array": [true, null, "ok"] },
+      "fixture.beta": "preserve-me"
+    }
+  }
+}

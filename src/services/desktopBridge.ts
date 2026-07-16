@@ -852,6 +852,26 @@ export const desktopCharacterCards = {
     if (!isElectron()) return { ok: false, error: "Character card filesystem storage is only available in desktop mode." };
     return window.veniceForge!.characterCards.delete(id, origin);
   },
+  async chooseImportFile() {
+    if (!isElectron()) return { ok: false, error: "Desktop file import is only available in desktop mode." };
+    return window.veniceForge!.characterCards.chooseImportFile();
+  },
+  async applyImport(payload: import("../types/character-card-files").CharacterCardImportApplyOptions) {
+    if (!isElectron()) return { ok: false, error: "Desktop file import is only available in desktop mode." };
+    return window.veniceForge!.characterCards.applyImport(payload);
+  },
+  async undoImport(payload: { handle: string }) {
+    if (!isElectron()) return { ok: false, error: "Desktop import undo is only available in desktop mode." };
+    return window.veniceForge!.characterCards.undoImport(payload);
+  },
+  async exportJson(payload: { cardId: string; profile?: "standard" | "privacy-reduced" }) {
+    if (!isElectron()) return { ok: false, error: "Desktop file export is only available in desktop mode." };
+    return window.veniceForge!.characterCards.exportJson(payload);
+  },
+  async exportPng(payload: { cardId: string; profile?: "standard" | "privacy-reduced" }) {
+    if (!isElectron()) return { ok: false, error: "Desktop file export is only available in desktop mode." };
+    return window.veniceForge!.characterCards.exportPng(payload);
+  },
 };
 
 /** Character RP Studio: user persona bridge. */
