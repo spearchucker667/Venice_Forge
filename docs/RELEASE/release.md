@@ -152,7 +152,7 @@ The release pipeline is protected by a single-source-of-truth audit at `scripts/
 
 | Phase | Commands | Requires `npm run build`? |
 |---|---|---|
-| Pre-build | `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, `npm run verify:archive-clean`, `npm run verify:release-packaging-hardening`, `npm run verify:model-aware-recipes`, `npm run verify:media-studio-power-tools`, `npm run verify:status-diagnostics`, `npm run verify:prompt-library`, `npm run verify:scene-composer`, `npm run verify:rp-studio-polish`, `npm run verify:workflow-templates`, `npm run verify:storage-privacy`, `npm run verify:research-workspace` | No |
+| Pre-build | `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, `npm run verify:archive-clean`, `npm run verify:release-packaging-hardening`, `npm run verify:model-aware-recipes`, `npm run verify:media-studio-power-tools`, `npm run verify:status-diagnostics`, `npm run verify:prompt-library`, `npm run verify:scene-composer`, `npm run verify:rp-studio-polish`, `npm run test:character-cards`, `npm run verify:character-card-v2`, `npm run verify:character-card-png`, `npm run verify:character-card-security`, `npm run verify:workflow-templates`, `npm run verify:storage-privacy`, `npm run verify:research-workspace` | No |
 | Build | `npm run build` | N/A (produces `dist/` + `dist-electron/` + `dist/server.cjs`) |
 | Post-build | `npm run verify:dist` (and `verify:dist:win` / `verify:dist:mac` / `verify:dist:portable` / `verify:dist:release` after `dist:*` packaging) | Yes |
 | Packaging | `npm run dist:win`, `npm run dist:mac`, `npm run dist:mac:arm64`, `npm run dist:mac:x64`, `npm run dist:portable` | Yes (each script runs `build` internally) |
@@ -172,6 +172,10 @@ npm test
 npm run verify:release-packaging-hardening
 npm run verify:safety-guard
 npm run verify:markdown-links
+npm run test:character-cards
+npm run verify:character-card-v2
+npm run verify:character-card-png
+npm run verify:character-card-security
 npm run build
 npm run verify:dist
 ```

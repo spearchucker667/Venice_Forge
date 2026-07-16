@@ -193,6 +193,14 @@ npm test -- --fileParallelism=false
   improve extractor support where new prompt-carrying shapes appear, and add
   more path-specific regression tests without weakening the no-raw-log rule.
 
+## ST Card Studio File and AI Boundaries
+
+Character cards and their PNG containers are untrusted input. In Electron, the main process owns open/save dialogs, file reads, decoding, safety assessment, collision handling, atomic persistence, and export verification. The renderer receives only safe preview metadata and a sender-scoped, five-minute, single-use opaque import handle; it never receives a selected absolute path or a raw filesystem capability.
+
+The Character Card V2 PNG codec caps file size, decoded metadata, image dimensions/pixels, and chunk count; validates every chunk CRC and the terminal `IEND`; and rejects malformed Base64, UTF-8, JSON, compressed card metadata, and unsupported V3 assets. JSON/PNG export is reparsed semantically before success is reported. Image analysis and text/refinement generation use strict structured proposals, support cancellation, and require explicit user application. Encrypted drafts remain local-only, are excluded from sync/default backups, and enter a manual encrypted backup only through explicit opt-in.
+
+Run `npm run test:character-cards`, `npm run verify:character-card-v2`, `npm run verify:character-card-png`, and `npm run verify:character-card-security` after changing these surfaces. See [`docs/security/ST_CARD_IMPORT_THREAT_MODEL.md`](docs/security/ST_CARD_IMPORT_THREAT_MODEL.md).
+
 ## Headless Bridge Security
 
 When started with `--headless`, the application runs an Express loopback bridge server (`electron/services/bridgeServer.ts`). The following safety measures are strictly enforced:

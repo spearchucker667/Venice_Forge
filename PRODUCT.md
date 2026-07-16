@@ -6,11 +6,11 @@ product
 
 ## Users
 
-Creative professionals, developers, and AI enthusiasts who want a local-first desktop workspace for the Venice API. They need to access advanced AI capabilities like streaming chat, image generation, research synthesis, roleplay scripting, and creative asset management without relying on web-based interfaces. Users work on creative projects, research, content creation, and AI experimentation in a privacy-focused environment.
+Creative professionals, character authors, developers, and AI enthusiasts who want a local-first desktop workspace for the Venice API. They need streaming chat, image generation, research synthesis, SillyTavern-compatible character-card authoring, roleplay scripting, and creative asset management without relying on web-based interfaces. Users work on creative projects, research, content creation, interoperable character libraries, and AI experimentation in a privacy-focused environment.
 
 ## Product Purpose
 
-Venice Forge is an unofficial local-first desktop workspace for the Venice API that provides an advanced frontend client for streaming chat, image studio pipelines, research synthesis, roleplay scripting, and local creative asset management. It offers a privacy-focused alternative to web-based AI interfaces with offline capabilities and enhanced security through local storage of sensitive data.
+Venice Forge is an unofficial local-first desktop workspace for the Venice API that provides an advanced frontend client for streaming chat, image studio pipelines, research synthesis, roleplay scripting, and local creative asset management. ST Card Studio adds preview-gated Tavern V1 and Character Card V2 JSON/PNG interoperability, lossless editing, encrypted drafts, version history, embedded/linked lorebooks, explicit AI-assisted proposals, and verified export. It offers a privacy-focused alternative to web-based AI interfaces with offline authoring and local storage of sensitive data.
 
 ## Brand Personality
 

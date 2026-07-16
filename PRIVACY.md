@@ -6,7 +6,7 @@ This is the user-facing privacy summary for Venice Forge. For the full technical
 
 ## 1. Local-First Architecture
 Venice Forge is designed around a **local-first** philosophy. The default behavior is to keep your data under your custody on your own machine.
-- **Your Chats & Media:** All your conversation logs, generated images, research sessions, character cards, and workflows are stored locally on your device.
+- **Your Chats & Media:** All your conversation logs, generated images, research sessions, character cards, encrypted character-card drafts, and workflows are stored locally on your device.
 - **No Cloud Synchronization:** Venice Forge does not operate any centralized cloud database. We do not sync your local data or creations to any external servers.
 - **No Telemetry or Tracking:** Venice Forge does not collect analytics, crash reports, usage telemetry, or identifier tokens.
 
@@ -24,12 +24,14 @@ Because Venice Forge is a client app, your data does leave your device when you 
 - **Venice.ai:** Outgoing chat prompts, image recipes, audio requests, and video queues are forwarded to the [Venice API](https://api.venice.ai).
 - **Jina AI:** Scraper and search queries are sent to Jina AI endpoints if the Jina provider is active for research.
 - **Abuse Screening:** Local Family Safe Mode screens your prompts on your device *before* they are sent upstream. If a prompt is blocked, no network request is dispatched to the provider.
+- **Card generation and refinement:** ST Card Studio sends content upstream only when you explicitly request image analysis, text-to-card generation, field refinement, or a test turn. Proposals are shown before application; they do not silently mutate a card.
 
 ---
 
 ## 4. Local Encryption
 Your local data is protected from casual disk inspection:
 - **IndexedDB:** Stores for settings, media metadata, scenes, and workflows are encrypted using AES-GCM.
+- **Character-card drafts:** Restart-recoverable drafts are encrypted local records. They are excluded from sync and default backups; manual encrypted backup includes them only when you explicitly opt in.
 - **Conversation Vault:** Current desktop conversation records are stored under `conversations/` as AES-256-GCM encrypted files.
 - **Master & Profile Passwords:** Setting a password gates entry to profiles or safety config. Verification is handled entirely in the main process with salted PBKDF2-SHA256.
 

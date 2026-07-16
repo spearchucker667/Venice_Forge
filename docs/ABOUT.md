@@ -93,7 +93,7 @@ tabs are:
 | Embeddings | Vector embeddings generation for text with selectable models and dimension display |
 | Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
 | Characters | Browse Venice hosted characters via the official `/characters` API, filter by adult / web-enabled flags, and start character chats using `venice_parameters.character_slug` |
-| RP Studio | Local-first Character RP Studio: character cards, personas, lorebooks, multi-character RP chats, scoped memory, scene image generation. Lazy-loaded. |
+| RP Studio | Local-first RP workspace with ST Card Studio: Tavern V1 / Character Card V2 JSON and V2 PNG import/export, ten-step card editing, encrypted drafts, versions, embedded/linked lorebooks, disposable test turns, personas, multi-character chats, scoped memory, and scene image generation. Lazy-loaded. |
 | Workflows | Visual node editor for chaining models (Input → LLM → Image Gen → Output) with parallel branching. Lazy-loaded. |
 | Privacy | Storage inventory, safe privacy summaries, and non-destructive maintenance actions |
 | Playground | Conversational agent that builds and edits workflows on a live canvas using plain language. Lazy-loaded. |

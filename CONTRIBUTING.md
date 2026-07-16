@@ -71,6 +71,12 @@ npm run verify:safety-guard
 npm run verify:markdown-links
 npm run verify:contracts
 
+# Focused ST Card Studio changes
+npm run test:character-cards
+npm run verify:character-card-v2
+npm run verify:character-card-png
+npm run verify:character-card-security
+
 # Build all targets
 npm run build
 npm run verify:dist
@@ -92,6 +98,7 @@ All commands and validations must pass before opening a PR. Note that Windows re
 - Use pure-function tests where possible (no mocking).
 - When fixing a bug, add a regression guard comment: `// BUG-NNN regression guard`.
 - Server tests must include `// @vitest-environment node` at the top.
+- Character-card fixtures must be synthetic and belong under `tests/fixtures/character-cards/`; do not commit third-party cards or copyrighted character content.
 
 ### Code Style
 

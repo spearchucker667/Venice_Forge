@@ -8,7 +8,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 - [README.md](../README.md) — The main user-facing repository landing page and setup guide.
 - [ABOUT.md](ABOUT.md) — Product goals, architecture, data flow, and overview of tabs.
-- [FAQ.md](FAQ.md) — Frequently asked questions about privacy, credentials, safety, and compatibility.
+- [FAQ.md](FAQ.md) — Frequently asked questions about privacy, credentials, safety, storage, and character-card compatibility.
 - [SUPPORT.md](SUPPORT.md) — Where to get help, how to request features, and what info to provide.
 
 ---
@@ -16,7 +16,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 ## 2. User Docs
 
 - [ABOUT.md](ABOUT.md) — Comprehensive overview of features, tabs, and local-first goals.
-- [FAQ.md](FAQ.md) — Answers to questions on local key custody, safety modes, and configurations.
+- [FAQ.md](FAQ.md) — Answers on local key custody, safety modes, storage, and ST Card Studio import/export behavior.
 - [SUPPORT.md](SUPPORT.md) — User support guidelines.
 - [LEGAL.md](../LEGAL.md) — Root legal notice, copyright statement, and trademark disclaimers.
 - [PRIVACY.md](../PRIVACY.md) — User privacy model summary.
@@ -41,6 +41,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [memory-isolation.md](memory-isolation.md) — Conversation-scoped memory retrieval, exclusions, and preview lifecycle.
 - [rp-token-counting.md](rp-token-counting.md) — Compiled prompt estimates and over-budget save behavior.
 - [DEVELOPMENT/image-model-capabilities.md](DEVELOPMENT/image-model-capabilities.md) — Image model capability registry, Seedream model reference, and guide for adding future models.
+- [developer/CHARACTER_CARD_CODEC.md](developer/CHARACTER_CARD_CODEC.md) — Trusted Character Card V2 PNG codec, limits, and verification contract.
+- [developer/CHARACTER_CARD_MAPPINGS.md](developer/CHARACTER_CARD_MAPPINGS.md) — Tavern/V2 DTO, internal card, and character-book mappings.
 
 ---
 

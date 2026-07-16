@@ -5,25 +5,13 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-15
-**Scope:** ST Card Studio end-to-end completion, validation, packaging, and backlog closure.
+**Scope:** Repository-wide user, developer, release, privacy, security, storage, and navigation documentation refresh for the shipped ST Card Studio feature.
 
-- Reconciled the supplied ST Card Studio backlog with the live dirty tree at baseline `285ed6d510916e7b39ef84f8f319b4681db87f4b`; documented compatibility-field ownership, embedded-versus-linked lorebooks, PNG trust boundaries, prompt deferral, integration surfaces and phase gates in `docs/design/ST_CARD_STUDIO.md`.
-- Added explicit Tavern V1 / Character Card V2 DTOs, bounded JSON extension types, V2 compatibility fields on the existing `CharacterCardV1`, schema version 3 normalization, complete compatibility-aware version snapshots, and the authoritative V1/V2 adapter path used by the Zustand importer.
-- Preserved V2 description/personality separation, alternate greetings, raw `mes_example`, creator notes, post-history instructions, embedded character books, mixed-case tags, required empty strings, and unknown safe extension namespaces through import, persistence normalization and V2 export.
-- Added synthetic full/minimal V2 fixtures plus adapter, persistence, version-restore and standards-aware editor-validation regressions. No copyrighted third-party card content was added.
-- Fixed Electron storage normalization so the full V2 compatibility payload and version history survive sidecar persistence instead of being silently discarded.
-- Added a main-process PNG codec with a 20 MiB file limit, 8 MiB decoded-metadata limit, bounded chunk count/dimensions/pixels, all-chunk CRC checks, strict terminal `IEND`, strict Base64 and fatal UTF-8 decoding, stale-`chara` replacement, visible-image extraction, and semantic export re-import verification.
-- Added main-owned JSON/PNG file selection and choose-preview-apply import IPC. Renderer-visible state contains only a sender-scoped, five-minute, single-use opaque handle and safe preview metadata; main performs parsing, expanded full-field safety assessment, collision detection and persistence without disclosing local paths.
-- Added atomic main-owned standard/privacy-reduced V2 JSON and verified PNG exports, including Electron image re-encoding, save dialogs, semantic reparse, and no renderer paths.
-- Added rendered import preview/confirm and duplicate-copy collision UI plus library/editor export entry points. Expanded the existing editor with all compatibility text fields, alternate greetings, raw examples, extensions, embedded-book status, source/version metadata, validation, and standards-compatible empty-field saving.
-- Implemented card/global system-prompt precedence, one-pass `{{original}}`, post-history placement after conversation history, creator-note exclusion, personality definition content, embedded V2 book adaptation through the existing LorebookV1 matcher, and persistent one-time primary/alternate/random/no-greeting chat starts.
-- Added encrypted restart-recoverable card drafts in DB v17; draft writes are local-only, excluded from sync and default backups, and removed on commit. Added typed allowlisted AI refinement proposals, visible before/after diffs, explicit application, and pre-apply version snapshots.
-- Completed collision-safe keep/copy/replace/selected-field merge imports, embedded/linked/both character-book materialization, pre-destructive snapshots, immediate undo, favorite/start-chat options, and main-authoritative source fingerprint collision checks.
-- Completed the ten-step Studio, restart-recoverable encrypted local-only drafts and draft manager, full embedded character-book entry editor, linked-book attach/sync/detach flows, greeting carousel/reorder/duplicate actions, structured/raw example editing, version comparison, and standards-aware validation/export report.
-- Added capability-filtered image analysis and text-to-card synthesis, custom generation profiles, cancellation, field-level proposals, typed selective refinement diffs, and a disposable prompt-traced test turn that can be promoted explicitly to a real conversation without mutating card data automatically.
-- Added durable Media Studio/Image Studio/Command Palette/Character Hub entry points, local compatibility badges and export actions, field-aware character-card sync merging with full conflict copies, opt-in encrypted draft backup, synthetic hostile PNG fixtures, and security/provider/accessibility contract coverage.
-- Added the three Card Studio verifiers, focused aggregate test script, `VERIFY-127` contract registration, compatibility/security/user/developer/testing documentation, and the ST Card migration guide.
-- Kept the explicitly non-MVP Character Card V3, compressed PNG metadata, embedded V3 assets, bulk ZIP libraries, and third-party extension-specific editors unsupported and unadvertised.
+- Promoted ST Card Studio into the README feature highlights, workspace status table, RP workflow narrative, product definition, and About tab inventory using the canonical Tavern V1 / Character Card V2 JSON and V2 PNG terminology.
+- Expanded the FAQ and user guide with supported formats, preview/collision behavior, explicit AI proposal semantics, entry points, encrypted-draft policy, export verification, and unsupported V3/compressed/bulk/archive limits.
+- Updated backup, portable-data, root privacy, technical security, and vulnerability-policy documents with the main-owned opaque-handle file boundary, opt-in draft backup, conflict-copy sync behavior, strict PNG validation, and provider-call disclosures.
+- Updated developer navigation, repository maps, contribution guidance, and release verification with the Card Studio directories, handlers, codec, synthetic-fixture policy, focused test aggregate, and three feature contracts.
+- Reconciled the design status with shipped commit `3d5a07fac718106e52c3d2b5cbd71e49619db528` and its green CI/CodeQL evidence while preserving the roadmap's separate signed/paid/multi-device/accessibility limits.
 
 ## Open TODO Ledger
 
@@ -35,17 +23,17 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 
 | Command | Result | Evidence |
 |---|---|---|
-| Root/bootstrap, branch and ST-card inventory | PASS with dirty baseline | Correct canonical root and `main`; baseline commit `285ed6d`; pre-existing ST-card edits were reconciled rather than overwritten. |
-| Baseline typecheck and intermediate CI attempts | FAIL, superseded | Exposed and drove removal of the unsafe renderer-path PNG helper, two insufficient crypto-bound test timeouts, mesh separator drift, bundle overage, and two stale contract tokens. Each failure was reproduced and corrected before the final gate. |
-| `npm run test:character-cards` | PASS | 12 files / 92 tests covering V1/V2 adapters, JSON/PNG codec and IPC boundaries, editor/book UI, generation/refinement, persistence, collisions and fixtures. |
-| Final `npm run ci` | PASS | Zero-warning lint; renderer/Electron typecheck; 3,857 segmented tests; zero vulnerabilities; production build; all static/feature/release contracts; bundle budget; and dist-output verification. |
-| `npm run dist:mac:arm64` | PASS | Built unsigned Apple-silicon DMG and ZIP plus blockmaps and SHA-256 sidecars; signing was intentionally skipped because no identity was configured. |
-| Arm64 DMG/ZIP `shasum -a 256 -c` | PASS | Both packaged artifacts match their generated SHA-256 sidecars (DMG 160 MiB, ZIP 145 MiB). |
-| `RUN_ELECTRON_SMOKE=true npm run smoke:electron` | PASS | Packaged app launched, remained alive for the five-second smoke window, and terminated cleanly. |
-| `git diff --check` / final status review | PASS with expected changes | No whitespace errors; the dirty tree contains the documented ST Card Studio implementation and ledger changes only. |
+| Root/bootstrap and current-doc inventory | PASS | Confirmed the canonical repository root and inventoried current Markdown outside historical audit/archive snapshots. |
+| Terminology/stale-status sweep | PASS | No retained current-doc matches for the superseded experimental/incomplete Card Studio phrases checked in this session. |
+| `npm run verify:markdown-links` | PASS | All 103 Markdown files and local heading fragments resolved. |
+| `npm run verify:roadmap-current` | PASS | Canonical roadmap remains current-work-only; no competing task ledger was introduced. |
+| `npm run verify:agent-docs` | PASS | Agent guidance parity remains intact. |
+| `npm run verify:repo-handoff-hygiene` | PASS | Handoff, verifier registry, and current documentation hygiene contracts passed. |
+| `git diff --check` / final status review | PASS | No whitespace errors; the dirty tree contains the 17 intended documentation updates only. |
 
 ## Session History
 
+- **2026-07-15 — ST Card Studio repository documentation refresh:** promoted the shipped feature across the README, Product/About, FAQ/user guide, repository maps, contributing/release guidance, backup/export, privacy/security and documentation index; standardized supported-format, explicit-proposal, opaque-handle, draft, sync-conflict and unsupported-scope language; and passed the 103-file Markdown link contract.
 - **2026-07-15 — ST Card Studio backlog closure:** completed collision modes/undo and linked-book import, ten-step authoring/draft/book UI, vision/text/field generation with cancellation and explicit diffs, promotable disposable test chat, Character Hub/media/image/palette entry points, conflict-copy-preserving sync merge, opt-in draft backup, hostile fixtures, docs and `VERIFY-127`; split the Studio and sync importer into bounded lazy chunks; passed final 3,857-test `npm run ci`; built checksummed unsigned arm64 DMG/ZIP artifacts; and passed packaged Electron launch smoke. Explicit V3/bulk/archive compatibility remains out of scope and unadvertised.
 - **2026-07-15 — ST Card Studio export/editor/runtime/refinement tranche:** completed verified main-owned JSON/PNG export; preview/collision UI; compatibility editing; encrypted local draft recovery; prompt precedence, one-pass original expansion, post-history placement, embedded-book matching and one-time greeting selection; typed explicit-apply AI refinement; DB v17 draft policy; focused verifiers/docs; and retained the larger generation/sync/QA backlog honestly.
 - **2026-07-15 — ST Card Studio bounded PNG import boundary:** repaired Electron V2 persistence loss; added the CRC/bounds/size/UTF-8/JSON-validating PNG codec; added sender-scoped expiring single-use opaque import handles, safe previews, main-authoritative safety/collision checks and no-path IPC; expanded imported-field safety coverage; kept export UI and all later phase work explicitly open.

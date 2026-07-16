@@ -157,10 +157,19 @@ Venice Forge uses a fallback allowlist and pattern matching to detect vision-cap
 ### Where do uploaded files go?
 File and URL attachments are assembled into the current prompt context when you send a message. They are not shown in a dedicated Files tab in the UI. Generated images that the app saves from image workflows do appear in the **Media Studio** tab (renamed from the old "Library"), where you can preview, batch favorite/unstar/delete, inspect lineage, and export.
 
+### Which character-card formats can I import and export?
+Open **RP Studio → Characters**. ST Card Studio imports Tavern V1 JSON, Character Card V2 JSON, and Character Card V2 PNG. Standard exports use Character Card V2 JSON or PNG and are reparsed before success is reported. Character Card V3, compressed PNG metadata, V3 embedded assets, bulk ZIP libraries, and extension-specific editors are not supported.
+
+Imports always show a preview. When a matching card already exists, choose keep, copy, replace, or selected-field merge; destructive choices provide an immediate undo. See the [ST Card Studio user guide](user/ST_CARD_STUDIO.md) and [compatibility reference](reference/CHARACTER_CARD_V2_COMPATIBILITY.md).
+
+### Does AI change character cards automatically?
+No. Image analysis, text-to-card generation, and field refinement return typed proposals with visible differences. You choose which proposals to apply, and refinement creates a version snapshot before mutation. The disposable test turn does not alter the card or create a persistent chat unless you explicitly promote it.
+
 
 ### Is my data encrypted?
 - **Conversations (desktop):** Current Conversation Vault records are AES-256-GCM encrypted, with the vault key protected by Electron `safeStorage` where available. Legacy `chat-history/*.json` files are plaintext if still present.
 - **Images, legacy chats, settings, and conversations (web / IndexedDB):** Encrypted with AES-GCM using a browser-managed key stored in same-origin IndexedDB. This reduces casual local inspection risk but is **not equivalent to OS credential storage**. The `diagnostics` store is not encrypted — it contains only sanitized timing and status metadata.
+- **Character-card drafts:** Restart-recoverable drafts are encrypted in IndexedDB, excluded from sync and normal backups, and included in a manual encrypted backup only when you explicitly opt in.
 
 ### How do I test safety changes safely?
 Use the synthetic fixtures in `tests/safety/fixtureBuilders.ts`, then run:

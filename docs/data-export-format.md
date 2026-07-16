@@ -77,6 +77,8 @@ After decryption, a `.vfbackup` payload is a JSON object containing encrypted pr
 }
 ```
 
+Character cards use the app's normalized local schema, including supported Character Card V2 compatibility fields and version history. Restart-recoverable `characterCardDrafts` records are excluded unless the export request explicitly enables draft inclusion. This opt-in affects only the encrypted `.vfbackup` payload; a standard Character Card V2 JSON/PNG export is a separate, portable operation and never includes draft-manager state, credentials, machine paths, sync metadata, or provider-only URLs.
+
 The Electron export path obtains a one-time, expiring, profile-bound lease before encryption. The main process rejects a reused or mismatched lease and verifies that exported records belong to the active profile.
 
 Import preview reports authenticated format/app/source/crypto/key metadata, export time, tombstone/blob/media counts, exclusions, the payload SHA-256, structured compatibility warnings, and per-store new, modified, conflict, and identical counts. Every import fully decrypts and validates the payload, store names, record shapes, IDs, duplicate IDs, tombstones, metadata binding, content hash, and declared counts before mutation. Version-2 backups remain importable and are explicitly labeled as legacy because those authenticated metadata fields are unavailable. Merge and new-profile imports avoid a global pre-clear.

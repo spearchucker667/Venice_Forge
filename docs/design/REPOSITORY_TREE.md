@@ -228,7 +228,7 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 | `privacy/` | Storage / Privacy Dashboard (Phase 2H) | `StoragePrivacyDashboard.tsx` (+ test) |
 | `prompts/` | Prompt Library Foundation (Phase 2D) | `PromptLibraryView.tsx` (+ test) |
 | `research/` | Research Workspace (Phase 2I) | `ResearchWorkspaceView.tsx` (+ test) |
-| `rp-studio/` | Character RP Studio (cards, personas, lorebooks, chats, scene generator) | `RpStudioView.tsx`, `CharacterLibrary.tsx`, `CharacterEditor.tsx`, `PersonaManager.tsx`, `LorebookManager.tsx`, `RpChatList.tsx`, `RpChatView.tsx`, `SceneGenerator.tsx`, `AssetGallery.tsx`, `PromptDebugDrawer.tsx`, `_shared.tsx`, `index.ts` (+ tests) |
+| `rp-studio/` | Character RP Studio and ST Card Studio (cards, ten-step editor, embedded books, personas, lorebooks, chats, prompt trace, scene generator) | `RpStudioView.tsx`, `CharacterLibrary.tsx`, `CharacterEditor.tsx`, `CharacterBookEditor.tsx`, `PersonaManager.tsx`, `LorebookManager.tsx`, `RpChatList.tsx`, `RpChatView.tsx`, `SceneGenerator.tsx`, `AssetGallery.tsx`, `PromptDebugDrawer.tsx`, `_shared.tsx`, `index.ts` (+ tests) |
 | `scenes/` | Scene Composer (Phase 2E) | `SceneComposerView.tsx` (+ test) |
 | `status/` | Header Status Cluster + Diagnostics Drawer (Phase 2C) | `HeaderStatusCluster.tsx`, `StatusIndicator.tsx`, `DiagnosticsDrawer.tsx` (+ tests) |
 | `ui/` | Shared primitives | `error-boundary.tsx`, `generation-view.tsx`, `logo.tsx`, `select.tsx`, `shared.tsx` (+ test), `spinner.tsx`, `toaster.tsx` |
@@ -256,7 +256,8 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 | `inspectorTelemetry.ts` | Developer traffic log telemetry |
 | `redaction.ts` | Secret redaction primitives used by exports and diagnostics |
 | `researchService.ts` / `researchSummaries.ts` | Research providers + citation-aware summaries (Phase 2I) |
-| `characterCardImportExport.ts` | Character card import/export redaction (Phase 2F) |
+| `characterCardImportExport.ts` | Tavern V1 / Character Card V2 JSON dispatch, bounded normalization, and privacy-reduced export |
+| `characterCards/` | Card/book adapters, encrypted draft helpers, AI proposal generation/refinement, Studio handoffs, and field-aware sync merge |
 | `rpPromptCompiler.ts` + tests | RP prompt stack compiler (Phase 2F) |
 | `rp/` | Renderer-side wrappers (assetService, characterCardService, lorebookRendererService, lorebookService, personaService, promptBuilderService, rpChatService) — Electron IPC + web IDB |
 | `sceneGenerationService.ts` (in `src/shared/safety/`) | Scene prompt extraction + `/image/generate` dispatch with hydration-gated `assessScenePrompt` |

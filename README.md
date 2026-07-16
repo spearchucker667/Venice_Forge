@@ -10,7 +10,7 @@
 
 **Unofficial local-first desktop workspace for the Venice API.**
 
-*An advanced frontend client for streaming chat, image studio pipelines, research synthesis, roleplay scripting, and local creative asset management.*
+*An advanced frontend client for streaming chat, image studio pipelines, research synthesis, SillyTavern-compatible character authoring, roleplay scripting, and local creative asset management.*
 
 <p align="center">
   <a href="https://github.com/spearchucker667/Venice_Forge/actions/workflows/ci.yml">
@@ -67,7 +67,7 @@ By prioritizing local data ownership, Venice Forge runs all storage operations l
 - **Media Studio Command Center:** Gallery view equipped with multi-select bulk operations, lineage graph tracing, visual diff comparison, and metadata-preserving exports.
 - **Research Workspace & Embedded Browser:** Synthesize facts using Venice/Jina-backed search, scraping, and social discovery within an isolated sandbox.
 - **Prompt Library:** Cleanly version, tags, and reuse system or user prompts with automatic secret filtering on import/export.
-- **RP Studio & Scene Composer:** Custom local character card editing (Tavern compatible), persona stacks, scenario definitions, lorebooks, and modular scene prompt compilation.
+- **ST Card Studio & RP Studio:** Create, preview-import, edit, version, test, and verified-export Tavern V1 / Character Card V2 JSON and V2 PNG cards; manage personas, scenarios, lorebooks, multi-character chats, and scene generation from the same local workspace.
 - **Token-Based Styling:** Dynamic premium glassmorphism theme system supporting standard dark/light modes and fully custom YAML theme imports.
 
 ## Current Workspace Map
@@ -95,7 +95,7 @@ flowchart LR
 | **Prompts** | Beta | Prompt Library with global/project scopes, version chains, and Tag manager |
 | **Audio/Music/Video** | Experimental | Whisper transcripts, speech generation, lyrics-driven music, and async video queues |
 | **Research** | Experimental | Integrated search/scrape runner with Jina and Venice search synthesis |
-| **Characters & RP** | Experimental | Local Tavern character cards, personas, lorebooks, and scene compiler |
+| **Characters & RP** | Beta | SillyTavern-compatible Card Studio, local cards, personas, lorebooks, multi-character chats, and scene compiler |
 | **Workflows & Canvas** | Experimental | Template-based automation chains and interactive playground builder |
 
 ---
@@ -116,6 +116,8 @@ Venice Forge includes an embedded **Research Browser** that utilizes Electron's 
 
 Roleplay and creative writing features are consolidated into a comprehensive **RP Studio**:
 - **ST Card Studio:** Create, preview-import, edit, version, test, and verified-export Tavern V1 / Character Card V2 JSON and V2 PNG cards. Main-owned file dialogs, bounded PNG validation, secret filtering, lossless compatibility fields, encrypted local drafts, typed AI refinement proposals, alternate greetings, and embedded lorebook compilation preserve the app’s existing storage and safety boundaries. See [the user guide](docs/user/ST_CARD_STUDIO.md).
+- **Authoring workflow:** A ten-step editor covers identity, prompts, greetings, example dialogue, embedded or linked character books, compatibility metadata, generation/refinement proposals, version comparison, and a disposable prompt-traced test turn that can be promoted explicitly into a real conversation.
+- **Interoperability limits:** Character Card V3, compressed PNG metadata, embedded V3 assets, bulk ZIP libraries, and extension-specific editors are not supported. See the [compatibility reference](docs/reference/CHARACTER_CARD_V2_COMPATIBILITY.md).
 - **Personas & Scenarios:** Manage user identity stacks and contextual background circumstances separately.
 - **Lorebooks:** Define key-value triggers that inject world context or character history into the prompt window dynamically.
 - **Memory Injection:** Active chats automatically query IndexedDB-backed semantic memories. Injected context is disclosed to users via a collapsible audit pill in the conversation UI.

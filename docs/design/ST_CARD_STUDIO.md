@@ -4,7 +4,7 @@
 
 ST Card Studio is the Venice Forge workflow for creating and editing SillyTavern-compatible Character Card V2 files. The implementation includes bounded main-owned JSON/PNG import/export, explicit keep/copy/replace/merge collision handling with undo, a ten-step editor navigator, encrypted draft-only creation and recovery, an embedded-book editor with linked-lorebook synchronization, deterministic prompt semantics, disposable test turns, capability-filtered image/text generation, typed selective refinement proposals, durable media handoffs, and conflict-copy-preserving sync merges.
 
-Discovery baseline: `main` at `285ed6d510916e7b39ef84f8f319b4681db87f4b` on 2026-07-15. The worktree already contained an incomplete ST-card implementation when this design was written; unsafe renderer-supplied PNG paths and raw-IPC helpers were removed rather than treated as completed work.
+Discovery began from `main` at `285ed6d510916e7b39ef84f8f319b4681db87f4b` on 2026-07-15. The completed implementation shipped on `main` as `3d5a07fac718106e52c3d2b5cbd71e49619db528`; its CI and CodeQL workflows passed. Unsafe renderer-supplied PNG paths and raw-IPC helpers found in the inherited worktree were removed rather than retained.
 
 ## Architecture decisions
 
@@ -54,4 +54,4 @@ Creator notes never enter prompts. Card/global system precedence is explicit, `{
 5. Phase 5/6: live-capability-driven image/text draft generation, cancellation, strict schemas, per-field proposals, typed refinement diffs, selective apply, and version snapshots.
 6. Phase 7: encrypted backup opt-in for drafts, sync conflict copies and collection merges, synthetic fixtures, documentation, build/packaging validation, and manual signed/authenticated QA tracked separately.
 
-No later phase is complete merely because its fields exist in storage.
+All seven implementation phases above are complete. Signed-distribution, paid-account, multi-device, and broad manual accessibility evidence remain governed by the repository roadmap and are not implied by this feature status.

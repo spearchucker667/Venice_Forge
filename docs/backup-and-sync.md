@@ -62,6 +62,8 @@ To keep you safe, the following data is **never** synced or backed up, even if y
 - Operating system level secrets.
 - Absolute file paths specific to your machine.
 
+Restart-recoverable ST Card Studio drafts are excluded from sync and from manual backups by default. The manual encrypted-backup UI can include them only through the explicit **Include character-card drafts** option. Standard Character Card V2 exports never contain API keys, local paths, sync metadata, provider-only URLs, or draft-manager state.
+
 Persona images and other user-authored media are included in manual encrypted backups. Sync packets remain encrypted and are subject to the active store/data classification; credentials and sync-folder configuration are always removed.
 
 New desktop sync packets are Argon2id/XChaCha20-Poly1305 envelopes written atomically under `.vfbackup/blobs/`. The desktop decryptor retains PBKDF2/AES-256-GCM compatibility for legacy 12-byte-IV envelopes. Store names and record IDs are allowlisted, records must agree with their envelope ID, oversized or malformed packets are rejected, and abandoned temporary files are removed when the watcher starts.
@@ -71,5 +73,6 @@ You must manually configure your API keys on each device you use.
 ## Conflict Resolution
 If you edit the exact same Character Card or Chat on two different machines at the same time while offline, a conflict occurs.
 - **Characters & Prompts**: Venice Forge will duplicate the record to prevent data loss (e.g., `My Character (Conflict from Desktop)`).
+- **Character Cards**: The sync merger safely unions greetings, tags, non-conflicting extension namespaces, character-book entries, versions, and metadata; when the same field diverges, it retains the losing card as a full conflict copy instead of silently discarding it.
 - **Chats**: Venice Forge will perform a "message-level merge", appending new messages from both machines into the same chat chronologically.
 - **Settings**: Venice Forge uses a "Last Write Wins" strategy; whichever device saved the setting most recently will overwrite the other.

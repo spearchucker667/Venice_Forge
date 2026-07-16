@@ -25,7 +25,9 @@ Generated `dist/`, `dist-electron/`, `release/`, and `coverage/` trees are ignor
 | `src/App.tsx` | Application view host |
 | `src/config/tabs.ts` | Canonical tab IDs, ordering, sidebar groups, shortcuts, and legacy aliases |
 | `src/components/` | Feature UI: standard/character chat, history, image/media/audio/music/video studios, prompts, scenes, research, characters/RP, workflows, privacy, settings, status, and command palette |
+| `src/components/rp-studio/` | RP Studio and ST Card Studio UI, including the ten-step character editor, character-book editor, library, chats, prompt trace, and scene tools |
 | `src/services/desktopBridge.ts` | Only renderer boundary for Electron preload capabilities; web-safe fallbacks live here |
+| `src/services/characterCards/` | Character Card V1/V2 adapters, generation/refinement proposals, drafts, Studio handoffs, character-book mapping, and sync merge policy |
 | `src/services/veniceClient.ts` | Canonical renderer Venice request/stream entry point |
 | `src/services/storageService.ts`, `src/services/dbMigrations.ts` | IndexedDB storage and migration authority |
 | `src/stores/` | Zustand application and content stores |
@@ -42,6 +44,7 @@ The visible workspace list must be read from `CANONICAL_TAB_ORDER`; do not copy 
 | `electron/main.ts` | BrowserWindow lifecycle, protocol registration, navigation policy, and handler bootstrap |
 | `electron/preload.ts` | Context-isolated renderer API and IPC channel allowlist |
 | `electron/ipc/handlers/` | Domain-specific IPC registration and main-authoritative input handling |
+| `electron/ipc/characterCardFileHandlers.ts` | Main-owned card file selection, preview handles, collision-aware apply, and verified JSON/PNG export |
 | `electron/ipc/validation.ts` | IPC request validation |
 | `electron/services/veniceClient.ts` | Trusted Venice/provider transport and automatic fallback routing |
 | `electron/services/guardPipeline.ts` | Main-process local-safety enforcement and response screening |
@@ -50,6 +53,7 @@ The visible workspace list must be read from `CANONICAL_TAB_ORDER`; do not copy 
 | `electron/services/conversationVault.ts`, `electron/services/chatStorage.ts` | Encrypted vault and legacy desktop conversation persistence |
 | `electron/services/backgroundTaskManager.ts` | Profile-scoped durable generation-task recovery |
 | `electron/services/syncFolderWatcher.ts` | Authenticated encrypted sync-folder ingestion and outbox handling |
+| `electron/services/characterCardPngCodec.ts` | Bounded Character Card V2 PNG metadata parsing, validation, replacement, and semantic round-trip verification |
 | `electron/security/` | Research Browser request/network containment |
 | `electron/utils/` | CSP, navigation, external-link, URL, rate-limit, and custom-protocol helpers |
 
