@@ -85,6 +85,7 @@ const VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/
 const PERSISTED_METADATA_STRING_LIMITS = {
   model: 256,
   queueDownloadUrl: 4096,
+  mimeType: 64,
   source: 128,
   projectId: 128,
 } as const

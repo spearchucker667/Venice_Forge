@@ -18,6 +18,9 @@ export async function persistCompletedTaskMedia(task: BackgroundTask): Promise<M
     const request = task.metadata?.request && typeof task.metadata.request === 'object'
       ? task.metadata.request as Record<string, unknown>
       : {}
+    const mimeType = typeof task.metadata?.mimeType === 'string'
+      ? task.metadata.mimeType
+      : task.resultUrl.match(/^data:([^;,]+)[;,]/i)?.[1]
     const item: MediaItem = {
       id,
       image: task.resultUrl,
@@ -33,6 +36,7 @@ export async function persistCompletedTaskMedia(task: BackgroundTask): Promise<M
       favorite: false,
       queueId: task.queueId,
       downloadUrl: task.resultUrl,
+      ...(mimeType ? { mimeType } : {}),
       ...(typeof request.duration === 'string' ? { duration: request.duration } : {}),
       ...(typeof request.resolution === 'string' ? { resolution: request.resolution } : {}),
       ...(typeof request.aspect_ratio === 'string' ? { aspectRatio: request.aspect_ratio } : {}),

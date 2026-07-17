@@ -5,7 +5,9 @@ This contract distinguishes semantic work states from structural and interactive
 ## Loading states
 
 - Long-running generation, provider execution, research synthesis, and background jobs use `GenerationLoadingIndicator` with the matching semantic state and an accessible text label.
+- Button labels such as `Generating…` may accompany that long-running indicator; they communicate the action state and are not a competing loading animation.
 - Short metadata hydration, list refresh, model discovery, and local persistence use compact progress text, skeletons, or CSS spinners. These controls must expose an accessible name or adjacent status text.
+- Media decode and thumbnail loading use bounded placeholders or skeletons; video/embedding processing may use domain-specific progress when the shared generation state does not represent their lifecycle.
 - Destructive confirmation, security decisions, and terminal errors use static semantic indicators, never cycling decorative animation.
 - Every motion treatment must honor `prefers-reduced-motion`; the generation registry provides static fallbacks and CSS motion must be disabled by the reduced-motion theme contract.
 

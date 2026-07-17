@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ROADMAP_PATH = "docs/ROADMAP.md";
-const EVIDENCE_PATH = "docs/audits/Venice_Forge_Deep_Scan_2026-07-16.md";
+const EVIDENCE_PATH = "docs/audits/Venice_Forge-audit-results-20260716-183918/AUDIT_REPORT.md";
 
 function verifyCurrentRoadmap(rootDir) {
   const failures = [];

@@ -468,6 +468,43 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     }
   });
 
+  archiveIt("clean-repo-zip.sh excludes ignored and untracked files from Git handoffs", () => {
+    const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-manifest-repo-"));
+    const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-manifest-out-"));
+    const extractDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-manifest-extract-"));
+    try {
+      writeFileSync(join(repo, "package.json"), JSON.stringify({ name: "fake-repo" }));
+      writeFileSync(join(repo, "README.md"), "# fake");
+      writeFileSync(join(repo, ".gitignore"), "ignored-history/\n");
+      mkdirSync(join(repo, "src"), { recursive: true });
+      writeFileSync(join(repo, "src", "tracked.ts"), "export const tracked = true;\n");
+      execSync("git init", { cwd: repo, stdio: "ignore" });
+      execSync("git config user.email 'test@test.com'", { cwd: repo, stdio: "ignore" });
+      execSync("git config user.name 'Test'", { cwd: repo, stdio: "ignore" });
+      execSync("git add . && git commit -m initial", { cwd: repo, stdio: "ignore" });
+      mkdirSync(join(repo, "ignored-history"), { recursive: true });
+      writeFileSync(join(repo, "ignored-history", "sentinel.md"), "must not ship\n");
+      writeFileSync(join(repo, "untracked.txt"), "must not ship\n");
+
+      execSync(`bash ${shellQuote(join(__dirname, "clean-repo-zip.sh"))} ${shellQuote(repo)} ${shellQuote(outDir)}`, {
+        encoding: "utf8",
+        stdio: "pipe",
+        env: { ...process.env, ALLOW_DIRTY_REPO_EXTRACT: "1" },
+      });
+      const zipPath = findZip(outDir);
+      expect(zipPath).not.toBeNull();
+      execSync(`unzip -q ${shellQuote(zipPath!)} -d ${shellQuote(extractDir)}`, { stdio: "pipe" });
+      const extractedRoot = join(extractDir, readdirSync(extractDir)[0]);
+      expect(existsSync(join(extractedRoot, "src", "tracked.ts"))).toBe(true);
+      expect(existsSync(join(extractedRoot, "ignored-history", "sentinel.md"))).toBe(false);
+      expect(existsSync(join(extractedRoot, "untracked.txt"))).toBe(false);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+      rmSync(outDir, { recursive: true, force: true });
+      rmSync(extractDir, { recursive: true, force: true });
+    }
+  });
+
   archiveIt("clean-repo-zip.sh records script_source=repo when run from repo root", () => {
     const repo = mkdtempSync(join(tmpdir(), "venice-clean-zip-source-repo-"));
     const outDir = mkdtempSync(join(tmpdir(), "venice-clean-zip-source-out-"));

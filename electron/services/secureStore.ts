@@ -23,7 +23,7 @@ function isPlaintextFallbackAllowed(): boolean {
 /** Whether strict credentials should be routed to the Windows Credential Manager
  *  bridge on Windows. Defaults to enabled; the `"false"` override is honored only
  *  in test mode so release builds cannot opt password credentials back into DPAPI/safeStorage. */
-function useWindowsCredentialManager(): boolean {
+function shouldUseWindowsCredentialManager(): boolean {
   if (
     process.env.NODE_ENV === "test" &&
     process.env.VENICE_FORGE_USE_WINDOWS_CREDENTIAL_MANAGER === "false"
@@ -446,7 +446,7 @@ export function setCredential(key: string, value: string): void {
 
   // On Windows, route strict password credentials to Windows Credential Manager
   // instead of DPAPI-backed safeStorage to satisfy the work-order policy.
-  if (isStrictNoPlaintextCredential(key) && useWindowsCredentialManager()) {
+  if (isStrictNoPlaintextCredential(key) && shouldUseWindowsCredentialManager()) {
     try {
       writeWindowsCredential(windowsCredentialTarget(key), value);
       // Remove any legacy local copy so the credential lives only in Credential Manager.
@@ -502,7 +502,7 @@ export function getCredential(key: string): string | null {
   // available. Read from there first, and fall back to the local store only
   // for migration of legacy entries. Any bridge/runtime error propagates
   // instead of silently reading a weaker DPAPI-backed local store.
-  if (isStrictNoPlaintextCredential(key) && useWindowsCredentialManager()) {
+  if (isStrictNoPlaintextCredential(key) && shouldUseWindowsCredentialManager()) {
     const value = readWindowsCredential(windowsCredentialTarget(key));
     if (value !== null) return value;
   }
@@ -557,7 +557,7 @@ export function deleteCredential(key: string): void {
   // available. Delete the OS credential first; only remove the local legacy row
   // after the OS deletion succeeds (or is confirmed absent). A bridge/runtime
   // error propagates so the caller does not falsely report deletion success.
-  if (isStrictNoPlaintextCredential(key) && useWindowsCredentialManager()) {
+  if (isStrictNoPlaintextCredential(key) && shouldUseWindowsCredentialManager()) {
     deleteWindowsCredential(windowsCredentialTarget(key));
   }
 

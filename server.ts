@@ -1063,7 +1063,7 @@ export async function startServer() {
 
     app.use(staticRateLimiter);
     app.use(express.static(distPath));
-    app.get("*", (req: express.Request, res: express.Response) => {
+    app.get("/{*rendererPath}", (req: express.Request, res: express.Response) => {
       // Inject the per-request CSP nonce into every <script> tag in index.html
       // so the nonces in the HTTP header and in the HTML stay in sync.
       // The nonce was set on res.locals.cspNonce by the security-headers middleware.

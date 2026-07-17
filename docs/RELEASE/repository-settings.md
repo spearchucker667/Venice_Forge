@@ -3,6 +3,18 @@
 This checklist captures repository-level controls that are required for a
 production release but are configured in GitHub settings rather than source.
 
+## Verified Live State — 2026-07-16
+
+The repository-admin APIs confirm that `main` now requires strict current
+checks, one approving review, code-owner review, approval of the last push,
+conversation resolution, and enforcement for administrators. Force pushes and
+branch deletion are disabled. Default Actions workflow permissions are
+read-only and workflows cannot approve pull requests by default. Vulnerability
+alerts, automated security fixes, and private vulnerability reporting are
+enabled. This is a dated live-settings snapshot; rerun the GitHub API checks
+before a production release because repository settings can drift independently
+of the tracked tree.
+
 ## Branch Protection
 
 - Protect `main`.

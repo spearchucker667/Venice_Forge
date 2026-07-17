@@ -48,7 +48,7 @@ export function WorkflowTemplatesView() {
     if (activeWorkflow) {
       setLocalTitle(activeWorkflow.title);
     }
-  }, [activeWorkflow?.id]);
+  }, [activeWorkflow]);
 
   useEffect(() => {
     if (activeWorkflow && titleDirty) {
@@ -66,7 +66,7 @@ export function WorkflowTemplatesView() {
     if (activeWorkflow) {
       setLocalTags(activeWorkflow.tags?.join(", ") || "");
     }
-  }, [activeWorkflow?.id]);
+  }, [activeWorkflow]);
   
   useEffect(() => {
     if (activeWorkflow && tagsDirty) {

@@ -16,7 +16,7 @@ vi.mock("electron", () => ({
   },
 }));
 
-import { ensureLogFile, getLogPath, logInfo, logError, getLastApiError, setLastApiError } from "./logger";
+import { ensureLogFile, flushLogs, getLogPath, logInfo, logError, getLastApiError, setLastApiError } from "./logger";
 
 const TEST_LOG = getLogPath();
 
@@ -31,7 +31,7 @@ describe("logger rotation", () => {
     cleanLogs();
     fs.mkdirSync(path.dirname(TEST_LOG), { recursive: true });
   });
-  afterEach(() => cleanLogs());
+  afterEach(async () => { await flushLogs(); cleanLogs(); });
 
   it("creates a .1 backup when log exceeds max size", () => {
     // Pre-seed log file to just over the 1 MiB limit
@@ -73,31 +73,35 @@ describe("logger redaction", () => {
     cleanLogs();
     fs.mkdirSync(path.dirname(TEST_LOG), { recursive: true });
   });
-  afterEach(() => cleanLogs());
+  afterEach(async () => { await flushLogs(); cleanLogs(); });
 
-  it("redacts bearer tokens from log messages", () => {
+  it("redacts bearer tokens from log messages", async () => {
     logInfo("upstream error", "Authorization: Bearer vn-secret-token");
+    await flushLogs();
     const log = fs.readFileSync(TEST_LOG, "utf-8");
     expect(log).toContain("Bearer [REDACTED]");
     expect(log).not.toContain("vn-secret-token");
   });
 
-  it("redacts OpenAI-compatible sk- keys from log messages", () => {
+  it("redacts OpenAI-compatible sk- keys from log messages", async () => {
     logInfo("provider error", "api_key=sk-live-1234567890abcdef");
+    await flushLogs();
     const log = fs.readFileSync(TEST_LOG, "utf-8");
     expect(log).toContain("[REDACTED]");
     expect(log).not.toContain("sk-live-1234567890abcdef");
   });
 
-  it("redacts local file paths from log messages", () => {
+  it("redacts local file paths from log messages", async () => {
     logError("failed to read", "/Users/example/Projects/legacy-repository-name/.env");
+    await flushLogs();
     const log = fs.readFileSync(TEST_LOG, "utf-8");
     expect(log).toContain("[REDACTED-PATH]");
     expect(log).not.toContain("/Users/example/Projects/legacy-repository-name/.env");
   });
 
-  it("redacts secrets inside metadata objects", () => {
+  it("redacts secrets inside metadata objects", async () => {
     logInfo("request", { headers: { Authorization: "Bearer vn-abc123" }, body: { apiKey: "sk-xyz" } });
+    await flushLogs();
     const log = fs.readFileSync(TEST_LOG, "utf-8");
     expect(log).not.toContain("vn-abc123");
     expect(log).not.toContain("sk-xyz");

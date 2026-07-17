@@ -32,95 +32,137 @@ export interface ProviderDefinition {
   unavailable?: boolean
 }
 
+export type ProviderFeature = 'chat' | 'image' | 'video' | 'audio' | 'embeddings' | 'rerank' | 'vision'
+
+export interface ProviderCapability {
+  feature: ProviderFeature
+  route: string
+  implemented: boolean
+  modelDiscovery: 'live' | 'static' | 'none'
+}
+
+/** Canonical endpoint-granular capability contract used by UI, catalogs, routing tests, and diagnostics. */
+export const PROVIDER_CAPABILITIES: Record<ProviderId, readonly ProviderCapability[]> = {
+  venice: [
+    { feature: 'chat', route: '/chat/completions', implemented: true, modelDiscovery: 'live' },
+    { feature: 'image', route: '/images/generations', implemented: true, modelDiscovery: 'live' },
+    { feature: 'video', route: '/video/queue', implemented: true, modelDiscovery: 'live' },
+    { feature: 'audio', route: '/audio/queue', implemented: true, modelDiscovery: 'live' },
+    { feature: 'embeddings', route: '/embeddings', implemented: true, modelDiscovery: 'live' },
+  ],
+  together: [
+    { feature: 'chat', route: '/chat/completions', implemented: true, modelDiscovery: 'static' },
+    { feature: 'image', route: '/images/generations', implemented: true, modelDiscovery: 'static' },
+  ],
+  groq: [{ feature: 'chat', route: '/chat/completions', implemented: true, modelDiscovery: 'static' }],
+  fireworks: [{ feature: 'chat', route: '/chat/completions', implemented: true, modelDiscovery: 'static' }],
+  google_gemini: [{ feature: 'chat', route: '/chat/completions', implemented: true, modelDiscovery: 'static' }],
+  mistral: [{ feature: 'chat', route: '/chat/completions', implemented: true, modelDiscovery: 'static' }],
+  anthropic: [{ feature: 'chat', route: '/chat/completions', implemented: true, modelDiscovery: 'static' }],
+  perplexity: [{ feature: 'chat', route: '/chat/completions', implemented: true, modelDiscovery: 'static' }],
+  replicate: [],
+  aws_bedrock: [],
+  google_vertex: [],
+  azure_openai: [],
+  huggingface: [],
+  cohere: [],
+}
+
+function implementedFeatures(providerId: ProviderId): ProviderFeature[] {
+  return PROVIDER_CAPABILITIES[providerId]
+    .filter((capability) => capability.implemented)
+    .map((capability) => capability.feature)
+}
+
 export const PROVIDER_REGISTRY: Record<ProviderId, ProviderDefinition> = {
   venice: {
     id: 'venice',
     label: 'Venice AI',
     description: 'Primary, private, local-first multimodal platform.',
-    supportedTypes: ['chat', 'image', 'video', 'audio', 'embeddings'],
+    supportedTypes: implementedFeatures('venice'),
   },
   together: {
     id: 'together',
     label: 'Together AI',
     description: 'Fast, open-source model inference.',
-    supportedTypes: ['chat', 'image'],
+    supportedTypes: implementedFeatures('together'),
   },
   groq: {
     id: 'groq',
     label: 'Groq',
     description: 'Ultra-fast LPU inference engine.',
-    supportedTypes: ['chat', 'audio'],
+    supportedTypes: implementedFeatures('groq'),
   },
   fireworks: {
     id: 'fireworks',
     label: 'Fireworks AI',
     description: 'High-performance LLM APIs.',
-    supportedTypes: ['chat', 'image'],
+    supportedTypes: implementedFeatures('fireworks'),
   },
   replicate: {
     id: 'replicate',
     label: 'Replicate',
     description: 'Not implemented. No credentials or requests are accepted.',
-    supportedTypes: ['chat', 'image', 'video', 'audio'],
+    supportedTypes: implementedFeatures('replicate'),
     unavailable: true,
   },
   aws_bedrock: {
     id: 'aws_bedrock',
     label: 'AWS Bedrock',
     description: 'Not implemented. No credentials or requests are accepted.',
-    supportedTypes: ['chat', 'image', 'embeddings'],
+    supportedTypes: implementedFeatures('aws_bedrock'),
     unavailable: true,
   },
   google_vertex: {
     id: 'google_vertex',
     label: 'Google Vertex AI',
     description: 'Not implemented. No credentials or requests are accepted.',
-    supportedTypes: ['chat', 'image', 'video', 'audio', 'embeddings'],
+    supportedTypes: implementedFeatures('google_vertex'),
     unavailable: true,
   },
   google_gemini: {
     id: 'google_gemini',
     label: 'Google Gemini (Developer API)',
     description: 'Gemini Developer API (AI Studio).',
-    supportedTypes: ['chat', 'image', 'video', 'audio', 'embeddings'],
+    supportedTypes: implementedFeatures('google_gemini'),
   },
   azure_openai: {
     id: 'azure_openai',
     label: 'Azure OpenAI',
     description: 'Not implemented. No credentials or requests are accepted.',
-    supportedTypes: ['chat', 'image', 'embeddings'],
+    supportedTypes: implementedFeatures('azure_openai'),
     unavailable: true,
   },
   huggingface: {
     id: 'huggingface',
     label: 'Hugging Face',
     description: 'Not implemented. No credentials or requests are accepted.',
-    supportedTypes: ['chat', 'image'],
+    supportedTypes: implementedFeatures('huggingface'),
     unavailable: true,
   },
   mistral: {
     id: 'mistral',
     label: 'Mistral API',
     description: 'Mistral AI models and endpoints.',
-    supportedTypes: ['chat', 'embeddings'],
+    supportedTypes: implementedFeatures('mistral'),
   },
   anthropic: {
     id: 'anthropic',
     label: 'Anthropic API',
     description: 'Claude and other safe foundation models.',
-    supportedTypes: ['chat', 'vision'],
+    supportedTypes: implementedFeatures('anthropic'),
   },
   perplexity: {
     id: 'perplexity',
     label: 'Perplexity API',
     description: 'Search-grounded and fast LLM APIs.',
-    supportedTypes: ['chat'],
+    supportedTypes: implementedFeatures('perplexity'),
   },
   cohere: {
     id: 'cohere',
     label: 'Cohere',
     description: 'Not implemented. No credentials or requests are accepted.',
-    supportedTypes: ['chat', 'embeddings', 'rerank'],
+    supportedTypes: implementedFeatures('cohere'),
     unavailable: true,
   },
 }

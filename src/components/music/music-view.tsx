@@ -11,6 +11,7 @@ import { toast } from '../../stores/toast-store'
 import { useMediaStore } from '../../stores/media-store'
 import type { MusicQueueRequest } from '../../types/venice'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
+import { getAudioExtension } from '../../utils/image'
 
 // Model capabilities
 interface MusicModelConfig {
@@ -50,9 +51,12 @@ export function MusicView() {
   const [instrumental, setInstrumental] = useState(false)
   const [playbackError, setPlaybackError] = useState<string | null>(null)
 
-  const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs, queueId, lastRequest } = useMusic()
+  const { queue, isQueueing, status, audioUrl, error, reset, cancel, elapsedMs, queueId, resultMediaId, mimeType, lastRequest } = useMusic()
   const isProcessing = status === 'queued' || status === 'processing'
   const savedQueueIdsRef = useRef<Set<string>>(new Set())
+  const queueAlreadySaved = useMediaStore((state) => Boolean(
+    resultMediaId || (queueId && state.items.some((media) => media.queueId === queueId)),
+  ))
 
   useEffect(() => {
     if (!audioUrl) setPlaybackError(null)
@@ -137,12 +141,12 @@ export function MusicView() {
               <Label>Output</Label>
               <div className="flex items-center gap-3">
                 {(() => {
-                  const alreadySaved = !!queueId && savedQueueIdsRef.current.has(queueId)
+                  const alreadySaved = queueAlreadySaved || (!!queueId && savedQueueIdsRef.current.has(queueId))
                   return (
                 <button
                   type="button"
                   onClick={() => {
-                    if (queueId && savedQueueIdsRef.current.has(queueId)) {
+                    if (resultMediaId || (queueId && (savedQueueIdsRef.current.has(queueId) || useMediaStore.getState().items.some((media) => media.queueId === queueId)))) {
                       toast.success('Already in Media Studio')
                       return
                     }
@@ -161,6 +165,7 @@ export function MusicView() {
                       favorite: false,
                       queueId: queueId ?? undefined,
                       downloadUrl: audioUrl,
+                      mimeType: mimeType ?? audioUrl.match(/^data:([^;,]+)[;,]/i)?.[1],
                     }
                     if (queueId) savedQueueIdsRef.current.add(queueId)
                     void useMediaStore.getState().upsert(item, {
@@ -184,7 +189,7 @@ export function MusicView() {
                 </button>
                   )
                 })()}
-                <a href={audioUrl} download="venice-music.mp3" target="_blank" rel="noopener noreferrer" className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
+                <a href={audioUrl} download={`venice-music${getAudioExtension(mimeType, audioUrl)}`} target="_blank" rel="noopener noreferrer" className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                   Download
                 </a>

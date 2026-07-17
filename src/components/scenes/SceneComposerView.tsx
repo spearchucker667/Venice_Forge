@@ -6,7 +6,7 @@
  * compile-to-recipe / send-to-image-studio actions.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSceneComposerStore } from "../../stores/scene-composer-store";
 import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
 import { type WorkflowStep } from "../../types/workflow";
@@ -447,7 +447,7 @@ function SceneDetail(props: SceneDetailProps) {
   const getPrompt = usePromptLibraryStore((s) => s.getPrompt);
   const getCurrentVersion = usePromptLibraryStore((s) => s.getCurrentVersion);
 
-  const resolvePromptRef = (ref: ScenePromptRef) => {
+  const resolvePromptRef = useCallback((ref: ScenePromptRef) => {
     const prompt = getPrompt(ref.promptId);
     if (!prompt) return null;
     const version = ref.versionId
@@ -461,7 +461,7 @@ function SceneDetail(props: SceneDetailProps) {
       content: version.content,
       negativeContent: version.negativeContent,
     };
-  };
+  }, [getCurrentVersion, getPrompt]);
 
   useEffect(() => {
     void ensurePromptsLoaded();
@@ -515,6 +515,9 @@ function SceneDetail(props: SceneDetailProps) {
         key: crypto.randomUUID ? crypto.randomUUID() : `${c.kind}-${Date.now()}-${Math.random()}`,
       })),
     );
+  // Reset only when selection identity changes; field dependencies would
+  // overwrite unsaved editor state after every persisted metadata update.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id, currentVersion.id]);
 
   const persistMetadata = async () => {

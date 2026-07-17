@@ -28,6 +28,7 @@ const mockDoc = {
 
 const mockTask = {
   promise: Promise.resolve(mockDoc),
+  destroy: mockDestroy,
 };
 
 vi.mock("pdfjs-dist", () => ({

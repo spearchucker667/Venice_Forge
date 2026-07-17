@@ -216,7 +216,7 @@ export function startBridgeServer(
     });
 
     // Unified endpoint router for Venice API calls
-    app.all("*", async (req: Request, res: Response) => {
+    app.all("/{*bridgePath}", async (req: Request, res: Response) => {
       const endpoint = req.path;
       const method = req.method;
       const body = req.body;

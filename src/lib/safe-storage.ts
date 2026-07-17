@@ -13,7 +13,7 @@ import * as logger from '../shared/logger'
  *   - Use `src/services/modelService.ts` `cacheStorage` for transient model-list
  *     cache only (no secrets, stale-while-revalidate, best-effort).
  *   - Use `src/services/storageMaintenance.ts` for clearing that same cache.
- *   - Use `src/hooks/useThemeLifecycle.ts` and `src/App.tsx` for the theme
+ *   - Use `src/App.tsx` for the theme
  *     bootstrap cache only (prevents FOUC on cold load).
  *   - Use `src/services/promptStarterService.ts` for ephemeral prompt-starter
  *     rotation tracking only.

@@ -100,10 +100,9 @@ export function VideoView() {
   }, [aspect, aspectOpts])
 
   // Persist a Media Studio record the first time a job completes for a given
-  // queue id. We do not save the (very large) video bytes into the encrypted
-  // IDB record — instead we keep the upstream `downloadUrl` and let the user
-  // re-download on demand. This keeps the gallery store light and avoids
-  // duplicating the asset across IDB and the cache.
+  // queue id. Desktop completion is main-owned and may return a durable
+  // `venice-media://<sha256>` URL; web mode retains the normalized completion
+  // URL. The Media Studio record stores that bounded URL, never duplicate bytes.
   // BUG-004 regression guard: track every queueId that has been persisted
   // to the Media Studio, regardless of whether it was auto-saved or
   // manually saved. The previous implementation used a single

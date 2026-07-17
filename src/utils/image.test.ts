@@ -53,6 +53,16 @@ describe("galleryFilename", () => {
     expect(galleryFilename(item)).toBe("m-i.webm");
   });
 
+  it.each([
+    ["audio/mpeg", "mp3"],
+    ["audio/wav", "wav"],
+    ["audio/x-wav", "wav"],
+    ["audio/flac", "flac"],
+  ])("assigns the %s audio MIME extension", (mimeType, extension) => {
+    expect(galleryFilename({ mediaType: "audio", mimeType, model: "music", id: "track" }))
+      .toBe(`music-track.${extension}`);
+  });
+
   it("appends suffix correctly", () => {
     const item = { model: "m", id: "i" };
     expect(galleryFilename(item, 0, "-upscaled")).toBe("m-i-upscaled.png");

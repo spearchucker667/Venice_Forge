@@ -110,10 +110,20 @@ export function galleryFilename(item: unknown, index = 0, suffix = "") {
     record.mediaType === "video"
       ? (/\.webm($|\?)/i.test(String(record.downloadUrl || record.image || "")) ? ".webm" : ".mp4")
       : record.mediaType === "audio"
-        ? ".mp3"
+        ? getAudioExtension(record.mimeType, String(record.downloadUrl || record.image || ""))
         : ".png";
 
   return `${safeModel}-${id}${suffix}${ext}`;
+}
+
+/** Maps a supported audio MIME type (or URL/data URL fallback) to its file extension. */
+export function getAudioExtension(mimeType: unknown, source = ""): ".mp3" | ".wav" | ".flac" {
+  const normalized = typeof mimeType === "string" ? mimeType.split(";", 1)[0].trim().toLowerCase() : "";
+  if (normalized === "audio/wav" || normalized === "audio/x-wav") return ".wav";
+  if (normalized === "audio/flac") return ".flac";
+  if (/^(?:data:audio\/(?:x-)?wav[;,]|.*\.wav(?:$|\?))/i.test(source)) return ".wav";
+  if (/^(?:data:audio\/flac[;,]|.*\.flac(?:$|\?))/i.test(source)) return ".flac";
+  return ".mp3";
 }
 
 export async function blobToDataUrl(blob: Blob): Promise<string> {

@@ -17,7 +17,6 @@ work done*.md
 *work*done*.md
 *session*.json
 *session*.md
-!docs/archives/session-history-pre-2026-07-11.md
 chat-history/
 docs/audits/*
 !docs/audits/*.md
@@ -105,4 +104,8 @@ scratch/
 # BEGIN generated audit artifacts
 Venice_Forge-audit-*/
 *-audit-*/
+!docs/audits/Venice_Forge-audit-results-20260716-183918/
+docs/audits/Venice_Forge-audit-results-20260716-183918/*
+!docs/audits/Venice_Forge-audit-results-20260716-183918/AUDIT_REPORT.md
+!docs/audits/Venice_Forge-audit-results-20260716-183918/EVIDENCE_MANIFEST.md
 # END generated audit artifacts

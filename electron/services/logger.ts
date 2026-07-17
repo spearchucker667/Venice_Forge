@@ -28,6 +28,11 @@ export function getLogPath(): string {
 /** @internal exported for testing */
 let logRotationLock = false;
 
+const MAX_QUEUED_LINES = 1000;
+const MAX_BATCH_LINES = 100;
+const queuedLines: string[] = [];
+let flushPromise: Promise<void> | null = null;
+
 function getFileSize(filePath: string): number | null {
   try {
     return fs.statSync(filePath).size;
@@ -108,16 +113,70 @@ export function logError(message: string, error?: unknown): void {
  */
 function writeLog(level: "INFO" | "WARN" | "ERROR", message: string, meta?: unknown): void {
   try {
-    ensureLogFile();
     const safeMessage = sanitizeErrorText(message).replace(/\r?\n/g, "\\n");
     const metaText = meta === undefined
       ? ""
       : ` ${sanitizeErrorText(typeof meta === "string" ? meta : JSON.stringify(redactSecrets(meta)))}`;
     const safeMeta = metaText.replace(/\r?\n/g, "\\n");
-    fs.appendFileSync(getLogPath(), `${new Date().toISOString()} ${level} ${safeMessage}${safeMeta}\n`, "utf-8");
+    if (queuedLines.length >= MAX_QUEUED_LINES) queuedLines.shift();
+    queuedLines.push(`${new Date().toISOString()} ${level} ${safeMessage}${safeMeta}\n`);
+    scheduleFlush();
   } catch {
     // Logging must never break app startup or API requests.
   }
+}
+
+async function prepareLogFileForAppend(): Promise<void> {
+  const logsDir = getLogsDir();
+  const logPath = getLogPath();
+  await fs.promises.mkdir(logsDir, { recursive: true });
+  let size = 0;
+  try {
+    size = (await fs.promises.stat(logPath)).size;
+  } catch (error: unknown) {
+    if ((error as { code?: string }).code !== "ENOENT") throw error;
+  }
+  if (size <= MAX_LOG_BYTES) return;
+  for (const [from, to] of [
+    [`${logPath}.2`, `${logPath}.3`],
+    [`${logPath}.1`, `${logPath}.2`],
+    [logPath, `${logPath}.1`],
+  ] as const) {
+    try {
+      if (to.endsWith(".3")) await fs.promises.rm(to, { force: true });
+      await fs.promises.rename(from, to);
+    } catch (error: unknown) {
+      if ((error as { code?: string }).code !== "ENOENT") throw error;
+    }
+  }
+}
+
+async function drainLogQueue(): Promise<void> {
+  while (queuedLines.length > 0) {
+    const batch = queuedLines.splice(0, MAX_BATCH_LINES).join("");
+    try {
+      await prepareLogFileForAppend();
+      await fs.promises.appendFile(getLogPath(), batch, "utf-8");
+    } catch {
+      // Logging remains best-effort and must never break app work.
+    }
+  }
+}
+
+function scheduleFlush(): void {
+  if (flushPromise) return;
+  flushPromise = new Promise<void>((resolve) => setImmediate(resolve))
+    .then(drainLogQueue)
+    .finally(() => {
+      flushPromise = null;
+      if (queuedLines.length > 0) scheduleFlush();
+    });
+}
+
+/** Flushes queued log writes; used by controlled shutdown and deterministic tests. */
+export async function flushLogs(): Promise<void> {
+  if (queuedLines.length > 0) scheduleFlush();
+  while (flushPromise) await flushPromise;
 }
 
 /** Stores the last API error after redacting sensitive content.

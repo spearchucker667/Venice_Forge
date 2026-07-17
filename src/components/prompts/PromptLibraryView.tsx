@@ -507,6 +507,9 @@ function PromptDetail(props: PromptDetailProps) {
     setTagsInput(item.tags.join(", "));
     setContent(current.content);
     setNegativeContent(current.negativeContent ?? "");
+  // Reset only when selection identity changes; adding editable field values
+  // would overwrite local unsaved changes after each persisted store update.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id, current.id]);
 
   const persistMetadata = async () => {

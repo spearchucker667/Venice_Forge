@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createEncryptedBackup, downloadEncryptedBackup } from "./backupExportService";
 import * as desktopBridge from "./desktopBridge";
 import StorageService from "./storageService";
+import { version as packageVersion } from "../../package.json";
 
 vi.mock("./desktopBridge", async (importOriginal) => {
   const mod = await importOriginal<typeof import("./desktopBridge")>();
@@ -68,7 +69,7 @@ describe("backupExportService", () => {
     expect(manifest.metadata).toMatchObject({
       format: "venice-forge-manual-backup",
       formatVersion: 3,
-      appVersion: expect.stringMatching(/^(2\.1\.2|3\.0\.0-beta\.\d+)$/),
+      appVersion: packageVersion,
       source: { runtime: "web" },
       crypto: { algorithm: "AES-256-GCM", kdf: "PBKDF2-SHA-256", keyVersion: 1 },
     });

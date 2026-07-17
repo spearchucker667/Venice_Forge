@@ -49,6 +49,7 @@ export default defineConfig(() => {
             if (id.endsWith('/src/services/syncPacketImporter.ts')) return 'sync-packet-importer';
             if (id.includes('node_modules')) {
               if (id.includes('/pdfjs-dist/')) return 'vendor-pdfjs';
+              if (id.includes('/mammoth/') || id.includes('/@xmldom/') || id.includes('/argparse/') || id.includes('/base64-js/') || id.includes('/bluebird/') || id.includes('/dingbat-to-unicode/') || id.includes('/jszip/') || id.includes('/lop/') || id.includes('/path-is-absolute/') || id.includes('/underscore/') || id.includes('/xmlbuilder/') || id.includes('/pako/') || id.includes('/sax/')) return 'vendor-documents';
               if (id.includes('/lucide-react/')) return 'vendor-lucide';
               if (id.includes('@xyflow') || id.includes('reactflow')) return 'vendor-xyflow';
               if (id.includes('@tanstack')) return 'vendor-tanstack';
@@ -68,11 +69,6 @@ export default defineConfig(() => {
             }
           }
         }
-      }
-    },
-    optimizeDeps: {
-      esbuildOptions: {
-        target: "es2022",
       }
     },
     server: {

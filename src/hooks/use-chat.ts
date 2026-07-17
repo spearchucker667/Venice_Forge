@@ -441,7 +441,7 @@ export function useChat() {
         useChatStore.getState().appendAssistantStreamDelta(convId, { content: `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]` })
       }
     },
-    [addMessage, createConversation, startStream, maybeAutoGenerateScene],
+    [addMessage, createConversation, maybeAutoGenerateScene],
   )
 
   const regenerate = useCallback(
@@ -489,7 +489,7 @@ export function useChat() {
         useChatStore.getState().appendAssistantStreamDelta(convId, { content: `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]` })
       }
     },
-    [addMessage, deleteMessage, startStream, maybeAutoGenerateScene],
+    [addMessage, deleteMessage, maybeAutoGenerateScene],
   )
 
   const stop = useCallback(() => {

@@ -36,7 +36,7 @@ export function useMusic() {
     }, 1000)
     setElapsedMs(Math.max(0, Date.now() - task.createdAt))
     return () => clearInterval(interval)
-  }, [task?.status, task?.createdAt, task?.updatedAt])
+  }, [task])
 
   const queueMutation = useMutation({
     mutationFn: async (req: MusicQueueRequest) => {
@@ -87,6 +87,8 @@ export function useMusic() {
     cancel,
     reset,
     queueId: task?.queueId ?? null,
+    resultMediaId: task?.resultMediaId ?? null,
+    mimeType: typeof task?.metadata?.mimeType === 'string' ? task.metadata.mimeType : null,
     lastRequest: (task?.metadata?.request as MusicQueueRequest | undefined) ?? null,
   }
 }
