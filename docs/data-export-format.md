@@ -1,6 +1,6 @@
 # Data Export Format (`.vfbackup`)
 
-This document describes the current manual-backup and encrypted sync-folder envelopes implemented by Venice Forge 2.1.2.
+This document describes the current manual-backup and encrypted sync-folder envelopes implemented by Venice Forge 3.0.0-beta.1.
 
 ## Trust Boundary
 
@@ -64,7 +64,7 @@ After decryption, a `.vfbackup` payload is a JSON object containing encrypted pr
     "manifestMetadata": {
       "format": "venice-forge-manual-backup",
       "formatVersion": 3,
-      "appVersion": "2.1.2"
+      "appVersion": "3.0.0-beta.1"
     }
   },
   "conversations": [

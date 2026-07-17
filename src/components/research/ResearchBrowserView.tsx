@@ -250,6 +250,10 @@ export function ResearchBrowserView({ onCaptureWithJina, initialUrl, onInitialUr
       // the user does not have to re-navigate. The session is reused.
       void researchBrowserBridge.setVisible(false);
     };
+  // The browser view is created once per mount. The initial URL callback is
+  // deliberately consumed by the ref inside this lifecycle, not a restart
+  // trigger for the external WebContentsView subscription.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

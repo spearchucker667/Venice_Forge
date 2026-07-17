@@ -8,7 +8,7 @@
  *   1. Add a `TabId` literal to `TAB_IDS`.
  *   2. Add an entry to `TAB_REGISTRY` (id, label, group, lazy?).
  *   3. Add the view to `App.tsx` (or extend the lazy loader there).
- *   4. Update `README.md` and `CHANGELOG.md`.
+ *   4. Update `README.md`, user/developer docs, and `docs/summary_of_work.md`.
  *
  * Aliases (e.g. `gallery` → `media`) are preserved as deprecated `TabId`
  * values so that persisted user state in localStorage continues to resolve

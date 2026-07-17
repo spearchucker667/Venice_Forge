@@ -888,7 +888,7 @@ export async function flushConversationSaveNow(id: string): Promise<void> {
  *   - The `pagehide` and `beforeunload` listeners (synchronously kick it
  *     off — the actual save is async, but the IPC channel is fire-and-
  *     forget in the unload path so the renderer does not block on it).
- *   - Tests (via `flushAllPendingSavesForTests`).
+ *   - Tests (via the exported `flushAllPendingSaves`).
  *
  * Returns a promise that resolves once every pending write has been
  * attempted. Errors from individual writes are logged and the failing

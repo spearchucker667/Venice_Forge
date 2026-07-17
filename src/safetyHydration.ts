@@ -118,6 +118,6 @@ export function getEffectiveRendererVeniceApiSafeMode(): boolean {
  * enforcement layer, no snapshot to wait for).
  */
 export function useRendererConfigHydrated(): boolean {
-  if (!isElectron()) return true;
-  return useConfigStore((s) => s.hydrated);
+  const hydrated = useConfigStore((s) => s.hydrated);
+  return isElectron() ? hydrated : true;
 }

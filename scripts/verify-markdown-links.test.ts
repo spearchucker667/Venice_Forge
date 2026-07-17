@@ -7,12 +7,18 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 const {
+  collectMarkdownFiles,
   compileGitignorePattern,
   loadGitignoreMatcher,
   verifyMarkdownLinks,
   verifyRetiredModuleReferences,
   // eslint-disable-next-line @typescript-eslint/no-require-imports
 } = require("./verify-markdown-links.cjs") as {
+  collectMarkdownFiles: (
+    root: string,
+    scanRoots?: string[],
+    options?: { isIgnored?: (absolutePath: string) => boolean },
+  ) => string[];
   compileGitignorePattern: (raw: string) => { regex: RegExp; negated: boolean; dirOnly: boolean } | null;
   loadGitignoreMatcher: (root: string) => (absolutePath: string) => boolean;
   verifyMarkdownLinks: (
@@ -49,6 +55,33 @@ afterEach(() => {
 });
 
 describe("verifyMarkdownLinks", () => {
+  it("passes against the actual repository", () => {
+    const repoRoot = path.resolve(__dirname, "..");
+    const isIgnored = loadGitignoreMatcher(repoRoot);
+    const files = collectMarkdownFiles(repoRoot, ["."], { isIgnored });
+
+    expect(verifyMarkdownLinks(repoRoot, { files, isIgnored }).errors).toEqual([]);
+  });
+
+  it("discovers every repository-root Markdown document", () => {
+    const { root } = fixture({
+      "README.md": "# Readme\n",
+      "LEGAL.md": "# Legal\n",
+      "PRIVACY.md": "# Privacy\n",
+      "docs/guide.md": "# Guide\n",
+      "node_modules/ignored.md": "# Ignored\n",
+    });
+
+    const files = collectMarkdownFiles(root, ["."]);
+
+    expect(files.map((file) => path.relative(root, file).replace(/\\/g, "/"))).toEqual([
+      "LEGAL.md",
+      "PRIVACY.md",
+      "README.md",
+      "docs/guide.md",
+    ]);
+  });
+
   // VERIFY-029: repository Markdown links and heading fragments must resolve in CI.
   it("accepts existing files, heading fragments, duplicate headings, and reference links", () => {
     const { root, files } = fixture({

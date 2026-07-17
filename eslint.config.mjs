@@ -23,7 +23,17 @@ export default tseslint.config(
       "react-hooks": reactHooks,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      // Keep the stable Hooks correctness contract while adopting plugin v7.
+      // Its recommended preset also enables the React Compiler lint suite,
+      // which is a separate codebase-wide migration and must not be activated
+      // implicitly as part of a lint-engine dependency update.
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+      // ESLint 10 added these rules to its recommended set. Enabling them is
+      // an independent source migration; retain the repository's ESLint 9
+      // behavior while the engine and ecosystem move to v10.
+      "no-useless-assignment": "off",
+      "preserve-caught-error": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": [
         "warn",
@@ -57,6 +67,8 @@ export default tseslint.config(
     },
     rules: {
       "no-console": "off",
+      "no-useless-assignment": "off",
+      "preserve-caught-error": "off",
     },
   },
   {

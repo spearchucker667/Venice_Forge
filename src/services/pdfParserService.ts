@@ -19,7 +19,7 @@
  * bundle (~3 MB gzipped) is not loaded until the user first drops a PDF file.
  */
 
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy } from "pdfjs-dist";
 import { warn } from "../shared/logger";
 
 /** Maximum characters extracted per page to avoid context explosion. */
@@ -89,10 +89,11 @@ export async function extractPdfText(
     data = new Uint8Array(source);
   }
 
+  let loadingTask: PDFDocumentLoadingTask;
   let doc: PDFDocumentProxy;
   try {
-    const task = lib.getDocument({ data, useWorkerFetch: false, isEvalSupported: false });
-    doc = await task.promise;
+    loadingTask = lib.getDocument({ data, useWorkerFetch: false });
+    doc = await loadingTask.promise;
   } catch (err) {
     throw new Error(
       `Failed to parse PDF: ${err instanceof Error ? err.message : String(err)}`
@@ -150,7 +151,7 @@ export async function extractPdfText(
     totalChars += sliced.length;
   }
 
-  await doc.destroy();
+  await loadingTask.destroy();
 
   const text = parts.join("\n\n");
   return {

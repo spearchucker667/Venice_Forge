@@ -9,13 +9,15 @@ import { useSettingsStore } from '../stores/settings-store'
 // We wrap the VeniceModel with a local type property so we can filter by ?type=text|image
 export type FallbackModelDef = VeniceModel & { _type: 'text' | 'image' }
 
+const FALLBACK_MODEL_CATALOG_TIMESTAMP = 0
+
 export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
   venice: [], // Venice is the primary provider; its models come from the live /models API.
   google_gemini: [
     {
       id: 'google_gemini:gemini-2.5-pro',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'google_gemini',
       _type: 'text',
       model_spec: {
@@ -28,7 +30,7 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
     {
       id: 'together:meta-llama/Llama-3-70b-chat-hf',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'together',
       _type: 'text',
       model_spec: {
@@ -39,7 +41,7 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
     {
       id: 'together:black-forest-labs/FLUX.1-schnell-Free',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'together',
       _type: 'image',
       model_spec: {
@@ -52,7 +54,7 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
     {
       id: 'groq:llama3-70b-8192',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'groq',
       _type: 'text',
       model_spec: {
@@ -63,7 +65,7 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
     {
       id: 'groq:mixtral-8x7b-32768',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'groq',
       _type: 'text',
       model_spec: {
@@ -76,7 +78,7 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
     {
       id: 'anthropic:claude-3-5-sonnet-latest',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'anthropic',
       _type: 'text',
       model_spec: {
@@ -87,7 +89,7 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
     {
       id: 'anthropic:claude-3-opus-latest',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'anthropic',
       _type: 'text',
       model_spec: {
@@ -100,7 +102,7 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
     {
       id: 'fireworks:accounts/fireworks/models/llama-v3p1-70b-instruct',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'fireworks',
       _type: 'text',
       model_spec: {
@@ -118,7 +120,7 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
     {
       id: 'mistral:mistral-large-latest',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'mistral',
       _type: 'text',
       model_spec: {
@@ -131,7 +133,7 @@ export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
     {
       id: 'perplexity:llama-3-sonar-large-32k-online',
       object: 'model',
-      created: Date.now(),
+      created: FALLBACK_MODEL_CATALOG_TIMESTAMP,
       owned_by: 'perplexity',
       _type: 'text',
       model_spec: {
@@ -151,7 +153,9 @@ export function getEnabledProviderModels(type?: string): VeniceModel[] {
   const enabledProviders = useSettingsStore.getState().enabledProviders
   const models: VeniceModel[] = []
 
-  const normalizedType = type === 'chat' ? 'text' : type === 'embeddings' ? 'embedding' : type;
+  const normalizedType = type === 'chat' ? 'text' : type;
+
+  if (normalizedType && normalizedType !== 'text' && normalizedType !== 'image') return []
 
   for (const [providerId, modelsForProvider] of Object.entries(FALLBACK_MODELS)) {
     if (enabledProviders[providerId]) {

@@ -36,7 +36,7 @@ export function useVideo() {
     }, 1000)
     setElapsedMs(Math.max(0, Date.now() - task.createdAt))
     return () => clearInterval(interval)
-  }, [task?.status, task?.createdAt, task?.updatedAt])
+  }, [task])
 
   const queueMutation = useMutation({
     mutationFn: async (req: VideoQueueRequest) => {

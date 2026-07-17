@@ -46,6 +46,7 @@ describe('persistCompletedTaskMedia', () => {
       downloadUrl: task.resultUrl,
       mediaType: 'audio',
       operation: 'music-generate',
+      mimeType: 'audio/mpeg',
     }), { attachActiveProject: true, source: 'generated' })
     expect(saved).toMatchObject({ id: 'task-result-music-one', queueId: 'queue-one' })
   })

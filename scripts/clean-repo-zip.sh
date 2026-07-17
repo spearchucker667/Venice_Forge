@@ -287,7 +287,21 @@ RSYNC_EXCLUDES=(
   "--exclude=secrets.json"
 )
 
-if command -v rsync >/dev/null 2>&1; then
+if command -v git >/dev/null 2>&1 && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  # A clean Git handoff is defined by the tracked-file manifest. This prevents
+  # ignored/untracked audit records, caches, and local history from leaking
+  # merely because a hardcoded rsync exclusion missed them.
+  while IFS= read -r -d '' relative_path; do
+    source_path="$REPO_ROOT/$relative_path"
+    destination_path="$STAGE_DIR/$relative_path"
+    mkdir -p "$(dirname "$destination_path")"
+    if [[ -L "$source_path" ]]; then
+      cp -P "$source_path" "$destination_path"
+    else
+      cp -p "$source_path" "$destination_path"
+    fi
+  done < <(git -C "$REPO_ROOT" ls-files -z --cached)
+elif command -v rsync >/dev/null 2>&1; then
   rsync -a \
     "${RSYNC_EXCLUDES[@]}" \
     "$REPO_ROOT/" \

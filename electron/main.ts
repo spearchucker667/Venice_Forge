@@ -11,7 +11,7 @@ import { registerIpcHandlers } from "./ipc/handlers";
 import { initializeConfig } from "./services/configService";
 import { initSyncFolderWatcher } from "./services/syncFolderWatcher";
 import { initBackgroundTaskManager } from "./services/backgroundTaskManager";
-import { logError, logInfo } from "./services/logger";
+import { flushLogs, logError, logInfo } from "./services/logger";
 import { redactErrorMessage } from "../src/shared/redaction";
 import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
@@ -41,6 +41,21 @@ const allowProdDevTools = process.env.VENICE_FORGE_DEBUG_DEVTOOLS === "true";
 if (allowProdDevTools) {
   logInfo("VENICE_FORGE_DEBUG_DEVTOOLS is enabled — DevTools will be available in production builds.");
 }
+
+// Electron does not consistently translate POSIX termination signals into an
+// app quit on macOS, and a renderer can delay `app.quit()`. Perform bounded
+// main-process cleanup and then force the requested process exit.
+let signalShutdownStarted = false;
+async function exitForSignal(): Promise<void> {
+  if (signalShutdownStarted) return;
+  signalShutdownStarted = true;
+  stopBridgeServer();
+  await stopSyncWatcher();
+  await flushLogs();
+  app.exit(0);
+}
+process.once("SIGTERM", () => { void exitForSignal(); });
+process.once("SIGINT", () => { void exitForSignal(); });
 
 /** Maximum length for displaying a URL in the external link confirmation dialog. */
 const MAX_DISPLAY_URL_LENGTH = 60;
@@ -271,6 +286,10 @@ async function bootstrap(): Promise<void> {
   } else {
     createWindow();
   }
+
+  if (process.env.VENICE_FORGE_SMOKE_TEST === "true") {
+    setTimeout(() => app.exit(0), 1_500);
+  }
 }
 
 /** Prevents multiple application instances from running simultaneously. */
@@ -390,6 +409,7 @@ if (!gotLock) {
   app.on("will-quit", () => {
     stopBridgeServer();
     void stopSyncWatcher();
+    void flushLogs();
   });
 
   app.on("web-contents-created", (_event, contents) => {

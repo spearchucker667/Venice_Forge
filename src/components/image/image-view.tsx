@@ -522,6 +522,9 @@ export function ImageView() {
     if (!queuedAutoGenerateId) return
     setQueuedAutoGenerateId(null)
     handleGenerate()
+  // The queue id is the one-shot trigger. Depending on the render-local
+  // handler would retrigger this effect on every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queuedAutoGenerateId])
 
   const controls = (

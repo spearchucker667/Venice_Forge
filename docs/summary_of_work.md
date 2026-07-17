@@ -5,12 +5,15 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-16
-**Scope:** Review and resolve open pull requests from Dependabot.
+**Scope:** Complete every locally actionable finding in the current-commit `Venice_Forge-audit-results-20260716-183918` bundle and disposition the remaining architectural/external proposals honestly.
 
-- **PR Review and Resolution:** Reviewed 5 open dependabot pull requests.
-- **Merge:** Merged PRs 39 (setup-node bump) and 37 (action-gh-release bump) because all CI checks passed.
-- **Close:** Closed PRs 40, 38, and 36 because their CI checks failed.
-- **Validation:** Relied on the hosted CI status to decide merge vs. close. No local compilation was required for these dependency bumps.
+- **Documentation contracts (`VF-SCAN-20260716-001`, `002`, `007`):** removed stale references to the three pre-existing deleted audit documents and nonexistent session archive, corrected both broken `LEGAL.md` links, expanded Markdown discovery to every root Markdown document, and added discovery coverage. `verify:roadmap-current` now requires the retained current-commit audit report instead of a deleted predecessor.
+- **Music correctness (`VF-SCAN-20260716-004`, `005`):** music completion now preserves response MIME metadata through the background-task journal and Media Studio record; gallery and direct-download filenames map MP3/WAV/FLAC correctly; and the manual save state uses the durable `resultMediaId`/live queue identity so an auto-saved completion cannot be inserted again after navigation or remount.
+- **Audit authority:** retained only `AUDIT_REPORT.md` and `EVIDENCE_MANIFEST.md` from the otherwise ignored raw audit bundle; logs, inventories, `.DS_Store`, and generated evidence remain ignored. Reopened provider-capability and remaining governance/maintenance work in `docs/ROADMAP.md` rather than carrying forward the contradicted blanket-closure claim.
+- **Remaining audit implementation:** fallback providers now use one endpoint-granular capability registry shared by Settings and table-driven adapter/catalog tests; unsupported modalities and deferred providers advertise nothing. Static fallback metadata is deterministic and unsupported catalog types fail closed. Clean ZIP staging uses Git's tracked-file manifest, the Markdown unit suite exercises the live repository, backup version tests bind to `package.json`, main-process logging uses a bounded asynchronous batch queue, loading/report-retention/document-discovery contracts are explicit, stale comments were corrected, and 14 production-unreachable modules plus six orphan tests were removed.
+- **Remaining-task closure:** completed `VF-AUDIT-001` through live GitHub admin APIs and completed `VF-AUDIT-006` in bounded runtime/toolchain batches. `main` now has strict branch protection and read-only default Actions permissions; repository security reporting/alerts are enabled. Express 5, dotenv 17, proxy middleware 4, PDF.js 6, Electron 43, ESLint 10, React Hooks ESLint 7, globals 17, Vite 8, and React Vite plugin 6 are migrated. Express named catch-alls, PDF loading-task cleanup, stable lint compatibility, and Vite/Rolldown document-vendor chunk ownership were updated for the new contracts.
+- **Release evidence:** rebuilt unsigned arm64 and x64 macOS DMG/ZIP artifacts with checksums on Electron 43 and passed packaged launch/shutdown smoke after adding bounded signal cleanup. `VF-VERIFY-005` remains the only open roadmap item because GitHub has no release-signing secrets, this Mac has zero valid signing identities, no second device is available, and paid operations require credentials plus explicit expenditure authorization. No signed, paid, two-device, or manual assistive-technology result is inferred.
+- **Disposition boundary:** storage orphan deletion remains intentionally analysis-only until quarantine/rollback semantics exist; broad monolith decomposition and generated IPC/product manifests are accepted maintenance proposals rather than verified defects; deferred providers/sync transports remain fail-closed; principal chunks remain within enforced budgets.
 
 ### Previous same-day session detail — deep-scan audit
 
@@ -64,7 +67,28 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
-The July 16 deep-scan automated findings are all fixed or explicitly classified. Current unfinished work remains exactly the three items in `docs/ROADMAP.md`: external signed/paid/two-device/accessibility QA (`VF-VERIFY-005`), GitHub repository safeguards (`VF-AUDIT-001`), and bounded dependency refreshes (`VF-AUDIT-006`). The historical closure detail below is retained as evidence, not current task authority.
+The current-commit July 16 audit supersedes the earlier blanket closure claim. All `VF-SCAN-20260716-001..024` findings now have an implemented or explicit disposition below. GitHub safeguards (`VF-AUDIT-001`) and applicable major dependency migrations (`VF-AUDIT-006`) are complete. The only unfinished work is externally blocked signed/paid/two-device/accessibility QA (`VF-VERIFY-005`).
+
+| Audit IDs | Disposition |
+|---|---|
+| `001`, `002`, `007` | Fixed: documentation authority/links corrected; verifier discovers every root Markdown file and tests the live repository. |
+| `003` | Fixed: canonical endpoint capability registry drives advertised types; table tests prove adapter and catalog parity. |
+| `004`, `005` | Fixed: queue/result identity prevents duplicate music saves; MP3/WAV/FLAC MIME and filenames persist correctly. |
+| `006` | Fixed governance state: current roadmap no longer inherits stale closure; reports are explicitly historical/current and validation remains commit/dirty-state scoped. |
+| `008` | Fixed: Git handoffs stage `git ls-files --cached`; ignored/untracked sentinel coverage proves exclusion. |
+| `009` | Fixed: export docs use 3.0.0-beta.1 and tests require the exact package version. |
+| `010` | Fixed architecture: normal log writes are queued, bounded, batched, rotated asynchronously, and flushed on controlled shutdown. Explicit maintenance calls may still use synchronous setup/rotation outside the per-message path. |
+| `011` | Fixed deterministic boundary: static fallback timestamps are stable and unsupported model types fail closed; live Venice discovery remains separate. |
+| `012` | Accepted scoped taxonomy: long generation uses the shared indicator; buttons, local mutations, media decode, and domain progress use documented accessible treatments. |
+| `013`, `014` | Fixed governance/discovery: retention rules added and previously orphaned current/reference/internal docs classified and indexed. |
+| `015` | Fixed: stale changelog, flush-helper, video-storage, and theme-lifecycle comments corrected or removed. |
+| `016` | Deferred feature, not a defect: analysis remains non-destructive until preview, quarantine, rollback, exclusion, and interrupted-recovery contracts are designed and tested. UI does not claim deletion. |
+| `017` | Concrete provider duplication fixed by the capability registry; a universal generated product manifest is accepted future architecture, not required to prove shipped domains with distinct owners. |
+| `018` | Fixed: 14 confirmed production-unreachable modules and six attached orphan tests removed after static/alias/script search; workflow test ownership updated. |
+| `019`, `020` | Accepted maintenance risks: existing domain tests/security verifiers pass; broad bridge/store/UI decomposition or code generation requires measured churn and behavior-preserving work orders, not audit-driven mass rewrites. |
+| `021` | Fixed: supported-range refresh was followed by bounded major migrations to Express 5, dotenv 17, proxy middleware 4, PDF.js 6, Electron 43, ESLint 10, React Hooks ESLint 7, globals 17, Vite 8, and React Vite plugin 6. `npm audit` reports zero vulnerabilities. Node types remain aligned to Node 22; TypeScript 7 is inapplicable while `typescript-eslint` requires `<6.1.0`. |
+| `022`, `023` | Confirmed deferred and fail-closed; no nonfunctional credential forms or success claims were introduced. |
+| `024` | Accepted measured state: bundle gate passes; startup/tab activation measurement remains part of external packaged QA and performance baselines. |
 
 All seven P1 release blockers from the 2026-07-15 beta audit are now closed in code:
 
@@ -94,6 +118,17 @@ The current remediation evidence is listed first. Earlier same-day evidence is r
 | `gh pr close <pr>` | PASS | Closed PRs 40, 38, 36. |
 
 ### July 16 deep-scan reconciliation
+
+| Command | Result | Evidence |
+|---|---|---|
+| Current-commit audit/bootstrap/dirty-tree inventory | PASS | `main` at `73f8b83`; supplied audit identifies the same commit; three pre-existing deleted audit documents were preserved; Node `v26.5.0` / npm `11.17.0`. |
+| `npx vitest run scripts/verify-markdown-links.test.ts src/services/taskMediaCatalog.test.ts src/utils/image.test.ts src/stores/background-task-store.test.ts` | PASS | 4 files / 54 tests; root-Markdown discovery, queue-id persistence, audio MIME preservation, and MP3/WAV/FLAC filenames pass. |
+| `npx vitest run scripts/verify-roadmap-current.test.ts` | PASS | 1 file / 5 tests; retained current-audit authority and current-only roadmap contract pass. |
+| `npm run typecheck`; `npm run lint:eslint` | PASS | Renderer and Electron TypeScript pipelines pass; ESLint exits with zero warnings. |
+| `npm run verify:markdown-links` | PASS | Final rerun checked 102 Markdown files after root-wide discovery, stale-link reconciliation, and retention of the two audit-authority documents. |
+| `npm run verify:contracts` | PASS | Static, feature, and release aggregators pass; release-packaging hardening reports 103 checks. |
+
+### Earlier July 16 deep-scan reconciliation
 
 | Command | Result | Evidence |
 |---|---|---|
@@ -146,7 +181,36 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | `npm run verify:markdown-links` | PASS | 103 Markdown files checked, zero broken local targets or heading fragments (session-history archive claim from prior runs is now historical only). |
 | `npm run build` | PASS | `dist/` (Vite), `dist-electron/electron/` (tsc), and `dist/server.cjs` (esbuild, 92.9 kB) all built cleanly. |
 
+### July 16 current-commit audit completion
+
+| Command | Result | Evidence |
+|---|---|---|
+| Node 22.23.1/npm 11.17.0 `npm update`; `npm ci`; Electron binary install | PASS | Refreshed semver-compatible dependency resolutions and lockfile, rebuilt a clean dependency tree, and restored the Electron platform binary after npm 11 skipped its install hook. |
+| Focused Vitest suites | PASS | Logger, provider-adapter, Markdown, archive, backup-export, and Workflow Templates coverage passed: 6 files / 55 tests. |
+| `npm run ci` | PASS | Zero-warning lint and both TypeScript pipelines passed; all segmented correctness suites passed (3,879 tests total); safety, Markdown, 103 aggregate contracts, provider 38/38, release-packaging 103/103, build, bundle-budget, and dist verification passed. Final command ran under Node 26.5.0/npm 11.17.0 after the clean Node 22 dependency install. |
+| `npm audit` | PASS | Zero known vulnerabilities. |
+| Production build/bundle gate | PASS | 3,150 renderer modules built; principal chunks were 490.72 KiB and 501.23 KiB, both below the enforced 600 KiB budget. |
+
+### July 16 remaining-task closure
+
+| Command | Result | Evidence |
+|---|---|---|
+| GitHub repository/admin API inspection and updates | PASS | Admin access confirmed; `main` protection now requires ten strict current checks, one approval, code-owner and last-push approval, conversation resolution and admin enforcement; force pushes/deletion are disabled. Actions defaults to read with workflow PR approval disabled. Vulnerability alerts, automated security fixes and private vulnerability reporting are enabled and were read back through the APIs. |
+| Node 22.23.1/npm 11.17.0 bounded major dependency installs | PASS | Migrated Express 5.2.1, dotenv 17.4.2, http-proxy-middleware 4.2.0, PDF.js 6.1.200, Electron 43.1.1, ESLint 10.7.0, React Hooks ESLint 7.1.1, globals 17.7.0, Vite 8.1.5 and React Vite plugin 6.0.3; lockfile regenerated and `npm audit` reports zero vulnerabilities. |
+| Express/PDF migration focused suites | PASS | Server, bridge, PDF parser and attachment coverage pass 155/155 after named Express catch-alls and PDF loading-task cleanup. |
+| Segmented correctness surface | PASS | All `test:ci` shards pass: 3,879 tests across server, Electron, ingestion, stores, services, hooks, libraries, shared helpers, utilities, themes, scripts, types, UI and contract tests. |
+| Production build, aggregate contracts and dist verification | PASS | Vite 8/Rolldown build passes after stable `vendor-documents` ownership; bundle budget passes (main 299.23 KiB, document vendor 485.60 KiB under its 900 KiB vendor limit); all feature/static contracts and release-packaging 103/103 pass; build outputs verify. |
+| `npm run dist:mac`; checksum and macOS artifact verification | PASS | Electron 43 unsigned arm64 and x64 DMG/ZIP artifacts, blockmaps and update metadata built; ten SHA-256 files written; both architectures, metadata and blockmaps verified; archive hygiene passes. Signing was explicitly skipped because no identity exists. |
+| `RUN_ELECTRON_SMOKE=true npm run smoke:electron` | PASS | Rebuilt packaged Electron 43 app launches and exits cleanly under the smoke lifecycle after bounded POSIX signal cleanup was added. |
+| Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
+
 ## Session History
+
+- **2026-07-16 — Remaining roadmap closure:** completed live GitHub governance (`VF-AUDIT-001`) and applicable dependency migrations (`VF-AUDIT-006`). Protected `main` with strict ten-check/current-branch enforcement, review/code-owner/last-push approval, conversation resolution and admin enforcement; disabled force pushes/deletion; set default Actions permissions to read; enabled vulnerability alerts, automated security fixes and private reporting. Migrated Express 5, dotenv 17, proxy middleware 4, PDF.js 6, Electron 43, ESLint 10, React Hooks ESLint 7, globals 17, Vite 8 and React Vite plugin 6 with compatibility fixes for named catch-alls, PDF cleanup, lint rules and Rolldown chunk ownership. All 3,879 correctness tests, zero-warning lint, both typecheck pipelines, aggregate contracts, bundle and dist checks pass; rebuilt verified checksummed unsigned arm64 and x64 macOS DMG/ZIP artifacts and passed packaged Electron launch/shutdown smoke. Kept only `VF-VERIFY-005` open because signing secrets/identities, a second device, paid-operation authorization and manual assistive-technology resources are absent; no external result was inferred.
+
+- **2026-07-16 — Current-commit audit completion (`VF-SCAN-20260716-001..024`):** completed every locally actionable item from the retained audit bundle. Added a canonical endpoint-granular provider capability registry with adapter/catalog parity tests; made fallback metadata deterministic; changed clean archive staging to tracked files only; bound backup documentation/tests to the package version; moved routine main-process logging to a bounded asynchronous queue; documented loading, retention, and document taxonomy contracts; corrected stale implementation comments; removed 14 production-unreachable modules and six orphan tests; and refreshed all semver-compatible dependencies under the declared Node 22 runtime. Explicitly dispositioned storage deletion, broad code generation/decomposition, deferred providers/transports, and packaged performance measurement without misrepresenting them as implemented defects. Full `npm run ci` passed 3,879 tests plus lint, typecheck, safety, Markdown, 103 aggregate contracts, provider 38/38, release packaging 103/103, build, bundle, and dist checks; `npm audit` reported zero vulnerabilities. Preserved the three pre-existing user-owned audit-document deletions.
+
+- **2026-07-16 — Current-commit audit intake and first P1 tranche:** reconciled the supplied `Venice_Forge-audit-results-20260716-183918` bundle against exact `HEAD` `73f8b83`; preserved three pre-existing user deletions; repaired broken documentation/legal links and expanded root Markdown coverage; updated roadmap/report authority to the retained audit; preserved music response MIME through task/media persistence; made audio filenames format-correct; made manual music save remount-safe and idempotent after background auto-save; reopened provider/governance/maintenance work; passed 59 focused tests, typecheck, zero-warning lint, final 102-file Markdown verification, and the full aggregate contracts suite under Node 26/npm 11 (not Node 22).
 
 - **2026-07-16 — Dependabot PR resolution:** reviewed five open dependabot pull requests; merged PRs 39 and 37 (passed CI checks); closed PRs 40, 38, and 36 due to failing CI checks.
 

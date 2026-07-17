@@ -349,6 +349,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
             if (!latestMusicTask || ['completed', 'failed', 'aborted', 'timeout'].includes(latestMusicTask.status)) return
             const media = await persistCompletedTaskMedia({
               ...latestMusicTask,
+              metadata: { ...latestMusicTask.metadata, mimeType: normalized.mimeType },
               status: 'completed',
               progress: 1,
               resultUrl: dataUrl,
@@ -360,6 +361,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
               progress: 1,
               resultUrl: objectUrl,
               resultMediaId: media?.id,
+              metadata: { ...latestMusicTask.metadata, mimeType: normalized.mimeType },
             })
             stopPolling(taskId)
           } else if (normalized.kind === 'failed') {

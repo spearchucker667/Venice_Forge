@@ -323,7 +323,7 @@ export function ChatView() {
   const characterSlug = conversation?.metadata?.character?.slug
   const messageCallbacks = useMemo(() => {
     const map = new Map<string, MessageBubbleCallbacks>()
-    if (!conversation || !messagesRef.current) return map
+    if (!conversationIdRef.current || !messagesRef.current) return map
     const messages = messagesRef.current
     const lastIndex = messages.length - 1
     for (let i = 0; i < messages.length; i++) {
@@ -385,6 +385,10 @@ export function ChatView() {
       })
     }
     return map
+  // Conversation identity/count deliberately invalidate callbacks that read
+  // the live refs; those values are semantic triggers even though the hook
+  // analyzer cannot see the ref-mediated dependency.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation?.id, messageCount, model, characterSlug, deleteMessage, updateMessage, truncateConversationAfterMessage, forkConversation, regenerate, createScene, isStreaming])
 
   const lastContent = conversation?.messages[messageCount - 1]?.content
@@ -703,6 +707,12 @@ function ChatContextMeter({ conversation, modelInfo, draftText }: { conversation
   const maxTokens = useChatStore(s => s.maxTokens);
 
   if (!conversation || !modelInfo || !modelInfo.contextLength) return null;
+  const modelInfoWithContext = modelInfo as ModelInfo & { contextLength: number };
+
+  return <ChatContextMeterContent conversation={conversation} modelInfo={modelInfoWithContext} draftText={draftText} globalSystemPrompt={globalSystemPrompt} maxTokens={maxTokens} />;
+}
+
+function ChatContextMeterContent({ conversation, modelInfo, draftText, globalSystemPrompt, maxTokens }: { conversation: Conversation; modelInfo: ModelInfo & { contextLength: number }; draftText?: string; globalSystemPrompt: string; maxTokens: number }) {
 
   const tempMessages = [...conversation.messages];
   if (draftText && draftText.trim()) {
