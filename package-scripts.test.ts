@@ -56,7 +56,8 @@ describe("package.json test scripts", () => {
     expect(pkg.scripts["test:ui"]).toMatch(/^npm run test:ui:layout &&/);
     expect(pkg.scripts["test:ui:layout"]).toContain("src/components/FirstRunModal.test.tsx");
     expect(pkg.scripts["test:ui:layout"]).toContain("src/components/notifications");
-    expect(pkg.scripts["test:unit:stores"]).toMatch(/^vitest run src\/stores /);
+    expect(pkg.scripts["test:unit:stores"]).toMatch(/^node scripts\/run-bounded-test-shards\.cjs /);
+    expect(pkg.scripts["test:unit:stores"]).toContain("test:unit:stores:integration");
     expect(pkg.scripts["test:unit:services"]).toContain("--exclude 'src/services/ingestion/**/*'");
     expect(pkg.scripts["test:unit:scripts"]).toContain("--exclude 'scripts/verify-document-ingestion.test.ts'");
     expect(pkg.scripts["test:unit"]).toMatch(/^npm run test:unit:stores &&/);

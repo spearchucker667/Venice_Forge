@@ -121,6 +121,19 @@ function persist(debounceMs = 0): void {
   void flushPersist();
 }
 
+/** Flushes pending task journal writes before controlled application shutdown. */
+export async function flushBackgroundTasks(): Promise<void> {
+  if (initializationPromise) await initializationPromise;
+  if (!initialized) return;
+
+  if (pendingPersistTimeout) {
+    clearTimeout(pendingPersistTimeout);
+    pendingPersistTimeout = null;
+    pendingPersist = true;
+  }
+  await flushPersist();
+}
+
 export async function loadBackgroundTasks(): Promise<void> {
   let raw: string;
   try {

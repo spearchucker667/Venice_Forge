@@ -10,7 +10,7 @@ Canonical repository instructions live in [AGENTS.md](AGENTS.md). Follow AGENTS.
 - Local path: `/Users/super_user/Projects/Venice_Forge`
 - GitHub: `spearchucker667/Venice_Forge`
 - Application: Venice Forge Electron desktop app
-- Stack: Electron 42, React 19, TypeScript strict, Zustand, Vitest
+- Stack versions are sourced from `package.json`; do not duplicate them here.
 - Node: `>=22.13.0 <23.0.0`
 
 Run the local bootstrap check in `AGENTS.md` before editing. Do not use the

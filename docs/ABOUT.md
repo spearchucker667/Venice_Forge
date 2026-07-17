@@ -103,9 +103,9 @@ tabs are:
 
 ## Technology Stack
 
-- **Frontend:** React 19, TypeScript strict, Tailwind CSS v4, Vite 6
-- **Desktop:** Electron 42, electron-builder 26 (Windows NSIS + portable, macOS DMG + ZIP)
-- **Backend (web mode):** Express 4, http-proxy-middleware 4, dotenv
+- **Frontend:** React 19, TypeScript strict, Tailwind CSS v4, Vite 8
+- **Desktop:** Electron 43, electron-builder 26 (Windows NSIS + portable, macOS DMG + ZIP)
+- **Backend (web mode):** Express 5, http-proxy-middleware 4, dotenv
 - **State:** Zustand 5 stores (slice stores per `AGENTS.md`). Reducer-based state has been fully migrated to lightweight slice stores.
 - **Testing:** Vitest 4, @testing-library/react, supertest
 - **Build:** tsc (Electron main), esbuild (Express server), Vite (renderer)

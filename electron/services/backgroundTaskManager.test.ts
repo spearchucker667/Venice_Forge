@@ -64,6 +64,7 @@ import {
   listBackgroundTasks,
   subscribeToBackgroundTasks,
   __flushBackgroundTaskPersistenceForTests,
+  flushBackgroundTasks,
   __resetBackgroundTaskManagerForTests,
 } from "./backgroundTaskManager";
 
@@ -97,6 +98,18 @@ describe("backgroundTaskManager", () => {
     } catch {
       // directory may not exist
     }
+  });
+
+  it("does not overwrite the journal when shutdown precedes initialization", async () => {
+    const tasksDir = path.join(TMP_USERDATA, "background-tasks");
+    const tasksFile = path.join(tasksDir, "tasks.json");
+    const journal = JSON.stringify({ version: 1, tasks: [{ id: "persisted-task" }] });
+    await fs.mkdir(tasksDir, { recursive: true });
+    await fs.writeFile(tasksFile, journal, "utf-8");
+
+    await flushBackgroundTasks();
+
+    await expect(fs.readFile(tasksFile, "utf-8")).resolves.toBe(journal);
   });
 
   it("creates and persists a task", async () => {

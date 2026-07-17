@@ -35,7 +35,7 @@
     <img alt="TypeScript strict" src="https://img.shields.io/badge/typescript-strict-3178c6.svg" />
   </a>
   <a href="package.json">
-    <img alt="Electron 42" src="https://img.shields.io/badge/electron-42-47848f.svg" />
+    <img alt="Electron 43" src="https://img.shields.io/badge/electron-43-47848f.svg" />
   </a>
 </p>
 

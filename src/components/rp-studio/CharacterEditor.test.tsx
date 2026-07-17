@@ -271,6 +271,21 @@ describe("CharacterEditor — Workflow section", () => {
     expect(deleteBtn).toHaveClass("py-1.5");
   });
 
+  // VERIFY-141 regression guard: visual-only save progress must be announced.
+  it("announces the saving state and hides the decorative spinner from accessibility APIs", async () => {
+    let resolveSave!: (value: typeof sampleCard) => void;
+    mocks.upsertMock.mockImplementationOnce(() => new Promise((resolve) => { resolveSave = resolve; }));
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    const status = await screen.findByRole("status", { name: "Saving character" });
+    expect(status).toHaveTextContent("Saving character…");
+    expect(status.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+
+    resolveSave(sampleCard);
+    await waitFor(() => expect(screen.queryByRole("status", { name: "Saving character" })).not.toBeInTheDocument());
+  });
+
   it("Save to Prompt Library button calls upsert + saveCharacterPromptToLibrary", async () => {
     render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
     fireEvent.click(screen.getByTestId("character-editor-save-to-prompt-library"));

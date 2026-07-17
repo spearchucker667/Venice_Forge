@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { initializeConfig } from "./services/configService";
 import { initSyncFolderWatcher } from "./services/syncFolderWatcher";
-import { initBackgroundTaskManager } from "./services/backgroundTaskManager";
+import { flushBackgroundTasks, initBackgroundTaskManager } from "./services/backgroundTaskManager";
 import { flushLogs, logError, logInfo } from "./services/logger";
 import { redactErrorMessage } from "../src/shared/redaction";
 import { checkPathContained } from "./utils/navigation";
@@ -24,6 +24,7 @@ import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/cha
 import { setupResearchBrowserIpc } from "./services/researchBrowserServer";
 import { GENERATED_MEDIA_SCHEME, resolveGeneratedMedia } from './services/generatedMediaStore';
 import { readRegularFileNoFollow } from "./utils/secureFile";
+import { createShutdownCoordinator } from "./services/appShutdownCoordinator";
 
 export { isValidBridgeHost };
 
@@ -45,13 +46,18 @@ if (allowProdDevTools) {
 // Electron does not consistently translate POSIX termination signals into an
 // app quit on macOS, and a renderer can delay `app.quit()`. Perform bounded
 // main-process cleanup and then force the requested process exit.
-let signalShutdownStarted = false;
+const shutdown = createShutdownCoordinator({ stopBridgeServer, stopSyncWatcher, flushBackgroundTasks, flushLogs });
+let finalExitStarted = false;
+
+function reportShutdownResult(result: Awaited<ReturnType<typeof shutdown>>): void {
+  if (!result.timedOut && result.failures.length === 0) return;
+  process.stderr.write(`[shutdown] ${result.failures.join("; ")}\n`);
+}
+
 async function exitForSignal(): Promise<void> {
-  if (signalShutdownStarted) return;
-  signalShutdownStarted = true;
-  stopBridgeServer();
-  await stopSyncWatcher();
-  await flushLogs();
+  if (finalExitStarted) return;
+  finalExitStarted = true;
+  reportShutdownResult(await shutdown());
   app.exit(0);
 }
 process.once("SIGTERM", () => { void exitForSignal(); });
@@ -406,10 +412,17 @@ if (!gotLock) {
     if (!isHeadless && BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
-  app.on("will-quit", () => {
-    stopBridgeServer();
-    void stopSyncWatcher();
-    void flushLogs();
+  app.on("before-quit", (event) => {
+    if (finalExitStarted) return;
+    event.preventDefault();
+    finalExitStarted = true;
+    void shutdown().then((result) => {
+      reportShutdownResult(result);
+      // Resume Electron's normal quit path so renderer beforeunload/unload
+      // handlers can flush renderer-owned state. The guard above prevents the
+      // second before-quit event from starting cleanup again.
+      app.quit();
+    });
   });
 
   app.on("web-contents-created", (_event, contents) => {

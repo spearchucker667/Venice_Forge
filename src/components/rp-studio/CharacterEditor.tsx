@@ -1269,8 +1269,9 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       </div>
 
       {saving && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none"> {/* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */}
+        <div role="status" aria-label="Saving character" aria-live="polite" className="absolute inset-0 flex items-center justify-center gap-2 bg-black/30 pointer-events-none"> {/* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */}
           <Spinner className="text-text-muted" />
+          <span className="text-sm text-text-primary">Saving character…</span>
         </div>
       )}
     </div>

@@ -147,7 +147,7 @@ async function executeNode(
       }, { signal })
       const url = URL.createObjectURL(blob)
       // The blob URL's lifetime is owned by the component that renders the
-      // `[audio:...]` output (see WorkflowNode). The engine MUST NOT register
+      // `[audio:...]` output (see the Playground workflow renderer). The engine MUST NOT register
       // a global revocation here — the `finally { cleanup() }` block runs at
       // run completion, which is exactly when the preview component is
       // trying to play the audio. Registering now would silently revoke the
@@ -250,7 +250,7 @@ export async function executeWorkflow(
   const nodeMap = new Map(nodes.map((n) => [n.id, n]))
 
   // Per-node media output lifecycle is owned by the render layer (see
-  // `WorkflowNode`). The engine MUST NOT revoke media URLs in a
+  // the Playground workflow renderer). The engine MUST NOT revoke media URLs in a
   // run-completion `finally` — previews try to play the audio as soon as the
   // run completes. The engine remains cancellation-safe: an AbortSignal
   // surfaces DOMException aborts that the renderer's <audio src=...> element
