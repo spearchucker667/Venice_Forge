@@ -192,7 +192,9 @@ export function SettingsView() {
       if (!res.ok) {
         const raw = res.error ?? "Unknown error";
         const msg = raw.startsWith("Error: ") ? raw.slice(7) : raw;
-        setUpdateStatus(`Update check failed: ${msg}`);
+        setUpdateStatus(msg === "Update checks are only available in production builds."
+          ? "Development build — update checks run only in packaged production builds."
+          : `Update check failed: ${msg}`);
       } else if (!updateEventSeenRef.current) {
         setUpdateStatus("Update check completed.");
       }

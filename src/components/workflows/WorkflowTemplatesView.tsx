@@ -2,14 +2,19 @@ import { useState, useMemo, useEffect } from "react";
 import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { compileWorkflowTemplate } from "../../services/workflowCompiler";
-import { createWorkflowRunPlan } from "../../services/workflowRunner";
+import { createWorkflowRunPlan, type WorkflowRunAction } from "../../services/workflowRunner";
 import type { TabId } from "../../config/tabs";
 import { ConfirmModal } from "../ConfirmModal";
 import { toast } from "../../stores/toast-store";
+import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
+import type { WorkflowStepKind, WorkflowStepTarget } from "../../types/workflow";
+
+const WORKFLOW_STEP_KINDS: WorkflowStepKind[] = ["prompt", "image_recipe", "scene", "media", "research", "rp_character", "rp_scenario", "handoff", "note"];
+const WORKFLOW_STEP_TARGETS: WorkflowStepTarget[] = ["chat", "image_studio", "media_studio", "research", "scene_composer", "rp_studio", "none"];
 
 export function WorkflowTemplatesView() {
   const store = useWorkflowTemplateStore();
-  const { workflows, activeWorkflowId, setActiveWorkflow, createWorkflow, updateWorkflow, deleteWorkflow, archiveWorkflow, addStep, removeStep, ensureWorkflowTemplatesLoaded, addWorkflowVersion, setCurrentWorkflowVersion, importWorkflows, exportWorkflows, toggleWorkflowFavorite } = store;
+  const { workflows, activeWorkflowId, setActiveWorkflow, createWorkflow, updateWorkflow, deleteWorkflow, archiveWorkflow, addStep, updateStep, removeStep, ensureWorkflowTemplatesLoaded, addWorkflowVersion, setCurrentWorkflowVersion, importWorkflows, exportWorkflows, toggleWorkflowFavorite } = store;
   
   const activeProjectId = useSettingsStore((s) => s.activeProjectId);
   const setActiveTab = useSettingsStore((s) => s.setActiveTab);
@@ -104,10 +109,29 @@ export function WorkflowTemplatesView() {
     setActiveWorkflow(w.id);
   };
 
-  const handleRunStep = (tabId?: TabId) => {
-    if (tabId) {
-      setActiveTab(tabId);
+  const handleRunStep = (action: WorkflowRunAction) => {
+    const prompt = typeof action.payload?.prompt === "string"
+      ? action.payload.prompt
+      : typeof action.payload?.text === "string"
+        ? action.payload.text
+        : "";
+    if (action.tabId === "image" && prompt.trim()) {
+      useImageWorkspaceStore.getState().enqueueGenerate({
+        draft: {
+          prompt: prompt.trim(),
+          negativePrompt: typeof action.payload?.negativePrompt === "string" ? action.payload.negativePrompt : undefined,
+          model: typeof action.payload?.model === "string" ? action.payload.model : undefined,
+          width: typeof action.payload?.width === "number" ? action.payload.width : undefined,
+          height: typeof action.payload?.height === "number" ? action.payload.height : undefined,
+          aspectRatio: typeof action.payload?.aspectRatio === "string" ? action.payload.aspectRatio : undefined,
+        },
+        autoGenerate: false,
+        parentId: null,
+        operation: "generate",
+      });
+      toast.success("Workflow image prompt loaded", "Review the model and settings, then generate.");
     }
+    if (action.tabId) setActiveTab(action.tabId as TabId);
   };
   
   const handleExport = () => {
@@ -295,11 +319,16 @@ export function WorkflowTemplatesView() {
           </div>
           <div className="space-y-2">
             {activeVersion.steps.map((step) => (
-              <div key={step.id} className="p-3 bg-surface-hover rounded border border-border flex justify-between items-center" data-testid="workflow-step-item">
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-text-secondary">{step.title}</span>
-                  <span className="text-xs text-text-secondary uppercase">{step.kind} → {step.target}</span>
-                </div>
+              <div key={step.id} className="p-3 bg-surface-hover rounded border border-border flex flex-col gap-3" data-testid="workflow-step-item">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_11rem_11rem_auto] gap-2 items-center">
+                  <span className="sr-only">{step.title}</span>
+                  <input aria-label="Workflow step title" value={step.title} onChange={(event) => void updateStep(activeWorkflow.id, step.id, { title: event.target.value })} className="rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary" />
+                  <select aria-label="Workflow step kind" value={step.kind} onChange={(event) => void updateStep(activeWorkflow.id, step.id, { kind: event.target.value as WorkflowStepKind })} className="rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary">
+                    {WORKFLOW_STEP_KINDS.map((kind) => <option key={kind} value={kind}>{kind.replaceAll('_', ' ')}</option>)}
+                  </select>
+                  <select aria-label="Workflow step target" value={step.target} onChange={(event) => void updateStep(activeWorkflow.id, step.id, { target: event.target.value as WorkflowStepTarget })} className="rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary">
+                    {WORKFLOW_STEP_TARGETS.map((target) => <option key={target} value={target}>{target.replaceAll('_', ' ')}</option>)}
+                  </select>
                 <button
                   onClick={() => removeStep(activeWorkflow.id, step.id)}
                   className="text-xs text-text-secondary hover:text-red-400 px-2 py-1"
@@ -307,6 +336,17 @@ export function WorkflowTemplatesView() {
                 >
                   Remove
                 </button>
+                </div>
+                {(step.kind === "prompt" || step.kind === "image_recipe" || step.kind === "research" || step.kind === "note") && (
+                  <textarea
+                    aria-label="Workflow step prompt"
+                    value={typeof step.input?.prompt === "string" ? step.input.prompt : typeof step.input?.text === "string" ? step.input.text : ""}
+                    onChange={(event) => void updateStep(activeWorkflow.id, step.id, { input: { ...step.input, prompt: event.target.value } })}
+                    placeholder={step.target === "image_studio" ? "Describe the image to generate…" : "Enter the prompt or instructions for this step…"}
+                    rows={3}
+                    className="w-full resize-y rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary"
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -340,7 +380,7 @@ export function WorkflowTemplatesView() {
                   <div key={action.id} className="flex justify-between items-center gap-2">
                     <span className="text-xs text-text-secondary truncate">{action.label}</span>
                     <button
-                      onClick={() => handleRunStep(action.tabId)}
+                      onClick={() => handleRunStep(action)}
                       className="text-xs bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 px-2 py-1 rounded whitespace-nowrap"
                       data-testid="run-step-btn"
                     >

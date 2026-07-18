@@ -1,4 +1,4 @@
-import { useId, useState, useRef, useEffect } from 'react'
+import { useId, useState, useRef, useEffect, useMemo } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { selectHasVeniceKey, useAuthStore } from '../../stores/auth-store'
@@ -12,27 +12,57 @@ import { useMediaStore } from '../../stores/media-store'
 import type { MusicQueueRequest } from '../../types/venice'
 import { getPromptStartersForCategory } from '../../services/promptStarterService'
 import { getAudioExtension } from '../../utils/image'
+import { ModelSelect } from '../ModelSelect'
+import type { ModelInfo } from '../../types/venice'
 
 // Model capabilities
 interface MusicModelConfig {
   lyrics: boolean
+  lyricsRequired: boolean
   instrumental: boolean
   voice: boolean
   duration: boolean
+  durationOptions: number[]
+  minDuration: number
+  maxDuration: number
+  defaultDuration: number
 }
 
 const MODEL_CONFIGS: Record<string, MusicModelConfig> = {
-  'ace-step-1.5': { lyrics: true, instrumental: true, voice: false, duration: true },
-  'elevenlabs-music': { lyrics: true, instrumental: true, voice: true, duration: false },
-  'minimax-music-2.0': { lyrics: true, instrumental: true, voice: false, duration: false },
-  'stable-audio-2.5': { lyrics: false, instrumental: false, voice: false, duration: true },
-  'elevenlabs-sound-effects': { lyrics: false, instrumental: false, voice: false, duration: true },
-  'mmaudio-v2': { lyrics: false, instrumental: false, voice: false, duration: true },
+  'ace-step-1.5': { lyrics: true, lyricsRequired: false, instrumental: false, voice: false, duration: true, durationOptions: [60, 90, 120, 150, 180, 210], minDuration: 60, maxDuration: 210, defaultDuration: 60 },
+  'elevenlabs-music': { lyrics: true, lyricsRequired: false, instrumental: true, voice: true, duration: true, durationOptions: [], minDuration: 3, maxDuration: 600, defaultDuration: 60 },
+  'minimax-music-2.0': { lyrics: true, lyricsRequired: true, instrumental: false, voice: false, duration: false, durationOptions: [], minDuration: 0, maxDuration: 0, defaultDuration: 0 },
+  'stable-audio-2.5': { lyrics: false, lyricsRequired: false, instrumental: false, voice: false, duration: true, durationOptions: [], minDuration: 1, maxDuration: 180, defaultDuration: 30 },
+  'elevenlabs-sound-effects': { lyrics: false, lyricsRequired: false, instrumental: false, voice: false, duration: true, durationOptions: [], minDuration: 1, maxDuration: 30, defaultDuration: 5 },
+  'mmaudio-v2': { lyrics: false, lyricsRequired: false, instrumental: false, voice: false, duration: true, durationOptions: [], minDuration: 1, maxDuration: 30, defaultDuration: 5 },
+  'ace-step-15': { lyrics: true, lyricsRequired: false, instrumental: false, voice: false, duration: true, durationOptions: [60, 90, 120, 150, 180, 210], minDuration: 60, maxDuration: 210, defaultDuration: 60 },
+  'minimax-music-v2': { lyrics: true, lyricsRequired: true, instrumental: false, voice: false, duration: false, durationOptions: [], minDuration: 0, maxDuration: 0, defaultDuration: 0 },
+  'stable-audio-25': { lyrics: false, lyricsRequired: false, instrumental: false, voice: false, duration: true, durationOptions: [], minDuration: 1, maxDuration: 180, defaultDuration: 30 },
+  'stable-audio': { lyrics: false, lyricsRequired: false, instrumental: false, voice: false, duration: true, durationOptions: [], minDuration: 1, maxDuration: 180, defaultDuration: 30 },
 }
 
-function getConfig(modelId: string): MusicModelConfig {
+export function getMusicModelConfig(modelId: string, modelInfo?: ModelInfo): MusicModelConfig {
   const key = Object.keys(MODEL_CONFIGS).find((k) => modelId.toLowerCase().includes(k))
-  return key ? MODEL_CONFIGS[key] : { lyrics: false, instrumental: false, voice: false, duration: true }
+  const fallback = key ? MODEL_CONFIGS[key] : { lyrics: false, lyricsRequired: false, instrumental: false, voice: false, duration: false, durationOptions: [], minDuration: 0, maxDuration: 0, defaultDuration: 0 }
+  const spec = modelInfo?.model_spec
+  const options = Array.isArray(spec?.duration_options)
+    ? spec.duration_options.filter((value) => Number.isFinite(value) && value > 0).sort((a, b) => a - b)
+    : fallback.durationOptions
+  const minDuration = spec?.min_duration ?? options[0] ?? fallback.minDuration
+  const maxDuration = spec?.max_duration ?? options.at(-1) ?? fallback.maxDuration
+  const defaultDuration = spec?.default_duration ?? options[0] ?? fallback.defaultDuration
+  const duration = options.length > 0 || (minDuration > 0 && maxDuration >= minDuration)
+  return {
+    lyrics: spec?.supports_lyrics ?? fallback.lyrics,
+    lyricsRequired: spec?.lyrics_required ?? fallback.lyricsRequired,
+    instrumental: spec?.supports_force_instrumental ?? fallback.instrumental,
+    voice: (spec?.voices?.length ?? 0) > 0 || fallback.voice,
+    duration,
+    durationOptions: options,
+    minDuration,
+    maxDuration,
+    defaultDuration: duration ? Math.min(maxDuration, Math.max(minDuration, defaultDuration || minDuration)) : 0,
+  }
 }
 
 export function MusicView() {
@@ -40,9 +70,11 @@ export function MusicView() {
   const lyricsId = useId()
   const hasVeniceKey = useAuthStore(selectHasVeniceKey)
   const selectedModel = useSettingsStore((s) => s.selectedModels.music)
+  const setSelectedModel = useSettingsStore((s) => s.setSelectedModel)
   const { data: models } = useModels('music')
   const model = selectedModel || models?.[0]?.id || ''
-  const config = getConfig(model)
+  const modelInfo = models?.find((item) => item.id === model)
+  const config = useMemo(() => getMusicModelConfig(model, modelInfo), [model, modelInfo])
 
   const [prompt, setPrompt] = useState('')
   const [starters, setStarters] = useState<string[]>(() => getPromptStartersForCategory('music', 4))
@@ -62,6 +94,10 @@ export function MusicView() {
     if (!audioUrl) setPlaybackError(null)
   }, [audioUrl])
 
+  useEffect(() => {
+    if (config.duration) setDuration(config.defaultDuration)
+  }, [model, config.defaultDuration, config.duration])
+
   const handleGenerate = () => {
     if (!prompt.trim()) return
     setPlaybackError(null)
@@ -78,6 +114,23 @@ export function MusicView() {
   const controls = (
     <>
       <div>
+        <Label>Model</Label>
+        <ModelSelect
+          value={model}
+          onChange={(value) => setSelectedModel('music', value)}
+          models={models ?? []}
+          ariaLabel="Music model"
+          getLabel={(item) => item.model_spec?.name || item.name || item.id}
+        />
+        {config.duration && (
+          <p className="mt-1 text-[12px] text-text-muted" data-testid="music-duration-limits">
+            Duration: {config.durationOptions.length > 0
+              ? config.durationOptions.map((value) => `${value}s`).join(', ')
+              : `${config.minDuration}s–${config.maxDuration}s`}
+          </p>
+        )}
+      </div>
+      <div>
         <Label htmlFor={promptId}>Prompt</Label>
         <TextArea id={promptId} value={prompt} onChange={setPrompt} placeholder="An upbeat electronic track with a driving bassline and ethereal synths…" rows={4} />
       </div>
@@ -92,7 +145,13 @@ export function MusicView() {
       {config.duration && (
         <div>
           <Label hint={`${duration}s`}>Duration</Label>
-          <input type="range" min={5} max={120} step={5} value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full" />
+          {config.durationOptions.length > 0 ? (
+            <select aria-label="Music duration" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[14px] text-text-primary">
+              {config.durationOptions.map((value) => <option key={value} value={value}>{value} seconds</option>)}
+            </select>
+          ) : (
+            <input aria-label="Music duration" type="range" min={config.minDuration} max={config.maxDuration} step={1} value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full" />
+          )}
         </div>
       )}
 
@@ -118,7 +177,7 @@ export function MusicView() {
 
       <PrimaryButton
         onClick={handleGenerate}
-        disabled={!prompt.trim() || !hasVeniceKey || isQueueing || isProcessing}
+        disabled={!prompt.trim() || !hasVeniceKey || isQueueing || isProcessing || (config.lyricsRequired && !lyrics.trim())}
         loading={isQueueing || isProcessing}
         size="lg"
       >

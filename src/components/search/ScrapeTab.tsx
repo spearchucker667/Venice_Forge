@@ -8,6 +8,8 @@ export function ScrapeTab({
   setUrl,
   loading,
   runScrape,
+  provider,
+  setProvider,
   scrapeOutput,
   setScrapeOutput
 }: {
@@ -15,6 +17,8 @@ export function ScrapeTab({
   setUrl: (val: string) => void;
   loading: string;
   runScrape: () => void;
+  provider: "venice" | "jina";
+  setProvider: (provider: "venice" | "jina") => void;
   scrapeOutput: string;
   setScrapeOutput: (val: string) => void;
 }) {
@@ -29,6 +33,13 @@ export function ScrapeTab({
           placeholder="https://example.com"
           className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
         />
+      </Field>
+
+      <Field label="Reader provider">
+        <select value={provider} onChange={(event) => setProvider(event.target.value as "venice" | "jina")} className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent">
+          <option value="venice">Venice Web Scrape</option>
+          <option value="jina">Jina Reader</option>
+        </select>
       </Field>
 
       <div className="flex gap-2">

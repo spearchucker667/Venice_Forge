@@ -72,7 +72,8 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     conv as unknown as Conversation,
     state.systemPrompt,
     modelInfo,
-    state.maxTokens
+    state.maxTokens,
+    state.veniceParams.include_venice_system_prompt !== false,
   );
 
   const requestMessages = compiled.messages as ChatMessage[];
@@ -103,7 +104,7 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     stream_options: { include_usage: true },
     temperature: state.temperature,
     top_p: state.topP,
-    max_tokens: state.maxTokens,
+    max_tokens: compiled.maxTokens,
     venice_parameters: veniceParamsForRequest,
   };
 

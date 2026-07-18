@@ -48,7 +48,8 @@ export function calculateChatContextBudget(
   messages: ChatMessage[],
   systemPrompt: string,
   modelInfo: ModelInfo | undefined,
-  requestedMaxTokens: number
+  requestedMaxTokens: number,
+  includeVeniceSystemPrompt = true,
 ): ChatBudget {
   const contextLimit = modelInfo?.contextLength ?? FALLBACK_CONTEXT_LIMIT;
   const maxOutput = modelInfo?.maxOutputTokens ?? FALLBACK_MAX_OUTPUT;
@@ -77,7 +78,7 @@ export function calculateChatContextBudget(
   }
 
   const characterPromptTokens = 0;
-  const venicePromptEstimate = 200; // Rough estimate for hidden Venice instructions
+  const venicePromptEstimate = includeVeniceSystemPrompt ? 200 : 0;
 
   const totalEstimatedInput =
     systemPromptTokens +

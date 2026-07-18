@@ -9,6 +9,7 @@ const MAX_FILENAME_LENGTH = 200;
 const SAFE_IMAGE_MIME_TYPES = new Set([
   "image/png", "image/jpeg", "image/webp", "image/gif", "image/avif",
 ]);
+const SAFE_MEDIA_MIME_TYPES = new Set([...SAFE_IMAGE_MIME_TYPES, "video/mp4", "audio/mpeg", "audio/wav", "audio/flac"]);
 
 /**
  * Sanitizes a suggested filename so it cannot be used as a path-traversal or
@@ -119,6 +120,21 @@ export async function downloadImage(url: string, filename: string): Promise<Down
     }
     return { confirmed: false, usedFallback: false };
   }
+}
+
+/** Downloads app-owned generated audio/video through fetch so Electron custom
+ * protocol URLs are converted to a normal Blob before the save gesture. */
+export async function downloadMedia(url: string, filename: string): Promise<void> {
+  if (!url) throw new Error("No media URL to download.");
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Media download failed with HTTP ${response.status}.`);
+  const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (!contentType || !SAFE_MEDIA_MIME_TYPES.has(contentType)) {
+    throw new Error("Media download returned an unsupported content type.");
+  }
+  const blobUrl = URL.createObjectURL(await response.blob());
+  triggerDownload(blobUrl, sanitizeFilename(filename));
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000);
 }
 
 /**

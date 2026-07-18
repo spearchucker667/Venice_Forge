@@ -8,7 +8,7 @@ import { useAuthStore } from "../stores/auth-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { useChatStore } from "../stores/chat-store";
 import { toast } from "../stores/toast-store";
-import { desktopConfig, isElectron } from "../services/desktopBridge";
+import { desktopConfig, desktopUpdates, isElectron } from "../services/desktopBridge";
 
 vi.mock("../services/desktopBridge", async () => {
   const actual = await vi.importActual<typeof import("../services/desktopBridge")>(
@@ -91,6 +91,7 @@ describe("SettingsView API key safety controls", () => {
   beforeEach(() => {
     vi.mocked(isElectron).mockReturnValue(false);
     vi.mocked(desktopConfig.writeSanitized).mockReset().mockResolvedValue({ ok: true });
+    vi.mocked(desktopUpdates.checkForUpdates).mockReset();
 
     useAuthStore.setState({
       isConfigured: false,
@@ -123,6 +124,23 @@ describe("SettingsView API key safety controls", () => {
     render(<SettingsView />);
     const input = screen.getByPlaceholderText("sk-...");
     expect(input).toHaveAttribute("type", "password");
+  });
+
+  // VERIFY-143: development builds explain the packaged-only updater boundary
+  // without presenting an expected environment limitation as a failed update.
+  it("reports the packaged-build boundary for development update checks", async () => {
+    vi.mocked(isElectron).mockReturnValue(true);
+    vi.mocked(desktopUpdates.checkForUpdates).mockResolvedValue({
+      ok: false,
+      error: "Update checks are only available in production builds.",
+    });
+    render(<SettingsView />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Updates" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check for updates" }));
+
+    expect(await screen.findByText("Development build — update checks run only in packaged production builds.")).toBeInTheDocument();
+    expect(screen.queryByText(/Update check failed/)).not.toBeInTheDocument();
   });
 
   it("disables Save Key until a non-empty key is entered", async () => {

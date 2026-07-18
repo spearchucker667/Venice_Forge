@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { downloadImage, isSafeDownloadUrl, sanitizeFilename } from "./download";
+import { downloadImage, downloadMedia, isSafeDownloadUrl, sanitizeFilename } from "./download";
 
 const originalFetch = globalThis.fetch;
 const originalCreateObjectUrl = URL.createObjectURL;
@@ -136,6 +136,41 @@ describe("isSafeDownloadUrl", () => {
     ["https:malformed", false],
   ])("isSafeDownloadUrl(%s) -> %s", (url, expected) => {
     expect(isSafeDownloadUrl(url)).toBe(expected);
+  });
+});
+
+describe("downloadMedia", () => {
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => "blob:download");
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    globalThis.fetch = originalFetch;
+    URL.createObjectURL = originalCreateObjectUrl;
+    URL.revokeObjectURL = originalRevokeObjectUrl;
+  });
+
+  // VERIFY-143: custom-protocol media must be fetched into a normal Blob so
+  // the browser download gesture can persist it reliably.
+  it("fetches an app-owned video and downloads a Blob instead of navigating to the custom URL", async () => {
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(new Response(new Uint8Array([0, 1, 2]), {
+      status: 200,
+      headers: { "content-type": "video/mp4" },
+    }));
+    const anchor = document.createElement("a");
+    const click = vi.fn();
+    anchor.click = click as typeof anchor.click;
+    // @ts-expect-error -- Electron type overloads conflict with createElement mocking.
+    vi.spyOn(document, "createElement").mockImplementation(() => anchor as HTMLElement);
+
+    await downloadMedia(`venice-media://${"a".repeat(64)}`, "../video.mp4");
+
+    expect(fetch).toHaveBeenCalledWith(`venice-media://${"a".repeat(64)}`);
+    expect(anchor.href).toContain("blob:download");
+    expect(anchor.download).toBe("video.mp4");
+    expect(click).toHaveBeenCalled();
   });
 });
 

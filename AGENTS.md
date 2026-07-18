@@ -202,7 +202,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-142`.
+The primary active sequence is `VERIFY-001` through `VERIFY-143`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -348,6 +348,7 @@ registry.
 | `VERIFY-140` | Main-process shutdown cleanup is exactly once, failure-tolerant, timeout-bounded, and awaits bridge, sync, background-task journal, and log flushing before final exit. | `electron/services/appShutdownCoordinator.test.ts` |
 | `VERIFY-141` | Character save progress exposes a named live `status`, decorative spinner SVGs are hidden from accessibility APIs, and the status clears after save completion. | `src/components/rp-studio/CharacterEditor.test.tsx` |
 | `VERIFY-142` | Static fallback-provider catalogs are explicitly identified as bundled and potentially stale; Venice remains live-discovered, and paid-request diagnostics cannot treat static data as fresh. | `src/config/provider-models.test.ts` |
+| `VERIFY-143` | User-facing generation and research recovery: custom chat prompts fit by clamping output and never replay image-helper markers; image/research/video work surfaces animated progress; music duration controls honor live/discrete model limits; generated-video protocol responses support byte ranges and Blob downloads; workflow step choices are editable and image actions hand off to Image Studio; development update checks report their packaged-build boundary without a false failure. | `src/stores/chat-stream-manager.test.ts`, `src/components/music/music-view.test.ts`, `electron/services/generatedMediaStore.test.ts`, `src/utils/download.test.ts`, `src/components/image/image-tools.test.tsx`, `src/components/image/image-view.test.tsx`, `src/components/video/video-view.test.tsx`, `src/components/workflows/WorkflowTemplatesView.test.tsx`, `src/components/search/SearchScrapeView.test.tsx`, `src/components/SettingsView.test.tsx` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 

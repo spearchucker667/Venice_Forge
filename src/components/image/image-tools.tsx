@@ -16,6 +16,7 @@ import type { ModelInfo, VeniceModel } from '../../types/venice'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { inspectImageInput } from '../../services/media-request-adapter'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 
 type Tool = 'edit' | 'upscale' | 'remove-bg'
 
@@ -53,7 +54,8 @@ export function ImageTools() {
 
   // Upscale state
   const [scale, setScale] = useState<2 | 4>(2)
-  const [creativity, setCreativity] = useState(0.01)
+  const [upscaleAdherence, setUpscaleAdherence] = useState(50)
+  const creativity = (100 - upscaleAdherence) * 0.0002
   const sourceDiagnostics = useMemo(() => {
     if (!imageData) return null
     const requestKeys = tool === 'edit'
@@ -299,10 +301,17 @@ export function ImageTools() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <Label>Creativity</Label>
-                <span className="text-[13px] text-text-muted font-mono">{creativity.toFixed(3)}</span>
+                <Label>Source adherence</Label>
+                <span className="text-[13px] text-text-muted font-mono">{upscaleAdherence}%</span>
               </div>
-              <input aria-label="Upscale creativity" type="range" min={0} max={0.02} step={0.001} value={creativity} onChange={(e) => setCreativity(Math.min(0.02, Math.max(0, Number(e.target.value))))} className="w-full" />
+              <input aria-label="Upscale source adherence" type="range" min={0} max={100} step={5} value={upscaleAdherence} onChange={(e) => setUpscaleAdherence(Math.min(100, Math.max(0, Number(e.target.value))))} className="w-full" />
+              <p className="mt-1 text-[12px] text-text-muted">
+                Higher values stay closer to the source; lower values allow the upscaler to add more texture and detail.
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-surface px-3 py-2 text-[12px] text-text-muted">
+              Venice upscaling does not accept a text prompt. For prompt-directed changes, switch to Edit.
+              <button type="button" onClick={() => setTool('edit')} className="ml-2 text-accent underline underline-offset-2">Open Edit</button>
             </div>
           </>
         )}
@@ -318,7 +327,15 @@ export function ImageTools() {
       </div>
 
       <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">
-        {resultUrl ? (
+        {isLoading ? (
+          <div className="flex min-h-[18rem] items-center justify-center" aria-live="polite">
+            <GenerationLoadingIndicator
+              state="processing"
+              label={tool === 'edit' ? 'Editing image…' : tool === 'upscale' ? 'Upscaling image…' : 'Removing background…'}
+              detail="The result will appear here when processing completes."
+            />
+          </div>
+        ) : resultUrl ? (
           <div className="animate-fade-in flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <Label>Result</Label>

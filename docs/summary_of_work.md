@@ -4,6 +4,20 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+**Date:** 2026-07-18
+**Scope:** Reproduce and repair the reported Chat, Image Studio, Music, Video, Research, Workflow, and Config failures; add `VERIFY-143` coverage; preserve the missing AI Research screenshot as an explicit evidence boundary.
+
+- **Chat context and helper isolation:** custom system prompts now retain a minimum useful output window by compacting against the real input budget and clamping `max_tokens` to the selected model's remaining context. Disabling `include_venice_system_prompt` also removes the hidden-prompt estimate. Historical character-scene helper markers are stripped before messages are sent back to the LLM.
+- **Image progress and upscale controls:** Image generation and Image Tools now render the shared animated progress indicator. Upscaling exposes a user-facing source-adherence scale mapped to Venice's supported `creativity` value and links prompt-directed work to Edit; Venice's upscale endpoint does not accept a custom text prompt.
+- **Music model limits:** Music Studio now exposes its model selector, prefers live `/models?type=music` duration metadata, renders discrete enums when required, and resets duration to a valid model default. ACE Step cannot submit the rejected 30-second value.
+- **Video durability:** `venice-media://` now supports byte-range responses for partial playback; direct save fetches the app-owned URL into a normal Blob; manual Media Studio save awaits persistence and reports failure; image-to-video resets and opens the file picker from an explicit user gesture; queue/render progress is animated and cancellable.
+- **Research recovery:** the Research section now has one animated, cancellable status surface for search, scrape, parsing, and AI synthesis. Web Scrape exposes Venice and Jina Reader providers, and Venice permission errors direct users to the Jina path.
+- **Workflow and Config:** workflow step kind/target/prompt fields are editable and image actions carry their recipe into Image Studio rather than only switching tabs. Development builds now describe update checks as a packaged-production boundary instead of an update failure.
+- **Evidence boundary:** the screenshot referenced for the AI Research symptom was not included in the task payload. The reproducible section-wide loader work is complete; `VF-UX-REPRO-001` retains the screenshot-specific behavior for follow-up once the image/reproduction is available.
+- **Validation:** root/bootstrap and `main` confirmed; `npm run typecheck`, `npm run lint:eslint`, and 13 focused Vitest files / 116 tests pass. Full `npm run ci` passed 3,984 segmented tests, zero-warning lint, both TypeScript pipelines, zero-vulnerability audit, production builds, aggregate contracts (including `VERIFY-143` handoff hygiene), bundle budgets, safety/Markdown/provider/release contracts, and `verify:dist`. Local runtime is Node `v26.5.0` / npm `11.17.0`; no local Node 22 or packaged-release claim is made.
+
+### Previous same-day session detail — PR closeout
+
 **Date:** 2026-07-17 → 2026-07-18
 **Scope:** Reviewed all open PRs and branches; merged PR #42 (`agent/audit-remediation-july17 → main`) and PR #43 (`agent/audit-validation-gate-july17 → main`) into `main` via squash merge, then deleted both remote branches. Restored all branch protection settings after completion.
 
@@ -83,6 +97,8 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
+`VERIFY-143` closes every locally reproducible item from the 2026-07-18 cross-studio bug report. `VF-UX-REPRO-001` remains evidence-needed because the referenced AI Research screenshot was absent; it must not be converted into an implementation claim until the missing visual/reproduction is supplied.
+
 All `VF-SCAN-20260717-001..016` findings from the 22:47 snapshot now have an implemented or explicit disposition. PR #42 and PR #43 are now **merged into `main`** (`7e9c6c4` and `3dbf34e` respectively). No open PRs or branches remain. The only remaining external prerequisite is signed/paid/two-device/accessibility QA (`VF-VERIFY-005`).
 
 **PR tranche closed (2026-07-18):** PR #42 (`agent/audit-remediation-july17`) and PR #43 (`agent/audit-validation-gate-july17`) both squash-merged into `main`. All CI checks were green on both PRs prior to merge. Both remote branches deleted. `main` is now at `3dbf34e`.
@@ -138,6 +154,16 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 ## Validation Matrix
 
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
+
+### July 18 cross-studio remediation (`VERIFY-143`)
+
+| Command | Result | Evidence |
+|---|---|---|
+| Canonical root/bootstrap, branch, runtime and dirty-tree inventory | PASS | Root resolved to `/Users/super_user/Projects/Venice_Forge`; required files/directories exist; branch is `main`; starting tree was clean; local runtime Node `v26.5.0` / npm `11.17.0`. |
+| `npm run typecheck`; `npm run lint:eslint` | PASS | Renderer + Electron TypeScript pipelines exit 0; whole-tree ESLint exits with zero warnings. |
+| Focused `VERIFY-143` Vitest regression set | PASS | 13 files / 116 tests cover chat prompt budgeting/helper isolation, Image Studio/Tools, music duration constraints, durable/ranged video media, workflow editing/handoff, Research progress/provider UI, and development update status. |
+| `npm run ci` | PASS | Full parity command passed: 3,984 segmented tests; zero-warning lint; renderer + Electron typecheck; `npm audit` with zero vulnerabilities; renderer/server/Electron build; aggregate static/feature/release contracts; provider 38/38; bundle budgets; safety and 102-file Markdown gates; release-packaging 103/103; and `verify:dist`. |
+| `git diff --check` | PASS | No whitespace errors before ledger update; rerun during commit closeout. |
 
 The current remediation evidence is listed first. Earlier same-day evidence is retained below as historical context.
 
@@ -309,6 +335,8 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+- **2026-07-18 — Cross-studio user-reported remediation (`VERIFY-143`):** repaired custom-chat context budgeting and image-helper protocol isolation; added animated Image Studio, Image Tools, Video, and section-wide Research progress; mapped upscale adherence to the supported Venice creativity control; constrained music durations from live/discrete model metadata; added ranged durable-video responses plus Blob-backed downloads and awaited gallery saves; repaired the image-to-video picker; added Venice/Jina Web Scrape selection; made workflow step choices editable and image handoffs functional; converted the development updater result into a truthful packaged-production notice; extended the guard registry/scanner to `VERIFY-143`; and retained the missing AI Research screenshot as `VF-UX-REPRO-001` rather than inventing a screenshot-specific fix. Focused validation passed 13 files / 116 tests plus both TypeScript pipelines and zero-warning ESLint; full `npm run ci` passed 3,984 segmented tests, zero-vulnerability audit, production build, aggregate contracts, bundle/safety/Markdown/provider/release gates, and dist verification.
 
 - **2026-07-18 — PR #43 closeout: three Copilot review threads resolved and merge to `main` advanced:** `gh pr merge 43 --admin --squash --delete-branch` is gated by GraphQL, not admin flags — even with `--admin`, a single-user repo cannot satisfy the "All comments must be resolved" + "New changes require approval from someone other than the last pusher" merge gate without first addressing each unresolved reviewer thread. Enumerated the three Copilot threads on `src/services/veniceClient/transcription.ts` via `gh api graphql … repository.pullRequest.reviewThreads`: `PRRT_kwDOShdAHs6R8NBY` (line 101 — narrow `BuildTranscriptionFormDataOptions.file` to `File | Blob`; descriptor-shape callers must wrap manually because `FormData.append` coerces non-`BlobPart`/`string` inputs to `"[object Object]"` at runtime), `PRRT_kwDOShdAHs6R8NBc` (line 177 — replace "is not in the Swagger allowlist; falling back to …" with "is not in the Swagger allowlist; request aborted. Choose one of: …"; helper throws — it never falls back), and `PRRT_kwDOShdAHs6R8NBf` (line 195 — `lookupFormat()` resolved MIME from extension but the value was never applied to the multipart `file` part; added `buildAudioPart(file, format)` that rewraps via `new File([file], name, {type: format})` falling back to `new Blob(...)` in sandboxed envs, and rewire the `form.append("file", …)` call site to use the rewrap). Locked each finding with regression tests `REVIEW-R8NBY`, `REVIEW-R8NBc`, `REVIEW-R8NBf` (the last asserts `form.get("file").type === "audio/wav"` when `File.type === ""` and the extension is `.wav`, plus the same contract for `.flac` and `.m4a`). Sole caller `src/hooks/use-audio.ts:60–70` (`useMutation<File, …>`) wraps a real `File`, so the type narrowing is non-breaking. Local validation: `npm run lint:eslint` zero warnings, `npm run typecheck` renderer + Electron clean, `npx vitest run src/services/veniceClient/transcription.test.ts` 18/18 (14 prior + 4 new), targeted regression sweep across `use-audio`/`PersonaManager`/backup trio/`DataStoragePanel` 69/69, and storage/mail regression sweep across `chatTtsBridge`/`chatStorage`/`storageMaintenance`/`storagePrivacyService` 46/46 — total 9 files / 133 tests. After the upcoming commit (`fix(transcription): address PR review threads R8NBY/R8NBc/R8NBf`) lands on `agent/audit-validation-gate-july17`, the three GraphQL threads are replied-to with the diff quote + commit SHA and `resolveReviewThread`'d, the new hosted CI rerun is deterministic-pass, and the second `gh pr merge 43 --admin --squash --delete-branch` advances `main` from `8cd4ffdc` to the squash merge commit. Hosted CI on `Node 22.13.0` is the only authoritative cross-platform result; local Node `v26.5.0` / npm `11.17.0` provides only the targeted transcription + caller + backup surface validation.
 

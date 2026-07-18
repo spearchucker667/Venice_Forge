@@ -32,6 +32,7 @@ import {
 } from '../../utils/payloadBuilders'
 import { useConfigStore } from '../../stores/config-store'
 import { useImageWorkspaceStore, type ImageGenerateHandoff } from '../../stores/image-workspace-store'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 
 import { DEFAULT_IMAGE_MODEL } from '../../constants/venice'
 
@@ -852,7 +853,15 @@ export function ImageView() {
           </div>
         </div>
       )}
-      {images.length === 0 ? (
+      {mutation.isPending ? (
+        <div className="flex min-h-[20rem] items-center justify-center" aria-live="polite">
+          <GenerationLoadingIndicator
+            state="generating"
+            label="Generating image…"
+            detail="Your generated image will appear here when it is ready."
+          />
+        </div>
+      ) : images.length === 0 ? (
         <div className="flex items-center justify-center h-full">
           <ExamplePrompts
             items={starters}

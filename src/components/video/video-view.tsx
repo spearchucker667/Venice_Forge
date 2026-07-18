@@ -13,6 +13,8 @@ import { useMediaStore } from '../../stores/media-store'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { formatModelLabelWithCost } from '../../utils/pricing'
+import { downloadMedia } from '../../utils/download'
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 
 export function VideoView() {
   const promptId = useId()
@@ -39,7 +41,7 @@ export function VideoView() {
   const [audioEnabled, setAudioEnabled] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const { queue, isQueueing, status, videoUrl, error, reset, queueId, lastRequest } = useVideo()
+  const { queue, isQueueing, status, videoUrl, error, reset, cancel, elapsedMs, queueId, resultMediaId, lastRequest } = useVideo()
   const isProcessing = status === 'queued' || status === 'processing'
 
   // Resolve current group and constraints
@@ -267,8 +269,14 @@ export function VideoView() {
               </div>
             ) : (
               <>
-                <input ref={fileRef} id="video-reference-image" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
-                <button type="button" onClick={() => fileRef.current?.click()} aria-label="Choose reference image" className="w-full border border-dashed border-border hover:border-accent rounded-lg py-5 text-center transition-colors">
+                <input ref={fileRef} id="video-reference-image" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => { if (e.target.files?.[0]) void handleImageUpload(e.target.files[0]) }} />
+                <button type="button" onClick={() => {
+                  const input = fileRef.current
+                  if (!input) return
+                  input.value = ''
+                  if (typeof input.showPicker === 'function') input.showPicker()
+                  else input.click()
+                }} aria-label="Choose reference image" className="block w-full cursor-pointer border border-dashed border-border hover:border-accent rounded-lg py-5 text-center transition-colors">
                   <p className="text-[14px] text-text-muted">Click to add image</p>
                 </button>
               </>
@@ -364,11 +372,11 @@ export function VideoView() {
               <Label>Output</Label>
               <div className="flex items-center gap-3">
                 {(() => {
-                  const alreadySaved = !!queueId && savedQueueIdsRef.current.has(queueId)
+                  const alreadySaved = Boolean(resultMediaId || (queueId && (savedQueueIdsRef.current.has(queueId) || useMediaStore.getState().items.some((media) => media.queueId === queueId))))
                   return (
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     // BUG-004 regression guard: the manual save button must
                     // be idempotent. If the auto-save effect already
                     // recorded this queueId, do nothing and show feedback.
@@ -397,11 +405,16 @@ export function VideoView() {
                       downloadUrl: videoUrl,
                     }
                     if (queueId) savedQueueIdsRef.current.add(queueId)
-                    void useMediaStore.getState().upsert(item, {
-                      attachActiveProject: true,
-                      source: 'generated',
-                    })
-                    toast.success('Saved to Media Studio')
+                    try {
+                      await useMediaStore.getState().upsert(item, {
+                        attachActiveProject: true,
+                        source: 'generated',
+                      })
+                      toast.success('Saved to Media Studio')
+                    } catch (saveError) {
+                      if (queueId) savedQueueIdsRef.current.delete(queueId)
+                      toast.fromError(saveError, 'Save to Media Studio failed')
+                    }
                   }}
                   disabled={alreadySaved}
                   className={cn(
@@ -418,14 +431,24 @@ export function VideoView() {
                 </button>
                   )
                 })()}
-                <a href={videoUrl} download="venice-video.mp4" target="_blank" rel="noopener noreferrer" className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
+                <button type="button" onClick={() => void downloadMedia(videoUrl, 'venice-video.mp4').catch((downloadError) => toast.fromError(downloadError, 'Video download failed'))} className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                   Download
-                </a>
+                </button>
               </div>
             </div>
             <video controls src={videoUrl} className="w-full rounded-lg bg-overlay border border-border" />
             <button type="button" aria-label="Generate another video" onClick={reset} className="self-start text-[14px] text-text-muted hover:text-text-muted transition-colors">Generate another</button>
+          </div>
+        ) : isProcessing ? (
+          <div className="flex flex-1 items-center justify-center" aria-live="polite">
+            <GenerationLoadingIndicator
+              state={status === 'queued' ? 'queued' : 'generating'}
+              label={status === 'queued' ? 'Video queued…' : 'Rendering video…'}
+              detail={elapsedMs > 0 ? `${Math.floor(elapsedMs / 1000)}s elapsed` : undefined}
+              showCancel
+              onCancel={cancel}
+            />
           </div>
         ) : (
           <div className="flex items-center justify-center flex-1 text-text-muted text-[15px]">

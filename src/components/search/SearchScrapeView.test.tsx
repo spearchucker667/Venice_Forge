@@ -147,6 +147,20 @@ describe('SearchScrapeView', () => {
     );
   });
 
+  // VERIFY-143: every long-running Research operation exposes the shared
+  // animated, cancellable progress surface at section level.
+  it('shows section-wide progress while a web operation is still running', async () => {
+    mockVeniceFetch.mockReturnValue(new Promise(() => {}));
+    render(<SearchScrapeView />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Search / Scrape' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Scrape clicked result' }));
+
+    expect(await screen.findByTestId('research-loading-indicator')).toBeInTheDocument();
+    expect(screen.getByText('Reading web page…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+  });
+
   // VERIFY-RB-006 regression guard — navigate-before-create (Bug 2, renderer side):
   // When "Open in Browser" is clicked in the Search tab, SearchScrapeView must
   // NOT call researchBrowserBridge.navigate() directly. Instead it must switch

@@ -2,6 +2,7 @@ import type { Conversation } from "../types/conversation";
 import type { ChatMessage, ModelInfo, ContentPart } from "../types/venice";
 import { calculateChatContextBudget } from "./chatContextBudget";
 import { notify } from "./notification-service";
+import { parseCharacterSceneRequest } from "./characterSceneRequestParser";
 
 export type ChatPromptSegment = {
   id: string;
@@ -14,8 +15,9 @@ export function compileChatPrompt(
   conv: Conversation,
   globalSystemPrompt: string,
   modelInfo: ModelInfo | undefined,
-  maxTokens: number
-): { messages: ChatMessage[]; systemPrompt: string } {
+  maxTokens: number,
+  includeVeniceSystemPrompt = true,
+): { messages: ChatMessage[]; systemPrompt: string; maxTokens: number } {
   // 1. Compile System Prompt Segments
   const mode = conv.metadata?.systemPromptMode ?? "inherit";
   const characterSystemPrompt = conv.metadata?.character?.systemPrompt;
@@ -66,6 +68,12 @@ export function compileChatPrompt(
           }
         }
       }
+      if (m.role === "assistant" && typeof content === "string") {
+        // Automatic character-scene markers are an app-to-app protocol, not
+        // conversational context. Strip both valid and malformed historical
+        // markers so later model turns cannot detect or imitate the helper.
+        content = parseCharacterSceneRequest(content).displayText;
+      }
       return { role: m.role, content };
     });
 
@@ -78,7 +86,8 @@ export function compileChatPrompt(
     requestMessages,
     isHostedCharacter ? effectiveSystemPrompt : "",
     modelInfo,
-    maxTokens
+    maxTokens,
+    includeVeniceSystemPrompt,
   );
 
   let compacted = false;
@@ -89,7 +98,16 @@ export function compileChatPrompt(
     compactionId = notify.loading("Compacting context...", { dedupeKey: "compaction" });
   }
 
-  while (budget.remainingInputBudget < 0 && requestMessages.length > 2) {
+  const minimumUsefulOutputTokens = Math.min(256, Math.max(1, maxTokens));
+  let minimumOutputBudget = calculateChatContextBudget(
+    requestMessages,
+    isHostedCharacter ? effectiveSystemPrompt : "",
+    modelInfo,
+    minimumUsefulOutputTokens,
+    includeVeniceSystemPrompt,
+  );
+
+  while (minimumOutputBudget.remainingInputBudget < 0 && requestMessages.length > 2) {
     compacted = true;
     const firstNonSystemIndex = requestMessages.findIndex((m) => m.role !== "system");
     if (firstNonSystemIndex === -1) break;
@@ -121,7 +139,15 @@ export function compileChatPrompt(
       requestMessages,
       isHostedCharacter ? effectiveSystemPrompt : "",
       modelInfo,
-      maxTokens
+      maxTokens,
+      includeVeniceSystemPrompt,
+    );
+    minimumOutputBudget = calculateChatContextBudget(
+      requestMessages,
+      isHostedCharacter ? effectiveSystemPrompt : "",
+      modelInfo,
+      minimumUsefulOutputTokens,
+      includeVeniceSystemPrompt,
     );
   }
 
@@ -136,7 +162,7 @@ export function compileChatPrompt(
     });
   }
 
-  if (budget.remainingInputBudget < 0) {
+  if (minimumOutputBudget.remainingInputBudget < 0) {
     if (compactionId) notify.dismiss(compactionId);
     notify.error("Context limit exceeded", {
       message: `The conversation requires ~${budget.totalEstimatedInput.toLocaleString()} tokens, but only ${budget.contextLimit.toLocaleString()} are available after reserving output tokens.`
@@ -144,7 +170,26 @@ export function compileChatPrompt(
     throw new Error(
       `Context budget exceeded. The conversation requires ~${budget.totalEstimatedInput.toLocaleString()} tokens, but only ${budget.contextLimit.toLocaleString()} are available after reserving output tokens. Try starting a new chat or reducing max_tokens.`
     );
-  } else if (budget.percentUsed >= 0.8) {
+  }
+
+  const providerMaxOutput = modelInfo?.maxOutputTokens ?? 4096;
+  const availableOutputTokens = Math.max(1, budget.contextLimit - budget.totalEstimatedInput);
+  const effectiveMaxTokens = Math.min(maxTokens, providerMaxOutput, availableOutputTokens);
+  if (effectiveMaxTokens < Math.min(maxTokens, providerMaxOutput)) {
+    notify.warning("Max output reduced to fit context", {
+      message: `This request reserves ${effectiveMaxTokens.toLocaleString()} output tokens so the custom prompt and current conversation fit the selected model.`,
+      dedupeKey: "context-output-clamp",
+    });
+    budget = calculateChatContextBudget(
+      requestMessages,
+      isHostedCharacter ? effectiveSystemPrompt : "",
+      modelInfo,
+      effectiveMaxTokens,
+      includeVeniceSystemPrompt,
+    );
+  }
+
+  if (budget.percentUsed >= 0.8) {
     const usageStr = Math.round(budget.percentUsed * 100);
     const estK = Math.round((budget.totalEstimatedInput + budget.reservedOutputTokens) / 1000);
     const totalK = Math.round(budget.contextLimit / 1000);
@@ -157,5 +202,6 @@ export function compileChatPrompt(
   return {
     messages: requestMessages,
     systemPrompt: effectiveSystemPrompt,
+    maxTokens: effectiveMaxTokens,
   };
 }

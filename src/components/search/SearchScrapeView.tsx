@@ -31,6 +31,7 @@ import { researchBrowserBridge } from "../../services/researchBrowserBridge";
 import { isElectron } from "../../services/desktopBridge";
 import { isTrustedExternalUrl } from "../../shared/urlSecurity";
 import { useConfigStore } from "../../stores/config-store";
+import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
 
 import { DEFAULT_CHAT_MODEL } from "../../constants/venice";
 
@@ -57,6 +58,7 @@ export function SearchScrapeView() {
   const [provider, setProvider] = useState("brave");
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [url, setUrl] = useState("");
+  const [scrapeProvider, setScrapeProvider] = useState<"venice" | "jina">("venice");
   const [scrapeOutput, setScrapeOutput] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [parserOutput, setParserOutput] = useState("");
@@ -148,15 +150,27 @@ export function SearchScrapeView() {
     }
   }
 
-  async function runScrape(explicitUrl?: string) {
+  async function runScrape(explicitUrl?: string, explicitProvider?: "venice" | "jina") {
     const targetUrl = (explicitUrl ?? url).trim();
+    const selectedScrapeProvider = explicitProvider ?? scrapeProvider;
     if (!targetUrl) return;
-    if (!requireVeniceApiKey("scraping a URL")) return;
+    if (selectedScrapeProvider === "venice" && !requireVeniceApiKey("scraping a URL")) return;
     setError("");
     setLoading("scrape");
     setScrapeOutput("");
     const { runId, signal } = beginRun();
     try {
+      if (selectedScrapeProvider === "jina") {
+        const result = await runResearchScrape({ url: targetUrl, provider: "jina" });
+        if (runIdRef.current !== runId) return;
+        const providerError = result.warnings.find((warning) => warning.severity === "error");
+        if (providerError) {
+          setError(providerError.message);
+          return;
+        }
+        setScrapeOutput(result.sources[0]?.excerpt || "Jina returned no readable content for this page.");
+        return;
+      }
       const { data, diagnostics: d } = await veniceFetch<Record<string, unknown>>("/augment/scrape", {
         method: "POST",
         body: { url: targetUrl },
@@ -171,7 +185,12 @@ export function SearchScrapeView() {
     } catch (err: unknown) {
       if (runIdRef.current !== runId) return;
       const error = err as { name?: string; message?: string };
-      if (error.name !== "AbortError") setError(describeResearchError(error, "Scrape failed."));
+      if (error.name !== "AbortError") {
+        const described = describeResearchError(error, "Scrape failed.", selectedScrapeProvider);
+        setError(selectedScrapeProvider === "venice" && /denied|permission|forbidden/i.test(described)
+          ? `${described} You can also select Jina Reader in the Web Scrape card.`
+          : described);
+      }
     } finally {
       if (runIdRef.current === runId) setLoading("");
     }
@@ -413,6 +432,18 @@ export function SearchScrapeView() {
           </div>
         )}
 
+        {loading && (
+          <div className="mb-5 rounded-xl border border-accent/30 bg-accent/5 p-4" role="status" aria-live="polite" data-testid="research-loading-indicator">
+            <GenerationLoadingIndicator
+              state="processing"
+              label={loading === "ai-research" ? "Researching and synthesizing…" : loading === "scrape" ? "Reading web page…" : loading === "search" ? "Searching the web…" : loading === "parser" ? "Parsing document…" : "Research task in progress…"}
+              detail="You can leave the form as-is while this section works."
+              showCancel
+              onCancel={cancelRun}
+            />
+          </div>
+        )}
+
         {subTab === "workspace" && <ResearchWorkspacePanel />}
 
         {subTab === "search" && (
@@ -438,7 +469,7 @@ export function SearchScrapeView() {
                 }}
                 onScrapeWithVenice={async (url) => {
                   setUrl(url);
-                  await runScrape(url);
+                  await runScrape(url, "venice");
                 }}
                 onReadWithJina={async (url) => {
                   setUrl(url);
@@ -484,6 +515,8 @@ export function SearchScrapeView() {
                 setUrl={setUrl}
                 loading={loading}
                 runScrape={runScrape}
+                provider={scrapeProvider}
+                setProvider={setScrapeProvider}
                 scrapeOutput={scrapeOutput}
                 setScrapeOutput={setScrapeOutput}
               />

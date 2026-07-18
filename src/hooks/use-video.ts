@@ -90,6 +90,7 @@ export function useVideo() {
     cancel,
     reset,
     queueId: task?.queueId ?? null,
+    resultMediaId: task?.resultMediaId ?? null,
     lastRequest: (task?.metadata?.request as VideoQueueRequest | undefined) ?? null,
   }
 }

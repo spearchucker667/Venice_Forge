@@ -80,3 +80,48 @@ export async function resolveGeneratedMedia(id: string): Promise<{ path: string;
     return null
   }
 }
+
+export async function createGeneratedMediaResponse(id: string, rangeHeader?: string | null): Promise<Response> {
+  const resolved = await resolveGeneratedMedia(id)
+  if (!resolved) return new Response('Not found', { status: 404 })
+  const stat = await fs.stat(resolved.path)
+  const commonHeaders = {
+    'Content-Type': resolved.mimeType,
+    'Accept-Ranges': 'bytes',
+    'Cache-Control': 'private, max-age=31536000, immutable',
+  }
+
+  if (!rangeHeader) {
+    const bytes = await fs.readFile(resolved.path)
+    return new Response(bytes, { headers: { ...commonHeaders, 'Content-Length': String(bytes.length) } })
+  }
+
+  const match = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim())
+  if (!match) {
+    return new Response(null, { status: 416, headers: { ...commonHeaders, 'Content-Range': `bytes */${stat.size}` } })
+  }
+  const requestedStart = match[1] ? Number(match[1]) : null
+  const requestedEnd = match[2] ? Number(match[2]) : null
+  const start = requestedStart ?? Math.max(0, stat.size - (requestedEnd ?? 0))
+  const end = Math.min(stat.size - 1, requestedStart === null ? stat.size - 1 : (requestedEnd ?? stat.size - 1))
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start > end || start >= stat.size) {
+    return new Response(null, { status: 416, headers: { ...commonHeaders, 'Content-Range': `bytes */${stat.size}` } })
+  }
+  const length = end - start + 1
+  const handle = await fs.open(resolved.path, 'r')
+  try {
+    const bytes = Buffer.alloc(length)
+    const { bytesRead } = await handle.read(bytes, 0, length, start)
+    const body = bytesRead === length ? bytes : bytes.subarray(0, bytesRead)
+    return new Response(body, {
+      status: 206,
+      headers: {
+        ...commonHeaders,
+        'Content-Length': String(body.length),
+        'Content-Range': `bytes ${start}-${start + body.length - 1}/${stat.size}`,
+      },
+    })
+  } finally {
+    await handle.close()
+  }
+}

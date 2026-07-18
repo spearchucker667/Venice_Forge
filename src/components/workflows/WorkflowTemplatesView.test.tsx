@@ -3,6 +3,9 @@ import "@testing-library/jest-dom";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { WorkflowTemplatesView } from "./WorkflowTemplatesView";
 import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
+import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
+
+const mockSetActiveTab = vi.hoisted(() => vi.fn());
 
 vi.mock("../../services/storageService", () => ({
   default: {
@@ -22,8 +25,8 @@ vi.mock("../../stores/project-store", () => ({
 
 vi.mock("../../stores/settings-store", () => ({
   useSettingsStore: Object.assign(
-    () => vi.fn(),
-    { getState: () => ({ activeProjectId: null }) }
+    (selector: (state: { activeProjectId: null; setActiveTab: typeof mockSetActiveTab }) => unknown) => selector({ activeProjectId: null, setActiveTab: mockSetActiveTab }),
+    { getState: () => ({ activeProjectId: null, setActiveTab: mockSetActiveTab }) }
   ),
 }));
 
@@ -34,6 +37,7 @@ describe("WorkflowTemplatesView", () => {
       activeWorkflowId: null,
       hydrated: true,
     });
+    useImageWorkspaceStore.getState().reset();
     vi.clearAllMocks();
   });
 
@@ -97,5 +101,37 @@ describe("WorkflowTemplatesView", () => {
     expect(screen.getByTestId("run-plan-preview")).toBeInTheDocument();
     expect(screen.getByText("Send prompt to chat")).toBeInTheDocument();
     expect(screen.getByTestId("run-step-btn")).toBeInTheDocument();
+  });
+
+  // VERIFY-143: creator choices remain editable, and image workflow actions
+  // must carry their prompt into Image Studio instead of only changing tabs.
+  it("edits a step choice and hands an image prompt to Image Studio", async () => {
+    const store = useWorkflowTemplateStore.getState();
+    const workflow = await store.createWorkflow({ title: "Image WF" });
+    await store.addStep(workflow.id, {
+      kind: "image_recipe",
+      target: "image_studio",
+      title: "Render scene",
+      enabled: true,
+      input: { prompt: "A copper airship at sunset" },
+    });
+    store.setActiveWorkflow(workflow.id);
+
+    render(<WorkflowTemplatesView />);
+
+    const target = screen.getByRole("combobox", { name: "Workflow step target" });
+    fireEvent.change(target, { target: { value: "media_studio" } });
+    await waitFor(() => expect(useWorkflowTemplateStore.getState().workflows[0]?.versions[0]?.steps[0]?.target).toBe("media_studio"));
+
+    fireEvent.change(target, { target: { value: "image_studio" } });
+    await waitFor(() => expect(useWorkflowTemplateStore.getState().workflows[0]?.versions[0]?.steps[0]?.target).toBe("image_studio"));
+    fireEvent.click(screen.getByTestId("run-step-btn"));
+
+    expect(useImageWorkspaceStore.getState().pending).toEqual(expect.objectContaining({
+      target: "generate",
+      autoGenerate: false,
+      draft: expect.objectContaining({ prompt: "A copper airship at sunset" }),
+    }));
+    expect(mockSetActiveTab).toHaveBeenCalledWith("image");
   });
 });

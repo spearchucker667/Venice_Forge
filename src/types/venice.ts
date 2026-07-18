@@ -69,7 +69,16 @@ export interface VeniceModel {
     pricing?: {
       input?: { usd?: number }
       output?: { usd?: number }
+      durations?: Record<string, { usd?: number; diem?: number; min_seconds?: number; max_seconds?: number }>
     }
+    supports_lyrics?: boolean
+    lyrics_required?: boolean
+    supports_force_instrumental?: boolean
+    duration_options?: number[]
+    min_duration?: number
+    max_duration?: number
+    default_duration?: number
+    prompt_character_limit?: number
   }
 }
 

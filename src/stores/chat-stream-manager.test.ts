@@ -77,6 +77,34 @@ describe("chat-stream-manager", () => {
     expect(messages[1]).toEqual({ role: "user", content: "Hello" });
   });
 
+  // VERIFY-143: custom chat prompts must retain their context budget without
+  // exposing the image-helper protocol in subsequent model turns.
+  it("preserves a disabled Venice prompt, strips image-helper markers, and clamps output for a large custom prompt", async () => {
+    useChatStore.setState({
+      systemPrompt: "x".repeat(20_000),
+      maxTokens: 4096,
+      veniceParams: {
+        include_venice_system_prompt: false,
+        enable_web_search: "off",
+      },
+    });
+    const convId = useChatStore.getState().createConversation("unknown-small-context-model");
+    useChatStore.getState().addMessage(convId, {
+      role: "assistant",
+      content: 'Visible reply <venice_forge_scene_request>{"intent":"create_scene"}</venice_forge_scene_request>',
+    });
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Continue" });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "unknown-small-context-model");
+
+    const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+    expect(body.venice_parameters).toEqual(expect.objectContaining({ include_venice_system_prompt: false }));
+    expect(body.max_tokens).toBeGreaterThan(0);
+    expect(body.max_tokens).toBeLessThan(4096);
+    expect(JSON.stringify(body.messages)).not.toContain("venice_forge_scene_request");
+  });
+
   it("appends content and reasoning deltas to the last assistant message", async () => {
     const convId = useChatStore.getState().createConversation("llama-3.3-70b");
     useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });

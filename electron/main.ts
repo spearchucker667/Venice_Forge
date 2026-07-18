@@ -22,7 +22,7 @@ import { stopSyncWatcher } from "./services/syncFolderWatcher";
 import { isValidBridgeHost } from "./utils/bridgeHost";
 import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
 import { setupResearchBrowserIpc } from "./services/researchBrowserServer";
-import { GENERATED_MEDIA_SCHEME, resolveGeneratedMedia } from './services/generatedMediaStore';
+import { createGeneratedMediaResponse, GENERATED_MEDIA_SCHEME } from './services/generatedMediaStore';
 import { readRegularFileNoFollow } from "./utils/secureFile";
 import { createShutdownCoordinator } from "./services/appShutdownCoordinator";
 
@@ -316,12 +316,7 @@ if (!gotLock) {
     protocol.handle(GENERATED_MEDIA_SCHEME, async (request) => {
       const parsedUrl = new URL(request.url);
       const id = parsedUrl.hostname || parsedUrl.pathname.replace(/^\/+/, '');
-      const resolved = await resolveGeneratedMedia(id);
-      if (!resolved) return new Response('Not found', { status: 404 });
-      const bytes = await fs.promises.readFile(resolved.path);
-      return new Response(bytes, {
-        headers: { 'Content-Type': resolved.mimeType, 'Cache-Control': 'private, max-age=31536000, immutable' },
-      });
+      return createGeneratedMediaResponse(id, request.headers.get('range'));
     });
     protocol.handle("venice-tts", async (request) => {
       const parsedUrl = new URL(request.url);
