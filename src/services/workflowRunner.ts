@@ -1,5 +1,6 @@
 import { type WorkflowCompileResult, type WorkflowCompileWarning } from "./workflowCompiler";
 import { type WorkflowStepTarget } from "../types/workflow";
+import { type TabId } from "../config/tabs";
 
 export type WorkflowRunActionKind =
   | "open_tab"
@@ -14,7 +15,7 @@ export interface WorkflowRunAction {
   id: string;
   kind: WorkflowRunActionKind;
   target: WorkflowStepTarget;
-  tabId?: string;
+  tabId?: TabId;
   label: string;
   payload?: Record<string, unknown>;
   outputKey?: string;
@@ -28,7 +29,19 @@ export interface WorkflowRunPlan {
   warnings: WorkflowCompileWarning[];
 }
 
-const globalEmittedOutputs = new Set<string>();
+const TARGET_TAB_IDS = {
+  chat: "chat",
+  image_studio: "image",
+  media_studio: "media",
+  research: "search",
+  scene_composer: "scenes",
+  rp_studio: "rp-studio",
+  none: undefined,
+} as const satisfies Record<WorkflowStepTarget, TabId | undefined>;
+
+export function getWorkflowTargetTabId(target: WorkflowStepTarget): TabId | undefined {
+  return TARGET_TAB_IDS[target];
+}
 
 export function createWorkflowRunPlan(compiled: WorkflowCompileResult): WorkflowRunPlan {
   const plan: WorkflowRunPlan = {
@@ -46,22 +59,16 @@ export function createWorkflowRunPlan(compiled: WorkflowCompileResult): Workflow
   for (const step of compiled.steps) {
     plan.warnings.push(...step.warnings);
 
-    let tabId: string | undefined;
-    switch (step.target) {
-      case "chat": tabId = "chat"; break;
-      case "image_studio": tabId = "image"; break;
-      case "media_studio": tabId = "gallery"; break;
-      case "research": tabId = "research"; break;
-      case "scene_composer": tabId = "scenes"; break;
-      case "rp_studio": tabId = "rp-studio"; break;
-      case "none": tabId = undefined; break;
-    }
+    const tabId = getWorkflowTargetTabId(step.target);
 
     if (step.outputKey) {
-      if (globalEmittedOutputs.has(step.outputKey)) {
-        continue;
+      if (Object.hasOwn(plan.outputs, step.outputKey)) {
+        plan.warnings.push({
+          id: `duplicate-output-key:${step.outputKey}`,
+          severity: "warning",
+          message: `Duplicate output key '${step.outputKey}' uses the last step value; all actions will still run.`,
+        });
       }
-      globalEmittedOutputs.add(step.outputKey);
       plan.outputs[step.outputKey] = { ...step.resolvedInput };
     }
 

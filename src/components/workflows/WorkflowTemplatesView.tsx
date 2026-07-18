@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
-import { useSettingsStore, type Tab } from "../../stores/settings-store";
+import { useSettingsStore } from "../../stores/settings-store";
 import { compileWorkflowTemplate } from "../../services/workflowCompiler";
 import { createWorkflowRunPlan } from "../../services/workflowRunner";
+import type { TabId } from "../../config/tabs";
 import { ConfirmModal } from "../ConfirmModal";
 import { toast } from "../../stores/toast-store";
 
@@ -103,9 +104,9 @@ export function WorkflowTemplatesView() {
     setActiveWorkflow(w.id);
   };
 
-  const handleRunStep = (tabId?: string) => {
+  const handleRunStep = (tabId?: TabId) => {
     if (tabId) {
-      setActiveTab(tabId as Tab);
+      setActiveTab(tabId);
     }
   };
   

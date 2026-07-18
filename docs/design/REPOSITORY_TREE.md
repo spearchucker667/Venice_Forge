@@ -233,7 +233,7 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 | `status/` | Header Status Cluster + Diagnostics Drawer (Phase 2C) | `HeaderStatusCluster.tsx`, `StatusIndicator.tsx`, `DiagnosticsDrawer.tsx` (+ tests) |
 | `ui/` | Shared primitives | `error-boundary.tsx`, `generation-view.tsx`, `logo.tsx`, `select.tsx`, `shared.tsx` (+ test), `spinner.tsx`, `toaster.tsx` |
 | `video/` | Video Studio (queue + upscale) | `video-view.tsx` |
-| `workflows/` | Workflows visual editor + Templates (Phase 2G) | `workflows-view.tsx`, `workflow-node.tsx` (+ test), `WorkflowTemplatesView.tsx` (+ test) |
+| `workflows/` | Workflow Templates (Phase 2G); Playground owns the interactive graph renderer | `WorkflowTemplatesView.tsx` (+ test) |
 | (root) | Top-level view shells | `App.tsx`, `CharactersView.tsx`, `SettingsView.tsx` (+ test), `StatusView.tsx`, `SearchScrapeView.tsx`, `ThemeMaker.tsx`, `DiagnosticsPreview.tsx`, `MemoryManagerModal.tsx`, `ModelRefreshButton.tsx`, `ModelSelect.tsx`, `FirstRunModal.tsx`, `AttachmentTray.tsx`, `Chip.tsx`, `CollapsibleSection.tsx`, `ConfirmModal.tsx`, `ErrorBoundary.tsx`, `Field.tsx`, `ImageActionModal.tsx`, `ImageGenerationPreview.tsx`, `StatusBlock.tsx`, `TabButton.tsx`, `ThemePreview.tsx`, `ToastHost.tsx`, `VideoGenerationForm.tsx`, `VideoGenerationPreview.tsx`, `icons.tsx` |
 
 ## `src/services/` Surface

@@ -113,7 +113,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 - [ROADMAP.md](ROADMAP.md) — Canonical current-work-only task ledger; closed work and historical validation stay in the session ledger and historical reports.
 - [summary_of_work.md](summary_of_work.md) — Active session ledger (recent sessions only).
-- [audits/Venice_Forge-audit-results-20260716-183918/AUDIT_REPORT.md](audits/Venice_Forge-audit-results-20260716-183918/AUDIT_REPORT.md) — July 16 current-commit audit input; live status remains in `ROADMAP.md`.
+- [audits/Venice_Forge-audit-results-20260716-224749/AUDIT_REPORT.md](audits/Venice_Forge-audit-results-20260716-224749/AUDIT_REPORT.md) — July 16 22:47 snapshot audit input; remediated live status remains in `ROADMAP.md` and `summary_of_work.md`.
 
 ---
 

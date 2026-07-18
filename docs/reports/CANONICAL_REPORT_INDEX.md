@@ -11,7 +11,7 @@ This index maps retained audit and report artifacts to their current authority. 
 | Documentation source map | [`../DOCS_INDEX.md`](../DOCS_INDEX.md) |
 | Report directory policy | [`README.md`](README.md) |
 | 2026-07-15 intended-feature snapshot evidence | [`INTENDED_FEATURE_VERIFICATION_2026-07-15.md`](INTENDED_FEATURE_VERIFICATION_2026-07-15.md) |
-| 2026-07-16 current-commit audit input and executable evidence | [`../audits/Venice_Forge-audit-results-20260716-183918/AUDIT_REPORT.md`](../audits/Venice_Forge-audit-results-20260716-183918/AUDIT_REPORT.md) and [`../audits/Venice_Forge-audit-results-20260716-183918/EVIDENCE_MANIFEST.md`](../audits/Venice_Forge-audit-results-20260716-183918/EVIDENCE_MANIFEST.md) |
+| 2026-07-16 22:47 snapshot audit input and evidence manifest | [`../audits/Venice_Forge-audit-results-20260716-224749/AUDIT_REPORT.md`](../audits/Venice_Forge-audit-results-20260716-224749/AUDIT_REPORT.md) and [`../audits/Venice_Forge-audit-results-20260716-224749/EVIDENCE_MANIFEST.md`](../audits/Venice_Forge-audit-results-20260716-224749/EVIDENCE_MANIFEST.md) |
 | 2026-07-12/13 media and character snapshot evidence | [`MEDIA_CHARACTER_REMEDIATION_REPORT.md`](MEDIA_CHARACTER_REMEDIATION_REPORT.md) |
 | 2026-07-15 video, Character Chats, and UI snapshot evidence | [`VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md`](VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) |
 

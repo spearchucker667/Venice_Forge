@@ -75,7 +75,7 @@ Renderer code must use typed services from `src/services/desktopBridge.ts`; it m
 - `docs/DOCS_INDEX.md`: current versus historical documentation routing.
 - `docs/ROADMAP.md`: current unfinished work only.
 - `docs/summary_of_work.md`: active session handoff and commands actually run.
-- `docs/audits/Venice_Forge-audit-results-20260716-183918/`: current-commit audit report and executable evidence bundle; current unfinished work is reconciled into `docs/ROADMAP.md`.
+- `docs/audits/Venice_Forge-audit-results-20260716-224749/`: 22:47 snapshot audit report and manifest; current unfinished work is reconciled into `docs/ROADMAP.md`.
 
 ## Regenerating a Mechanical Inventory
 

@@ -4,6 +4,18 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+**Date:** 2026-07-17
+**Scope:** Reconcile the complete `Venice_Forge-audit-results-20260716-224749` checklist against the live `main` tree, close every locally actionable finding, and retain external/product prerequisites without inventing evidence.
+
+- **Workflow correctness (`VF-SCAN-20260717-001`, `002`; `VERIFY-139`):** removed process-global output deduplication; independent runs are deterministic; duplicate keys warn and use the last value without dropping actions; target mapping is exhaustive and typed as canonical `TabId`; Research opens `search`; and the workflow UI no longer casts free-form strings.
+- **Bounded test gate (`003`):** split all 41 store files into core/chat/feature shards with a five-minute outer process timeout and diagnostic failure; retained a four-file cross-store integration shard. The gate now exits with 727/727 store assertions plus 50/50 integration assertions instead of hanging in one Vitest lifecycle.
+- **Shutdown durability (`004`; `VERIFY-140`):** added one idempotent coordinator used by both signals and `before-quit`; bridge, sync, background-task journal, and log cleanup start independently so one stalled cleanup cannot starve later flushes. Normal quits resume through `app.quit()` so renderer unload handlers run, signal exits remain bounded, and an uninitialized background-task manager cannot overwrite its persisted journal. Focused tests cover completion, exactly-once reuse, failure, timeout concurrency, and pre-initialization flush safety.
+- **Truth/accessibility/hygiene (`005`–`009`, `012`; `VERIFY-141`, `142`):** updated Electron 43/Vite 8/Express 5 claims; added a package-sourced semantic verifier; refreshed workflow ownership docs/comments; labeled the reusable bug-hunt prompt; added a named live saving status and decorative spinner semantics; made static provider catalogs explicitly stale and labeled every bundled model in production picker data with the paid-request warning; and removed the unused generation barrel.
+- **Authority and scope (`006`, `010`–`016`):** routed the 22:47 report/manifest into the docs index and canonical roadmap. Large-module/IPC decomposition remains accepted incremental architecture guidance, not a release bug. Deferred providers/transports and destructive orphan cleanup remain fail-closed product scope; signed/paid/two-device/headed evidence remains the externally blocked `VF-VERIFY-005` item.
+- **Runtime caveat:** local commands run under Node `v26.5.0` / npm `11.17.0`, not the declared Node 22 engine. Cross-platform and exact-Node-22 claims require hosted CI and are not inferred here.
+
+### Previous same-day session detail — 18:39 audit remediation
+
 **Date:** 2026-07-16
 **Scope:** Complete every locally actionable finding in the current-commit `Venice_Forge-audit-results-20260716-183918` bundle and disposition the remaining architectural/external proposals honestly.
 
@@ -68,7 +80,22 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
-The current-commit July 16 audit supersedes the earlier blanket closure claim. All `VF-SCAN-20260716-001..024` findings now have an implemented or explicit disposition below. GitHub safeguards (`VF-AUDIT-001`) and applicable major dependency migrations (`VF-AUDIT-006`) are complete. The only unfinished work is externally blocked signed/paid/two-device/accessibility QA (`VF-VERIFY-005`).
+All `VF-SCAN-20260717-001..016` findings from the 22:47 snapshot now have an implemented or explicit disposition. The only unfinished release work remains externally blocked signed/paid/two-device/accessibility QA (`VF-VERIFY-005`).
+
+| Audit IDs | Disposition |
+|---|---|
+| `001`, `002` | Fixed by typed canonical workflow routing and run-local deterministic output handling (`VERIFY-139`). |
+| `003` | Fixed release gate: all 41 store files run in bounded deterministic shards; a smaller cross-store integration shard remains. |
+| `004` | Fixed by exactly-once, timeout-bounded awaited shutdown cleanup (`VERIFY-140`). |
+| `005`–`008` | Fixed active stack/authority/workflow docs and CharacterEditor save accessibility; semantic and UI regressions cover the contracts (`VERIFY-141`). |
+| `009` | Fixed operational truth: fallback catalogs expose bundled/static/stale status and a paid-request warning (`VERIFY-142`); optional live discovery remains provider-specific product scope. |
+| `010`, `011` | Accepted incremental architecture guidance, not confirmed runtime defects. Large-module and IPC decomposition must proceed as bounded behavior-preserving work orders rather than a mass audit rewrite. |
+| `012` | Fixed: removed the unreferenced generation barrel. |
+| `013`, `014` | Deferred product scope remains explicitly unavailable and fail-closed; no credential or success UI is exposed. |
+| `015` | Accepted safety boundary: orphan analysis remains non-destructive until preview/quarantine/rollback contracts exist. |
+| `016` | Externally blocked release evidence remains represented by `VF-VERIFY-005`; no signed, paid, physical-device, or headed result is inferred. |
+
+The earlier `VF-SCAN-20260716-001..024` disposition is retained below as historical context.
 
 | Audit IDs | Disposition |
 |---|---|
@@ -108,6 +135,27 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
 
 The current remediation evidence is listed first. Earlier same-day evidence is retained below as historical context.
+
+### July 17 22:47-audit remediation (local Node 26/npm 11)
+
+| Command | Result | Evidence |
+|---|---|---|
+| `npx vitest run src/services/workflowRunner.test.ts electron/services/appShutdownCoordinator.test.ts package-scripts.test.ts --no-file-parallelism` | PASS | 3 files / 23 tests. |
+| `npx vitest run src/components/rp-studio/CharacterEditor.test.tsx --no-file-parallelism` | PASS | 1 file / 32 tests. |
+| `npm run test:unit:stores` | PASS | 41 store files / 727 tests across three bounded shards, plus 4-file / 50-test integration shard. |
+| `npm run verify:release-metadata` | PASS | Release metadata and package-sourced Electron 43 / Vite 8 / Express 5 facts agree. |
+| `npm run typecheck` | PASS | Renderer and Electron TypeScript pipelines. |
+| `npm run lint:eslint` | PASS | Zero warnings. |
+| `npx vitest run electron/services/appShutdownCoordinator.test.ts electron/services/backgroundTaskManager.test.ts src/config/provider-models.test.ts`; `npm run typecheck`; `npm run lint:eslint` | PASS | PR-review follow-up: 3 files / 23 tests; both TypeScript pipelines and zero-warning lint passed. |
+| `npm run test:ci` | PASS | 3,940 executed assertions across server, 52-file Electron, ingestion, bounded stores/integration, services/hooks/lib/shared/utils/theme/scripts/types, UI, and contract shards. |
+| `npm run ci` | PASS | Exact full local parity command passed after final review: lint, typecheck, tests, audit, build, contracts, and dist. |
+| `npm audit --audit-level=moderate` | PASS | 0 vulnerabilities. |
+| `npm run verify:contracts` | PASS | Static, feature, provider (38/38), and release-packaging (103/103) contracts. |
+| `npm run build` | PASS | Vite renderer, Express server bundle, Electron main/preload. |
+| `npm run verify:dist` | PASS | Generated build outputs verified. |
+| `npm run verify:archive-clean` | PASS | Archive exclusions and tracked-file inventory clean. |
+| `npm run verify:markdown-links` | PASS | 102 Markdown files. |
+| `git diff --check` | PASS | No whitespace errors before final ledger update; rerun in final closeout. |
 
 ### PR Review
 
@@ -206,6 +254,8 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+- **2026-07-17 — 22:47 audit remediation (`VERIFY-139`–`VERIFY-142`):** reconciled all 16 findings against the live tree; fixed run-global workflow suppression and Research routing; replaced the hanging aggregate store lifecycle with bounded deterministic shards; added awaited exactly-once shutdown cleanup including concurrent independent flushes, renderer-preserving normal quit, and pre-initialization journal safety; updated active stack/workflow authority docs and semantic verification; made CharacterEditor save progress accessible; surfaced stale bundled-provider warnings in production model pickers; removed the unused generation barrel; retained architecture/product/external scope under explicit accepted/deferred boundaries; and updated the canonical roadmap, documentation index, guard registry, and this validation ledger.
 
 - **2026-07-16 — Protected-branch publication repair:** restored `agent/publish-audit-findings`, reopened PR #41, inspected the exact required-check failure, and regenerated `package-lock.json` under Node 22/npm 10 so `verify:lockfile` matches hosted CI. The initial restored run passed lint/typecheck, unit/integration, Windows, macOS, dependency review, and CodeQL; its coverage job was cancelled by fail-fast after the lockfile contract failed. The corrected commit is intended only to restore CI parity and deliver the completed audit tranche through the protected `main` workflow.
 

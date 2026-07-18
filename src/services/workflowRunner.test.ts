@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { createWorkflowRunPlan } from "./workflowRunner";
+import { createWorkflowRunPlan, getWorkflowTargetTabId } from "./workflowRunner";
+import { isTabId } from "../config/tabs";
+import type { WorkflowStepTarget } from "../types/workflow";
 import type { WorkflowCompileResult, WorkflowCompiledStep } from "./workflowCompiler";
 
 describe("Workflow Runner", () => {
@@ -61,7 +63,7 @@ describe("Workflow Runner", () => {
     expect(plan.actions[0].tabId).toBe("scenes");
     
     expect(plan.actions[1].kind).toBe("select_media");
-    expect(plan.actions[1].tabId).toBe("gallery");
+    expect(plan.actions[1].tabId).toBe("media");
     
     expect(plan.actions[2].kind).toBe("open_rp_context");
     expect(plan.actions[2].tabId).toBe("rp-studio");
@@ -81,7 +83,45 @@ describe("Workflow Runner", () => {
     const plan = createWorkflowRunPlan(compiled);
     expect(plan.actions).toHaveLength(1);
     expect(plan.actions[0].kind).toBe("open_tab");
-    expect(plan.actions[0].tabId).toBe("research");
+    expect(plan.actions[0].tabId).toBe("search");
+  });
+
+  // VERIFY-139 regression guard: workflow target handoffs only emit canonical tab ids.
+  it.each<[WorkflowStepTarget, string | undefined]>([
+    ["chat", "chat"],
+    ["image_studio", "image"],
+    ["media_studio", "media"],
+    ["research", "search"],
+    ["scene_composer", "scenes"],
+    ["rp_studio", "rp-studio"],
+    ["none", undefined],
+  ])("maps %s to canonical tab %s", (target, expected) => {
+    const tabId = getWorkflowTargetTabId(target);
+    expect(tabId).toBe(expected);
+    expect(tabId === undefined || isTabId(tabId)).toBe(true);
+  });
+
+  // VERIFY-139 regression guard: plan creation is run-local and deterministic.
+  it("emits independent runs and warns without dropping duplicate-key actions", () => {
+    const compiled: WorkflowCompileResult = {
+      workflowId: "wf-repeatable",
+      versionId: "v1",
+      steps: [
+        { id: "s1", kind: "prompt", target: "chat", title: "First", summary: "", resolvedInput: { text: "first" }, outputKey: "shared", warnings: [] },
+        { id: "s2", kind: "prompt", target: "chat", title: "Second", summary: "", resolvedInput: { text: "second" }, outputKey: "shared", warnings: [] },
+      ],
+      warnings: [],
+      canRun: true,
+    };
+
+    const first = createWorkflowRunPlan(compiled);
+    const second = createWorkflowRunPlan({ ...compiled, workflowId: "wf-independent" });
+
+    expect(first.actions).toHaveLength(2);
+    expect(second.actions).toHaveLength(2);
+    expect(first.outputs.shared).toEqual({ text: "second" });
+    expect(second.outputs.shared).toEqual({ text: "second" });
+    expect(first.warnings).toContainEqual(expect.objectContaining({ id: "duplicate-output-key:shared" }));
   });
 
   it("collects warnings from steps", () => {

@@ -9,6 +9,21 @@ import { useSettingsStore } from '../stores/settings-store'
 // We wrap the VeniceModel with a local type property so we can filter by ?type=text|image
 export type FallbackModelDef = VeniceModel & { _type: 'text' | 'image' }
 
+export interface FallbackCatalogStatus {
+  source: 'live' | 'bundled-static'
+  stale: boolean
+  diagnostic: string | null
+}
+
+export function getFallbackCatalogStatus(providerId: ProviderId): FallbackCatalogStatus {
+  if (providerId === 'venice') return { source: 'live', stale: false, diagnostic: null }
+  return {
+    source: 'bundled-static',
+    stale: true,
+    diagnostic: 'Bundled model catalog may be stale; verify the model with the provider before a paid request.',
+  }
+}
+
 const FALLBACK_MODEL_CATALOG_TIMESTAMP = 0
 
 export const FALLBACK_MODELS: Record<ProviderId, FallbackModelDef[]> = {
@@ -159,9 +174,23 @@ export function getEnabledProviderModels(type?: string): VeniceModel[] {
 
   for (const [providerId, modelsForProvider] of Object.entries(FALLBACK_MODELS)) {
     if (enabledProviders[providerId]) {
+      const catalogStatus = getFallbackCatalogStatus(providerId as ProviderId)
       for (const m of modelsForProvider) {
         if (!normalizedType || m._type === normalizedType) {
-          models.push(m)
+          const baseName = m.model_spec?.name || m.id
+          models.push({
+            ...m,
+            // ModelInfo-compatible display fields ensure every production
+            // picker surfaces the bundled-catalog warning.
+            name: `${baseName} · bundled static; verify before paid request`,
+            source: 'fallback',
+            isFallback: true,
+            model_spec: {
+              ...m.model_spec,
+              name: `${baseName} · bundled static; verify before paid request`,
+              description: catalogStatus.diagnostic ?? m.model_spec?.description,
+            },
+          } as VeniceModel)
         }
       }
     }
