@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const fsMock = vi.hoisted(() => ({
   mkdir: vi.fn(),
   stat: vi.fn(),
+  access: vi.fn().mockResolvedValue(undefined),
   writeFile: vi.fn(),
   rename: vi.fn(),
   rm: vi.fn(),
@@ -18,7 +19,7 @@ vi.mock("node:fs/promises", () => ({ default: fsMock, ...fsMock }));
 vi.mock("./guardPipeline", () => ({ performGuardedVeniceRequest: guardedMock }));
 vi.mock("./logger", () => ({ logError: vi.fn() }));
 
-import { clearTtsCache, synthesizeSpeech, validateSynthesizeSpeechOptions } from "./chatTtsBridge";
+import { clearTtsCache, purgeProfileTtsCache, synthesizeSpeech, validateSynthesizeSpeechOptions } from "./chatTtsBridge";
 
 describe("chatTtsBridge", () => {
   beforeEach(() => {
@@ -55,7 +56,7 @@ describe("chatTtsBridge", () => {
   it("writes cached audio atomically only when caching is enabled", async () => {
     const result = await synthesizeSpeech({ text: "hello" }, true, "work");
 
-    expect(result).toMatchObject({ ok: true, cacheMode: "disk", id: expect.stringMatching(/^[a-f0-9]{64}$/) });
+    expect(result).toMatchObject({ ok: true, profileId: "work", cacheMode: "disk", id: expect.stringMatching(/^[a-f0-9]{64}$/) });
     expect(fsMock.mkdir).toHaveBeenCalled();
     expect(fsMock.writeFile).toHaveBeenCalledWith(expect.stringMatching(/\.tmp$/), Buffer.from("audio"), { mode: 0o600 });
     expect(fsMock.rename).toHaveBeenCalled();
@@ -69,6 +70,36 @@ describe("chatTtsBridge", () => {
     });
 
     fsMock.readdir.mockRejectedValueOnce(new Error("/private/cache permission denied"));
-    await expect(clearTtsCache()).resolves.toEqual({ ok: false, error: "Unable to clear the TTS cache." });
+    await expect(clearTtsCache("work")).resolves.toMatchObject({ ok: false, error: "Unable to clear the TTS cache." });
+  });
+
+  it("scopes cleared and purged TTS dir to the requesting profile only", async () => {
+    fsMock.readdir.mockResolvedValueOnce(["abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789.mp3"]);
+    await clearTtsCache("work");
+    expect(fsMock.readdir).toHaveBeenCalledWith(expect.stringContaining("profiles/work"));
+    expect(fsMock.unlink).toHaveBeenCalledWith(
+      expect.stringContaining("profiles/work"),
+    );
+
+    fsMock.rm.mockClear();
+    fsMock.access.mockClear();
+    await purgeProfileTtsCache("work");
+    expect(fsMock.access).toHaveBeenCalledTimes(1);
+    expect(fsMock.rm).toHaveBeenCalledWith(
+      expect.stringContaining("profiles/work"),
+      { recursive: true, force: true },
+    );
+  });
+
+  it("rejects purging the TTS cache of the default or invalid profile", async () => {
+    await expect(purgeProfileTtsCache("default")).resolves.toMatchObject({ ok: false });
+    await expect(purgeProfileTtsCache("../evil")).resolves.toMatchObject({ ok: false });
+    expect(fsMock.rm).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes cache keys per profile so the same input never collides", async () => {
+    const a = await synthesizeSpeech({ text: "hello" }, true, "work");
+    const b = await synthesizeSpeech({ text: "hello" }, true, "home");
+    expect(a.id).not.toBe(b.id);
   });
 });

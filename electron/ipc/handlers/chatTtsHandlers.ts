@@ -7,7 +7,7 @@ export function registerChatTtsHandlers() {
     return synthesizeSpeech(opts, cacheEnabled, getProfileSessionId(event.sender));
   });
 
-  ipcMain.handle("tts:clearCache", async () => {
-    return clearTtsCache();
+  ipcMain.handle("tts:clearCache", async (event) => {
+    return clearTtsCache(getProfileSessionId(event.sender));
   });
 }

@@ -60,7 +60,7 @@ export interface VeniceForgeJina {
 }
 
 export interface VeniceForgeTts {
-  synthesize(opts: { text: string; model?: string; voice?: string; speed?: number }, cacheEnabled: boolean): Promise<{ ok: boolean; id?: string; audioBase64?: string; mimeType?: "audio/mpeg"; cacheMode?: "disk" | "memory"; error?: string }>;
+  synthesize(opts: { text: string; model?: string; voice?: string; speed?: number }, cacheEnabled: boolean): Promise<{ ok: boolean; id?: string; profileId?: string; audioBase64?: string; mimeType?: "audio/mpeg"; cacheMode?: "disk" | "memory"; error?: string }>;
   clearCache(): Promise<{ ok: boolean; error?: string }>;
 }
 

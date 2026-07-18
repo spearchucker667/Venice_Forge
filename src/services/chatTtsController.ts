@@ -83,8 +83,10 @@ class ChatTtsControllerImpl {
         const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
         this.objectUrl = URL.createObjectURL(new Blob([bytes], { type: result.mimeType ?? 'audio/mpeg' }));
         sourceUrl = this.objectUrl;
+      } else if (result.id && result.profileId) {
+        sourceUrl = `venice-tts://${result.profileId}/${result.id}.mp3`;
       } else {
-        sourceUrl = `venice-tts://${result.id}`;
+        throw new Error('TTS playback target missing cache id or profile id.');
       }
       if (requestToken !== this.requestToken || this.currentMessageId !== messageId) {
         if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);

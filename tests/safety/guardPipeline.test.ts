@@ -18,6 +18,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   setRuntimeLocalFamilySafeModeEnabled,
   getRuntimeLocalFamilySafeModeEnabled,
+  setRuntimeVeniceApiSafeMode,
+  getRuntimeVeniceApiSafeMode,
 } from "../../electron/services/runtimeSafetySettings";
 import {
   buildGuardedBlock,
@@ -439,5 +441,63 @@ describe("VERIFY-015 guard pipeline — endpoint coverage matrix", () => {
     });
     expect(result.kind).toBe("response");
     expect(mockedPerformVeniceRequest).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("VERIFY-015 guard pipeline — Provider Safe Mode (P1 #2 audit)", () => {
+  // These four cases pin the bug fix that previously conflated
+  // localFamilySafeModeEnabled with the provider-side `veniceApiSafeMode`.
+  // Both toggles remain independent: localFamily is a renderer-mode
+  // decision; provider safe_mode is a Venice API boolean applied to the
+  // payload. The runtime snapshot (Electron main) is the source of truth
+  // for both — renderer-supplied flags on the IPC body are ignored.
+  type StateName = "localOn-veniceOn" | "localOn-veniceOff" | "localOff-veniceOn" | "localOff-veniceOff";
+  const expectations: { state: StateName; expectAdded: boolean }[] = [
+    { state: "localOn-veniceOn", expectAdded: true },
+    { state: "localOn-veniceOff", expectAdded: false },
+    { state: "localOff-veniceOn", expectAdded: true },
+    { state: "localOff-veniceOff", expectAdded: false },
+  ];
+
+  for (const { state, expectAdded } of expectations) {
+    const [localOn, veniceOn] = state.split("-") as ["localOn" | "localOff", "veniceOn" | "veniceOff"];
+    const localEnabled = localOn === "localOn";
+    const veniceEnabled = veniceOn === "veniceOn";
+    it(`provider safe_mode resolves to ${JSON.stringify(veniceEnabled)} regardless of localFamily (${state})`, async () => {
+      setRuntimeLocalFamilySafeModeEnabled(localEnabled);
+      setRuntimeVeniceApiSafeMode(veniceEnabled);
+      const upstream = { ok: true, status: 200, statusText: "OK", headers: {}, body: {}, contentType: "application/json" };
+      mockedPerformVeniceRequest.mockResolvedValue(upstream);
+      const result = await performGuardedVeniceRequest({
+        endpoint: "/image/generate",
+        method: "POST",
+        body: { model: "m", prompt: "harmless cat photo" },
+      });
+      expect(result.kind).toBe("response");
+      expect(mockedPerformVeniceRequest).toHaveBeenCalledTimes(1);
+      const forwarded = mockedPerformVeniceRequest.mock.calls[0]?.[0] as { body?: unknown };
+      const body = (forwarded?.body ?? {}) as Record<string, unknown>;
+      if (expectAdded) {
+        expect(body.safe_mode).toBe(veniceEnabled);
+      } else {
+        expect(body.safe_mode).toBeUndefined();
+      }
+    });
+  }
+
+  it("provider safe_mode is never applied to /chat/completions (not in the supported matrix)", async () => {
+    setRuntimeLocalFamilySafeModeEnabled(true);
+    setRuntimeVeniceApiSafeMode(true);
+    const upstream = { ok: true, status: 200, statusText: "OK", headers: {}, body: {}, contentType: "application/json" };
+    mockedPerformVeniceRequest.mockResolvedValue(upstream);
+    const result = await performGuardedVeniceRequest({
+      endpoint: "/chat/completions",
+      method: "POST",
+      body: { model: "m", messages: [] },
+    });
+    expect(result.kind).toBe("response");
+    const forwarded = mockedPerformVeniceRequest.mock.calls[0]?.[0] as { body?: unknown };
+    const body = (forwarded?.body ?? {}) as Record<string, unknown>;
+    expect(body.safe_mode).toBeUndefined();
   });
 });

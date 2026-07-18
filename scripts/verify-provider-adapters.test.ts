@@ -1,4 +1,23 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// P3 #008 portability: providerAdapters transitively imports Electron via
+// secureStore / providerSettingsStore. Stubbing Electron here lets this
+// contract verifier run without an installed Electron runtime (offline audits,
+// lifecycle-disabled installs) while we still import the canonical adapters.
+vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn(() => '/tmp/venice-forge-test-userdata'),
+    getName: vi.fn(() => 'Venice Forge'),
+    isPackaged: false,
+    getVersion: vi.fn(() => '0.0.0-test'),
+  },
+  safeStorage: {
+    isEncryptionAvailable: vi.fn(() => false),
+    encryptString: vi.fn((value: string) => Buffer.from(value, 'utf8')),
+    decryptString: vi.fn((buffer: Buffer) => buffer.toString('utf8')),
+  },
+}))
+
 import {
   AVAILABLE_FALLBACK_PROVIDER_IDS,
   DEFERRED_PROVIDER_IDS,

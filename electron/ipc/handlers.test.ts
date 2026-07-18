@@ -128,6 +128,8 @@ vi.mock("../services/veniceClient", () => ({
 vi.mock("../services/runtimeSafetySettings", () => ({
   getRuntimeLocalFamilySafeModeEnabled: vi.fn(() => true),
   setRuntimeLocalFamilySafeModeEnabled: vi.fn(),
+  getRuntimeVeniceApiSafeMode: vi.fn(() => true),
+  setRuntimeVeniceApiSafeMode: vi.fn(),
 }));
 
 vi.mock("../services/configService", () => ({

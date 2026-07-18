@@ -1,14 +1,18 @@
 // VERIFY-056 regression guard — TTS rejects empty audio responses and preserves
 // the provider MIME type when available.
+// VERIFY-AUDIT P1 #1 regression guard — useTranscription routes through
+// buildTranscriptionFormData, never hardcodes an unknown upstream slug,
+// and surfaces a real error for unsupported audio containers.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useTTS, SAFE_AUDIO_ERRORS } from "./use-audio";
-import { veniceBlob } from "../lib/venice-client";
+import { useTTS, useTranscription, SAFE_AUDIO_ERRORS } from "./use-audio";
+import { veniceBlob, veniceFormData } from "../lib/venice-client";
 
 vi.mock("../lib/venice-client", () => ({
   veniceBlob: vi.fn(),
+  veniceFormData: vi.fn(),
 }));
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -97,5 +101,47 @@ describe("useTTS", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(result.current.error?.message).toBe(SAFE_AUDIO_ERRORS.timeout);
+  });
+});
+
+describe("useTranscription", () => {
+  beforeEach(() => {
+    vi.mocked(veniceFormData).mockReset();
+  });
+
+  it("posts to /audio/transcriptions with the Swagger default model and known audio MIME", async () => {
+    vi.mocked(veniceFormData).mockResolvedValueOnce({ text: "hello world" });
+
+    const { result } = renderHook(() => useTranscription(), { wrapper });
+    const file = new File([new Uint8Array([0, 1, 2])], "clip.mp3", { type: "audio/mpeg" });
+
+    act(() => {
+      result.current.mutate(file);
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(vi.mocked(veniceFormData)).toHaveBeenCalledWith(
+      "/audio/transcriptions",
+      expect.any(FormData),
+    );
+    const [, form] = vi.mocked(veniceFormData).mock.calls[0];
+    expect(form.get("model")).toBe("nvidia/parakeet-tdt-0.6b-v3");
+    expect(form.get("response_format")).toBe("json");
+    expect(form.get("file")).toBeInstanceOf(File);
+  });
+
+  it("rejects an unsupported audio container without hitting the network", async () => {
+    const { result } = renderHook(() => useTranscription(), { wrapper });
+    const file = new File([new Uint8Array([0, 1, 2])], "clip.avi", { type: "video/x-msvideo" });
+
+    act(() => {
+      result.current.mutate(file);
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(vi.mocked(veniceFormData)).not.toHaveBeenCalled();
+    expect(result.current.error?.message).toMatch(/not in the .* container allowlist/);
   });
 });

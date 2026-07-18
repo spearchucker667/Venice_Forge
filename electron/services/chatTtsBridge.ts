@@ -8,6 +8,7 @@ import { performGuardedVeniceRequest } from "./guardPipeline";
 import { logError } from "./logger";
 import { DEFAULT_TTS_MODEL } from "../../src/constants/venice";
 import { DEFAULT_TTS_VOICE } from "../../src/constants/tts";
+import { isValidProfileStorageId } from "../../src/utils/profileIdValidation";
 
 export interface SynthesizeSpeechOptions {
   text: string;
@@ -19,6 +20,7 @@ export interface SynthesizeSpeechOptions {
 export interface SynthesizeSpeechResult {
   ok: boolean;
   id?: string;
+  profileId?: string;
   audioBase64?: string;
   mimeType?: "audio/mpeg";
   cacheMode?: "disk" | "memory";
@@ -29,6 +31,14 @@ const MAX_TTS_TEXT_LENGTH = 10_000;
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 const SAFE_CATALOG_ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
 const CACHE_DIR = path.join(app.getPath("userData"), "tts-cache");
+
+/** Returns the profile-scoped cache directory. Every profile — including the
+ *  default one — uses its own subdirectory so cached audio cannot collide
+ *  across profiles and can be deterministically purged. */
+function getProfileCacheDir(profileId: string): string {
+  if (!isValidProfileStorageId(profileId)) throw new Error("Invalid profile id.");
+  return path.join(CACHE_DIR, "profiles", profileId);
+}
 
 function parseOptionalCatalogId(value: unknown, field: string): string | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -60,28 +70,67 @@ export function validateSynthesizeSpeechOptions(value: unknown): SynthesizeSpeec
   };
 }
 
-function getCacheKey(opts: SynthesizeSpeechOptions): string {
+/** Includes the profile id in the hash so identical audio across profiles
+ *  is never shared. Each profile gets its own keyspace. */
+function getCacheKey(opts: SynthesizeSpeechOptions, profileId: string): string {
   const hash = createHash("sha256");
+  hash.update(profileId);
+  hash.update("|");
   hash.update(opts.text);
+  hash.update("|");
   hash.update(opts.model ?? "");
+  hash.update("|");
   hash.update(opts.voice ?? "");
+  hash.update("|");
   hash.update(String(opts.speed ?? 1));
   return hash.digest("hex");
 }
 
-export async function clearTtsCache(): Promise<{ ok: boolean; error?: string }> {
+/** Clears the TTS cache of the supplied profile only. */
+export async function clearTtsCache(profileId: string): Promise<{ ok: boolean; removed: number; error?: string }> {
   try {
-    const files = await fs.readdir(CACHE_DIR).catch((error: NodeJS.ErrnoException) => {
+    const profileDir = getProfileCacheDir(profileId);
+    const files = await fs.readdir(profileDir).catch((error: NodeJS.ErrnoException) => {
       if (error.code === "ENOENT") return [];
       throw error;
     });
+    let removed = 0;
     await Promise.all(files
       .filter((file) => /^[a-f0-9]{64}\.(mp3|ogg)$/.test(file))
-      .map((file) => fs.unlink(path.join(CACHE_DIR, file))));
-    return { ok: true };
+      .map(async (file) => {
+        await fs.unlink(path.join(profileDir, file));
+        removed += 1;
+      }));
+    return { ok: true, removed };
   } catch (error: unknown) {
     logError("clearTtsCache error", error);
-    return { ok: false, error: "Unable to clear the TTS cache." };
+    return { ok: false, removed: 0, error: "Unable to clear the TTS cache." };
+  }
+}
+
+/** Purges the full TTS cache directory owned by a non-default profile. */
+export async function purgeProfileTtsCache(
+  profileId: string,
+): Promise<{ ok: boolean; removed: boolean; error?: string }> {
+  if (!isValidProfileStorageId(profileId)) {
+    return { ok: false, removed: false, error: "Invalid profile id." };
+  }
+  if (profileId === "default") {
+    return { ok: false, removed: false, error: "The default profile TTS cache cannot be purged." };
+  }
+  try {
+    const profileDir = getProfileCacheDir(profileId);
+    let removed = true;
+    try {
+      await fs.access(profileDir);
+    } catch {
+      removed = false;
+    }
+    await fs.rm(profileDir, { recursive: true, force: true });
+    return { ok: true, removed };
+  } catch (error: unknown) {
+    logError("purgeProfileTtsCache error", error);
+    return { ok: false, removed: false, error: "Failed to purge the TTS cache." };
   }
 }
 
@@ -96,14 +145,15 @@ export async function synthesizeSpeech(
       return { ok: false, error: "Invalid TTS cache setting." };
     }
 
-    const cacheKey = getCacheKey(opts);
-    const cachePath = path.join(CACHE_DIR, `${cacheKey}.mp3`);
+    const profileDir = getProfileCacheDir(profileId);
+    const cacheKey = getCacheKey(opts, profileId);
+    const cachePath = path.join(profileDir, `${cacheKey}.mp3`);
     if (cacheEnabled) {
-      await fs.mkdir(CACHE_DIR, { recursive: true, mode: 0o700 });
+      await fs.mkdir(profileDir, { recursive: true, mode: 0o700 });
       try {
         const stats = await fs.stat(cachePath);
         if (stats.isFile() && stats.size > 0 && stats.size <= MAX_AUDIO_BYTES) {
-          return { ok: true, id: cacheKey, cacheMode: "disk" };
+          return { ok: true, id: cacheKey, profileId, cacheMode: "disk" };
         }
       } catch (error: unknown) {
         if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -157,7 +207,7 @@ export async function synthesizeSpeech(
       await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
       throw error;
     }
-    return { ok: true, id: cacheKey, cacheMode: "disk" };
+    return { ok: true, id: cacheKey, profileId, cacheMode: "disk" };
   } catch (error: unknown) {
     logError("synthesizeSpeech error", error);
     const isValidationError = error instanceof Error && /^(Invalid TTS|TTS )/.test(error.message);

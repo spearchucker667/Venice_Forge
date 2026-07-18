@@ -62,19 +62,19 @@ describe("chatTtsController", () => {
   });
 
   it("ignores a stale synthesis response after a newer play request", async () => {
-    let resolveFirst!: (value: { ok: true; id: string; cacheMode: "disk" }) => void;
-    const first = new Promise<{ ok: true; id: string; cacheMode: "disk" }>((resolve) => { resolveFirst = resolve; });
+    let resolveFirst!: (value: { ok: true; id: string; profileId: string; cacheMode: "disk" }) => void;
+    const first = new Promise<{ ok: true; id: string; profileId: string; cacheMode: "disk" }>((resolve) => { resolveFirst = resolve; });
     synthesize
       .mockReturnValueOnce(first)
-      .mockResolvedValueOnce({ ok: true, id: "b".repeat(64), cacheMode: "disk" });
+      .mockResolvedValueOnce({ ok: true, id: "b".repeat(64), profileId: "default", cacheMode: "disk" });
 
     const firstPlay = chatTtsController.play("m1", "first");
     const secondPlay = chatTtsController.play("m2", "second");
     await secondPlay;
-    resolveFirst({ ok: true, id: "a".repeat(64), cacheMode: "disk" });
+    resolveFirst({ ok: true, id: "a".repeat(64), profileId: "default", cacheMode: "disk" });
     await firstPlay;
 
-    expect(audioSources).toEqual([`venice-tts://${"b".repeat(64)}`]);
+    expect(audioSources).toEqual([`venice-tts://default/${"b".repeat(64)}.mp3`]);
     expect(chatTtsController.getCurrentMessageId()).toBe("m2");
   });
 });

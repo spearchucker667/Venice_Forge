@@ -27,6 +27,7 @@ import {
   getConversation,
   saveConversation,
   deleteConversation,
+  purgeProfileChatHistory,
 } from "./chatStorage";
 import { isValidId } from "../../src/utils/idValidation";
 import type { Conversation } from "../../src/types/conversation";
@@ -317,6 +318,59 @@ describe("chatStorage", () => {
       expect(result.conversations).toHaveLength(0);
       expect(result.count).toBe(0);
       expect(result.truncated).toBe(false);
+    });
+  });
+
+  describe("purgeProfileChatHistory", () => {
+    it("rejects the default profile and traversal ids", async () => {
+      await expect(purgeProfileChatHistory("default")).resolves.toMatchObject({
+        ok: false,
+      });
+      await expect(purgeProfileChatHistory("../escape")).resolves.toMatchObject({
+        ok: false,
+      });
+      await expect(purgeProfileChatHistory("")).resolves.toMatchObject({ ok: false });
+    });
+
+    it("removes the profile directory and is idempotent when absent", async () => {
+      await saveConversation(makeConv({ id: "pre-existing", updatedAt: 1000 }), "work");
+      const result = await purgeProfileChatHistory("work");
+      expect(result.ok).toBe(true);
+      expect(result.removed).toBe(true);
+      const onceMore = await purgeProfileChatHistory("work");
+      expect(onceMore.ok).toBe(true);
+      expect(onceMore.removed).toBe(false);
+    });
+
+    it("never touches the default profile's historical chat history directory", async () => {
+      await saveConversation(makeConv({ id: "default-keep", updatedAt: 1000 }));
+      await saveConversation(makeConv({ id: "work-keep", updatedAt: 2000 }), "work");
+      const defaultDir = getChatHistoryDir("default");
+      const before = await fs.readdir(defaultDir).catch(() => []);
+      await purgeProfileChatHistory("work");
+      const after = await fs.readdir(defaultDir).catch(() => []);
+      expect(after).toEqual(before);
+    });
+
+    it("keeps unrelated conversation files outside the target profile intact", async () => {
+      await saveConversation(makeConv({ id: "default-keep", updatedAt: 1000 }));
+      const profileDir = getChatHistoryDir("work");
+      await fs.mkdir(profileDir, { recursive: true });
+      await fs.writeFile(path.join(profileDir, "marker.txt"), "stay");
+
+      const outside = path.join(os.tmpdir(), "venice-forge-purge-outside");
+      await fs.rm(outside, { recursive: true, force: true }).catch(() => undefined);
+      await fs.mkdir(outside, { recursive: true });
+      await fs.writeFile(path.join(outside, "preserve-me.txt"), "do not delete");
+
+      const result = await purgeProfileChatHistory("work");
+      expect(result.ok).toBe(true);
+
+      const stillThere = await fs.readFile(path.join(outside, "preserve-me.txt"), "utf8");
+      expect(stillThere).toBe("do not delete");
+      const defaultFile = await fs.readFile(path.join(getChatHistoryDir("default"), "default-keep.json"), "utf8");
+      expect(defaultFile).toContain("default-keep");
+      await fs.rm(outside, { recursive: true, force: true });
     });
   });
 });

@@ -325,10 +325,13 @@ if (!gotLock) {
     });
     protocol.handle("venice-tts", async (request) => {
       const parsedUrl = new URL(request.url);
-      const id = parsedUrl.hostname || parsedUrl.pathname.replace(/^\/+/, '');
-      if (!/^[a-f0-9]{64}$/.test(id)) return new Response('Not found', { status: 404 });
-      const ttsPath = path.join(app.getPath('userData'), 'tts-cache', `${id}.mp3`);
-      if (!checkPathContained(ttsPath, path.join(app.getPath('userData'), 'tts-cache'))) {
+      const profileId = parsedUrl.hostname;
+      const id = parsedUrl.pathname.replace(/^\/+/, '').replace(/\.mp3$/, '');
+      if (!profileId || !/^[a-f0-9]{64}$/.test(id)) return new Response('Not found', { status: 404 });
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(profileId)) return new Response('Not found', { status: 404 });
+      const ttsPath = path.join(app.getPath('userData'), 'tts-cache', 'profiles', profileId, `${id}.mp3`);
+      const cacheRoot = path.join(app.getPath('userData'), 'tts-cache', 'profiles', profileId);
+      if (!checkPathContained(ttsPath, cacheRoot)) {
         return new Response('Not found', { status: 404 });
       }
       try {

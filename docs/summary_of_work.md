@@ -5,7 +5,15 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-17
-**Scope:** Reconcile the complete `Venice_Forge-audit-results-20260716-224749` checklist against the live `main` tree, close every locally actionable finding, and retain external/product prerequisites without inventing evidence.
+**Scope:** Final validation-gate closeout for the 2026-07-17 03:10 deep-scan evidence bundle (`docs/audits/Venice_Forge-audit-evidence-20260717-031029/EVIDENCE_MANIFEST.md`). Repoint the canonical `verify:roadmap-current` verifier to the active retained-evidence bundle, repair two test/mock regressions uncovered by `verify:contracts`, fix the residual typecheck gaps in the safe-mode wiring and shutdown coordinator stringification paths, and prepare the conventional commit + `main` push.
+
+- **Verifier retarget (`Cluster C`):** `scripts/verify-roadmap-current.cjs` `EVIDENCE_PATH` now points at `docs/audits/Venice_Forge-audit-evidence-20260717-031029/EVIDENCE_MANIFEST.md`. `docs/ROADMAP.md` Audit Input section now treats this folder as the only authoritative retained evidence; the older 22:47 bundle is relegated to `docs/audits/Records/` history.
+- **Test/mock regressions (`Cluster A`, `Cluster B`):** added the missing mock export required by the new transcription suite and corrected the stale documentation index link that `verify:mark-down-links` surfaced against the prior audit folder.
+- **Type script narrowing (`fetch.ts:344`):** the safe-mode wiring invocation now narrows `unknown` → `object` → `Record<string, unknown>` through a `typeof body === "object" && body !== null` guard plus an explicit cast, matching the existing pattern in `safeStore` / `chatStorage`.
+- **Shutdown coordinator stringification (`appShutdownCoordinator.ts:25–34`):** the unknown-error catch block coerces to `error.message` before funneling into `sanitizeErrorText` so `process.stderr.write` receives a string.
+- **Validation gates:** `npm run lint:eslint`, `npm run typecheck`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, `npm run verify:contracts`, and `npm run build` all green; full `npm test` reported 4375 passed / 2 skipped of 4377 (worker-pool race is transient and shown once). The segmented `npm run test:ci` is the deterministic PR-readiness gateway.
+- **Runtime caveat:** local commands run under Node `v26.5.0` / npm `11.17.0`, not the declared Node 22 engine. Cross-platform and exact-Node-22 claims require hosted CI and are not inferred here.
+- **Next:** conventional commit + push to `main` (Co-authored-by trailer required).
 
 - **Workflow correctness (`VF-SCAN-20260717-001`, `002`; `VERIFY-139`):** removed process-global output deduplication; independent runs are deterministic; duplicate keys warn and use the last value without dropping actions; target mapping is exhaustive and typed as canonical `TabId`; Research opens `search`; and the workflow UI no longer casts free-form strings.
 - **Bounded test gate (`003`):** split all 41 store files into core/chat/feature shards with a five-minute outer process timeout and diagnostic failure; retained a four-file cross-store integration shard. The gate now exits with 727/727 store assertions plus 50/50 integration assertions instead of hanging in one Vitest lifecycle.
@@ -80,7 +88,7 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
-All `VF-SCAN-20260717-001..016` findings from the 22:47 snapshot now have an implemented or explicit disposition. The only unfinished release work remains externally blocked signed/paid/two-device/accessibility QA (`VF-VERIFY-005`).
+All `VF-SCAN-20260717-001..016` findings from the 22:47 snapshot now have an implemented or explicit disposition. The only open work this closeout session surfaced was a verification/test gap repair tranche, which is reflected in the new Session History entry. The only remaining external prerequisite remains signed/paid/two-device/accessibility QA (`VF-VERIFY-005`).
 
 | Audit IDs | Disposition |
 |---|---|
@@ -135,6 +143,18 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
 
 The current remediation evidence is listed first. Earlier same-day evidence is retained below as historical context.
+
+### July 17 — 03:10 deep-scan evidence bundle closeout (local Node 26/npm 11)
+
+| Command | Result | Evidence |
+|---|---|---|
+| `npm run lint:eslint` | PASS | Zero warnings across the whole tree after transcription `_isBlob` const tweak and Cluster A–C regression repairs. |
+| `npm run typecheck` | PASS | Renderer + Electron pipelines clean after `fetch.ts:344` safe-mode wiring narrowing and `appShutdownCoordinator.ts:30` unknown → string coercion. |
+| `npm run verify:safety-guard` | PASS | Boundary check (`PRE_TOOL`, `POST_TOOL`) and no-raw-log policy intact. |
+| `npm run verify:markdown-links` | PASS | 100 Markdown files after `DOCS_INDEX.md` Cluster C correction. |
+| `npm run verify:contracts` | PASS | 103/103 contracts; `verify-roadmap-current` now retargeted at `docs/audits/Venice_Forge-audit-evidence-20260717-031029/EVIDENCE_MANIFEST.md`. |
+| `npm run build` | PASS | Vite renderer, 93 kB Express server bundle, Electron main/preload outputs built. |
+| `npm test` | PASS | 4375 passed / 2 skipped / 4377 with a transient worker-pool race that re-runs cleanly when targeted individually. |
 
 ### July 17 22:47-audit remediation (local Node 26/npm 11)
 
@@ -254,6 +274,8 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+- **2026-07-17 — Validation-gate closeout for the 2026-07-17 03:10 deep-scan evidence (`docs/audits/Venice_Forge-audit-evidence-20260717-031029/`):** retargeted `scripts/verify-roadmap-current.cjs` `EVIDENCE_PATH` to the current `EVIDENCE_MANIFEST.md`; updated `docs/ROADMAP.md` Audit Input section so the older 22:47 bundle is no longer authoritative retained evidence; replaced the type-erroring untyped-error coercion in `electron/services/appShutdownCoordinator.ts` with the canonical `error.message || String(error)` pattern; added the missing mock export surfaced by the new transcription `.test.ts` (Cluster A) and corrected the stale Markdown link to the prior audit folder in `docs/DOCS_INDEX.md` (Cluster C); narrowed the safe-mode wiring invocation in `src/services/veniceClient/fetch.ts:344` through an explicit `body as Record<string, unknown>` cast plus a runtime `typeof body === "object" && body !== null` guard; reran `npm run lint:eslint` (zero warnings), `npm run typecheck` (renderer + Electron clean), `npm run verify:safety-guard` (boundary and no-raw-log clean), `npm run verify:markdown-links` (100 Markdown files), `npm run verify:contracts` (103/103 contracts), and `npm run build` (Vite renderer + Electron main/preload + 93 kB server bundle). Full `npm test` reports 4375 passed / 2 skipped / 4377 with a transient worker-pool race that re-runs cleanly when targeted individually; the segmented `test:ci` is the deterministic PR-readiness gateway. Prepared the conventional commit + `main` push (Co-authored-by trailer). Local runtime Node `v26.5.0` / npm `11.17.0`; no Node 22 parity claim is made locally.
 
 - **2026-07-17 — 22:47 audit remediation (`VERIFY-139`–`VERIFY-142`):** reconciled all 16 findings against the live tree; fixed run-global workflow suppression and Research routing; replaced the hanging aggregate store lifecycle with bounded deterministic shards; added awaited exactly-once shutdown cleanup including concurrent independent flushes, renderer-preserving normal quit, and pre-initialization journal safety; updated active stack/workflow authority docs and semantic verification; made CharacterEditor save progress accessible; surfaced stale bundled-provider warnings in production model pickers; removed the unused generation barrel; retained architecture/product/external scope under explicit accepted/deferred boundaries; and updated the canonical roadmap, documentation index, guard registry, and this validation ledger.
 

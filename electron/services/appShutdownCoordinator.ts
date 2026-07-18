@@ -1,4 +1,5 @@
 /** Coordinates exactly-once, timeout-bounded main-process shutdown cleanup. */
+import { sanitizeErrorText } from "../../src/shared/redaction";
 
 export interface ShutdownDependencies {
   stopBridgeServer: () => Promise<void>;
@@ -13,6 +14,26 @@ export interface ShutdownResult {
 }
 
 export const DEFAULT_SHUTDOWN_TIMEOUT_MS = 5_000;
+
+async function runStep(
+  label: string,
+  cleanup: () => Promise<unknown>,
+  failures: string[],
+): Promise<void> {
+  try {
+    await cleanup();
+  } catch (error) {
+    failures.push(`${label} cleanup failed`);
+    // The logger itself may already be torn down at this point, so emit a
+    // stderr fallback so a dropped diagnostic is recoverable.
+    try {
+      const detail = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`[shutdown] ${label} cleanup failed: ${sanitizeErrorText(detail)}\n`);
+    } catch {
+      /* stderr may also be unavailable in extreme shutdown conditions */
+    }
+  }
+}
 
 export function createShutdownCoordinator(
   dependencies: ShutdownDependencies,
@@ -31,20 +52,19 @@ export function createShutdownCoordinator(
 
       void (async () => {
         const failures: string[] = [];
-        const cleanupSteps = [
-          ["bridge", dependencies.stopBridgeServer],
-          ["sync", dependencies.stopSyncWatcher],
-          ["background tasks", dependencies.flushBackgroundTasks],
-          ["logs", dependencies.flushLogs],
-        ] as const;
 
-        await Promise.all(cleanupSteps.map(async ([label, cleanup]) => {
-          try {
-            await cleanup();
-          } catch {
-            failures.push(`${label} cleanup failed`);
-          }
-        }));
+        // Phase 1: durable cleanup runs in parallel (bridge / sync / tasks).
+        // These can still emit shutdown diagnostics; we deliberately wait for
+        // them to settle before flushing logs.
+        await Promise.all([
+          runStep("bridge", dependencies.stopBridgeServer, failures),
+          runStep("sync", dependencies.stopSyncWatcher, failures),
+          runStep("background tasks", dependencies.flushBackgroundTasks, failures),
+        ]);
+
+        // Phase 2: flush logs as the FINAL ordered phase so any diagnostics
+        // emitted by the durable cleanup steps above are persisted before exit.
+        await runStep("logs", dependencies.flushLogs, failures);
 
         clearTimeout(timeout);
         resolve({ timedOut: false, failures });
