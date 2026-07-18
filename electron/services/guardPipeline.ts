@@ -21,7 +21,7 @@ import {
 } from "../../src/shared/safety";
 import type { SafetyGuardInput } from "../../src/shared/safety";
 import { performVeniceRequest } from "./veniceClient";
-import { getRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
+import { getRuntimeLocalFamilySafeModeEnabled, getRuntimeVeniceApiSafeMode } from "./runtimeSafetySettings";
 import type { VeniceIpcResponse } from "./veniceClient";
 import { applyVeniceApiSafeMode } from "../../src/shared/veniceSafeMode";
 
@@ -93,7 +93,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function withFamilySafeProviderOverride(rawRequest: unknown, endpoint: string): unknown {
-  if (!getRuntimeLocalFamilySafeModeEnabled()) return rawRequest;
+  // Provider-side `safe_mode` must come from the dedicated runtime
+  // toggle — not piggyback on localFamilySafeModeEnabled. Adult Mode
+  // (localFamilySafeModeEnabled=false) should NOT silently disable the
+  // provider safe-mode route, and Family Safe Mode (localFamilySafeModeEnabled=true)
+  // should NOT force it on without the user explicitly opting in.
+  const veniceApiSafeMode = getRuntimeVeniceApiSafeMode();
+  if (!veniceApiSafeMode) return rawRequest;
   if (!isRecord(rawRequest)) return rawRequest;
   const body = rawRequest.body;
   if (!isRecord(body)) return rawRequest;

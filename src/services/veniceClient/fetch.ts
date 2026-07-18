@@ -23,6 +23,7 @@ import { serializeFormData, dedupeKey } from "./serialization";
 import { calculateBackoff, computeRateLimitWait, deleteInFlight, getInFlight, hasInFlight, resolveTimeoutMs, setInFlight } from "./retry";
 import { getSafetyDecisionForLog } from "./safety";
 import type { SafetyGuardDecision } from "../../shared/safety";
+import { applyVeniceApiSafeMode, endpointSupportsSafeMode } from "../../shared/veniceSafeMode";
 
 /**
  * Builds a minimal `SafetyGuardDecision` for fail-closed response-blocking
@@ -332,6 +333,17 @@ async function _veniceFetch(
     });
   }
 
+  // Provider-side `safe_mode` is independent of local Family Safe Mode:
+  // when the user has the provider flag on, apply it here for non-Electron
+  // transports. Electron mode applies the same flag through the IPC-level
+  // guardPipeline so the runtime snapshot is authoritative there.
+  const veniceApiSafeMode = useSettingsStore.getState().veniceApiSafeMode;
+  // Compute the effective body up-front so we can pass it through fetch once.
+  const isFormDataBody = isFormData && body instanceof FormData;
+  let effectiveBody: unknown = body;
+  if (!isFormDataBody && typeof body === "object" && body !== null && endpointSupportsSafeMode(endpoint)) {
+    effectiveBody = applyVeniceApiSafeMode(endpoint, body as Record<string, unknown>, veniceApiSafeMode);
+  }
   const startedAt = nowIso();
   const url = `${PROXY_BASE_PATH}${endpoint}`;
   const maxAttempts = retry ? 3 : 1;
@@ -359,9 +371,9 @@ async function _veniceFetch(
         headers: requestHeaders,
         body: isFormData
           ? (body as FormData)
-          : body === undefined
+          : effectiveBody === undefined
           ? undefined
-          : JSON.stringify(body),
+          : JSON.stringify(effectiveBody),
         signal: fetchTimeout.signal,
       });
 
@@ -786,6 +798,15 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
   if (!isElectron()) {
     enforceLegacyWebGuard(path, "POST", formData);
     const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
+    // Provider-side safe_mode — independent of localFamilySafeModeEnabled —
+    // must be appended to FormData payloads in non-Electron transports for
+    // endpoints that accept the field. Electron mode applies the same flag
+    // through the IPC-level guardPipeline (runtime snapshot authoritative).
+    if (endpointSupportsSafeMode(path) && useSettingsStore.getState().veniceApiSafeMode !== undefined) {
+      if (!formData.has("safe_mode")) {
+        formData.append("safe_mode", String(useSettingsStore.getState().veniceApiSafeMode));
+      }
+    }
     const response = await fetch(url, {
       method: "POST",
       headers: {

@@ -305,3 +305,31 @@ export async function deleteConversation(id: string, profileId: string = "defaul
     return { ok: false };
   }
 }
+
+/** Purges all chat-history files owned by a non-default profile. The default
+ *  profile's unscoped history is intentionally left intact. Idempotent.
+ *  @returns Whether the profile directory existed before the purge. */
+export async function purgeProfileChatHistory(
+  profileId: string,
+): Promise<{ ok: boolean; removed: boolean; error?: string }> {
+  if (!isValidProfileStorageId(profileId)) {
+    return { ok: false, removed: false, error: "Invalid profile id." };
+  }
+  if (profileId === "default") {
+    return { ok: false, removed: false, error: "The default profile chat history cannot be purged." };
+  }
+  try {
+    const profileDir = path.join(getChatHistoryDir("default"), "profiles", profileId);
+    let removed = true;
+    try {
+      await fs.access(profileDir);
+    } catch {
+      removed = false;
+    }
+    await fs.rm(profileDir, { recursive: true, force: true });
+    return { ok: true, removed };
+  } catch (err) {
+    logError("Failed to purge profile chat history", { profileId, error: redactErrorMessage(err) });
+    return { ok: false, removed: false, error: "Failed to purge chat history." };
+  }
+}

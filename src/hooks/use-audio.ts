@@ -1,6 +1,10 @@
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useRef } from 'react'
 import { veniceBlob, veniceFormData } from '../lib/venice-client'
+import {
+  buildTranscriptionFormData,
+  TranscriptionInputError,
+} from '../services/veniceClient/transcription'
 import type { TTSRequest } from '../types/venice'
 
 const TTS_TIMEOUT_MS = 60000
@@ -78,10 +82,15 @@ export function useTTS() {
 export function useTranscription() {
   return useMutation({
     mutationFn: (file: File) => {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('model', 'whisper-large-v3')
-      return veniceFormData<{ text: string }>('/audio/transcriptions', formData)
+      try {
+        const formData = buildTranscriptionFormData({ file })
+        return veniceFormData<{ text: string }>('/audio/transcriptions', formData)
+      } catch (err) {
+        if (err instanceof TranscriptionInputError) {
+          throw new Error(err.message)
+        }
+        throw err
+      }
     },
   })
 }

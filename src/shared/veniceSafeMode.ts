@@ -48,10 +48,15 @@ const ENDPOINTS_WITH_SAFE_MODE: ReadonlySet<string> = new Set([
  * Returns true when the given endpoint accepts a top-level `safe_mode`
  * boolean in its request body. Endpoints not in the supported set MUST
  * NOT receive a `safe_mode` field — Venice returns 400 on unknown
- * payload fields for some endpoints.
+ * payload fields for some endpoints. Tolerates `/api/v1` prefix used by
+ * thin-client callers and any leading-or-trailing whitespace.
  */
 export function endpointSupportsSafeMode(endpoint: string): boolean {
-  const norm = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+  let norm = (endpoint ?? "").trim();
+  if (!norm.startsWith("/")) norm = "/" + norm;
+  // Strip leading `/api/v1` so legacy callers (`/api/v1/<endpoint>`)
+  // resolve to the canonical endpoint entries.
+  if (norm.startsWith("/api/v1/")) norm = norm.slice("/api/v1".length);
   return ENDPOINTS_WITH_SAFE_MODE.has(norm);
 }
 

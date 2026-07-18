@@ -45,7 +45,7 @@ import {
   setApiKey,
   setJinaApiKey,
 } from "./secureStore";
-import { setRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
+import { setRuntimeLocalFamilySafeModeEnabled, setRuntimeVeniceApiSafeMode } from "./runtimeSafetySettings";
 
 /** Status object returned to the renderer for the Settings UI. */
 export interface ConfigStatus {
@@ -617,12 +617,14 @@ export async function initializeConfig(): Promise<ConfigStatus> {
     });
 
     setRuntimeLocalFamilySafeModeEnabled(currentConfig.safety.local_family_safe_mode_enabled);
+    setRuntimeVeniceApiSafeMode(currentConfig.safety.venice_api_safe_mode);
     return currentStatus;
   } catch (err) {
     logError("Config initialization failed", String(err));
     // Fall back to defaults so the app still boots.
     currentConfig = emptyConfig();
     setRuntimeLocalFamilySafeModeEnabled(true);
+    setRuntimeVeniceApiSafeMode(true);
     currentStatus = buildDefaultStatus();
     currentStatus.parseError = err instanceof Error ? err.message : "Unknown config error";
     return currentStatus;
@@ -708,6 +710,7 @@ export async function writeSanitizedConfig(patch: unknown): Promise<WriteSanitiz
     await fs.writeFile(currentStatus.configPath, yamlText, { encoding: "utf-8", mode: 0o600 });
     currentConfig = finalConfig;
     setRuntimeLocalFamilySafeModeEnabled(finalConfig.safety.local_family_safe_mode_enabled);
+    setRuntimeVeniceApiSafeMode(finalConfig.safety.venice_api_safe_mode);
     currentStatus = { ...currentStatus, configName: finalConfig.app.config_name, profile: finalConfig.app.profile, activeTheme: finalConfig.theme.active, redactedFields };
     return { ok: true, redactedFields };
   } catch (err) {

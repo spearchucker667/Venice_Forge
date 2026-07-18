@@ -94,4 +94,17 @@ describe("VERIFY-018 safe_mode endpoint matrix", () => {
       expect(endpointSupportsSafeMode(row.endpoint)).toBe(row.supportsSafeMode);
     }
   });
+
+  it("endpointSupportsSafeMode accepts /api/v1/* prefix from thin-client callers", () => {
+    expect(endpointSupportsSafeMode("/api/v1/image/generate")).toBe(true);
+    expect(endpointSupportsSafeMode("/api/v1/embeddings")).toBe(true);
+    expect(endpointSupportsSafeMode("/api/v1/audio/transcriptions")).toBe(true);
+    expect(endpointSupportsSafeMode("/api/v1/chat/completions")).toBe(false);
+    expect(endpointSupportsSafeMode("/api/v1/models")).toBe(false);
+  });
+
+  it("applyVeniceApiSafeMode works when given /api/v1/* prefixed endpoint", () => {
+    const out = applyVeniceApiSafeMode("/api/v1/image/generate", { model: "m" }, true);
+    expect(out.safe_mode).toBe(true);
+  });
 });
