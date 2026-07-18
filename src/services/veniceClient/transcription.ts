@@ -88,8 +88,15 @@ export type VeniceTranscriptionResponseFormat =
   (typeof VENICE_TRANSCRIPTION_RESPONSE_FORMATS)[number];
 
 export interface BuildTranscriptionFormDataOptions {
-  /** Audio file. Must be a `File`, `Blob`, or `{ name, type }`. */
-  file: File | Blob | { name: string; type?: string };
+  /**
+   * Audio file. Must be a real `File` or `Blob` so the multipart part
+   * can be appended via `FormData.append("file", blob)`. A plain
+   * `{ name, type }` descriptor cannot be appended because `FormData`
+   * coerces non-Blob inputs to strings at runtime; callers that only
+   * have a descriptor must wrap it in `new File([bytes], name, { type })`
+   * before invoking this helper.
+   */
+  file: File | Blob;
   /** Optional model slug; defaults to the Swagger canonical default. */
   model?: string;
   /** Optional output format. Defaults to `json`. */
@@ -126,6 +133,37 @@ function lookupFormat(file: BuildTranscriptionFormDataOptions["file"]): string |
   if (dotIdx < 0) return null;
   const ext = name.slice(dotIdx).toLowerCase();
   return AUDIO_EXTENSION_TO_FORMAT[ext] ?? null;
+}
+
+/**
+ * Rewrap the source `File`/`Blob` so the appended multipart part carries
+ * the resolved allowlisted MIME. Required for `.wav`/`.flac`/`.m4a`/
+ * `.mp3`/`.ogg`/`.webm` recordings where `File.type` is often empty on
+ * desktop browsers — without the rewrite the upstream `/audio/transcriptions`
+ * sees an empty/unknown `Content-Type` and rejects the request.
+ *
+ * Falls back to a `Blob` rewrap when `File` is unavailable (older
+ * environments) so the contract still holds in plain Web builds.
+ */
+function buildAudioPart(
+  file: BuildTranscriptionFormDataOptions["file"],
+  format: string,
+): Blob {
+  if ((file as { type?: string }).type === format) {
+    return file;
+  }
+  // Source blob part: passing the original Blob is valid input for the
+  // Blob(File) constructor; preserves the binary bytes verbatim.
+  const part: BlobPart[] = [file as BlobPart];
+  if (typeof File !== "undefined") {
+    const name = (file as { name?: string }).name ?? "audio";
+    try {
+      return new File(part, name, { type: format });
+    } catch {
+      // Some sandboxed environments forbid `new File`; fall through to Blob.
+    }
+  }
+  return new Blob(part, { type: format });
 }
 
 /**
@@ -169,10 +207,13 @@ export function buildTranscriptionFormData(
       ? requestedModel
       : VENICE_TRANSCRIPTION_DEFAULT_MODEL;
   if (requestedModel && requestedModel !== allowlistedModel) {
+    // We refuse non-empty unknown slugs instead of silently substituting
+    // a default because shipping an arbitrary upstream-400-inducing
+    // string to Venice produces no useful debug surface for the user.
     throw new TranscriptionInputError(
       "invalid-model",
       `Transcription model "${requestedModel}" is not in the Swagger allowlist; ` +
-        `falling back to "${VENICE_TRANSCRIPTION_DEFAULT_MODEL}".`,
+        `request aborted. Choose one of: ${VENICE_TRANSCRIPTION_MODELS.join(", ")}.`,
     );
   }
 
@@ -191,6 +232,6 @@ export function buildTranscriptionFormData(
   form.append("model", allowlistedModel);
   form.append("response_format", responseFormat);
   form.append("timestamps", String(Boolean(options.timestamps)));
-  form.append("file", options.file as Blob);
+  form.append("file", buildAudioPart(options.file, format));
   return form;
 }
