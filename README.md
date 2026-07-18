@@ -46,6 +46,7 @@
 
 > [!WARNING]
 > The `main` branch is active development and may be unstable. Normal users should install a tagged release from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases).
+> Road Map: Stripping out live code from in-app web browser. Adding in limited function calling to select LLMs (modify or create files within the app eco-system) **Will not be able to live or act outside of the app env.** 
 
 ---
 
