@@ -1,5 +1,6 @@
 // VERIFY-114 regression guard
 // @vitest-environment node
+import path from "path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const fsMock = vi.hoisted(() => ({
@@ -75,10 +76,11 @@ describe("chatTtsBridge", () => {
 
   it("scopes cleared and purged TTS dir to the requesting profile only", async () => {
     fsMock.readdir.mockResolvedValueOnce(["abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789.mp3"]);
+    const profileSegment = path.join("profiles", "work");
     await clearTtsCache("work");
-    expect(fsMock.readdir).toHaveBeenCalledWith(expect.stringContaining("profiles/work"));
+    expect(fsMock.readdir).toHaveBeenCalledWith(expect.stringContaining(profileSegment));
     expect(fsMock.unlink).toHaveBeenCalledWith(
-      expect.stringContaining("profiles/work"),
+      expect.stringContaining(profileSegment),
     );
 
     fsMock.rm.mockClear();
@@ -86,7 +88,7 @@ describe("chatTtsBridge", () => {
     await purgeProfileTtsCache("work");
     expect(fsMock.access).toHaveBeenCalledTimes(1);
     expect(fsMock.rm).toHaveBeenCalledWith(
-      expect.stringContaining("profiles/work"),
+      expect.stringContaining(profileSegment),
       { recursive: true, force: true },
     );
   });

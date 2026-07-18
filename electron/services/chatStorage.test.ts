@@ -358,9 +358,9 @@ describe("chatStorage", () => {
       await fs.mkdir(profileDir, { recursive: true });
       await fs.writeFile(path.join(profileDir, "marker.txt"), "stay");
 
-      const outside = path.join(os.tmpdir(), "venice-forge-purge-outside");
-      await fs.rm(outside, { recursive: true, force: true }).catch(() => undefined);
-      await fs.mkdir(outside, { recursive: true });
+      // mkdtemp guarantees a unique non-symlink directory under os.tmpdir() so
+      // the writeFile below cannot race with a malicious symlink in /tmp.
+      const outside = await fs.mkdtemp(path.join(os.tmpdir(), "venice-forge-purge-outside-"));
       await fs.writeFile(path.join(outside, "preserve-me.txt"), "do not delete");
 
       const result = await purgeProfileChatHistory("work");
