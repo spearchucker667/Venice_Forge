@@ -413,6 +413,12 @@ export const desktopBackgroundTask = {
 
 /** Handles JSON file export and import, falling back to browser downloads in web mode. */
 export const desktopFiles = {
+  async saveGeneratedMedia(mediaId: string, suggestedName?: string): Promise<boolean> {
+    if (!isElectron()) return false;
+    const result = await window.veniceForge!.files.saveGeneratedMedia({ mediaId, suggestedName });
+    if (!result.ok) throw new Error(result.error || "Generated media could not be saved.");
+    return !result.canceled;
+  },
   /**
    * Exports data as a JSON file via native dialog or browser download.
    * @param data The data to serialize and save.

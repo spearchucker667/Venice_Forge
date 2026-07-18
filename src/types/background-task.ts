@@ -3,6 +3,7 @@ import { redactSecrets } from '../shared/redaction'
 export type BackgroundTaskStatus = 'idle' | 'queued' | 'processing' | 'completed' | 'failed' | 'aborted' | 'timeout'
 
 export type BackgroundTaskType = 'video' | 'music' | 'image' | 'research' | 'document'
+export type VideoTaskStage = 'queued' | 'generating' | 'retrieving' | 'saving' | 'completed'
 
 /** Only these provider jobs expose durable queue retrieval endpoints. */
 export const PROVIDER_POLLED_BACKGROUND_TASK_TYPES = ['video', 'music'] as const
@@ -23,6 +24,7 @@ export interface BackgroundTask {
   error?: string
   resultUrl?: string
   resultMediaId?: string
+  stage?: VideoTaskStage
   createdAt: number
   updatedAt: number
   metadata?: Record<string, unknown>
@@ -61,6 +63,7 @@ export interface BackgroundTaskUpdate {
   error?: string
   resultUrl?: string
   resultMediaId?: string
+  stage?: VideoTaskStage
   metadata?: Record<string, unknown>
   queueId?: string
   attemptStartedAt?: number
@@ -81,6 +84,7 @@ export interface BackgroundTaskIpcEnvelope {
 
 const VALID_STATUSES: BackgroundTaskStatus[] = ['idle', 'queued', 'processing', 'completed', 'failed', 'aborted', 'timeout']
 const VALID_TYPES: BackgroundTaskType[] = ['video', 'music', 'image', 'research', 'document']
+const VALID_VIDEO_STAGES: VideoTaskStage[] = ['queued', 'generating', 'retrieving', 'saving', 'completed']
 const VALID_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/
 const PERSISTED_METADATA_STRING_LIMITS = {
   model: 256,
@@ -88,6 +92,9 @@ const PERSISTED_METADATA_STRING_LIMITS = {
   mimeType: 64,
   source: 128,
   projectId: 128,
+  requestedDuration: 32,
+  requestedResolution: 32,
+  requestedAspectRatio: 32,
 } as const
 
 /**
@@ -115,6 +122,10 @@ export function isValidTaskStatus(value: unknown): value is BackgroundTaskStatus
   return typeof value === 'string' && VALID_STATUSES.includes(value as BackgroundTaskStatus)
 }
 
+export function isValidVideoTaskStage(value: unknown): value is VideoTaskStage {
+  return typeof value === 'string' && VALID_VIDEO_STAGES.includes(value as VideoTaskStage)
+}
+
 function isValidProgress(value: unknown): value is number | undefined {
   if (value === undefined) return true
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
@@ -133,6 +144,7 @@ export function isValidBackgroundTask(value: unknown): value is BackgroundTask {
     (task.error === undefined || typeof task.error === 'string') &&
     (task.resultUrl === undefined || typeof task.resultUrl === 'string') &&
     (task.resultMediaId === undefined || typeof task.resultMediaId === 'string') &&
+    (task.stage === undefined || isValidVideoTaskStage(task.stage)) &&
     (task.queueId === undefined || typeof task.queueId === 'string') &&
     typeof task.profileId === 'string' &&
     (task.providerId === undefined || typeof task.providerId === 'string') &&
@@ -187,6 +199,7 @@ export function createBackgroundTask(input: BackgroundTaskCreateInput): Backgrou
     id,
     type: input.type,
     status: 'queued',
+    stage: input.type === 'video' ? 'queued' : undefined,
     queueId: input.queueId,
     profileId: input.profileId,
     providerId: input.providerId,

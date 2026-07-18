@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import path from "node:path";
 import os from "node:os";
 import viteConfig from "./vite.config";
@@ -24,6 +24,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./tests/setup.ts"],
+    exclude: [...configDefaults.exclude, "inactive-features/**"],
     fileParallelism: false,
     pool: "forks",
     testTimeout: 30000,

@@ -2,14 +2,11 @@
 import dns from 'node:dns/promises'
 import https from 'node:https'
 import net from 'node:net'
+import type { DurableGeneratedMedia } from './generatedMediaStore'
+import { DEFAULT_MAX_GENERATED_VIDEO_BYTES, persistGeneratedMp4Stream } from './generatedMediaStream'
 
-export const MAX_GENERATED_VIDEO_BYTES = 256 * 1024 * 1024
+export const MAX_GENERATED_VIDEO_BYTES = DEFAULT_MAX_GENERATED_VIDEO_BYTES
 const DOWNLOAD_TIMEOUT_MS = 30_000
-
-export interface DownloadedGeneratedVideo {
-  bytes: Buffer
-  mimeType: 'video/mp4'
-}
 
 function isPrivateIpv4(address: string): boolean {
   const parts = address.split('.').map(Number)
@@ -56,14 +53,17 @@ export async function resolveSafeDownloadTarget(hostname: string): Promise<{ add
   return { address: selected.address, family: selected.family }
 }
 
-export async function downloadGeneratedVideo(rawUrl: string): Promise<DownloadedGeneratedVideo> {
+export async function downloadGeneratedVideo(
+  rawUrl: string,
+  options: { onSaving?: () => void | Promise<void> } = {},
+): Promise<DurableGeneratedMedia> {
   const url = new URL(rawUrl)
   if (url.protocol !== 'https:' || url.username || url.password || url.port) {
     throw new Error('Video download URL was rejected.')
   }
   const target = await resolveSafeDownloadTarget(url.hostname)
 
-  return await new Promise<DownloadedGeneratedVideo>((resolve, reject) => {
+  return await new Promise<DurableGeneratedMedia>((resolve, reject) => {
     const request = https.request(url, {
       method: 'GET',
       headers: { Accept: 'video/mp4' },
@@ -88,24 +88,10 @@ export async function downloadGeneratedVideo(rawUrl: string): Promise<Downloaded
         return
       }
 
-      const chunks: Buffer[] = []
-      let byteCount = 0
-      response.on('data', (chunk: Buffer | Uint8Array) => {
-        byteCount += chunk.byteLength
-        if (byteCount > MAX_GENERATED_VIDEO_BYTES) {
-          response.destroy(new Error('Video download exceeded the size limit.'))
-          return
-        }
-        chunks.push(Buffer.from(chunk))
-      })
-      response.once('end', () => {
-        if (byteCount === 0) {
-          reject(new Error('Video download was empty.'))
-          return
-        }
-        resolve({ bytes: Buffer.concat(chunks, byteCount), mimeType: 'video/mp4' })
-      })
-      response.once('error', reject)
+      void persistGeneratedMp4Stream(response, {
+        maxBytes: MAX_GENERATED_VIDEO_BYTES,
+        onSaving: options.onSaving,
+      }).then(resolve, reject)
     })
 
     request.once('timeout', () => request.destroy(new Error('Video download timed out.')))

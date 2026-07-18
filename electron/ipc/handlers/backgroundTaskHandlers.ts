@@ -4,7 +4,7 @@
 
 import { ipcMain, type WebContents } from "electron";
 import type { BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope, BackgroundTaskUpdate } from "../../../src/types/background-task";
-import { isValidTaskType, isValidTaskStatus } from "../../../src/types/background-task";
+import { isValidTaskType, isValidTaskStatus, isValidVideoTaskStage } from "../../../src/types/background-task";
 import {
   initBackgroundTaskManager,
   createBackgroundTaskInMain,
@@ -130,6 +130,9 @@ export function registerBackgroundTaskHandlers(): void {
       const updatePayload = updates as BackgroundTaskUpdate;
       if (updatePayload.status && !isValidTaskStatus(updatePayload.status)) {
         return { ok: false, error: "Invalid status." };
+      }
+      if (updatePayload.stage !== undefined && !isValidVideoTaskStage(updatePayload.stage)) {
+        return { ok: false, error: "Invalid video task stage." };
       }
       if (!isTaskOwnedBySender(event.sender, taskId)) return taskNotFound();
       const task = await updateBackgroundTaskInMain(taskId, updatePayload);

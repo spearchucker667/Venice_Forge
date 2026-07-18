@@ -20,14 +20,13 @@ import {
   serializeTasks,
 } from "../../src/types/background-task";
 import { sanitizeErrorText } from "../../src/shared/redaction";
-import { normalizeVideoRetrieveResult } from "../../src/services/video-retrieve-normalizer";
 import { MUSIC_SAFE_ERROR_MESSAGES, toUserFacingMusicError, toUserFacingVideoError } from "../../src/services/task-errors";
 import { performVeniceRequest } from "./veniceClient";
 import { logError } from "./logger";
-import { buildAudioRetrieveRequest, buildVideoRetrieveRequest } from '../../src/services/media-request-adapter';
+import { buildAudioRetrieveRequest } from '../../src/services/media-request-adapter';
 import { normalizeAudioRetrieveResponse } from '../../src/services/audio-retrieve-normalizer';
 import { persistGeneratedMedia } from './generatedMediaStore';
-import { downloadGeneratedVideo } from './generatedVideoDownload';
+import { retrieveVideoQueueResult, VideoRetrieveError } from './videoRetrieveService';
 
 const TASKS_DIR = path.join(app.getPath("userData"), "background-tasks");
 const TASKS_FILE = path.join(TASKS_DIR, "tasks.json");
@@ -259,6 +258,11 @@ async function applyUpdate(taskId: string, updates: BackgroundTaskUpdate): Promi
     else updated.resultMediaId = String(updates.resultMediaId).slice(0, 128);
     hasChanges = true;
   }
+  if ('stage' in updates && updates.stage !== task.stage) {
+    if (updates.stage === undefined) delete updated.stage;
+    else updated.stage = updates.stage;
+    hasChanges = true;
+  }
   if ("queueId" in updates && updates.queueId !== task.queueId) {
     if (updates.queueId === undefined) {
       delete updated.queueId;
@@ -346,6 +350,7 @@ export async function retryBackgroundTaskInMain(taskId: string): Promise<Backgro
   const nextAttempt = (task.attemptNumber ?? 1) + 1;
   const updated = await applyUpdate(taskId, {
     status: "queued",
+    stage: task.type === 'video' ? 'queued' : undefined,
     error: undefined,
     progress: 0,
     attemptStartedAt: Date.now(),
@@ -394,7 +399,7 @@ async function runPoll(taskId: string): Promise<void> {
     return;
   }
 
-  const startedAt = task.createdAt;
+  const startedAt = task.attemptStartedAt ?? task.createdAt;
   const effectiveTimeout = task.type === "video" ? MAX_VIDEO_GENERATION_MS : MAX_NON_VIDEO_GENERATION_MS;
   const attempts = task.pollAttempts ?? 0;
   const requestMetadata = task.metadata?.request && typeof task.metadata.request === 'object'
@@ -416,11 +421,13 @@ async function runPoll(taskId: string): Promise<void> {
 
   try {
     if (task.type === "video") {
-      const response = await performVeniceRequest({
-        endpoint: "/video/retrieve",
-        method: "POST",
-        body: buildVideoRetrieveRequest(taskModel, task.queueId),
+      await applyUpdate(taskId, { status: 'processing', stage: 'generating' });
+      const normalized = await retrieveVideoQueueResult({
+        queueId: task.queueId,
+        model: taskModel,
         profileId: task.profileId,
+        queueDownloadUrl: typeof task.metadata?.queueDownloadUrl === 'string' ? task.metadata.queueDownloadUrl : undefined,
+        onStage: async (stage) => { await applyUpdate(taskId, { stage, progress: undefined }); },
       });
 
       const latestTask = state.tasks[taskId];
@@ -428,31 +435,14 @@ async function runPoll(taskId: string): Promise<void> {
 
       const currentPolls = (latestTask.pollAttempts ?? 0) + 1;
 
-      if (!response.ok) {
-        const body = response.body as Record<string, unknown> | undefined;
-        const message = typeof body?.error === "string" ? body.error : "Video retrieve failed";
-        throw Object.assign(new Error(message), { status: response.status, currentPolls });
-      }
-
-      const queueDownloadUrl = typeof task.metadata?.queueDownloadUrl === 'string' ? task.metadata.queueDownloadUrl : undefined;
-      const normalized = normalizeVideoRetrieveResult(response.body, response.headers, queueDownloadUrl);
       if (normalized.kind === "completed") {
-        const match = /^data:video\/mp4;base64,(.+)$/i.exec(normalized.mediaUrl);
-        if (!match) throw Object.assign(new Error('Video response was not durable binary media.'), { currentPolls });
-        const media = await persistGeneratedMedia(Buffer.from(match[1], 'base64'), normalized.mimeType);
-        await applyUpdate(taskId, { status: "completed", progress: 1, resultUrl: media.url, resultMediaId: media.id, pollAttempts: currentPolls, consecutiveFailures: 0 });
-        stopPolling(taskId);
-      } else if (normalized.kind === 'download') {
-        const download = await downloadGeneratedVideo(normalized.downloadUrl)
-          .catch((error: unknown) => { throw Object.assign(error instanceof Error ? error : new Error('Video download failed.'), { currentPolls }) })
-        const media = await persistGeneratedMedia(download.bytes, download.mimeType);
-        await applyUpdate(taskId, { status: 'completed', progress: 1, resultUrl: media.url, resultMediaId: media.id, pollAttempts: currentPolls, consecutiveFailures: 0 });
+        await applyUpdate(taskId, { status: "completed", stage: 'completed', progress: 1, resultUrl: normalized.media.url, resultMediaId: normalized.media.id, metadata: { mimeType: normalized.media.mimeType }, pollAttempts: currentPolls, consecutiveFailures: 0 });
         stopPolling(taskId);
       } else if (normalized.kind === "failed") {
-        await applyUpdate(taskId, { status: "failed", error: toUserFacingVideoError(normalized.error, "Video generation failed"), pollAttempts: currentPolls, consecutiveFailures: 0 });
+        await applyUpdate(taskId, { status: "failed", progress: undefined, error: toUserFacingVideoError(normalized.error, "Video generation failed"), pollAttempts: currentPolls, consecutiveFailures: 0 });
         stopPolling(taskId);
       } else {
-        await applyUpdate(taskId, { status: "processing", progress: normalized.progressRatio, pollAttempts: currentPolls, consecutiveFailures: 0 });
+        await applyUpdate(taskId, { status: "processing", stage: 'generating', progress: normalized.progressRatio, pollAttempts: currentPolls, consecutiveFailures: 0 });
         schedulePoll(taskId, POLL_INTERVAL_MS);
       }
     } else if (task.type === "music") {
@@ -496,8 +486,9 @@ async function runPoll(taskId: string): Promise<void> {
       ? Number((err as { currentPolls?: unknown }).currentPolls)
       : ((latestTask.pollAttempts ?? 0) + 1);
 
-    if (typeof status === "number" && status >= 400 && status < 500 && status !== 429) {
-      await applyUpdate(taskId, { status: "failed", error: "Generation failed", pollAttempts: currentPolls });
+    const explicitlyTerminal = err instanceof VideoRetrieveError && !err.retryable;
+    if (explicitlyTerminal || (typeof status === "number" && status >= 400 && status < 500 && status !== 429)) {
+      await applyUpdate(taskId, { status: "failed", progress: undefined, error: task.type === 'video' ? toUserFacingVideoError(err, 'Video retrieval failed') : "Generation failed", pollAttempts: currentPolls });
       stopPolling(taskId);
       return;
     }

@@ -9,6 +9,16 @@ vi.mock('node:dns/promises', () => ({
   default: { lookup: vi.fn() },
 }))
 
+vi.mock('./generatedMediaStream', () => ({
+  DEFAULT_MAX_GENERATED_VIDEO_BYTES: 256 * 1024 * 1024,
+  persistGeneratedMp4Stream: vi.fn(async (stream: PassThrough) => {
+    const chunks: Buffer[] = []
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk))
+    const bytes = Buffer.concat(chunks)
+    return { id: 'a'.repeat(64), url: `venice-media://${'a'.repeat(64)}`, mimeType: 'video/mp4', byteCount: bytes.length, sha256: 'a'.repeat(64) }
+  }),
+}))
+
 import dns from 'node:dns/promises'
 import { downloadGeneratedVideo, isPublicDownloadAddress, MAX_GENERATED_VIDEO_BYTES, resolveSafeDownloadTarget } from './generatedVideoDownload'
 
@@ -55,7 +65,7 @@ describe('generatedVideoDownload', () => {
     }) as never)
 
     const result = await downloadGeneratedVideo('https://media.example/video.mp4')
-    expect(result.bytes).toHaveLength(12)
+    expect(result.byteCount).toBe(12)
     const lookup = options?.lookup as Exclude<https.RequestOptions['lookup'], undefined>
     const callback = vi.fn()
     lookup('media.example', {}, callback)

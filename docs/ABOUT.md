@@ -85,14 +85,14 @@ tabs are:
 | Chat | Streaming chat with Venice text models, memory injection & management, drag & drop context reordering, Agent vs Classic toggle, and optional character-bound scene generation |
 | History | Browse prior conversations and restore or inspect saved chat state |
 | Image Studio | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
-| Media Studio | Generated-image and -video library with local persistence, full-size preview, batch favorite/unstar/delete, lineage (parent + children) tracking, and per-model capability hints |
+| Media Studio | Generated-image and -video library with local persistence, native generated-media export, full-size preview, batch favorite/unstar/delete, lineage (parent + children) tracking, and per-model capability hints |
 | Prompts | Versioned prompt library for chat, image, system, recipe, and workflow prompts |
 | Scene Composer | Structured scene components that compile into image-generation recipes |
 | Audio Studio | Text-to-speech with 50+ voices and formats, plus audio transcription via Whisper |
 | Music Studio | AI music generation with text-to-music, optional lyrics, duration control, and instrumental mode |
-| Video Studio | Asynchronously queue text-to-video, image-to-video, video-to-video, reference-to-video, and video upscale jobs. Settings are model-dependent. |
+| Video Studio | Asynchronously queue model-dependent video jobs, expose queued/generating/retrieving/saving stages, and stream completed MP4 output into main-owned durable storage for playback and native Save As. |
 | Embeddings | Vector embeddings generation for text with selectable models and dimension display |
-| Research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
+| Research | Multi-provider web search, page scraping, AI research synthesis, saved evidence sessions, and public-profile discovery (Venice, Jina AI, or Generic HTTP). The embedded Research Browser is inactive. |
 | Characters | Browse Venice hosted characters via the official `/characters` API, filter by adult / web-enabled flags, and start character chats using `venice_parameters.character_slug` |
 | RP Studio | Local-first RP workspace with ST Card Studio: Tavern V1 / Character Card V2 JSON and V2 PNG import/export, ten-step card editing, encrypted drafts, versions, embedded/linked lorebooks, disposable test turns, personas, multi-character chats, scoped memory, and scene image generation. Lazy-loaded. |
 | Workflow Templates | Versioned reusable automation chains with compiled run plans. The separate Playground owns interactive visual graph building. Lazy-loaded. |

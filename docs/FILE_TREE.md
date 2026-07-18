@@ -54,7 +54,7 @@ The visible workspace list must be read from `CANONICAL_TAB_ORDER`; do not copy 
 | `electron/services/backgroundTaskManager.ts` | Profile-scoped durable generation-task recovery |
 | `electron/services/syncFolderWatcher.ts` | Authenticated encrypted sync-folder ingestion and outbox handling |
 | `electron/services/characterCardPngCodec.ts` | Bounded Character Card V2 PNG metadata parsing, validation, replacement, and semantic round-trip verification |
-| `electron/security/` | Research Browser request/network containment |
+| `inactive-features/research-browser/` | Inactive archive of the former embedded Research Browser; excluded from active build, test, and package surfaces |
 | `electron/utils/` | CSP, navigation, external-link, URL, rate-limit, and custom-protocol helpers |
 
 Renderer code must use typed services from `src/services/desktopBridge.ts`; it must not call `window.veniceForge` directly.

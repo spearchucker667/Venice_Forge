@@ -21,7 +21,6 @@ import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
 import { stopSyncWatcher } from "./services/syncFolderWatcher";
 import { isValidBridgeHost } from "./utils/bridgeHost";
 import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
-import { setupResearchBrowserIpc } from "./services/researchBrowserServer";
 import { createGeneratedMediaResponse, GENERATED_MEDIA_SCHEME } from './services/generatedMediaStore';
 import { readRegularFileNoFollow } from "./utils/secureFile";
 import { createShutdownCoordinator } from "./services/appShutdownCoordinator";
@@ -201,7 +200,6 @@ function createWindow(): BrowserWindow {
   }
 
   win.once("ready-to-show", () => win.show());
-  setupResearchBrowserIpc(win);
   initSyncFolderWatcher(win).catch((err: unknown) => logError("Failed to init sync folder watcher", err));
   return win;
 }
@@ -424,16 +422,6 @@ if (!gotLock) {
   });
 
   app.on("web-contents-created", (_event, contents) => {
-    // Exclude research browser WebContents from the global policy
-    // so it can handle its own in-app navigation and links.
-    const researchBrowserSessions = [
-      session.fromPartition("venice-forge-research-browser"),
-      session.fromPartition("persist:venice-forge-research-browser"),
-    ];
-    if (researchBrowserSessions.includes(contents.session)) {
-      return;
-    }
-
     contents.on("will-navigate", (event, url) => {
       if (isAllowedAppNavigation(url)) return;
       event.preventDefault();

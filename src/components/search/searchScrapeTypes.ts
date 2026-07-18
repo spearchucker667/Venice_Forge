@@ -9,4 +9,4 @@ export interface SearchResultItem {
   date?: string;
 }
 
-export type SubTab = "workspace" | "search" | "ai-research" | "profile-discovery" | "browser";
+export type SubTab = "workspace" | "search" | "ai-research" | "profile-discovery";

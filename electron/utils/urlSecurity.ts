@@ -6,4 +6,4 @@
  *  shared module is the source of truth.
  */
 
-export { isPrivateHostname, isTrustedExternalUrl, isAllowedResearchBrowserUrl } from "../../src/shared/urlSecurity";
+export { isPrivateHostname, isTrustedExternalUrl } from "../../src/shared/urlSecurity";

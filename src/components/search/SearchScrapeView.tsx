@@ -23,28 +23,18 @@ import { ResearchWorkspacePanel } from "./ResearchWorkspacePanel";
 import type { SubTab, SearchResultItem } from "./searchScrapeTypes";
 
 import { ResearchProviderStatus } from "./ResearchProviderStatus";
-import { ResearchBrowserView } from "../research/ResearchBrowserView";
 import { useResearchStore } from "../../stores/research-store";
 import { toast } from "../../stores/toast-store";
 import { runResearchScrape } from "../../services/researchService";
-import { researchBrowserBridge } from "../../services/researchBrowserBridge";
-import { isElectron } from "../../services/desktopBridge";
-import { isTrustedExternalUrl } from "../../shared/urlSecurity";
-import { useConfigStore } from "../../stores/config-store";
 import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
 
 import { DEFAULT_CHAT_MODEL } from "../../constants/venice";
 
 export function SearchScrapeView() {
   const [subTab, setSubTab] = useState<SubTab>("workspace");
-  // Pending URL from a search-result "Open in Browser" click. Stored here so
-  // ResearchBrowserView can navigate to it after the WebContentsView is created
-  // on mount, avoiding the navigate-before-create race (Bug 2).
-  const [pendingBrowserUrl, setPendingBrowserUrl] = useState<string | null>(null);
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat) || DEFAULT_CHAT_MODEL;
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled);
   const veniceKeyConfigured = useAuthStore((s) => s.isConfigured);
-  const allowExternalOpen = useConfigStore((s) => s.config?.research.live_browser_allow_external_open ?? false);
 
   function requireVeniceApiKey(where: string): boolean {
     if (veniceKeyConfigured) return true;
@@ -406,7 +396,7 @@ export function SearchScrapeView() {
           <div>
             <h2 className="text-[17px] font-semibold text-text-primary">Research</h2>
             <p className="text-[12.5px] text-text-muted mt-0.5">
-              Search, scrape, browse, collect evidence, and synthesize findings.
+              Search, scrape, collect evidence, and synthesize findings.
             </p>
           </div>
           <DiagPreview diagnostics={diagnostics} />
@@ -416,7 +406,6 @@ export function SearchScrapeView() {
             {tabBtn("workspace", "Workspace")}
             {tabBtn("search", "Search / Scrape")}
             {tabBtn("ai-research", "AI Research")}
-            {tabBtn("browser", "Browser")}
             {tabBtn("profile-discovery", "Profile Discovery")}
           </div>
           <div className="shrink-0">
@@ -457,16 +446,6 @@ export function SearchScrapeView() {
                 loading={loading}
                 runSearch={runSearch}
                 searchResults={searchResults}
-                onOpenInBrowser={(url) => {
-                  // Set the pending URL first, then switch tabs. The Browser
-                  // subtab will consume it via the initialUrl prop after
-                  // ResearchBrowserView mounts and creates the WebContentsView.
-                  // Calling navigate() here directly would race against the
-                  // WebContentsView creation (which happens on mount) and fail
-                  // with "Not initialized" if the tab was not already open.
-                  setPendingBrowserUrl(url);
-                  setSubTab("browser");
-                }}
                 onScrapeWithVenice={async (url) => {
                   setUrl(url);
                   await runScrape(url, "venice");
@@ -501,14 +480,6 @@ export function SearchScrapeView() {
                   });
                   toast.success("Saved to active research session");
                 }}
-                onRequestOpenInSystemBrowser={allowExternalOpen ? async (url) => {
-                  if (isElectron()) {
-                    await researchBrowserBridge.requestOpenInSystemBrowser(url);
-                  } else if (isTrustedExternalUrl(url)) {
-                    // Only allowed if config is enabled
-                    window.open(url, "_blank", "noopener,noreferrer");
-                  }
-                } : undefined}
               />
               <ScrapeTab
                 url={url}
@@ -552,28 +523,6 @@ export function SearchScrapeView() {
             setResearchOutput={setResearchOutput}
             researchEvidenceSources={researchCitations}
           />
-        )}
-
-        {subTab === "browser" && (
-          <div className="flex min-h-0 flex-1">
-            <ResearchBrowserView
-              initialUrl={pendingBrowserUrl}
-              onInitialUrlConsumed={() => setPendingBrowserUrl(null)}
-              onCaptureWithJina={async (url) => {
-                setUrl(url);
-                setScrapeOutput("Reading with Jina...");
-                try {
-                  const result = await runResearchScrape({ url, provider: "jina" });
-                  if (result.sources[0]?.excerpt) {
-                    setScrapeOutput(String(result.sources[0].excerpt));
-                    setSubTab("search");
-                  }
-                } catch (err) {
-                  setScrapeOutput(describeResearchError(err as Error, "Reading with Jina failed.", "jina"));
-                }
-              }}
-            />
-          </div>
         )}
 
         {subTab === "profile-discovery" && (

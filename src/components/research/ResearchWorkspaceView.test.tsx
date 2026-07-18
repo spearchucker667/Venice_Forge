@@ -34,10 +34,6 @@ vi.mock('../../services/ingestion/attachmentAssembler', () => ({
   processFileAttachment: vi.fn(),
 }));
 
-vi.mock('./ResearchBrowserView', () => ({
-  ResearchBrowserView: () => <div data-testid="mock-research-browser-view" />
-}));
-
 import { processFileAttachment } from '../../services/ingestion/attachmentAssembler';
 
 function mockSessionWithSources(
@@ -264,40 +260,6 @@ describe('ResearchWorkspaceView', () => {
     for (const re of forbidden) {
       expect(source, `Source contains forbidden class ${re}`).not.toMatch(re);
     }
-  });
-
-  it('continues resizing the browser column when dragging outside the workspace container', async () => {
-    const mockSession = sanitizeResearchSession({
-      id: 's1',
-      title: 'Active Research',
-      sources: [],
-      findings: [],
-      scope: 'global',
-      tags: [],
-    });
-    vi.mocked(useResearchStore).mockReturnValue(researchState({
-      sessions: [mockSession],
-      activeSessionId: 's1',
-    }));
-    Object.defineProperty(document.body, 'clientWidth', {
-      configurable: true,
-      value: 1200,
-    });
-
-    const { container } = render(<ResearchWorkspaceView />);
-    const resizer = container.querySelector('.cursor-col-resize');
-    const browserColumn = screen.getByTestId('mock-research-browser-view').parentElement as HTMLElement | null;
-
-    expect(resizer).toBeInstanceOf(HTMLElement);
-    expect(browserColumn).toBeInstanceOf(HTMLElement);
-
-    fireEvent.mouseDown(resizer as HTMLElement, { clientX: 700 });
-    fireEvent.mouseMove(document, { clientX: 500 });
-
-    await waitFor(() => {
-      expect(browserColumn?.style.width).toBe('700px');
-    });
-    fireEvent.mouseUp(document);
   });
 
   // REGRESSION GUARD (T-055): research source links must only render URLs

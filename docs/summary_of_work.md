@@ -5,6 +5,18 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-18
+**Scope:** Implement the Video Pipeline and Research Browser Deactivation work order (`VERIFY-144`).
+
+- **Main-owned video retrieval:** added a dedicated `/video/retrieve` transport with 1 MiB JSON status cap and streamed MP4 handling. Direct MP4 responses and HTTPS provider download URLs write incrementally into bounded temporary storage (256 MiB default/configurable), update SHA-256 and byte counts per chunk, validate `ftyp`, fsync, and atomically commit to the generated-media store. Full and range `venice-media://` responses now stream from disk.
+- **Durable lifecycle/recovery:** video tasks expose persisted `queued → generating → retrieving → saving → completed` stages separately from elapsed duration; only provider progress is rendered. Restart-safe metadata retains model/duration/resolution/aspect/download URL but excludes prompts and raw request bodies. Terminal retrieval failures clear progress and stop polling; retryable network/429/5xx failures retain bounded backoff.
+- **Native Save As and catalog:** `app:media:save-generated` accepts a media ID only from the main renderer frame, resolves main-owned storage, derives the extension from MIME, sanitizes the suggested name, and returns a no-path receipt. Video Studio and Media Studio use this boundary in Electron. Completed tasks reconcile to deterministic Media Studio records containing the durable media ID.
+- **Research Browser inactive archive:** moved the complete renderer/Electron/security/test/smoke/verifier/developer-doc implementation with `git mv` to `inactive-features/research-browser/`; removed active main/preload/types/config/UI/split-pane/CSS/package/CI wiring; added a bounded archive README and `verify:inactive-feature-archive`. Supported Research search, Venice/Jina scrape, synthesis, citations, saved sessions, uploads, findings, summaries, and handoffs remain active.
+- **Docs/report:** updated README, About, Media Studio design, file tree, docs index, current roadmap, AGENTS guard registry, and authored `docs/reports/VIDEO_PIPELINE_AND_RESEARCH_BROWSER_DEACTIVATION_2026-07-18.md`.
+- **Validation:** zero-warning ESLint, renderer+Electron typecheck, production build, zero-vulnerability audit, 645-test Electron segment, 59-test server segment, 153-test focused surface, new streaming/export/retrieval suites, `verify:inactive-feature-archive`, `verify:research-workspace`, CI-contract, handoff-hygiene, theme, no-native-dialogs, and `verify:dist` passed. The aggregate `test:ci`, Markdown, roadmap, contracts, and therefore `npm run ci` remain blocked solely by two pre-existing user-owned deleted audit-evidence files; the exact three broken links and missing retained manifest were recorded and the deletions were neither restored nor staged. No paid-provider, packaged, signed, or headed QA claim is made.
+
+### Previous same-day session detail — Cross-studio remediation
+
+**Date:** 2026-07-18
 **Scope:** Reproduce and repair the reported Chat, Image Studio, Music, Video, Research, Workflow, and Config failures; add `VERIFY-143` coverage; preserve the missing AI Research screenshot as an explicit evidence boundary.
 
 - **Chat context and helper isolation:** custom system prompts now retain a minimum useful output window by compacting against the real input budget and clamping `max_tokens` to the selected model's remaining context. Disabling `include_venice_system_prompt` also removes the hidden-prompt estimate. Historical character-scene helper markers are stripped before messages are sent back to the LLM.
@@ -97,7 +109,7 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
-`VERIFY-143` closes every locally reproducible item from the 2026-07-18 cross-studio bug report. `VF-UX-REPRO-001` remains evidence-needed because the referenced AI Research screenshot was absent; it must not be converted into an implementation claim until the missing visual/reproduction is supplied.
+`VERIFY-144` closes the local implementation and automated-verification scope of the Video Pipeline and Research Browser Deactivation work order. Paid-provider generation/retrieval, packaged/signed Save As, restart recovery against a live queued job, and headed playback remain external acceptance rows under `VF-VERIFY-005`; no such result is inferred. `VERIFY-143` closes every locally reproducible item from the earlier 2026-07-18 cross-studio bug report. `VF-UX-REPRO-001` remains evidence-needed because the referenced AI Research screenshot was absent; it must not be converted into an implementation claim until the missing visual/reproduction is supplied.
 
 All `VF-SCAN-20260717-001..016` findings from the 22:47 snapshot now have an implemented or explicit disposition. PR #42 and PR #43 are now **merged into `main`** (`7e9c6c4` and `3dbf34e` respectively). No open PRs or branches remain. The only remaining external prerequisite is signed/paid/two-device/accessibility QA (`VF-VERIFY-005`).
 
@@ -154,6 +166,19 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 ## Validation Matrix
 
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
+
+### July 18 video pipeline and Research Browser deactivation (`VERIFY-144`)
+
+| Command | Result | Evidence |
+|---|---|---|
+| `npm run lint:eslint`; `npm run typecheck` | PASS | Whole-tree ESLint exits with zero warnings; renderer and Electron TypeScript pipelines exit 0. |
+| Focused video/media/background-task Vitest suites | PASS | The 153-test implementation sweep plus an 11-test final boundary closeout cover chunked and runtime-generated >25 MiB persistence, overflow/interruption cleanup, MIME/signature validation, durable download/range behavior, ID-only native export, dialog cancellation/copy failure, IPC sender rejection, retrieval normalization/streaming/stages, five-second progress semantics, task restart metadata, Media Studio reconciliation, and renderer controls. |
+| `npm run test:server`; `npm run test:electron` | PASS | 59 server tests and 645 Electron tests pass. |
+| `npm run verify:inactive-feature-archive`; `npm run verify:research-workspace` | PASS | Research Browser is retained only under `inactive-features/research-browser/`; active Research search/scrape/synthesis/session contracts remain wired. |
+| CI-contract, handoff-hygiene, theme-token, no-native-dialog, network-boundary, and dist verifiers | PASS | Static boundaries, guard registry, theme cleanup, native dialog policy, network ownership, and generated build output pass. |
+| `npm audit --audit-level=moderate`; `npm run build`; `npm run verify:dist` | PASS | Zero vulnerabilities; renderer/server/Electron production outputs build; generated distribution outputs verify. |
+| `npm run test:ci`; `npm run verify:markdown-links`; `npm run verify:roadmap-current`; `npm run verify:contracts`; `npm run ci` | BLOCKED BY PRE-EXISTING INPUT | The only observed failures are three links and the retained-evidence requirement for two user-owned audit files that were already deleted before this session. Those deletions were neither restored nor staged. All preceding test shards in `test:ci` passed before the Markdown unit reached those missing targets. |
+| Paid-provider, packaged/signed, restart-with-live-job, and headed playback/Save As QA | NOT RUN | Requires credentials, expenditure authorization, packaged/signed artifacts, or an interactive environment; retained under `VF-VERIFY-005`. |
 
 ### July 18 cross-studio remediation (`VERIFY-143`)
 
@@ -335,6 +360,8 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+- **2026-07-18 — Video Pipeline and Research Browser Deactivation (`VERIFY-144`):** replaced buffered video retrieval with a main-owned bounded streaming pipeline and atomic generated-media commit; added dedicated `/video/retrieve` status/direct-MP4/download-URL handling, durable queued/generating/retrieving/saving/completed stages, restart-safe non-prompt metadata, deterministic Media Studio reconciliation, streamed full/range playback, and an ID-only main-frame-authorized native Save As boundary. Moved the complete Research Browser implementation and its tests/verifiers/docs to `inactive-features/research-browser/`, removed active runtime/config/package/CI wiring, retained supported Research search/scrape/synthesis/session capabilities, and added `verify:inactive-feature-archive`. Updated the canonical roadmap, docs index, user/developer docs, guard registry, implementation report, and this ledger. Automated video, Electron/server, lint, type, build, audit, archive, Research, network, CI-contract, hygiene, theme, dialog, and dist gates pass; aggregate Markdown/roadmap/contracts/CI remain blocked only by the two pre-existing deleted audit-evidence files, which were preserved as user-owned state and excluded from the commit. External paid/packaged/restart/headed acceptance remains under `VF-VERIFY-005`.
 
 - **2026-07-18 — Cross-studio user-reported remediation (`VERIFY-143`):** repaired custom-chat context budgeting and image-helper protocol isolation; added animated Image Studio, Image Tools, Video, and section-wide Research progress; mapped upscale adherence to the supported Venice creativity control; constrained music durations from live/discrete model metadata; added ranged durable-video responses plus Blob-backed downloads and awaited gallery saves; repaired the image-to-video picker; added Venice/Jina Web Scrape selection; made workflow step choices editable and image handoffs functional; converted the development updater result into a truthful packaged-production notice; extended the guard registry/scanner to `VERIFY-143`; and retained the missing AI Research screenshot as `VF-UX-REPRO-001` rather than inventing a screenshot-specific fix. Focused validation passed 13 files / 116 tests plus both TypeScript pipelines and zero-warning ESLint; full `npm run ci` passed 3,984 segmented tests, zero-vulnerability audit, production build, aggregate contracts, bundle/safety/Markdown/provider/release gates, and dist verification.
 

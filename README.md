@@ -101,15 +101,13 @@ flowchart LR
 
 ---
 
-## Research Browser and Jina Research
+## Research and Jina
 
-Venice Forge includes an embedded **Research Browser** that utilizes Electron's native `WebContentsView` architecture rather than dangerous Webviews or iframes.
-
-
-- **Architectural Isolation:** The renderer-side address bar and toolbar drive an independent, main-process-managed browser view.
-- **Security Constraints:** The browser blocks unsafe scheme loads (e.g. `file://`, `data://` from untrusted origins), restricts private subnet access (`127.0.0.1`, `localhost` ranges), enforces a robust CSP, and safely routes standard `target="_blank"` popups.
-- **Jina Integration:** The browser is wired into the Venice/Jina scraper. When scraping a page, Jina-backed proxies format clean markdown captures which are screened locally for content safety.
-- **Experimental Status:** Because Electron `WebContentsView` geometry and window z-indexing require precise OS-level rendering, the Research Browser is classified as **Experimental** and requires manual headed smoke validation.
+The supported Research workspace provides Venice/Jina search, page scraping,
+AI synthesis, citations, saved sessions, document upload, findings, summaries,
+and prompt/workflow handoffs. The former embedded Research Browser is inactive;
+its implementation is retained only under `inactive-features/research-browser/`
+and is not imported, tested, bundled, or packaged.
 
 ---
 
@@ -131,7 +129,7 @@ Venice Forge provides a rich multimedia pipeline:
 - **Image Generation:** The Image Studio handles prompts, negatives, seeds, aspect ratios, and model-specific parameters.
 - **Media Studio:** The gallery indexes all outputs. You can select up to 4 images for a side-by-side field diff comparison, walk the parent-child lineage tree of remixed images, and export a redacted JSON manifest with deterministic sidecar filenames. The current export does not assemble or embed a ZIP/media archive.
 - **Audio & Music:** Supports Whisper-powered transcriptions, Text-to-Speech speech queues, and lyrics-driven Music generation.
-- **Video:** Queues asynchronous text/image-to-video requests and polls progress cleanly.
+- **Video:** Queues asynchronous text/image-to-video requests, shows explicit queued/generating/retrieving/saving stages, streams completed MP4 bytes into main-owned durable storage, and exports through a native Save As boundary.
 - **Embeddings:** Evaluates text strings against available embedding models to inspect raw vector arrays.
 
 ---
@@ -155,7 +153,7 @@ The user interface uses a token-based styling model matching dynamic glassmorphi
 - **Built-in Catalog (35 Themes):**
   - *Dracula & Dark Palettes:* Basalt Noir, catppuccin, dracula, gruvbox_dark, midnight-velvet, monokai, nord, obsidian-bloom, one_dark, rosepine, solarized_dark, synthwave-harbor, tokyo_night, venice.
   - *Light & High Contrast:* amber-archive, arctic-glass, aurora-boreal, circuit-mint, copper, cyber-orchid, dark, desert-copperfield, ember-monastery, github_light, glacial-ink, harbor-fog, light, moss-circuit, neon-dusk, porcelain-daybreak, sakura-terminal, solar-ash, solarized_light, toxic-limewire, ultraviolet-rain.
-- **Visual Parity:** Custom themes automatically style the main workspace, sidebar lists, settings, inputs, and the Research Browser home splash.
+- **Visual Parity:** Custom themes automatically style the main workspace, sidebar lists, settings, inputs, and generation progress surfaces.
 
 ---
 

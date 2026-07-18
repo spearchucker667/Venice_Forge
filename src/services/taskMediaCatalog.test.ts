@@ -61,4 +61,26 @@ describe('persistCompletedTaskMedia', () => {
     expect(loadById).not.toHaveBeenCalled()
     expect(upsert).not.toHaveBeenCalled()
   })
+
+  it('reconciles a durable video task with safe restart metadata and media ID', async () => {
+    loadById.mockResolvedValue(null)
+    upsert.mockImplementation(async (item: MediaItem) => item)
+    vi.mocked(useMediaStore.getState).mockReturnValue({ items: [], loadById, upsert } as never)
+    const videoTask: BackgroundTask = {
+      ...task,
+      id: 'video-one',
+      type: 'video',
+      resultUrl: `venice-media://${'a'.repeat(64)}`,
+      resultMediaId: 'a'.repeat(64),
+      metadata: { model: 'video-model', requestedDuration: '10s', requestedResolution: '720p', requestedAspectRatio: '16:9', mimeType: 'video/mp4' },
+    }
+    await persistCompletedTaskMedia(videoTask)
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'task-result-video-one',
+      generatedMediaId: 'a'.repeat(64),
+      duration: '10s',
+      resolution: '720p',
+      aspectRatio: '16:9',
+    }), { attachActiveProject: true, source: 'generated' })
+  })
 })

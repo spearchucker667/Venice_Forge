@@ -207,21 +207,18 @@ understands why.
 
 ## Video persistence
 
-The Video Studio persists the result of every successful `/video/queue`
-poll into a `MediaItem` with `mediaType: 'video'`,
-`operation: 'video-generate'`, and the upstream HTTPS `videoUrl` in the
-`image` field. Video **bytes are not stored in IndexedDB** — the
-upstream URL is sufficient for re-download, and storing base64 video
-would balloon the encrypted IDB for marginal benefit. The export
-pipeline (see below) handles the HTTPS → disk hop.
+The main-process background-task manager retrieves completed video output.
+MP4 responses and approved provider download URLs stream into a bounded
+temporary file, are hashed and signature-checked incrementally, fsynced, and
+atomically committed under the content-addressed generated-media store. The
+renderer receives only `venice-media://<sha256>` and the media ID; video bytes
+never enter IndexedDB or renderer/base64 memory.
 
-The persist-on-complete effect in `video-view.tsx` is keyed on
-`[status, videoUrl, queueId, lastRequest, prompt]` with a ref guard, so
-re-renders of the same job do not double-save.
-
-A "Save to Media Studio" button next to the Download anchor lets the
-user re-save a video they previously deleted from the studio without
-having to re-generate.
+Completed tasks reconcile deterministically into Media Studio records. Both
+Video Studio and Media Studio export by media ID through
+`app:media:save-generated`; the main process resolves the trusted file, derives
+the extension from MIME, displays Save As, and copies atomically without
+exposing local paths to the renderer.
 
 ## Electron IPC (desktop affordances)
 

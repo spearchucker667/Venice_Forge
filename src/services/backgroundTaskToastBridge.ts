@@ -47,11 +47,16 @@ export function initBackgroundTaskToastBridge() {
           })
         }
       } else if (task.status === 'processing') {
-        if (!prevTask || prevTask.status !== 'processing' || prevTask.progress !== task.progress) {
+        if (!prevTask || prevTask.status !== 'processing' || prevTask.progress !== task.progress || prevTask.stage !== task.stage) {
+          const stageDescription = task.type === 'video' && task.stage === 'retrieving'
+            ? 'Retrieving video...'
+            : task.type === 'video' && task.stage === 'saving'
+              ? 'Saving securely...'
+              : 'Generating...'
           toast.upsertToast(dedupeKey, {
             variant: 'progress',
             title,
-            description: 'Generating...',
+            description: stageDescription,
             progressRatio: task.progress,
             persistent: true,
             actions: [

@@ -29,6 +29,7 @@
     "dist",
     "dist-electron",
     "release",
+    "inactive-features",
     "electron"
   ]
 }

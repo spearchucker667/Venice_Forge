@@ -75,6 +75,7 @@ export function migrateGalleryImageToMediaItem(record: unknown): MediaItem {
     workflow: typeof base.workflow === "string" ? base.workflow : undefined,
     queueId: typeof base.queueId === "string" ? base.queueId : undefined,
     downloadUrl: typeof base.downloadUrl === "string" ? base.downloadUrl : undefined,
+    generatedMediaId: typeof base.generatedMediaId === "string" ? base.generatedMediaId : undefined,
     duration: typeof base.duration === "string" ? base.duration : undefined,
     resolution: typeof base.resolution === "string" ? base.resolution : undefined,
     quality: typeof base.quality === "string" ? base.quality : undefined,

@@ -44,15 +44,15 @@ vi.mock('./generatedMediaStore', () => ({
   })),
 }));
 
-vi.mock('./generatedVideoDownload', () => ({
-  downloadGeneratedVideo: vi.fn(async () => ({
-    bytes: Buffer.from([0, 0, 0, 16, 0x66, 0x74, 0x79, 0x70, 0, 0, 0, 0]),
-    mimeType: 'video/mp4',
-  })),
+vi.mock('./videoRetrieveService', () => ({
+  VideoRetrieveError: class VideoRetrieveError extends Error {
+    constructor(message: string, readonly retryable: boolean, readonly status?: number) { super(message) }
+  },
+  retrieveVideoQueueResult: vi.fn(),
 }));
 
 import { performVeniceRequest as performVeniceRequestMock } from "./veniceClient";
-import { downloadGeneratedVideo } from './generatedVideoDownload';
+import { retrieveVideoQueueResult, VideoRetrieveError } from './videoRetrieveService';
 import {
   initBackgroundTaskManager,
   createBackgroundTaskInMain,
@@ -81,7 +81,7 @@ describe("backgroundTaskManager", () => {
   beforeEach(async () => {
     await __resetBackgroundTaskManagerForTests();
     performVeniceRequest.mockReset();
-    vi.mocked(downloadGeneratedVideo).mockClear();
+    vi.mocked(retrieveVideoQueueResult).mockReset();
     const tasksFile = path.join(TMP_USERDATA, "background-tasks", "tasks.json");
     try {
       await fs.unlink(tasksFile);
@@ -181,21 +181,45 @@ describe("backgroundTaskManager", () => {
   it("polls video tasks to completion", async () => {
     vi.useFakeTimers();
     await createBackgroundTaskInMain({ type: "video", queueId: "q1", profileId: "p1", metadata: { model: 'video-model' } });
-    performVeniceRequest.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: { "content-type": "video/mp4" },
-      body: { dataBase64: "AAAA" },
-      contentType: "video/mp4",
-    });
+    vi.mocked(retrieveVideoQueueResult).mockResolvedValueOnce({ kind: 'completed', media: {
+      id: 'a'.repeat(64), url: `venice-media://${'a'.repeat(64)}`, mimeType: 'video/mp4', byteCount: 12, sha256: 'a'.repeat(64),
+    } });
     await vi.advanceTimersByTimeAsync(0);
     const updated = listBackgroundTasks()[0];
     expect(updated?.status).toBe("completed");
     expect(updated?.resultUrl).toBe(`venice-media://${'a'.repeat(64)}`);
-    expect(performVeniceRequest).toHaveBeenCalledWith(expect.objectContaining({
-      body: { model: 'video-model', queue_id: 'q1', delete_media_on_completion: false },
+    expect(retrieveVideoQueueResult).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'video-model', queueId: 'q1',
       profileId: "p1",
     }));
+    vi.useRealTimers();
+  });
+
+  it("does not convert a five-second requested duration into generation progress", async () => {
+    vi.useFakeTimers();
+    await createBackgroundTaskInMain({
+      type: "video",
+      queueId: "q-five-second",
+      profileId: "p1",
+      metadata: { model: "video-model", requestedDuration: "5s" },
+    });
+    vi.mocked(retrieveVideoQueueResult).mockResolvedValueOnce({ kind: "processing", progressRatio: undefined });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(listBackgroundTasks()[0]).toMatchObject({ status: "processing", stage: "generating" });
+    expect(listBackgroundTasks()[0]?.progress).toBeUndefined();
+    vi.useRealTimers();
+  });
+
+  it("stops polling after a non-retryable video persistence failure", async () => {
+    vi.useFakeTimers();
+    await createBackgroundTaskInMain({ type: "video", queueId: "q-invalid-media", profileId: "p1", metadata: { model: "video-model" } });
+    vi.mocked(retrieveVideoQueueResult).mockRejectedValueOnce(new VideoRetrieveError("invalid media", false));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(listBackgroundTasks()[0]).toMatchObject({ status: "failed" });
+    expect(listBackgroundTasks()[0]?.progress).toBeUndefined();
+    const calls = vi.mocked(retrieveVideoQueueResult).mock.calls.length;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(retrieveVideoQueueResult).toHaveBeenCalledTimes(calls);
     vi.useRealTimers();
   });
 
@@ -207,17 +231,13 @@ describe("backgroundTaskManager", () => {
       profileId: "p1",
       metadata: { model: "video-model", queueDownloadUrl: "https://media.example/result.mp4" },
     });
-    performVeniceRequest.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: { "content-type": "application/json" },
-      body: { status: "COMPLETED" },
-      contentType: "application/json",
-    });
+    vi.mocked(retrieveVideoQueueResult).mockResolvedValueOnce({ kind: 'completed', media: {
+      id: 'a'.repeat(64), url: `venice-media://${'a'.repeat(64)}`, mimeType: 'video/mp4', byteCount: 12, sha256: 'a'.repeat(64),
+    } });
 
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(downloadGeneratedVideo).toHaveBeenCalledWith("https://media.example/result.mp4");
+    expect(retrieveVideoQueueResult).toHaveBeenCalledWith(expect.objectContaining({ queueDownloadUrl: "https://media.example/result.mp4" }));
     expect(listBackgroundTasks()[0]).toMatchObject({
       status: "completed",
       resultUrl: `venice-media://${'a'.repeat(64)}`,
@@ -353,5 +373,31 @@ describe("backgroundTaskManager", () => {
 
     expect(listBackgroundTasks()[0]?.metadata).toEqual({ model: "stable-audio" });
     expect(JSON.stringify(listBackgroundTasks())).not.toContain(prompt);
+  });
+
+  it("persists only restart-safe video dimensions and lifecycle stage", async () => {
+    const task = await createBackgroundTaskInMain({
+      type: "video",
+      queueId: "q-video-safe",
+      profileId: "p1",
+      metadata: {
+        model: "video-model",
+        request: { prompt: "do not persist", duration: "10s", resolution: "720p", aspect_ratio: "16:9" },
+        requestedDuration: "10s",
+        requestedResolution: "720p",
+        requestedAspectRatio: "16:9",
+      },
+    });
+    await updateBackgroundTaskInMain(task.id, { status: "timeout", stage: "retrieving" });
+    await __flushBackgroundTaskPersistenceForTests();
+    const [persisted] = await readPersistedTasks() as Array<BackgroundTask>;
+    expect(persisted.stage).toBe("retrieving");
+    expect(persisted.metadata).toEqual({
+      model: "video-model",
+      requestedDuration: "10s",
+      requestedResolution: "720p",
+      requestedAspectRatio: "16:9",
+    });
+    expect(JSON.stringify(persisted)).not.toContain("do not persist");
   });
 });

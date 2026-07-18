@@ -21,6 +21,7 @@ import { toast } from "../../stores/toast-store";
 import { copyText } from "../../stores/media-send-to";
 import { createCharacterCardDraftFromMedia } from "../../services/characterCards/characterCardStudioHandoff";
 import { useSettingsStore } from "../../stores/settings-store";
+import { desktopFiles, isElectron } from "../../services/desktopBridge";
 
 interface MediaInspectorProps {
   item: MediaItem;
@@ -546,6 +547,22 @@ export function MediaInspector({
               data-testid="inspector-edit"
             >
               <ImagePlus className="h-3 w-3" /> Edit
+            </button>
+          )}
+          {item.mediaType !== "image" && item.generatedMediaId && isElectron() && (
+            <button
+              type="button"
+              onClick={() => void desktopFiles.saveGeneratedMedia(
+                item.generatedMediaId!,
+                item.mediaType === "video" ? "venice-video.mp4" : "venice-audio",
+              ).then((saved) => {
+                if (saved) toast.success("Media saved");
+              }).catch((error) => toast.fromError(error, "Media download failed"))}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              title="Save the main-process media file with a native dialog"
+              data-testid="inspector-download-generated-media"
+            >
+              <Download className="h-3 w-3" /> Download media
             </button>
           )}
           <button

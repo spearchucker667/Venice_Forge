@@ -61,6 +61,9 @@ export function useVideo() {
       useBackgroundTaskStore.getState().registerQueueTask(newTaskId, 'video', qid, {
         model: data.model || req.model,
         request: requestSummary,
+        ...(req.duration ? { requestedDuration: req.duration } : {}),
+        ...(req.resolution ? { requestedResolution: req.resolution } : {}),
+        ...(req.aspect_ratio ? { requestedAspectRatio: req.aspect_ratio } : {}),
         ...(data.download_url ? { queueDownloadUrl: data.download_url } : {}),
       })
     },
@@ -84,6 +87,7 @@ export function useVideo() {
     queue: queueMutation.mutate,
     isQueueing: queueMutation.isPending,
     status: task ? task.status : 'idle',
+    stage: task?.stage ?? null,
     videoUrl: task?.resultUrl ?? null,
     error: task?.error ?? queueSchemaError ?? (queueMutation.isError ? toUserFacingVideoError(queueMutation.error, 'Unable to queue video generation.') : null),
     elapsedMs,
@@ -91,6 +95,12 @@ export function useVideo() {
     reset,
     queueId: task?.queueId ?? null,
     resultMediaId: task?.resultMediaId ?? null,
-    lastRequest: (task?.metadata?.request as VideoQueueRequest | undefined) ?? null,
+    lastRequest: (task?.metadata?.request as VideoQueueRequest | undefined) ?? (task ? {
+      model: String(task.metadata?.model ?? task.modelId ?? ''),
+      prompt: '',
+      ...(typeof task.metadata?.requestedDuration === 'string' ? { duration: task.metadata.requestedDuration } : {}),
+      ...(typeof task.metadata?.requestedResolution === 'string' ? { resolution: task.metadata.requestedResolution } : {}),
+      ...(typeof task.metadata?.requestedAspectRatio === 'string' ? { aspect_ratio: task.metadata.requestedAspectRatio } : {}),
+    } : null),
   }
 }

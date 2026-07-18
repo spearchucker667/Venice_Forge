@@ -1,8 +1,6 @@
 import React from "react";
 import { Field } from "../../components/Field";
 import type { SearchResultItem } from "./searchScrapeTypes";
-import { isElectron } from "../../services/desktopBridge";
-import { isTrustedExternalUrl } from "../../shared/urlSecurity";
 
 export function SearchTab({
   query,
@@ -12,11 +10,9 @@ export function SearchTab({
   loading,
   runSearch,
   searchResults,
-  onOpenInBrowser,
   onScrapeWithVenice,
   onReadWithJina,
   onSaveToSession,
-  onRequestOpenInSystemBrowser,
 }: {
   query: string;
   setQuery: (val: string) => void;
@@ -25,11 +21,9 @@ export function SearchTab({
   loading: string;
   runSearch: () => void;
   searchResults: SearchResultItem[];
-  onOpenInBrowser?: (url: string) => void;
   onScrapeWithVenice?: (url: string) => void;
   onReadWithJina?: (url: string) => void;
   onSaveToSession?: (item: SearchResultItem) => void;
-  onRequestOpenInSystemBrowser?: (url: string) => void;
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg flex flex-col gap-4">
@@ -72,31 +66,11 @@ export function SearchTab({
               <strong className="text-text-primary block mb-1">
                 {r.title || r.name || "Untitled result"}
               </strong>
-              {onOpenInBrowser ? (
-                <button
-                  type="button"
-                  onClick={() => onOpenInBrowser(url)}
-                  className="text-accent hover:underline break-all text-[12px] block mb-2 text-left cursor-pointer"
-                >
-                  {url}
-                </button>
-              ) : (
-                <span className="text-accent break-all text-[12px] block mb-2">
-                  {url}
-                </span>
-              )}
+              <span className="text-accent break-all text-[12px] block mb-2">{url}</span>
               <div className="text-text-secondary leading-relaxed mb-2">
                 {r.snippet || r.content || r.description || ""}
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {isElectron() && onOpenInBrowser && (
-                  <button
-                    onClick={() => onOpenInBrowser(url)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
-                  >
-                    Open in browser
-                  </button>
-                )}
                 {onScrapeWithVenice && (
                   <button
                     onClick={() => onScrapeWithVenice(url)}
@@ -119,14 +93,6 @@ export function SearchTab({
                     className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
                   >
                     Save to session
-                  </button>
-                )}
-                {onRequestOpenInSystemBrowser && isTrustedExternalUrl(url) && (
-                  <button
-                    onClick={() => onRequestOpenInSystemBrowser(url)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
-                  >
-                    Open external
                   </button>
                 )}
               </div>

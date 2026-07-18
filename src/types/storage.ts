@@ -47,6 +47,8 @@ export interface GalleryImage {
   workflow?: string;
   queueId?: string;
   downloadUrl?: string;
+  /** Main-process content-addressed generated-media identifier. */
+  generatedMediaId?: string;
   duration?: string;
   resolution?: string;
   quality?: string;

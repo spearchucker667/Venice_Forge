@@ -126,7 +126,7 @@ export function TaskCenterDrawer() {
                       </h3>
                     </div>
                     <span className={`shrink-0 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wider ${STATUS_BADGE[task.status]}`}>
-                      {task.status}
+                      {task.type === 'video' && task.stage ? task.stage : task.status}
                     </span>
                   </div>
                   {(providerStr || modelStr) && (

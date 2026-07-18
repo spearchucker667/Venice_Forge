@@ -4,7 +4,7 @@
  * running searches, scraping URLs, building findings, and generating summaries.
  */
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   useResearchStore 
 } from '../../stores/research-store';
@@ -23,8 +23,6 @@ import { usePromptLibraryStore } from '../../stores/prompt-library-store';
 import { useWorkflowTemplateStore } from '../../stores/workflow-template-store';
 import { toast } from '../../stores/toast-store';
 import { askDecision, askText } from '../ui/modal-requests';
-import { ResearchBrowserView } from './ResearchBrowserView';
-import { researchBrowserBridge } from '../../services/researchBrowserBridge';
 import { processFileAttachment } from '../../services/ingestion/attachmentAssembler';
 import { redactErrorMessage } from '../../shared/redaction';
 
@@ -97,78 +95,9 @@ export const ResearchWorkspaceView: React.FC = () => {
   const [findingContent, setFindingContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Browser layout state
-  const [browserWidth, setBrowserWidth] = useState(400);
-  const [isDragging, setIsDragging] = useState(false);
-  const leftColRef = useRef<HTMLDivElement>(null);
-  const resizerRef = useRef<HTMLDivElement>(null);
-  const browserColRef = useRef<HTMLDivElement>(null);
-
-  const updateBrowserWidthFromClientX = useCallback((clientX: number) => {
-    const newWidth = document.body.clientWidth - clientX;
-    setBrowserWidth(Math.max(300, Math.min(newWidth, 800)));
-  }, []);
-
-  const stopBrowserResizeDrag = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  useEffect(() => {
-    if (leftColRef.current) leftColRef.current.style.width = `calc(100% - ${browserWidth}px)`;
-    if (browserColRef.current) browserColRef.current.style.width = `${browserWidth}px`;
-  }, [browserWidth]);
-
-  useEffect(() => {
-    if (resizerRef.current) {
-      resizerRef.current.style.backgroundColor = isDragging ? 'var(--accent)' : 'var(--border)';
-    }
-  }, [isDragging]);
-
   useEffect(() => {
     ensureResearchLoaded();
   }, [ensureResearchLoaded]);
-
-  useEffect(() => {
-    if (!isDragging) return undefined;
-
-    const handleMouseMove = (event: MouseEvent) => {
-      updateBrowserWidthFromClientX(event.clientX);
-    };
-    const handleMouseUp = () => {
-      stopBrowserResizeDrag();
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, stopBrowserResizeDrag, updateBrowserWidthFromClientX]);
-
-  const handleOpenInBrowser = async (url: string) => {
-    await researchBrowserBridge.navigate({ urlOrQuery: url });
-  };
-
-  const handleCaptureWithJina = async (url: string) => {
-    if (!activeSession) return;
-    setIsScraping(true);
-    try {
-      const result = await runResearchScrape({
-        url,
-        provider: 'jina',
-        jinaOptions: { 'x-return-format': 'markdown' },
-      });
-      for (const source of result.sources) {
-        await addSource(activeSession.id, source);
-      }
-      toast.success('Captured page with Jina Reader');
-    } catch {
-      toast.error('Jina capture failed');
-    } finally {
-      setIsScraping(false);
-    }
-  };
 
   const activeSession = useMemo(() => 
     sessions.find(s => s.id === activeSessionId) || null
@@ -430,10 +359,7 @@ export const ResearchWorkspaceView: React.FC = () => {
             <div 
               className="flex-1 flex overflow-hidden relative"
             >
-              <div 
-                ref={leftColRef}
-                className={`flex-1 flex flex-col overflow-hidden ${isDragging ? 'pointer-events-none select-none' : ''}`}
-              >
+              <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 flex overflow-hidden">
                   {/* Left Column - Search & Sources */}
                   <div className="flex-1 flex flex-col border-r border-border/50 overflow-hidden">
@@ -508,7 +434,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                         <span aria-hidden="true"><TrashIcon /></span>
                       </button>
                       <h4 className="font-bold text-accent truncate pr-6">
-                        <SourceLink title={src.title} url={src.url} onClick={handleOpenInBrowser} />
+                        <SourceLink title={src.title} url={src.url} />
                       </h4>
                       <p className="text-xs text-text-muted truncate mb-2">{src.url}</p>
                       <div className="text-sm text-text-secondary line-clamp-3">
@@ -581,27 +507,6 @@ export const ResearchWorkspaceView: React.FC = () => {
             </div>
           </div>
 
-              {/* Resizer */}
-              <div 
-                ref={resizerRef}
-                className="w-1 cursor-col-resize hover:bg-accent transition-colors shrink-0"
-                role="separator"
-                aria-label="Resize research browser"
-                aria-orientation="vertical"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  updateBrowserWidthFromClientX(e.clientX);
-                  setIsDragging(true);
-                }}
-              />
-
-              {/* Research Browser Column */}
-              <div 
-                ref={browserColRef}
-                className={`flex flex-col h-full bg-bg shrink-0 ${isDragging ? 'pointer-events-none select-none' : ''}`}
-              >
-                <ResearchBrowserView onCaptureWithJina={handleCaptureWithJina} />
-              </div>
             </div>
           </>
         ) : (

@@ -141,6 +141,9 @@ export interface VeniceForgeApp {
 
 /** Exposes file dialog helpers for importing and exporting JSON data. */
 export interface VeniceForgeFiles {
+  saveGeneratedMedia(input: { mediaId: string; suggestedName?: string }): Promise<{
+    ok: boolean; canceled: boolean; filename?: string; bytes?: number; error?: string;
+  }>;
   saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }>;
   loadJsonFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }>;
   saveYamlFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }>;
@@ -404,7 +407,6 @@ export interface VeniceForge {
   rpAssets: VeniceForgeRpAssets;
   scenarios: VeniceForgeScenarios;
   backgroundTask: VeniceForgeBackgroundTask;
-  researchBrowser?: import('./researchBrowser').ResearchBrowserPreloadApi;
 }
 
 export interface EncryptedBackupManifestTransport {

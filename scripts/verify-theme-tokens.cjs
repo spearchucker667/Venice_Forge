@@ -32,8 +32,6 @@ const INVALID_BROWSER_TOKEN_SCAN_ROOTS = [
   "src/components/research",
   "src/components/search",
   "src/styles",
-  "electron/services/researchBrowserHome.ts",
-  "electron/services/researchBrowserServer.ts",
   "assets",
 ];
 
@@ -78,8 +76,7 @@ const INVALID_BROWSER_TOKENS = [
   "--tone-info",
   "--glow-primary",
   // Removed in 2026-07: text tier uses --text-primary / --text-muted /
-  // --foreground-subtle only (see VERIFY-RB-THEME-001 in
-  // src/components/research/ResearchBrowserView.test.tsx).
+  // --foreground-subtle only.
   "--text-subtle",
 ];
 

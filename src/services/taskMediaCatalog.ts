@@ -36,10 +36,14 @@ export async function persistCompletedTaskMedia(task: BackgroundTask): Promise<M
       favorite: false,
       queueId: task.queueId,
       downloadUrl: task.resultUrl,
+      ...(task.resultMediaId ? { generatedMediaId: task.resultMediaId } : {}),
       ...(mimeType ? { mimeType } : {}),
-      ...(typeof request.duration === 'string' ? { duration: request.duration } : {}),
-      ...(typeof request.resolution === 'string' ? { resolution: request.resolution } : {}),
-      ...(typeof request.aspect_ratio === 'string' ? { aspectRatio: request.aspect_ratio } : {}),
+      ...(typeof request.duration === 'string' || typeof task.metadata?.requestedDuration === 'string'
+        ? { duration: String(request.duration ?? task.metadata?.requestedDuration) } : {}),
+      ...(typeof request.resolution === 'string' || typeof task.metadata?.requestedResolution === 'string'
+        ? { resolution: String(request.resolution ?? task.metadata?.requestedResolution) } : {}),
+      ...(typeof request.aspect_ratio === 'string' || typeof task.metadata?.requestedAspectRatio === 'string'
+        ? { aspectRatio: String(request.aspect_ratio ?? task.metadata?.requestedAspectRatio) } : {}),
       ...(typeof request.audio === 'boolean' ? { audio: request.audio } : {}),
     }
     return await store.upsert(item, { attachActiveProject: true, source: 'generated' })

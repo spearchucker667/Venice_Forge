@@ -122,6 +122,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
       id: taskId,
       type,
       status: 'queued',
+      stage: type === 'video' ? 'queued' : undefined,
       queueId,
       createdAt: now,
       updatedAt: now,
@@ -214,7 +215,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
   retryTask: (taskId) => {
     const task = get().tasks[taskId]
     if (!task || !task.queueId || !isProviderPolledBackgroundTaskType(task.type)) return
-    get().updateTask(taskId, { status: 'queued', error: undefined })
+    get().updateTask(taskId, { status: 'queued', stage: task.type === 'video' ? 'queued' : undefined, error: undefined })
     if (isElectron()) {
       get().ensureDesktopSubscription()
       void desktopBackgroundTask.retry(taskId)

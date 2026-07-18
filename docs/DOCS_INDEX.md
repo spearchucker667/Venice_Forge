@@ -37,7 +37,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [DEVELOPMENT/storage-policy.md](DEVELOPMENT/storage-policy.md) — IndexedDB storage configuration, encryption, and folder layouts.
 - [DEVELOPMENT/BRIDGE.md](DEVELOPMENT/BRIDGE.md) — Headless loopback bridge specifications.
 - [DEVELOPMENT/JINA_PROVIDER.md](DEVELOPMENT/JINA_PROVIDER.md) — Jina-backed search and scrape integrations.
-- [DEVELOPMENT/research-browser.md](DEVELOPMENT/research-browser.md) — Electron WebContentsView boundary model, CSPs, and headed smoke checklist.
+- [`../inactive-features/research-browser/README.md`](../inactive-features/research-browser/README.md) — Inactive archive boundary for the former embedded Research Browser.
 - [chat-model-selection.md](chat-model-selection.md) — Per-conversation model precedence, provider defaults, and fallback reconciliation.
 - [memory-isolation.md](memory-isolation.md) — Conversation-scoped memory retrieval, exclusions, and preview lifecycle.
 - [rp-token-counting.md](rp-token-counting.md) — Compiled prompt estimates and over-budget save behavior.
@@ -125,6 +125,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md](reports/INTENDED_FEATURE_VERIFICATION_2026-07-15.md) — Historical snapshot reconciliation of the supplied intended-feature checklist.
 - [reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md](reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md) — Historical 2026-07-12/13 media/character implementation evidence.
 - [reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md](reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) — Historical 2026-07-15 video, Character Chats, and UI evidence.
+- [reports/VIDEO_PIPELINE_AND_RESEARCH_BROWSER_DEACTIVATION_2026-07-18.md](reports/VIDEO_PIPELINE_AND_RESEARCH_BROWSER_DEACTIVATION_2026-07-18.md) — Current implementation and validation report for streamed video durability and Research Browser deactivation.
 - [reports/historical/final-massive-bug-hunt-with-proof.md](reports/historical/final-massive-bug-hunt-with-proof.md) — Historical audit log of closed validation checks from the v2.1.0 release boundary.
 
 ---
@@ -135,7 +136,7 @@ Internal-only agent material such as `docs/BUG_HUNTING_AGENT_PROMPT.md` is inten
 
 The following files were removed, merged, or archived during the repository-wide documentation hygiene pass:
 - `docs/audits/repository-todo-roadmap-current.md` — Merged into the clean [ROADMAP.md](ROADMAP.md).
-- `docs/audits/research-browser-plan.md` — Merged into [DEVELOPMENT/research-browser.md](DEVELOPMENT/research-browser.md).
+- `docs/audits/research-browser-plan.md` and `docs/DEVELOPMENT/research-browser.md` — Retained only in the inactive Research Browser archive.
 - `docs/audits/CHANGELOG.md` — Removed as a duplicate history ledger; current work is recorded in [summary_of_work.md](summary_of_work.md).
 - `docs/audits/exhaustive-bug-hunt-2026-06-19.md` — Removed as superseded historical evidence; current findings remain in the canonical roadmap and audit index.
 - `docs/LEGAL.md` — Deleted as a duplicate of the root [LEGAL.md](../LEGAL.md).

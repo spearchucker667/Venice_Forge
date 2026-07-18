@@ -81,8 +81,10 @@ export function normalizeVideoRetrieveResult(
     }
   }
   if (rawStatus === 'COMPLETED') {
-    if (queueDownloadUrl?.trim()) {
-      return { kind: 'download', downloadUrl: queueDownloadUrl.trim(), mimeType: 'video/mp4' }
+    const responseDownloadUrl = typeof data.download_url === 'string' ? data.download_url.trim() : ''
+    const durableDownloadUrl = responseDownloadUrl || queueDownloadUrl?.trim()
+    if (durableDownloadUrl) {
+      return { kind: 'download', downloadUrl: durableDownloadUrl, mimeType: 'video/mp4' }
     }
     return { kind: 'failed', error: 'Video completed without a playable video response.' }
   }

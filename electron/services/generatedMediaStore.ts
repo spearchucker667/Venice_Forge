@@ -1,8 +1,10 @@
 /** Durable generated audio/video storage owned by the Electron main process. */
 import { app } from 'electron'
 import crypto from 'crypto'
+import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import path from 'path'
+import { Readable } from 'stream'
 import { checkPathContained } from '../utils/navigation'
 
 export const GENERATED_MEDIA_SCHEME = 'venice-media'
@@ -12,6 +14,11 @@ const ALLOWED_MIME = new Map([
   ['audio/wav', 'wav'],
   ['audio/flac', 'flac'],
 ])
+
+export interface GeneratedMediaTempFile {
+  path: string
+  handle: Awaited<ReturnType<typeof fs.open>>
+}
 
 export interface DurableGeneratedMedia {
   id: string
@@ -30,6 +37,58 @@ function isLexicallyContained(target: string, root: string): boolean {
   return relative !== '' && !relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative)
 }
 
+export async function createGeneratedMediaTempFile(): Promise<GeneratedMediaTempFile> {
+  const root = getGeneratedMediaRoot()
+  await fs.mkdir(root, { recursive: true, mode: 0o700 })
+  const temporaryPath = path.join(root, `.incoming-${crypto.randomBytes(12).toString('hex')}.tmp`)
+  if (!isLexicallyContained(temporaryPath, root)) throw new Error('Generated media path was rejected.')
+  return { path: temporaryPath, handle: await fs.open(temporaryPath, 'wx', 0o600) }
+}
+
+export async function commitGeneratedMediaTempFile(input: {
+  temporaryPath: string
+  mimeType: string
+  byteCount: number
+  sha256: string
+}): Promise<DurableGeneratedMedia> {
+  const normalizedMime = input.mimeType.split(';')[0].trim().toLowerCase()
+  const extension = ALLOWED_MIME.get(normalizedMime)
+  if (!extension) throw new Error('Generated media has an unsupported content type.')
+  if (!Number.isSafeInteger(input.byteCount) || input.byteCount <= 0) throw new Error('Generated media response was empty.')
+  if (!/^[a-f0-9]{64}$/.test(input.sha256)) throw new Error('Generated media digest was invalid.')
+
+  const root = getGeneratedMediaRoot()
+  const mediaPath = path.join(root, `${input.sha256}.${extension}`)
+  const metadataPath = path.join(root, `${input.sha256}.json`)
+  const metadataTemp = `${metadataPath}.tmp-${crypto.randomBytes(6).toString('hex')}`
+  if (!isLexicallyContained(input.temporaryPath, root) || !isLexicallyContained(mediaPath, root) || !isLexicallyContained(metadataPath, root)) {
+    throw new Error('Generated media path was rejected.')
+  }
+  const stat = await fs.stat(input.temporaryPath)
+  if (!stat.isFile() || stat.size !== input.byteCount) throw new Error('Generated media temporary file was incomplete.')
+
+  try {
+    try {
+      await fs.rename(input.temporaryPath, mediaPath)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+      await fs.rm(input.temporaryPath, { force: true })
+    }
+    const metadata = JSON.stringify({ version: 1, id: input.sha256, sha256: input.sha256, mimeType: normalizedMime, byteCount: input.byteCount, extension })
+    await fs.writeFile(metadataTemp, metadata, { mode: 0o600 })
+    const metadataHandle = await fs.open(metadataTemp, 'r')
+    try { await metadataHandle.sync() } finally { await metadataHandle.close() }
+    await fs.rename(metadataTemp, metadataPath)
+    const directoryHandle = await fs.open(root, 'r')
+    try { await directoryHandle.sync() } finally { await directoryHandle.close() }
+  } catch (error) {
+    await fs.rm(input.temporaryPath, { force: true }).catch(() => undefined)
+    await fs.rm(metadataTemp, { force: true }).catch(() => undefined)
+    throw error
+  }
+  return { id: input.sha256, url: `${GENERATED_MEDIA_SCHEME}://${input.sha256}`, mimeType: normalizedMime, byteCount: input.byteCount, sha256: input.sha256 }
+}
+
 export async function persistGeneratedMedia(bytes: Buffer, mimeType: string): Promise<DurableGeneratedMedia> {
   const normalizedMime = mimeType.split(';')[0].trim().toLowerCase()
   const extension = ALLOWED_MIME.get(normalizedMime)
@@ -44,24 +103,17 @@ export async function persistGeneratedMedia(bytes: Buffer, mimeType: string): Pr
         : bytes.length >= 3 && (bytes.subarray(0, 3).toString('ascii') === 'ID3' || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0))
   if (!signatureOk) throw new Error('Generated media bytes did not match the declared content type.')
   const sha256 = crypto.createHash('sha256').update(bytes).digest('hex')
-  const root = getGeneratedMediaRoot()
-  await fs.mkdir(root, { recursive: true, mode: 0o700 })
-  const mediaPath = path.join(root, `${sha256}.${extension}`)
-  const metadataPath = path.join(root, `${sha256}.json`)
-  if (!isLexicallyContained(mediaPath, root) || !isLexicallyContained(metadataPath, root)) throw new Error('Generated media path was rejected.')
-  const tempPath = `${mediaPath}.tmp-${crypto.randomBytes(6).toString('hex')}`
+  const temp = await createGeneratedMediaTempFile()
   try {
-    await fs.writeFile(tempPath, bytes, { mode: 0o600 })
-    await fs.rename(tempPath, mediaPath)
-    const metadata = JSON.stringify({ version: 1, id: sha256, sha256, mimeType: normalizedMime, byteCount: bytes.length, extension })
-    const metadataTemp = `${metadataPath}.tmp-${crypto.randomBytes(6).toString('hex')}`
-    await fs.writeFile(metadataTemp, metadata, { mode: 0o600 })
-    await fs.rename(metadataTemp, metadataPath)
+    await temp.handle.writeFile(bytes)
+    await temp.handle.sync()
+    await temp.handle.close()
+    return await commitGeneratedMediaTempFile({ temporaryPath: temp.path, mimeType: normalizedMime, byteCount: bytes.length, sha256 })
   } catch (error) {
-    await fs.rm(tempPath, { force: true }).catch(() => undefined)
+    await temp.handle.close().catch(() => undefined)
+    await fs.rm(temp.path, { force: true }).catch(() => undefined)
     throw error
   }
-  return { id: sha256, url: `${GENERATED_MEDIA_SCHEME}://${sha256}`, mimeType: normalizedMime, byteCount: bytes.length, sha256 }
 }
 
 export async function resolveGeneratedMedia(id: string): Promise<{ path: string; mimeType: string } | null> {
@@ -92,8 +144,8 @@ export async function createGeneratedMediaResponse(id: string, rangeHeader?: str
   }
 
   if (!rangeHeader) {
-    const bytes = await fs.readFile(resolved.path)
-    return new Response(bytes, { headers: { ...commonHeaders, 'Content-Length': String(bytes.length) } })
+    const body = Readable.toWeb(createReadStream(resolved.path)) as ReadableStream<Uint8Array>
+    return new Response(body, { headers: { ...commonHeaders, 'Content-Length': String(stat.size) } })
   }
 
   const match = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim())
@@ -108,20 +160,13 @@ export async function createGeneratedMediaResponse(id: string, rangeHeader?: str
     return new Response(null, { status: 416, headers: { ...commonHeaders, 'Content-Range': `bytes */${stat.size}` } })
   }
   const length = end - start + 1
-  const handle = await fs.open(resolved.path, 'r')
-  try {
-    const bytes = Buffer.alloc(length)
-    const { bytesRead } = await handle.read(bytes, 0, length, start)
-    const body = bytesRead === length ? bytes : bytes.subarray(0, bytesRead)
-    return new Response(body, {
-      status: 206,
-      headers: {
-        ...commonHeaders,
-        'Content-Length': String(body.length),
-        'Content-Range': `bytes ${start}-${start + body.length - 1}/${stat.size}`,
-      },
-    })
-  } finally {
-    await handle.close()
-  }
+  const body = Readable.toWeb(createReadStream(resolved.path, { start, end })) as ReadableStream<Uint8Array>
+  return new Response(body, {
+    status: 206,
+    headers: {
+      ...commonHeaders,
+      'Content-Length': String(length),
+      'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+    },
+  })
 }

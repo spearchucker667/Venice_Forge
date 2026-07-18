@@ -43,7 +43,7 @@ const requiredGates = [
   'verify:storage-policy',
   'verify:document-ingestion',
   'verify:research-workspace',
-  'verify:research-browser',
+  'verify:inactive-feature-archive',
   'verify:network-boundaries',
   'verify:venice-api-docs',
   'verify:release-packaging-hardening',
@@ -51,8 +51,7 @@ const requiredGates = [
   'verify:agent-docs',
   'verify:image-policy',
   'verify:work-orders',
-  'verify:no-native-dialogs',
-  'verify:web-contents-view'
+  'verify:no-native-dialogs'
 ];
 
 console.log("Checking CI contract...");

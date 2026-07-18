@@ -1,7 +1,7 @@
 /** @fileoverview File-system and local-file IPC handlers (save/load dialogs,
  *  media import/export, character image cache, etc.). */
 
-import { app, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, shell } from "electron";
 import fs from "fs/promises";
 import path from "path";
 import { VENICE_MAX_BODY_BYTES } from "../../../src/shared/limits";
@@ -20,6 +20,7 @@ import {
 } from "../../services/characterImageCache";
 import { registerIpcChannel } from "./common";
 import { getProfileSessionId } from "../../services/profileSession";
+import { saveGeneratedMediaAs } from "../../services/generatedMediaExport";
 
 /** Maximum size in bytes for JSON import and export files. */
 const MAX_JSON_FILE_BYTES = VENICE_MAX_BODY_BYTES;
@@ -95,6 +96,26 @@ const SAVE_ROUTED_IMAGE_BLOCKED_EXTS = new Set([
 ]);
 
 export function registerFileHandlers(): void {
+  registerIpcChannel("app:media:save-generated", async (event, input: unknown) => {
+    try {
+      const owner = BrowserWindow.fromWebContents(event.sender);
+      if (!owner || event.senderFrame !== event.sender.mainFrame) {
+        return { ok: false, canceled: false, error: "Generated media export sender was rejected." };
+      }
+      if (!input || typeof input !== "object") {
+        return { ok: false, canceled: false, error: "Generated media export payload was invalid." };
+      }
+      const record = input as Record<string, unknown>;
+      const result = await saveGeneratedMediaAs({
+        mediaId: typeof record.mediaId === "string" ? record.mediaId : "",
+        suggestedName: typeof record.suggestedName === "string" ? record.suggestedName : undefined,
+      });
+      return result;
+    } catch (err) {
+      return { ok: false, canceled: false, error: redactErrorMessage(err) };
+    }
+  });
+
   registerIpcChannel("app:saveJsonFile", async (_event, data: unknown, defaultPath: unknown) => {
     try {
       if (typeof data !== "string") throw new Error("Export data must be a string.");

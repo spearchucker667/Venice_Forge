@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { normalizeProgressRatio, normalizeVideoRetrieveResult } from './video-retrieve-normalizer'
 
 describe('normalizeVideoRetrieveResult', () => {
+  it('preserves a completed response download_url for main-process retrieval', () => {
+    expect(normalizeVideoRetrieveResult({ status: 'COMPLETED', download_url: 'https://media.example/video.mp4' }))
+      .toEqual({ kind: 'download', downloadUrl: 'https://media.example/video.mp4', mimeType: 'video/mp4' })
+  })
   it('normalizes uppercase processing status and provider timing', () => {
     expect(normalizeVideoRetrieveResult({
       status: 'PROCESSING',

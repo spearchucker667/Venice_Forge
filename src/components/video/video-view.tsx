@@ -13,7 +13,7 @@ import { useMediaStore } from '../../stores/media-store'
 import type { VideoQueueRequest, VideoConstraints } from '../../types/venice'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { formatModelLabelWithCost } from '../../utils/pricing'
-import { downloadMedia } from '../../utils/download'
+import { desktopFiles, isElectron } from '../../services/desktopBridge'
 import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
 
 export function VideoView() {
@@ -41,7 +41,7 @@ export function VideoView() {
   const [audioEnabled, setAudioEnabled] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const { queue, isQueueing, status, videoUrl, error, reset, cancel, elapsedMs, queueId, resultMediaId, lastRequest } = useVideo()
+  const { queue, isQueueing, status, stage, videoUrl, error, reset, cancel, elapsedMs, queueId, resultMediaId, lastRequest } = useVideo()
   const isProcessing = status === 'queued' || status === 'processing'
 
   // Resolve current group and constraints
@@ -403,6 +403,7 @@ export function VideoView() {
                       aspectRatio: lastRequest?.aspect_ratio,
                       audio: lastRequest?.audio,
                       downloadUrl: videoUrl,
+                      generatedMediaId: resultMediaId ?? undefined,
                     }
                     if (queueId) savedQueueIdsRef.current.add(queueId)
                     try {
@@ -431,7 +432,22 @@ export function VideoView() {
                 </button>
                   )
                 })()}
-                <button type="button" onClick={() => void downloadMedia(videoUrl, 'venice-video.mp4').catch((downloadError) => toast.fromError(downloadError, 'Video download failed'))} className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
+                <button type="button" onClick={() => void (async () => {
+                  try {
+                    if (isElectron()) {
+                      if (!resultMediaId) throw new Error('The durable video is not ready to save yet.')
+                      const saved = await desktopFiles.saveGeneratedMedia(resultMediaId, 'venice-video.mp4')
+                      if (saved) toast.success('Video saved')
+                      return
+                    }
+                    const anchor = document.createElement('a')
+                    anchor.href = videoUrl
+                    anchor.download = 'venice-video.mp4'
+                    anchor.click()
+                  } catch (downloadError) {
+                    toast.fromError(downloadError, 'Video download failed')
+                  }
+                })()} className="text-[14px] text-text-muted hover:text-text-muted transition-colors flex items-center gap-1.5">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
                   Download
                 </button>
@@ -443,8 +459,8 @@ export function VideoView() {
         ) : isProcessing ? (
           <div className="flex flex-1 items-center justify-center" aria-live="polite">
             <GenerationLoadingIndicator
-              state={status === 'queued' ? 'queued' : 'generating'}
-              label={status === 'queued' ? 'Video queued…' : 'Rendering video…'}
+              state={stage === 'retrieving' || stage === 'saving' ? 'processing' : status === 'queued' ? 'queued' : 'generating'}
+              label={stage === 'retrieving' ? 'Retrieving video…' : stage === 'saving' ? 'Saving securely…' : status === 'queued' ? 'Video queued…' : 'Rendering video…'}
               detail={elapsedMs > 0 ? `${Math.floor(elapsedMs / 1000)}s elapsed` : undefined}
               showCancel
               onCancel={cancel}
