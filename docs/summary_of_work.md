@@ -5,6 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-18
+**Scope:** Venice API System Prompt Foundation and link repair
+
+- **System Prompt Creation:** Authored `docs/reference/VENICE_API_SYSTEM_PROMPT.md` to serve as the foundational background layer for Venice API interactions, detailing tool usage, capabilities, constraints, and privacy boundaries.
+- **Repository Hygiene:** Fixed broken links in `docs/DOCS_INDEX.md`, `docs/reports/CANONICAL_REPORT_INDEX.md`, and `docs/ROADMAP.md` that pointed to two user-owned audit files deleted prior to this session (`Venice_Forge_Deep_Scan_2026-07-17_031029.md` and `EVIDENCE_MANIFEST.md`). This remediates the final Markdown verification failure blocking CI.
+- **Validation:** Executed `npm run verify:markdown-links` which now passes successfully.
+- **Pending:** Wait for CI verification and push to `main`.
+
+### Prior same-day Document Agent attachment-to-managed-document promotion (`VERIFY-154`)
+
+**Date:** 2026-07-18
 **Scope:** Document Agent attachment-to-managed-document promotion (`VERIFY-154`).
 
 - **Capability and registry:** added `attachment:promote` to the `Capability` union and granted it in `limited_documents`, `workspace_with_approval`, and `workspace_autonomous` (NOT in `off` or `read_attachments`). Registered `document.promoteAttachment` ↔ `document_promote_attachment` in the canonical provider/internal name map (now 15 tools) and added the corresponding `DEFINITIONS` row in the registry. The `limited_documents` preset now exposes 7 document-prefixed provider schemas.

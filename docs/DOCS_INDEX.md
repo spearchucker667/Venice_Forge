@@ -74,6 +74,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [backup-and-sync.md](backup-and-sync.md) — Manual encrypted backups and encrypted sync-folder operation.
 - [FILE_TREE.md](FILE_TREE.md) — Practical file tree of the actual directories.
 - [reference/Venice_api_LLM_info.md](reference/Venice_api_LLM_info.md) — Venice-provided LLM integration reference.
+- [reference/VENICE_API_SYSTEM_PROMPT.md](reference/VENICE_API_SYSTEM_PROMPT.md) — Core system prompt for AI agents integrating with the Venice API.
 - [reference/seedance-2-0-api-guide.md](reference/seedance-2-0-api-guide.md) — Seedance video API reference.
 - [reference/seedance-face-consent-api-guide.md](reference/seedance-face-consent-api-guide.md) — Seedance face-consent API reference and boundary notes.
 
@@ -116,7 +117,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [ROADMAP.md](ROADMAP.md) — Canonical current-work-only task ledger; closed work and historical validation stay in the session ledger and historical reports.
 - [audits/TODO/Function_calling_todo.md](audits/TODO/Function_calling_todo.md) — Canonical Document Agent implementation and acceptance specification.
 - [summary_of_work.md](summary_of_work.md) — Active session ledger (recent sessions only).
-- [audits/Venice_Forge-audit-evidence-20260717-031029/Venice_Forge_Deep_Scan_2026-07-17_031029.md](audits/Venice_Forge-audit-evidence-20260717-031029/Venice_Forge_Deep_Scan_2026-07-17_031029.md) — July 17 03:10 deep-scan audit evidence; remediated live status remains in `ROADMAP.md` and `summary_of_work.md`.
+- July 17 03:10 deep-scan audit evidence was processed; remediated live status remains in `ROADMAP.md` and `summary_of_work.md`.
 
 ---
 

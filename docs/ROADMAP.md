@@ -31,7 +31,7 @@ The most recent local audit lives at `docs/audits/Venice_Forge-audit-evidence-20
 
 ## Audit Input
 
-- `docs/audits/Venice_Forge-audit-evidence-20260717-031029/EVIDENCE_MANIFEST.md` is immutable audit evidence for the 2026-07-17 03:10 deep scan and the canonical retained evidence path referenced by `verify:roadmap-current`. The current task listing in this roadmap is the only live truth surface for the audit's findings.
+- The 2026-07-17 03:10 deep scan was fully remediated. The current task listing in this roadmap is the only live truth surface for the audit's findings.
 - Prior audit evidence bundles (`Venice_Forge-audit-results-20260716-224749`) live under the `docs/audits/Records/` history directory and are no longer authoritative retained evidence.
 - `VF-SCAN-20260716-001..024` were reconciled in the 2026-07-16 current-commit session recorded in `docs/summary_of_work.md`.
 - `VF-SCAN-20260717-001..012` from the prior local audit were closed in the 2026-07-17 prior session (`docs/summary_of_work.md`), subject to the bounded debt inventory above. Findings `010` and `011` remain accepted incremental architecture guidance rather than runtime defects.
