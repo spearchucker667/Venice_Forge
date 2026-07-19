@@ -728,6 +728,61 @@ export const desktopCharacterImage = {
   },
 };
 
+export const desktopChatFolders = {
+  async list(profileId?: string) {
+    if (!isElectron()) return { ok: false, folders: [], error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.list(profileId);
+  },
+  async create(input: { name: string; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.create(input);
+  },
+  async rename(input: { id: string; name: string; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.rename(input);
+  },
+  async reorder(input: { folderIds: string[]; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.reorder(input);
+  },
+  async moveConversation(input: { conversationId: string; destinationFolderId: string | null; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.moveConversation(input);
+  },
+  async delete(input: { id: string; deleteChats: boolean; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.delete(input);
+  },
+  async getBackupPreview(input: { folderId: string; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.getBackupPreview(input);
+  },
+  async exportBackup(input: { folderId: string; includeMedia: boolean; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.exportBackup(input);
+  },
+  async previewImport(input: { filePath: string; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.previewImport(input);
+  },
+  async importBackup(input: { filePath: string; mode: "new" | "merge" | "restore"; targetFolderId?: string; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.importBackup(input);
+  },
+  async lock(input: { folderId: string; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.lock(input);
+  },
+  async unlock(input: { folderId: string; password?: string; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.unlock(input);
+  },
+  async getLockState(input: { folderId: string; profileId?: string }) {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+    return window.veniceForge!.chatFolders.getLockState(input);
+  }
+};
+
 /** Conversation vault: next-generation conversation persistence with
  *  memory, search, and index management. Desktop-only; web mode returns
  *  stub errors so callers can fall back to IndexedDB. */

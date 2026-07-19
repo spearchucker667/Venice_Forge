@@ -12,8 +12,9 @@ export async function persistCompletedTaskMedia(task: BackgroundTask): Promise<M
   inFlight.add(id)
   try {
     const store = useMediaStore.getState()
-    const existing = store.items.find((item) => item.id === id || item.queueId === task.queueId)
+    const existing = store.items.find((item) => item.id === id || item.queueId === task.queueId || (task.resultMediaId && item.id === task.resultMediaId))
       ?? await store.loadById(id)
+      ?? (task.resultMediaId ? await store.loadById(task.resultMediaId) : null)
     if (existing) return existing
     const request = task.metadata?.request && typeof task.metadata.request === 'object'
       ? task.metadata.request as Record<string, unknown>

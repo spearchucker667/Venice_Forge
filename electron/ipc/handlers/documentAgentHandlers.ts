@@ -15,9 +15,8 @@ import { WorkspaceFilesystemService } from "../../agent/workspace/workspace-file
 import { getProfileSessionId } from "../../services/profileSession";
 import { registerIpcChannel } from "./common";
 
-const RUNTIME_SESSION_ID = `runtime_${randomUUID()}`;
-const workspaceGrants = new WorkspaceGrantService();
-const workspaceFiles = new WorkspaceFilesystemService();
+import { getAgentServices, RUNTIME_SESSION_ID } from "../../agent/runtime/agent-services";
+
 const DOCUMENT_FORMATS = new Set<DocumentFormat>(["txt", "md", "json", "csv", "html", "docx", "pdf"]);
 
 type DocumentEditPlan = {
@@ -106,11 +105,7 @@ async function atomicExternalWrite(target: string, bytes: Uint8Array): Promise<v
 }
 
 export function registerDocumentAgentHandlers(): void {
-  const storageRoot = path.join(app.getPath("userData"), "document-agent", "documents");
-  const documents = new ManagedDocumentService(storageRoot);
-  const attachments = new AttachmentImportService(documents);
-  const approvals = new ApprovalCoordinator(path.join(app.getPath("userData"), "document-agent", "pending-approvals.json"), RUNTIME_SESSION_ID);
-  const audit = new DocumentAgentAuditService(path.join(app.getPath("userData"), "document-agent", "audit.jsonl"));
+  const { documents, attachments, approvals, audit, workspaceGrants, workspaceFiles } = getAgentServices();
 
   registerIpcChannel("documentAgent:documents:create", async (event, input: unknown) => {
     try {
@@ -214,7 +209,7 @@ export function registerDocumentAgentHandlers(): void {
   registerIpcChannel("documentAgent:approvals:list", async (event) => {
     try {
       const grantId = `limited:${getProfileSessionId(event.sender)}`;
-      return { ok: true, pending: (await approvals.listPendingWithViews()).filter((entry) => entry.approval.grantId === grantId) };
+      return { ok: true, pending: (await approvals.listPendingWithViews()).filter((entry: any) => entry.approval.grantId === grantId) };
     }
     catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
   });

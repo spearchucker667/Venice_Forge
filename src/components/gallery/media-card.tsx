@@ -2,10 +2,10 @@
  * thumbnail, title, badges, and quick action buttons. */
 
 import { memo, useState } from "react";
-import { Heart, Star, Trash2, Image as ImageIcon, Video } from "lucide-react";
+import { Heart, Star, Trash2, Image as ImageIcon, Play, Music } from "lucide-react";
 import { Badge } from "../ui/shared";
 import { useMediaThumb } from "../../hooks/useMediaThumb";
-import { mediaItemSource, formatDimensions, formatDuration, isVideoItem } from "../../utils/mediaItem";
+import { mediaItemSource, formatDimensions, formatDuration, isVideoItem, isAudioItem } from "../../utils/mediaItem";
 import { cn } from "../../lib/utils";
 import type { MediaItem } from "../../types/media";
 
@@ -57,6 +57,7 @@ function MediaCardImpl({
   const [thumbFailed, setThumbFailed] = useState(false);
   const { url, loading } = useMediaThumb(item);
   const isVideo = isVideoItem(item);
+  const isAudio = isAudioItem(item);
   const dims = formatDimensions(item);
   const duration = formatDuration(item.duration);
   const fallbackSrc = mediaItemSource(item);
@@ -84,24 +85,19 @@ function MediaCardImpl({
         aria-label={`Open ${isVideo ? "video" : "image"}: ${item.prompt || "untitled"}`}
       >
         {url && !thumbFailed ? (
-          isVideo ? (
-            <video
-              src={url}
-              muted
-              playsInline
-              preload="metadata"
-              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-              onError={() => setThumbFailed(true)}
-            />
-          ) : (
-            <img
-              src={url}
-              alt={item.prompt || "Generated image"}
-              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-              onError={() => setThumbFailed(true)}
-            />
-          )
-        ) : fallbackSrc && !thumbFailed ? (
+          // Always use <img> for thumbnails — the URL from useMediaThumb is a
+          // poster image (data:image/webp or data:image/png), never a video
+          // stream. Passing an image data URL into <video> causes decode
+          // failures and media-src CSP violations.
+          <img
+            src={url}
+            alt={item.prompt || (isVideo ? "Generated video" : "Generated image")}
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+            onError={() => setThumbFailed(true)}
+          />
+        ) : fallbackSrc && !thumbFailed && !isVideo && !isAudio ? (
+          // Fallback for images only — do not try to render a video/audio
+          // durable URL as an img src.
           <img
             src={fallbackSrc}
             alt={item.prompt || "Generated image"}
@@ -110,9 +106,16 @@ function MediaCardImpl({
           />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-text-muted">
-            {isVideo ? <Video className="h-6 w-6" /> : <ImageIcon className="h-6 w-6" />}
+            {isVideo ? <Play className="h-6 w-6" /> : isAudio ? <Music className="h-6 w-6" /> : <ImageIcon className="h-6 w-6" />}
             <span className="text-[12px]">{loading ? "Loading…" : "Preview unavailable"}</span>
           </div>
+        )}
+
+        {/* Video/audio play overlay badge */}
+        {(isVideo || isAudio) && url && !thumbFailed && (
+          <span className="absolute bottom-2 left-2 rounded-md bg-overlay/80 p-1 text-text-primary backdrop-blur">
+            <Play className="h-3.5 w-3.5" />
+          </span>
         )}
 
         {multiSelectMode && (
@@ -144,7 +147,7 @@ function MediaCardImpl({
       <div className="flex flex-col gap-1.5 p-3">
         <div className="flex items-center gap-1.5">
           <Badge tone={OP_TONE[item.operation] ?? "slate"}>{OP_LABEL[item.operation] ?? "Item"}</Badge>
-          {isVideo ? <Badge tone="rose">Video</Badge> : <Badge tone="slate">Image</Badge>}
+          {isVideo ? <Badge tone="rose">Video</Badge> : isAudio ? <Badge tone="sky">Audio</Badge> : <Badge tone="slate">Image</Badge>}
           {dims && <Badge tone="slate">{dims}</Badge>}
           {typeof item.seed === "number" && <Badge tone="amber">seed: {item.seed}</Badge>}
         </div>

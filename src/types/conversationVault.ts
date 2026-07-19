@@ -57,6 +57,8 @@ export interface ConversationMessage {
   role: ConversationRole;
   content: string | ContentPart[];
   reasoning_content?: string;
+  tool_calls?: import("./venice").AssistantToolCall[];
+  tool_call_id?: string;
   timestamp: number;
   updatedAt?: number;
   metadata?: {

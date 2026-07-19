@@ -14,6 +14,8 @@ export interface ConversationMessage {
   role: "system" | "user" | "assistant" | "tool";
   content: string | ContentPart[];
   reasoning_content?: string;
+  tool_calls?: import("./venice").AssistantToolCall[];
+  tool_call_id?: string;
   timestamp: number;
   updatedAt?: number;
   metadata?: {
@@ -39,6 +41,7 @@ export interface ConversationMessage {
 /** A persisted conversation / chat session. */
 export interface Conversation {
   id: string;
+  folderId?: string | null;
   /** Main-process storage owner. Missing historical records belong to default. */
   profileId?: string;
   title: string;

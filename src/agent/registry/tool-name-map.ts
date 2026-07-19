@@ -14,6 +14,7 @@ export const toolNameMap = {
   "workspace.proposeChangeset": "workspace_propose_changeset",
   "workspace.move": "workspace_move",
   "workspace.trash": "workspace_trash",
+  "media.generateImage": "media_generate_image",
 } as const;
 
 export type InternalToolName = keyof typeof toolNameMap;

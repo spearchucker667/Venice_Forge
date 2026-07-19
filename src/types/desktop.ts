@@ -92,7 +92,7 @@ export interface VeniceForgeResponse {
 /** Provides methods for calling the Venice API via the main process. */
 export interface VeniceForgeVenice {
   request(input: VeniceForgeRequest): Promise<VeniceForgeResponse>;
-  streamChat(input: VeniceForgeRequest, onDelta: (chunk: { content: string; reasoning: string }) => void): Promise<VeniceForgeResponse>;
+  streamChat(input: VeniceForgeRequest, onDelta: (chunk: { content: string; reasoning: string; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => void): Promise<VeniceForgeResponse>;
   abort(signalId: string): Promise<{ ok: boolean }>;
 }
 
@@ -415,6 +415,40 @@ export interface VeniceForgeProfilePurge {
   }>;
 }
 
+export const chatFolderIpcChannels = {
+  list: "chat-folders:list",
+  create: "chat-folders:create",
+  rename: "chat-folders:rename",
+  reorder: "chat-folders:reorder",
+  moveConversation: "chat-folders:move-conversation",
+  deleteFolder: "chat-folders:delete",
+  getBackupPreview: "chat-folders:get-backup-preview",
+  exportBackup: "chat-folders:export-backup",
+  previewImport: "chat-folders:preview-import",
+  importBackup: "chat-folders:import-backup",
+  lock: "chat-folders:lock",
+  unlock: "chat-folders:unlock",
+  getLockState: "chat-folders:get-lock-state",
+} as const;
+
+export interface VeniceForgeChatFolders {
+  list(profileId?: string): Promise<{ ok: boolean; folders: import("./chatFolder").ChatFolder[]; error?: string }>;
+  create(input: { name: string; profileId?: string }): Promise<{ ok: boolean; folder?: import("./chatFolder").ChatFolder; error?: string }>;
+  rename(input: { id: string; name: string; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
+  reorder(input: { folderIds: string[]; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
+  moveConversation(input: { conversationId: string; destinationFolderId: string | null; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
+  delete(input: { id: string; deleteChats: boolean; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
+  
+  getBackupPreview(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; preview?: any; error?: string }>;
+  exportBackup(input: { folderId: string; includeMedia: boolean; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
+  previewImport(input: { filePath: string; profileId?: string }): Promise<{ ok: boolean; preview?: any; error?: string }>;
+  importBackup(input: { filePath: string; mode: "new" | "merge" | "restore"; targetFolderId?: string; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
+  
+  lock(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
+  unlock(input: { folderId: string; password?: string; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
+  getLockState(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; lockState?: "unlocked" | "locked"; error?: string }>;
+}
+
 export interface VeniceForge {
   credentials: VeniceForgeCredentials;
   masterPassword: VeniceForgeMasterPassword;
@@ -432,6 +466,7 @@ export interface VeniceForge {
   files: VeniceForgeFiles;
   chat: VeniceForgeChat;
   conversations: VeniceForgeConversations;
+  chatFolders: VeniceForgeChatFolders;
   sync: ElectronSyncAPI;
   updates: VeniceForgeUpdates;
   config: VeniceForgeConfig;

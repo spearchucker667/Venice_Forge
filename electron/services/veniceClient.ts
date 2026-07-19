@@ -170,6 +170,9 @@ export interface StreamDelta {
   rawData?: string;
   /** The upstream provider's unique request ID, typically present on the first chunk. */
   providerRequestId?: string;
+  tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>;
+  finish_reason?: string | null;
+  usage?: Record<string, unknown>;
 }
 
 /** Result of parsing an SSE buffer. */
@@ -216,10 +219,13 @@ export function extractStreamDelta(data: string): StreamDelta {
                         json?.choices?.[0]?.message?.reasoning_content ??
                         "";
       const providerRequestId = json?.id;
+      const tool_calls = json?.choices?.[0]?.delta?.tool_calls;
+      const finish_reason = json?.choices?.[0]?.finish_reason;
+      const usage = json?.usage;
       if (isErrorFrame && !content && !reasoning) {
         return { content: "", reasoning: "", providerRequestId, parsed: true, malformed: true, rawData: data };
       }
-      return { content, reasoning, providerRequestId, parsed: true, malformed: false };
+      return { content, reasoning, providerRequestId, tool_calls, finish_reason, usage, parsed: true, malformed: false };
     }
     return { content: "", reasoning: "", parsed: true, malformed: false };
   } catch {
@@ -255,7 +261,7 @@ export function extractStreamDelta(data: string): StreamDelta {
  */
 export function parseSseLines(
   buffer: string,
-  onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void,
+  onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: Record<string, unknown>; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => void,
   onMalformed?: (rawData: string) => void,
   customExtractStreamDelta?: (data: string) => StreamDelta,
 ): SseParseResult {
@@ -286,10 +292,10 @@ export function parseSseLines(
       }
       return;
     }
-    if (delta.content || delta.reasoning || delta.providerRequestId) {
+    if (delta.content || delta.reasoning || delta.providerRequestId || delta.tool_calls || delta.finish_reason !== undefined || delta.usage) {
       text += delta.content;
-      // Preserve the existing onDelta contract: only `{ content, reasoning, providerRequestId }`.
-      onDelta({ content: delta.content, reasoning: delta.reasoning, providerRequestId: delta.providerRequestId });
+      // Preserve the existing onDelta contract: only `{ content, reasoning, providerRequestId, tool_calls, finish_reason, usage }`.
+      onDelta({ content: delta.content, reasoning: delta.reasoning, providerRequestId: delta.providerRequestId, tool_calls: delta.tool_calls, finish_reason: delta.finish_reason, usage: delta.usage });
     }
   };
   for (const line of lines) {
@@ -342,7 +348,7 @@ export function abortVeniceRequest(signalId: string): { ok: boolean } {
  */
 export async function performVeniceRequest(
   rawRequest: unknown,
-  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void; body?: unknown } = {}
+  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: Record<string, unknown>; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => void; body?: unknown } = {}
 ): Promise<VeniceIpcResponse> {
   const request = validateVeniceIpcRequest(rawRequest);
   // Renderer-provided fallbackConfig is retained only for wire compatibility.
@@ -381,7 +387,7 @@ export async function performVeniceRequest(
 
       const wrappedOptions = {
         ...options,
-        onDelta: options.onDelta ? (chunk: { content: string; reasoning: string; providerRequestId?: string }) => {
+        onDelta: options.onDelta ? (chunk: Parameters<Exclude<typeof options.onDelta, undefined>>[0]) => {
           hasStartedStreaming = true;
           options.onDelta!(chunk);
         } : undefined
@@ -432,7 +438,7 @@ export async function performVeniceRequest(
 
 async function performSingleVeniceRequest(
   request: ReturnType<typeof validateVeniceIpcRequest>,
-  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string }) => void; body?: unknown } = {},
+  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: Record<string, unknown>; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => void; body?: unknown } = {},
   providerSelection?: ProviderRouteSelection,
 ): Promise<VeniceIpcResponse> {
 

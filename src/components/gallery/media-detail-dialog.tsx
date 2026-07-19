@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Heart, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/shared";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
-import { mediaItemSource, formatDimensions, formatDuration, isVideoItem } from "../../utils/mediaItem";
+import { mediaItemSource, formatDimensions, formatDuration, isVideoItem, isAudioItem } from "../../utils/mediaItem";
 import type { MediaItem } from "../../types/media";
 
 interface MediaDetailDialogProps {
@@ -32,6 +32,7 @@ export function MediaDetailDialog({
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const isVideo = isVideoItem(item);
+  const isAudio = isAudioItem(item);
   const src = mediaItemSource(item);
   const dims = formatDimensions(item);
   const duration = formatDuration(item.duration);
@@ -71,7 +72,7 @@ export function MediaDetailDialog({
       <div className="relative flex flex-1 flex-col">
         <header className="flex items-center justify-between soft-separator-y mesh-header mesh-surface px-5 py-3 text-text-primary">
           <div className="flex items-center gap-2">
-            <Badge tone={isVideo ? "rose" : "slate"}>{isVideo ? "Video" : "Image"}</Badge>
+            <Badge tone={isVideo ? "rose" : isAudio ? "sky" : "slate"}>{isVideo ? "Video" : isAudio ? "Audio" : "Image"}</Badge>
             <Badge tone="slate">{item.operation}</Badge>
             {dims && <Badge tone="slate">{dims}</Badge>}
             {duration && <Badge tone="rose">{duration}</Badge>}
@@ -192,8 +193,18 @@ export function MediaDetailDialog({
                 aria-label={`Open ${candidate.prompt || "untitled"}`}
               >
                 {cs ? (
+                  // Use img for filmstrip thumbnails. For videos, this shows
+                  // a static frame when the browser decodes the first frame;
+                  // for venice-media:// the fallback placeholder is shown.
                   isVideoItem(candidate) ? (
-                    <video src={cs} muted preload="metadata" className="h-full w-full object-cover" />
+                    <div className="relative h-full w-full">
+                      <img
+                        src={cs}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                      />
+                    </div>
                   ) : (
                     <img src={cs} alt="" className="h-full w-full object-cover" />
                   )

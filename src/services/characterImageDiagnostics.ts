@@ -23,15 +23,22 @@ export interface CharacterImageResolutionEvent {
   errorCategory?: "allowlist" | "network" | "size" | "content-type" | "unknown";
 }
 
-/** Logs a safe, redacted character-image resolution event. */
+/** Logs a safe, redacted character-image resolution event.
+ *  Successful resolutions produce no log output (they are normal operation).
+ *  Failed resolutions emit a deduplicated warning so they remain visible
+ *  without flooding logs on normal avatar loads.
+ */
 export function recordCharacterImageResolution(
   event: CharacterImageResolutionEvent,
 ): void {
-  logger.warn("Character image resolution", {
-    slug: event.slug,
-    source: event.source,
-    ok: event.ok,
-    cached: event.cached,
-    errorCategory: event.errorCategory,
-  });
+  if (!event.ok) {
+    // Only failed resolutions warrant a warning.
+    logger.warn("Character image resolution failed", {
+      slug: event.slug,
+      source: event.source,
+      cached: event.cached,
+      errorCategory: event.errorCategory,
+    });
+    // Successful resolutions intentionally produce no log output.
+  }
 }

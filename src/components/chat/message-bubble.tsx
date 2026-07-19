@@ -5,6 +5,7 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeSanitize from 'rehype-sanitize'
 import type { ChatMessage, ContentPart } from '../../types/venice'
+import type { ChatAttachmentRef } from '../../types/chatAttachment'
 import type { ConversationCharacterMeta } from '../../types/conversationVault'
 import { cn } from '../../lib/utils'
 import { CharacterAvatar } from '../characters/CharacterAvatar'
@@ -138,6 +139,7 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
+  const isTool = message.role === 'tool'
   const { text: content, images } = extractContent(message.content)
   const redTeamMode = useSettingsStore((s) => s.redTeamMode)
   const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled)
@@ -238,6 +240,13 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
   )
 
   if (isUser) {
+    // Resolve structured attachment refs from message metadata.
+    // Historical records may use the legacy `attachments: string[]` shape;
+    // new records carry `attachmentRefs: ChatAttachmentRef[]`.
+    const attachmentRefs: ChatAttachmentRef[] = Array.isArray(message.metadata?.attachmentRefs)
+      ? (message.metadata!.attachmentRefs as ChatAttachmentRef[])
+      : [];
+
     return (
       <div className="flex justify-end" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
         <div className="flex items-end gap-1.5 max-w-[78%]">
@@ -286,6 +295,31 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
             ) : (
               <div className="text-text-primary text-[15.5px] leading-relaxed whitespace-pre-wrap break-words">
                 {content}
+              </div>
+            )}
+            {/* Structured attachment cards — rendered below visible text, never dumping extracted content */}
+            {attachmentRefs.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {attachmentRefs.map((ref) => (
+                  <div
+                    key={ref.id}
+                    className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1.5 text-[12px] text-text-secondary"
+                    title={`${ref.name} (${ref.mimeType})`}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    <span className="max-w-[140px] truncate font-medium text-text-primary">{ref.name}</span>
+                    <span className="text-text-muted uppercase tracking-wider">{ref.kind}</span>
+                    {ref.truncated && (
+                      <span className="ml-0.5 rounded bg-amber-500/20 px-1 text-[10px] text-amber-400" title="Attachment was partially omitted due to context budget">truncated</span>
+                    )}
+                    {ref.requiresVision && (
+                      <span className="ml-0.5 rounded bg-blue-500/20 px-1 text-[10px] text-blue-400">vision</span>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
             {redTeamMode && localSafetyDecision && (
@@ -368,7 +402,7 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
               <button type="button" onClick={saveEdit} className="rounded-md bg-accent px-2 py-1 text-sm text-accent-fg">Save</button>
             </div>
           </div>
-        ) : content ? (
+        ) : content && !isTool ? (
           redTeamMode ? (
             <div className="space-y-2">
               <div className="bg-surface-elevated/40 border border-border rounded-lg p-3 font-mono text-[13px] whitespace-pre-wrap break-all leading-relaxed select-text">
@@ -408,9 +442,39 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
               >{content}</ReactMarkdown>
             </div>
           )
-        ) : (
+        ) : !isTool && (!message.tool_calls || message.tool_calls.length === 0) ? (
           <div className="py-1">
             <GenerationLoadingIndicator size="sm" state="generating" label="Thinking…" />
+          </div>
+        ) : null}
+
+        {message.tool_calls && message.tool_calls.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {message.tool_calls.map((tc, idx) => (
+              <div key={idx} className="bg-surface-elevated/40 border border-border/60 rounded-md p-2 font-mono text-[12px] text-text-secondary">
+                <div className="flex items-center gap-1.5 text-accent mb-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  <span className="font-semibold">Tool used: {tc.function.name}</span>
+                </div>
+                <div className="pl-5 truncate max-w-full opacity-80" title={tc.function.arguments}>
+                  {tc.function.arguments || 'No arguments'}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isTool && (
+          <div className="mt-2">
+            <details className="rounded-md border border-border/50 bg-surface-elevated/20 text-[12px] text-text-secondary">
+              <summary className="cursor-pointer select-none px-3 py-1.5 font-medium flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                Result from {message.name || 'tool'}
+              </summary>
+              <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words border-t border-border/40 px-3 py-2 font-mono text-[11px] leading-relaxed text-text-muted">
+                {content}
+              </pre>
+            </details>
           </div>
         )}
         {injectedContextDisclosure}

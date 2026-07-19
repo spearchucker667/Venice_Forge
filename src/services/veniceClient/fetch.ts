@@ -526,6 +526,20 @@ export async function veniceFetch<T = unknown>(
   } = {}
 ): Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry>; }> {
   const { dedupe = false, method = "GET", body, registerLogId } = options;
+  
+  const payloadRecord = body as Record<string, unknown> | null | undefined;
+  if (endpoint.includes("/chat/completions") && payloadRecord && Array.isArray(payloadRecord.messages)) {
+    const dateStr = new Date().toLocaleString();
+    const systemInstruction = `[System Runtime Context]\nCurrent Date/Time: ${dateStr}\n[/System Runtime Context]\n\n`;
+    const messages = [...payloadRecord.messages];
+    if (messages.length > 0 && messages[0].role === 'system') {
+      messages[0] = { ...messages[0], content: systemInstruction + (messages[0].content || '') };
+    } else {
+      messages.unshift({ role: 'system', content: systemInstruction });
+    }
+    payloadRecord.messages = messages;
+    options.body = payloadRecord;
+  }
 
   const startedAt = Date.now();
   const requestHeaders = maskInspectorHeaders(options.headers);

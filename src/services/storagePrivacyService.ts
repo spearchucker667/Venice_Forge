@@ -67,6 +67,7 @@ const ENCRYPTED_STORES = [
   "scenes",
   "rpScenarios",
   "workflowTemplates",
+  "chat_folders",
 ];
 
 export function buildStorageInventory(input: BuildStorageInventoryInput): StorageInventoryResult {

@@ -314,7 +314,7 @@ if (!gotLock) {
     protocol.handle(GENERATED_MEDIA_SCHEME, async (request) => {
       const parsedUrl = new URL(request.url);
       const id = parsedUrl.hostname || parsedUrl.pathname.replace(/^\/+/, '');
-      return createGeneratedMediaResponse(id, request.headers.get('range'));
+      return createGeneratedMediaResponse(id, request);
     });
     protocol.handle("venice-tts", async (request) => {
       const parsedUrl = new URL(request.url);

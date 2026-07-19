@@ -383,7 +383,10 @@ export function MediaStudioView() {
       actionLabel: "Delete",
       danger: true,
     });
-    if (!shouldDelete) return;
+    if (!shouldDelete) {
+      useMediaSelectionStore.getState().clearSelection();
+      return;
+    }
     try {
       const r = await bulkDelete(selectedMediaIds, { confirm: true });
       if (bulkHasFailure(r)) {
@@ -393,6 +396,8 @@ export function MediaStudioView() {
       }
     } catch (err) {
       toast.error("Batch delete failed", redactErrorMessage(err));
+    } finally {
+      useMediaSelectionStore.getState().clearSelection();
     }
   }, [selectedMediaIds]);
 
@@ -402,6 +407,7 @@ export function MediaStudioView() {
     const r = await bulkSetFavorite(selectedMediaIds, !allFavorited);
     if (bulkHasFailure(r)) toast.error(`Updated ${r.succeeded.length} of ${r.requested}`);
     else toast.success(allFavorited ? "Removed favorites" : "Marked as favorites");
+    useMediaSelectionStore.getState().clearSelection();
   }, [selectedMediaIds, selectedItems]);
 
   const handleBatchUnfavorite = useCallback(async () => {
@@ -409,6 +415,7 @@ export function MediaStudioView() {
     const r = await bulkSetFavorite(selectedMediaIds, false);
     if (bulkHasFailure(r)) toast.error(`Updated ${r.succeeded.length} of ${r.requested}`);
     else toast.success("Cleared favorites");
+    useMediaSelectionStore.getState().clearSelection();
   }, [selectedMediaIds]);
 
   const runBulkAddTag = useCallback(async (ids: string[], tags: string[]) => {
@@ -423,10 +430,12 @@ export function MediaStudioView() {
     const tag = bulkTagInput.trim().toLowerCase();
     if (!tag) {
       toast.error("Enter a tag first.");
+      useMediaSelectionStore.getState().clearSelection();
       return;
     }
     await runBulkAddTag(selectedMediaIds, [tag]);
     setBulkTagInput("");
+    useMediaSelectionStore.getState().clearSelection();
   }, [selectedMediaIds, bulkTagInput, runBulkAddTag]);
 
   const handleBatchAssignProject = useCallback(async () => {
@@ -439,6 +448,7 @@ export function MediaStudioView() {
     } else {
       toast.success(`Assigned ${r.succeeded.length} item${r.succeeded.length === 1 ? "" : "s"}`);
     }
+    useMediaSelectionStore.getState().clearSelection();
   }, [selectedMediaIds, bulkProjectId, projects]);
 
   const handleSelectAll = useCallback(() => {

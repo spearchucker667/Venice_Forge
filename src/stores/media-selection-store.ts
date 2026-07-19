@@ -15,11 +15,34 @@
  *     later item from a current item selects the contiguous slice.
  *   - `setFocusedMedia` is a separate, optional "last clicked" pointer
  *     used for keyboard navigation; it is NOT included in the selection.
+ *
+ * Compare vs bulk selection:
+ *   - Bulk selection (toggleMedia, selectRange, selectAllVisible) is
+ *     UNBOUNDED — it selects every requested item. Bulk actions (tag,
+ *     favorite, delete, export) operate on the full selection.
+ *   - Compare mode is enabled only when 2..MEDIA_COMPARE_MAX items are
+ *     selected. When more than MEDIA_COMPARE_MAX items are selected,
+ *     isCompareReady() returns false and the toolbar should show an
+ *     explanatory label rather than truncating the selection.
+ *
+ * NOTE: MEDIA_SELECTION_MAX is retained as an alias of MEDIA_COMPARE_MAX
+ * for backwards-compat with any external consumers; it is no longer used
+ * to cap bulk selection paths.
  */
 
 import { create } from "zustand";
 
-export const MEDIA_SELECTION_MAX = 4;
+/** Minimum items required for compare mode. */
+export const MEDIA_COMPARE_MIN = 2;
+/** Maximum items supported by compare mode. */
+export const MEDIA_COMPARE_MAX = 4;
+
+/**
+ * @deprecated Use MEDIA_COMPARE_MAX.  This constant previously capped
+ * all selection paths, which incorrectly limited bulk actions.
+ * It is kept for backwards-compat with tests and external consumers.
+ */
+export const MEDIA_SELECTION_MAX = MEDIA_COMPARE_MAX;
 
 export interface MediaSelectionState {
   /** Ordered, deduplicated list of selected media ids. */
@@ -42,7 +65,7 @@ export interface MediaSelectionState {
   setFocusedMedia: (id: string | null) => void;
   /** Drops any selected ids that are not in the supplied visible set. */
   reconcileWithVisible: (visibleIds?: string[]) => void;
-  /** True when 2..4 items are selected (compare-mode precondition). */
+  /** True when MEDIA_COMPARE_MIN..MEDIA_COMPARE_MAX items are selected. */
   isCompareReady: () => boolean;
   /** Phase 2B: called by the gallery-view on every filter/search/sort
    *  change. Updates `visibleMediaIds` and prunes the selection. */
@@ -75,7 +98,7 @@ export const useMediaSelectionStore = create<MediaSelectionState>((set, get) => 
   selectMedia: (id) => {
     set((state) => {
       if (!id) return state;
-      // Replace selection with this single id. Bounded by MAX for compare.
+      // Replace selection with this single id.
       return {
         selectedMediaIds: [id],
         focusedMediaId: id,
@@ -92,9 +115,8 @@ export const useMediaSelectionStore = create<MediaSelectionState>((set, get) => 
       if (has) {
         nextSelection = state.selectedMediaIds.filter((existing) => existing !== id);
       } else {
-        // Cap to MEDIA_SELECTION_MAX on every add so compare-mode cannot be
-        // silently broken by a runaway toggle.
-        nextSelection = dedupe([...state.selectedMediaIds, id]).slice(0, MEDIA_SELECTION_MAX);
+        // Bulk selection is unbounded; deduplication is still enforced.
+        nextSelection = dedupe([...state.selectedMediaIds, id]);
       }
       return {
         selectedMediaIds: nextSelection,
@@ -114,12 +136,10 @@ export const useMediaSelectionStore = create<MediaSelectionState>((set, get) => 
     const [lo, hi] = fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
     const slice = visibleIds.slice(lo, hi + 1);
     set((state) => {
+      // Range selection is unbounded — all items in the range are added.
       const union = dedupe([...state.selectedMediaIds, ...slice]);
-      // Hard-cap to MEDIA_SELECTION_MAX so the compare-mode precondition
-      // is never silently broken. The toolbar surfaces the live count.
-      const capped = union.slice(0, MEDIA_SELECTION_MAX);
       return {
-        selectedMediaIds: capped,
+        selectedMediaIds: union,
         focusedMediaId: toId,
         lastSelectedMediaId: toId,
       };
@@ -131,7 +151,8 @@ export const useMediaSelectionStore = create<MediaSelectionState>((set, get) => 
     if (!Array.isArray(source)) return;
     set((state) => ({
       // Replace; do not preserve ids outside the new visible set.
-      selectedMediaIds: dedupe(source).slice(0, MEDIA_SELECTION_MAX),
+      // No cap — bulk selection selects every visible item.
+      selectedMediaIds: dedupe(source),
       // Preserve focused/last-selected if they remain in the new set.
       focusedMediaId: state.focusedMediaId && source.includes(state.focusedMediaId)
         ? state.focusedMediaId
@@ -167,7 +188,7 @@ export const useMediaSelectionStore = create<MediaSelectionState>((set, get) => 
 
   isCompareReady: () => {
     const len = get().selectedMediaIds.length;
-    return len >= 2 && len <= MEDIA_SELECTION_MAX;
+    return len >= MEDIA_COMPARE_MIN && len <= MEDIA_COMPARE_MAX;
   },
 
   setVisibleMediaIds: (ids) => {
@@ -183,7 +204,7 @@ export const selectIsSelectionEmpty = (state: MediaSelectionState): boolean =>
   state.selectedMediaIds.length === 0;
 export const selectCompareReady = (state: MediaSelectionState): boolean => {
   const len = state.selectedMediaIds.length;
-  return len >= 2 && len <= MEDIA_SELECTION_MAX;
+  return len >= MEDIA_COMPARE_MIN && len <= MEDIA_COMPARE_MAX;
 };
 export const selectHasSelection = (state: MediaSelectionState): boolean =>
   state.selectedMediaIds.length > 0;

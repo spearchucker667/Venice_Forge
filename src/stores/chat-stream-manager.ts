@@ -13,6 +13,7 @@ import { useSettingsStore } from "./settings-store";
 import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
 import type { ChatMessage, VeniceParameters } from "../types/venice";
 import type { Conversation } from "../types/conversation";
+import { createCanonicalToolDefinitions } from "../agent/registry/tool-registry";
 import * as logger from "../shared/logger";
 import { getModelById } from "../services/modelService";
 
@@ -108,6 +109,22 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     venice_parameters: veniceParamsForRequest,
   };
 
+  if (veniceParamsForRequest.enable_document_tools) {
+    const definitions = createCanonicalToolDefinitions();
+    // Only pass document tools, exclude workspace tools which need a specific grant.
+    const tools = definitions.filter(d => d.internalName.startsWith('document.')).map(t => t.schema);
+    if (tools.length > 0) {
+      baseBody.tools = baseBody.tools ? [...(baseBody.tools as any[]), ...tools] : tools;
+    }
+  }
+
+  // Phase 5: Expose media generation tools via structured tool-calling loop
+  const allDefinitions = createCanonicalToolDefinitions();
+  const mediaTools = allDefinitions.filter(d => d.internalName.startsWith('media.')).map(t => t.schema);
+  if (mediaTools.length > 0) {
+    baseBody.tools = baseBody.tools ? [...(baseBody.tools as any[]), ...mediaTools] : mediaTools;
+  }
+
   return applyVeniceApiSafeMode(
     "/chat/completions",
     baseBody,
@@ -135,7 +152,7 @@ function flushStreamDelta(convId: string): void {
 
 function bufferStreamDelta(
   convId: string,
-  chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } },
+  chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; tool_calls?: any[]; appendedMessages?: any[] },
 ): void {
   const pending = pendingStreamDeltas.get(convId) ?? {};
   pending.content = (pending.content ?? '') + (chunk.content ?? '');
@@ -147,6 +164,12 @@ function bufferStreamDelta(
       completionTokens: chunk.usage.completion_tokens,
       totalTokens: chunk.usage.total_tokens,
     };
+  }
+  if (chunk.tool_calls) {
+    pending.tool_calls = chunk.tool_calls;
+  }
+  if (chunk.appendedMessages) {
+    pending.appendedMessages = chunk.appendedMessages;
   }
   pendingStreamDeltas.set(convId, pending);
   if (!streamFlushTimers.has(convId)) {
@@ -231,7 +254,7 @@ export async function startStream(
         const body = buildStreamBody(convId, model);
         await veniceStreamChat(body, {
           signal: controller.signal,
-          onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => {
+          onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; tool_calls?: any[]; appendedMessages?: any[] }) => {
             bufferStreamDelta(convId, chunk);
           },
         });

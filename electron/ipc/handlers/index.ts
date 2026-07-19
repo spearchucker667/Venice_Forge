@@ -15,6 +15,8 @@ import { registerChatTtsHandlers } from "./chatTtsHandlers";
 import { registerCharacterCardFileHandlers } from "../characterCardFileHandlers";
 import { registerDocumentAgentHandlers } from "./documentAgentHandlers";
 
+import { registerChatFolderHandlers } from "./chatFolderHandlers";
+
 let ipcHandlersRegistered = false;
 
 /** Returns whether the IPC handlers have already been registered. */
@@ -38,6 +40,7 @@ export function registerIpcHandlers(): void {
   registerChatTtsHandlers();
   registerCharacterCardFileHandlers();
   registerDocumentAgentHandlers();
+  registerChatFolderHandlers();
 
   // ── Background task manager (persistent main-process queue ownership) ──
   registerBackgroundTaskHandlers();

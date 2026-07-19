@@ -80,6 +80,11 @@ export async function fetchStoreRecords(storeName: SyncStoreName): Promise<unkno
         const scenariosResult = await desktopScenarios.list();
         return scenariosResult.ok ? scenariosResult.scenarios : [];
       }
+      case "chat_folders": {
+        const { desktopChatFolders } = await import("./desktopBridge");
+        const foldersResult = await desktopChatFolders.list();
+        return foldersResult.ok ? foldersResult.folders : [];
+      }
     }
   }
 

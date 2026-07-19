@@ -3,13 +3,14 @@
 
 import crypto from "crypto";
 import { abortVeniceRequest } from "../../services/veniceClient";
-import { performGuardedVeniceRequest } from "../../services/guardPipeline";
+import { performGuardedVeniceRequest, checkLocalFamilyGuard } from "../../services/guardPipeline";
 import { logError } from "../../services/logger";
 import { getProfileSessionId } from "../../services/profileSession";
 import { validateVeniceIpcRequest } from "../validation";
 import { redactErrorMessage } from "../../../src/shared/redaction";
 import { SafetyGuardBlockedError } from "../../../src/shared/safety";
 import { registerIpcChannel, safeSendToRenderer } from "./common";
+import { runChatAgentLoop } from "../../agent/runtime/chat-agent-runner";
 
 function safetyBlockedResponse(err: SafetyGuardBlockedError) {
   return {
@@ -73,19 +74,25 @@ export function registerVeniceHandlers(): void {
       if (request.endpoint !== "/chat/completions" || request.method !== "POST") {
         throw new Error("Streaming is only available for POST /chat/completions.");
       }
+
       if (!request.signalId) {
         request.signalId = crypto.randomUUID();
       }
-      const result = await performGuardedVeniceRequest(request, {
-        onDelta: (chunk) => {
-          safeSendToRenderer(event.sender, "venice:streamDelta", {
-            signalId: request.signalId,
-            delta: chunk.content,
-            reasoning: chunk.reasoning,
-            providerRequestId: chunk.providerRequestId,
-            usage: chunk.usage,
-          });
-        },
+      
+      const guardResult = await checkLocalFamilyGuard(request);
+      if (guardResult.kind === "blocked") return guardResult.block;
+      
+      const result = await runChatAgentLoop(request, (chunk) => {
+        safeSendToRenderer(event.sender, "venice:streamDelta", {
+          signalId: request.signalId,
+          delta: chunk.content,
+          reasoning: chunk.reasoning,
+          providerRequestId: chunk.providerRequestId,
+          usage: chunk.usage,
+          tool_calls: chunk.tool_calls,
+          appendedMessages: (chunk as any).appendedMessages,
+          finish_reason: chunk.finish_reason,
+        });
       });
       if (result.kind === "blocked") return result.block;
       return result.response;

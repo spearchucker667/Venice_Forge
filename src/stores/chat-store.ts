@@ -200,6 +200,8 @@ export interface AssistantStreamDelta {
   reasoning?: string
   providerRequestId?: string
   usage?: { promptTokens: number; completionTokens: number; totalTokens: number }
+  tool_calls?: import('../types/venice').AssistantToolCall[]
+  appendedMessages?: ChatMessage[]
 }
 
 export type ConversationMutationPriority = 'stream-delta' | 'message-boundary' | 'structural'
@@ -279,6 +281,7 @@ export const useChatStore = create<ChatState>()(
       veniceParams: {
         include_venice_system_prompt: true,
         enable_web_search: 'off',
+        enable_document_tools: false,
       },
       systemPrompt: '',
       temperature: 0.7,
@@ -559,9 +562,9 @@ export const useChatStore = create<ChatState>()(
       },
 
       appendAssistantStreamDelta: (conversationId, delta) => {
-        if (!delta.content && !delta.reasoning && !delta.providerRequestId && !delta.usage) return
+        if (!delta.content && !delta.reasoning && !delta.providerRequestId && !delta.usage && !delta.tool_calls && !delta.appendedMessages) return
         commitConversationMutation(set, conversationId, (c) => {
-            const msgs = [...(c.messages ?? [])]
+            let msgs = [...(c.messages ?? [])]
             const last = msgs[msgs.length - 1]
             if (last?.role !== 'assistant' || typeof last.content !== 'string') return c
             const metadata = { ...last.metadata }
@@ -571,7 +574,20 @@ export const useChatStore = create<ChatState>()(
               ...last,
               content: last.content + (delta.content ?? ''),
               reasoning_content: (last.reasoning_content || '') + (delta.reasoning ?? ''),
+              tool_calls: delta.tool_calls || last.tool_calls,
               metadata,
+            }
+            if (delta.appendedMessages && delta.appendedMessages.length > 0) {
+              const newMsgs = delta.appendedMessages.map(m => ({
+                id: generateId(),
+                role: m.role,
+                content: m.content,
+                tool_call_id: m.tool_call_id,
+                name: m.name,
+                tool_calls: m.tool_calls,
+                timestamp: Date.now(),
+              })) as ConversationMessage[];
+              msgs = msgs.concat(newMsgs);
             }
             // Streaming text is deliberately excluded from sidebar summary
             // freshness. The message boundary/final save owns updatedAt.
@@ -754,7 +770,7 @@ export const useChatStore = create<ChatState>()(
         if (!persisted || typeof persisted !== 'object') return persisted as ChatState
         const s = persisted as Partial<ChatState>
         if (!s.veniceParams || typeof s.veniceParams !== 'object') {
-          s.veniceParams = { include_venice_system_prompt: true, enable_web_search: 'off' }
+          s.veniceParams = { include_venice_system_prompt: true, enable_web_search: 'off', enable_document_tools: false }
         }
         if (version < 3) {
           // Remove conversations from local storage on version 3 upgrade

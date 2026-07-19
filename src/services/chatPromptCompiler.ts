@@ -43,7 +43,7 @@ export function compileChatPrompt(
 
   // 2. Build Messages
   const requestMessages: ChatMessage[] = conv.messages
-    .filter((m: ChatMessage) => m.content !== "")
+    .filter((m: ChatMessage) => m.content !== "" || (m.tool_calls && m.tool_calls.length > 0) || m.tool_call_id)
     .map((m: ChatMessage) => {
       // Inline prependInjectedContext equivalent
       let content = m.content;
@@ -63,6 +63,30 @@ export function compileChatPrompt(
             content = parts.map((part: ContentPart, index: number) => {
               return index === textPartIndex && part.type === "text"
                 ? { ...part, text: `${m.metadata!.injectedContext!.trim()}\n\n${part.text}` }
+                : part;
+            });
+          }
+        }
+      }
+      // Phase 1 attachment separation: inject provider-only attachment context.
+      // `providerContext` carries extracted attachment text wrapped in an
+      // untrusted-data envelope. It is NOT part of the persisted visible content
+      // and is only appended here, in the provider-facing compiled message.
+      if (m.role === "user" && typeof m.metadata?.providerContext === "string" && m.metadata.providerContext.trim()) {
+        if (typeof content === "string") {
+          content = `${content}${m.metadata.providerContext}`;
+        } else if (Array.isArray(content)) {
+          const parts = content as ContentPart[];
+          const textPartIndex = parts.findIndex((p: ContentPart) => p.type === "text");
+          if (textPartIndex === -1) {
+            content = [
+              { type: "text", text: m.metadata.providerContext.trim() },
+              ...parts,
+            ];
+          } else {
+            content = parts.map((part: ContentPart, index: number) => {
+              return index === textPartIndex && part.type === "text"
+                ? { ...part, text: `${part.text}${m.metadata!.providerContext}` }
                 : part;
             });
           }

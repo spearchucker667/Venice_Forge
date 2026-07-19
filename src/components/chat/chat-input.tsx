@@ -165,7 +165,7 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, disableImageA
     <div className="px-4 sm:px-6 pb-5 pt-2">
       <div className="w-full max-w-[860px] mx-auto">
         {attachments.length > 0 && (
-          <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
+          <div className="flex gap-2 mb-2 overflow-x-auto pb-1 pt-2 pr-2">
             {attachments.map((att, i) => {
               if (att.kind === 'image' && att.dataUrl) {
                 const isSafe = ["data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,", "blob:"].some(prefix => att.dataUrl!.startsWith(prefix));

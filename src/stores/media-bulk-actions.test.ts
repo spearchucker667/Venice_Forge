@@ -384,4 +384,27 @@ describe("media-bulk-actions (VERIFY-044)", () => {
       expect(r.failed[0].reason).toMatch(/\[REDACTED\]|Unknown error/)
     })
   })
-})
+
+  describe("high-latency behavior", () => {
+    it("bulkSetFavorite: processes concurrently under high latency", async () => {
+      const items = Array.from({ length: 4 }).map((_, i) => makeItem({ id: `item-${i}` }));
+      await seed(items);
+
+      const originalSetFavorite = useMediaStore.getState().setFavoriteMany;
+      const delayedSetFavorite = vi.spyOn(useMediaStore.getState(), "setFavoriteMany").mockImplementation(async (ids, favorite) => {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return originalSetFavorite(ids, favorite);
+      });
+
+      const start = Date.now();
+      const result = await bulkSetFavorite(items.map(it => it.id), true);
+      const elapsed = Date.now() - start;
+
+      // Ensure that wait time is basically exactly the delayed time (200ms)
+      expect(elapsed).toBeLessThan(400); 
+      expect(result.succeeded).toHaveLength(4);
+      expect(delayedSetFavorite).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+

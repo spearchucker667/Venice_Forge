@@ -1,9 +1,10 @@
 /** Durable generated audio/video storage owned by the Electron main process. */
-import { app } from 'electron'
+import { app, net } from 'electron'
 import crypto from 'crypto'
 import { createReadStream } from 'fs'
 import fs from 'fs/promises'
 import path from 'path'
+import { pathToFileURL } from 'url'
 import { Readable } from 'stream'
 import { checkPathContained } from '../utils/navigation'
 
@@ -133,40 +134,20 @@ export async function resolveGeneratedMedia(id: string): Promise<{ path: string;
   }
 }
 
-export async function createGeneratedMediaResponse(id: string, rangeHeader?: string | null): Promise<Response> {
+export async function createGeneratedMediaResponse(id: string, request: Request): Promise<Response> {
   const resolved = await resolveGeneratedMedia(id)
   if (!resolved) return new Response('Not found', { status: 404 })
-  const stat = await fs.stat(resolved.path)
-  const commonHeaders = {
-    'Content-Type': resolved.mimeType,
-    'Accept-Ranges': 'bytes',
-    'Cache-Control': 'private, max-age=31536000, immutable',
-  }
 
-  if (!rangeHeader) {
-    const body = Readable.toWeb(createReadStream(resolved.path)) as ReadableStream<Uint8Array>
-    return new Response(body, { headers: { ...commonHeaders, 'Content-Length': String(stat.size) } })
-  }
+  const fileUrl = pathToFileURL(resolved.path).toString()
+  const res = await net.fetch(fileUrl, { headers: request.headers })
+  
+  const headers = new Headers(res.headers)
+  headers.set('Cache-Control', 'private, max-age=31536000, immutable')
+  headers.set('Content-Type', resolved.mimeType)
 
-  const match = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim())
-  if (!match) {
-    return new Response(null, { status: 416, headers: { ...commonHeaders, 'Content-Range': `bytes */${stat.size}` } })
-  }
-  const requestedStart = match[1] ? Number(match[1]) : null
-  const requestedEnd = match[2] ? Number(match[2]) : null
-  const start = requestedStart ?? Math.max(0, stat.size - (requestedEnd ?? 0))
-  const end = Math.min(stat.size - 1, requestedStart === null ? stat.size - 1 : (requestedEnd ?? stat.size - 1))
-  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || start > end || start >= stat.size) {
-    return new Response(null, { status: 416, headers: { ...commonHeaders, 'Content-Range': `bytes */${stat.size}` } })
-  }
-  const length = end - start + 1
-  const body = Readable.toWeb(createReadStream(resolved.path, { start, end })) as ReadableStream<Uint8Array>
-  return new Response(body, {
-    status: 206,
-    headers: {
-      ...commonHeaders,
-      'Content-Length': String(length),
-      'Content-Range': `bytes ${start}-${end}/${stat.size}`,
-    },
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers,
   })
 }

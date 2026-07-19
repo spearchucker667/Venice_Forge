@@ -1,0 +1,165 @@
+# Historical snapshot. This report records the repository name and local path
+# used when the audit was performed. The current Electron repository is
+# /Users/super_user/Projects/Venice_Forge and the current GitHub repository is
+# spearchucker667/Venice_Forge. Do not use paths here as active instructions.
+# SUPERSEDED — 2026-06-17
+# This snapshot is historical. Findings here have been superseded by the v2.1.0
+# release-hygiene pass and the current ledger in docs/summary_of_work.md. Do not
+# treat line numbers or statuses as current ground truth.
+batch_report:
+  batch_id: kimi_batch_cross_check_2026_06_16
+  status: complete
+  provenance:
+    repo_path: /Users/super_user/Projects/Venice_Forge/
+    branch: main
+    head: 1de7d42
+    remote: https://github.com/spearchucker667/Venice_Forge.git
+    node: v22.22.3
+    npm: 10.9.8
+    working_tree: dirty_before_and_after
+  dirty_tree_note: >
+    The checkout was already heavily modified before this pass. This batch
+    preserved unrelated dirty work and touched only verifier/documentation
+    drift plus Electron build-output hygiene.
+  files_changed:
+    - path: README.md
+      reason: Replace the remaining active development setup directory with the canonical Venice_Forge clone path.
+    - path: docs/RELEASE/release.md
+      reason: Replace the remaining active retired repo slug/path in release guidance.
+    - path: scripts/verify-release-packaging-hardening.cjs
+      reason: Add active metadata/doc checks for retired Venice-API-connector repo slugs.
+    - path: scripts/verify-release-packaging-hardening.test.ts
+      reason: Add P0-003 regression coverage for retired repo slugs in active setup docs.
+    - path: scripts/build-electron.cjs
+      reason: Remove stale dist-electron/electron output before bundling main/preload.
+    - path: scripts/verify-dist.cjs
+      reason: Fail verify:dist when generated Electron JavaScript imports back into src/.
+    - path: scripts/verify-dist.test.ts
+      reason: Add regression coverage for forbidden generated Electron src imports.
+    - path: docs/audits/kimi-batch-evidence-2026-06-16.yaml
+      reason: Required YAML evidence report for the bounded batch.
+    - path: docs/summary_of_work.md
+      reason: Required session handoff ledger update.
+  findings:
+    - id: P0-003
+      title: Repository slug / updater metadata mismatch
+      status: closed
+      evidence:
+        - path: README.md
+          lines: "245-246"
+          snippet: "git clone https://github.com/spearchucker667/Venice_Forge.git; cd Venice_Forge"
+        - path: scripts/verify-release-packaging-hardening.cjs
+          lines: "490-522"
+          snippet: "activeRepoMetadataFiles are scanned for retired active repo slugs."
+      tests:
+        - command: PATH="$PWD/.node22/bin:$PATH" npm run verify:release-packaging-hardening
+          result: pass
+        - command: PATH="$PWD/.node22/bin:$PATH" npx vitest run scripts/verify-release-packaging-hardening.test.ts
+          result: pass_7_tests
+        - command: PATH="$PWD/.node22/bin:$PATH" npm run verify:markdown-links
+          result: pass_60_markdown_files
+      residual_risk: >
+        Historical audit files still contain old slugs by design. The active
+        verifier intentionally excludes historical audit-only documents.
+    - id: P0-005
+      title: Electron bundle hygiene
+      status: closed
+      evidence:
+        - path: scripts/build-electron.cjs
+          lines: "27-38"
+          snippet: "dist-electron/electron and dist-electron/src are removed before bundling."
+        - path: scripts/verify-dist.cjs
+          lines: "75-82,201-230,287"
+          snippet: "verify:dist fails on generated Electron JS imports back into src/."
+      tests:
+        - command: PATH="$PWD/.node22/bin:$PATH" npm run build
+          result: pass
+        - command: test ! -d dist-electron/src
+          result: pass
+        - command: rg -n "\\.\\./src|from ['\\\"].*src/|require\\(['\\\"].*src/" dist-electron/electron
+          result: pass_no_matches
+        - command: PATH="$PWD/.node22/bin:$PATH" npm run verify:dist
+          result: pass
+        - command: PATH="$PWD/.node22/bin:$PATH" npx vitest run scripts/verify-dist.test.ts
+          result: pass_11_tests
+      residual_risk: Packaged app smoke was not rerun in this bounded pass.
+    - id: P0-001
+      title: Native dialogs
+      status: closed
+      evidence:
+        - path: scripts/verify-no-native-dialogs.cjs
+          lines: "1-999"
+          snippet: "Verifier exists and passed against production code."
+      tests:
+        - command: PATH="$PWD/.node22/bin:$PATH" npm run verify:no-native-dialogs
+          result: pass
+      residual_risk: none_identified
+    - id: P0-002
+      title: Prior conversation context redaction and bounds
+      status: closed
+      evidence:
+        - path: src/utils/chatPayloadContext.ts
+          lines: "1-999"
+          snippet: "Targeted tests passed for redaction, bounds, and selected-context behavior."
+      tests:
+        - command: PATH="$PWD/.node22/bin:$PATH" npx vitest run src/utils/chatPayloadContext.test.ts src/hooks/use-chat.test.ts src/components/chat/chat-view.test.tsx
+          result: pass_28_tests
+      residual_risk: none_identified_in_targeted_tests
+    - id: P0-004
+      title: Jina rate-limit flake
+      status: closed
+      evidence:
+        - path: server.test.ts
+          lines: "1-999"
+          snippet: "Focused rate-limit tests passed once with verbose reporter and five consecutive loop runs."
+      tests:
+        - command: PATH="$PWD/.node22/bin:$PATH" npx vitest run server.test.ts -t "rate-limit" --reporter=verbose
+          result: pass_2_tests
+        - command: for i in 1 2 3 4 5; do PATH="$PWD/.node22/bin:$PATH" npx vitest run server.test.ts -t "rate-limit"; done
+          result: pass_5_consecutive_runs
+      residual_risk: verbose output still includes expected request logging on stderr
+    - id: P0-006
+      title: Dependency vulnerabilities
+      status: closed
+      evidence:
+        - path: package-lock.json
+          lines: "1-999"
+          snippet: "npm audit reported zero vulnerabilities."
+      tests:
+        - command: PATH="$PWD/.node22/bin:$PATH" npm audit --audit-level=moderate
+          result: pass_0_vulnerabilities
+        - command: PATH="$PWD/.node22/bin:$PATH" npm audit --omit=dev --audit-level=moderate
+          result: pass_0_vulnerabilities
+      residual_risk: none_identified
+  validation:
+    commands_passed:
+      - PATH="$PWD/.node22/bin:$PATH" npm run verify:release-packaging-hardening
+      - PATH="$PWD/.node22/bin:$PATH" npx vitest run scripts/verify-release-packaging-hardening.test.ts
+      - PATH="$PWD/.node22/bin:$PATH" npm run verify:no-native-dialogs
+      - PATH="$PWD/.node22/bin:$PATH" npm run verify:markdown-links
+      - PATH="$PWD/.node22/bin:$PATH" npx vitest run src/utils/chatPayloadContext.test.ts src/hooks/use-chat.test.ts src/components/chat/chat-view.test.tsx
+      - PATH="$PWD/.node22/bin:$PATH" npx vitest run server.test.ts -t "rate-limit" --reporter=verbose
+      - for i in 1 2 3 4 5; do PATH="$PWD/.node22/bin:$PATH" npx vitest run server.test.ts -t "rate-limit"; done
+      - PATH="$PWD/.node22/bin:$PATH" npm audit --audit-level=moderate
+      - PATH="$PWD/.node22/bin:$PATH" npm audit --omit=dev --audit-level=moderate
+      - PATH="$PWD/.node22/bin:$PATH" npm run lint:eslint
+      - PATH="$PWD/.node22/bin:$PATH" npm run typecheck
+      - PATH="$PWD/.node22/bin:$PATH" npm run build
+      - test ! -d dist-electron/src
+      - rg -n "\\.\\./src|from ['\\\"].*src/|require\\(['\\\"].*src/" dist-electron/electron
+      - PATH="$PWD/.node22/bin:$PATH" npm run verify:dist
+    commands_failed_then_fixed:
+      - command: npm run verify:release-packaging-hardening
+        error: docs/RELEASE/release.md contained retired active repo slug Venice-API-connector.
+        root_cause: Verifier gap plus stale active release guidance.
+      - command: npx vitest run scripts/verify-release-packaging-hardening.test.ts
+        error: Real-repo verifier test failed because the tightened verifier found stale release guidance.
+        root_cause: Same P0-003 stale active repo slug.
+      - command: rg -n "\\.\\./src|from ['\\\"].*src/|require\\(['\\\"].*src/" dist-electron/electron
+        error: Stale generated Electron service files imported ../../src/* after build.
+        root_cause: build:electron removed dist-electron/src but left old dist-electron/electron service output.
+  next_batch:
+    recommended: full_release_gate
+    reason: >
+      Focused P0/P1 checks passed under Node 22, but this pass did not rerun
+      the full test suite, coverage, verify:contracts, or packaged app smoke.

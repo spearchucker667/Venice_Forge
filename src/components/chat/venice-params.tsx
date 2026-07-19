@@ -101,6 +101,11 @@ export function VeniceParams() {
           active={veniceParams.include_search_results_in_stream === true}
           onClick={() => setVeniceParams({ include_search_results_in_stream: !veniceParams.include_search_results_in_stream })}
         />
+        <Pill
+          label="Document Tools"
+          active={veniceParams.enable_document_tools === true}
+          onClick={() => setVeniceParams({ enable_document_tools: !veniceParams.enable_document_tools })}
+        />
         <div className="ml-auto flex items-center gap-2">
           {activeConversationId !== null && hasMessages && (
             <button

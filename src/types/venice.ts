@@ -94,10 +94,22 @@ export interface ContentPart {
   input_audio?: { data: string; format: string }
 }
 
+export interface AssistantToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
   content: string | ContentPart[]
   reasoning_content?: string
+  tool_calls?: AssistantToolCall[]
+  tool_call_id?: string
+  name?: string
   metadata?: {
     injectedContext?: string
     injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed"
@@ -112,6 +124,7 @@ export interface VeniceParameters {
   strip_thinking_response?: boolean
   disable_thinking?: boolean
   enable_web_search?: 'off' | 'on' | 'auto'
+  enable_document_tools?: boolean
   enable_web_scraping?: boolean
   enable_x_search?: boolean
   enable_web_citations?: boolean
@@ -140,7 +153,20 @@ export interface ChatCompletionChunk {
   model: string
   choices: Array<{
     index: number
-    delta: { role?: string; content?: string; reasoning_content?: string }
+    delta: {
+      role?: string;
+      content?: string;
+      reasoning_content?: string;
+      tool_calls?: Array<{
+        index: number;
+        id?: string;
+        type?: 'function';
+        function?: {
+          name?: string;
+          arguments?: string;
+        };
+      }>;
+    }
     finish_reason: string | null
   }>
 }

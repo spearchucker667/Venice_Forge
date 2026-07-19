@@ -45,9 +45,17 @@ export function mediaCapabilities(item: MediaItemWithLiveCapabilities): MediaCap
 }
 
 /**
+ * Canonical validator for the `venice-media://<sha256>` durable scheme.
+ * The host must be exactly 64 lowercase hexadecimal characters.
+ * Only this scheme (not `file://` or arbitrary custom protocols) is accepted.
+ */
+export const VALID_VENICE_MEDIA_RE = /^venice-media:\/\/[0-9a-f]{64}$/;
+
+/**
  * Resolve the displayable source for a MediaItem. Image bytes are stored as a
- * data URL or HTTPS URL in `item.image`; videos may be a blob URL, HTTPS URL,
- * or raw base64. Returns null if no displayable source is available.
+ * data URL or HTTPS URL in `item.image`; videos may be a `blob:`, `https:`, or
+ * durable `venice-media://<sha256>` URL. Returns null if no displayable source
+ * is available or if the scheme is unrecognised.
  */
 export function mediaItemSource(item: MediaItem): string | null {
   const raw = item.image;
@@ -60,6 +68,10 @@ export function mediaItemSource(item: MediaItem): string | null {
     ) {
       return raw;
     }
+    // Accept only the validated durable app-managed scheme.
+    if (VALID_VENICE_MEDIA_RE.test(raw)) {
+      return raw;
+    }
     return null;
   }
   if (raw.startsWith("data:") || raw.startsWith("blob:") || raw.startsWith("http")) {
@@ -68,7 +80,18 @@ export function mediaItemSource(item: MediaItem): string | null {
   return `data:image/png;base64,${raw}`;
 }
 
+/** True only for video items (NOT audio). */
 export function isVideoItem(item: MediaItem): boolean {
+  return item.mediaType === "video";
+}
+
+/** True only for audio items. */
+export function isAudioItem(item: MediaItem): boolean {
+  return item.mediaType === "audio";
+}
+
+/** True for any media item that can be played (video or audio). */
+export function isPlayableMediaItem(item: MediaItem): boolean {
   return item.mediaType === "video" || item.mediaType === "audio";
 }
 

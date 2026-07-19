@@ -5,12 +5,23 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-18
+**Scope:** Venice Forge Chat, Document Tooling, Media Selection, and Video Gallery Remediation
+
+- **Chat Attachment Flattening (Phase 1):** Stopped flattening chat attachments into the visible message `content` field. Persisted them as structured references (`ChatAttachmentRef`) and created a separate provider-context compiler for LLM input. Rendered structured attachment cards in the message bubble UI.
+- **Attachment Composer UI (Phase 2):** Fixed the horizontal scrolling strip in `chat-input.tsx` to prevent clipping of the removal controls.
+- **Media Selection Capping (Phase 5):** Removed the global `MEDIA_SELECTION_MAX` (4) from bulk operations in `media-selection-store.ts`. Limited compare mode to 2-4 items (`MEDIA_COMPARE_MIN` / `MEDIA_COMPARE_MAX`), but kept bulk actions (tag, delete, selectAllVisible) unconstrained. Updated related UI commands and test contracts.
+- **Video Gallery/Media Studio (Phase 6):** Fixed `venice-media://` source resolution to allow playback, ensured video poster thumbnails render via `<img>` (not `<video>`) to prevent CSP/decode failures, and extended `taskMediaCatalog` to prevent duplicate catalog insertions by checking both `task.id` and `task.resultMediaId`.
+- **Character Diagnostics (Phase 7):** Reduced log noise by suppressing successful character-image resolutions from emitting logs; failures continue to emit warnings.
+- **Validation:** Both TypeScript pipelines, zero-warning ESLint, and all relevant component and store test suites pass.
+
+### Prior same-day Venice API System Prompt Foundation
+
+**Date:** 2026-07-18
 **Scope:** Venice API System Prompt Foundation and link repair
 
 - **System Prompt Creation:** Authored `docs/reference/VENICE_API_SYSTEM_PROMPT.md` to serve as the foundational background layer for Venice API interactions, detailing tool usage, capabilities, constraints, and privacy boundaries.
 - **Repository Hygiene:** Fixed broken links in `docs/DOCS_INDEX.md`, `docs/reports/CANONICAL_REPORT_INDEX.md`, and `docs/ROADMAP.md` that pointed to two user-owned audit files deleted prior to this session (`Venice_Forge_Deep_Scan_2026-07-17_031029.md` and `EVIDENCE_MANIFEST.md`). This remediates the final Markdown verification failure blocking CI.
 - **Validation:** Executed `npm run verify:markdown-links` which now passes successfully.
-- **Pending:** Wait for CI verification and push to `main`.
 
 ### Prior same-day Document Agent attachment-to-managed-document promotion (`VERIFY-154`)
 
@@ -494,6 +505,7 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 - **2026-07-15 — ST Card Studio bounded PNG import boundary:** repaired Electron V2 persistence loss; added the CRC/bounds/size/UTF-8/JSON-validating PNG codec; added sender-scoped expiring single-use opaque import handles, safe previews, main-authoritative safety/collision checks and no-path IPC; expanded imported-field safety coverage; kept export UI and all later phase work explicitly open.
 - **2026-07-15 — ST Card Studio Phase 0/1 deterministic foundation:** documented the architecture and gates; consolidated V1/V2 JSON dispatch; added bounded external DTOs, compatibility persistence/schema migration, complete version snapshots, semantic round-trip fixtures and editor readiness status; removed the unsafe/incomplete renderer-path PNG attempt; kept PNG, prompt/lorebook runtime and AI work open; and passed final full CI.
 - **2026-07-15 — Earlier ST Card Studio Phase 2/3 claim (superseded):** an inherited dirty-tree entry claimed a hardened PNG codec and passing test suite. Live inspection found renderer-supplied paths, raw renderer IPC, renderer-owned conversion/download, no opaque handles or mandatory preview, no export reparse verification, and a failing typecheck. That implementation was removed at the time; the later closure entry above supersedes its open-state conclusion.
+- **2026-07-18 — Chat folders, immutable context, and media tool calling:** Implemented Phase 1-6 features including drag-and-drop chat folders, cryptographically gated locking using `secureStore`, encrypted backup inclusion for `chat_folders`, immutable date/time system runtime context injection, and an automated media generation structured tool-calling loop. Verified with full contract tests and typechecking.
 - **2026-07-15 — Comprehensive repository audit and remediation:** Audited the clean `f735b101` baseline across architecture, code, Electron/IPC, security, all 19 feature surfaces, tests, docs, dependencies, CI, packaging and hygiene; produced the complete 18-report evidence package; fixed the TTS filesystem race, CharacterLibrary error disclosure and agent-guidance drift with `VERIFY-126` and regressions; triaged six CodeQL alerts; opened GitHub-governance, approved-deletion and dependency-maintenance work; passed final Node 22 CI, 4,284-test coverage, unsigned arm64 package/artifact/checksum validation and archive-clean; and preserved signed/paid/multi-device/accessibility limits explicitly.
 - **2026-07-15 — Exact-commit hosted evidence reconciliation:** Rechecked the supplied exhaustive feature checklist against the live clean `main` tree; found no new retained implementation gap or production TODO/FIXME backlog; confirmed commit `6257f294` with all nine hosted CI jobs plus CodeQL green, including macOS/Windows packaged smoke; removed stale claims that hosted evidence was absent; and kept signed/paid/multi-device/accessibility proof plus explicitly deferred providers/transports/rotation open without converting them into success.
 - **2026-07-15 — Intended-feature remediation closure:** Closed local findings `VF-VERIFY-001`–`004` and `006`; restored lint/type/diff gates; repaired first-run modal sequencing and desktop/mobile reachability; narrowed background-task polling to durable provider queues; unified and hardened notifications; added segmented CI ownership for new UI tests; passed 3,821-test Node 22 CI; built/verified checksummed unsigned Apple-silicon DMG/ZIP artifacts; and left signed/paid/cross-platform/manual evidence (`VF-VERIFY-005`) open.

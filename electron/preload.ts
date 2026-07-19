@@ -38,11 +38,11 @@ const veniceForge = {
      *  @param onDelta Callback invoked for each streamed text delta.
      *  @returns A promise that settles when the stream ends or errors.
      */
-    streamChat(input: VeniceRequest, onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => void) {
+    streamChat(input: VeniceRequest, onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => void) {
       const signalId = input.signalId || globalThis.crypto.randomUUID();
-      const listener = (_event: Electron.IpcRendererEvent, payload: { signalId: string; delta: string; reasoning?: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: { signalId: string; delta: string; reasoning?: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => {
         if (payload.signalId === signalId && typeof payload.delta === "string") {
-          onDelta({ content: payload.delta, reasoning: payload.reasoning || "", providerRequestId: payload.providerRequestId, usage: payload.usage });
+          onDelta({ content: payload.delta, reasoning: payload.reasoning || "", providerRequestId: payload.providerRequestId, usage: payload.usage, tool_calls: payload.tool_calls, finish_reason: payload.finish_reason });
         }
       };
       ipcRenderer.on("venice:streamDelta", listener);
@@ -375,6 +375,48 @@ const veniceForge = {
     openConversationsFolder(): Promise<{ ok: boolean }> {
       return ipcRenderer.invoke("app:openConversationsFolder");
     },
+  },
+
+  chatFolders: {
+    list(profileId?: string): Promise<{ ok: boolean; folders: import("../src/types/chatFolder").ChatFolder[]; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:list", profileId);
+    },
+    create(input: { name: string; profileId?: string }): Promise<{ ok: boolean; folder?: import("../src/types/chatFolder").ChatFolder; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:create", input);
+    },
+    rename(input: { id: string; name: string; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:rename", input);
+    },
+    reorder(input: { folderIds: string[]; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:reorder", input);
+    },
+    moveConversation(input: { conversationId: string; destinationFolderId: string | null; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:move-conversation", input);
+    },
+    delete(input: { id: string; deleteChats: boolean; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:delete", input);
+    },
+    getBackupPreview(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; preview?: any; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:get-backup-preview", input);
+    },
+    exportBackup(input: { folderId: string; includeMedia: boolean; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:export-backup", input);
+    },
+    previewImport(input: { filePath: string; profileId?: string }): Promise<{ ok: boolean; preview?: any; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:preview-import", input);
+    },
+    importBackup(input: { filePath: string; mode: "new" | "merge" | "restore"; targetFolderId?: string; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:import-backup", input);
+    },
+    lock(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:lock", input);
+    },
+    unlock(input: { folderId: string; password?: string; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:unlock", input);
+    },
+    getLockState(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; lockState?: "unlocked" | "locked"; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:get-lock-state", input);
+    }
   },
 
   updates: {

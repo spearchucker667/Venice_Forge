@@ -25,7 +25,7 @@ export async function veniceStreamChat(
     signal,
     dispatch,
     onDelta,
-  }: { signal?: AbortSignal; dispatch?: AppDispatch;    onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => void }
+  }: { signal?: AbortSignal; dispatch?: AppDispatch;    onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => void }
 ) {
   const startedAtTime = Date.now();
   const requestHeaders = { "Content-Type": "application/json" };
@@ -50,7 +50,7 @@ export async function veniceStreamChat(
   let accumulatedContent = "";
   let accumulatedReasoning = "";
 
-  const wrappedOnDelta = (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }) => {
+  const wrappedOnDelta = (chunk: Parameters<typeof onDelta>[0]) => {
     accumulatedContent += chunk.content;
     accumulatedReasoning += chunk.reasoning;
     onDelta(chunk);
@@ -58,6 +58,18 @@ export async function veniceStreamChat(
 
   const startedAt = nowIso();
   const payloadRecord = payload as Record<string, unknown> | null | undefined;
+
+  if (payloadRecord && Array.isArray(payloadRecord.messages)) {
+    const dateStr = new Date().toLocaleString();
+    const systemInstruction = `[System Runtime Context]\nCurrent Date/Time: ${dateStr}\n[/System Runtime Context]\n\n`;
+    const messages = [...payloadRecord.messages];
+    if (messages.length > 0 && messages[0].role === 'system') {
+      messages[0] = { ...messages[0], content: systemInstruction + (messages[0].content || '') };
+    } else {
+      messages.unshift({ role: 'system', content: systemInstruction });
+    }
+    payloadRecord.messages = messages;
+  }
 
   try {
     // Child exploitation safety guard — enforcement at transport boundary.
@@ -290,7 +302,9 @@ export async function veniceStreamChat(
               "";
             const providerRequestId = json?.id;
             const usage = json?.usage;
-            if (content || reasoning || providerRequestId || usage) wrappedOnDelta({ content, reasoning, providerRequestId, usage });
+            const tool_calls = json?.choices?.[0]?.delta?.tool_calls;
+            const finish_reason = json?.choices?.[0]?.finish_reason;
+            if (content || reasoning || providerRequestId || usage || tool_calls || finish_reason !== undefined) wrappedOnDelta({ content, reasoning, providerRequestId, usage, tool_calls, finish_reason });
           } catch { /* malformed SSE JSON chunk — skip */ }
         }
       }

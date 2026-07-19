@@ -21,7 +21,8 @@ export type Capability =
   | "workspace:create-directory"
   | "workspace:propose-update"
   | "workspace:move"
-  | "workspace:trash";
+  | "workspace:trash"
+  | "media:generate-image";
 
 export interface CapabilityGrant {
   id: string;

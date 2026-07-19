@@ -14,7 +14,7 @@ External signed / paid / two-device / screen-reader release evidence remains the
 
 ## Active Audit Reconciliation
 
-The most recent local audit lives at `docs/audits/Venice_Forge-audit-evidence-20260717-031029/`. Its twelve findings (`VF-SCAN-20260717-031029-001..012`) are tracked here; session evidence, regression-guard diffs, and validation results belong in `docs/summary_of_work.md`. Status here reflects only the live tree; audit text is immutable.
+The most recent local audit lives at `docs/audits/Venice_Forge-audit-evidence-20260717-031029/EVIDENCE_MANIFEST.md`. Its twelve findings (`VF-SCAN-20260717-031029-001..012`) are tracked here; session evidence, regression-guard diffs, and validation results belong in `docs/summary_of_work.md`. Status here reflects only the live tree; audit text is immutable.
 
 - **P1 release blockers — all closed in 2026-07-17 session.**
   - `VF-SCAN-20260717-031029-001` (transcription client): closed — canonical `/audio/transcriptions` client with closed allowlists in `src/services/veniceClient/transcription.ts`; wired through `src/hooks/use-audio.ts`. Regression: `src/services/veniceClient/transcription.test.ts`, `src/hooks/use-audio.test.tsx`.

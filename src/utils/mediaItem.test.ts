@@ -3,6 +3,9 @@ import {
   mediaCapabilities,
   mediaItemSource,
   isVideoItem,
+  isAudioItem,
+  isPlayableMediaItem,
+  VALID_VENICE_MEDIA_RE,
   formatDimensions,
   formatDuration,
   formatBytesApprox,
@@ -108,6 +111,22 @@ describe("mediaItem utils", () => {
         expect(mediaItemSource({ mediaType: "video", image: "https://example.com/video.mp4" } as MediaItem)).toBe("https://example.com/video.mp4");
       });
 
+      it("accepts a valid venice-media:// durable URL", () => {
+        const hash = "a".repeat(64);
+        const url = `venice-media://${hash}`;
+        expect(mediaItemSource({ mediaType: "video", image: url } as MediaItem)).toBe(url);
+      });
+
+      it("rejects a venice-media:// URL with invalid hash length", () => {
+        expect(mediaItemSource({ mediaType: "video", image: `venice-media://${'a'.repeat(63)}` } as MediaItem)).toBeNull();
+        expect(mediaItemSource({ mediaType: "video", image: `venice-media://${'a'.repeat(65)}` } as MediaItem)).toBeNull();
+      });
+
+      it("rejects a venice-media:// URL with non-hex characters", () => {
+        const badHash = "g".repeat(64); // 'g' is not hex
+        expect(mediaItemSource({ mediaType: "video", image: `venice-media://${badHash}` } as MediaItem)).toBeNull();
+      });
+
       it("returns null for arbitrary base64 string", () => {
         expect(mediaItemSource({ mediaType: "video", image: "aGkh" } as MediaItem)).toBeNull();
       });
@@ -137,9 +156,63 @@ describe("mediaItem utils", () => {
       expect(isVideoItem({ mediaType: "video" } as MediaItem)).toBe(true);
     });
 
+    it("returns false for audio (isVideoItem is video-only)", () => {
+      expect(isVideoItem({ mediaType: "audio" } as MediaItem)).toBe(false);
+    });
+
     it("returns false for non-video", () => {
       expect(isVideoItem({ mediaType: "image" } as MediaItem)).toBe(false);
       expect(isVideoItem({} as MediaItem)).toBe(false);
+    });
+  });
+
+  describe("isAudioItem", () => {
+    it("returns true for audio", () => {
+      expect(isAudioItem({ mediaType: "audio" } as MediaItem)).toBe(true);
+    });
+
+    it("returns false for video and image", () => {
+      expect(isAudioItem({ mediaType: "video" } as MediaItem)).toBe(false);
+      expect(isAudioItem({ mediaType: "image" } as MediaItem)).toBe(false);
+      expect(isAudioItem({} as MediaItem)).toBe(false);
+    });
+  });
+
+  describe("isPlayableMediaItem", () => {
+    it("returns true for video and audio", () => {
+      expect(isPlayableMediaItem({ mediaType: "video" } as MediaItem)).toBe(true);
+      expect(isPlayableMediaItem({ mediaType: "audio" } as MediaItem)).toBe(true);
+    });
+
+    it("returns false for image and unknown", () => {
+      expect(isPlayableMediaItem({ mediaType: "image" } as MediaItem)).toBe(false);
+      expect(isPlayableMediaItem({} as MediaItem)).toBe(false);
+    });
+  });
+
+  describe("VALID_VENICE_MEDIA_RE", () => {
+    it("accepts exactly 64 lowercase hex chars", () => {
+      expect(VALID_VENICE_MEDIA_RE.test(`venice-media://${'a'.repeat(64)}`)).toBe(true);
+      expect(VALID_VENICE_MEDIA_RE.test(`venice-media://${'0'.repeat(64)}`)).toBe(true);
+      expect(VALID_VENICE_MEDIA_RE.test(`venice-media://${'f'.repeat(64)}`)).toBe(true);
+    });
+
+    it("rejects wrong length", () => {
+      expect(VALID_VENICE_MEDIA_RE.test(`venice-media://${'a'.repeat(63)}`)).toBe(false);
+      expect(VALID_VENICE_MEDIA_RE.test(`venice-media://${'a'.repeat(65)}`)).toBe(false);
+    });
+
+    it("rejects uppercase hex", () => {
+      expect(VALID_VENICE_MEDIA_RE.test(`venice-media://${'A'.repeat(64)}`)).toBe(false);
+    });
+
+    it("rejects non-hex chars", () => {
+      expect(VALID_VENICE_MEDIA_RE.test(`venice-media://${'g'.repeat(64)}`)).toBe(false);
+    });
+
+    it("rejects file:// and other schemes", () => {
+      expect(VALID_VENICE_MEDIA_RE.test(`file:///tmp/${'a'.repeat(64)}`)).toBe(false);
+      expect(VALID_VENICE_MEDIA_RE.test(`blob:http://localhost/${'a'.repeat(64)}`)).toBe(false);
     });
   });
 

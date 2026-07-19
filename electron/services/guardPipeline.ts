@@ -168,7 +168,7 @@ function screenUpstreamResponse(endpoint: string, method: string, response: Veni
  *  The `onDelta` callback is forwarded as-is for streaming. */
 export async function performGuardedVeniceRequest(
   rawRequest: unknown,
-  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: Record<string, unknown> }) => void } = {},
+  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: Record<string, unknown>; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => void } = {},
 ): Promise<GuardedVeniceResult> {
   // The IPC request has already been validated by the time we get here,
   // but the guard needs a typed shape. We re-read endpoint/method/payload

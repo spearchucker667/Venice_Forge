@@ -62,15 +62,17 @@ describe("media-selection-store (VERIFY-044)", () => {
     expect(useMediaSelectionStore.getState().selectedMediaIds).toEqual(["v2", "v3", "v4"]);
   });
 
-  it("selectRange unions with existing selection up to MEDIA_SELECTION_MAX", () => {
+  it("selectRange unions with existing selection (unbounded)", () => {
     const visible = ["v1", "v2", "v3", "v4", "v5"];
     useMediaSelectionStore.getState().selectMedia("v1");
     useMediaSelectionStore.getState().selectRange("v4", "v5", visible);
     const ids = useMediaSelectionStore.getState().selectedMediaIds;
+    // After union: ["v1", "v4", "v5"] — all 3 items should be present.
     expect(ids).toContain("v1");
     expect(ids).toContain("v4");
     expect(ids).toContain("v5");
-    expect(ids.length).toBeLessThanOrEqual(MEDIA_SELECTION_MAX);
+    // No cap is applied; the result reflects the union exactly.
+    expect(ids.length).toBe(3);
   });
 
   it("selectRange silently no-ops when either id is not visible", () => {
@@ -82,12 +84,28 @@ describe("media-selection-store (VERIFY-044)", () => {
     expect(useMediaSelectionStore.getState().selectedMediaIds).toEqual(["v1"]);
   });
 
-  it("selectAllVisible replaces selection with the visible list (capped to MAX)", () => {
-    const big = Array.from({ length: 10 }, (_, i) => `v${i}`);
+  it("selectAllVisible replaces selection with ALL visible items (no bulk cap)", () => {
+    const big = Array.from({ length: 12 }, (_, i) => `v${i}`);
     useMediaSelectionStore.getState().selectAllVisible(big);
     const ids = useMediaSelectionStore.getState().selectedMediaIds;
-    expect(ids).toHaveLength(MEDIA_SELECTION_MAX);
+    // Bulk selection must select ALL 12 items, not be capped at MEDIA_COMPARE_MAX.
+    expect(ids).toHaveLength(12);
     expect(ids[0]).toBe("v0");
+    expect(ids[11]).toBe("v11");
+  });
+
+  it("toggleMedia allows more than MEDIA_COMPARE_MAX items for bulk selection", () => {
+    for (let i = 0; i < 10; i++) {
+      useMediaSelectionStore.getState().toggleMedia(`v${i}`);
+    }
+    const ids = useMediaSelectionStore.getState().selectedMediaIds;
+    expect(ids).toHaveLength(10);
+  });
+
+  it("selectRange selects all items in range even when range exceeds MEDIA_COMPARE_MAX", () => {
+    const visible = Array.from({ length: 10 }, (_, i) => `v${i}`);
+    useMediaSelectionStore.getState().selectRange("v0", "v9", visible);
+    expect(useMediaSelectionStore.getState().selectedMediaIds).toHaveLength(10);
   });
 
   it("clearSelection empties selectedMediaIds but keeps focused/lastSelected", () => {
@@ -118,20 +136,21 @@ describe("media-selection-store (VERIFY-044)", () => {
     expect(useMediaSelectionStore.getState().selectedMediaIds).toEqual(["a", "b"]);
   });
 
-  it("isCompareReady is true only for 2..4 selected items", () => {
+  it("isCompareReady is true only for MEDIA_COMPARE_MIN..MEDIA_COMPARE_MAX selected items", () => {
     expect(useMediaSelectionStore.getState().isCompareReady()).toBe(false);
     useMediaSelectionStore.getState().selectMedia("a");
     expect(useMediaSelectionStore.getState().isCompareReady()).toBe(false);
     useMediaSelectionStore.getState().toggleMedia("b");
-    expect(useMediaSelectionStore.getState().isCompareReady()).toBe(true);
+    expect(useMediaSelectionStore.getState().isCompareReady()).toBe(true); // 2 items
     useMediaSelectionStore.getState().toggleMedia("c");
     useMediaSelectionStore.getState().toggleMedia("d");
-    expect(useMediaSelectionStore.getState().isCompareReady()).toBe(true);
-    // MediaSelectionStore caps at MEDIA_SELECTION_MAX = 4, so even if the
-    // caller asks for a 5th, compare-ready stays true and the cap is held.
+    expect(useMediaSelectionStore.getState().isCompareReady()).toBe(true); // 4 items
+    // Adding a 5th item: compare is DISABLED but selection is NOT truncated.
     useMediaSelectionStore.getState().toggleMedia("e");
-    expect(useMediaSelectionStore.getState().selectedMediaIds.length).toBe(MEDIA_SELECTION_MAX);
-    expect(useMediaSelectionStore.getState().isCompareReady()).toBe(true);
+    expect(useMediaSelectionStore.getState().selectedMediaIds.length).toBe(5);
+    expect(useMediaSelectionStore.getState().isCompareReady()).toBe(false);
+    // Selection remains 5 — bulk selection does not cap to MEDIA_COMPARE_MAX.
+    expect(useMediaSelectionStore.getState().selectedMediaIds).toContain("e");
   });
 
   it("selection does NOT import MediaItem (no store coupling)", () => {
