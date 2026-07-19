@@ -79,8 +79,8 @@ export function registerVeniceHandlers(): void {
         request.signalId = crypto.randomUUID();
       }
       
-      const guardResult = await checkLocalFamilyGuard(request);
-      if (guardResult.kind === "blocked") return guardResult.block;
+      const guardResult = checkLocalFamilyGuard({ ...request, source: "ipc" });
+      if (guardResult?.status === 451) return guardResult;
       
       const result = await runChatAgentLoop(request, (chunk) => {
         safeSendToRenderer(event.sender, "venice:streamDelta", {
