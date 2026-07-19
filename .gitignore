@@ -102,8 +102,8 @@
 /.config/*.local.yml
 /.config/*.yaml
 /.config/*.yml
-!/.config/*.example.yaml
-!/.config/*.example.yml
+!.config/*.example.yaml
+!.config/*.example.yml
 /.integration-src/
 # =============================================================================
 # Local scripts and scratch copies
