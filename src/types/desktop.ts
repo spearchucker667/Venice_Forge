@@ -348,6 +348,29 @@ export interface VeniceForgeBackgroundTask {
   onUpdate(callback: (envelope: BackgroundTaskIpcEnvelope) => void): () => void;
 }
 
+export interface VeniceForgeDocumentAgent {
+  documents: {
+    create(input: { projectId: string; relativePath: string; format: import("../agent/contracts/documents").DocumentFormat; blocks: import("../agent/contracts/documents").DocumentBlock[]; displayName?: string; overwrite: false }): Promise<{ ok: boolean; result?: unknown; error?: string }>;
+    list(projectId: string): Promise<{ ok: boolean; documents?: import("../agent/contracts/documents").ManagedDocument[]; error?: string }>;
+    read(input: { documentId: string; revisionId?: string | null; cursor?: string | null }): Promise<{ ok: boolean; result?: import("../agent/contracts/documents").DocumentReadResult; error?: string }>;
+    listRevisions(documentId: string): Promise<{ ok: boolean; revisions?: Array<Omit<import("../agent/contracts/documents").DocumentRevision, "blocks">>; error?: string }>;
+    proposeEdits(input: { documentId: string; baseRevisionId: string; summary: string; operations: import("../agent/contracts/documents").DocumentEditOperation[] }): Promise<{ ok: boolean; pendingApproval?: import("../agent/contracts/proposals").PendingApproval; preview?: unknown; error?: string }>;
+    proposeRestore(input: { documentId: string; currentRevisionId: string; restoreRevisionId: string; reason: string }): Promise<{ ok: boolean; pendingApproval?: import("../agent/contracts/proposals").PendingApproval; preview?: unknown; error?: string }>;
+    export(input: { documentId: string; revisionId?: string | null; format: import("../agent/contracts/documents").DocumentFormat; suggestedFileName: string }): Promise<{ ok: boolean; canceled?: boolean; exported?: boolean; displayName?: string; sizeBytes?: number; error?: string }>;
+  };
+  approvals: {
+    list(): Promise<{ ok: boolean; pending?: Array<{ approval: import("../agent/contracts/proposals").PendingApproval; publicView: unknown }>; error?: string }>;
+    decide(input: import("../agent/contracts/proposals").ApproveProposalRequest): Promise<{ ok: boolean; rejected?: boolean; revision?: import("../agent/contracts/documents").DocumentRevision; error?: string }>;
+  };
+  workspace: {
+    choose(input: { agentSessionId: string }): Promise<{ ok: boolean; canceled?: boolean; grant?: { id: string; workspaceId: string; displayName: string; allowedOperations: string[]; allowedExtensions: string[]; limits: Record<string, number>; expiresAt?: string }; error?: string }>;
+    revoke(input: { grantId: string; agentSessionId: string }): Promise<{ ok: boolean }>;
+    list(input: { grantId: string; agentSessionId: string; relativeDirectory: string; recursive?: boolean; maxDepth?: number; offset?: number }): Promise<{ ok: boolean; result?: unknown; error?: string }>;
+    read(input: { grantId: string; agentSessionId: string; relativePath: string }): Promise<{ ok: boolean; result?: { content: string; sizeBytes: number }; error?: string }>;
+    search(input: { grantId: string; agentSessionId: string; query: string; maxResults?: number }): Promise<{ ok: boolean; result?: Array<{ relativePath: string; line: number; snippet: string }>; error?: string }>;
+  };
+}
+
 /** Root interface for the Venice Forge preload bridge exposed on the window object. */
 
 export interface VeniceForgeCredentials {
@@ -407,6 +430,7 @@ export interface VeniceForge {
   rpAssets: VeniceForgeRpAssets;
   scenarios: VeniceForgeScenarios;
   backgroundTask: VeniceForgeBackgroundTask;
+  documentAgent: VeniceForgeDocumentAgent;
 }
 
 export interface EncryptedBackupManifestTransport {

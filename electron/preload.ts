@@ -657,6 +657,45 @@ const veniceForge = {
       };
     },
   },
+
+  documentAgent: {
+    documents: {
+      create(input: Parameters<import("../src/types/desktop").VeniceForgeDocumentAgent["documents"]["create"]>[0]) {
+        return ipcRenderer.invoke("documentAgent:documents:create", input);
+      },
+      list(projectId: string) {
+        return ipcRenderer.invoke("documentAgent:documents:list", projectId);
+      },
+      read(input: Parameters<import("../src/types/desktop").VeniceForgeDocumentAgent["documents"]["read"]>[0]) {
+        return ipcRenderer.invoke("documentAgent:documents:read", input);
+      },
+      listRevisions(documentId: string) {
+        return ipcRenderer.invoke("documentAgent:documents:revisions", documentId);
+      },
+      proposeEdits(input: Parameters<import("../src/types/desktop").VeniceForgeDocumentAgent["documents"]["proposeEdits"]>[0]) {
+        return ipcRenderer.invoke("documentAgent:documents:proposeEdits", input);
+      },
+      proposeRestore(input: Parameters<import("../src/types/desktop").VeniceForgeDocumentAgent["documents"]["proposeRestore"]>[0]) {
+        return ipcRenderer.invoke("documentAgent:documents:proposeRestore", input);
+      },
+      export(input: Parameters<import("../src/types/desktop").VeniceForgeDocumentAgent["documents"]["export"]>[0]) {
+        return ipcRenderer.invoke("documentAgent:documents:export", input);
+      },
+    },
+    approvals: {
+      list() { return ipcRenderer.invoke("documentAgent:approvals:list"); },
+      decide(input: import("../src/agent/contracts/proposals").ApproveProposalRequest) {
+        return ipcRenderer.invoke("documentAgent:approvals:decide", input);
+      },
+    },
+    workspace: {
+      choose(input: { agentSessionId: string }) { return ipcRenderer.invoke("documentAgent:workspace:choose", input); },
+      revoke(input: { grantId: string; agentSessionId: string }) { return ipcRenderer.invoke("documentAgent:workspace:revoke", input); },
+      list(input: Parameters<import("../src/types/desktop").VeniceForgeDocumentAgent["workspace"]["list"]>[0]) { return ipcRenderer.invoke("documentAgent:workspace:list", input); },
+      read(input: Parameters<import("../src/types/desktop").VeniceForgeDocumentAgent["workspace"]["read"]>[0]) { return ipcRenderer.invoke("documentAgent:workspace:read", input); },
+      search(input: Parameters<import("../src/types/desktop").VeniceForgeDocumentAgent["workspace"]["search"]>[0]) { return ipcRenderer.invoke("documentAgent:workspace:search", input); },
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld("veniceForge", veniceForge);

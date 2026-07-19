@@ -202,7 +202,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-144`.
+The primary active sequence is `VERIFY-001` through `VERIFY-153`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -354,6 +354,15 @@ describe the archived implementation only. Their source/tests now live under
 | `VERIFY-142` | Static fallback-provider catalogs are explicitly identified as bundled and potentially stale; Venice remains live-discovered, and paid-request diagnostics cannot treat static data as fresh. | `src/config/provider-models.test.ts` |
 | `VERIFY-143` | User-facing generation and research recovery: custom chat prompts fit by clamping output and never replay image-helper markers; image/research/video work surfaces animated progress; music duration controls honor live/discrete model limits; generated-video protocol responses support byte ranges and Blob downloads; workflow step choices are editable and image actions hand off to Image Studio; development update checks report their packaged-build boundary without a false failure. | `src/stores/chat-stream-manager.test.ts`, `src/components/music/music-view.test.ts`, `electron/services/generatedMediaStore.test.ts`, `src/utils/download.test.ts`, `src/components/image/image-tools.test.tsx`, `src/components/image/image-view.test.tsx`, `src/components/video/video-view.test.tsx`, `src/components/workflows/WorkflowTemplatesView.test.tsx`, `src/components/search/SearchScrapeView.test.tsx`, `src/components/SettingsView.test.tsx` |
 | `VERIFY-144` | Completed video MP4s use a dedicated bounded streaming retrieval path, durable task stages, content-addressed main-process storage, restart-safe catalog metadata, and media-ID-only native Save As. The embedded Research Browser is archived under `inactive-features/` and absent from active UI, preload, main, build, test, contract, and package surfaces. | `electron/services/generatedMediaStream.test.ts`, `electron/services/videoRetrieveService.test.ts`, `electron/services/generatedMediaExport.test.ts`, `electron/services/backgroundTaskManager.test.ts`, `src/components/search/SearchScrapeView.test.tsx`, `scripts/verify-inactive-feature-archive.cjs` |
+| `VERIFY-145` | Document Agent uses one 14-tool canonical internal/provider registry; managed documents are non-overwriting and append immutable edit/restore revisions. | `src/agent/registry/tool-registry.test.ts`, `electron/agent/documents/managed-document-service.test.ts` |
+| `VERIFY-146` | Exact proposal hashes bind one-time, expiring approvals; replay, mismatch, and restart-session reuse fail closed. | `electron/agent/approvals/approval-coordinator.test.ts` |
+| `VERIFY-147` | Workspace path policy rejects absolute, traversal, encoded, device, URI, reserved, symlink, and out-of-root targets. | `electron/agent/workspace/path-policy.test.ts` |
+| `VERIFY-148` | TXT, Markdown, JSON, CSV, HTML, DOCX, and PDF serializers validate output; HTML active content and CSV formulas are neutralized. | `electron/agent/documents/document-serializer-service.test.ts` |
+| `VERIFY-149` | Session-scoped workspace reads/list/search/create and staged expected-hash changesets remain bounded, extension-limited, non-overwriting, hidden-file-safe, and shell-free. | `electron/agent/workspace/workspace-filesystem-service.test.ts`, `electron/agent/workspace/workspace-mutation-service.test.ts` |
+| `VERIFY-150` | The Document Agent renderer surface routes only through the typed preload bridge and main-authoritative IPC for documents, approvals, native export, and one-directory workspace grants. | `electron/ipc/handlers.test.ts`, `src/config/tabs.test.ts`, `src/App.navigation.test.ts`, `src/components/layout/sidebar.test.tsx` |
+| `VERIFY-151` | Managed-document export is main-frame-authorized, user-mediated by a native save dialog, atomically written, and returns no absolute destination path. | `scripts/verify-document-agent.cjs`, `electron/ipc/handlers/documentAgentHandlers.ts` |
+| `VERIFY-152` | Document Agent audit records are append-only and hash chained without document bodies or raw model arguments. | `scripts/verify-document-agent.cjs`, `electron/agent/audit/document-agent-audit-service.ts` |
+| `VERIFY-153` | Document Agent audit metadata redacts API keys, bearer tokens, and absolute local paths; export results expose a basename only. | `scripts/verify-document-agent.cjs`, `electron/agent/audit/document-agent-audit-service.ts` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 

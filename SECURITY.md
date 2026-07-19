@@ -56,6 +56,14 @@ disabled, **Adult Mode** skips the local rule engine entirely. Adult Mode does
 not disable Venice's own provider controls, nor the separate Venice API
 `safe_mode` parameter.
 
+## Document Agent boundary
+
+Limited Document Tools are the default Document Agent capability. Managed documents use opaque IDs, bounded normalized blocks, non-overwriting creation, immutable revisions, exact proposal hashes, and one-time approval consumption. The renderer has no Node or direct filesystem access; privileged operations cross the typed preload bridge and are revalidated in Electron main.
+
+Full Workspace Tools require a native directory picker and create a session-only grant for one canonical root. Main rejects absolute, traversal, device, URI, reserved, symlink, special-file, and out-of-root targets. Listing, reads, and search are bounded and extension-limited; search does not execute a shell or subprocess. Workspace access does not include shell, Git, network, keychain, database, browser, process, or OS control.
+
+Export is always user-mediated by a native save dialog. The model does not choose or receive the absolute destination. Audit records exclude document bodies and raw model arguments and redact secrets and absolute paths. See [the Document Agent security and format guide](docs/features/DOCUMENT_AGENT.md).
+
 ### What the guard covers
 
 - Request-side prompt screening for the canonical Venice endpoint matrix locked

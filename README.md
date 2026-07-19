@@ -46,7 +46,7 @@
 
 > [!WARNING]
 > The `main` branch is active development and may be unstable. Normal users should install a tagged release from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases).
-> Road Map: Stripping out live code from in-app web browser. Adding in limited function calling to select LLMs (modify or create files within the app eco-system) **Will not be able to live or act outside of the app env.** 
+> Document Agent now provides limited function calling for app-managed documents and explicit, single-directory workspace grants. It cannot access shell, Git, network, keychain, databases, sibling directories, or OS controls. See the [Document Agent guide](docs/features/DOCUMENT_AGENT.md).
 
 ---
 
@@ -64,6 +64,7 @@ By prioritizing local data ownership, Venice Forge runs all storage operations l
 - **Local-First Backup & Sync:** Manually export/import encrypted backups, or use a background sync folder (e.g. iCloud, Dropbox) with automated end-to-end encrypted packet syncing and robust conflict resolution. Venice Forge does not implement WebDAV, S3-compatible, or other direct remote-sync protocols.
 - **Streaming AI Conversations:** Experience highly responsive model outputs with full Markdown and LaTeX support.
 - **Projects & Workspaces:** Organize your chat histories, generation parameters, and media assets into logical local projects.
+- **Limited Document Tools:** Create non-overwriting managed documents, review exact edit diffs, retain immutable revisions, restore prior content as a new revision, and export through a native save dialog. Optional workspace access is session-scoped to one user-selected directory.
 - **Model-Aware Image Generation:** Image Studio UI dynamically hides fields unsupported by the selected image model, preventing payload errors.
 - **Media Studio Command Center:** Gallery view equipped with multi-select bulk operations, lineage graph tracing, visual diff comparison, and metadata-preserving exports.
 - **Research Workspace & Embedded Browser:** Synthesize facts using Venice/Jina-backed search, scraping, and social discovery within an isolated sandbox.
@@ -80,7 +81,7 @@ flowchart LR
   VF["Venice Forge"]
   VF --> Conversation["Conversation<br/>Chat · Character Chats · History"]
   VF --> Generate["Generate<br/>Image Studio · Media Studio · Prompts · Scene Composer<br/>Audio Studio · Music Studio · Video Studio · Embeddings<br/>Research · Characters"]
-  VF --> Build["Build<br/>RP Studio · Workflows · Playground"]
+  VF --> Build["Build<br/>RP Studio · Workflows · Documents · Playground"]
   VF --> System["System<br/>Privacy · Config · Status"]
 ```
 
@@ -98,6 +99,7 @@ flowchart LR
 | **Research** | Experimental | Integrated search/scrape runner with Jina and Venice search synthesis |
 | **Characters & RP** | Beta | SillyTavern-compatible Card Studio, local cards, personas, lorebooks, multi-character chats, and scene compiler |
 | **Workflow Templates** | Experimental | Versioned template-based automation chains; visual graph building remains in Playground |
+| **Documents** | Experimental | Limited managed-document tools, immutable revisions, exact proposal approval, native export, and one-directory workspace grants |
 
 ---
 

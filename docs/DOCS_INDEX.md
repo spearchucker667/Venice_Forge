@@ -45,6 +45,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [developer/CHARACTER_CARD_CODEC.md](developer/CHARACTER_CARD_CODEC.md) — Trusted Character Card V2 PNG codec, limits, and verification contract.
 - [developer/CHARACTER_CARD_MAPPINGS.md](developer/CHARACTER_CARD_MAPPINGS.md) — Tavern/V2 DTO, internal card, and character-book mappings.
 - [data-export-format.md](data-export-format.md) — Authenticated `.vfbackup` envelope, portability, and compatibility contract.
+- [features/DOCUMENT_AGENT.md](features/DOCUMENT_AGENT.md) — Limited Documents, workspace grants, approval integrity, formats, path security, export, and validation.
+- [discovery/DISCOVERY_DOCUMENT_AGENT.md](discovery/DISCOVERY_DOCUMENT_AGENT.md) — Repository reconciliation and Phase 0 architecture evidence for the Document Agent work order.
 - [../scripts/dev-tools/README.md](../scripts/dev-tools/README.md) — Internal development-tool inventory; non-user-facing and noncanonical for product behavior.
 
 ---
@@ -112,6 +114,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 ## 7. Roadmap / Current Work
 
 - [ROADMAP.md](ROADMAP.md) — Canonical current-work-only task ledger; closed work and historical validation stay in the session ledger and historical reports.
+- [audits/TODO/Function_calling_todo.md](audits/TODO/Function_calling_todo.md) — Canonical Document Agent implementation and acceptance specification.
 - [summary_of_work.md](summary_of_work.md) — Active session ledger (recent sessions only).
 - [audits/Venice_Forge-audit-evidence-20260717-031029/Venice_Forge_Deep_Scan_2026-07-17_031029.md](audits/Venice_Forge-audit-evidence-20260717-031029/Venice_Forge_Deep_Scan_2026-07-17_031029.md) — July 17 03:10 deep-scan audit evidence; remediated live status remains in `ROADMAP.md` and `summary_of_work.md`.
 

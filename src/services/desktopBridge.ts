@@ -1274,3 +1274,44 @@ export const desktopProfilePurge = {
     return window.veniceForge!.profilePurge.purge(profileId);
   },
 };
+
+const documentAgentUnavailable = { ok: false as const, error: "Document Agent tools are only available in desktop mode." };
+
+export const desktopDocumentAgent = {
+  documents: {
+    create(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["documents"]["create"]>[0]) {
+      return isElectron() ? window.veniceForge!.documentAgent.documents.create(input) : Promise.resolve(documentAgentUnavailable);
+    },
+    list(projectId: string) {
+      return isElectron() ? window.veniceForge!.documentAgent.documents.list(projectId) : Promise.resolve(documentAgentUnavailable);
+    },
+    read(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["documents"]["read"]>[0]) {
+      return isElectron() ? window.veniceForge!.documentAgent.documents.read(input) : Promise.resolve(documentAgentUnavailable);
+    },
+    listRevisions(documentId: string) {
+      return isElectron() ? window.veniceForge!.documentAgent.documents.listRevisions(documentId) : Promise.resolve(documentAgentUnavailable);
+    },
+    proposeEdits(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["documents"]["proposeEdits"]>[0]) {
+      return isElectron() ? window.veniceForge!.documentAgent.documents.proposeEdits(input) : Promise.resolve(documentAgentUnavailable);
+    },
+    proposeRestore(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["documents"]["proposeRestore"]>[0]) {
+      return isElectron() ? window.veniceForge!.documentAgent.documents.proposeRestore(input) : Promise.resolve(documentAgentUnavailable);
+    },
+    export(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["documents"]["export"]>[0]) {
+      return isElectron() ? window.veniceForge!.documentAgent.documents.export(input) : Promise.resolve(documentAgentUnavailable);
+    },
+  },
+  approvals: {
+    list() { return isElectron() ? window.veniceForge!.documentAgent.approvals.list() : Promise.resolve(documentAgentUnavailable); },
+    decide(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["approvals"]["decide"]>[0]) {
+      return isElectron() ? window.veniceForge!.documentAgent.approvals.decide(input) : Promise.resolve(documentAgentUnavailable);
+    },
+  },
+  workspace: {
+    choose(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["workspace"]["choose"]>[0]) { return isElectron() ? window.veniceForge!.documentAgent.workspace.choose(input) : Promise.resolve(documentAgentUnavailable); },
+    revoke(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["workspace"]["revoke"]>[0]) { return isElectron() ? window.veniceForge!.documentAgent.workspace.revoke(input) : Promise.resolve({ ok: false }); },
+    list(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["workspace"]["list"]>[0]) { return isElectron() ? window.veniceForge!.documentAgent.workspace.list(input) : Promise.resolve(documentAgentUnavailable); },
+    read(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["workspace"]["read"]>[0]) { return isElectron() ? window.veniceForge!.documentAgent.workspace.read(input) : Promise.resolve(documentAgentUnavailable); },
+    search(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["workspace"]["search"]>[0]) { return isElectron() ? window.veniceForge!.documentAgent.workspace.search(input) : Promise.resolve(documentAgentUnavailable); },
+  },
+};

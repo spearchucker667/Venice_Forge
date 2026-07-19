@@ -130,6 +130,11 @@ function StoragePrivacyDashboard() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading storage…</div>}><LazyStoragePrivacyDashboard /></Suspense>
 }
 
+const LazyDocumentAgentView = lazy(() => import('./components/documents/DocumentAgentView').then((m) => ({ default: m.DocumentAgentView })))
+function DocumentAgentView() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading documents…</div>}><LazyDocumentAgentView /></Suspense>
+}
+
 const views: Record<TabId, React.ComponentType> = {
   chat: StandardChatView,
   'character-chats': CharacterChatsView,
@@ -148,6 +153,7 @@ const views: Record<TabId, React.ComponentType> = {
   video: VideoView,
   embeddings: EmbeddingsView,
   workflows: WorkflowsViewLazy,
+  documents: DocumentAgentView,
   privacy: StoragePrivacyDashboard,
   playground: PlaygroundView,
   status: StatusView,

@@ -6,11 +6,11 @@
  * Locks three repo-governance invariants:
  * - current bug-hunt prompt is canonical and zip-aware;
  * - stale audit reports do not live at the repository root;
- * - VERIFY IDs stay in the documented namespace: VERIFY-001..VERIFY-144 plus
+ * - VERIFY IDs stay in the documented namespace: VERIFY-001..VERIFY-153 plus
  *   the intentional legacy T-168 bridge id VERIFY-168.
  *
- * Updated 2026-07-18: extended namespace to VERIFY-001..VERIFY-144 for the
- * cross-studio generation, research, workflow, and update-status remediation.
+ * Updated 2026-07-18: extended namespace to VERIFY-001..VERIFY-153 for the
+ * Document Agent security foundation and renderer/main boundary.
  * The prior 2026-07-16 extension to VERIFY-138 covered
  * the P0 #1–#6 sync/import integrity remediation (VERIFY-132..137) alongside
  * the prior VERIFY-001..VERIFY-131 active sequence. VERIFY-128..131 closed the
@@ -85,7 +85,7 @@ if (!agents.includes("VERIFY-168") || !agents.includes("intentional legacy")) {
 }
 
 const allowedVerifyIds = new Set(["VERIFY-168"]);
-for (let id = 1; id <= 144; id += 1) {
+for (let id = 1; id <= 153; id += 1) {
   allowedVerifyIds.add(`VERIFY-${String(id).padStart(3, "0")}`);
 }
 
