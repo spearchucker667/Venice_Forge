@@ -1,13 +1,6 @@
 import { performGuardedVeniceRequest, type GuardedVeniceResult } from "../../services/guardPipeline";
 import { executeDocumentTool } from "./document-tool-executor";
-import type { VeniceIpcResponse } from "../../services/veniceClient";
-import type { AssistantToolCall, ChatMessage } from "../../../src/types/venice";
-
-interface RunnerContext {
-  profileId: string;
-  agentSessionId?: string;
-  signalId?: string;
-}
+import type { AssistantToolCall } from "../../../src/types/venice";
 
 interface SseChunk {
   content?: string;
@@ -27,7 +20,7 @@ interface SseChunk {
 }
 
 export async function runChatAgentLoop(
-  request: any, // ReturnType<typeof validateVeniceIpcRequest>
+  request: unknown, // ReturnType<typeof validateVeniceIpcRequest>
   onDelta: (chunk: SseChunk) => void
 ): Promise<GuardedVeniceResult> {
   const maxIterations = 5;
@@ -71,7 +64,7 @@ export async function runChatAgentLoop(
                arguments: tc.function?.arguments || ""
              }
           }));
-          (chunk as any).tool_calls = formattedToolCalls;
+          (chunk as { tool_calls: unknown }).tool_calls = formattedToolCalls;
         }
 
         // Always forward delta to renderer so UI can display thought/content
@@ -83,7 +76,7 @@ export async function runChatAgentLoop(
 
     if (aggregatedToolCalls.size > 0 && finalFinishReason === "tool_calls") {
       const toolCalls = Array.from(aggregatedToolCalls.values());
-      const messages = (currentRequest.body as any).messages;
+      const messages = (currentRequest.body as { messages: unknown[] }).messages;
       
       // 1. Add assistant message with tool calls
       messages.push({
@@ -114,7 +107,16 @@ export async function runChatAgentLoop(
       };
       appendedMessages.push(nextAssistantMsg);
 
-      onDelta({ appendedMessages } as any);
+      onDelta({ appendedMessages } as unknown as SseChunk);
+
+      // Update currentRequest with the new messages for the next iteration
+      currentRequest = {
+        ...currentRequest,
+        body: {
+          ...(currentRequest.body as Record<string, unknown>),
+          messages: [...messages, nextAssistantMsg],
+        },
+      };
 
       // Continue loop with new messages
       continue;

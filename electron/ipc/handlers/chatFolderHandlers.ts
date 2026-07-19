@@ -5,8 +5,7 @@ import {
   listChatFolders,
   saveChatFolder,
   readChatFolder,
-  deleteChatFolderFile,
-  getChatFoldersDir
+  deleteChatFolderFile
 } from "../../services/chatFolderStorage";
 import type { ChatFolder } from "../../../src/types/chatFolder";
 import { logError } from "../../services/logger";
@@ -124,7 +123,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -186,7 +185,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -352,7 +351,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -414,7 +413,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -574,7 +573,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -636,7 +635,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -792,7 +791,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -854,7 +853,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -991,7 +990,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -1053,7 +1052,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -1194,7 +1193,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -1256,7 +1255,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -1413,7 +1412,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -1475,7 +1474,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -1617,7 +1616,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -1679,7 +1678,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -1816,7 +1815,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -1878,7 +1877,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -2019,7 +2018,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -2081,7 +2080,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -2241,7 +2240,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -2303,7 +2302,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -2441,7 +2440,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
@@ -2503,7 +2502,7 @@ export function registerChatFolderHandlers(): void {
   registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
     try {
       if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, includeMedia, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);

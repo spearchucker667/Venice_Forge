@@ -10,13 +10,13 @@ export async function executeDocumentTool(profileId: string, toolCall: Assistant
     return safeToolError("document.get", toolCall.id, "INVALID_ARGUMENTS", `Unknown tool name: ${toolCall.function.name}`);
   }
 
-  let args: any;
+  let args: unknown;
   try {
     args = typeof toolCall.function.arguments === "string"
       ? JSON.parse(toolCall.function.arguments)
       : toolCall.function.arguments;
-  } catch (error) {
-    return safeToolError(internalName, toolCall.id, "INVALID_ARGUMENTS", "Failed to parse tool arguments.");
+  } catch (_error) {
+    return safeToolError(internalName, toolCall.id, "INVALID_ARGUMENTS", `Failed to parse tool arguments: ${_error instanceof Error ? _error.message : String(_error)}`);
   }
 
   try {
@@ -54,26 +54,26 @@ export async function executeDocumentTool(profileId: string, toolCall: Assistant
       }
 
       case "workspace.list": {
-        const { grantId, workspaceId, relativeDirectory, recursive, maxDepth, offset } = args;
+        const { grantId, workspaceId, relativeDirectory, recursive, maxDepth, offset } = args as { grantId: string; workspaceId: string; relativeDirectory: string; recursive: boolean; maxDepth: number; offset: number };
         const grant = services.workspaceGrants.get(grantId, `runtime_${profileId}:agent_${agentSessionId || ""}`);
         if (!grant) return safeToolError(internalName, toolCall.id, "CAPABILITY_DENIED", "Valid grant not found for workspace.list");
-        const result = await services.workspaceFiles.list({ grant, sessionId: grant.sessionId, workspaceId: grant.workspaceId, relativeDirectory, recursive, maxDepth, offset });
+        const result = await services.workspaceFiles.list({ grant, sessionId: grant.sessionId, workspaceId, relativeDirectory, recursive, maxDepth, offset });
         return { ok: true, toolName: internalName, requestId: toolCall.id, data: result };
       }
       
       case "workspace.read": {
-        const { grantId, workspaceId, relativePath } = args;
+        const { grantId, workspaceId, relativePath } = args as { grantId: string; workspaceId: string; relativePath: string };
         const grant = services.workspaceGrants.get(grantId, `runtime_${profileId}:agent_${agentSessionId || ""}`);
         if (!grant) return safeToolError(internalName, toolCall.id, "CAPABILITY_DENIED", "Valid grant not found for workspace.read");
-        const result = await services.workspaceFiles.readText({ grant, sessionId: grant.sessionId, workspaceId: grant.workspaceId, relativePath });
+        const result = await services.workspaceFiles.readText({ grant, sessionId: grant.sessionId, workspaceId, relativePath });
         return { ok: true, toolName: internalName, requestId: toolCall.id, data: result };
       }
 
       case "workspace.search": {
-        const { grantId, workspaceId, query, maxResults } = args;
+        const { grantId, workspaceId, query, maxResults } = args as { grantId: string; workspaceId: string; query: string; maxResults: number };
         const grant = services.workspaceGrants.get(grantId, `runtime_${profileId}:agent_${agentSessionId || ""}`);
         if (!grant) return safeToolError(internalName, toolCall.id, "CAPABILITY_DENIED", "Valid grant not found for workspace.search");
-        const result = await services.workspaceFiles.search({ grant, sessionId: grant.sessionId, workspaceId: grant.workspaceId, query, maxResults });
+        const result = await services.workspaceFiles.search({ grant, sessionId: grant.sessionId, workspaceId, query, maxResults });
         return { ok: true, toolName: internalName, requestId: toolCall.id, data: result };
       }
 
