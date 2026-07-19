@@ -85,6 +85,10 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
         for (const task of envelope.tasks ?? []) {
           if (task.profileId === currentProfileId) {
             updates[task.id] = task
+          } else if (task.type === 'video' && task.status === 'completed' && state.tasks[task.id]) {
+            // For completed video tasks, bypass profile filtering to ensure they're displayed
+            // This prevents UI hanging in the loading state when there are profile mismatches
+            updates[task.id] = task
           }
         }
         return { tasks: updates }
