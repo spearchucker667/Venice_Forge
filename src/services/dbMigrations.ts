@@ -239,6 +239,15 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 18,
+    description: "Add chat_folders store for organizing conversations",
+    up(db) {
+      if (!db.objectStoreNames.contains("chat_folders")) {
+        db.createObjectStore("chat_folders", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**

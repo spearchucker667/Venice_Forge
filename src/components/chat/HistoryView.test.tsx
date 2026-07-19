@@ -46,6 +46,16 @@ import { toast } from "../../stores/toast-store";
 const mockToastError = vi.mocked(toast.error);
 const mockToastSuccess = vi.mocked(toast.success);
 
+// Variable to store the action from the last call
+let lastToastErrorAction: { label: string; onClick: () => void | Promise<void> } | undefined = undefined;
+
+// Mock the return value of toast.error to return a toast ID
+vi.mocked(toast.error).mockImplementation((title: string, description?: string, action?: { label: string; onClick: () => void | Promise<void> }) => {
+  // Store the action so we can test it
+  lastToastErrorAction = action;
+  return "toast-id";
+});
+
 describe("HistoryView Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -242,11 +252,10 @@ describe("HistoryView Component", () => {
     });
     expect(mockToastError).toHaveBeenCalledWith("Conversation deleted", "Delete target", expect.any(Object));
 
-    const toastAction = mockToastError.mock.calls[0][2];
-    expect(toastAction).toBeDefined();
-    if (toastAction) {
-      expect(toastAction.label).toBe("Undo");
-      await toastAction.onClick();
+    expect(lastToastErrorAction).toBeDefined();
+    if (lastToastErrorAction) {
+      expect(lastToastErrorAction.label).toBe("Undo");
+      await lastToastErrorAction.onClick();
     }
     expect(restoreSpy).toHaveBeenCalledWith(conv);
     expect(mockToastSuccess).toHaveBeenCalledWith("Conversation restored");

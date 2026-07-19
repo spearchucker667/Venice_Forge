@@ -14,10 +14,10 @@ function grant(preset: CapabilityGrant["preset"]): CapabilityGrant {
 }
 
 describe("canonical document-agent tool registry", () => {
-  it("VERIFY-145 registers all 15 unique provider-safe tools", () => {
+  it("VERIFY-145 registers all 16 unique provider-safe tools", () => {
     const definitions = createCanonicalToolDefinitions();
-    expect(definitions).toHaveLength(15);
-    expect(new Set(definitions.map((tool) => tool.providerName))).toHaveLength(15);
+    expect(definitions).toHaveLength(16);
+    expect(new Set(definitions.map((tool) => tool.providerName))).toHaveLength(16);
     expect(definitions.every((tool) => !tool.providerName.includes("."))).toBe(true);
   });
 

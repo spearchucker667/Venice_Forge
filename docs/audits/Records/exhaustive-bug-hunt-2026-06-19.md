@@ -2,7 +2,7 @@
 
 > Historical snapshot. This report records the repository name and local path
 > used when the audit was performed. The current Electron repository is
-> `/Users/super_user/Projects/Venice_Forge` and the current GitHub repository
+> `<REPO_ROOT>` and the current GitHub repository
 > is `spearchucker667/Venice_Forge`. Do not use paths in this report as active
 > setup instructions.
 
@@ -45,7 +45,7 @@
 
 **Severity:** Medium — API contract violation; breaks uniform error handling in client code.
 
-**File:** [`server.ts`](../../server.ts)
+**File:** [`../../../server.ts`](../../../server.ts)
 
 **Evidence (line numbers):**
 - **Venice proxy** (lines 512–517): `{ error, reasonCode, category, severity }` — all fields present.
@@ -67,14 +67,14 @@
 
 **Severity:** Low–Medium — incorrect last-resort fallback if the canonical constant changes.
 
-**File:** [`src/components/chat/chat-view.tsx`](../../src/components/chat/chat-view.tsx)
+**File:** [`../../../src/components/chat/chat-view.tsx`](../../../src/components/chat/chat-view.tsx)
 
 **Evidence (line 38):**
 ```ts
 const model = selectedModel || models?.[0]?.id || 'llama-3.3-70b'
 ```
 
-**Constants file:** [`src/constants/venice.ts`](../../src/constants/venice.ts)
+**Constants file:** [`src/constants/venice.ts`](../../../src/constants/venice.ts)
 ```ts
 export const DEFAULT_CHAT_MODEL = "venice-uncensored";
 ```
@@ -82,9 +82,9 @@ export const DEFAULT_CHAT_MODEL = "venice-uncensored";
 **Impact:** The `chat-view.tsx` tertiary fallback (`'llama-3.3-70b'`) contradicts the repository-wide `DEFAULT_CHAT_MODEL` constant (`"venice-uncensored"`). If `selectedModels.chat` is empty and the model catalog fails to load, the chat view uses a different model than `CharactersView.tsx` (which does use `DEFAULT_CHAT_MODEL`) and `chat-store.ts`.
 
 **Additional hardcoded occurrences:**
-- [`src/components/CharactersView.tsx`](../../src/components/CharactersView.tsx): `|| "llama-3.3-70b"` — also bypasses `DEFAULT_CHAT_MODEL`
-- [`src/stores/media-send-to.ts`](../../src/stores/media-send-to.ts): `|| "venice-uncensored-1-2"` — an old versioned model ID, not the canonical constant
-- [`src/components/workflows/workflows-view.tsx`](../../src/components/workflows/workflows-view.tsx): Template defaults use `'llama-3.3-70b'` (acceptable as illustrative template data, but undocumented as intentional)
+- [`../../../src/components/CharactersView.tsx`](../../../src/components/CharactersView.tsx): `|| "llama-3.3-70b"` — also bypasses `DEFAULT_CHAT_MODEL`
+- [`../../../src/stores/media-send-to.ts`](../../../src/stores/media-send-to.ts): `|| "venice-uncensored-1-2"` — an old versioned model ID, not the canonical constant
+- [`../../../src/components/workflows/WorkflowTemplatesView.tsx`](../../../src/components/workflows/WorkflowTemplatesView.tsx): Template defaults use `'llama-3.3-70b'` (acceptable as illustrative template data, but undocumented as intentional)
 
 ---
 
@@ -92,7 +92,7 @@ export const DEFAULT_CHAT_MODEL = "venice-uncensored";
 
 **Severity:** Low — race condition degrades the half-open "single probe request" guarantee; functional impact is limited (overshoot, not silent bypass).
 
-**File:** [`server.ts`](../../server.ts)
+**File:** [`../../../server.ts`](../../../server.ts)
 
 **Evidence:**
 ```ts
@@ -119,14 +119,14 @@ app.use("/api/venice", (req, res, next) => {
 
 **Severity:** Low — regression guard has incomplete coverage; theme-token violations in newly-added components go undetected.
 
-**File:** [`tests/theme/meshSurfaceInvariant.test.ts`](../../tests/theme/meshSurfaceInvariant.test.ts)
+**File:** [`../../../tests/theme/meshSurfaceInvariant.test.ts`](../../../tests/theme/meshSurfaceInvariant.test.ts)
 
 **Evidence:** `SCAN_FILES` is a hard-coded list of 6 files. Confirmed `border-border` usages exist in at minimum:
-- `src/components/research/ResearchWorkspaceView.tsx`
-- `src/components/image/generation-view.tsx`
+- `../../src/components/research/ResearchWorkspaceView.tsx`
+- `../../src/components/image/generation-view.tsx`
 - Others added during Phase 2D–2K development
 
-**`verify:theme-tokens`** uses `SCAN_ROOTS = ["src/App.tsx", "src/components"]` and covers the full component tree, but the mesh invariant test targets a narrower pattern (`border-border` specifically) in a static allowlist. The two tests check different things and the allowlist has not been updated to match the component surface.
+**`verify:theme-tokens`** uses `SCAN_ROOTS = ["../../src/App.tsx", "src/components"]` and covers the full component tree, but the mesh invariant test targets a narrower pattern (`border-border` specifically) in a static allowlist. The two tests check different things and the allowlist has not been updated to match the component surface.
 
 **Impact:** The mesh invariant guard PASSES without reflecting actual coverage of border-border usage.
 
@@ -153,8 +153,8 @@ VERIFY IDs in AGENTS.md NOT in code: VERIFY-021, -022, -023, -030, -031, -032, -
 **Severity:** Informational — orphaned VERIFY ID.
 
 **Files:**
-- [`src/services/storagePrivacyService.test.ts`](../../src/services/storagePrivacyService.test.ts) — `T-168 / VERIFY-168`
-- [`src/services/storagePrivacyService.ts`](../../src/services/storagePrivacyService.ts) — comment reference
+- [`../../../src/services/storagePrivacyService.test.ts`](../../../src/services/storagePrivacyService.test.ts) — `T-168 / VERIFY-168`
+- [`../../../src/services/storagePrivacyService.ts`](../../../src/services/storagePrivacyService.ts) — comment reference
 
 **Impact:** The guard exists and executes. It is simply not registered in the canonical table, so it cannot be audited from the AGENTS.md tracking document.
 
@@ -273,7 +273,7 @@ node --version: v26.3.0
 | BUG-001 | **Medium** | `server.ts` L588, L728 | Jina/scrape 451 body missing `reasonCode`, `category`, `severity` |
 | BUG-002 | **Low–Med** | `chat-view.tsx` L38, `CharactersView.tsx` L189, `media-send-to.ts` L185 | Hardcoded model strings diverge from `DEFAULT_CHAT_MODEL` |
 | BUG-003 | **Low** | `server.ts` L404–416 | Circuit breaker half-open allows concurrent probe requests |
-| BUG-004 | **Low** | `tests/theme/meshSurfaceInvariant.test.ts` | Guard scans 6 files; `border-border` violations in other components are invisible |
+| BUG-004 | **Low** | [`../../../tests/theme/meshSurfaceInvariant.test.ts`](../../../tests/theme/meshSurfaceInvariant.test.ts) | Guard scans 6 files; `border-border` violations in other components are invisible |
 | BUG-005 | **Info** | Multiple test files | 8 VERIFY-NNN IDs in AGENTS.md table have no comment tag in test code |
 | BUG-006 | **Info** | `storagePrivacyService.test.ts` | VERIFY-168 unregistered in AGENTS.md |
 | BUG-007 | **Info** | Local environment | Node v26.3.0 violates `engines: ">=22.13.0 <23"` (CI enforces correctly) |

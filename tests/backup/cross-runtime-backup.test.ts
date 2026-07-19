@@ -89,6 +89,7 @@ describe("cross-runtime backup compatibility", () => {
     visualWorkflows: [],
     playground: [],
     tombstones: [],
+    chat_folders: [],
   };
 
   it("should create backups that can be decrypted by both runtimes", async () => {
