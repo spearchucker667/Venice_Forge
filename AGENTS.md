@@ -202,7 +202,7 @@ guard fails CI if a future change weakens the protection. When adding a
 new guard, append it to the list below and reference the ID in the
 test's comment header.
 
-The primary active sequence is `VERIFY-001` through `VERIFY-154`.
+The primary active sequence is `VERIFY-001` through `VERIFY-155`.
 `VERIFY-168` is an intentional legacy bridge for the older T-168 storage
 privacy redaction finding and is allowlisted by `verify:repo-handoff-hygiene`;
 do not add new out-of-sequence IDs without updating that verifier and this
@@ -364,6 +364,7 @@ describe the archived implementation only. Their source/tests now live under
 | `VERIFY-152` | Document Agent audit records are append-only and hash chained without document bodies or raw model arguments. | `scripts/verify-document-agent.cjs`, `electron/agent/audit/document-agent-audit-service.ts` |
 | `VERIFY-153` | Document Agent audit metadata redacts API keys, bearer tokens, and absolute local paths; export results expose a basename only. | `scripts/verify-document-agent.cjs`, `electron/agent/audit/document-agent-audit-service.ts` |
 | `VERIFY-154` | Attachment-to-managed-document promotion is capability-gated (`attachment:promote` in `limited_documents` and above, never in `off`/`read_attachments`), 1 MiB body-capped, MIME-allow-listed with HTML blocklist, non-overwriting, secret-redacted in text mode, binary-only placeholders for non-text MIME, propagates `createdBy: "import"` and emits the `document.promoteAttachment` audit event with the documented metadata shape. | `electron/agent/documents/attachment-import-service.test.ts`, `electron/ipc/handlers/documentAgentHandlers.attachments.test.ts` |
+| `VERIFY-155` | Custom-protocol CORS regression guard — every renderer-consumed custom scheme (`venice-character-cache`, `venice-tts`, `venice-media`) is registered through `protocol.registerSchemesAsPrivileged` with `corsEnabled: true`, the audio/video schemes additionally carry `stream: true`, every consumer (`createGeneratedMediaResponse`, `venice-tts`, `venice-character-cache` handlers) routes the request through `evaluateCustomProtocolAccess` with a `rendererRoot` referrer guard, and successful responses emit `Access-Control-Allow-Origin` (never `*`), `Vary: Origin`, and `Access-Control-Expose-Headers` listing `Accept-Ranges / Content-Length / Content-Range / Content-Type`. The byte-range contract (`Content-Type`, `Content-Length`, `Accept-Ranges`, `Content-Range`, `206 Partial Content`, `416 Range Not Satisfiable`) survives the CORS rewrite. The "VERIFY-155 / Custom-Protocol CORS Regression Guard" row in this table must remain bounded to IDs `1..155` by `verify:repo-handoff-hygiene`, and the static audit must error out for any new registered scheme that is not in `SCHEMES_INCLUDING_GENERATED`. | `electron/utils/customProtocolAccess.test.ts`, `electron/utils/characterImageCacheProtocol.test.ts`, `electron/services/generatedMediaStore.test.ts`, `scripts/verify-custom-protocol-privileges.cjs` |
 | `VERIFY-168` | Safe summary redacts user titles and names from issue messages | `src/services/storagePrivacyService.test.ts` |
 ---
 

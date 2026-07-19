@@ -13,6 +13,11 @@ import {
 import path from 'path'
 import { pathToFileURL } from 'url'
 import { checkPathContained } from '../utils/navigation'
+import {
+  buildCorsHeaders,
+  evaluateCustomProtocolAccess,
+  type CustomProtocolAccessInput,
+} from '../utils/customProtocolAccess'
 
 export const GENERATED_MEDIA_SCHEME = 'venice-media'
 const ALLOWED_MIME = new Map([
@@ -140,16 +145,32 @@ export async function resolveGeneratedMedia(id: string): Promise<{ path: string;
   }
 }
 
-export async function createGeneratedMediaResponse(id: string, request: Request): Promise<Response> {
+export async function createGeneratedMediaResponse(
+  id: string,
+  request: Request,
+  access: CustomProtocolAccessInput,
+): Promise<Response> {
+  const decision = evaluateCustomProtocolAccess(access)
+  if (!decision.allowed) return new Response('Forbidden', { status: 403 })
+
   const resolved = await resolveGeneratedMedia(id)
   if (!resolved) return new Response('Not found', { status: 404 })
 
   const fileUrl = pathToFileURL(resolved.path).toString()
   const res = await net.fetch(fileUrl, { headers: request.headers })
-  
+
   const headers = new Headers(res.headers)
+  // Preserve byte-range metadata so `<video>`/`<audio>` can seek + report duration.
+  // `net.fetch` over `file://` honours `Range` natively — a 206 response carries
+  // `Content-Range` + `Content-Length`, a 200 carries `Content-Length`, and
+  // `Accept-Ranges: bytes` is set whenever the response is partial-capable.
+  // We deliberately do NOT overwrite Content-Range, Content-Length, or
+  // Accept-Ranges here.
   headers.set('Cache-Control', 'private, max-age=31536000, immutable')
   headers.set('Content-Type', resolved.mimeType)
+  for (const [name, value] of Object.entries(buildCorsHeaders(decision))) {
+    headers.set(name, value)
+  }
 
   return new Response(res.body, {
     status: res.status,

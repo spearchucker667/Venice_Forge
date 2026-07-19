@@ -82,14 +82,33 @@ describe('generatedMediaStore', () => {
     const bytes = Buffer.concat([Buffer.from([0, 0, 0, 20]), Buffer.from('ftypisom'), Buffer.from('video-payload')])
     const saved = await persistGeneratedMedia(bytes, 'video/mp4')
 
-    const partial = await createGeneratedMediaResponse(saved.id, { headers: { range: 'bytes=4-11' } } as any)
+    const access = { isDev: true, origin: null, referrer: '', rendererRoot: '' }
+    const partial = await createGeneratedMediaResponse(saved.id, { headers: { range: 'bytes=4-11' } } as any, access)
     expect(partial.status).toBe(206)
     expect(partial.headers.get('accept-ranges')).toBe('bytes')
     expect(partial.headers.get('content-range')).toBe(`bytes 4-11/${bytes.length}`)
     expect(Buffer.from(await partial.arrayBuffer())).toEqual(bytes.subarray(4, 12))
+    // CORS headers are emitted alongside byte-range metadata. The Vite dev
+    // origin is the only `Access-Control-Allow-Origin` value released in dev.
+    expect(partial.headers.get('access-control-allow-origin')).toBe('http://localhost:5173')
+    expect(partial.headers.get('vary')).toBe('Origin')
 
-    const invalid = await createGeneratedMediaResponse(saved.id, { headers: { range: `bytes=${bytes.length}-` } } as any)
+    const invalid = await createGeneratedMediaResponse(saved.id, { headers: { range: `bytes=${bytes.length}-` } } as any, access)
     expect(invalid.status).toBe(416)
     expect(invalid.headers.get('content-range')).toBe(`bytes */${bytes.length}`)
+  })
+
+  // VERIFY-155: foreign origins must never reach generated-media bytes.
+  it('rejects generated-media requests from forbidden origins', async () => {
+    const bytes = Buffer.concat([Buffer.from([0, 0, 0, 20]), Buffer.from('ftypisom'), Buffer.from('video-payload')])
+    const saved = await persistGeneratedMedia(bytes, 'video/mp4')
+
+    const blocked = await createGeneratedMediaResponse(
+      saved.id,
+      { headers: { range: 'bytes=4-11' } } as any,
+      { isDev: true, origin: 'https://evil.example', referrer: 'https://evil.example/app', rendererRoot: '' },
+    )
+    expect(blocked.status).toBe(403)
+    expect(blocked.headers.get('access-control-allow-origin')).toBeNull()
   })
 })

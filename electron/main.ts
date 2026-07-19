@@ -16,7 +16,10 @@ import { redactErrorMessage } from "../src/shared/redaction";
 import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
 import { rendererCsp } from "./utils/rendererCsp";
-import { isAllowedCharacterImageCacheProtocolAccess } from "./utils/characterImageCacheProtocol";
+import {
+  buildCorsHeaders,
+  evaluateCustomProtocolAccess,
+} from "./utils/customProtocolAccess";
 import { startBridgeServer, stopBridgeServer } from "./services/bridgeServer";
 import { stopSyncWatcher } from "./services/syncFolderWatcher";
 import { isValidBridgeHost } from "./utils/bridgeHost";
@@ -28,13 +31,24 @@ import { createShutdownCoordinator } from "./services/appShutdownCoordinator";
 export { isValidBridgeHost };
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: "venice-character-cache", privileges: { secure: true, standard: true, supportFetchAPI: true } },
-  { scheme: "venice-tts", privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true } },
-  { scheme: GENERATED_MEDIA_SCHEME, privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true } },
+  {
+    scheme: "venice-character-cache",
+    privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true },
+  },
+  {
+    scheme: "venice-tts",
+    privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true, corsEnabled: true },
+  },
+  {
+    scheme: GENERATED_MEDIA_SCHEME,
+    privileges: { secure: true, standard: true, supportFetchAPI: true, stream: true, corsEnabled: true },
+  },
 ]);
 
 /** Indicates whether the app is running in development mode. */
 const isDev = !app.isPackaged;
+/** Absolute path to the packaged renderer root, used for `file://` referrer checks. */
+const packagedRendererRoot = path.resolve(__dirname, "../../dist");
 
 /** Whether to allow DevTools in packaged production builds. */
 const allowProdDevTools = process.env.VENICE_FORGE_DEBUG_DEVTOOLS === "true";
@@ -314,7 +328,12 @@ if (!gotLock) {
     protocol.handle(GENERATED_MEDIA_SCHEME, async (request) => {
       const parsedUrl = new URL(request.url);
       const id = parsedUrl.hostname || parsedUrl.pathname.replace(/^\/+/, '');
-      return createGeneratedMediaResponse(id, request);
+      return createGeneratedMediaResponse(id, request, {
+        isDev,
+        origin: request.headers.get("origin"),
+        referrer: request.referrer,
+        rendererRoot: packagedRendererRoot,
+      });
     });
     protocol.handle("venice-tts", async (request) => {
       const parsedUrl = new URL(request.url);
@@ -327,23 +346,34 @@ if (!gotLock) {
       if (!checkPathContained(ttsPath, cacheRoot)) {
         return new Response('Not found', { status: 404 });
       }
-      try {
-        const bytes = await readRegularFileNoFollow(ttsPath);
-        return new Response(bytes, {
-          headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'private, max-age=31536000, immutable' },
-        });
-      } catch {
-        return new Response('Not found', { status: 404 });
-      }
-    });
-    protocol.handle("venice-character-cache", async (request) => {
-      const rendererRoot = path.resolve(__dirname, "../../dist");
-      if (!isAllowedCharacterImageCacheProtocolAccess({
+      const ttsAccessDecision = evaluateCustomProtocolAccess({
         isDev,
         origin: request.headers.get("origin"),
         referrer: request.referrer,
-        rendererRoot,
-      })) {
+        rendererRoot: packagedRendererRoot,
+      });
+      if (!ttsAccessDecision.allowed) return new Response('Forbidden', { status: 403 });
+      try {
+        const bytes = await readRegularFileNoFollow(ttsPath);
+        return new Response(bytes, {
+          headers: {
+            'Content-Type': 'audio/mpeg',
+            'Cache-Control': 'private, max-age=31536000, immutable',
+            ...buildCorsHeaders(ttsAccessDecision),
+          },
+        });
+      } catch {
+        return new Response('Not found', { status: 403 });
+      }
+    });
+    protocol.handle("venice-character-cache", async (request) => {
+      const accessDecision = evaluateCustomProtocolAccess({
+        isDev,
+        origin: request.headers.get("origin"),
+        referrer: request.referrer,
+        rendererRoot: packagedRendererRoot,
+      });
+      if (!accessDecision.allowed) {
         return new Response("Forbidden", { status: 403 });
       }
 
@@ -388,8 +418,9 @@ if (!gotLock) {
       return new Response(stream as unknown as ReadableStream, {
         headers: {
           "Content-Type": metaContentType,
-          "Cache-Control": "private, max-age=604800"
-        }
+          "Cache-Control": "private, max-age=604800",
+          ...buildCorsHeaders(accessDecision),
+        },
       });
     });
 
