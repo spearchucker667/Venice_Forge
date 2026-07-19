@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  MEDIA_SELECTION_MAX,
+  MEDIA_SELECTION_MAX as _MEDIA_SELECTION_MAX,
   useMediaSelectionStore,
 } from "./media-selection-store";
 

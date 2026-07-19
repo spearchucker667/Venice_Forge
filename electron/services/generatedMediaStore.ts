@@ -1,11 +1,17 @@
 /** Durable generated audio/video storage owned by the Electron main process. */
 import { app, net } from 'electron'
 import crypto from 'crypto'
-import { createReadStream } from 'fs'
-import fs from 'fs/promises'
+import {
+  mkdir,
+  open,
+  rename,
+  rm,
+  stat as fsStat,
+  writeFile,
+  readFile,
+} from 'fs/promises'
 import path from 'path'
 import { pathToFileURL } from 'url'
-import { Readable } from 'stream'
 import { checkPathContained } from '../utils/navigation'
 
 export const GENERATED_MEDIA_SCHEME = 'venice-media'
@@ -18,7 +24,7 @@ const ALLOWED_MIME = new Map([
 
 export interface GeneratedMediaTempFile {
   path: string
-  handle: Awaited<ReturnType<typeof fs.open>>
+  handle: Awaited<ReturnType<typeof open>>
 }
 
 export interface DurableGeneratedMedia {
@@ -40,10 +46,10 @@ function isLexicallyContained(target: string, root: string): boolean {
 
 export async function createGeneratedMediaTempFile(): Promise<GeneratedMediaTempFile> {
   const root = getGeneratedMediaRoot()
-  await fs.mkdir(root, { recursive: true, mode: 0o700 })
+  await mkdir(root, { recursive: true, mode: 0o700 })
   const temporaryPath = path.join(root, `.incoming-${crypto.randomBytes(12).toString('hex')}.tmp`)
   if (!isLexicallyContained(temporaryPath, root)) throw new Error('Generated media path was rejected.')
-  return { path: temporaryPath, handle: await fs.open(temporaryPath, 'wx', 0o600) }
+  return { path: temporaryPath, handle: await open(temporaryPath, 'wx', 0o600) }
 }
 
 export async function commitGeneratedMediaTempFile(input: {
@@ -65,26 +71,26 @@ export async function commitGeneratedMediaTempFile(input: {
   if (!isLexicallyContained(input.temporaryPath, root) || !isLexicallyContained(mediaPath, root) || !isLexicallyContained(metadataPath, root)) {
     throw new Error('Generated media path was rejected.')
   }
-  const stat = await fs.stat(input.temporaryPath)
+  const stat = await fsStat(input.temporaryPath)
   if (!stat.isFile() || stat.size !== input.byteCount) throw new Error('Generated media temporary file was incomplete.')
 
   try {
     try {
-      await fs.rename(input.temporaryPath, mediaPath)
+      await rename(input.temporaryPath, mediaPath)
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
-      await fs.rm(input.temporaryPath, { force: true })
+      await rm(input.temporaryPath, { force: true })
     }
     const metadata = JSON.stringify({ version: 1, id: input.sha256, sha256: input.sha256, mimeType: normalizedMime, byteCount: input.byteCount, extension })
-    await fs.writeFile(metadataTemp, metadata, { mode: 0o600 })
-    const metadataHandle = await fs.open(metadataTemp, 'r')
+    await writeFile(metadataTemp, metadata, { mode: 0o600 })
+    const metadataHandle = await open(metadataTemp, 'r')
     try { await metadataHandle.sync() } finally { await metadataHandle.close() }
-    await fs.rename(metadataTemp, metadataPath)
-    const directoryHandle = await fs.open(root, 'r')
+    await rename(metadataTemp, metadataPath)
+    const directoryHandle = await open(root, 'r')
     try { await directoryHandle.sync() } finally { await directoryHandle.close() }
   } catch (error) {
-    await fs.rm(input.temporaryPath, { force: true }).catch(() => undefined)
-    await fs.rm(metadataTemp, { force: true }).catch(() => undefined)
+    await rm(input.temporaryPath, { force: true }).catch(() => undefined)
+    await rm(metadataTemp, { force: true }).catch(() => undefined)
     throw error
   }
   return { id: input.sha256, url: `${GENERATED_MEDIA_SCHEME}://${input.sha256}`, mimeType: normalizedMime, byteCount: input.byteCount, sha256: input.sha256 }
@@ -112,7 +118,7 @@ export async function persistGeneratedMedia(bytes: Buffer, mimeType: string): Pr
     return await commitGeneratedMediaTempFile({ temporaryPath: temp.path, mimeType: normalizedMime, byteCount: bytes.length, sha256 })
   } catch (error) {
     await temp.handle.close().catch(() => undefined)
-    await fs.rm(temp.path, { force: true }).catch(() => undefined)
+    await rm(temp.path, { force: true }).catch(() => undefined)
     throw error
   }
 }
@@ -123,11 +129,11 @@ export async function resolveGeneratedMedia(id: string): Promise<{ path: string;
   const metadataPath = path.join(root, `${id}.json`)
   if (!checkPathContained(metadataPath, root)) return null
   try {
-    const metadata = JSON.parse(await fs.readFile(metadataPath, 'utf8')) as { id?: string; mimeType?: string; extension?: string }
+    const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as { id?: string; mimeType?: string; extension?: string }
     if (metadata.id !== id || !metadata.mimeType || !metadata.extension || ALLOWED_MIME.get(metadata.mimeType) !== metadata.extension) return null
     const mediaPath = path.join(root, `${id}.${metadata.extension}`)
     if (!checkPathContained(mediaPath, root)) return null
-    const stat = await fs.stat(mediaPath)
+    const stat = await fsStat(mediaPath)
     return stat.isFile() && stat.size > 0 ? { path: mediaPath, mimeType: metadata.mimeType } : null
   } catch {
     return null

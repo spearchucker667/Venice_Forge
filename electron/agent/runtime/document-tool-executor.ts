@@ -1,6 +1,7 @@
 import { getAgentServices } from "./agent-services";
 import { type ToolResult, safeToolError } from "../../../src/agent/contracts/tool-results";
 import { internalToolNameForProvider } from "../../../src/agent/registry/tool-name-map";
+import type { DocumentBlock, DocumentEditOperation } from "../../../src/agent/contracts/documents";
 import type { AssistantToolCall } from "../../../src/types/venice";
 
 export async function executeDocumentTool(profileId: string, toolCall: AssistantToolCall, agentSessionId?: string): Promise<ToolResult> {
@@ -10,11 +11,12 @@ export async function executeDocumentTool(profileId: string, toolCall: Assistant
     return safeToolError("document.get", toolCall.id, "INVALID_ARGUMENTS", `Unknown tool name: ${toolCall.function.name}`);
   }
 
-  let args: unknown;
+  let args: Record<string, unknown>;
   try {
-    args = typeof toolCall.function.arguments === "string"
+    const parsed: unknown = typeof toolCall.function.arguments === "string"
       ? JSON.parse(toolCall.function.arguments)
       : toolCall.function.arguments;
+    args = (parsed ?? {}) as Record<string, unknown>;
   } catch (_error) {
     return safeToolError(internalName, toolCall.id, "INVALID_ARGUMENTS", `Failed to parse tool arguments: ${_error instanceof Error ? _error.message : String(_error)}`);
   }
@@ -22,13 +24,13 @@ export async function executeDocumentTool(profileId: string, toolCall: Assistant
   try {
     switch (internalName) {
       case "document.get": {
-        const { documentId, revisionId, cursor } = args;
+        const { documentId, revisionId, cursor } = args as { documentId: string; revisionId?: string; cursor?: string };
         const result = await services.documents.read(profileId, documentId, revisionId, cursor);
         return { ok: true, toolName: internalName, requestId: toolCall.id, data: result };
       }
-      
+
       case "document.create": {
-        const { projectId, relativePath, format, blocks, displayName } = args;
+        const { projectId, relativePath, format, blocks, displayName } = args as { projectId: string; relativePath: string; format: "txt" | "md" | "json" | "csv" | "html" | "docx" | "pdf"; blocks: DocumentBlock[]; displayName: string };
         const result = await services.documents.create(profileId, {
           projectId, relativePath, format, blocks, displayName
         });
@@ -37,7 +39,7 @@ export async function executeDocumentTool(profileId: string, toolCall: Assistant
       }
 
       case "document.proposeEdits": {
-        const { documentId, baseRevisionId, summary, operations } = args;
+        const { documentId, baseRevisionId, summary, operations } = args as { documentId: string; baseRevisionId: string; summary: string; operations: DocumentEditOperation[] };
         const preview = await services.documents.prepareEdits(profileId, { documentId, baseRevisionId, operations });
         const pending = await services.approvals.prepare({
           grantId: `limited:${profileId}`,

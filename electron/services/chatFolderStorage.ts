@@ -111,7 +111,7 @@ export async function saveChatFolder(folder: ChatFolder, profileId: string = "de
     await fs.writeFile(tmp, raw, "utf-8");
     await fs.rename(tmp, target);
     return { ok: true };
-  } catch (err) {
+  } catch {
     return { ok: false, error: "Failed to write chat-folders file" };
   }
 }

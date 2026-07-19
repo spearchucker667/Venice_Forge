@@ -3,8 +3,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useChatFolderStore } from '../../stores/chat-folder-store'
-import type { ChatFolder } from '../../types/chatFolder'
-import { Search, Trash2, MessageSquare, Plus, ArrowRight, BookOpen, Clock, Zap, Folder, FolderPlus, ChevronDown, ChevronRight, Lock, Unlock, Edit2 } from 'lucide-react'
+import { Search, Trash2, MessageSquare, Plus, ArrowRight, BookOpen, Clock, Zap, Folder, FolderPlus, ChevronDown, ChevronRight, Edit2 } from 'lucide-react'
 import { toast } from '../../stores/toast-store'
 import type { Conversation } from '../../types/conversation'
 import { contentToSearchText } from '../../utils/messageContent'
@@ -105,7 +104,10 @@ export default function HistoryView() {
           const updated = { ...conv, folderId: folderId }
           state.setConversations(state.conversations.map(c => c.id === id ? updated : c))
         }
-      } catch {}
+      } catch (error) {
+        // Silently ignore drag and drop errors to maintain smooth UX
+        console.warn("Failed to move conversation to folder:", error);
+      }
     }
     setDraggedChatId(null)
   }
@@ -592,5 +594,5 @@ export default function HistoryView() {
         </div>
       </div>
     </div>
-  )
+  );
 }

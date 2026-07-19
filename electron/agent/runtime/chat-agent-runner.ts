@@ -17,15 +17,16 @@ interface SseChunk {
     };
   }>;
   finish_reason?: string | null;
+  appendedMessages?: Array<{ role: string; content?: string; tool_call_id?: string; name?: string; tool_calls?: Array<{ id: string; type: string; function: { name: string; arguments: string } }> }>;
 }
 
 export async function runChatAgentLoop(
-  request: unknown, // ReturnType<typeof validateVeniceIpcRequest>
+  request: { profileId?: string; agentSessionId?: string; body?: unknown },
   onDelta: (chunk: SseChunk) => void
 ): Promise<GuardedVeniceResult> {
   const maxIterations = 5;
   let currentRequest = structuredClone(request);
-  const profileId = request.profileId;
+  const profileId = request.profileId ?? "";
   const agentSessionId = request.agentSessionId;
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
@@ -107,7 +108,7 @@ export async function runChatAgentLoop(
       };
       appendedMessages.push(nextAssistantMsg);
 
-      onDelta({ appendedMessages } as unknown as SseChunk);
+      onDelta({ appendedMessages });
 
       // Update currentRequest with the new messages for the next iteration
       currentRequest = {

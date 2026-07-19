@@ -396,13 +396,13 @@ const veniceForge = {
     delete(input: { id: string; deleteChats: boolean; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("chat-folders:delete", input);
     },
-    getBackupPreview(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; preview?: any; error?: string }> {
+    getBackupPreview(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; preview?: unknown; error?: string }> {
       return ipcRenderer.invoke("chat-folders:get-backup-preview", input);
     },
     exportBackup(input: { folderId: string; includeMedia: boolean; profileId?: string }): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("chat-folders:export-backup", input);
     },
-    previewImport(input: { filePath: string; profileId?: string }): Promise<{ ok: boolean; preview?: any; error?: string }> {
+    previewImport(input: { filePath: string; profileId?: string }): Promise<{ ok: boolean; preview?: unknown; error?: string }> {
       return ipcRenderer.invoke("chat-folders:preview-import", input);
     },
     importBackup(input: { filePath: string; mode: "new" | "merge" | "restore"; targetFolderId?: string; profileId?: string }): Promise<{ ok: boolean; error?: string }> {

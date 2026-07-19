@@ -90,7 +90,7 @@ export function registerVeniceHandlers(): void {
           providerRequestId: chunk.providerRequestId,
           usage: chunk.usage,
           tool_calls: chunk.tool_calls,
-          appendedMessages: (chunk as any).appendedMessages,
+          appendedMessages: chunk.appendedMessages,
           finish_reason: chunk.finish_reason,
         });
       });

@@ -18,19 +18,19 @@ export function registerChatFolderHandlers(): void {
       const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
       const result = await listChatFolders(profileId);
       return { ok: true, folders: result.folders };
-    } catch (err) {
-      logError("chat-folders:list failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:list failed", String(_err));
       return { ok: false, error: "Failed to list chat folders", folders: [] };
     
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -45,16 +45,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -62,7 +62,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -76,35 +76,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -114,19 +114,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -134,39 +134,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -176,19 +176,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -196,39 +196,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:create", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:create", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { name, profileId: requestedProfileId } = input as { name?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { name, profileId: requestedProfileId } = _input as { name?: string; profileId?: string };
       if (!name || typeof name !== "string") return { ok: false, error: "Invalid name" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const { folders } = await listChatFolders(profileId);
       const maxSortOrder = folders.reduce((max, f) => Math.max(max, f.sortOrder), 0);
@@ -246,19 +246,19 @@ export function registerChatFolderHandlers(): void {
       const saveRes = await saveChatFolder(newFolder, profileId);
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       return { ok: true, folder: newFolder };
-    } catch (err) {
-      logError("chat-folders:create failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:create failed", String(_err));
       return { ok: false, error: "Failed to create folder" };
     
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -273,16 +273,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -290,7 +290,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -304,35 +304,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -342,19 +342,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -362,39 +362,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -404,19 +404,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -424,40 +424,40 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:rename", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:rename", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { id, name, profileId: requestedProfileId } = input as { id?: string; name?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { id, name, profileId: requestedProfileId } = _input as { id?: string; name?: string; profileId?: string };
       if (!id || typeof id !== "string") return { ok: false, error: "Invalid id" };
       if (!name || typeof name !== "string") return { ok: false, error: "Invalid name" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(id, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -468,19 +468,19 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:rename failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:rename failed", String(_err));
       return { ok: false, error: "Failed to rename folder" };
     
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -495,16 +495,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -512,7 +512,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -526,35 +526,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -564,19 +564,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -584,39 +584,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -626,19 +626,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -646,39 +646,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:reorder", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:reorder", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderIds, profileId: requestedProfileId } = input as { folderIds?: string[]; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderIds, profileId: requestedProfileId } = _input as { folderIds?: string[]; profileId?: string };
       if (!Array.isArray(folderIds)) return { ok: false, error: "Invalid folderIds array" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const { folders } = await listChatFolders(profileId);
       const folderMap = new Map(folders.map(f => [f.id, f]));
@@ -691,14 +691,14 @@ export function registerChatFolderHandlers(): void {
           await saveChatFolder(f, profileId);
         
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -713,16 +713,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -730,7 +730,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -744,35 +744,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -782,19 +782,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -802,39 +802,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -844,19 +844,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -864,40 +864,40 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
       
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -912,16 +912,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -929,7 +929,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -943,35 +943,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -981,19 +981,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1001,39 +1001,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1043,19 +1043,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1063,44 +1063,44 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:reorder failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:reorder failed", String(_err));
       return { ok: false, error: "Failed to reorder folders" };
     
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1115,16 +1115,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -1132,7 +1132,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1146,35 +1146,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1184,19 +1184,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1204,39 +1204,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1246,19 +1246,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1266,39 +1266,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:delete", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:delete", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { id, deleteChats, profileId: requestedProfileId } = input as { id?: string; deleteChats?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { id, deleteChats, profileId: requestedProfileId } = _input as { id?: string; deleteChats?: boolean; profileId?: string };
       if (!id || typeof id !== "string") return { ok: false, error: "Invalid id" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const res = await deleteChatFolderFile(id, profileId);
       if (!res.ok) return { ok: false, error: res.error };
@@ -1312,14 +1312,14 @@ export function registerChatFolderHandlers(): void {
           await deleteConversation(chat.id, profileId);
         
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1334,16 +1334,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -1351,7 +1351,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1365,35 +1365,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1403,19 +1403,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1423,39 +1423,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1465,19 +1465,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1485,26 +1485,26 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
@@ -1516,14 +1516,14 @@ export function registerChatFolderHandlers(): void {
           await saveConversation(chat, profileId);
         
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1538,16 +1538,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -1555,7 +1555,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1569,35 +1569,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1607,19 +1607,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1627,39 +1627,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1669,19 +1669,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1689,40 +1689,40 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
       
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1737,16 +1737,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -1754,7 +1754,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1768,35 +1768,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1806,19 +1806,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1826,39 +1826,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1868,19 +1868,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1888,44 +1888,44 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:delete failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:delete failed", String(_err));
       return { ok: false, error: "Failed to delete folder" };
     
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1940,16 +1940,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -1957,7 +1957,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -1971,35 +1971,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2009,19 +2009,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2029,39 +2029,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2071,19 +2071,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2091,39 +2091,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:move-conversation", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:move-conversation", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { conversationId, destinationFolderId, profileId: requestedProfileId } = input as { conversationId?: string; destinationFolderId?: string | null; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { conversationId, destinationFolderId, profileId: requestedProfileId } = _input as { conversationId?: string; destinationFolderId?: string | null; profileId?: string };
       if (!conversationId || typeof conversationId !== "string") return { ok: false, error: "Invalid conversationId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const { getConversation, saveConversation } = await import("../../services/chatStorage");
       const chat = await getConversation(conversationId, profileId);
@@ -2135,19 +2135,19 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
 
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:move-conversation failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:move-conversation failed", String(_err));
       return { ok: false, error: "Failed to move conversation" };
     
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2162,16 +2162,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -2179,7 +2179,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2193,35 +2193,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2231,19 +2231,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2251,39 +2251,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2293,19 +2293,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2313,26 +2313,26 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
@@ -2340,14 +2340,14 @@ export function registerChatFolderHandlers(): void {
   });
 
   
-  registerIpcChannel("chat-folders:lock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:lock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
       if (!password || typeof password !== "string") return { ok: false, error: "Password required" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2362,16 +2362,16 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:lock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:lock failed", String(_err));
       return { ok: false, error: "Failed to lock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:unlock", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:unlock", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, password, profileId: requestedProfileId } = input as { folderId?: string; password?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, password, profileId: requestedProfileId } = _input as { folderId?: string; password?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
       const storedPassword = getCredential(`chat-folder:${folderId}`);
@@ -2379,7 +2379,7 @@ export function registerChatFolderHandlers(): void {
         return { ok: false, error: "Incorrect password" };
       }
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2393,35 +2393,35 @@ export function registerChatFolderHandlers(): void {
       if (!saveRes.ok) return { ok: false, error: saveRes.error };
       
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:unlock failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:unlock failed", String(_err));
       return { ok: false, error: "Failed to unlock folder" };
     }
   });
 
-  registerIpcChannel("chat-folders:get-lock-state", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-lock-state", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
 
       return { ok: true, lockState: folder.lockState };
-    } catch (err) {
-      logError("chat-folders:get-lock-state failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-lock-state failed", String(_err));
       return { ok: false, error: "Failed to get lock state" };
     
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2431,19 +2431,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2451,39 +2451,39 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });
 }
   });
 
-  registerIpcChannel("chat-folders:get-backup-preview", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:get-backup-preview", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2493,19 +2493,19 @@ export function registerChatFolderHandlers(): void {
       const targetChats = conversations.filter(c => c.folderId === folderId);
 
       return { ok: true, preview: { folderName: folder.name, chatCount: targetChats.length } };
-    } catch (err) {
-      logError("chat-folders:get-backup-preview failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:get-backup-preview failed", String(_err));
       return { ok: false, error: "Failed to get backup preview" };
     }
   });
 
-  registerIpcChannel("chat-folders:export-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:export-backup", async (_event, _input: unknown) => {
     try {
-      if (!input || typeof input !== "object") return { ok: false, error: "Invalid input" };
-      const { folderId, profileId: requestedProfileId } = input as { folderId?: string; includeMedia?: boolean; profileId?: string };
+      if (!_input || typeof _input !== "object") return { ok: false, error: "Invalid _input" };
+      const { folderId, profileId: requestedProfileId } = _input as { folderId?: string; includeMedia?: boolean; profileId?: string };
       if (!folderId || typeof folderId !== "string") return { ok: false, error: "Invalid folderId" };
 
-      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(event.sender);
+      const profileId = typeof requestedProfileId === "string" ? requestedProfileId : getProfileSessionId(_event.sender);
       
       const folder = await readChatFolder(folderId, profileId);
       if (!folder) return { ok: false, error: "Folder not found" };
@@ -2513,26 +2513,26 @@ export function registerChatFolderHandlers(): void {
       // In real implementation, this would trigger a save dialog and export
       // For now, return ok as a stub
       return { ok: true };
-    } catch (err) {
-      logError("chat-folders:export-backup failed", String(err));
+    } catch (_err) {
+      logError("chat-folders:export-backup failed", String(_err));
       return { ok: false, error: "Failed to export backup" };
     }
   });
 
-  registerIpcChannel("chat-folders:preview-import", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:preview-import", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true, preview: {} };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to preview import" };
     }
   });
 
-  registerIpcChannel("chat-folders:import-backup", async (event, input: unknown) => {
+  registerIpcChannel("chat-folders:import-backup", async (_event, _input: unknown) => {
     try {
       // Stub
       return { ok: true };
-    } catch (err) {
+    } catch {
       return { ok: false, error: "Failed to import backup" };
     }
   });

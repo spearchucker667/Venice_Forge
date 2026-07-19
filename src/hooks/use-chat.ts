@@ -205,7 +205,7 @@ export function useChat() {
     for (const tc of mediaCalls) {
       executedAny = true
       try {
-        let args: any = {}
+        let args: Record<string, unknown> = {}
         if (tc.function.arguments) args = JSON.parse(tc.function.arguments)
         
         const payload = {
@@ -531,7 +531,7 @@ export function useChat() {
         useChatStore.getState().appendAssistantStreamDelta(convId, { content: `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]` })
       }
     },
-    [addMessage, createConversation, maybeAutoGenerateScene],
+    [addMessage, createConversation, executeMediaTools, maybeAutoGenerateScene],
   )
 
   const regenerate = useCallback(
@@ -580,7 +580,7 @@ export function useChat() {
         useChatStore.getState().appendAssistantStreamDelta(convId, { content: `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]` })
       }
     },
-    [addMessage, deleteMessage, maybeAutoGenerateScene],
+    [addMessage, deleteMessage, executeMediaTools, maybeAutoGenerateScene],
   )
 
   const stop = useCallback(() => {

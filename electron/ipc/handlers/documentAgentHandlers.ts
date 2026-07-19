@@ -1,17 +1,11 @@
-import { app, BrowserWindow, dialog } from "electron";
+import { BrowserWindow, dialog } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { DocumentBlock, DocumentEditOperation, DocumentFormat } from "../../../src/agent/contracts/documents";
 import type { WorkspaceGrant } from "../../../src/agent/contracts/capabilities";
 import { redactErrorMessage } from "../../../src/shared/redaction";
-import { ApprovalCoordinator } from "../../agent/approvals/approval-coordinator";
-import { DocumentAgentAuditService } from "../../agent/audit/document-agent-audit-service";
-import { ManagedDocumentService } from "../../agent/documents/managed-document-service";
-import { AttachmentImportService } from "../../agent/documents/attachment-import-service";
 import { serializeDocument } from "../../agent/documents/document-serializer-service";
-import { WorkspaceGrantService } from "../../agent/policy/workspace-grant-service";
-import { WorkspaceFilesystemService } from "../../agent/workspace/workspace-filesystem-service";
 import { getProfileSessionId } from "../../services/profileSession";
 import { registerIpcChannel } from "./common";
 
@@ -275,7 +269,7 @@ export function registerDocumentAgentHandlers(): void {
   registerIpcChannel("documentAgent:approvals:list", async (event) => {
     try {
       const grantId = `limited:${getProfileSessionId(event.sender)}`;
-      return { ok: true, pending: (await approvals.listPendingWithViews()).filter((entry: any) => entry.approval.grantId === grantId) };
+      return { ok: true, pending: (await approvals.listPendingWithViews()).filter((entry) => entry.approval.grantId === grantId) };
     }
     catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
   });

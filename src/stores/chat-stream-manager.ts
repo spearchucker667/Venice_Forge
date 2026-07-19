@@ -11,9 +11,9 @@ import { flushConversationSaveNow, useChatStore, type AssistantStreamDelta } fro
 import { useCharacterStore } from "./character-store";
 import { useSettingsStore } from "./settings-store";
 import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
-import type { ChatMessage, VeniceParameters } from "../types/venice";
+import type { AssistantToolCall, ChatMessage, VeniceParameters } from "../types/venice";
 import type { Conversation } from "../types/conversation";
-import { createCanonicalToolDefinitions } from "../agent/registry/tool-registry";
+import { createCanonicalToolDefinitions, type ProviderToolSchema } from "../agent/registry/tool-registry";
 import * as logger from "../shared/logger";
 import { getModelById } from "../services/modelService";
 
@@ -24,6 +24,15 @@ const SAFE_STREAM_ERROR_MESSAGE = "Sorry, something went wrong. Please try again
 export interface StreamState {
   isStreaming: boolean;
   convId: string | null;
+}
+
+interface StreamChunk {
+  content: string;
+  reasoning: string;
+  providerRequestId?: string;
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  tool_calls?: Array<{ index: number; id?: string; type?: string; function?: { name?: string; arguments?: string } }>;
+  appendedMessages?: Array<{ role: string; content?: string; tool_call_id?: string; name?: string; tool_calls?: Array<{ id: string; type: string; function: { name: string; arguments: string } }> }>;
 }
 
 const MAX_STREAM_RETRIES = 2;
@@ -114,7 +123,7 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     // Only pass document tools, exclude workspace tools which need a specific grant.
     const tools = definitions.filter(d => d.internalName.startsWith('document.')).map(t => t.schema);
     if (tools.length > 0) {
-      baseBody.tools = baseBody.tools ? [...(baseBody.tools as any[]), ...tools] : tools;
+      baseBody.tools = baseBody.tools ? [...(baseBody.tools as ProviderToolSchema[]), ...tools] : tools;
     }
   }
 
@@ -122,7 +131,7 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
   const allDefinitions = createCanonicalToolDefinitions();
   const mediaTools = allDefinitions.filter(d => d.internalName.startsWith('media.')).map(t => t.schema);
   if (mediaTools.length > 0) {
-    baseBody.tools = baseBody.tools ? [...(baseBody.tools as any[]), ...mediaTools] : mediaTools;
+    baseBody.tools = baseBody.tools ? [...(baseBody.tools as ProviderToolSchema[]), ...mediaTools] : mediaTools;
   }
 
   return applyVeniceApiSafeMode(
@@ -152,7 +161,7 @@ function flushStreamDelta(convId: string): void {
 
 function bufferStreamDelta(
   convId: string,
-  chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; tool_calls?: any[]; appendedMessages?: any[] },
+  chunk: StreamChunk,
 ): void {
   const pending = pendingStreamDeltas.get(convId) ?? {};
   pending.content = (pending.content ?? '') + (chunk.content ?? '');
@@ -166,10 +175,10 @@ function bufferStreamDelta(
     };
   }
   if (chunk.tool_calls) {
-    pending.tool_calls = chunk.tool_calls;
+    pending.tool_calls = chunk.tool_calls as AssistantToolCall[];
   }
   if (chunk.appendedMessages) {
-    pending.appendedMessages = chunk.appendedMessages;
+    pending.appendedMessages = chunk.appendedMessages as ChatMessage[];
   }
   pendingStreamDeltas.set(convId, pending);
   if (!streamFlushTimers.has(convId)) {
@@ -254,7 +263,7 @@ export async function startStream(
         const body = buildStreamBody(convId, model);
         await veniceStreamChat(body, {
           signal: controller.signal,
-          onDelta: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; tool_calls?: any[]; appendedMessages?: any[] }) => {
+          onDelta: (chunk: StreamChunk) => {
             bufferStreamDelta(convId, chunk);
           },
         });

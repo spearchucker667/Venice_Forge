@@ -439,9 +439,9 @@ export interface VeniceForgeChatFolders {
   moveConversation(input: { conversationId: string; destinationFolderId: string | null; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
   delete(input: { id: string; deleteChats: boolean; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
   
-  getBackupPreview(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; preview?: any; error?: string }>;
+  getBackupPreview(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; preview?: unknown; error?: string }>;
   exportBackup(input: { folderId: string; includeMedia: boolean; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
-  previewImport(input: { filePath: string; profileId?: string }): Promise<{ ok: boolean; preview?: any; error?: string }>;
+  previewImport(input: { filePath: string; profileId?: string }): Promise<{ ok: boolean; preview?: unknown; error?: string }>;
   importBackup(input: { filePath: string; mode: "new" | "merge" | "restore"; targetFolderId?: string; profileId?: string }): Promise<{ ok: boolean; error?: string }>;
   
   lock(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; error?: string }>;

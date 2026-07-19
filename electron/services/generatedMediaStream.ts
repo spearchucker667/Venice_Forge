@@ -1,6 +1,6 @@
 /** Streaming persistence for large generated media responses. */
 import crypto from 'crypto'
-import fs from 'fs/promises'
+import * as fs from 'fs/promises'
 import type { Readable } from 'stream'
 import {
   commitGeneratedMediaTempFile,

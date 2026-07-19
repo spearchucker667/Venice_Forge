@@ -17,7 +17,7 @@ vi.mock('electron', () => ({
       if (rangeHeader) {
         const parts = rangeHeader.replace(/bytes=/, "").split("-");
         const start = parseInt(parts[0], 10);
-        let end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
+        const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
 
         if (start >= totalSize || end >= totalSize || start > end) {
           return new Response(null, {
