@@ -27,6 +27,7 @@ interface CreateDocumentInput {
   displayName?: string;
   warnings?: DocumentWarning[];
   metadata?: ManagedDocument["metadata"];
+  createdBy?: "user" | "import";
 }
 
 const ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/;
@@ -130,7 +131,7 @@ export class ManagedDocumentService {
         id: revisionId,
         documentId,
         createdAt: now,
-        createdBy: "user",
+        createdBy: input.createdBy ?? "user",
         summary: "Created document",
         contentHash: canonicalHash(blocks),
         blocks,

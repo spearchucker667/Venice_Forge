@@ -47,12 +47,16 @@ Document Agent audit records are append-only, hash chained, and contain event me
 
 ## Validation
 
-The regression sequence `VERIFY-145` through `VERIFY-153` covers the registry and revisions, one-time approvals, hostile path handling, all serializers, bounded workspace operations, the typed preload/main boundary, native export, audit chaining, and redaction. Run:
+The regression sequence `VERIFY-145` through `VERIFY-154` covers the registry and revisions, one-time approvals, hostile path handling, all serializers, bounded workspace operations, the typed preload/main boundary, native export, audit chaining, redaction, and attachment-to-managed-document promotion. Run:
 
 ```bash
 npx vitest run src/agent electron/agent electron/ipc/handlers.test.ts src/config/tabs.test.ts src/App.navigation.test.ts src/components/layout/sidebar.test.tsx --no-file-parallelism
 npm run lint:eslint
 npm run typecheck
 ```
+
+## Promote attachment
+
+`attachment:promote` (granted in `Limited Documents` and above; never in `Off` or `Read attachments only`) lets a chat attachment become a managed document. Bodies are base64-decoded in main, capped at 1 MiB, classified against a MIME allow-list with an HTML blocklist, and non-overwriting. Text-bearing MIME types redact secrets through the canonical redaction pipeline before being split into bounded paragraph blocks; binary MIME types emit a deterministic placeholder block set with `contentKind: "binary"` metadata and the bytes are not retained. Every promotion records an audit event (`toolName: "document.promoteAttachment"`, `outcome: "execution"`, `resourceIds: [<document id>]`, `metadata: { attachmentId, mimeType, sizeBytes, format, mode, bytesRedacted }`) and propagates `createdBy: "import"` through `ManagedDocumentService.create()` so the revision lineage remains auditable.
 
 The canonical implementation and acceptance specification remains [`docs/audits/TODO/Function_calling_todo.md`](../audits/TODO/Function_calling_todo.md). The repository reconciliation report is [`docs/discovery/DISCOVERY_DOCUMENT_AGENT.md`](../discovery/DISCOVERY_DOCUMENT_AGENT.md).

@@ -682,6 +682,11 @@ const veniceForge = {
         return ipcRenderer.invoke("documentAgent:documents:export", input);
       },
     },
+    attachments: {
+      promote(input: Parameters<import("../src/types/desktop").VeniceForgeDocumentAgent["attachments"]["promote"]>[0]) {
+        return ipcRenderer.invoke("documentAgent:attachments:promote", input);
+      },
+    },
     approvals: {
       list() { return ipcRenderer.invoke("documentAgent:approvals:list"); },
       decide(input: import("../src/agent/contracts/proposals").ApproveProposalRequest) {

@@ -7,6 +7,7 @@ export type AgentPermissionPreset =
 
 export type Capability =
   | "attachment:read"
+  | "attachment:promote"
   | "document:read"
   | "document:create"
   | "document:propose-update"
@@ -67,6 +68,7 @@ const PRESET_CAPABILITIES: Record<AgentPermissionPreset, readonly Capability[]> 
   read_attachments: ["attachment:read"],
   limited_documents: [
     "attachment:read",
+    "attachment:promote",
     "document:read",
     "document:create",
     "document:propose-update",
@@ -76,6 +78,7 @@ const PRESET_CAPABILITIES: Record<AgentPermissionPreset, readonly Capability[]> 
   ],
   workspace_with_approval: [
     "attachment:read",
+    "attachment:promote",
     "document:read",
     "document:create",
     "document:propose-update",
@@ -93,6 +96,7 @@ const PRESET_CAPABILITIES: Record<AgentPermissionPreset, readonly Capability[]> 
   ],
   workspace_autonomous: [
     "attachment:read",
+    "attachment:promote",
     "document:read",
     "document:create",
     "document:propose-update",

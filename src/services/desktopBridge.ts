@@ -1301,6 +1301,11 @@ export const desktopDocumentAgent = {
       return isElectron() ? window.veniceForge!.documentAgent.documents.export(input) : Promise.resolve(documentAgentUnavailable);
     },
   },
+  attachments: {
+    promote(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["attachments"]["promote"]>[0]) {
+      return isElectron() ? window.veniceForge!.documentAgent.attachments.promote(input) : Promise.resolve(documentAgentUnavailable);
+    },
+  },
   approvals: {
     list() { return isElectron() ? window.veniceForge!.documentAgent.approvals.list() : Promise.resolve(documentAgentUnavailable); },
     decide(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["approvals"]["decide"]>[0]) {

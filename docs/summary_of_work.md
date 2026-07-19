@@ -5,6 +5,18 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Latest Session Summary
 
 **Date:** 2026-07-18
+**Scope:** Document Agent attachment-to-managed-document promotion (`VERIFY-154`).
+
+- **Capability and registry:** added `attachment:promote` to the `Capability` union and granted it in `limited_documents`, `workspace_with_approval`, and `workspace_autonomous` (NOT in `off` or `read_attachments`). Registered `document.promoteAttachment` ↔ `document_promote_attachment` in the canonical provider/internal name map (now 15 tools) and added the corresponding `DEFINITIONS` row in the registry. The `limited_documents` preset now exposes 7 document-prefixed provider schemas.
+- **Bounded promotion pipeline:** added `electron/agent/documents/attachment-import-service.ts` enforcing a 1 MiB body cap, a MIME allow-list (text + structured suffixes, supported binary prefixes) with an explicit HTML blocklist, base64 decoding with reject-on-non-canonical / empty / oversized, path validation through the canonical workspace path policy (rejects absolute, traversal, segments), text-mode secret redaction via `redactSecrets` to bounded 200 KB / 200 lines, and binary-mode deterministic placeholder blocks carrying `contentKind: "binary"` metadata without retaining the source bytes.
+- **Managed-document integration:** extended `CreateDocumentInput.createdBy?: "user" | "import"` and propagated `"import"` through `ManagedDocumentService.create()` for every promoted attachment, so revision lineage is auditable. Non-overwriting semantics preserved: a second promote at the same relative path fails rather than silently overwriting.
+- **IPC/typed preload boundary:** registered `documentAgent:attachments:promote` as a profile-scoped channel using existing `record` / `stringField` validators, surfacing `{ ok: true, document, revision, mode, format, bytesReceived, bytesRedacted }` or `{ ok: false, error: redactErrorMessage(error) }`. Audit fires only on success with `toolName: "document.promoteAttachment"`, `outcome: "execution"`, `resourceIds: [<document id>]`, and a metadata payload that mirrors the canonical event shape. Extended `VeniceForgeDocumentAgent` in `src/types/desktop.ts` and `desktopDocumentAgent` in `src/services/desktopBridge.ts` with the matching `attachments.promote` surface (web-mode `documentAgentUnavailable` fallback).
+- **Documentation:** extended `AGENTS.md` to `VERIFY-001..VERIFY-154` with the new row, removed the attachment-promotion bullet from `VF-DOCUMENT-AGENT-001` in `docs/ROADMAP.md`, added a Promote attachment section to `docs/features/DOCUMENT_AGENT.md`, and refreshed this ledger.
+- **Validation:** focused vitest passed 17/17 across the new service/IPC/registry tests; `npm run typecheck` (renderer + Electron), `npm run lint:eslint` (zero warnings), `npm run verify:document-agent`, `npm run verify:repo-handoff-hygiene` (now extended through `VERIFY-154`), and `npx vitest run scripts/verify-agent-docs.test.ts` (17/17) all pass. Local runtime remains Node 26/npm 11; no Node 22, packaged, signed, or manual acceptance claim is made.
+
+### Prior same-day Document Agent foundation detail
+
+**Date:** 2026-07-18
 **Scope:** Document Agent security foundation and Limited Documents renderer integration (`VERIFY-145..153`).
 
 - **Canonical contracts and model gating:** added one 14-tool internal/provider name registry, runtime JSON-schema validation, operation-level grants and deterministic policy decisions, safe tool results, and an authoritative model-catalog capability adapter that fails closed when function calling is unknown or stale.
@@ -127,7 +139,7 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
-`VERIFY-145..153` close the implemented Document Agent foundation, Limited Documents review flow, native export, workspace read boundary, and audit/redaction contracts. The feature is not yet a complete implementation of every acceptance row in `Function_calling_todo.md`: `VF-DOCUMENT-AGENT-001` in `docs/ROADMAP.md` retains attachment promotion, source-blob policy, isolated/fuzzed complex parsing, full workspace mutation/recovery UI, canonical Chat/Workflow/Project agent-loop integration, crash-journal recovery, packaged cross-platform QA, and the manual matrix. These capabilities remain unexposed or fail closed; no autonomous workspace claim is made.
+`VERIFY-145..154` close the implemented Document Agent foundation, Limited Documents review flow, attachment-to-managed-document promotion, native export, workspace read boundary, and audit/redaction contracts. The feature is not yet a complete implementation of every acceptance row in `Function_calling_todo.md`: `VF-DOCUMENT-AGENT-001` in `docs/ROADMAP.md` retains source-blob policy, isolated/fuzzed complex parsing, full workspace mutation/recovery UI, canonical Chat/Workflow/Project agent-loop integration, crash-journal recovery, packaged cross-platform QA, and the manual matrix. These capabilities remain unexposed or fail closed; no autonomous workspace claim is made.
 
 `VERIFY-144` closes the local implementation and automated-verification scope of the Video Pipeline and Research Browser Deactivation work order. Paid-provider generation/retrieval, packaged/signed Save As, restart recovery against a live queued job, and headed playback remain external acceptance rows under `VF-VERIFY-005`; no such result is inferred. `VERIFY-143` closes every locally reproducible item from the earlier 2026-07-18 cross-studio bug report. `VF-UX-REPRO-001` remains evidence-needed because the referenced AI Research screenshot was absent; it must not be converted into an implementation claim until the missing visual/reproduction is supplied.
 
@@ -187,13 +199,22 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
 
+### July 18 Document Agent attachment-to-managed-document promotion (`VERIFY-154`)
+
+| Command | Result | Evidence |
+|---|---|---|
+| `npm run typecheck`; `npm run lint:eslint` | PASS | Renderer and Electron TypeScript pipelines exit 0; whole-tree ESLint exits with zero warnings. |
+| Focused Vitest: `attachment-import-service`, `documentAgentHandlers.attachments`, `tool-registry` | PASS | 3 files / 17 tests cover MIME allow-list + HTML blocklist, 1 MiB body cap, base64 decoding reject cases, path traversal reject, text-mode `redactSecrets` happy path, binary-mode placeholder, format-from-extension detection, `createdBy: "import"` propagation, channel envelope shape, audit `toolName`/`outcome`/`resourceIds`/`metadata` shape, and `sessionId` runtime-prefix regex after the loop bound bumped from 153 → 154. |
+| `npm run verify:document-agent`; `npm run verify:repo-handoff-hygiene` | PASS | Document Agent contracts and the registry/audit/export/redaction/attachment-promotion surfaces all pass; the regression-guards scanner was extended through `VERIFY-154` in `scripts/verify-repo-handoff-hygiene.cjs`. |
+| `npx vitest run scripts/verify-agent-docs.test.ts` | PASS | The agent-docs test (`17/17`) confirms the new `VERIFY-154` row is canonical in `AGENTS.md`, that `DOCS_INDEX.md`, README, Security, and the canonical roadmap remain aligned, and that the handoff scanner does not flag the new entry as out-of-sequence. |
+
 ### July 18 Document Agent foundation (`VERIFY-145..153`)
 
 | Command | Result | Evidence |
 |---|---|---|
 | `npm run typecheck`; `npm run lint:eslint` | PASS | Renderer and Electron TypeScript pipelines exit 0; whole-tree ESLint exits with zero warnings. |
 | Focused Vitest: `src/agent`, `electron/agent`, IPC handlers, tabs, App lazy/navigation, Sidebar | PASS | 14 files / 171 tests cover registry/model capability, immutable revisions/patching, approvals, hostile paths, seven serializers, bounded workspace reads/search/mutations, IPC registration, and canonical navigation. |
-| `npm run verify:document-agent`; `npm run verify:repo-handoff-hygiene` | PASS | Document contracts/export/audit/redaction are wired; active regression namespace is contiguous through `VERIFY-153`. |
+| `npm run verify:document-agent`; `npm run verify:repo-handoff-hygiene` | PASS | Document contracts/export/audit/redaction are wired; active regression namespace is contiguous through `VERIFY-154` (extended for the attachment-promotion row shipped in this session). |
 | `npm install docx@^9.5.1 pdf-lib@^1.17.1` | PASS WITH RUNTIME WARNING | Added 12 packages; audited 854 packages with zero vulnerabilities. npm correctly warned that local Node 26 is outside the repository's Node 22 engine. |
 | `npm run build` | PASS | Vite renderer (including lazy 11.08 kB DocumentAgentView chunk), 93.0 kB server bundle, and Electron main/preload outputs built. |
 | `npm test` | PARTIAL — PRE-EXISTING INPUT FAILURE | 4,354 tests passed / 1 skipped; the sole failure is the live-repository Markdown assertion reporting the same three links to two user-owned audit files deleted before this session. |
@@ -392,6 +413,14 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-18 — Document Agent attachment-to-managed-document promotion (`VERIFY-154`)
+
+- Added `attachment:promote` to the `Capability` union in `src/agent/contracts/capabilities.ts` and granted it only in `limited_documents`, `workspace_with_approval`, and `workspace_autonomous` (`off` and `read_attachments` deliberately exclude it). Registered `document.promoteAttachment` ↔ `document_promote_attachment` in `tool-name-map.ts` (now 15 entries) and added the corresponding `DEFINITIONS` row in `src/agent/registry/tool-registry.ts` so `limited_documents` exposes 7 document-prefixed provider schemas.
+- Added `electron/agent/documents/attachment-import-service.ts` enforcing a 1 MiB body cap, a MIME allow-list (text/plain, text/markdown, text/csv, `+xml`/`+json`/`+yaml` structured suffixes, supported binary prefixes) with an explicit HTML blocklist, base64 decoding with reject-on-non-canonical / empty / oversized, path validation through the canonical hostile-path policy (rejects absolute, traversal, segments), text-mode `redactSecrets` to bounded 200 KB / 200 lines with `bytesRedacted` reported, and binary-mode deterministic placeholder blocks carrying `contentKind: "binary"` metadata without retaining the source bytes. Extended `CreateDocumentInput.createdBy?: "user" | "import"` and propagated `"import"` through `ManagedDocumentService.create()` so every revision lineage remains auditable.
+- Registered profile-scoped `documentAgent:attachments:promote` channel in `electron/ipc/handlers/documentAgentHandlers.ts` returning `{ ok: true, document, revision, mode, format, bytesReceived, bytesRedacted }` or `{ ok: false, error: redactErrorMessage(error) }`. Audits fire only on success (`toolName: "document.promoteAttachment"`, `outcome: "execution"`, `resourceIds: [<document id>]`, metadata mirroring the canonical event shape). Extended `VeniceForgeDocumentAgent` in `src/types/desktop.ts` and `desktopDocumentAgent` in `src/services/desktopBridge.ts` with the matching `attachments.promote` surface (web-mode `documentAgentUnavailable` fallback). `electron/preload.ts` exposes the channel through the same contextBridge block.
+- Extended `AGENTS.md` to `VERIFY-001..VERIFY-154` with the new row, removed the attachment-promotion bullet from `VF-DOCUMENT-AGENT-001` in `docs/ROADMAP.md`, added a Promote attachment section to `docs/features/DOCUMENT_AGENT.md`, refreshed the Latest Session Summary, Open TODO Ledger, and Validation Matrix in `docs/summary_of_work.md`, and bumped the loop bound in `scripts/verify-repo-handoff-hygiene.cjs` from 153 → 154.
+- Validation: focused vitest 17/17, `npm run typecheck` clean, `npm run lint:eslint` zero warnings, `verify:document-agent` PASS, `verify:repo-handoff-hygiene` PASS after the loop-bound bump, `npx vitest run scripts/verify-agent-docs.test.ts` 17/17. Local runtime Node 26/npm 11; no Node 22, packaged, signed, or manual acceptance claim is made.
 
 ### 2026-07-18 — Document Agent foundation and Limited Documents UI (`VERIFY-145..153`)
 

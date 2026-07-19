@@ -14,10 +14,10 @@ function grant(preset: CapabilityGrant["preset"]): CapabilityGrant {
 }
 
 describe("canonical document-agent tool registry", () => {
-  it("VERIFY-145 registers all 14 unique provider-safe tools", () => {
+  it("VERIFY-145 registers all 15 unique provider-safe tools", () => {
     const definitions = createCanonicalToolDefinitions();
-    expect(definitions).toHaveLength(14);
-    expect(new Set(definitions.map((tool) => tool.providerName))).toHaveLength(14);
+    expect(definitions).toHaveLength(15);
+    expect(new Set(definitions.map((tool) => tool.providerName))).toHaveLength(15);
     expect(definitions.every((tool) => !tool.providerName.includes("."))).toBe(true);
   });
 
@@ -29,7 +29,7 @@ describe("canonical document-agent tool registry", () => {
   it("filters tools to the active grant and rejects unknown names", () => {
     const registry = new ToolRegistry(createCanonicalToolDefinitions(), { supportsFunctionCalling: () => true });
     const schemas = registry.getProviderSchemas({ modelId: "tool-model", grant: grant("limited_documents"), sessionId: "session_1" });
-    expect(schemas).toHaveLength(6);
+    expect(schemas).toHaveLength(7);
     expect(schemas.every((schema) => schema.function.name.startsWith("document_"))).toBe(true);
     expect(() => registry.resolveProviderName("document.applyApprovedEdits")).toThrow("Unknown provider tool name");
   });

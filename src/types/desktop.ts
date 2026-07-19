@@ -358,6 +358,18 @@ export interface VeniceForgeDocumentAgent {
     proposeRestore(input: { documentId: string; currentRevisionId: string; restoreRevisionId: string; reason: string }): Promise<{ ok: boolean; pendingApproval?: import("../agent/contracts/proposals").PendingApproval; preview?: unknown; error?: string }>;
     export(input: { documentId: string; revisionId?: string | null; format: import("../agent/contracts/documents").DocumentFormat; suggestedFileName: string }): Promise<{ ok: boolean; canceled?: boolean; exported?: boolean; displayName?: string; sizeBytes?: number; error?: string }>;
   };
+  attachments: {
+    promote(input: { attachmentId: string; projectId: string; relativePath: string; displayName?: string; mimeType: string; bodyB64: string }): Promise<{
+      ok: boolean;
+      document?: import("../agent/contracts/documents").ManagedDocument;
+      revision?: import("../agent/contracts/documents").DocumentRevision;
+      mode?: "text" | "metadata-only";
+      format?: import("../agent/contracts/documents").DocumentFormat;
+      bytesReceived?: number;
+      bytesRedacted?: number;
+      error?: string;
+    }>;
+  };
   approvals: {
     list(): Promise<{ ok: boolean; pending?: Array<{ approval: import("../agent/contracts/proposals").PendingApproval; publicView: unknown }>; error?: string }>;
     decide(input: import("../agent/contracts/proposals").ApproveProposalRequest): Promise<{ ok: boolean; rejected?: boolean; revision?: import("../agent/contracts/documents").DocumentRevision; error?: string }>;

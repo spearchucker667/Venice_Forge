@@ -5,6 +5,7 @@ export const toolNameMap = {
   "document.export": "document_export",
   "document.getRevision": "document_get_revision",
   "document.restoreRevision": "document_restore_revision",
+  "document.promoteAttachment": "document_promote_attachment",
   "workspace.list": "workspace_list",
   "workspace.read": "workspace_read",
   "workspace.search": "workspace_search",

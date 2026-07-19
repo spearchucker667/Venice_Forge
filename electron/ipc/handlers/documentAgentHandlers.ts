@@ -8,6 +8,7 @@ import { redactErrorMessage } from "../../../src/shared/redaction";
 import { ApprovalCoordinator } from "../../agent/approvals/approval-coordinator";
 import { DocumentAgentAuditService } from "../../agent/audit/document-agent-audit-service";
 import { ManagedDocumentService } from "../../agent/documents/managed-document-service";
+import { AttachmentImportService } from "../../agent/documents/attachment-import-service";
 import { serializeDocument } from "../../agent/documents/document-serializer-service";
 import { WorkspaceGrantService } from "../../agent/policy/workspace-grant-service";
 import { WorkspaceFilesystemService } from "../../agent/workspace/workspace-filesystem-service";
@@ -107,6 +108,7 @@ async function atomicExternalWrite(target: string, bytes: Uint8Array): Promise<v
 export function registerDocumentAgentHandlers(): void {
   const storageRoot = path.join(app.getPath("userData"), "document-agent", "documents");
   const documents = new ManagedDocumentService(storageRoot);
+  const attachments = new AttachmentImportService(documents);
   const approvals = new ApprovalCoordinator(path.join(app.getPath("userData"), "document-agent", "pending-approvals.json"), RUNTIME_SESSION_ID);
   const audit = new DocumentAgentAuditService(path.join(app.getPath("userData"), "document-agent", "audit.jsonl"));
 
@@ -233,6 +235,45 @@ export function registerDocumentAgentHandlers(): void {
       await atomicExternalWrite(selected.filePath, output.bytes);
       await audit.record({ sessionId: rendererSession(event.sender.id), toolName: "document.export", outcome: "execution", resourceIds: [source.document.id], metadata: { format, sizeBytes: output.bytes.byteLength } });
       return { ok: true, exported: true, displayName: path.basename(selected.filePath), format, sizeBytes: output.bytes.byteLength, warnings: output.warnings };
+    } catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
+  });
+
+  registerIpcChannel("documentAgent:attachments:promote", async (event, input: unknown) => {
+    try {
+      const value = record(input);
+      const attachmentId = stringField(value, "attachmentId", 128);
+      const mimeType = stringField(value, "mimeType", 255).toLowerCase();
+      const result = await attachments.promote(getProfileSessionId(event.sender), {
+        attachmentId,
+        projectId: stringField(value, "projectId", 128),
+        relativePath: stringField(value, "relativePath"),
+        displayName: typeof value.displayName === "string" ? value.displayName : undefined,
+        mimeType,
+        bodyB64: stringField(value, "bodyB64"),
+      });
+      await audit.record({
+        sessionId: rendererSession(event.sender.id),
+        toolName: "document.promoteAttachment",
+        outcome: "execution",
+        resourceIds: [result.document.id],
+        metadata: {
+          attachmentId,
+          mimeType,
+          sizeBytes: result.bytesReceived,
+          format: result.format,
+          mode: result.mode,
+          bytesRedacted: result.bytesRedacted,
+        },
+      });
+      return {
+        ok: true,
+        document: result.document,
+        revision: result.revision,
+        mode: result.mode,
+        format: result.format,
+        bytesReceived: result.bytesReceived,
+        bytesRedacted: result.bytesRedacted,
+      };
     } catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
   });
 
