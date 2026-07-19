@@ -14,6 +14,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 - **Character Diagnostics (Phase 7):** Reduced log noise by suppressing successful character-image resolutions from emitting logs; failures continue to emit warnings.
 - **Validation:** Both TypeScript pipelines, zero-warning ESLint, and all relevant component and store test suites pass.
 
+
+### Latest Session Summary
+
+**Date:** 2026-07-18
+**Scope:** Document Agent Workspace Mutations IPC & Typecheck Fixes
+
+- **Workspace Mutations (Phase 7):** Integrated `WorkspaceMutationService` into `documentAgentHandlers.ts` and `agent-services.ts`. Added typed execution plans (`WorkspaceChangesetPlan`, `WorkspaceMovePlan`, `WorkspaceTrashPlan`) and exposed `documentAgent:workspace:proposeChangeset`, `documentAgent:workspace:proposeMove`, and `documentAgent:workspace:proposeTrash` to support the full workspace mutation and recovery flow for the Document Agent.
+- **Typecheck Repair:** Fixed a type error in `electron/ipc/handlers/veniceHandlers.ts` where the local family safe guard invocation missed the mandatory `source: "ipc"` property.
+- **Validation:** Both TypeScript pipelines (`npm run typecheck`) pass cleanly.
+
 ### Prior same-day Venice API System Prompt Foundation
 
 **Date:** 2026-07-18
