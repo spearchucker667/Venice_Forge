@@ -4,11 +4,13 @@ import type { DocumentBlock, DocumentRevision, ManagedDocument, DocumentReadResu
 import type { PendingApproval } from '../../agent/contracts/proposals'
 import { blockText, browserCanonicalHash } from './documentViewHelpers'
 import { useProjectStore } from '../../stores/project-store'
+
 import { useSettingsStore } from '../../stores/settings-store'
 import { toast } from '../../stores/toast-store'
 import { useDocumentAgentStore, type WorkspaceGrantView } from '../../stores/document-agent-store'
 import { desktopDocumentAgent, isElectron } from '../../services/desktopBridge'
 import { Card, ErrorText, GhostButton, PrimaryButton, TextArea } from '../ui/shared'
+import { ChatView } from '../chat/chat-view'
 
 interface ProposalView {
   pendingApproval: PendingApproval
@@ -81,8 +83,29 @@ export function DocumentAgentView() {
   const [editText, setEditText] = useState('')
   const [proposal, setProposal] = useState<ProposalView | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [workspaceFiles, setWorkspaceFiles] = useState<Array<{ relativePath: string; type: string }>>([])
   const bridge = desktopDocumentAgent
   const projectId = activeProjectId ?? projects.find((project) => !project.archivedAt)?.id ?? null
+
+  const refreshWorkspace = useCallback(async () => {
+    if (!workspaceGrant) {
+      setWorkspaceFiles([])
+      return
+    }
+    const result = await bridge.workspace.list({
+      grantId: workspaceGrant.id,
+      agentSessionId,
+      relativeDirectory: '',
+      recursive: true,
+      maxDepth: 3,
+      offset: 0
+    })
+    if (result.ok && result.result && typeof result.result === 'object' && 'entries' in result.result) {
+      setWorkspaceFiles((result.result as { entries: Array<{ relativePath: string; type: string }> }).entries)
+    }
+  }, [workspaceGrant, agentSessionId, bridge.workspace])
+
+  useEffect(() => { void refreshWorkspace() }, [refreshWorkspace])
 
   const selectedText = useMemo(() => selected?.blocks.map(blockText).join('\n\n') ?? '', [selected])
 
@@ -176,46 +199,69 @@ export function DocumentAgentView() {
   if (!isElectron()) return <div className="p-6"><ErrorText>Document Agent tools require the hardened Electron desktop bridge.</ErrorText></div>
 
   return (
-    <div className="h-full overflow-y-auto p-5 space-y-4">
-      <DocumentAccessControl
-        preset={preset}
-        onPresetChange={(next) => { void changePreset(next) }}
-        workspaceGrant={workspaceGrant}
-        onChooseWorkspace={() => { void bridge.workspace.choose({ agentSessionId }).then((result) => { if (result.ok && 'grant' in result && result.grant) setWorkspaceGrant(result.grant); else if (!(('canceled' in result) && result.canceled)) setError(result.error || 'Workspace selection failed.') }) }}
-        onRevoke={() => { if (workspaceGrant) void bridge.workspace.revoke({ grantId: workspaceGrant.id, agentSessionId }).then(() => setWorkspaceGrant(null)) }}
-      />
+    <div className="h-full flex flex-col lg:flex-row overflow-hidden bg-surface-base">
+      <div className="flex-1 lg:w-[45%] min-w-0 soft-separator-x flex flex-col relative bg-surface-base">
+        <ChatView />
+      </div>
+      <div className="flex-1 lg:w-[55%] min-w-0 h-full overflow-y-auto p-5 space-y-4">
+        <DocumentAccessControl
+          preset={preset}
+          onPresetChange={(next) => { void changePreset(next) }}
+          workspaceGrant={workspaceGrant}
+          onChooseWorkspace={() => { void bridge.workspace.choose({ agentSessionId }).then((result) => { if (result.ok && 'grant' in result && result.grant) setWorkspaceGrant(result.grant); else if (!(('canceled' in result) && result.canceled)) setError(result.error || 'Workspace selection failed.') }) }}
+          onRevoke={() => { if (workspaceGrant) void bridge.workspace.revoke({ grantId: workspaceGrant.id, agentSessionId }).then(() => setWorkspaceGrant(null)) }}
+        />
 
-      {error && <ErrorText>{error}</ErrorText>}
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <Card className="p-4 space-y-3">
-          <h2 className="text-[14px] font-semibold text-foreground">Managed documents</h2>
-          <div className="space-y-1">
-            {documents.map((document) => <button key={document.id} type="button" onClick={() => { void readDocument(document.id) }} className="w-full rounded-lg border border-border px-3 py-2 text-left text-[13px] text-foreground hover:bg-surface-muted">{document.displayName}<span className="block text-[11px] text-foreground-muted">{document.originalFormat.toUpperCase()}</span></button>)}
-            {documents.length === 0 && <p className="text-[12px] text-foreground-muted">No documents in the active project.</p>}
+        {error && <ErrorText>{error}</ErrorText>}
+        <div className="grid gap-4 2xl:grid-cols-[280px_minmax(0,1fr)]">
+          <div className="space-y-4">
+            <Card className="p-4 space-y-3">
+              <h2 className="text-[14px] font-semibold text-foreground">Managed Vault</h2>
+              <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                {documents.map((document) => <button key={document.id} type="button" onClick={() => { void readDocument(document.id) }} className="w-full rounded-lg border border-border px-3 py-2 text-left text-[13px] text-foreground hover:bg-surface-muted">{document.displayName}<span className="block text-[11px] text-foreground-muted">{document.originalFormat.toUpperCase()}</span></button>)}
+                {documents.length === 0 && <p className="text-[12px] text-foreground-muted">No documents in the active project.</p>}
+              </div>
+              <input value={draftName} onChange={(event) => setDraftName(event.target.value)} aria-label="New document name" className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-[13px] text-input-fg" />
+              <TextArea value={draftText} onChange={setDraftText} ariaLabel="New document content" rows={4} />
+              <PrimaryButton onClick={() => { void createDocument() }} disabled={!projectId || preset === 'off'}>Create document</PrimaryButton>
+            </Card>
+
+            {workspaceGrant && (
+              <Card className="p-4 space-y-3">
+                <h2 className="text-[14px] font-semibold text-foreground">Workspace Files</h2>
+                <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                  {workspaceFiles.map((file: { relativePath: string; type: string }) => (
+                    <div key={file.relativePath} className="text-[12px] text-foreground soft-separator-x py-1">
+                      {file.type === 'directory' ? '📁 ' : '📄 '}{file.relativePath}
+                    </div>
+                  ))}
+                  {workspaceFiles.length === 0 && <p className="text-[12px] text-foreground-muted">No files found.</p>}
+                </div>
+              </Card>
+            )}
           </div>
-          <input value={draftName} onChange={(event) => setDraftName(event.target.value)} aria-label="New document name" className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-[13px] text-input-fg" />
-          <TextArea value={draftText} onChange={setDraftText} ariaLabel="New document content" rows={4} />
-          <PrimaryButton onClick={() => { void createDocument() }} disabled={!projectId || preset === 'off'}>Create without overwrite</PrimaryButton>
-        </Card>
 
-        <Card className="p-4 space-y-3">
-          <h2 className="text-[14px] font-semibold text-foreground">{selected?.displayName ?? 'Select a document'}</h2>
-          {selected ? (
-            <>
-              <div className="rounded-lg border border-border bg-surface-muted p-3 whitespace-pre-wrap text-[13px] text-foreground">{selectedText}</div>
-              <TextArea value={editText} onChange={setEditText} ariaLabel="Proposed document text" rows={8} />
-              <div className="flex flex-wrap gap-2"><GhostButton onClick={() => { void prepareEdit() }}>Prepare proposal</GhostButton><GhostButton onClick={() => { void bridge.documents.export({ documentId: selected.documentId, revisionId: selected.revisionId, format: 'md', suggestedFileName: selected.displayName }) }}>Export…</GhostButton></div>
-              {revisions.length > 1 && <div className="space-y-2"><h3 className="text-[12px] font-semibold uppercase tracking-wide text-foreground-muted">Immutable revisions</h3>{revisions.map((revision) => <div key={revision.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"><span className="text-[12px] text-foreground">{revision.summary}<span className="block text-[11px] text-foreground-muted">{new Date(revision.createdAt).toLocaleString()}</span></span>{revision.id !== selected.revisionId && <GhostButton onClick={() => { void prepareRestore(revision.id) }}>Restore as new</GhostButton>}</div>)}</div>}
-            </>
-          ) : <p className="text-[13px] text-foreground-muted">Read, revise, restore, and export app-managed documents without exposing arbitrary paths to the model.</p>}
-          {proposal && (
-            <div className="rounded-xl border border-border-strong bg-surface-elevated p-4 space-y-3" role="region" aria-label="Document change proposal">
-              <div><h3 className="text-[13px] font-semibold text-foreground">Review exact proposal</h3><p className="text-[12px] text-foreground-muted">Approval is bound to hash {proposal.pendingApproval.proposalHash.slice(0, 12)}… and the current base revision.</p></div>
-              <div className="grid gap-2 md:grid-cols-2"><pre className="overflow-auto rounded-lg bg-surface-muted p-3 text-[12px] text-foreground">{proposal.preview.before.map(blockText).join('\n\n')}</pre><pre className="overflow-auto rounded-lg bg-surface-muted p-3 text-[12px] text-foreground">{proposal.preview.after.map(blockText).join('\n\n')}</pre></div>
-              <div className="flex gap-2"><GhostButton onClick={() => { void decide('reject') }}>Reject</GhostButton><GhostButton onClick={() => { void decide('approve') }}>Approve exact change</GhostButton></div>
-            </div>
-          )}
-        </Card>
+          <Card className="p-4 space-y-3 flex flex-col min-h-[400px]">
+            <h2 className="text-[14px] font-semibold text-foreground flex-shrink-0">{selected?.displayName ?? 'Select a document'}</h2>
+            {selected ? (
+              <div className="flex-1 flex flex-col min-h-0 space-y-3">
+                <div className="rounded-lg border border-border bg-surface-muted p-3 whitespace-pre-wrap text-[13px] text-foreground overflow-y-auto max-h-[200px] flex-shrink-0">{selectedText}</div>
+                <div className="flex-1 min-h-[150px] flex flex-col">
+                  <TextArea value={editText} onChange={setEditText} ariaLabel="Proposed document text" rows={8} />
+                </div>
+                <div className="flex flex-wrap gap-2 flex-shrink-0"><GhostButton onClick={() => { void prepareEdit() }}>Prepare proposal</GhostButton><GhostButton onClick={() => { void bridge.documents.export({ documentId: selected.documentId, revisionId: selected.revisionId, format: 'md', suggestedFileName: selected.displayName }) }}>Export…</GhostButton></div>
+                {revisions.length > 1 && <div className="space-y-2 flex-shrink-0"><h3 className="text-[12px] font-semibold uppercase tracking-wide text-foreground-muted">Immutable revisions</h3><div className="max-h-[150px] overflow-y-auto space-y-2">{revisions.map((revision) => <div key={revision.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"><span className="text-[12px] text-foreground">{revision.summary}<span className="block text-[11px] text-foreground-muted">{new Date(revision.createdAt).toLocaleString()}</span></span>{revision.id !== selected.revisionId && <GhostButton onClick={() => { void prepareRestore(revision.id) }}>Restore as new</GhostButton>}</div>)}</div></div>}
+              </div>
+            ) : <p className="text-[13px] text-foreground-muted flex-shrink-0">Read, revise, restore, and export app-managed documents without exposing arbitrary paths to the model.</p>}
+            {proposal && (
+              <div className="rounded-xl border border-border-strong bg-surface-elevated p-4 space-y-3 flex-shrink-0 mt-4" role="region" aria-label="Document change proposal">
+                <div><h3 className="text-[13px] font-semibold text-foreground">Review exact proposal</h3><p className="text-[12px] text-foreground-muted">Approval is bound to hash {proposal.pendingApproval.proposalHash.slice(0, 12)}… and the current base revision.</p></div>
+                <div className="grid gap-2 md:grid-cols-2"><pre className="overflow-auto rounded-lg bg-surface-muted p-3 text-[12px] text-foreground max-h-[200px]">{proposal.preview.before.map(blockText).join('\n\n')}</pre><pre className="overflow-auto rounded-lg bg-surface-muted p-3 text-[12px] text-foreground max-h-[200px]">{proposal.preview.after.map(blockText).join('\n\n')}</pre></div>
+                <div className="flex gap-2"><GhostButton onClick={() => { void decide('reject') }}>Reject</GhostButton><GhostButton onClick={() => { void decide('approve') }}>Approve exact change</GhostButton></div>
+              </div>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   )
