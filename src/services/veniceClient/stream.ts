@@ -58,17 +58,13 @@ export async function veniceStreamChat(
 
   const startedAt = nowIso();
   const payloadRecord = payload as Record<string, unknown> | null | undefined;
-
+  
   if (payloadRecord && Array.isArray(payloadRecord.messages)) {
-    const dateStr = new Date().toLocaleString();
-    const systemInstruction = `[System Runtime Context]\nCurrent Date/Time: ${dateStr}\n[/System Runtime Context]\n\n`;
-    const messages = [...payloadRecord.messages];
-    if (messages.length > 0 && messages[0].role === 'system') {
-      messages[0] = { ...messages[0], content: systemInstruction + (messages[0].content || '') };
-    } else {
-      messages.unshift({ role: 'system', content: systemInstruction });
-    }
-    payloadRecord.messages = messages;
+    payloadRecord.messages = payloadRecord.messages.map(m => {
+      const msg = { ...m };
+      delete msg.metadata;
+      return msg;
+    });
   }
 
   try {

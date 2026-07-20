@@ -3,7 +3,7 @@ import { selectConversationSummaries, useChatStore, type ConversationSummary } f
 import { useSettingsStore } from '../../stores/settings-store'
 import { useModels } from '../../hooks/use-models'
 import { useChat } from '../../hooks/use-chat'
-import { toast } from '../../stores/toast-store'
+import { toast, useToastStore } from '../../stores/toast-store'
 import { ModelInfo } from '../../types/venice'
 import { DEFAULT_CHAT_MODEL, modelSupportsVision } from '../../constants/venice'
 import { resolveDefaultChatModel } from '../../services/defaultModelResolver'
@@ -39,6 +39,7 @@ interface MessageBubbleCallbacks {
   onForkFromHere?: () => void
   onRegenerate?: () => void
   onGenerateScene?: () => void
+  onRemoveMedia?: (messageId: string, refId: string) => void
 }
 
 export function ChatView() {
@@ -350,6 +351,28 @@ export function ChatView() {
           })
           if (confirmed) truncateConversationAfterMessage(liveConvId, msg.id, { includeSelected: true })
         },
+        onRemoveMedia: async (_messageId: string, refId: string) => {
+          const liveConvId = conversationIdRef.current;
+          if (!liveConvId) return;
+          const { removeMediaReferenceFromMessage, restoreMediaReferenceOnMessage } =
+            useChatStore.getState();
+          const result = removeMediaReferenceFromMessage(liveConvId, msg.id, refId);
+          if (!result.ok) return;
+          const removedRef = result.tombstone;
+          const removedName = removedRef.altText || removedRef.mediaId;
+          useToastStore.getState().push({
+            variant: 'info',
+            title: 'Removed from chat',
+            description: `${removedName} stays in Media Studio. Click Undo to re-attach.`,
+            action: {
+              label: 'Undo',
+              onClick: () => {
+                restoreMediaReferenceOnMessage(liveConvId, msg.id, removedRef.id);
+              },
+            },
+            duration: 6000,
+          });
+        },
         onRegenerateFromHere: !isStreaming && msg.role === 'user' ? async () => {
           const liveConvId = conversationIdRef.current
           if (!liveConvId) return
@@ -532,6 +555,7 @@ export function ChatView() {
                       onForkFromHere={cb?.onForkFromHere}
                       onRegenerate={cb?.onRegenerate}
                       onGenerateScene={cb?.onGenerateScene}
+                      onRemoveMedia={cb?.onRemoveMedia}
                       isCharacterBound={isCharacterBound}
                       assistantCharacter={isCharacterBound ? conversation.metadata?.character : undefined}
                       assistantCharacterCacheKey={`message-${conversation.id}`}

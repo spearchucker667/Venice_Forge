@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useState, useRef, useEffect, memo, useMemo, lazy, Suspense, type ComponentPropsWithoutRef } from 'react'
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -122,13 +124,14 @@ interface MessageBubbleProps {
   onForkFromHere?: () => void
   onRegenerate?: () => void
   onGenerateScene?: () => void
+  onRemoveMedia?: (messageId: string, refId: string) => void
   isCharacterBound?: boolean
   assistantAvatarUrl?: string
   assistantCharacter?: ConversationCharacterMeta
   assistantCharacterCacheKey?: string
 }
 
-function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteFromHere, onRegenerateFromHere, onForkFromHere, onRegenerate, onGenerateScene, isCharacterBound, assistantAvatarUrl, assistantCharacter, assistantCharacterCacheKey }: MessageBubbleProps) {
+function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteFromHere, onRegenerateFromHere, onForkFromHere, onRegenerate, onGenerateScene, onRemoveMedia, isCharacterBound, assistantAvatarUrl, assistantCharacter, assistantCharacterCacheKey }: MessageBubbleProps) {
   useKatexCss()
 
   const [hovering, setHovering] = useState(false)
@@ -478,7 +481,20 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
           </div>
         )}
         {injectedContextDisclosure}
-        {isAssistant && sceneGeneration && (
+        
+        {isAssistant && Array.isArray(message.metadata?.generatedMedia) && (message.metadata.generatedMedia as any[]).filter((r) => !r?.deletedFromChatAt).map((r) => (
+          <div key={r.id} className="relative group mt-2 mb-1 w-full max-w-sm rounded-lg overflow-hidden border border-border bg-surface-sunken">
+            <img src={r.displayUrl || ("venice-media://" + r.mediaId)} className="w-full h-auto object-cover" />
+            <button
+              onClick={() => onRemoveMedia?.((message as any).id, r.id)}
+              className="absolute top-2 right-2 bg-black/60 text-white rounded p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500" // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR
+              title="Remove from chat"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+        ))}
+{isAssistant && sceneGeneration && (
           <CharacterSceneCard
             status={sceneGeneration.status}
             prompt={sceneGeneration.prompt}

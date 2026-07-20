@@ -1,6 +1,7 @@
 /** @fileoverview Type definitions for multi-conversation chat history. */
 
 import type {
+  ChatMediaReference,
   ConversationCharacterMeta,
   ConversationSource,
   MemoryFact,
@@ -9,6 +10,19 @@ import type { CharacterSceneGenerationResult } from "./characterSceneGeneration"
 import type { ContentPart } from "./venice";
 
 /** A single message within a conversation. */
+
+export {
+  cloneChatMediaReference,
+  coerceToChatMediaReferenceArray,
+  createChatMediaReference,
+  isChatMediaReference,
+  isChatMediaReferenceArray,
+} from "./conversationVault";
+export type { CreateChatMediaReferenceInput } from "./conversationVault";
+
+// The renderer alias uses the canonical vault type so any drift is caught at
+// compile time, not at runtime when reading legacy IndexDB rows.
+
 export interface ConversationMessage {
   id: string;
   role: "system" | "user" | "assistant" | "tool";
@@ -27,6 +41,7 @@ export interface ConversationMessage {
     injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed";
     providerRequestId?: string;
     sceneGeneration?: CharacterSceneGenerationResult;
+    generatedMedia?: ChatMediaReference[];
     usage?: {
       promptTokens?: number;
       completionTokens?: number;

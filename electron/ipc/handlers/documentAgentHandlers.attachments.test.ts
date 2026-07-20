@@ -66,6 +66,7 @@ vi.mock("../../agent/documents/attachment-import-service", () => ({
 }));
 
 import { registerDocumentAgentHandlers } from "./documentAgentHandlers";
+import { clearRegisteredChannelsForTesting } from "./common";
 
 function resetMocks(): void {
   attachmentsPromote.mockClear();
@@ -80,6 +81,7 @@ function resetMocks(): void {
   attachmentsPromoteError.mockClear();
   auditRecord.mockClear();
   handlers.clear();
+  clearRegisteredChannelsForTesting();
 }
 
 describe("documentAgent:attachments:promote channel", () => {

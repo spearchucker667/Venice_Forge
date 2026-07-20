@@ -9,6 +9,7 @@ import { Badge } from "../ui/shared";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { mediaItemSource, formatDimensions, formatDuration, isVideoItem, isAudioItem } from "../../utils/mediaItem";
 import type { MediaItem } from "../../types/media";
+import { ManagedVideoPlayer } from "../media/ManagedVideoPlayer";
 
 interface MediaDetailDialogProps {
   item: MediaItem;
@@ -122,11 +123,10 @@ export function MediaDetailDialog({
           </button>
           {src ? (
             isVideo ? (
-              <video
+              <ManagedVideoPlayer
                 src={src}
-                controls
                 autoPlay
-                className="max-h-[80vh] max-w-[90vw] rounded-lg border border-border object-contain"
+                className="max-h-[80vh] max-w-[90vw] rounded-lg border border-border"
               />
             ) : (
               <img

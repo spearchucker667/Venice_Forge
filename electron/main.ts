@@ -27,6 +27,7 @@ import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/cha
 import { createGeneratedMediaResponse, GENERATED_MEDIA_SCHEME } from './services/generatedMediaStore';
 import { readRegularFileNoFollow } from "./utils/secureFile";
 import { createShutdownCoordinator } from "./services/appShutdownCoordinator";
+import { migrateLegacyFolders } from "./services/chatFolderService";
 
 export { isValidBridgeHost };
 
@@ -229,6 +230,13 @@ async function bootstrap(): Promise<void> {
     await initializeConfig();
   } catch (err) {
     logError("Config bootstrap failed; continuing with defaults", err);
+  }
+
+  // Migrate legacy chat folders (those without kind field) by inspecting conversations
+  try {
+    await migrateLegacyFolders("default");
+  } catch (err) {
+    logError("Chat folder legacy migration failed", err);
   }
 
   registerIpcHandlers();

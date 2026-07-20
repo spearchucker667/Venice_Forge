@@ -24,6 +24,7 @@ import { performVeniceRequest } from "./veniceClient";
 import { getRuntimeLocalFamilySafeModeEnabled, getRuntimeVeniceApiSafeMode } from "./runtimeSafetySettings";
 import type { VeniceIpcResponse } from "./veniceClient";
 import { applyVeniceApiSafeMode } from "../../src/shared/veniceSafeMode";
+import { composeTrustedRequest } from "../agent/runtime/trusted-agent-request";
 
 /** Shape of a Family Safe Mode block response. Matches the 451 body
  *  emitted by every IPC entry point so the renderer can recognise
@@ -184,7 +185,8 @@ export async function performGuardedVeniceRequest(
       source: "ipc",
     });
     if (block) return { kind: "blocked", block };
-    const requestForDispatch = withFamilySafeProviderOverride(rawRequest, endpoint);
+    let requestForDispatch = withFamilySafeProviderOverride(rawRequest, endpoint);
+    requestForDispatch = composeTrustedRequest(requestForDispatch);
     const response = await performVeniceRequest(requestForDispatch, options);
     const responseBlock = screenUpstreamResponse(endpoint, method, response);
     if (responseBlock) return { kind: "blocked", block: responseBlock };

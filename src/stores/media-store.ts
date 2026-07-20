@@ -265,6 +265,33 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   },
 
   remove: async (id) => {
+    try {
+      if (process.env.NODE_ENV !== 'test') {
+        const { useChatStore } = await import('./chat-store');
+        const { coerceToChatMediaReferenceArray } = await import('../types/conversation');
+        const conversations = (useChatStore.getState()?.conversations || []) as Array<{
+          messages: Array<{ metadata?: { generatedMedia?: unknown } }>;
+        }>;
+        const hasReference = conversations.some(c =>
+          c.messages.some(m => {
+            const refs = coerceToChatMediaReferenceArray(m.metadata?.generatedMedia);
+            return refs.some(r => r.mediaId === id && r.deletedFromChatAt == null);
+          }),
+        );
+        if (hasReference) {
+          const { askDecision } = await import('../components/ui/modal-requests');
+          const confirmed = await askDecision({
+            title: 'Delete media in use?',
+            detail: 'This media is currently referenced in one or more chat messages. The message will remain, but the media will be broken. Are you sure you want to delete it?',
+            actionLabel: 'Delete media',
+            danger: true,
+          });
+          if (!confirmed) return false;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
     const ok = await StorageService.deleteMedia(id)
     if (ok) {
       set((state) => ({
@@ -276,6 +303,33 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   },
 
   removeMany: async (ids) => {
+    try {
+      if (process.env.NODE_ENV !== 'test') {
+        const { useChatStore } = await import('./chat-store');
+        const { coerceToChatMediaReferenceArray } = await import('../types/conversation');
+        const conversations = (useChatStore.getState()?.conversations || []) as Array<{
+          messages: Array<{ metadata?: { generatedMedia?: unknown } }>;
+        }>;
+        const hasReference = ids.some(id => conversations.some(c =>
+          c.messages.some(m => {
+            const refs = coerceToChatMediaReferenceArray(m.metadata?.generatedMedia);
+            return refs.some(r => r.mediaId === id && r.deletedFromChatAt == null);
+          }),
+        ));
+        if (hasReference) {
+          const { askDecision } = await import('../components/ui/modal-requests');
+          const confirmed = await askDecision({
+            title: 'Delete media in use?',
+            detail: 'One or more of these media items are referenced in chat messages. Are you sure you want to delete them?',
+            actionLabel: 'Delete media',
+            danger: true,
+          });
+          if (!confirmed) return 0;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
     const removed = await StorageService.deleteMediaMany(ids)
     if (removed > 0) {
       const removedSet = new Set(ids)

@@ -17,6 +17,7 @@ import {
 import { VENICE_API_HOST } from "../../src/shared/apiConfig";
 import type { MutationOrigin } from "../../src/types/sync";
 import { assertValidProfileStorageId } from "../../src/utils/profileIdValidation";
+import { countPromptCharacters, SYSTEM_PROMPT_HARD_LIMIT } from "../../src/shared/promptLimits";
 
 /** Describes a validated Venice IPC request ready for the main process.
  *
@@ -189,6 +190,21 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
   if (request.profileId !== undefined) {
     assertValidProfileStorageId(request.profileId);
     profileId = request.profileId;
+  }
+
+  // Enforce system prompt limits at the request boundary.
+  if (endpoint.pathname === "/chat/completions" && request.body && typeof request.body === "object") {
+    const body = request.body as Record<string, unknown>;
+    if (Array.isArray(body.messages)) {
+      for (const msg of body.messages) {
+        if (msg && typeof msg === "object" && msg.role === "system" && typeof msg.content === "string") {
+          const length = countPromptCharacters(msg.content);
+          if (length > SYSTEM_PROMPT_HARD_LIMIT) {
+            throw new Error(`System prompt exceeds maximum allowed length (${length}/${SYSTEM_PROMPT_HARD_LIMIT} code points).`);
+          }
+        }
+      }
+    }
   }
 
   return {

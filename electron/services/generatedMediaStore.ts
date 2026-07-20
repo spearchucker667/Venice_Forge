@@ -25,6 +25,9 @@ const ALLOWED_MIME = new Map([
   ['audio/mpeg', 'mp3'],
   ['audio/wav', 'wav'],
   ['audio/flac', 'flac'],
+  ['image/png', 'png'],
+  ['image/jpeg', 'jpg'],
+  ['image/webp', 'webp'],
 ])
 
 export interface GeneratedMediaTempFile {
@@ -112,7 +115,13 @@ export async function persistGeneratedMedia(bytes: Buffer, mimeType: string): Pr
       ? bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WAVE'
       : normalizedMime === 'audio/flac'
         ? bytes.length >= 4 && bytes.subarray(0, 4).toString('ascii') === 'fLaC'
-        : bytes.length >= 3 && (bytes.subarray(0, 3).toString('ascii') === 'ID3' || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0))
+        : normalizedMime === 'image/png'
+          ? bytes.length >= 8 && bytes.subarray(0, 8).toString('hex') === '89504e470d0a1a0a'
+          : normalizedMime === 'image/jpeg'
+            ? bytes.length >= 2 && bytes.subarray(0, 2).toString('hex') === 'ffd8'
+            : normalizedMime === 'image/webp'
+              ? bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP'
+              : bytes.length >= 3 && (bytes.subarray(0, 3).toString('ascii') === 'ID3' || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0))
   if (!signatureOk) throw new Error('Generated media bytes did not match the declared content type.')
   const sha256 = crypto.createHash('sha256').update(bytes).digest('hex')
   const temp = await createGeneratedMediaTempFile()

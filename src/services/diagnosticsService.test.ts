@@ -29,6 +29,8 @@ import { useMediaStore } from "../stores/media-store";
 import { useChatStore } from "../stores/chat-store";
 import { _resetAuditCounters_TEST_ONLY } from "../shared/safety";
 import { useModelCatalogRuntimeStore } from "../stores/model-catalog-runtime-store";
+import { usePromptLibraryStore } from "../stores/prompt-library-store";
+import type { PromptLibraryItem } from "../types/prompt-library";
 
 function resetStores() {
   _resetAuditCounters_TEST_ONLY();
@@ -47,6 +49,7 @@ function resetStores() {
     selectedModels: {},
     localFamilySafeModeEnabled: true,
     veniceApiSafeMode: true,
+    diagnosticsIncludePrompts: false,
   } as never);
   useProjectStore.setState({ projects: [], loaded: true, loading: false, lastError: null });
   useMediaStore.setState({
@@ -71,6 +74,44 @@ function resetStores() {
     pendingContext: null,
   });
   useModelCatalogRuntimeStore.getState().reset();
+  usePromptLibraryStore.setState({
+    prompts: [],
+    activePromptId: null,
+    hydrated: true,
+    loading: false,
+    loadError: null,
+  });
+}
+
+function makePromptItem(
+  id: string,
+  content: string,
+  extras: Partial<PromptLibraryItem> = {},
+): PromptLibraryItem {
+  const versionId = `${id}-v1`;
+  return {
+    id,
+    kind: "chat",
+    scope: "global",
+    title: `Prompt ${id}`,
+    currentVersionId: versionId,
+    versions: [
+      {
+        id: versionId,
+        promptId: id,
+        version: 1,
+        title: `Prompt ${id}`,
+        content,
+        createdAt: "2026-07-20T00:00:00.000Z",
+        createdBy: "user",
+      },
+    ],
+    tags: [],
+    favorite: false,
+    createdAt: "2026-07-20T00:00:00.000Z",
+    updatedAt: "2026-07-20T00:00:00.000Z",
+    ...extras,
+  };
 }
 
 beforeEach(() => {
@@ -388,5 +429,103 @@ describe("computeSafeDiagnosticsSnapshot (VERIFY-045)", () => {
     // Force an error in apiKey (no key configured).
     const s = computeAppStatusSnapshot();
     expect(s.diagnostics.severity).toBe("error");
+  });
+});
+
+/**
+ * Phase 9 — Developer-Portal Error Intake:
+ * Prompt opt-in lives on the settings store and only leaks
+ * truncated, secret-stripped excerpts through the diagnostics
+ * snapshot when explicitly enabled.
+ */
+describe("Phase 9 diagnostics prompt opt-in", () => {
+  it("does NOT include redactedExcerpts when diagnosticsIncludePrompts is false", () => {
+    usePromptLibraryStore.setState({
+      prompts: [makePromptItem("p1", "a fairly normal user prompt")],
+    } as never);
+    const snap = computeSafeDiagnosticsSnapshot();
+    expect(snap.stores.prompts).toBeDefined();
+    expect(snap.stores.prompts?.count).toBe(1);
+    expect(snap.stores.prompts?.redactedExcerpts).toBeUndefined();
+    // privacyExclusions marker must say "Raw Prompt Content" (no opt-in)
+    expect(snap.stores.privacyExclusions).toContain("Raw Prompt Content");
+    expect(snap.stores.privacyExclusions).not.toContain("Raw Prompt Content (opt-in)");
+  });
+
+  it("includes bounded redacted excerpts when diagnosticsIncludePrompts is true", () => {
+    usePromptLibraryStore.setState({
+      prompts: [
+        makePromptItem("p1", "alpha prompt content goes here"),
+        makePromptItem("p2", "bravo prompt content goes here"),
+      ],
+    } as never);
+    useSettingsStore.setState({ diagnosticsIncludePrompts: true } as never);
+    const snap = computeSafeDiagnosticsSnapshot();
+    const excerpts = snap.stores.prompts?.redactedExcerpts;
+    expect(excerpts).toBeDefined();
+    expect(excerpts?.length).toBe(2);
+    expect(excerpts?.[0].id).toBe("p1");
+    expect(excerpts?.[0].source).toBe("prompt-library");
+    expect(typeof excerpts?.[0].hash).toBe("string");
+    expect(excerpts?.[0].hash.length).toBe(8);
+    // excerpt is sanitised + collapsed (single trailing ellipsis if truncated)
+    expect(excerpts?.[0].redactedExcerpt).not.toContain("\n");
+    expect(snap.stores.privacyExclusions).toContain("Raw Prompt Content (opt-in)");
+  });
+
+  it("redacts API keys and bearer tokens inside redacted excerpts", () => {
+    usePromptLibraryStore.setState({
+      prompts: [
+        makePromptItem(
+          "secret1",
+          'here is my api key: vn-1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcd and a "Bearer aaaaaaaaaabbbbbbbbbb" header plus /Users/me/secret.txt',
+        ),
+      ],
+    } as never);
+    useSettingsStore.setState({ diagnosticsIncludePrompts: true } as never);
+    const snap = computeSafeDiagnosticsSnapshot();
+    const text = serialiseSafeDiagnosticsSnapshot(snap);
+    expect(text).not.toMatch(/vn-1234567890ABCDEF/);
+    expect(text).not.toMatch(/Bearer\s+[A-Za-z0-9]{20,}/);
+    expect(text).not.toMatch(/\/Users\//);
+  });
+
+  it("caps redacted excerpts at MAX_PROMPT_EXCERPTS and truncates long content", () => {
+    const long = "x".repeat(400);
+    usePromptLibraryStore.setState({
+      prompts: Array.from({ length: 8 }).map((_, i) =>
+        makePromptItem(`p${i}`, long),
+      ),
+    } as never);
+    useSettingsStore.setState({ diagnosticsIncludePrompts: true } as never);
+    const snap = computeSafeDiagnosticsSnapshot();
+    expect(snap.stores.prompts?.redactedExcerpts?.length).toBe(5);
+    for (const excerpt of snap.stores.prompts?.redactedExcerpts ?? []) {
+      // 80 chars + ellipsis
+      expect(excerpt.redactedExcerpt.length).toBeLessThanOrEqual(81);
+    }
+  });
+
+  it("returns an empty redactedExcerpts list when prompt library is empty", () => {
+    usePromptLibraryStore.setState({ prompts: [] } as never);
+    useSettingsStore.setState({ diagnosticsIncludePrompts: true } as never);
+    const snap = computeSafeDiagnosticsSnapshot();
+    expect(snap.stores.prompts?.count).toBe(0);
+    expect(snap.stores.prompts?.redactedExcerpts).toEqual([]);
+  });
+
+  it("hash is deterministic for identical content", () => {
+    usePromptLibraryStore.setState({
+      prompts: [
+        makePromptItem("a", "the same content"),
+        makePromptItem("b", "the same content"),
+      ],
+    } as never);
+    useSettingsStore.setState({ diagnosticsIncludePrompts: true } as never);
+    const snap = computeSafeDiagnosticsSnapshot();
+    const excerpts = snap.stores.prompts?.redactedExcerpts ?? [];
+    const a = excerpts.find((e) => e.id === "a");
+    const b = excerpts.find((e) => e.id === "b");
+    expect(a?.hash).toBe(b?.hash);
   });
 });

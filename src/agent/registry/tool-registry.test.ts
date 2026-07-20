@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { capabilitiesForPreset, type CapabilityGrant } from "../contracts/capabilities";
 import { createCanonicalToolDefinitions, ToolRegistry } from "./tool-registry";
+import type { ProviderToolName } from "./tool-name-map";
 
 function grant(preset: CapabilityGrant["preset"]): CapabilityGrant {
   return {
@@ -14,11 +15,23 @@ function grant(preset: CapabilityGrant["preset"]): CapabilityGrant {
 }
 
 describe("canonical document-agent tool registry", () => {
-  it("VERIFY-145 registers all 16 unique provider-safe tools", () => {
+  it("VERIFY-145 registers 16 unique provider-safe tools (Phase 5.2 removed unimplemented video/audio)", () => {
+    // Phase 5.2 — `media.generateVideo` and `media.generateAudio` are removed
+    // from the canonical tool surface until their durable approval pipeline
+    // lands. The active tool set is therefore image-only.
     const definitions = createCanonicalToolDefinitions();
     expect(definitions).toHaveLength(16);
     expect(new Set(definitions.map((tool) => tool.providerName))).toHaveLength(16);
     expect(definitions.every((tool) => !tool.providerName.includes("."))).toBe(true);
+    expect(definitions.some((tool) => tool.providerName === "media_generate_image")).toBe(true);
+    // Phase 5.2 retired tools — assert via typed-cast slot so ProviderToolName widening does
+    // not silently lose the assertion: we want the typecheck guard to fail if either
+    // tool is ever reintroduced into the canonical surface.
+    const retiredNames = ["media_generate_video", "media_generate_audio"] as const;
+    for (const retired of retiredNames) {
+      const providerName = retired as ProviderToolName;
+      expect(definitions.some((tool) => tool.providerName === providerName)).toBe(false);
+    }
   });
 
   it("fails closed when function calling is unsupported", () => {

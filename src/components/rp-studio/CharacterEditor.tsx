@@ -27,6 +27,7 @@ import { getCharacterTokenBudget } from "../../services/rpTokenCounter";
 import { validateCharacterCardAuthoring } from "../../types/character-card-spec";
 import { desktopCharacterCards } from "../../services/desktopBridge";
 import { deleteCharacterCardDraft, getCharacterCardDraft, saveCharacterCardDraft } from "../../services/characterCards/characterCardDraftService";
+import { countPromptCharacters, getUserSystemPromptLimit, USER_SYSTEM_PROMPT_LIMITS } from "../../shared/promptLimits";
 import { applyCharacterCardProposal, proposeCharacterCardRefinement } from "../../services/characterCards/characterCardAiService";
 import type { CharacterCardPatchProposal } from "../../types/character-card-ai";
 import { CharacterBookEditor } from "./CharacterBookEditor";
@@ -710,17 +711,26 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
         </section>
 
         <section>
-          <Label htmlFor="card-system" hint={`${draft.systemPrompt.length}/${CARD_FIELD_MAX}`}>
+          <Label htmlFor="card-system" hint={`${countPromptCharacters(draft.systemPrompt)}/${getUserSystemPromptLimit()}`}>
             System prompt
           </Label>
           <TextArea
             value={draft.systemPrompt}
-            onChange={(v) => update("systemPrompt", v)}
+            onChange={(v) => {
+              if (countPromptCharacters(v) <= getUserSystemPromptLimit()) {
+                update("systemPrompt", v)
+              }
+            }}
             placeholder="The character's persona, voice, and behavioural rules."
             rows={6}
-            maxLength={CARD_FIELD_MAX}
+            maxLength={getUserSystemPromptLimit()}
             ariaLabel="System prompt"
           />
+          {countPromptCharacters(draft.systemPrompt) >= USER_SYSTEM_PROMPT_LIMITS.warningCharacters && (
+            <div className="text-[12px] text-amber-500 mt-1">
+              Approaching system prompt size limit ({countPromptCharacters(draft.systemPrompt)}/{getUserSystemPromptLimit()}).
+            </div>
+          )}
         </section>
 
         <section>

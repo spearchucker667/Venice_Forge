@@ -15,6 +15,7 @@ import { isSupportedImageFile, readImageAttachment } from '../../services/attach
 import { formatModelLabelWithCost } from '../../utils/pricing'
 import { desktopFiles, isElectron } from '../../services/desktopBridge'
 import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator'
+import { ManagedVideoPlayer } from '../media/ManagedVideoPlayer'
 
 export function VideoView() {
   const promptId = useId()
@@ -453,7 +454,7 @@ export function VideoView() {
                 </button>
               </div>
             </div>
-            <video controls src={videoUrl} className="w-full rounded-lg bg-overlay border border-border" />
+            <ManagedVideoPlayer src={videoUrl} className="w-full rounded-lg bg-overlay border border-border" />
             <button type="button" aria-label="Generate another video" onClick={reset} className="self-start text-[14px] text-text-muted hover:text-text-muted transition-colors">Generate another</button>
           </div>
         ) : isProcessing ? (

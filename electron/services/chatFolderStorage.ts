@@ -9,7 +9,7 @@ import { app } from "electron";
 import { logError, logInfo } from "./logger";
 import { isValidId as isCanonicalValidId } from "../../src/utils/idValidation";
 import { isValidProfileStorageId } from "../../src/utils/profileIdValidation";
-import type { ChatFolder } from "../../src/types/chatFolder";
+import type { ChatFolder } from "../../src/shared/chatFolderContracts";
 
 const CHAT_FOLDERS_DIR = "chat-folders";
 const TMP_SUFFIX = ".tmp";
@@ -37,6 +37,34 @@ function isValidChatFolder(obj: unknown): obj is ChatFolder {
   if (typeof o.name !== "string") return false;
   if (typeof o.sortOrder !== "number") return false;
   if (typeof o.schemaVersion !== "number") return false;
+  if (o.kind !== "standard" && o.kind !== "character") return false;
+  if (typeof o.profileId !== "string") return false;
+  return true;
+}
+
+/** Legacy folder shape without kind field. */
+interface LegacyChatFolder {
+  id: string;
+  profileId: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+  lockState?: "unlocked" | "locked";
+  lockedAt?: string | null;
+  lockVersion?: number;
+  schemaVersion: number;
+}
+
+function isLegacyChatFolder(obj: unknown): obj is LegacyChatFolder {
+  if (typeof obj !== "object" || obj === null) return false;
+  const o = obj as Record<string, unknown>;
+  if (!isValidId(o.id)) return false;
+  if (typeof o.name !== "string") return false;
+  if (typeof o.sortOrder !== "number") return false;
+  if (typeof o.schemaVersion !== "number") return false;
+  if (typeof o.profileId !== "string") return false;
   return true;
 }
 
@@ -82,8 +110,11 @@ export async function readChatFolder(id: string, profileId: string = "default"):
   try {
     const raw = await fs.readFile(file, "utf-8");
     const parsed = JSON.parse(raw) as unknown;
-    if (!isValidChatFolder(parsed)) throw new Error("schema validation failed");
-    return parsed;
+    if (isValidChatFolder(parsed)) return parsed;
+    if (isLegacyChatFolder(parsed)) {
+      return migrateLegacyFolder(parsed, profileId);
+    }
+    throw new Error("schema validation failed");
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") return null;
     logError(`chat-folders file corrupt or unreadable`, { path: file, error: String(err) });
@@ -96,6 +127,23 @@ export async function readChatFolder(id: string, profileId: string = "default"):
     }
     return null;
   }
+}
+
+async function migrateLegacyFolder(legacy: LegacyChatFolder, profileId: string): Promise<ChatFolder> {
+  // For now, default to "standard" kind. A full migration that inspects
+  // conversation contents should run as a one-time migration step.
+  // This handles the case where a legacy folder is read before the migration runs.
+  const migrated: ChatFolder = {
+    ...legacy,
+    kind: "standard",
+    lockState: legacy.lockState ?? "unlocked",
+    lockedAt: legacy.lockedAt ?? null,
+    lockVersion: legacy.lockVersion ?? 0,
+    schemaVersion: Math.max(legacy.schemaVersion, 1),
+  };
+  // Save the migrated version
+  await saveChatFolder(migrated, profileId);
+  return migrated;
 }
 
 export async function saveChatFolder(folder: ChatFolder, profileId: string = "default"): Promise<{ ok: boolean; error?: string }> {

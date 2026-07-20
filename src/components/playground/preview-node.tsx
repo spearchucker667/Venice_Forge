@@ -4,6 +4,7 @@ import type { VeniceNodeData } from '../../stores/workflow-store'
 import { NODE_SCHEMAS } from '../../lib/workflow-schema'
 import { usePlaygroundStore } from '../../stores/playground-store'
 import { cn } from '../../lib/utils'
+import { ManagedVideoPlayer } from '../media/ManagedVideoPlayer'
 
 const COLORS: Record<string, string> = {
   textInput: 'border-blue-500/30',
@@ -94,7 +95,7 @@ function PreviewNodeComponent({ id, data }: NodeProps<PreviewNode>) {
           ) : isAudio ? (
             <audio src={strippedOutput} controls className="w-full h-8" />
           ) : isVideo ? (
-            <video src={strippedOutput} controls className="w-full rounded border border-border" />
+            <ManagedVideoPlayer src={strippedOutput} className="w-full rounded border border-border" />
           ) : (
             <p className="text-[12.5px] text-text-secondary leading-relaxed line-clamp-6 whitespace-pre-wrap">{strippedOutput}</p>
           )}

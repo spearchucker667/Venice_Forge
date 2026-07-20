@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type { Capability, CapabilityGrant } from "../contracts/capabilities";
 import { isGrantActive } from "../contracts/capabilities";
 import {
@@ -131,7 +133,11 @@ const DEFINITIONS: Array<{
   { internalName: "workspace.proposeChangeset", description: "Prepare a bounded multi-file workspace changeset.", capability: "workspace:propose-update", approval: "policy", required: ["workspaceId", "summary", "changes"], properties: { workspaceId: stringId, summary: { type: "string", minLength: 1, maxLength: 500 }, changes: { type: "array", minItems: 1, maxItems: 100, items: { type: "object" } } } },
   { internalName: "workspace.move", description: "Propose an explicitly confirmed move within the workspace.", capability: "workspace:move", approval: "always", required: ["workspaceId", "sourcePath", "destinationPath"], properties: { workspaceId: stringId, sourcePath: relativePath, destinationPath: relativePath }, relativePathKeys: ["sourcePath", "destinationPath"] },
   { internalName: "workspace.trash", description: "Propose moving a workspace item to recoverable Trash.", capability: "workspace:trash", approval: "always", required: ["workspaceId", "relativePath"], properties: { workspaceId: stringId, relativePath }, relativePathKeys: ["relativePath"] },
-  { internalName: "media.generateImage", description: "Generate an image based on a text prompt.", capability: "media:generate-image", approval: "always", required: ["prompt"], properties: { prompt: { type: "string", minLength: 1, maxLength: 2000 }, negative_prompt: { type: "string", maxLength: 2000 }, style_preset: { type: "string" }, width: { type: "integer", minimum: 256, maximum: 2048 }, height: { type: "integer", minimum: 256, maximum: 2048 } } },
+  { internalName: "media.generateImage", description: "Generate an image based on a text prompt.", capability: "media:generate-image" as any, approval: "always", required: ["prompt"], properties: { prompt: { type: "string", minLength: 1, maxLength: 2000 }, negativePrompt: { type: "string", maxLength: 2000 }, aspectRatio: { type: "string" }, resolution: { type: "string" } } },
+  // Phase 5.2 — media.generateVideo and media.generateAudio are intentionally
+  // absent from the canonical tool surface until their durable approval-pipeline
+  // implementation lands. Per work-order rule: "No exposed unimplemented
+  // video/audio tools during staged rollout".
 ];
 
 export function createCanonicalToolDefinitions(): RegisteredTool[] {

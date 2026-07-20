@@ -71,7 +71,9 @@ export default function HistoryView() {
     const unfiled: Conversation[] = []
     const groups: Record<string, Conversation[]> = {}
     
-    folders.forEach(f => {
+    const visibleFolders = folders.filter(f => filterType === 'all' || f.kind === filterType)
+    
+    visibleFolders.forEach(f => {
       groups[f.id] = []
     })
     
@@ -83,8 +85,8 @@ export default function HistoryView() {
       }
     })
     
-    return { unfiled, groups }
-  }, [filtered, folders])
+    return { unfiled, groups, visibleFolders }
+  }, [filtered, folders, filterType])
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id)
@@ -277,7 +279,7 @@ export default function HistoryView() {
           
           <div className="space-y-8 pb-12">
             {/* Folder Groups */}
-            {folders.map((folder) => (
+            {groupedConversations.visibleFolders.map((folder) => (
               <div
                 key={folder.id}
                 className="space-y-4"
@@ -549,7 +551,7 @@ export default function HistoryView() {
                     onChange={e => setNewFolderName(e.target.value)}
                     onKeyDown={async (e) => {
                       if (e.key === 'Enter' && newFolderName.trim()) {
-                        await createFolder(newFolderName.trim())
+                        await createFolder(newFolderName.trim(), filterType === 'all' ? 'standard' : filterType as import('../../shared/chatFolderContracts').ChatFolderKind)
                         setNewFolderName('')
                         setIsCreatingFolder(false)
                       } else if (e.key === 'Escape') {

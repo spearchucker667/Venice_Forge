@@ -70,6 +70,22 @@ export interface AppDiagnosticCheck {
   summary: string;
 }
 
+/**
+ * A single redacted prompt excerpt. Only populated when the user
+ * explicitly opts in via `settings.diagnosticsIncludePrompts`. Raw
+ * `content` is never stored: only the `redactedExcerpt` (first
+ * `PROMPT_EXCERPT_CHARS` characters after `redactSecrets()`),
+ * a coarse djb2 hash, the source kind, and the prompt-library
+ * timestamp. The list is capped at `MAX_PROMPT_EXCERPTS` entries.
+ */
+export interface RedactedPromptExcerpt {
+  id: string;
+  hash: string;
+  redactedExcerpt: string;
+  source: "prompt-library";
+  createdAt: number;
+}
+
 export interface SafeDiagnosticsSnapshot {
   version: number;
   generatedAt: string;
@@ -100,7 +116,11 @@ export interface SafeDiagnosticsSnapshot {
     research?: {
       count: number;
     };
-    prompts?: { count: number };
+    prompts?: {
+      count: number;
+      /** Phase 9 opt-in: redacted excerpt list. Absent when opt-in is off. */
+      redactedExcerpts?: RedactedPromptExcerpt[];
+    };
     scenes?: { count: number };
     rp?: { count: number };
     workflows?: { count: number };
@@ -111,3 +131,9 @@ export interface SafeDiagnosticsSnapshot {
 }
 
 export const SAFE_DIAGNOSTICS_SNAPSHOT_VERSION = 1 as const;
+
+/** Maximum characters of any single redacted prompt excerpt. */
+export const PROMPT_EXCERPT_CHARS = 80;
+
+/** Hard cap on the number of prompt excerpts included in any snapshot. */
+export const MAX_PROMPT_EXCERPTS = 5;

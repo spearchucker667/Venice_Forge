@@ -1,9 +1,16 @@
+import { useMediaStore } from './media-store';
 import { compileCharacterSystemPrompt } from "../services/rpPromptCompiler";
 import { avatarDataUri } from "../components/rp-studio/_shared";
 import { create } from 'zustand'
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware'
+import { checkSystemPromptLimit } from '../shared/promptLimits'
 import type { ChatMessage, VeniceParameters } from '../types/venice'
 import type { Conversation, ConversationMessage } from '../types/conversation'
+import type { ChatMediaReference } from '../types/conversationVault'
+import {
+  cloneChatMediaReference,
+  coerceToChatMediaReferenceArray,
+} from '../types/conversation'
 import { contentToSearchText } from '../utils/messageContent'
 import type { ConversationCharacterMeta } from '../types/conversationVault'
 import type { VeniceCharacter } from '../types/characters'
@@ -15,6 +22,7 @@ import { useSettingsStore } from './settings-store' // for defaulting projectRef
 import { desktopChat, desktopConversations, isElectron } from '../services/desktopBridge'
 import { redactErrorMessage } from '../shared/redaction'
 import * as logger from '../shared/logger'
+import { toast } from './toast-store'
 import { DEFAULT_CHAT_MODEL } from '../constants/venice'
 import { assertValidId } from '../utils/idValidation'
 import StorageService from '../services/storageService'
@@ -135,6 +143,18 @@ interface ChatState {
   maxTokens: number
   _hasLoadedHistory: boolean
   pendingContext: PulledMemoryContext | null
+  /** Phase 6 — ChatMediaReference attaches that failed mid-stream. */
+  orphanedGeneratedMediaRefs: Array<{
+    conversationId: string
+    messageId: string
+    ref: ChatMediaReference
+  }>
+  /** Phase 6 — soft-tombstoned refs awaiting toast-undo window. */
+  tombstonedMediaRefs: Array<{
+    conversationId: string
+    messageId: string
+    ref: ChatMediaReference
+  }>
 
   setConversations: (conversations: Conversation[]) => void
   createConversation: (model: string) => string
@@ -185,6 +205,21 @@ interface ChatState {
   setConversationMemoryEnabled: (conversationId: string, enabled: boolean) => void
   deleteMessage: (conversationId: string, index: number) => void
   setMessageMetadata: (conversationId: string, messageIndex: number, metadataPatch: Record<string, unknown>) => void
+  recordGeneratedMediaForMessage: (
+    conversationId: string,
+    messageId: string,
+    ref: ChatMediaReference,
+  ) => { ok: true; ref: ChatMediaReference } | { ok: false; ref: ChatMediaReference; error: string }
+  removeMediaReferenceFromMessage: (
+    conversationId: string,
+    messageId: string,
+    refId: string,
+  ) => { ok: true; tombstone: ChatMediaReference } | { ok: false; error: string }
+  restoreMediaReferenceOnMessage: (
+    conversationId: string,
+    messageId: string,
+    refId: string,
+  ) => { ok: true; ref: ChatMediaReference } | { ok: false; error: string }
   updateConversationMetadata: (conversationId: string, metadataPatch: Record<string, unknown>) => void
   setStreaming: (streaming: boolean) => void
   setVeniceParams: (params: Partial<VeniceParameters>) => void
@@ -289,6 +324,8 @@ export const useChatStore = create<ChatState>()(
       maxTokens: 4096,
       _hasLoadedHistory: false,
       pendingContext: null,
+      orphanedGeneratedMediaRefs: [],
+      tombstonedMediaRefs: [],
 
       setConversations: (conversations) => {
         const stable = conversations.map(ensureStableMessageIds)
@@ -585,9 +622,48 @@ export const useChatStore = create<ChatState>()(
                 tool_call_id: m.tool_call_id,
                 name: m.name,
                 tool_calls: m.tool_calls,
+                metadata: m.metadata,
                 timestamp: Date.now(),
               })) as ConversationMessage[];
               msgs = msgs.concat(newMsgs);
+              // Upsert Media Studio records for any generated media.
+              // Phase 6: metadata.generatedMedia is a ChatMediaReference[] and each entry
+              // is normalised by `createChatMediaReference()`. We project the
+              // ChatMediaReference operation onto the canonical MediaOperation union —
+              // `audio` and `transcribe` are not legal MediaStudio operations and map to
+              // `music-generate` / `import` respectively.
+              const PHASE6_OP_TO_MEDIA_OP = {
+                generate: "generate",
+                edit: "edit",
+                upscale: "upscale",
+                transcribe: "import",
+                audio: "music-generate",
+              } as const;
+
+                            newMsgs.forEach(m => {
+                              const refs = m.metadata?.generatedMedia ?? [];
+                              refs.forEach(ref => {
+                                if (!ref || !ref.mediaId) return;
+                                useMediaStore.getState().upsert({
+                                  id: ref.mediaId,
+                                  image: ref.displayUrl,
+                                  mediaType: ref.mediaType,
+                                  prompt: typeof m.content === 'string' ? m.content.substring(0, 50) : 'Chat generated media',
+                                  model: ref.modelId ?? 'venice',
+                                  timestamp: ref.createdAt ?? m.timestamp,
+                                  operation: PHASE6_OP_TO_MEDIA_OP[ref.operation],
+                                  parentId: null,
+                                  childrenIds: [],
+                                  tags: [],
+                                  note: '',
+                                  favorite: false,
+                                  generatedMediaId: ref.mediaId,
+                                  mimeType: ref.mediaType === 'video' ? 'video/mp4'
+                                    : ref.mediaType === 'audio' ? 'audio/mpeg'
+                                    : 'image/*',
+                                }, { attachActiveProject: true, source: 'generated' });
+                              });
+                            });
             }
             // Streaming text is deliberately excluded from sidebar summary
             // freshness. The message boundary/final save owns updatedAt.
@@ -698,6 +774,129 @@ export const useChatStore = create<ChatState>()(
             return touchConversation({ ...c, messages: msgs })
         }, 'structural')
       },
+
+      /**
+       * Phase 6 save sequence. Caller already created a Media Studio asset
+       * and a normalised `ChatMediaReference`. This helper:
+       *  1. Inserts the reference into `metadata.generatedMedia[]` on the
+       *     matching message (or pushes if missing).
+       *  2. On transaction failure (transient IDB / Electron encoding error),
+       *     returns `{ ok:false, ref }` where `ref.orphanedFromChat = true`
+       *     so the caller can surface the "Generated but not attached" pill.
+       */
+      recordGeneratedMediaForMessage: (conversationId, messageId, ref) => {
+        let didSucceed = true
+        commitConversationMutation(set, conversationId, (c) => {
+          const msgs = (c.messages ?? []).map((m) => {
+            if (m.id !== messageId) return m
+            const existing = coerceToChatMediaReferenceArray(m.metadata?.generatedMedia)
+            if (existing.some((r) => r.id === ref.id)) return m
+            return {
+              ...m,
+              metadata: { ...m.metadata, generatedMedia: [...existing, ref] },
+            }
+          })
+          if (!msgs.some((m) => m.id === messageId)) {
+            didSucceed = false
+            logger.warn?.('chat-store: recordGeneratedMediaForMessage: message not found', {
+              conversationId,
+              messageId,
+            })
+            return c
+          }
+          return touchConversation({ ...c, messages: msgs })
+        }, 'structural')
+        if (didSucceed) return { ok: true, ref }
+        const orphan = { ...ref, orphanedFromChat: true }
+        // Track the orphan so future reconciliation can re-attach it.
+        set((state) => ({
+          ...state,
+          orphanedGeneratedMediaRefs: [
+            ...(state.orphanedGeneratedMediaRefs ?? []),
+            { conversationId, messageId, ref: orphan },
+          ],
+        }))
+        return {
+          ok: false,
+          ref: orphan,
+          error: 'Chat attach failed; asset remains in Media Studio.',
+        }
+      },
+
+      /**
+       * Phase 6 remove-from-chat. Soft-delete the matching reference so the
+       * gallery asset is preserved. Returns the tombstoned row so the caller
+       * can offer an undo toast with a clone id (so re-clone → re-attach is
+       * idempotent and irreversible in the renderer layer).
+       */
+      removeMediaReferenceFromMessage: (conversationId, messageId, refId) => {
+        let tombstone: ChatMediaReference | null = null
+        commitConversationMutation(set, conversationId, (c) => {
+          const msgs = (c.messages ?? []).map((m) => {
+            if (m.id !== messageId) return m
+            const current = coerceToChatMediaReferenceArray(m.metadata?.generatedMedia)
+            const next = current.map((r) => {
+              if (r.id !== refId) return r
+              const updated = { ...r, deletedFromChatAt: Date.now() }
+              tombstone = updated
+              return updated
+            })
+            return {
+              ...m,
+              metadata: { ...m.metadata, generatedMedia: next },
+            }
+          })
+          if (!tombstone) return c
+          set((state) => ({
+            ...state,
+            tombstonedMediaRefs: [
+              ...(state.tombstonedMediaRefs ?? []),
+              { conversationId, messageId, ref: tombstone! },
+            ],
+          }))
+          return touchConversation({ ...c, messages: msgs })
+        }, 'structural')
+        if (!tombstone) {
+          return { ok: false, error: 'Reference not found' }
+        }
+        return { ok: true, tombstone }
+      },
+
+      /**
+       * Phase 6 undo path. Clear `deletedFromChatAt` on the matching ref so
+       * it re-appears in the chat bubble. Idempotent — safe to call twice.
+       */
+      restoreMediaReferenceOnMessage: (conversationId, messageId, refId) => {
+        let restored: ChatMediaReference | null = null
+        commitConversationMutation(set, conversationId, (c) => {
+          const msgs = (c.messages ?? []).map((m) => {
+            if (m.id !== messageId) return m
+            const current = coerceToChatMediaReferenceArray(m.metadata?.generatedMedia)
+            let touched = false
+            const next = current.map((r) => {
+              if (r.id !== refId || r.deletedFromChatAt == null) return r
+              touched = true
+              const clone = cloneChatMediaReference(r, {
+                id: refId,
+                deletedFromChatAt: undefined,
+              })
+              restored = clone
+              return clone
+            })
+            if (!touched) return m
+            return {
+              ...m,
+              metadata: { ...m.metadata, generatedMedia: next },
+            }
+          })
+          if (!restored) return c
+          return touchConversation({ ...c, messages: msgs })
+        }, 'structural')
+        if (!restored) {
+          return { ok: false, error: 'Reference not found or already live' }
+        }
+        return { ok: true, ref: restored }
+      },
         
       updateConversationMetadata: (conversationId, metadataPatch) => {
         commitConversationMutation(set, conversationId, (c) => {
@@ -752,7 +951,17 @@ export const useChatStore = create<ChatState>()(
       setVeniceParams: (params) =>
         set((s) => ({ veniceParams: { ...s.veniceParams, ...params } })),
 
-      setSystemPrompt: (prompt) => set({ systemPrompt: prompt }),
+      setSystemPrompt: (prompt) => {
+        const limitResult = checkSystemPromptLimit(prompt);
+        if (limitResult.isOverLimit) {
+          toast.warn(limitResult.message || 'System prompt exceeds maximum length');
+          return;
+        }
+        if (limitResult.isWarning) {
+          toast.warn(limitResult.message || 'System prompt approaching length limit');
+        }
+        set({ systemPrompt: prompt });
+      },
       setTemperature: (t) => set({ temperature: t }),
       setTopP: (p) => set({ topP: p }),
       setMaxTokens: (t) => set({ maxTokens: t }),

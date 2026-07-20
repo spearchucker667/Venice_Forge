@@ -274,6 +274,35 @@ export function DiagnosticsDrawer() {
           )}
         </div>
 
+        {/*
+          Phase 9 Developer-Portal Error Intake: prompt opt-in toggle.
+          Off by default — raw prompt text never leaves the safe
+          diagnostics snapshot unless the user opts in. The toggle
+          flips a settings-store boolean; the snapshot builder reads
+          it on every recompute. We never persist raw prompt content.
+        */}
+        <label
+          className="flex items-start gap-2 rounded-md border border-border/50 px-2 py-1.5 text-[12px] text-text-secondary"
+          data-testid="diagnostics-prompt-opt-in"
+        >
+          <input
+            type="checkbox"
+            checked={useSettingsStore.getState().diagnosticsIncludePrompts}
+            onChange={(e) =>
+              useSettingsStore.getState().setDiagnosticsIncludePrompts(e.target.checked)
+            }
+            aria-label="Include redacted prompt excerpts in safe diagnostics"
+            className="mt-0.5"
+          />
+          <span>
+            Include redacted prompt excerpts in safe diagnostics
+            <span className="block text-[11px] text-text-muted">
+              Truncated (≤80 chars) and secret-stripped prompt snippets from the
+              Prompt Library. Off by default.
+            </span>
+          </span>
+        </label>
+
         {lastRefreshedAt && (
           <p className="text-[12px] text-text-muted">last refresh: {lastRefreshedAt}</p>
         )}

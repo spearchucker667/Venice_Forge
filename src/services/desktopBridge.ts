@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /** @fileoverview Electron vs. web mode abstraction — never call window.veniceForge directly from modules. */
 
 // Code Owner: fayeblade (@spearchucker667)
@@ -729,55 +731,55 @@ export const desktopCharacterImage = {
 };
 
 export const desktopChatFolders = {
-  async list(profileId?: string) {
+  async list(profileId?: string): Promise<{ ok: boolean; folders: import("../shared/chatFolderContracts").ChatFolder[]; error?: string }> {
     if (!isElectron()) return { ok: false, folders: [], error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.list(profileId);
   },
-  async create(input: { name: string; profileId?: string }) {
+  async create(input: import("../shared/chatFolderContracts").CreateChatFolderInput & { profileId?: string }): Promise<{ ok: boolean; folder?: import("../shared/chatFolderContracts").ChatFolder; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.create(input);
   },
-  async rename(input: { id: string; name: string; profileId?: string }) {
+  async rename(input: import("../shared/chatFolderContracts").RenameChatFolderInput & { profileId?: string }): Promise<{ ok: boolean; folder?: import("../shared/chatFolderContracts").ChatFolder; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.rename(input);
   },
-  async reorder(input: { folderIds: string[]; profileId?: string }) {
+  async reorder(input: import("../shared/chatFolderContracts").ReorderChatFoldersInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.reorder(input);
   },
-  async moveConversation(input: { conversationId: string; destinationFolderId: string | null; profileId?: string }) {
+  async moveConversation(input: import("../shared/chatFolderContracts").MoveConversationToFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.moveConversation(input);
   },
-  async delete(input: { id: string; deleteChats: boolean; profileId?: string }) {
+  async delete(input: import("../shared/chatFolderContracts").DeleteChatFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.delete(input);
   },
-  async getBackupPreview(input: { folderId: string; profileId?: string }) {
+  async getBackupPreview(input: import("../shared/chatFolderContracts").FolderBackupPreviewInput & { profileId?: string }): Promise<{ ok: boolean; preview?: import("../shared/chatFolderContracts").FolderBackupPreview; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.getBackupPreview(input);
   },
-  async exportBackup(input: { folderId: string; includeMedia: boolean; profileId?: string }) {
-    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+  async exportBackup(input: import("../shared/chatFolderContracts").ExportFolderBackupInput & { profileId?: string }): Promise<import("../shared/chatFolderContracts").ExportFolderBackupResult> {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." } as any;
     return window.veniceForge!.chatFolders.exportBackup(input);
   },
-  async previewImport(input: { filePath: string; profileId?: string }) {
+  async previewImport(input: import("../shared/chatFolderContracts").PreviewFolderImportInput & { profileId?: string }): Promise<{ ok: boolean; preview?: import("../shared/chatFolderContracts").FolderImportPreview; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.previewImport(input);
   },
-  async importBackup(input: { filePath: string; mode: "new" | "merge" | "restore"; targetFolderId?: string; profileId?: string }) {
-    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
+  async importBackup(input: import("../shared/chatFolderContracts").ImportFolderBackupInput & { profileId?: string }): Promise<import("../shared/chatFolderContracts").FolderImportResult> {
+    if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." } as any;
     return window.veniceForge!.chatFolders.importBackup(input);
   },
-  async lock(input: { folderId: string; profileId?: string }) {
+  async lock(input: import("../shared/chatFolderContracts").LockFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.lock(input);
   },
-  async unlock(input: { folderId: string; password?: string; profileId?: string }) {
+  async unlock(input: import("../shared/chatFolderContracts").UnlockFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.unlock(input);
   },
-  async getLockState(input: { folderId: string; profileId?: string }) {
+  async getLockState(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; lockState?: import("../shared/chatFolderContracts").FolderLockState; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Chat folders are only available in desktop mode." };
     return window.veniceForge!.chatFolders.getLockState(input);
   }

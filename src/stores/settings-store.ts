@@ -198,6 +198,15 @@ interface SettingsState {
   setAudioPreferences: (prefs: Partial<AudioPreferences>) => void
   setUiSoundPreferences: (prefs: Partial<AudioPreferences['uiSounds']>) => void
   setChatTtsPreferences: (prefs: Partial<AudioPreferences['chatTts']>) => void
+
+  // Phase 9 Developer-Portal Error Intake: prompt opt-in. Off by default —
+  // we NEVER include raw prompt text in the safe diagnostics snapshot
+  // unless the user explicitly opts in. The toggle is wired into the
+  // Diagnostics drawer; opt-in only changes what appears in
+  // `computeSafeDiagnosticsSnapshot()`'s `stores.prompts.redactedExcerpts`,
+  // never any raw `conversationVault` or chat-store payload.
+  diagnosticsIncludePrompts: boolean
+  setDiagnosticsIncludePrompts: (includePrompts: boolean) => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -299,10 +308,14 @@ export const useSettingsStore = create<SettingsState>()(
           chatTts: { ...s.audioPreferences.chatTts, ...prefs }
         }
       })),
+      // Phase 9: prompt opt-in defaults off — copy diagnostic bundle
+      // strips raw prompt text unless the user ticks the toggle.
+      diagnosticsIncludePrompts: false,
+      setDiagnosticsIncludePrompts: (includePrompts) => set({ diagnosticsIncludePrompts: includePrompts }),
     }),
     {
       name: 'venice-settings',
-      version: 10,
+      version: 11,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -352,6 +365,10 @@ export const useSettingsStore = create<SettingsState>()(
           // never auto-persist the user's first media opt-out; we only
           // perserve an explicit on-state that already lives in storage.
           syncIncludeMedia: state.syncIncludeMedia === true,
+          // v11 (Phase 9): diagnostics prompt opt-in defaults to off. Raw
+          // prompt text is never exported/copied unless explicitly opted in;
+          // we only preserve an explicit on-state that already lives in storage.
+          diagnosticsIncludePrompts: state.diagnosticsIncludePrompts === true,
         } as SettingsState
       },
       merge: (persisted, current) => ({

@@ -6,7 +6,7 @@ const inFlight = new Set<string>()
 
 export async function persistCompletedTaskMedia(task: BackgroundTask): Promise<MediaItem | null> {
   if (task.status !== 'completed' || !task.resultUrl || !task.queueId) return null
-  if (task.type !== 'video' && task.type !== 'music') return null
+  if (task.type !== 'video' && task.type !== 'music' && task.type !== 'image') return null
   const id = `task-result-${task.id}`
   if (inFlight.has(id)) return null
   inFlight.add(id)
@@ -28,8 +28,8 @@ export async function persistCompletedTaskMedia(task: BackgroundTask): Promise<M
       prompt: typeof request.prompt === 'string' ? request.prompt : `${task.type} generation`,
       model: typeof request.model === 'string' ? request.model : String(task.metadata?.model || task.modelId || 'venice'),
       timestamp: task.updatedAt,
-      mediaType: task.type === 'video' ? 'video' : 'audio',
-      operation: task.type === 'video' ? 'video-generate' : 'music-generate',
+      mediaType: task.type === 'video' ? 'video' : task.type === 'music' ? 'audio' : 'image',
+      operation: task.type === 'video' ? 'video-generate' : task.type === 'music' ? 'music-generate' : 'generate',
       parentId: null,
       childrenIds: [],
       tags: [],

@@ -15,6 +15,11 @@ export const toolNameMap = {
   "workspace.move": "workspace_move",
   "workspace.trash": "workspace_trash",
   "media.generateImage": "media_generate_image",
+  // Phase 5.2 — Video and audio tools are gated behind an environment flag and
+  // are not registered in the canonical tool surface until their durable
+  // approval-pipeline implementation lands (planned Phase 5C / 5D). Exposing
+  // them while the executor returns "Not implemented yet" would violate the
+  // "no exposed unimplemented video/audio tools during staged rollout" rule.
 } as const;
 
 export type InternalToolName = keyof typeof toolNameMap;

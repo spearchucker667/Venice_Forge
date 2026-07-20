@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { performGuardedVeniceRequest, type GuardedVeniceResult } from "../../services/guardPipeline";
-import { executeDocumentTool } from "./document-tool-executor";
+import { executeAgentTool } from "./agent-tool-executor";
 import type { AssistantToolCall } from "../../../src/types/venice";
 
 interface SseChunk {
@@ -17,116 +19,85 @@ interface SseChunk {
     };
   }>;
   finish_reason?: string | null;
-  appendedMessages?: Array<{ role: string; content?: string; tool_call_id?: string; name?: string; tool_calls?: Array<{ id: string; type: string; function: { name: string; arguments: string } }> }>;
+  appendedMessages?: Array<{ role: string; content?: string; tool_call_id?: string; name?: string; tool_calls?: Array<{ id: string; type: string; function: { name: string; arguments: string } }>; metadata?: any }>;
 }
 
 export async function runChatAgentLoop(
-  request: { profileId?: string; agentSessionId?: string; body?: unknown },
+  request: { profileId?: string; agentSessionId?: string; body?: unknown; signal?: AbortSignal },
   onDelta: (chunk: SseChunk) => void
 ): Promise<GuardedVeniceResult> {
-  const maxIterations = 5;
-  let currentRequest = structuredClone(request);
   const profileId = request.profileId ?? "";
   const agentSessionId = request.agentSessionId;
 
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
-    const aggregatedToolCalls = new Map<number, AssistantToolCall>();
-    let finalFinishReason: string | null = null;
+  const aggregatedToolCalls = new Map<number, AssistantToolCall>();
+  let finalFinishReason: string | null = null;
 
-    const result = await performGuardedVeniceRequest(currentRequest, {
-      onDelta: (chunk: SseChunk) => {
-        if (chunk.tool_calls) {
-          for (const tc of chunk.tool_calls) {
-            if (!aggregatedToolCalls.has(tc.index)) {
-              aggregatedToolCalls.set(tc.index, {
-                id: tc.id || "",
-                type: "function",
-                function: { name: tc.function?.name || "", arguments: "" },
-              });
-            }
-            const existing = aggregatedToolCalls.get(tc.index)!;
-            if (tc.function?.arguments) {
-              existing.function.arguments += tc.function.arguments;
-            }
+  const result = await performGuardedVeniceRequest(request, {
+    onDelta: (chunk: SseChunk) => {
+      if (chunk.tool_calls) {
+        for (const tc of chunk.tool_calls) {
+          if (!aggregatedToolCalls.has(tc.index)) {
+            aggregatedToolCalls.set(tc.index, {
+              id: tc.id || "",
+              type: "function",
+              function: { name: tc.function?.name || "", arguments: "" },
+            });
+          }
+          const existing = aggregatedToolCalls.get(tc.index)!;
+          if (tc.function?.arguments) {
+            existing.function.arguments += tc.function.arguments;
           }
         }
-        if (chunk.finish_reason) {
-          finalFinishReason = chunk.finish_reason;
-        }
-        if (chunk.tool_calls) {
-          // If we receive chunk.tool_calls, we must map it from the incoming API shape
-          // to AssistantToolCall shape if it isn't already, or just forward it.
-          // Wait, the client expects AssistantToolCall[] on the delta.
-          const formattedToolCalls = chunk.tool_calls.map(tc => ({
-             id: tc.id || "",
-             type: "function" as const,
-             function: {
-               name: tc.function?.name || "",
-               arguments: tc.function?.arguments || ""
-             }
-          }));
-          (chunk as { tool_calls: unknown }).tool_calls = formattedToolCalls;
-        }
-
-        // Always forward delta to renderer so UI can display thought/content
-        onDelta(chunk);
-      },
-    });
-
-    if (result.kind === "blocked") return result;
-
-    if (aggregatedToolCalls.size > 0 && finalFinishReason === "tool_calls") {
-      const toolCalls = Array.from(aggregatedToolCalls.values());
-      const messages = (currentRequest.body as { messages: unknown[] }).messages;
-      
-      // 1. Add assistant message with tool calls
-      messages.push({
-        role: "assistant",
-        content: "",
-        tool_calls: toolCalls,
-      });
-
-      const appendedMessages = [];
-
-      // 2. Execute tools and add tool messages
-      for (const call of toolCalls) {
-        const toolResult = await executeDocumentTool(profileId, call, agentSessionId);
-        const toolMsg = {
-          role: "tool" as const,
-          tool_call_id: call.id,
-          name: call.function.name,
-          content: toolResult.ok ? JSON.stringify(toolResult.data) : JSON.stringify(toolResult.error),
-        };
-        messages.push(toolMsg);
-        appendedMessages.push(toolMsg);
       }
+      if (chunk.finish_reason) {
+        finalFinishReason = chunk.finish_reason;
+      }
+      if (chunk.tool_calls) {
+        const formattedToolCalls = chunk.tool_calls.map(tc => ({
+           id: tc.id || "",
+           type: "function" as const,
+           function: {
+             name: tc.function?.name || "",
+             arguments: tc.function?.arguments || ""
+           }
+        }));
+        (chunk as { tool_calls: unknown }).tool_calls = formattedToolCalls;
+      }
+      onDelta(chunk);
+    },
+  });
 
-      // Add the next assistant message for the loop to continue
-      const nextAssistantMsg = {
-        role: "assistant" as const,
-        content: "",
+  if (result.kind === "blocked") return result;
+
+  if (aggregatedToolCalls.size > 0 && finalFinishReason === "tool_calls") {
+    const toolCalls = Array.from(aggregatedToolCalls.values());
+    const appendedMessages = [];
+
+    for (const call of toolCalls) {
+      if (request.signal?.aborted) break;
+      const toolResult = await executeAgentTool(profileId, call, agentSessionId);
+      const rawResult = toolResult.ok ? JSON.stringify(toolResult.data) : JSON.stringify(toolResult.error);
+      const toolMsg = {
+        role: "tool" as const,
+        tool_call_id: call.id,
+        name: call.function.name,
+        content: rawResult.length > 50000 ? rawResult.slice(0, 50000) + "...[truncated]" : rawResult,
+        ...(toolResult.ok && toolResult.data && typeof toolResult.data === 'object' && (toolResult.data as any).mediaId ? {
+          metadata: {
+            generatedMedia: {
+              mediaId: (toolResult.data as any).mediaId,
+              mimeType: (toolResult.data as any).mimeType,
+            }
+          }
+        } : {})
       };
-      appendedMessages.push(nextAssistantMsg);
-
-      onDelta({ appendedMessages });
-
-      // Update currentRequest with the new messages for the next iteration
-      currentRequest = {
-        ...currentRequest,
-        body: {
-          ...(currentRequest.body as Record<string, unknown>),
-          messages: [...messages, nextAssistantMsg],
-        },
-      };
-
-      // Continue loop with new messages
-      continue;
+      appendedMessages.push(toolMsg);
     }
 
-    // No tool calls or max iterations reached
-    return result;
+    if (appendedMessages.length > 0) {
+      onDelta({ appendedMessages });
+    }
   }
 
-  // Max iterations reached, return whatever we have
-  return await performGuardedVeniceRequest(currentRequest, { onDelta });
+  return result;
 }

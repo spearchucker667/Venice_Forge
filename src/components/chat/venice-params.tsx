@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { useState, useEffect } from 'react'
 import { useShallow } from 'zustand/shallow'
 import { useChatStore } from '../../stores/chat-store'
@@ -5,6 +7,7 @@ import { usePromptLibraryStore } from '../../stores/prompt-library-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { uiSoundController } from '../../services/uiSoundController'
 import { cn } from '../../lib/utils'
+import { countPromptCharacters, getUserSystemPromptLimit, validateUserSystemPrompt, USER_SYSTEM_PROMPT_LIMITS } from '../../shared/promptLimits'
 
 export function VeniceParams() {
   const allPrompts = usePromptLibraryStore(s => s.prompts)
@@ -172,11 +175,21 @@ export function VeniceParams() {
             </div>
             <textarea
               value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (countPromptCharacters(val) <= getUserSystemPromptLimit()) {
+                  setSystemPrompt(val);
+                }
+              }}
               placeholder="Optional. Leave empty to avoid adding an app-authored system message."
               rows={2}
               className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-[15px] text-text-secondary outline-none resize-none placeholder:text-text-muted/30 focus:border-border-strong transition-colors"
             />
+            {countPromptCharacters(systemPrompt) >= USER_SYSTEM_PROMPT_LIMITS.warningCharacters && (
+              <div className="text-[12px] text-amber-500 mt-1">
+                Approaching system prompt size limit ({countPromptCharacters(systemPrompt)}/{getUserSystemPromptLimit()}).
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-3 gap-3">
             <ParamSlider label="Temperature" value={temperature} onChange={setTemperature} min={0} max={2} step={0.1} />

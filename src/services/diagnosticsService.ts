@@ -22,9 +22,14 @@ import type {
   AppStatusSnapshot,
   AppDiagnosticCheck,
   SafeDiagnosticsSnapshot,
+  RedactedPromptExcerpt,
   StatusSeverity,
 } from "../types/status";
-import { SAFE_DIAGNOSTICS_SNAPSHOT_VERSION } from "../types/status";
+import {
+  MAX_PROMPT_EXCERPTS,
+  PROMPT_EXCERPT_CHARS,
+  SAFE_DIAGNOSTICS_SNAPSHOT_VERSION,
+} from "../types/status";
 import { isElectron } from "./desktopBridge";
 import { useAuthStore, selectHasVeniceKey } from "../stores/auth-store";
 import { useSettingsStore } from "../stores/settings-store";
@@ -42,6 +47,7 @@ import { useResearchStore } from "../stores/research-store";
 import { useStoragePrivacyStore } from "../stores/storage-privacy-store";
 import { useModelCatalogRuntimeStore } from "../stores/model-catalog-runtime-store";
 import { resolveTab } from "../config/tabs";
+import { sanitizeErrorText } from "../shared/redaction";
 import {
   buildSafeApiKeyMetadata,
   type SafeApiKeyStorage,
@@ -382,6 +388,78 @@ export function computeAppStatusSnapshot(): AppStatusSnapshot {
   return { api, apiKey, model, storage, project, safety, provider, desktop, diagnostics };
 }
 
+/* ------------------------------------------------------------------ *
+ * Phase 9 — Developer-Portal Error Intake:
+ * Redacted prompt excerpts.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Coarse djb2 hash of a string. Used to identify prompt-library
+ * records in the safe diagnostics snapshot without revealing their
+ * content. This is NOT a cryptographic hash; it is a deterministic
+ * 32-bit identifier suitable for audit correlation only.
+ */
+function djb2(input: string): string {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = ((hash << 5) + hash + input.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
+/**
+ * Collapse whitespace + truncate, then run `sanitizeErrorText` to
+ * strip secrets + absolute paths. The result is safe to surface in
+ * any JSON-serialisable diagnostics snapshot: it never contains
+ * `sk-…`, `vn-…`, `Bearer …`, or `/Users/...` style paths.
+ */
+function buildRedactedPromptExcerpt(content: string): string {
+  const collapsed = content.replace(/\s+/g, " ").trim();
+  const safe = sanitizeErrorText(collapsed);
+  if (safe.length <= PROMPT_EXCERPT_CHARS) return safe;
+  return `${safe.slice(0, PROMPT_EXCERPT_CHARS)}…`;
+}
+
+/**
+ * Build a redacted excerpt list from the prompt library. Result is
+ * bounded to `MAX_PROMPT_EXCERPTS` most-recent items and only
+ * includes the canonical current version's `content` (never any
+ * `negativeContent`, attachments, or metadata).
+ *
+ * The function NEVER runs unless `useSettingsStore.getState()
+ * .diagnosticsIncludePrompts === true` — call sites must gate on
+ * that flag.
+ */
+export function collectPromptRedactedExcerpts(
+  promptItems: ReadonlyArray<{
+    id: string;
+    createdAt: string;
+    currentVersionId: string;
+    versions: ReadonlyArray<{
+      id: string;
+      content: string;
+      createdAt: string;
+    }>;
+  }>,
+): RedactedPromptExcerpt[] {
+  const out: RedactedPromptExcerpt[] = [];
+  for (const item of promptItems) {
+    if (out.length >= MAX_PROMPT_EXCERPTS) break;
+    const current = item.versions.find((v) => v.id === item.currentVersionId)
+      || item.versions[item.versions.length - 1];
+    if (!current || typeof current.content !== "string") continue;
+    const createdAtMs = Date.parse(item.createdAt);
+    out.push({
+      id: item.id,
+      hash: djb2(current.content),
+      redactedExcerpt: buildRedactedPromptExcerpt(current.content),
+      source: "prompt-library",
+      createdAt: Number.isFinite(createdAtMs) ? createdAtMs : 0,
+    });
+  }
+  return out;
+}
+
 /** Computes the safe, JSON-serialisable diagnostics snapshot. */
 export function computeSafeDiagnosticsSnapshot(
   statuses: AppStatusSnapshot = computeAppStatusSnapshot(),
@@ -448,7 +526,7 @@ export function computeSafeDiagnosticsSnapshot(
       research: {
         count: useResearchStore.getState().sessions.length,
       },
-      prompts: { count: usePromptLibraryStore.getState().prompts.length },
+      prompts: buildPromptLibrarySnapshotEntry(settings.diagnosticsIncludePrompts),
       scenes: { count: useSceneComposerStore.getState().scenes.length },
       workflows: { count: useWorkflowTemplateStore.getState().workflows.length },
       rp: {
@@ -459,12 +537,38 @@ export function computeSafeDiagnosticsSnapshot(
           useScenarioStore.getState().scenarios.length,
       },
       issuesCount: useStoragePrivacyStore.getState().inventory?.issues.length || 0,
-      privacyExclusions: ["API Keys", "Raw Prompt Content", "Conversation History", "Media Blobs"],
+      privacyExclusions: [
+        "API Keys",
+        settings.diagnosticsIncludePrompts
+          ? "Raw Prompt Content (opt-in)"
+          : "Raw Prompt Content",
+        "Conversation History",
+        "Media Blobs",
+      ],
     },
     checks,
     // audit counters are exposed via the diagnostics statuses; we keep
     // them out of the JSON-serialisable snapshot so the format is
     // stable. Callers that want the audit can read getAuditSnapshot().
+  };
+}
+
+/**
+ * Builds the `stores.prompts` entry. When the user has opted in,
+ * includes bounded redacted excerpts (`MAX_PROMPT_EXCERPTS` items,
+ * each truncated to `PROMPT_EXCERPT_CHARS`). When the user has not
+ * opted in, the entry is just the canonical count with no excerpt
+ * list, so the snapshot can never leak prompt text by accident.
+ */
+function buildPromptLibrarySnapshotEntry(
+  includePrompts: boolean,
+): NonNullable<SafeDiagnosticsSnapshot["stores"]["prompts"]> {
+  const promptItems = usePromptLibraryStore.getState().prompts;
+  const base = { count: promptItems.length };
+  if (!includePrompts) return base;
+  return {
+    ...base,
+    redactedExcerpts: collectPromptRedactedExcerpts(promptItems),
   };
 }
 

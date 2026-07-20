@@ -36,6 +36,7 @@ import { useProjectStore } from "../../stores/project-store";
 import { useMediaStore } from "../../stores/media-store";
 import { useChatStore } from "../../stores/chat-store";
 import { useToastStore } from "../../stores/toast-store";
+import { usePromptLibraryStore } from "../../stores/prompt-library-store";
 import { _resetAuditCounters_TEST_ONLY } from "../../shared/safety";
 
 function reset() {
@@ -56,6 +57,7 @@ function reset() {
     selectedModels: {},
     localFamilySafeModeEnabled: true,
     veniceApiSafeMode: true,
+    diagnosticsIncludePrompts: false,
   } as never);
   useProjectStore.setState({ projects: [], loaded: true, loading: false, lastError: null });
   useMediaStore.setState({
@@ -82,6 +84,13 @@ function reset() {
   useStatusStore.getState().recompute();
   useStatusStore.setState({ drawerOpen: false, focusedSectionId: null, lastRefreshedAt: null, isRefreshing: false });
   useToastStore.setState({ toasts: [] });
+  usePromptLibraryStore.setState({
+    prompts: [],
+    activePromptId: null,
+    hydrated: true,
+    loading: false,
+    loadError: null,
+  });
 }
 
 beforeEach(() => {
@@ -243,5 +252,118 @@ describe("DiagnosticsDrawer (VERIFY-045)", () => {
     } finally {
       HTMLElement.prototype.scrollIntoView = originalProto;
     }
+  });
+
+  /**
+   * Phase 9 — Developer-Portal Error Intake:
+   * The diagnostics drawer exposes a prompt opt-in that drives the
+   * safe snapshot excerpt redaction policy.
+   */
+  it("renders the prompt opt-in checkbox unchecked by default", () => {
+    useStatusStore.setState({ drawerOpen: true });
+    useStatusStore.getState().recompute();
+    render(<DiagnosticsDrawer />);
+    const label = screen.getByTestId("diagnostics-prompt-opt-in");
+    const checkbox = label.querySelector("input") as HTMLInputElement;
+    expect(checkbox).toBeTruthy();
+    expect(checkbox.type).toBe("checkbox");
+    expect(checkbox.checked).toBe(false);
+    expect(checkbox.getAttribute("aria-label")).toMatch(/prompt/i);
+  });
+
+  it("clicking the prompt opt-in updates the settings store", () => {
+    useStatusStore.setState({ drawerOpen: true });
+    useStatusStore.getState().recompute();
+    render(<DiagnosticsDrawer />);
+    const label = screen.getByTestId("diagnostics-prompt-opt-in");
+    const checkbox = label.querySelector("input") as HTMLInputElement;
+    fireEvent.click(checkbox);
+    expect(useSettingsStore.getState().diagnosticsIncludePrompts).toBe(true);
+  });
+
+  it("Copy Safe Diagnostics omits prompt excerpts when opt-in is off", async () => {
+    usePromptLibraryStore.setState({
+      prompts: [
+        {
+          id: "p1",
+          kind: "chat",
+          scope: "global",
+          title: "p1",
+          currentVersionId: "p1-v1",
+          versions: [
+            {
+              id: "p1-v1",
+              promptId: "p1",
+              version: 1,
+              title: "p1",
+              content: "a normal prompt",
+              createdAt: "2026-07-20T00:00:00.000Z",
+              createdBy: "user",
+            },
+          ],
+          tags: [],
+          favorite: false,
+          createdAt: "2026-07-20T00:00:00.000Z",
+          updatedAt: "2026-07-20T00:00:00.000Z",
+        },
+      ],
+    } as never);
+    useStatusStore.setState({ drawerOpen: true });
+    useStatusStore.getState().recompute();
+    let captured: string | null = null;
+    (document as unknown as { execCommand: (cmd: string) => boolean }).execCommand = () => true;
+    vi.spyOn(await import("../../stores/media-send-to"), "copyText").mockImplementation(async (text: string) => {
+      captured = text;
+      return true;
+    });
+    render(<DiagnosticsDrawer />);
+    fireEvent.click(screen.getByTestId("diagnostics-copy-safe"));
+    await waitFor(() => expect(captured).not.toBeNull());
+    // No redactedExcerpts key in the JSON snapshot.
+    expect(captured!).not.toMatch(/redactedExcerpts/);
+  });
+
+  it("Copy Safe Diagnostics includes prompt excerpts when opt-in is on", async () => {
+    usePromptLibraryStore.setState({
+      prompts: [
+        {
+          id: "p1",
+          kind: "chat",
+          scope: "global",
+          title: "p1",
+          currentVersionId: "p1-v1",
+          versions: [
+            {
+              id: "p1-v1",
+              promptId: "p1",
+              version: 1,
+              title: "p1",
+              content: "a normal prompt body",
+              createdAt: "2026-07-20T00:00:00.000Z",
+              createdBy: "user",
+            },
+          ],
+          tags: [],
+          favorite: false,
+          createdAt: "2026-07-20T00:00:00.000Z",
+          updatedAt: "2026-07-20T00:00:00.000Z",
+        },
+      ],
+    } as never);
+    useSettingsStore.setState({ diagnosticsIncludePrompts: true } as never);
+    useStatusStore.setState({ drawerOpen: true });
+    useStatusStore.getState().recompute();
+    let captured: string | null = null;
+    (document as unknown as { execCommand: (cmd: string) => boolean }).execCommand = () => true;
+    vi.spyOn(await import("../../stores/media-send-to"), "copyText").mockImplementation(async (text: string) => {
+      captured = text;
+      return true;
+    });
+    render(<DiagnosticsDrawer />);
+    fireEvent.click(screen.getByTestId("diagnostics-copy-safe"));
+    await waitFor(() => expect(captured).not.toBeNull());
+    // Excerpts are present and the prompt id is referenced.
+    expect(captured!).toMatch(/redactedExcerpts/);
+    expect(captured!).toMatch(/"id":\s*"p1"/);
   });
 });

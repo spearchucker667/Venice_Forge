@@ -73,6 +73,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [design/REPOSITORY_TREE.md](design/REPOSITORY_TREE.md) — Detailed codebase design layout.
 - [backup-and-sync.md](backup-and-sync.md) — Manual encrypted backups and encrypted sync-folder operation.
 - [FILE_TREE.md](FILE_TREE.md) — Practical file tree of the actual directories.
+- [`../src/shared/chatMediaReferenceContracts.ts`](../src/shared/chatMediaReferenceContracts.ts) — Canonical Phase 6 parity contract for `ChatMediaReference`, mirrored between renderer and main; same id regex, unions, and runtime predicates.
+- [`../src/shared/promptLimits.ts`](../src/shared/promptLimits.ts) — Phase 4 user-system-prompt Unicode code-point budgets and dynamic-limit helper.
 - [reference/Venice_api_LLM_info.md](reference/Venice_api_LLM_info.md) — Venice-provided LLM integration reference.
 - [reference/VENICE_API_SYSTEM_PROMPT.md](reference/VENICE_API_SYSTEM_PROMPT.md) — Core system prompt for AI agents integrating with the Venice API.
 - [reference/seedance-2-0-api-guide.md](reference/seedance-2-0-api-guide.md) — Seedance video API reference.
@@ -130,6 +132,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md](reports/MEDIA_CHARACTER_REMEDIATION_REPORT.md) — Historical 2026-07-12/13 media/character implementation evidence.
 - [reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md](reports/VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) — Historical 2026-07-15 video, Character Chats, and UI evidence.
 - [reports/VIDEO_PIPELINE_AND_RESEARCH_BROWSER_DEACTIVATION_2026-07-18.md](reports/VIDEO_PIPELINE_AND_RESEARCH_BROWSER_DEACTIVATION_2026-07-18.md) — Current implementation and validation report for streamed video durability and Research Browser deactivation.
+- [reports/VENICE_FORGE_CHAT_FOLDERS_MEDIA_DOCUMENTS_REPORT_2026-07-19.md](reports/VENICE_FORGE_CHAT_FOLDERS_MEDIA_DOCUMENTS_REPORT_2026-07-19.md) — Closure report for the 2026-07-19 chat folders / agent media / documents / video 9-phase work order (Phase 0+1+2+3+4+5+6+7+8+9 + vo-validate).
 - [reports/historical/final-massive-bug-hunt-with-proof.md](reports/historical/final-massive-bug-hunt-with-proof.md) — Historical audit log of closed validation checks from the v2.1.0 release boundary.
 
 ---
