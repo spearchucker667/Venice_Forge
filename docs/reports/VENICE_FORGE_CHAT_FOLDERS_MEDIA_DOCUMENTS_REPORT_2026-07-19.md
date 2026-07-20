@@ -25,7 +25,7 @@
 ## 2. Baseline Findings
 
 A baseline audit (`vo-baseline-audit`, captured in
-`/Users/super_user/.copilot/session-state/7068ce4a-b46d-4588-af53-eaa7e1e21cbf/files/phase-baseline-audit.md`)
+`<local-copilot-session-state-redacted>/files/phase-baseline-audit.md`)
 compared every work-order Phase 0 row against the live tree. Findings:
 
 - **`tests/theme/meshSurfaceInvariant.test.ts` PRE-EXISTING failure** — `DocumentAgentView.tsx`
@@ -474,8 +474,8 @@ compared every work-order Phase 0 row against the live tree. Findings:
 | `src/stores/chat-media-reference.test.ts` | Phase 6 acceptance suite (17 cases) |
 | `src/stores/chat-folder-store.test.ts` | Phase 2 + Phase 1.6 renderer-wiring regression suite (15 cases) |
 | `electron/services/chatFolderBackupService.test.ts` | Phase 2.6 8-case encryption rewrite regression suite |
-| `/Users/super_user/.copilot/session-state/.../files/phase-6-plan.md` | Phase 6 planning artifact (session-only, not tracked) |
-| `/Users/super_user/.copilot/session-state/.../files/phase-baseline-audit.md` | Baseline audit notes per phase (session-only, not tracked) |
+| `<local-copilot-session-state-redacted>/files/phase-6-plan.md` | Phase 6 planning artifact (session-only, not tracked) |
+| `<local-copilot-session-state-redacted>/files/phase-baseline-audit.md` | Baseline audit notes per phase (session-only, not tracked) |
 | `docs/reports/VENICE_FORGE_CHAT_FOLDERS_MEDIA_DOCUMENTS_REPORT_2026-07-19.md` | This report |
 
 ### 15.2 Modified (12 files)
@@ -730,7 +730,7 @@ deferred work item for a future on-device agent run.
 - Canonical session handoff: `docs/summary_of_work.md`
 - Documentation index: `docs/DOCS_INDEX.md`
 - Recent baseline / checkpoint files:
-  `/Users/super_user/.copilot/session-state/7068ce4a-b46d-4588-af53-eaa7e1e21cbf/{checkpoints,files}/`
+  `<local-copilot-session-state-redacted>/{checkpoints,files}/`
 - AGENTS.md mandate: *Mandatory Session Handoff* (§"Mandatory Session Handoff")
   — equivalent instructions are also present in
   `.github/copilot-instructions.md`, `CLAUDE.md`, `GEMINI.md`,

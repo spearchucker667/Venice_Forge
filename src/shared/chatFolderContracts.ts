@@ -135,8 +135,27 @@ export interface ImportFolderBackupInput {
   targetFolderId?: string; // required if mode is merge
 }
 
+export interface FolderImportConversationResult {
+  /** Source conversation id from the encrypted manifest. */
+  sourceId: string;
+  /** Final on-disk conversation id (may be remapped on merge conflicts). */
+  importedId: string;
+  /** True when the saveConversation call succeeded. */
+  ok: boolean;
+  /** Stable error code when `ok` is false; never raw message text. */
+  error?: string;
+}
+
 export interface FolderImportResult {
   ok: boolean;
   error?: string;
   folderId?: string;
+  /** Per-conversation import results — empty array if no conversations were carried. */
+  imported?: FolderImportConversationResult[];
+  /** Number of source conversations that conflicted with an existing local one. */
+  conflictCount?: number;
+  /** Number of imported conversations whose save failed and were rolled back. */
+  rollbackCount?: number;
+  /** True when a rollback occurred; the folder itself is preserved. */
+  rolledBack?: boolean;
 }

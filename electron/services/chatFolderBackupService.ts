@@ -5,8 +5,8 @@ import fs from "fs/promises";
 import path from "path";
 import { app } from "electron";
 import _sodium from "libsodium-wrappers-sumo";
-import { readChatFolder } from "./chatFolderStorage";
-import { listConversations } from "./chatStorage";
+import { readChatFolder, saveChatFolder } from "./chatFolderStorage";
+import { listConversations, saveConversation, deleteConversation } from "./chatStorage";
 import { logError, logInfo } from "./logger";
 import type {
   FolderBackupPreviewInput,
@@ -16,10 +16,12 @@ import type {
   PreviewFolderImportInput,
   FolderImportPreview,
   ImportFolderBackupInput,
+  FolderImportConversationResult,
   FolderImportResult,
   ChatFolderKind,
   ChatFolder,
 } from "../../src/shared/chatFolderContracts";
+import type { Conversation } from "../../src/types/conversation";
 
 // _sodium.ready must resolve before reading the *_INTERACTIVE constants at
 // module load; otherwise the WASM-backed properties come back null and the
@@ -437,14 +439,59 @@ export async function importBackup(input: ImportFolderBackupInput, profileId: st
         updatedAt: new Date().toISOString(),
         lockState: folderLockAfterImport(manifest.folder.lockState),
       };
-      await fs.writeFile(
-        path.join(app.getPath("userData"), "chat-folders", profileId === "default" ? "" : "profiles", profileId, `${targetFolderId}.json`),
-        JSON.stringify(newFolder, null, 2),
-        "utf-8",
-      );
+      // P0-02: use the canonical atomic save path instead of hand-built fs writes
+      // so the default profile lands in <userData>/chat-folders/<id>.json and the
+      // non-default profile lands in <userData>/chat-folders/profiles/<profileId>/<id>.json.
+      const folderSave = await saveChatFolder(newFolder, profileId);
+      if (!folderSave.ok) {
+        return { ok: false, error: folderSave.error ?? "Failed to save imported folder" };
+      }
     }
 
-    return { ok: true, folderId: targetFolderId };
+    // P0-01: actually import every conversation carried in the encrypted manifest.
+    // Each save is staged; on the first per-conversation failure we roll back the
+    // already-imported siblings so the partial import cannot pass as success.
+    const imported: FolderImportConversationResult[] = [];
+    const sourceConversations = Array.isArray(manifest.conversations) ? manifest.conversations : [];
+    const existingIds = input.mode === "merge" ? await collectExistingConversationIds(profileId) : new Set<string>();
+    const createdIdsForRollback: string[] = [];
+
+    for (const raw of sourceConversations) {
+      const prepared = prepareImportedConversation(raw, targetFolderId, profileId, existingIds);
+      if (!prepared.ok) {
+        await rollbackCreatedConversations(createdIdsForRollback, profileId);
+        return {
+          ok: false,
+          error: prepared.error ?? "Failed to import a conversation from the backup",
+          folderId: targetFolderId,
+          imported,
+          rollbackCount: createdIdsForRollback.length,
+          rolledBack: createdIdsForRollback.length > 0,
+        };
+      }
+      const saveRes = await saveConversation(prepared.conversation, profileId);
+      if (!saveRes.ok) {
+        await rollbackCreatedConversations(createdIdsForRollback, profileId);
+        return {
+          ok: false,
+          error: saveRes.error ?? "Failed to save imported conversation",
+          folderId: targetFolderId,
+          imported,
+          rollbackCount: createdIdsForRollback.length,
+          rolledBack: true,
+        };
+      }
+      if (prepared.remappedFrom) existingIds.add(prepared.conversation.id);
+      createdIdsForRollback.push(prepared.conversation.id);
+      imported.push(prepared.resultEntry);
+    }
+
+    return {
+      ok: true,
+      folderId: targetFolderId,
+      imported,
+      conflictCount: imported.filter((entry) => entry.sourceId !== entry.importedId).length,
+    };
   } catch (err) {
     // Avoid leaking per-byte crypto error detail — surface a stable
     // user-facing message; the canonical "Wrong passphrase or corrupt backup
@@ -466,4 +513,135 @@ function folderLockAfterImport(lockState: ChatFolder["lockState"] | undefined): 
   // create an unreachable lock. Reset to 'unlocked' on import; the user can
   // re-lock with a fresh key inside the target profile.
   return lockState === "locked" ? "unlocked" : (lockState ?? "unlocked");
+}
+
+/**
+ * Collects the set of conversation ids that already exist in the target profile.
+ * Merge-mode imports use this set to detect id collisions and remap incoming
+ * conversations so both branches are preserved instead of one silently losing.
+ */
+async function collectExistingConversationIds(profileId: string): Promise<Set<string>> {
+  try {
+    const list = await listConversations(undefined, profileId);
+    const arr = Array.isArray(list)
+      ? list
+      : Array.isArray((list as { conversations?: Conversation[] }).conversations)
+      ? (list as { conversations: Conversation[] }).conversations
+      : [];
+    return new Set(arr.map((c) => c?.id).filter((id): id is string => typeof id === "string"));
+  } catch (err) {
+    logError("chat-folder-backup.collectExistingConversationIds failed", err);
+    return new Set();
+  }
+}
+
+/**
+ * Result of preparing a conversation from an encrypted backup for write.
+ * Either we hand back a fully-formed Conversation ready for saveConversation,
+ * or we expose a stable error code for the import to surface.
+ */
+type PreparedImport =
+  | {
+      ok: true;
+      conversation: Conversation;
+      resultEntry: FolderImportConversationResult;
+      remappedFrom?: string;
+    }
+  | {
+      ok: false;
+      error: string;
+      resultEntry: FolderImportConversationResult;
+    };
+
+const REQUIRED_IMPORT_STRING_FIELDS: Array<keyof Conversation> = ["id", "title", "model"];
+const REQUIRED_IMPORT_NUMBER_FIELDS: Array<keyof Conversation> = ["createdAt", "updatedAt"];
+
+/**
+ * Validates a backup conversation, attaches it to the freshly imported folder,
+ * and detects/remaps merge-mode id collisions. We do not mutate the source
+ * object — we copy before stamping so the manifest surviving a rollback still
+ * is the canonical reference of what the user is restoring.
+ */
+function prepareImportedConversation(
+  raw: unknown,
+  targetFolderId: string,
+  profileId: string,
+  existingIds: Set<string>,
+): PreparedImport {
+  if (!raw || typeof raw !== "object") {
+    return {
+      ok: false,
+      error: "Malformed conversation record",
+      resultEntry: { sourceId: "", importedId: "", ok: false, error: "malformed" },
+    };
+  }
+  const src = raw as Partial<Conversation> & { id?: string };
+  const sourceId = typeof src.id === "string" ? src.id : "";
+  for (const f of REQUIRED_IMPORT_STRING_FIELDS) {
+    const v = src[f];
+    if (typeof v !== "string" || v.length === 0) {
+      return {
+        ok: false,
+        error: `Missing or invalid field: ${String(f)}`,
+        resultEntry: { sourceId, importedId: "", ok: false, error: "invalid-field" },
+      };
+    }
+  }
+  for (const f of REQUIRED_IMPORT_NUMBER_FIELDS) {
+    const v = src[f];
+    if (typeof v !== "number" || !Number.isFinite(v)) {
+      return {
+        ok: false,
+        error: `Missing or invalid field: ${String(f)}`,
+        resultEntry: { sourceId, importedId: "", ok: false, error: "invalid-field" },
+      };
+    }
+  }
+  if (!Array.isArray(src.messages)) {
+    return {
+      ok: false,
+      error: "Missing or invalid field: messages",
+      resultEntry: { sourceId, importedId: "", ok: false, error: "invalid-field" },
+    };
+  }
+
+  const now = Date.now();
+  let finalId = sourceId;
+  let remappedFrom: string | undefined;
+  if (existingIds.has(finalId)) {
+    finalId = crypto.randomUUID();
+    remappedFrom = sourceId;
+  }
+
+  const stamped: Conversation = {
+    ...(src as Conversation),
+    id: finalId,
+    folderId: targetFolderId,
+    profileId: profileId === "default" ? undefined : profileId,
+    createdAt: src.createdAt ?? now,
+    updatedAt: src.updatedAt ?? now,
+  };
+
+  return {
+    ok: true,
+    conversation: stamped,
+    remappedFrom,
+    resultEntry: { sourceId, importedId: finalId, ok: true },
+  };
+}
+
+/**
+ * Deletes a list of already-imported conversations on import failure so a
+ * partial pass can never masquerade as success. Failure of the rollback itself
+ * is logged but does not mask the original import error — the caller still
+ * receives the upstream error code.
+ */
+async function rollbackCreatedConversations(ids: string[], profileId: string): Promise<void> {
+  for (const id of ids) {
+    try {
+      await deleteConversation(id, profileId);
+    } catch (err) {
+      logError("chat-folder-backup.rollbackCreatedConversations failed", err);
+    }
+  }
 }

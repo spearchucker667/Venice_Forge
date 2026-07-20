@@ -6,6 +6,7 @@ import { internalToolNameForProvider } from "../../../src/agent/registry/tool-na
 import type { DocumentBlock, DocumentEditOperation } from "../../../src/agent/contracts/documents";
 import type { AssistantToolCall } from "../../../src/types/venice";
 import { sanitizeErrorText } from "../../../src/shared/redaction";
+import { performGuardedVeniceRequest } from "../../services/guardPipeline";
 
 export async function executeAgentTool(profileId: string, toolCall: AssistantToolCall, agentSessionId?: string): Promise<ToolResult> {
   const services = getAgentServices();
@@ -26,7 +27,7 @@ export async function executeAgentTool(profileId: string, toolCall: AssistantToo
 
   try {
     if (internalName.startsWith("media.")) {
-      return await executeMediaTool(profileId, internalName, toolCall.id, args);
+      return await executeMediaTool(profileId, internalName, toolCall.id, args, agentSessionId);
     }
     switch (internalName) {
       case "document.get": {
@@ -189,74 +190,151 @@ export async function executeAgentTool(profileId: string, toolCall: AssistantToo
   }
 }
 
-import { getApiKey } from "../../services/secureStore";
-import { app } from "electron";
-import path from "node:path";
-import fs from "node:fs/promises";
-import crypto from "node:crypto";
+// Phase 5.1 — `media.generateImage` is the only currently enabled media
+// tool. It routes through the canonical guarded Venice request pipeline
+// (Local Family Safe Mode -> trusted runtime composition -> performVeniceRequest
+// -> response screening) instead of raw `fetch`, so every prompt payload is
+// preflighted and every response is audited. Other media.* tools are
+// not yet wired and surface CAPABILITY_DENIED rather than silently
+// miscalling /image/generate.
 
-export async function executeMediaTool(profileId: string, internalName: string, requestId: string, args: Record<string, unknown>): Promise<ToolResult> {
+const ENABLE_RESOLUTION_RE = /^[0-9]{1,5}x[0-9]{1,5}$/;
+const MODEL_ID_RE = /^[a-zA-Z0-9_.:-]{1,128}$/;
+const PROMPT_MAX_CHARS = 4000;
+
+function detectImageMimeTypeFromBase64(b64: string): "image/png" | "image/jpeg" | "image/webp" | null {
+  // The base64 prefixes below fingerprint every common format we accept.
+  // persistGeneratedMedia's allowlist is the second line of defence; this
+  // first-line sniff rejects unknown / empty payloads before we ever
+  // attempt base64-to-byte conversion.
+  if (b64.startsWith("iVBORw0KGgo")) return "image/png";
+  if (b64.startsWith("/9j/")) return "image/jpeg";
+  if (b64.startsWith("UklGR")) return "image/webp";
+  return null;
+}
+
+export async function executeMediaTool(
+  profileId: string,
+  internalName: string,
+  requestId: string,
+  args: Record<string, unknown>,
+  agentSessionId?: string,
+): Promise<ToolResult> {
   const services = getAgentServices();
 
   try {
-    const apiKey = getApiKey(profileId);
-    if (!apiKey) return safeToolError(internalName as any, requestId, "CAPABILITY_DENIED", "No API key configured for Venice.");
-
-    const veniceHeaders = {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    };
-
-    if (internalName === "media.generateImage") {
-      const { prompt, negativePrompt, resolution, aspectRatio } = args as { prompt: string; negativePrompt?: string; resolution?: string; aspectRatio?: string };
-      
-      const modelsRes = await fetch("https://api.venice.ai/api/v1/models", { headers: veniceHeaders });
-      if (!modelsRes.ok) return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", "Failed to load models.");
-      const modelsResponse = await modelsRes.json() as import("../../../src/types/venice").ModelsResponse;
-      const imageModels = modelsResponse.data.filter(m => (m as any).type === "image" || (m as any).model_type === "image" || (m.model_spec as any)?.type === "image" || m.model_spec?.traits?.includes("default_vision") || (m.model_spec?.capabilities?.supportsVision && !m.model_spec?.capabilities?.supportsVideoInput));
-      
-      const model = imageModels[0];
-      if (!model) return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", "No image models available in the catalog.");
-      
-      const genRes = await fetch("https://api.venice.ai/api/v1/image/generate", {
-        method: "POST",
-        headers: veniceHeaders,
-        body: JSON.stringify({
-          model: model.id,
-          prompt,
-          negative_prompt: negativePrompt,
-          width: resolution ? parseInt(resolution.split("x")[0], 10) : undefined,
-          height: resolution ? parseInt(resolution.split("x")[1], 10) : undefined,
-          aspect_ratio: aspectRatio,
-          return_binary: false
-        })
-      });
-      if (!genRes.ok) return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", `Failed to generate image: ${genRes.statusText}`);
-      const generateResponse = await genRes.json() as import("../../../src/types/venice").ImageGenerateResponse;
-
-      const images = generateResponse.images;
-      if (!images || images.length === 0) {
-        return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", "No images returned by the Venice API.");
-      }
-      
-      const b64 = (typeof images[0] === 'string') ? images[0] : images[0]?.b64_json;
-      if (!b64) {
-         return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", "No image returned.");
-      }
-
-      const { persistGeneratedMedia } = await import("../../services/generatedMediaStore");
-      const buffer = Buffer.from(b64, 'base64');
-      const persisted = await persistGeneratedMedia(buffer, 'image/png');
-
-      await services.audit.record({ sessionId: `runtime_${profileId}:agent_`, toolName: "media.generateImage", outcome: "execution", resourceIds: [persisted.id] });
-      
-      return { ok: true, toolName: internalName as any, requestId, data: { mediaId: persisted.id, mimeType: persisted.mimeType } };
+    if (internalName !== "media.generateImage") {
+      // Phase 5.2 — video / audio tools are intentionally absent from the
+      // canonical tool registry while their durable approval pipeline is
+      // pending. Fail closed rather than silently miscalling /image/generate.
+      return safeToolError(internalName as any, requestId, "CAPABILITY_DENIED", `Media tool ${internalName} is not enabled in this build.`);
     }
-    // Phase 5.2 — video / audio tools are intentionally absent from the
-    // canonical tool registry while their durable approval pipeline is
-    // pending. If a stale prompt somehow surfaces one of these names, surface
-    // it as capability-denied rather than silently miscalling /image/generate.
-    return safeToolError(internalName as any, requestId, "CAPABILITY_DENIED", `Media tool ${internalName} is not enabled in this build.`);
+
+    const prompt = typeof args.prompt === "string" ? args.prompt.trim() : "";
+    if (prompt.length === 0) {
+      return safeToolError(internalName as any, requestId, "INVALID_ARGUMENTS", "generateImage requires a non-empty prompt.");
+    }
+    if (prompt.length > PROMPT_MAX_CHARS) {
+      return safeToolError(internalName as any, requestId, "INVALID_ARGUMENTS", `generateImage prompt exceeds ${PROMPT_MAX_CHARS} characters.`);
+    }
+    const requestedModel = typeof args.model === "string" ? args.model.trim() : "";
+    if (!MODEL_ID_RE.test(requestedModel)) {
+      return safeToolError(internalName as any, requestId, "INVALID_ARGUMENTS", "generateImage requires a string model id.");
+    }
+    const negativePrompt = typeof args.negativePrompt === "string" ? args.negativePrompt.trim().slice(0, PROMPT_MAX_CHARS) : undefined;
+    const aspectRatio = typeof args.aspectRatio === "string" && /^[0-9]+:[0-9]+$/.test(args.aspectRatio) ? args.aspectRatio : undefined;
+    let width: number | undefined;
+    let height: number | undefined;
+    if (typeof args.resolution === "string" && ENABLE_RESOLUTION_RE.test(args.resolution)) {
+      const [w, h] = args.resolution.split("x").map((part) => Number.parseInt(part, 10));
+      if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0 && w <= 4096 && h <= 4096) {
+        width = w;
+        height = h;
+      }
+    }
+
+    const imagePayload: Record<string, unknown> = {
+      model: requestedModel,
+      prompt,
+      return_binary: false,
+    };
+    if (negativePrompt) imagePayload.negative_prompt = negativePrompt;
+    if (aspectRatio) imagePayload.aspect_ratio = aspectRatio;
+    if (width !== undefined && height !== undefined) {
+      imagePayload.width = width;
+      imagePayload.height = height;
+    }
+
+    const guarded = await performGuardedVeniceRequest({
+      endpoint: "/image/generate",
+      method: "POST",
+      body: imagePayload,
+      profileId,
+    });
+
+    if (guarded.kind === "blocked") {
+      const reason = (guarded.block.body as { error?: unknown } | undefined)?.error;
+      const reasonText = typeof reason === "string" ? reason : "image-generate request blocked by Family Safe Mode";
+      return safeToolError(internalName as any, requestId, "CAPABILITY_DENIED", sanitizeErrorText(reasonText));
+    }
+    const response = guarded.response;
+    if (!response.ok) {
+      return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", sanitizeErrorText(`Image generate returned status ${response.status} ${response.statusText ?? ""}.`));
+    }
+
+    const responseBody = (response.body ?? {}) as { images?: unknown };
+    const rawImages = Array.isArray(responseBody.images) ? responseBody.images : [];
+    if (rawImages.length === 0) {
+      return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", "Image generate response did not include any images.");
+    }
+    const first = rawImages[0] as unknown;
+    const b64 = typeof first === "string" ? first : (first && typeof first === "object" && typeof (first as { b64_json?: unknown }).b64_json === "string")
+      ? (first as { b64_json: string }).b64_json
+      : "";
+    if (b64.length === 0) {
+      return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", "Image generate response was missing base64 image data.");
+    }
+    const mimeType = detectImageMimeTypeFromBase64(b64);
+    if (!mimeType) {
+      return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", "Image generate produced an unsupported image format.");
+    }
+
+    const { persistGeneratedMedia } = await import("../../services/generatedMediaStore");
+    const buffer = Buffer.from(b64, "base64");
+    const persisted = await persistGeneratedMedia(buffer, mimeType);
+
+    await services.audit.record({
+      sessionId: agentSessionId ? `runtime_${profileId}:agent_${agentSessionId}` : `runtime_${profileId}:agent_unknown`,
+      toolName: "media.generateImage",
+      outcome: "execution",
+      resourceIds: [persisted.id],
+    });
+
+    const createdAt = Date.now();
+    // Canonical fields consumed by `chat-agent-runner` to build a
+    // `metadata.generatedMedia: ChatMediaReference[]` attachment on the tool
+    // message. Keeping the executor output canonical means the chat-store
+    // Media Studio upsert path always sees the full ChatMediaReference shape
+    // it expects instead of a stub `{ mediaId, mimeType }` object.
+    return {
+      ok: true,
+      toolName: internalName as any,
+      requestId,
+      data: {
+        chatRef: {
+          id: persisted.id,
+          mediaId: persisted.id,
+          mediaType: "image",
+          operation: "generate",
+          displayUrl: persisted.url,
+          thumbnailUrl: persisted.url,
+          altText: prompt.slice(0, 200),
+          modelId: requestedModel,
+          createdAt,
+          mimeType: persisted.mimeType,
+        },
+      },
+    };
   } catch (error) {
     return safeToolError(internalName as any, requestId, "INTERNAL_ERROR", sanitizeErrorText(error instanceof Error ? error.message : String(error)));
   }

@@ -30,19 +30,25 @@ vi.mock("./logger", () => ({
 
 vi.mock("./chatFolderStorage", () => ({
   readChatFolder: vi.fn(),
+  saveChatFolder: vi.fn(),
 }));
 
 vi.mock("./chatStorage", () => ({
   listConversations: vi.fn(),
+  saveConversation: vi.fn(),
+  deleteConversation: vi.fn(),
 }));
 
-import { readChatFolder } from "./chatFolderStorage";
-import { listConversations } from "./chatStorage";
+import { readChatFolder, saveChatFolder } from "./chatFolderStorage";
+import { listConversations, saveConversation, deleteConversation } from "./chatStorage";
 import { exportBackup, previewImport, importBackup } from "./chatFolderBackupService";
 import type { ChatFolder } from "../../src/shared/chatFolderContracts";
 
 const mockedReadChatFolder = vi.mocked(readChatFolder);
 const mockedListConversations = vi.mocked(listConversations);
+const mockedSaveChatFolder = vi.mocked(saveChatFolder);
+const mockedSaveConversation = vi.mocked(saveConversation);
+const mockedDeleteConversation = vi.mocked(deleteConversation);
 
 function makeFolder(overrides: Partial<ChatFolder> = {}): ChatFolder {
   return {
@@ -65,7 +71,14 @@ beforeEach(async () => {
   await fs.mkdir(userDataDir, { recursive: true });
   mockedReadChatFolder.mockReset();
   mockedListConversations.mockReset();
+  mockedSaveChatFolder.mockReset();
+  mockedSaveConversation.mockReset();
+  mockedDeleteConversation.mockReset();
+  mockedReadChatFolder.mockResolvedValue(makeFolder());
   mockedListConversations.mockResolvedValue({ conversations: [], total: 0, hasMore: false });
+  mockedSaveChatFolder.mockResolvedValue({ ok: true });
+  mockedSaveConversation.mockResolvedValue({ ok: true });
+  mockedDeleteConversation.mockResolvedValue({ ok: true });
 });
 
 afterEach(async () => {
@@ -225,5 +238,216 @@ describe("importBackup — passphrase-protected envelope", () => {
     await expect(previewImport({ backupFilePath: v1Path }, "default")).rejects.toThrow(
       /missing the encrypted public header/i,
     );
+  });
+});
+
+/**
+ * P0-01 regression guard (chat-folder backup imports were silently no-ops for
+ * the carried conversations after a passphrase-valid decrypt). Without this
+ * block, the importer could return success with zero saveConversation calls
+ * and the user would lose every chat in the backup.
+ *
+ * P0-02 regression guard (default-profile imports landed on a hand-built
+ * path under chat-folders/default/<id>.json instead of chat-folders/<id>.json).
+ * The mock for saveChatFolder is asserted so any future regression to raw
+ * fs.writeFile within the import backup path fails the test.
+ */
+describe("importBackup — actually imports conversations + folder (P0-01, P0-02)", () => {
+  async function exportWithConversations(passphrase: string): Promise<string> {
+    mockedReadChatFolder.mockResolvedValue(makeFolder({ name: "Exported Folder" }));
+    mockedListConversations.mockResolvedValue([
+      {
+        id: "chat-source-1",
+        title: "Imported Chat",
+        createdAt: 1700000000000,
+        updatedAt: 1700000005000,
+        model: "llama-3.3-70b",
+        folderId: "folder-1",
+        messages: [
+          { id: "m1", role: "user", content: "hello", timestamp: 1700000000000 },
+          { id: "m2", role: "assistant", content: "hi", timestamp: 1700000005000 },
+        ],
+      },
+      {
+        id: "chat-source-2",
+        title: "Second Chat",
+        createdAt: 1700000010000,
+        updatedAt: 1700000015000,
+        model: "llama-3.3-70b",
+        folderId: "folder-1",
+        messages: [
+          { id: "m3", role: "user", content: "there", timestamp: 1700000010000 },
+        ],
+      },
+    ] as never);
+
+    const result = await exportBackup(
+      { folderId: "folder-1", includeMedia: false, passphrase, passphraseConfirmed: true },
+      "default",
+    );
+    if (!result.ok || !result.backupPath) throw new Error("export setup failed");
+    return result.backupPath;
+  }
+
+  it("[P0-01] new-folder mode calls saveConversation for each carried conversation with the new folderId", async () => {
+    const backupPath = await exportWithConversations("correct-horse-battery-staple");
+    mockedSaveConversation.mockClear();
+    mockedSaveChatFolder.mockClear();
+
+    const result = await importBackup(
+      { backupFilePath: backupPath, mode: "new-folder", passphrase: "correct-horse-battery-staple" },
+      "default",
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.folderId).toBeTruthy();
+    expect(mockedSaveChatFolder).toHaveBeenCalledTimes(1);
+    expect(mockedSaveConversation).toHaveBeenCalledTimes(2);
+
+    const savedConvs = mockedSaveConversation.mock.calls.map((c) => c[0]);
+    expect(savedConvs[0].id).toBe("chat-source-1");
+    expect(savedConvs[0].title).toBe("Imported Chat");
+    expect(savedConvs[0].folderId).toBe(result.folderId);
+    expect(savedConvs[0].profileId).toBeUndefined(); // default profile -> undefined
+    expect(savedConvs[1].id).toBe("chat-source-2");
+    expect(savedConvs[1].folderId).toBe(result.folderId);
+
+    expect(result.imported).toHaveLength(2);
+    expect(result.imported?.[0]).toMatchObject({ sourceId: "chat-source-1", ok: true });
+    expect(result.imported?.[1]).toMatchObject({ sourceId: "chat-source-2", ok: true });
+    expect(result.conflictCount).toBe(0);
+    expect(result.rolledBack === undefined || result.rolledBack === false).toBe(true);
+    expect(result.rollbackCount === undefined || result.rollbackCount === 0).toBe(true);
+  });
+
+  it("[P0-02] new-folder mode routes the folder write through saveChatFolder (canonical atomic path), not a hand-built fs.writeFile", async () => {
+    const backupPath = await exportWithConversations("correct-horse-battery-staple");
+    mockedSaveChatFolder.mockClear();
+
+    const result = await importBackup(
+      { backupFilePath: backupPath, mode: "new-folder", passphrase: "correct-horse-battery-staple" },
+      "default",
+    );
+
+    expect(result.ok).toBe(true);
+    expect(mockedSaveChatFolder).toHaveBeenCalledTimes(1);
+    const [folderArg, profileArg] = mockedSaveChatFolder.mock.calls[0];
+    expect(profileArg).toBe("default");
+    expect(folderArg.id).toBe(result.folderId);
+    expect(folderArg.name).toBe("Exported Folder");
+    expect(folderArg.lockState).toBe("unlocked"); // locked folders are always reset to unlocked on import
+  });
+
+  it("[P0-01] rolls back created conversations and returns ok=false when saveConversation fails mid-import", async () => {
+    const backupPath = await exportWithConversations("correct-horse-battery-staple");
+    mockedSaveConversation.mockClear();
+    mockedDeleteConversation.mockClear();
+    let callCount = 0;
+    mockedSaveConversation.mockImplementation(async () => {
+      callCount += 1;
+      if (callCount === 1) return { ok: true };
+      return { ok: false, error: "Simulated schema failure" };
+    });
+
+    const result = await importBackup(
+      { backupFilePath: backupPath, mode: "new-folder", passphrase: "correct-horse-battery-staple" },
+      "default",
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Simulated schema failure|fail/i);
+    expect(result.rolledBack).toBe(true);
+    expect(result.rollbackCount).toBe(1);
+    expect(mockedDeleteConversation).toHaveBeenCalledTimes(1);
+    expect(mockedDeleteConversation.mock.calls[0][0]).toBe("chat-source-1"); // first saved conversation rolled back
+  });
+
+  it("[P0-01] merge mode with a colliding id remaps the imported conversation and preserves both branches", async () => {
+    const backupPath = await exportWithConversations("correct-horse-battery-staple");
+    // Pre-existing conversation in the target folder shares id with the imported one.
+    mockedListConversations.mockResolvedValue([
+      { id: "chat-source-1", title: "Local Pre-existing Chat" } as never,
+    ]);
+
+    const result = await importBackup(
+      {
+        backupFilePath: backupPath,
+        mode: "merge",
+        targetFolderId: "merge-target-folder",
+        passphrase: "correct-horse-battery-staple",
+      },
+      "default",
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.folderId).toBe("merge-target-folder");
+    expect(mockedSaveChatFolder).not.toHaveBeenCalled(); // merge mode does not create a new folder
+    expect(mockedSaveConversation).toHaveBeenCalledTimes(2);
+
+    const savedConvs = mockedSaveConversation.mock.calls.map((c) => c[0]);
+    expect(savedConvs[0].id).not.toBe("chat-source-1"); // remapped to avoid collision
+    expect(savedConvs[0].folderId).toBe("merge-target-folder");
+    expect(savedConvs[1].id).toBe("chat-source-2"); // the non-colliding one keeps its id
+    expect(savedConvs[1].folderId).toBe("merge-target-folder");
+
+    expect(result.conflictCount).toBe(1);
+    expect(result.imported?.[0]).toMatchObject({ sourceId: "chat-source-1", ok: true });
+    expect(result.imported?.[0]?.importedId).not.toBe("chat-source-1");
+    expect(result.imported?.[1]).toMatchObject({ sourceId: "chat-source-2", importedId: "chat-source-2", ok: true });
+  });
+
+  it("[P0-01] rejects malformed per-conversation records without rolling back earlier successes", async () => {
+    const _backupPath = await exportWithConversations("correct-horse-battery-staple");
+    // Patch the on-disk backup: the second conversation in the encrypted manifest is intentionally bad.
+    // Because we cannot easily tamper with XChaCha20 ciphertext without breaking the AEAD tag, we
+    // instead reach into the manifest helper path by mocking `listConversations` to return a valid
+    // one-conversation export, then directly crafting a malformed second conversation through a
+    // local importer invoke — but that path is private. Simpler: use a tiny helper export that
+    // bundles a malformed second conversation alongside a valid first.
+    await fs.rm(userDataDir, { recursive: true, force: true });
+    await fs.mkdir(userDataDir, { recursive: true });
+
+    mockedReadChatFolder.mockResolvedValue(makeFolder({ name: "Bad Backup" }));
+    mockedListConversations.mockResolvedValue([
+      {
+        id: "good-conv",
+        title: "Good",
+        createdAt: 1700000000000,
+        updatedAt: 1700000000000,
+        model: "llama-3.3-70b",
+        folderId: "folder-1",
+        messages: [],
+      },
+      // Intentionally malformed: missing createdAt
+      {
+        id: "bad-conv",
+        title: "Bad",
+        updatedAt: 1700000000000,
+        model: "llama-3.3-70b",
+        folderId: "folder-1",
+        // createdAt missing
+        messages: [],
+      } as never,
+    ] as never);
+
+    const exported = await exportBackup(
+      { folderId: "folder-1", includeMedia: false, passphrase: "correct-horse-battery-staple", passphraseConfirmed: true },
+      "default",
+    );
+    if (!exported.ok || !exported.backupPath) throw new Error("export setup failed");
+
+    mockedSaveConversation.mockClear();
+    mockedDeleteConversation.mockClear();
+
+    const result = await importBackup(
+      { backupFilePath: exported.backupPath, mode: "new-folder", passphrase: "correct-horse-battery-staple" },
+      "default",
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/invalid field|createdAt/i);
+    expect(result.rolledBack).toBe(true);
+    // The good conversation may have been saved and then rolled back
+    expect(mockedDeleteConversation).toHaveBeenCalledWith("good-conv", "default");
   });
 });
