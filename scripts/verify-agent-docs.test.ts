@@ -65,7 +65,7 @@ describe("verify-agent-docs", () => {
       "Main handlers: `electron/ipc/handlers/`.",
       "GET  /image/styles",
       "GET  /characters",
-      "The canonical registry has 19 top-level tabs including Character Chats.",
+      "The canonical registry has 20 top-level tabs including Character Chats.",
       extra,
     ].join("\n");
   }
@@ -147,11 +147,11 @@ describe("verify-agent-docs", () => {
     writeDoc("AGENTS.md", minimalAgentsMd());
     writeDoc(
       ".github/copilot-instructions.md",
-      minimalCopilotMd().replace("19 top-level tabs", "top-level tabs"),
+      minimalCopilotMd().replace("20 top-level tabs", "top-level tabs"),
     );
     const { passed, errors } = verifyAgentDocs(tmpDir);
     expect(passed).toBe(false);
-    expect(errors.some((e: string) => e.includes("19 top-level tabs"))).toBe(true);
+    expect(errors.some((e: string) => e.includes("20 top-level tabs"))).toBe(true);
   });
 
   it("fails when the repository map drops a current architecture marker", () => {

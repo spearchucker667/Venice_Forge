@@ -27,7 +27,7 @@ const COPILOT_CURRENT_ARCHITECTURE_MARKERS = [
   'electron/ipc/handlers/',
   'GET  /image/styles',
   'GET  /characters',
-  '19 top-level tabs',
+  '20 top-level tabs',
   'Character Chats',
 ];
 

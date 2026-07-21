@@ -38,7 +38,38 @@ Stack: React 19 + TypeScript strict + Tailwind CSS v4 (Premium Dark Glass Theme)
 
 ---
 
+## Quick Start (do these before any edit)
+
+1. Run the bootstrap check below. It is local-only — never added to CI.
+2. Read `AGENTS.md` first. It is the canonical source of truth for architecture, commands, security rules, and convention. Pointer files (`CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.windsurfrules`) link to it.
+3. Read `docs/summary_of_work.md` — Latest Session Summary, Open TODO Ledger, and Validation Matrix.
+4. Do **not** commit or push on your own. Wait for an explicit user instruction. Stay on `main` unless told otherwise.
+5. End every session by updating `docs/summary_of_work.md` (see § Mandatory Session Handoff).
+
+---
+
 ## Commands
+
+### Node engine pin
+
+`package.json` declares `engines.node` as `>=22.13.0 <23.0.0`. Brew's default on host machines is Node 26 which violates the pin and breaks `vitest`/`vite`. Prefix every shell command with `PATH="/opt/homebrew/opt/node@22/bin:$PATH"`, use `nvm use 22`, or run via a `.nvmrc`-aware shell. CI workflows pin `node-version: 22` in `.github/workflows/*.yml`.
+
+### Validation order (required before PR)
+
+> This block intentionally mirrors the validation block in `AGENTS.md`. `verify:agent-docs` (VERIFY-122) greps both files and asserts the captured chunk matches byte-for-byte across whitespace. Keep both in lock-step.
+
+```bash
+npm run lint:eslint          # ESLint — zero warnings enforced (--max-warnings=0)
+npm run typecheck            # Renderer (tsconfig.json) + Electron main (tsconfig.electron.json)
+npm test                     # Vitest, serial (--fileParallelism=false)
+npm run verify:safety-guard  # Mandatory CI gate; see Security below
+npm run verify:markdown-links # Local Markdown files + heading fragments
+npm run verify:contracts     # Comprehensive suite of all 22+ sub-verifiers/contracts
+npm run build                # dist/ + dist-electron/ + dist/server.cjs
+npm run ci                   # Full parity including safety, markdown, contracts, and dist verification
+```
+
+### Run scripts
 
 ```bash
 npm run dev:electron    # Electron desktop (recommended for full dev)
@@ -48,24 +79,47 @@ npm run dev:web         # Vite only (renderer)
 npm run lint:eslint          # ESLint — zero warnings enforced (--max-warnings=0)
 npm run typecheck            # Renderer (tsconfig.json) + Electron main (tsconfig.electron.json)
 npm test                     # Vitest, serial (--fileParallelism=false)
-npm run verify:safety-guard  # Mandatory CI gate; see Security below
-npm run verify:markdown-links # Local Markdown files + heading fragments
-npm run verify:contracts     # Comprehensive suite of all 22+ sub-verifiers/contracts
 npm run build                # dist/ + dist-electron/ + dist/server.cjs
-npm run build:web       # Renderer build only
-npm run build:server    # Express server bundle only
-npm run build:electron  # Electron main/preload build only
-npm run ci              # CI parity: install + lint + typecheck + test + safety/docs guards + build
-npm run clean           # Remove dist/, dist-electron/, release/
-npm run dist:win        # Build Windows NSIS + portable installers
-npm run dist:mac        # Build macOS DMG + ZIP archives
-npm run verify:safety-guard  # Mandatory safety guard compliance check (also runs in CI)
-npm run verify:markdown-links # Local Markdown targets + heading fragments (also runs in CI)
+npm run build:web            # Renderer build only
+npm run build:server         # Express server bundle only
+npm run build:electron       # Electron main/preload build only
+npm run ci                   # CI parity: install + lint + typecheck + test + safety/docs guards + build
+npm run clean                # Remove dist/, dist-electron/, release/
 npm run profile:media-studio # Isolated 1,000-record Media Studio Electron profile
-npm run smoke:electron  # Electron smoke tests in tests/smoke/
+npm run smoke:electron       # Electron smoke tests in tests/smoke/
 ```
 
-Before opening a PR: `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, and `npm run build`.
+### Single-test quick reference
+
+```bash
+npx vitest run src/services/foo.test.ts                 # one file
+npx vitest run server.test.ts -t "test name"            # one test by name
+npm run test:server        # server.test.ts only
+npm run test:electron      # electron/**/*.test.ts only (electron node envs)
+npm run test:ingestion     # src/services/ingestion only (--fileParallelism=false)
+npm run test:ui            # src/components + tests/accessibility
+npm run test:unit          # catch-all unit tests
+npm run test:contracts     # root/tests contract and security guards
+npm run test:ci            # segmented correctness suite — release parity gate
+```
+
+Do **not** pass `--reporter=basic` — it is not registered in this environment and fails immediately with a "Cannot find module 'vitest/dist/reporters/basic'" error. Use the default reporter (no `--reporter` flag).
+
+### Verification scripts (must be green before merge)
+
+`verify:contracts` is the umbrella — it fans out to `verify:contracts:static` (lockfile, repository-identity, release-metadata, bundle-budget, safety-guard, markdown-links, theme-tokens, network-boundaries, custom-protocol-privileges, venice-api-docs, ci-contract, agent-docs, image-policy, work-orders, no-native-dialogs, inactive-feature-archive, provider-adapters), `verify:contracts:features` (chat / image / workflow / rp / settings sub-bundles), and `verify:contracts:release` (release-packaging-hardening). Per-feature verifiers worth knowing individually include: `verify:safety-guard`, `verify:repository-identity`, `verify:markdown-links`, `verify:workspace-contracts`, `verify:model-aware-recipes`, `verify:media-studio-power-tools`, `verify:status-diagnostics`, `verify:prompt-library`, `verify:scene-composer`, `verify:scene-references`, `verify:rp-studio-polish`, `verify:workflow-templates`, `verify:storage-privacy`, `verify:storage-policy`, `verify:backup-sync`, `verify:document-ingestion`, `verify:document-agent`, `verify:research-workspace`, `verify:character-card-{v2,png,security}`, `verify:ci-contract`, `verify:agent-docs`, `verify:inactive-feature-archive`. To enumerate every script: `node -e 'console.log(Object.keys(require("./package.json").scripts).join("\n"))'`.
+
+Before opening a PR: `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, `npm run verify:contracts`, and `npm run build`. `npm run verify:dist` (alias `verify:build-output`) follows `npm run build`; platform variants (`verify:dist:win` / `verify:dist:mac` / `verify:dist:linux` / `verify:dist:portable` / `verify:dist:release`) are environment-specific.
+
+---
+
+## Commit / Push / PR Policy
+
+- **No auto-commits.** Wait for an explicit user instruction before staging, committing, or pushing. "Make the change" is not consent; "commit this" or "push to main" is.
+- **Work on `main` locally.** Custom instruction overrides the GitHub-branch-prompt default. Do not create new branches, force-update refs, stash, reset, or rebase unless requested.
+- **Commit message format:** descriptive subject, optional body, ending with the trailer `Co-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>` (unless the user explicitly asks you to omit it).
+- **PR body should be useful** — list the validation matrix actually run, the gates that passed, the deferred work, and the link to the relevant `docs/summary_of_work.md` entry. Do not paste raw prompts, secret values, or local machine paths.
+- **Do not commit** `dist/`, `dist-electron/`, `release/`, `coverage/`, `.env*`, `.config/*.local.yaml`, `node_modules/`, `.node22/`, or any local Copilot session-state path. `.gitignore` enforces most of these — verify with `git status` before committing.
 
 ---
 
@@ -214,7 +268,7 @@ Status and Inspector surfaces are fed by the inspector store + telemetry (see `s
 
 ### Tab / View structure (current)
 
-Canonical registry in `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, `CANONICAL_TAB_ORDER`). 19 top-level tabs (Chat, Character Chats, History, Image Studio, Media Studio, Prompts, Scene Composer, Audio Studio, Music Studio, Video Studio, Embeddings, Research, Characters, RP Studio, Workflows, Privacy, Playground, Config, Status). Add tabs only via the registry. Legacy aliases (e.g. `gallery` → `media`) are supported only for persisted state migration. See `AGENTS.md` "Canonical tab registry" and `src/config/tabs.test.ts` (VERIFY-022).
+Canonical registry in `src/config/tabs.ts` (`TAB_IDS`, `TAB_REGISTRY`, `CANONICAL_TAB_ORDER`). 20 top-level tabs (Chat, Character Chats, History, Image Studio, Media Studio, Prompts, Scene Composer, Audio Studio, Music Studio, Video Studio, Embeddings, Research, Characters, RP Studio, Workflows, Documents, Privacy, Playground, Config, Status). Add tabs only via the registry. Legacy aliases (e.g. `gallery` → `media`) are supported only for persisted state migration. See `AGENTS.md` "Canonical tab registry" and `src/config/tabs.test.ts` (VERIFY-022).
 
 ### Electron build pipeline
 
@@ -294,6 +348,17 @@ Tests live next to the source files they cover: `src/services/foo.ts` → `src/s
 
 ---
 
+## Regression Guard System (`VERIFY-NNN`)
+
+Regression-sensitive surfaces are protected by named regression guards. The active sequence is `VERIFY-001`..`VERIFY-155` (with `VERIFY-168` as an intentional legacy bridge allowlisted by `verify:repo-handoff-hygiene`). Each guard lives in a specific test file and fails CI if the protection is weakened. When fixing a regression, add or annotate the closest `VERIFY-NNN` test with a brief comment.
+
+- **When you find a regression**, first grep `AGENTS.md` for the table row describing `VERIFY-NNN`. The row tells you (a) which test file is the canonical guard, (b) what behavior is locked, and (c) which boundary the guarantee spans.
+- **When you add a new regression guard**, append the entry to the `AGENTS.md` table with the ID, what it locks, and the test file path. Update `verify:repo-handoff-hygiene` if you intentionally assign an out-of-sequence slot.
+- **Bug-fix convention**: alongside `VERIFY-NNN`, also add `// BUG-NNN regression guard` to the test that would have caught the original defect (the legacy convention retained for pre-VERIFY regressions).
+- **`verify:contracts` is the umbrella** that wires most individual `VERIFY-NNN` tests into `verify:contracts:features:{chat,image,workflow,rp,settings}` plus `verify:contracts:static` and `verify:contracts:release`. If your guard does not show up in any chain yet, link it explicitly.
+
+---
+
 ## Chat Workspace Architecture
 
 ### Memory Service
@@ -356,6 +421,15 @@ Copy `.env.example` to `.env` for web-mode dev:
 
 ## Files to Keep Current
 
-When changing behavior, packaging, or storage, also update:
-- `README.md`, `docs/ROADMAP.md`, `docs/summary_of_work.md`, `AGENTS.md`, `.github/copilot-instructions.md`
-- `docs/ABOUT.md`, `SECURITY.md`, `docs/RELEASE/release.md`, `LEGAL.md`
+**Mandatory every session** (the agent must update before ending the turn):
+- `docs/summary_of_work.md` — Update the `Latest Session Summary`, append a dated entry under `Session History`, refresh the `Open TODO Ledger`, and refresh the `Validation Matrix` for commands actually run. Do not include secrets, API keys, private machine paths, or raw unsafe prompt payloads. `verify:repo-handoff-hygiene` enforces this contract.
+- `docs/DOCS_INDEX.md` — Update when a session adds, removes, archives, renames, or changes the authority/status of documentation, audit reports, TODO files, release notes, or historical evidence.
+
+**Updated on behavior, packaging, or storage change**:
+- `docs/ROADMAP.md` — canonical TODO roadmap. Do not create new standalone TODO, roadmap, audit-status, or cross-check documents for current work when the canonical roadmap or `docs/summary_of_work.md` can hold the entry instead. `verify:roadmap-current` enforces `It contains no closed top-level sections or mirrored per-finding audit statuses`.
+- `README.md` — high-level behavior, prerequisites, installation, screenshots.
+- `AGENTS.md` — canonical project architecture/state/tabs/guards. Update when any file or workflow this file references materially changes.
+- `.github/copilot-instructions.md` (this file) — the Copilot CLI auto-loaded variant. Mirror changes from `AGENTS.md` that affect a Copilot session's working contract (run, test, commit, review). `verify:agent-docs` enforces parity.
+
+**Updated rarely, on relevant scope change**:
+- `SECURITY.md`, `docs/ABOUT.md`, `docs/FAQ.md`, `docs/RELEASE/release.md`, `LEGAL.md`, `CONTRIBUTING.md`.
