@@ -36,7 +36,7 @@ export function rendererCsp(isDev: boolean): string {
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     `style-src ${styleSrc}`,
-    "img-src 'self' data: blob: venice-character-cache:",
+    "img-src 'self' data: blob: venice-character-cache: venice-media:",
     `connect-src ${connectSrc}`,
     "font-src 'self' data:",
     "media-src 'self' blob: venice-media:",

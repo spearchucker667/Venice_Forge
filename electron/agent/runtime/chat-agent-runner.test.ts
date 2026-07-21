@@ -31,11 +31,34 @@ import { runChatAgentLoop } from "./chat-agent-runner";
 import { isChatMediaReferenceArrayContract, type ChatMediaReferenceContract } from "../../../src/shared/chatMediaReferenceContracts";
 
 describe("runChatAgentLoop — P0-03 canonical ChatMediaReference regression", () => {
-  it("attaches a canonical ChatMediaReference[] on the tool message for media.generateImage", async () => {
+  /**
+   * Helper mock installer that returns a `tool_calls`-terminating response
+   * the first time it is invoked and a plain `stop`-terminating response on
+   * every subsequent call. The multi-turn bounded loop in `runChatAgentLoop`
+   * (Phase 3 §3.7) requires a follow-up turn — without this helper the mock
+   * would keep returning `tool_calls` and the loop would exhaust its
+   * `MAX_AGENT_TURNS` cap producing a stream of repeated tool executions.
+   */
+  function installSingleTurnMock(emitFirstTurn: (cb: (chunk: unknown) => void) => void) {
+    let calls = 0;
     performGuardedVeniceRequest.mockImplementation((_req: unknown, options: { onDelta?: (c: unknown) => void } = {}) => {
+      calls += 1;
       const cb = options.onDelta;
+      if (calls === 1) {
+        emitFirstTurn(cb!);
+      } else {
+        // Subsequent turns: no tool calls → bounded loop exits.
+        cb?.({ content: "final answer" });
+        cb?.({ finish_reason: "stop" });
+      }
+      return Promise.resolve({ kind: "response", response: { ok: true, status: 200, headers: {}, body: {}, contentType: "application/json" } });
+    });
+  }
+
+  it("attaches a canonical ChatMediaReference[] on the tool message for media.generateImage", async () => {
+    installSingleTurnMock((cb) => {
       // 1) emit a single tool_call chunk
-      cb?.({
+      cb({
         tool_calls: [
           {
             index: 0,
@@ -46,8 +69,7 @@ describe("runChatAgentLoop — P0-03 canonical ChatMediaReference regression", (
         ],
       });
       // 2) emit finish_reason "tool_calls" so the agent loop runs tools
-      cb?.({ finish_reason: "tool_calls" });
-      return Promise.resolve({ kind: "response", response: { ok: true, status: 200, headers: {}, body: {}, contentType: "application/json" } });
+      cb({ finish_reason: "tool_calls" });
     });
 
     executeAgentTool.mockResolvedValue({
@@ -100,9 +122,8 @@ describe("runChatAgentLoop — P0-03 canonical ChatMediaReference regression", (
   });
 
   it("never attaches the legacy stub { mediaId, mimeType } metadata", async () => {
-    performGuardedVeniceRequest.mockImplementation((_req: unknown, options: { onDelta?: (c: unknown) => void } = {}) => {
-      const cb = options.onDelta;
-      cb?.({
+    installSingleTurnMock((cb) => {
+      cb({
         tool_calls: [
           {
             index: 0,
@@ -112,8 +133,7 @@ describe("runChatAgentLoop — P0-03 canonical ChatMediaReference regression", (
           },
         ],
       });
-      cb?.({ finish_reason: "tool_calls" });
-      return Promise.resolve({ kind: "response", response: { ok: true, status: 200, headers: {}, body: {}, contentType: "application/json" } });
+      cb({ finish_reason: "tool_calls" });
     });
 
     // Simulate a tool result that *only* carries the old stub shape the
@@ -139,9 +159,8 @@ describe("runChatAgentLoop — P0-03 canonical ChatMediaReference regression", (
   });
 
   it("attaches a canonical ChatMediaReference[] even when executor data has unexpected extra fields", async () => {
-    performGuardedVeniceRequest.mockImplementation((_req: unknown, options: { onDelta?: (c: unknown) => void } = {}) => {
-      const cb = options.onDelta;
-      cb?.({
+    installSingleTurnMock((cb) => {
+      cb({
         tool_calls: [
           {
             index: 0,
@@ -151,8 +170,7 @@ describe("runChatAgentLoop — P0-03 canonical ChatMediaReference regression", (
           },
         ],
       });
-      cb?.({ finish_reason: "tool_calls" });
-      return Promise.resolve({ kind: "response", response: { ok: true, status: 200, headers: {}, body: {}, contentType: "application/json" } });
+      cb({ finish_reason: "tool_calls" });
     });
 
     executeAgentTool.mockResolvedValue({
@@ -193,9 +211,8 @@ describe("runChatAgentLoop — P0-03 canonical ChatMediaReference regression", (
   });
 
   it("skips metadata when executor returns an error result", async () => {
-    performGuardedVeniceRequest.mockImplementation((_req: unknown, options: { onDelta?: (c: unknown) => void } = {}) => {
-      const cb = options.onDelta;
-      cb?.({
+    installSingleTurnMock((cb) => {
+      cb({
         tool_calls: [
           {
             index: 0,
@@ -205,8 +222,7 @@ describe("runChatAgentLoop — P0-03 canonical ChatMediaReference regression", (
           },
         ],
       });
-      cb?.({ finish_reason: "tool_calls" });
-      return Promise.resolve({ kind: "response", response: { ok: true, status: 200, headers: {}, body: {}, contentType: "application/json" } });
+      cb({ finish_reason: "tool_calls" });
     });
 
     executeAgentTool.mockResolvedValue({

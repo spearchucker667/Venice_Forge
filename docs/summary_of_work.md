@@ -4,7 +4,53 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-20 (continuation 8 — P0 audit remediation)
+**Date:** 2026-07-20 (continuation 10 — `gamora-black-bolt-power-girl` Phase 3 §3.7 closeout)
+
+**Scope:** Phase 3 of `gamora-black-bolt-power-girl.md` was fractured into 12 sub-steps (§3.1–§3.12). This continuation opens the file-level P0 fix at §3.7 — bounded multi-turn agent loop. The audit-confirmed contract violation was that `runChatAgentLoop` performed exactly one streaming turn + one tool batch and returned; the agent never iterated, never replied after seeing its own tool outputs, and never self-corrected. The fix introduces a per-turn helper plus a bounded loop enforced by `MAX_AGENT_TURNS = 8` and `MAX_AGENT_TOOL_CALLS = 16`, with explicit guard-block propagation and abort handling. The remaining Phase 3 sub-steps (§3.1 dedicated Component, §3.2 dedicated IPC, §3.3 grantId-from-model leak, §3.4 schema matrix, §3.5 unified document.create, §3.6 unimplemented-tool unadvertise, §3.10 media.generateImage contract hardening, §3.11 chat-agent UI, §3.12 17-bullet acceptance matrix) are recorded as Pending in the remediation report and progress into the next session.
+
+- **Phase 3 §3.7 — `chat-agent-runner.ts` bounded multi-turn loop (RESOLVED).**
+  - Extracted `streamAndExecuteTurn()` helper that returns `{ result, finishReason, aggregatedToolCalls, appendedMessages, hasToolCalls }`. The previously inline behaviour is unchanged; the helper is the per-turn unit the loop dispatches.
+  - `runChatAgentLoop()` now wraps the helper in `MAX_AGENT_TURNS = 8`/`MAX_AGENT_TOOL_CALLS = 16` bounds. Termination paths:
+    - `result.kind === "blocked"` → return immediately, no follow-up turn (canonical 451 shape preserved).
+    - `!turnResult.hasToolCalls` (model emitted text + `finish_reason: "stop"` or similar) → return final response.
+    - `request.signal?.aborted` set between turns → exit cleanly.
+    - `MAX_AGENT_TOOL_CALLS` reached (16) or `MAX_AGENT_TURNS` reached (8) → exit cleanly, return last streamed result.
+  - On continuation, the body is rebuilt as `{ ...currentBody, messages: [...previousMessages, assistantMessage(..., tool_calls:[...]), ...toolResultMessages] }`. The model sees its own tool outputs on the next stream and decides whether more tool work or a final answer is appropriate.
+  - `TOOL_RESULT_MAX_CHARS = 50_000` constant hoisted (was an inline literal in the original).
+  - The fallback path when no result ever streams emits a fully-typed `VeniceIpcResponse` (`statusText`, `headers`, `contentType` all populated) instead of a partial stub.
+- **Phase 3 §3.7 — Existing test wrapper.** `electron/agent/runtime/chat-agent-runner.test.ts` 4 cases re-routed through `installSingleTurnMock(emitFirstTurn)` helper. First call invokes the test-supplied emitter (`tool_calls` + `finish_reason: "tool_calls"`); subsequent calls return a plain `finish_reason: "stop"` response so the bounded loop exits after the second dispatch without exhausting `MAX_AGENT_TURNS`. All 4 cases still PASS.
+- **Phase 3 §3.7 — New regression suite.** `electron/agent/runtime/chat-agent-runner.multiturn.test.ts` (NEW, 5 cases):
+  1. Two-turn happy path (tool calls → tool execution → final stop); never dispatches after stop; appended tool messages count = 1.
+  2. `MAX_AGENT_TURNS = 8` cap: 8 sequential tool_calls responses → loop dispatches exactly 8 `performGuardedVeniceRequest` calls then stops.
+  3. Body messages append integrity: turn-1 body is the user message only; turn-2 body is `[user, assistant(tool_calls:[workspace.list]), tool(tool_call_id:call_aa, content:…)]` — preserving the canonical OpenAI-style chat-completion conversation shape.
+  4. Abort between turns respected: `controller.abort()` after turn 1 → loop exits before turn 2; total dispatches = 1.
+  5. Guard-block propagation: `result.kind === "blocked"` → loop returns immediately; total dispatches = 1.
+- **Validation matrix this continuation:**
+  - `PATH="/opt/homebrew/opt/node@22/bin:$PATH" npx vitest run electron/agent/runtime/chat-agent-runner.multiturn.test.ts` → **5/5 PASS in 204 ms** (Phase 3 §3.7 cases).
+  - `npx vitest run electron/agent/runtime/` → **26/26 PASS in 1.65 s** (4 runner + 5 multiturn + 17 other).
+  - `npx tsc --noEmit -p tsconfig.json` → **0 errors** (renderer pipeline).
+  - `npx tsc --noEmit -p tsconfig.electron.json` → **0 errors** (Electron pipeline).
+  - `npm run lint:eslint -- --quiet` (renderer + electron + server + scripts) → **0 warnings** under `--max-warnings=0`.
+  - Diff stat: `chat-agent-runner.ts net refactor (+~70 LOC for loop + type tightening)`, `chat-agent-runner.test.ts +~25 LOC` (installSingleTurnMock helper), `chat-agent-runner.multiturn.test.ts +148` (NEW).
+- **Deliverables (this session):** `docs/reports/VENICE_FORGE_2026-07-20_REMEDIATION_REPORT.md` updated with full Phase 3 §3.7 closeout (`Files Changed`, `Tests Added or Updated`, `Commands Executed`, `Validation Results`, `Remaining Risks`, `Deferred Work`). `docs/summary_of_work.md` updated with this continuation 10 entry (continuation 9 demoted to Prior Session Summary).
+- **Open for continuation 11:** Phase 3 §3.3 (P0 grantId-from-model leak in `agent-tool-executor.ts` — workspace.* tools still extract grant from parsed JSON arguments, not context injection), §3.4 (16-tool schema matrix), §3.5 (unified `document.create` payload), §3.6 (unadvertise unimplemented tools), §3.10 (`media.generateImage` executor contract hardening), §3.11 (`DocumentAgentChat.tsx` UI + dedicated IPC channel), §3.12 (17-bullet acceptance matrix). Phases 4–7 (folder context menu, prompt-layer inspector, character-image diagnostics, hidden media vault) follow.
+- **Constraint compliance:** stayed on `main`, no commit / no push, no verifier-script edits, no `dist:mac` / `dist:win`, no unrelated-file edits, no API keys exposed, no raw prompt text logged. Loop body rebuild reuses the same record shape the `--chat/completions` (SSE) consumer already expects.
+
+### Prior Session Summary (continuation 9 — `gamora-black-bolt-power-girl` Phase 1 + 2 closeout)
+
+**Date:** 2026-07-20 (continuation 9 — `gamora-black-bolt-power-girl` Phase 1 + 2 closeout)
+
+**Scope:** Opened the 9-phase `gamora-black-bolt-power-girl.md` work order against 13 verified findings (VF-20260720-001..013) and executed Phases 1 (P0 character persona isolation) and 2 (P0 CSP correction). Phases 3–7 remain pending; this continuation establishes the regex-bounded, evidence-tracked baseline. The work-order spec mandates: do **not** clear UI selection as a fix for persona leakage; do **not** broaden CSP to `https:/http:/file:/*`; do **not** expose filesystem paths or grant IDs to the model; do **not** trust renderer-supplied profile or grant selection. Resolution order: P0 persona → P0 CSP → P0 document agent → P1 folder menu → P1 prompt inspector → P1 character image → P1 media vault → docs / validation / QA.
+
+- **Phase 1 — Persona isolation (RESOLVED).** `src/utils/conversationKind.ts` (new, 34 lines): exports the canonical `ConversationPersonaBinding` union = `{kind:'standard'} | {kind:'hosted-character', slug, characterId?} | {kind:'local-character', localCharacterId, systemPrompt}` plus the helper `getConversationPersonaBinding(conversation)`. It reads **only** `conversation.metadata.character` — no store lookups, no global fallback. Any conversation missing `metadata.character` returns `{kind:'standard'}` so the legacy chat path stays intact.
+- **Phase 1 — `chat-stream-manager.ts` refactor (RESOLVED).** `resolveCharacterSlug()` now delegates to `getConversationPersonaBinding(conv)`; the old `useCharacterStore.getState().selectedCharacterSlug` global fallback is gone. `buildStreamBody()` at `src/stores/chat-stream-manager.ts:84-89` deletes `veniceParameters.character_slug` for non-hosted bindings so the `/chat/completions` wire body **never** carries the wrong-persona slug, matching the work-order §1 mandate "do not fix persona leakage by clearing the UI selection". Call sites in `use-chat.ts:146` and `use-chat.ts:257` were left shape-compatible — the truthiness check unchanged at the boundary.
+- **Phase 1 — Regression suite (`src/stores/chat-stream-manager.test.ts`, new, 157 lines, 7 cases).**
+- **Phase 2 — CSP correction (RESOLVED).** `electron/utils/rendererCsp.ts:39` widened to `'self' data: blob: venice-character-cache: venice-media:`. **`media-src` left untouched**; arbitrary `https://` / `http://` / `file://` schemes are explicitly **not** added.
+- **Phase 2 — Regression assertions (`electron/utils/rendererCsp.test.ts`, +11 lines, 3 cases).**
+- **Diff stat:** `chat-stream-manager.test.ts +157`, `rendererCsp.test.ts +11/-2`, `chat-stream-manager.ts +0/-20`, `rendererCsp.ts +1/-1`, `conversationKind.ts +34`. **+208 / -20 across 5 modified or new files**.
+- **Validation:** `npx vitest run --fileParallelism=false src/stores/chat-stream-manager.test.ts electron/utils/rendererCsp.test.ts` → **21/21 PASS in 1.53 s**. `npx tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json` → **0 errors**. `npm run lint:eslint -- --quiet` → **0 warnings**.
+
+### Prior Session Summary (continuation 8 — P0 audit remediation)
 
 **Scope:** Re-opened `VF-CHAT-FOLDERS-MEDIA-DOCUMENTS-001` for the five P0 audit findings against the 9-phase closure and remediated each one in code with regression coverage. P0-01 (chat-folder backup not actually importing conversations) and P0-02 (default-profile chat-folder writing to the wrong directory) were completed in the prior compaction; this continuation finished P0-03 (canonical `ChatMediaReference[]` on agent-generated tool messages instead of legacy `{mediaId, mimeType}` stub), P0-04 (`executeMediaTool` routing through the guarded Venice broker instead of raw `fetch()`), and P0-05 (`composeTrustedRequest` no longer discards its tool runtime layer + universal-POST injection + immutable priority floor + dedup via FNV-1a hash + `{{time && date}}` placeholder substitution).
 
@@ -437,6 +483,23 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
   - Regression: `electron/agent/runtime/trusted-agent-request.test.ts` (10 cases — 4 original + 6 P0-XX) / 10 PASS — covers `composeAgentRuntime accepts non-trusted layers above priority floor`, `composeAgentRuntime rejects non-trusted layers below priority floor`, `dedup of identical tool-runtime layers by content hash (3 distinct tool-runtime layers survive: alpha, alpha|beta, gamma)`, `composeTrustedRequest attaches tool layer to chat-completions and prefixes messages[0]`, `composeTrustedRequest attaches tool layer to image-generate and prefixes body.prompt`, `{{time && date}} substitution`.
 - **`docs/ROADMAP.md:7`** appended `> Reopened for P0 remediation — 2026-07-20 session` blockquote listing P0-01..P0-05 with file paths, regression test files, and assertion counts (original 9-phase closure narrative preserved intact).
 
+**`gamora-black-bolt-power-girl` Phase 1 + 2 closeout (2026-07-20 continuation 9):** opened the 9-phase work order `docs/work-orders/gamora-black-bolt-power-girl.md` against 13 verified findings (VF-20260720-001..013); closed Phases 1 (P0 persona isolation) and 2 (P0 CSP correction). Plan mandates: do **not** clear UI selection as a fix for persona leakage; do **not** broaden CSP to `https:/http:/file:/*`; do **not** expose filesystem paths or grant IDs to the model; do **not** trust renderer-supplied profile or grant selection. Resolution order: P0 persona → P0 CSP → P0 document agent → P1 folder menu → P1 prompt inspector → P1 character image → P1 media vault → docs / validation / QA.
+
+- **Phase 1 — Persona isolation:** `src/utils/conversationKind.ts` (NEW) exports the `ConversationPersonaBinding` union plus `getConversationPersonaBinding(conversation)` which reads ONLY `conversation.metadata.character`. `src/stores/chat-stream-manager.ts resolveCharacterSlug` and `buildStreamBody` rewritten to consult only the binding; `useCharacterStore.getState().selectedCharacterSlug` global fallback is gone. `src/stores/chat-stream-manager.test.ts` (NEW, 7 PASS).
+- **Phase 2 — CSP correction:** `electron/utils/rendererCsp.ts:39` widened to `'self' data: blob: venice-character-cache: venice-media:`. `media-src` left untouched. `electron/utils/rendererCsp.test.ts` (+11, 3 PASS).
+- **Combined Phase 1+2 validation:** `npx vitest run --fileParallelism=false src/stores/chat-stream-manager.test.ts electron/utils/rendererCsp.test.ts` → **21/21 PASS in 1.53 s**. `tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json` → **0 errors**. `lint:eslint -- --quiet` → **0 warnings**.
+
+**`gamora-black-bolt-power-girl` Phase 3 §3.7 closeout (2026-07-20 continuation 10 — bounded multi-turn agent loop):** audit-confirmed that `electron/agent/runtime/chat-agent-runner.ts runChatAgentLoop` performed exactly one streaming turn + one tool batch and returned; the agent never iterated, never replied after seeing its own tool outputs, and never self-corrected. Fix extracts `streamAndExecuteTurn()` helper and wraps it in `MAX_AGENT_TURNS = 8`/`MAX_AGENT_TOOL_CALLS = 16` loop with explicit guard-block propagation and abort handling. Termination paths:
+- `result.kind === "blocked"` → return immediately (canonical 451 shape preserved).
+- `!turnResult.hasToolCalls` (model emitted text + `finish_reason: "stop"` or similar) → return final response.
+- `request.signal?.aborted` between turns → exit cleanly.
+- `MAX_AGENT_TOOL_CALLS` reached (16) or `MAX_AGENT_TURNS` reached (8) → exit cleanly with last streamed result.
+- **Body rebuild on continuation:** `{ ...currentBody, messages: [...previousMessages, assistantMessage(tool_calls:[...]), ...toolResultMessages] }`. The model now sees its own tool outputs and decides whether more tool work or a final answer is appropriate.
+- **`TOOL_RESULT_MAX_CHARS = 50_000`** hoisted from inline literal. **Fallback VeniceIpcResponse** now fully-typed (`statusText`, `headers`, `contentType`).
+- **Regression coverage:** `electron/agent/runtime/chat-agent-runner.test.ts` (4 EXISTING cases re-routed through `installSingleTurnMock(emitFirstTurn)` helper); `electron/agent/runtime/chat-agent-runner.multiturn.test.ts` (NEW, 5 cases / 5 PASS): two-turn happy path, `MAX_AGENT_TURNS=8` cap, body messages append integrity, abort between turns, guard-block propagation.
+- **Combined Phase 3 §3.7 validation:** `npx vitest run electron/agent/runtime/` → **26/26 PASS in 1.65 s**. `tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json` → **0 errors**. `lint:eslint --max-warnings=0` → **0 warnings**.
+- **Phase 3 remaining sub-steps** (§3.1 dedicated Component, §3.2 dedicated IPC channel, §3.3 grantId-from-model leak in `agent-tool-executor.ts`, §3.4 schema matrix, §3.5 unified `document.create`, §3.6 unimplemented-tool unadvertise, §3.10 `media.generateImage` executor contract hardening, §3.11 `DocumentAgentChat.tsx` UI, §3.12 17-bullet acceptance matrix) remain pending and progress to continuation 11.
+
 ## Validation Matrix
 
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
@@ -523,6 +586,32 @@ Run with `PATH="/opt/homebrew/opt/node@22/bin:$PATH"` prefix (Brew default Node 
 | `npm run verify:repository-identity` (retry after redaction) | PASS | `[verify:repository-identity] OK (git mode)` after replacing each literal local-session-state token with the placeholder `<local-copilot-session-state-redacted>` across both files. Pairs of the canonical path `/Users/super_user/Projects/Venice_Forge` remain exempt (L14/L611/L752/L933). |
 | `npm run verify:contracts` (full chain after redaction) | PASS | All static + non-smoke sub-verifiers green (103 satisfies). `repository-identity` no longer aborts the chain. |
 | `npm run build` | PASS | Renderer 802 ms → `dist/` (vendor chunks unchanged); electron main + preload → `dist-electron/electron/`; esbuild server → `dist/server.cjs` (93.0 kB). |
+
+### July 20 (continuation 9) — `gamora-black-bolt-power-girl` Phase 1 + 2 closeout
+
+Run with `PATH="/opt/homebrew/opt/node@22/bin:$PATH"` prefix (Brew default Node is v26.5.0, outside the `>=22.13.0 <23.0.0` engine pin).
+
+| Command | Result | Evidence |
+|---|---|---|
+| `npx vitest run --fileParallelism=false src/stores/chat-stream-manager.test.ts electron/utils/rendererCsp.test.ts` | PASS | **21/21 tests in 1.53 s** — 7 new Phase 1 persona isolation cases (standard→no-slug, hosted→preserves-slug+characterId, local→never-leaks-global, missing-metadata-forces-standard, cross-conversation isolation, switching-to-standard-removes-stale-slug, malformed-metadata-rejected) + 3 new Phase 2 CSP assertions (img-src contains `venice-media:`, img-src does not contain `https:` / `http:` / `file:`, media-src does not contain `venice-media:`) + 11 pre-existing CSP cases. |
+| `npx tsc --noEmit -p tsconfig.json` (renderer) | PASS | 0 errors. `src/utils/conversationKind.ts` new helper, `src/stores/chat-stream-manager.ts` refactor, and the persona isolation tests all compile cleanly under isolatedModules. |
+| `npx tsc --noEmit -p tsconfig.electron.json` (Electron) | PASS | 0 errors. `electron/utils/rendererCsp.ts` widening and CSP tests compile cleanly. |
+| `npm run lint:eslint -- --quiet` | PASS | 0 warnings under `--max-warnings=0` (renderer + electron + server + scripts). |
+| Diff stat | OK | `chat-stream-manager.test.ts +157`, `rendererCsp.test.ts +11/-2`, `chat-stream-manager.ts +0/-20` (net tightening), `rendererCsp.ts +1/-1`, `conversationKind.ts +34`. **+208 / -20 across 5 modified or new files**; zero unrelated-file edits. |
+
+### July 20 (continuation 10) — `gamora-black-bolt-power-girl` Phase 3 §3.7 closeout (bounded multi-turn agent loop)
+
+Run with `PATH="/opt/homebrew/opt/node@22/bin:$PATH"` prefix (Brew default Node is v26.5.0, outside the `>=22.13.0 <23.0.0` engine pin).
+
+| Command | Result | Evidence |
+|---|---|---|
+| `npx vitest run electron/agent/runtime/chat-agent-runner.multiturn.test.ts` | PASS | **5/5 tests in 204 ms** — Phase 3 §3.7 multi-turn loop cases (two-turn happy path, `MAX_AGENT_TURNS=8` cap with every turn requesting tool calls, body messages append integrity showing turn-2 body is `[user, assistant(tool_calls:[workspace.list]), tool(tool_call_id:call_aa, content:…)]`, abort between turns via `controller.abort()` after turn 1, guard-block propagation returning `{kind:"blocked", block:{…}}` after 1 dispatch). |
+| `npx vitest run electron/agent/runtime/` | PASS | **26/26 tests in 1.65 s** — 4 EXISTING `chat-agent-runner.test.ts` cases (canonical `ChatMediaReference[]` projection + legacy stub rejection + extra-field tolerance + executor error path) re-routed through the `installSingleTurnMock(emitFirstTurn)` helper + 5 NEW `chat-agent-runner.multiturn.test.ts` cases + 17 other agent runtime tests (`trusted-agent-request.test.ts` 10 + `agent-tool-executor.test.ts` 7). |
+| `npx tsc --noEmit -p tsconfig.json` (renderer) | PASS | 0 errors. Phase 3 §3.7 changes are Electron-side only; no renderer typecheck delta. |
+| `npx tsc --noEmit -p tsconfig.electron.json` (Electron) | PASS | 0 errors. `chat-agent-runner.ts refactor`, the new `ToolResultMessage` type narrowing, the typed `VeniceIpcResponse` fallback on `lastResult === null`, and the bounded loop body all compile cleanly. An intermediate typecheck failure (`TS2322 Record<string,unknown>[]` vs tool message union + flat-shape 500 response missing `statusText`/`headers`/`contentType`) was caught and resolved in the same session by narrowing `appendedMessages: ToolResultMessage[]` and configuring the fallback `VeniceIpcResponse` fully. |
+| `npm run lint:eslint -- --quiet` (retry 1) | WARN | `totalExecutedTurns is assigned but never used` flagged on `chat-agent-runner.ts:256`. The variable was redundant — `MAX_AGENT_TURNS` is enforced by the `for (let turn = 0; turn < MAX_AGENT_TURNS; turn++)` loop counter — so it was removed along with the `totalExecutedTurns += 1` increment. |
+| `npm run lint:eslint -- --quiet` (retry 2) | PASS | 0 warnings under `--max-warnings=0` after the unused-variable removal. |
+| Diff stat | OK | `chat-agent-runner.ts net refactor (+~70 LOC: `streamAndExecuteTurn` helper, bounded loop, `ToolResultMessage` literal type, typed `VeniceIpcResponse` fallback, `TOOL_RESULT_MAX_CHARS` constant hoist)`, `chat-agent-runner.test.ts +~30 LOC` (`installSingleTurnMock` helper introduction), `chat-agent-runner.multiturn.test.ts +148` (NEW — 5 multi-turn loop cases). |
 
 ### July 20 (continuation 5) — vo-shared: ChatMediaReference shared contract parity
 
@@ -788,6 +877,41 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-20 (continuation 10) — `gamora-black-bolt-power-girl` Phase 3 §3.7 closeout (bounded multi-turn agent loop)
+
+- **Scope:** Opened Phase 3 §3.7 of `docs/work-orders/gamora-black-bolt-power-girl.md`. Audit-confirmed `electron/agent/runtime/chat-agent-runner.ts runChatAgentLoop` performed exactly one streaming turn + one tool batch and returned. The agent never iterated; the model never saw its own tool outputs; the loop could not reply, self-correct, or chain multi-step work. Fix extracts `streamAndExecuteTurn()` helper and wraps it in a bounded `MAX_AGENT_TURNS = 8`/`MAX_AGENT_TOOL_CALLS = 16` loop, with explicit guard-block propagation, abort handling between turns, and a body rebuild on every continuation so the model sees the assistant tool_calls message + tool result messages it produced. Fallback when no result ever streams emits a fully-typed `VeniceIpcResponse` (no partial stub). The other 11 Phase 3 sub-steps (§3.1 dedicated Component, §3.2 dedicated IPC, §3.3 grantId-from-model leak, §3.4 schema matrix, §3.5 unified document.create, §3.6 unadvertise unimplemented tools, §3.10 media.generateImage contract hardening, §3.11 chat-agent UI, §3.12 17-bullet acceptance matrix) remain pending and progress to continuation 11.
+- **Implementation (`electron/agent/runtime/chat-agent-runner.ts`):**  
+  - Refactor: extracted `streamAndExecuteTurn(profileId, agentSessionId, body, signal, onDelta) → TurnResult` per-turn helper. Returns `{ result, finishReason, aggregatedToolCalls, appendedMessages: ToolResultMessage[], hasToolCalls }`.  
+  - `runChatAgentLoop(request, onDelta)` now iterates `for (let turn = 0; turn < MAX_AGENT_TURNS; turn++)` and:
+    - Returns the existing result on `result.kind === "blocked"` (canonical 451 shape preserved, no follow-up turn).
+    - Returns the existing result on `!turnResult.hasToolCalls` (model emitted text + `finish_reason: "stop"` or similar — natural assistant stop).
+    - Checks `request.signal?.aborted` before dispatching the next turn.
+    - Tracks `totalToolCallCount += turnResult.aggregatedToolCalls.size` and exits when `totalToolCallCount >= MAX_AGENT_TOOL_CALLS`.
+    - Rebuilds `currentBody.messages = [...previousMessages, assistantMessage(tool_calls:[…]), ...toolResultMessages]` before the next stream.
+    - Falls back to a fully-typed `{ ok:false, status:500, statusText:"Internal Server Error", headers:{}, body:{error:"agent loop produced no response"}, contentType:"application/json" }` when no result ever streams (fixes the pre-existing `TS2322` on a shape-stripped stub).
+  - Type tightening: `appendedMessages` is `ToolResultMessage[]` (`{role:"tool", tool_call_id, name, content, metadata?}`) — narrower than the historical `Record<string, unknown>[]` to satisfy the existing `SseChunk.appendedMessages` contract.
+- **Test refactor:** `electron/agent/runtime/chat-agent-runner.test.ts` (4 EXISTING cases) re-routed through `installSingleTurnMock(emitFirstTurn)` helper. First call invokes the test emitter (`tool_calls` + `finish_reason: "tool_calls"`); subsequent calls return a plain `finish_reason: "stop"` response so the bounded loop exits after the second dispatch without exhausting `MAX_AGENT_TURNS`. All 4 EXISTING cases still PASS.
+- **New test file:** `electron/agent/runtime/chat-agent-runner.multiturn.test.ts` (NEW, 5 cases / 5 PASS):  
+  1. Two-turn happy path (tool_calls → tool execution → final stop); second turn never dispatched after stop; appended tool messages count = 1.  
+  2. `MAX_AGENT_TURNS = 8` cap: 8 sequential tool_calls responses → exactly 8 `performGuardedVeniceRequest` calls then stops.  
+  3. Body messages append integrity: turn-1 body = `[user]`; turn-2 body = `[user, assistant(tool_calls:[workspace.list]), tool(tool_call_id:call_aa, content:…)]` — canonical OpenAI-style chat-completion conversation shape preserved.  
+  4. Abort between turns respected: `controller.abort()` after turn 1 → 1 dispatch.  
+  5. Guard-block propagation: `{kind:"blocked", block:{…451…}}` → 1 dispatch, immediate return.
+- **Constraint compliance:** stayed on `main`, no commit / no push, no verifier-script edits, no `dist:mac` / `dist:win`, no `package.json` edits. No unrelated-file edits. No API keys exposed. No raw prompt text logged (loop body uses canonical `tool_call_id`/`content` messages; nothing leaks to parameters).
+- **Final validation state for this continuation:** `vitest` 26/26 across `electron/agent/runtime/`; `tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json` → **0 errors** (renderer + Electron pipelines); `lint:eslint --max-warnings=0` → **0 warnings**.
+
+### 2026-07-20 (continuation 9) — `gamora-black-bolt-power-girl` Phase 1 + 2 closeout
+
+- **Scope:** Opened the 9-phase `docs/work-orders/gamora-black-bolt-power-girl.md` work order against 13 verified findings `VF-20260720-001..013` and executed Phases 1 (P0 character persona isolation) and 2 (P0 CSP correction). Phases 3–7 remain pending; this continuation establishes the regex-bounded, evidence-tracked baseline. The work-order spec mandates: do **not** clear UI selection as a fix for persona leakage; do **not** broaden CSP to `https:/http:/file:/*`; do **not** expose filesystem paths or grant IDs to the model; do **not** trust renderer-supplied profile or grant selection. Resolution order: P0 persona → P0 CSP → P0 document agent → P1 folder menu → P1 prompt inspector → P1 character image → P1 media vault → docs / validation / QA.
+- **Phase 1 — Persona isolation (RESOLVED).** `src/utils/conversationKind.ts` (NEW, 34 lines): exports the canonical `ConversationPersonaBinding` union = `{kind:'standard'} | {kind:'hosted-character', slug, characterId?} | {kind:'local-character', localCharacterId, systemPrompt}` plus the helper `getConversationPersonaBinding(conversation)`. It reads **only** `conversation.metadata.character` — no store lookups, no global fallback. Any conversation missing `metadata.character` returns `{kind:'standard'}` so the legacy chat path stays intact.
+- **Phase 1 — `chat-stream-manager.ts` refactor (RESOLVED).** `resolveCharacterSlug()` now delegates to `getConversationPersonaBinding(conv)`; the old `useCharacterStore.getState().selectedCharacterSlug` global fallback is gone. `buildStreamBody()` at `src/stores/chat-stream-manager.ts:84–89` deletes `veniceParameters.character_slug` for non-hosted bindings so the `/chat/completions` wire body **never** carries the wrong-persona slug. Call sites `use-chat.ts:146` & `use-chat.ts:257` left shape-compatible (truthiness check unchanged at the boundary).
+- **Phase 1 — Regression suite (NEW `src/stores/chat-stream-manager.test.ts`, 157 lines, 7 cases):** standard binding yields no slug → never consults global store; hosted binding preserves slug + characterId; local binding never leaks global state; missing metadata forces `{kind:'standard'}`; cross-conversation binding isolation; switching to standard removes stale slug from the wire body; malformed metadata (slug as number) rejected without throwing into the request path. Full pipeline (binding → resolve → build → wire JSON) is asserted for each binding class.
+- **Phase 2 — CSP correction (RESOLVED).** `electron/utils/rendererCsp.ts:39` img-src directive widened from `'self' data: blob: venice-character-cache:` to `'self' data: blob: venice-character-cache: venice-media:`. **`media-src` left untouched** so `<audio>` / `<video>` element-side loads remain on the conservative policy; arbitrary `https://` / `http://` / `file://` schemes are explicitly **not** added to either directive — durable generated media continue to flow through the existing image-policy verifier (`verify:image-policy`). Only the canonical `venice-media://<sha256>` opaque-handle scheme is added.
+- **Phase 2 — Regression assertions (`electron/utils/rendererCsp.test.ts`, +11 lines, 3 cases NEW):** img-src contains `venice-media:` post-widening; img-src does **not** contain `https:` / `http:` / `file:` (no scheme broadening); `media-src` directive intentionally does not contain `venice-media:` (img-only).
+- **Combined Phase 1 + 2 validation:** `npx vitest run --fileParallelism=false src/stores/chat-stream-manager.test.ts electron/utils/rendererCsp.test.ts` → **21/21 PASS in 1.53 s** (7 new persona cases + 3 new CSP cases + 11 pre-existing CSP cases). `npx tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json` → **0 errors** (renderer + Electron pipelines). `npm run lint:eslint -- --quiet` → **0 warnings** under `--max-warnings=0`.
+- **Diff stat:** `chat-stream-manager.test.ts +157`, `rendererCsp.test.ts +11/-2`, `chat-stream-manager.ts +0/-20` (net tightening), `rendererCsp.ts +1/-1`, `conversationKind.ts +34` — **+208 / -20 across 5 modified or new files**, zero unrelated-file edits.
+- **Deliverable evidence:** `docs/reports/VENICE_FORGE_2026-07-20_REMEDIATION_REPORT.md` updated with full Phase 1 + 2 closeout (`Files Changed`, `Tests Added or Updated`, `Commands Executed`, `Validation Results`, `Remaining Risks`, `Deferred Work`). This ledger updated with the latest session summary, Open TODO Ledger entry, Validation Matrix table, and Session History entry.
 
 ### 2026-07-20 (continuation 8) — P0 audit remediation closeout
 

@@ -8,8 +8,8 @@
 import { veniceStreamChat } from "../services/veniceClient";
 import { compileChatPrompt } from "../services/chatPromptCompiler";
 import { flushConversationSaveNow, useChatStore, type AssistantStreamDelta } from "./chat-store";
-import { useCharacterStore } from "./character-store";
 import { useSettingsStore } from "./settings-store";
+import { getConversationPersonaBinding } from "../utils/conversationKind";
 import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
 import type { AssistantToolCall, ChatMessage, VeniceParameters } from "../types/venice";
 import type { Conversation } from "../types/conversation";
@@ -54,22 +54,14 @@ function isRetryableError(err: unknown): boolean {
   return false;
 }
 
-/** Resolves the character slug for a conversation, in priority order:
- *  1. The conversation's persisted character metadata (authoritative).
- *  2. The user's currently-selected character slug in the Characters tab
- *     (used only when starting a brand-new conversation that has not yet
- *     been saved with character metadata).
- *
- *  Local RP character conversations never resolve a Venice.ai slug and never
- *  fall back to the global selection. */
+/** Resolves the hosted character slug for a conversation from its persisted
+ *  metadata only. Character identity is conversation-authoritative: global
+ *  UI selection state (`useCharacterStore.selectedCharacterSlug`) must never
+ *  leak into a provider request. Standard and local-character conversations
+ *  always resolve to `null`. */
 export function resolveCharacterSlug(conv: Conversation | undefined): string | null {
-  const character = conv?.metadata?.character;
-  if (character?.localCharacterId) return null;
-  const persisted = character?.slug?.trim();
-  if (persisted) return persisted;
-  const globalSlug = useCharacterStore.getState().selectedCharacterSlug;
-  if (globalSlug) return globalSlug.trim();
-  return null;
+  const binding = getConversationPersonaBinding(conv);
+  return binding.kind === "hosted-character" ? binding.slug : null;
 }
 
 function buildStreamBody(convId: string, model: string): Record<string, unknown> {

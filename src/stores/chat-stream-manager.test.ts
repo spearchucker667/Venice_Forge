@@ -9,6 +9,7 @@ import {
   subscribeToStreamState,
 } from "./chat-stream-manager";
 import { useChatStore } from "./chat-store";
+import { useCharacterStore } from "./character-store";
 import { veniceStreamChat } from "../services/veniceClient";
 
 vi.mock("../services/veniceClient", () => ({
@@ -266,5 +267,161 @@ describe("chat-stream-manager", () => {
     expect(listener.mock.calls.some((call) => call[0].isStreaming === true)).toBe(true);
 
     unsubscribe();
+  });
+});
+
+// VF-20260720-001 / persona isolation: character identity must be
+// conversation-authoritative. Global UI selection must never leak a hosted
+// slug into standard or local-character requests.
+describe("persona isolation (VF-20260720-001)", () => {
+  const CHARACTER = {
+    id: "char-1",
+    slug: "alan-watts",
+    name: "Alan Watts",
+    description: "British philosopher",
+    adult: false,
+    featured: true,
+    shareUrl: "https://venice.ai/c/alan-watts",
+    photoUrl: "https://outerface.venice.ai/alan-watts.png",
+    tags: [],
+    webEnabled: false,
+    modelId: "llama-3.3-70b",
+    stats: { averageRating: 4.6 },
+  };
+
+  function lastRequestBody(): Record<string, unknown> {
+    return mockedVeniceStreamChat.mock.calls.at(-1)![0] as Record<string, unknown>;
+  }
+
+  function veniceParameters(): Record<string, unknown> {
+    return lastRequestBody().venice_parameters as Record<string, unknown>;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    resetStores();
+    vi.clearAllMocks();
+    useCharacterStore.setState({
+      selectedCharacter: CHARACTER,
+      selectedCharacterSlug: CHARACTER.slug,
+    } as never);
+  });
+
+  afterEach(() => {
+    stopStream();
+    resetStores();
+    useCharacterStore.setState({ selectedCharacter: null, selectedCharacterSlug: null } as never);
+    vi.useRealTimers();
+  });
+
+  it("sends no character_slug for a new standard chat while a hosted character is globally selected", async () => {
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "llama-3.3-70b");
+
+    expect(veniceParameters()).not.toHaveProperty("character_slug");
+  });
+
+  it("sends no character_slug when switching from a hosted chat to an existing standard chat", async () => {
+    const hostedId = useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
+    useChatStore.getState().addMessage(hostedId, { role: "user", content: "Hi character" });
+    const standardId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(standardId, { role: "user", content: "Hi standard" });
+    mockedVeniceStreamChat.mockResolvedValue(undefined);
+
+    await startStream(hostedId, "llama-3.3-70b");
+    expect(veniceParameters().character_slug).toBe("alan-watts");
+
+    await startStream(standardId, "llama-3.3-70b");
+    expect(veniceParameters()).not.toHaveProperty("character_slug");
+  });
+
+  it("hosted character conversation sends its persisted slug and disables the Venice default system prompt", async () => {
+    const convId = useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "llama-3.3-70b");
+
+    expect(veniceParameters().character_slug).toBe("alan-watts");
+    expect(veniceParameters().include_venice_system_prompt).toBe(false);
+  });
+
+  it("hosted binding survives store rehydration from persisted metadata", async () => {
+    const convId = useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+    const persisted = useChatStore.getState().conversations.find((c) => c.id === convId)!;
+    // Simulate rehydration: replace in-memory conversations with the persisted copy.
+    useChatStore.setState({ conversations: [structuredClone(persisted)] });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "llama-3.3-70b");
+
+    expect(veniceParameters().character_slug).toBe("alan-watts");
+  });
+
+  it("local character conversation never sends a hosted slug", async () => {
+    const card = {
+      schema: "CharacterCardV1",
+      id: "local-card-1",
+      name: "Local Test",
+      description: "local",
+      systemPrompt: "You are a local character.",
+      tags: [],
+      adult: false,
+      exampleDialogues: [],
+      modelId: "llama-3.3-70b",
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const convId = useChatStore.getState().createLocalCharacterConversation(card as never, "llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "llama-3.3-70b");
+
+    expect(veniceParameters()).not.toHaveProperty("character_slug");
+  });
+
+  it("standard chat restores the configured Venice default-system-prompt flag after a character chat", async () => {
+    useChatStore.setState({
+      veniceParams: { include_venice_system_prompt: true, enable_web_search: "off" },
+    });
+    const hostedId = useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
+    useChatStore.getState().addMessage(hostedId, { role: "user", content: "Hi" });
+    const standardId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(standardId, { role: "user", content: "Hi" });
+    mockedVeniceStreamChat.mockResolvedValue(undefined);
+
+    await startStream(hostedId, "llama-3.3-70b");
+    expect(veniceParameters().include_venice_system_prompt).toBe(false);
+
+    await startStream(standardId, "llama-3.3-70b");
+    expect(veniceParameters().include_venice_system_prompt).toBe(true);
+  });
+
+  it("retry rebuilds the request from conversation metadata, not global selection", async () => {
+    const hostedId = useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
+    useChatStore.getState().addMessage(hostedId, { role: "user", content: "Hi" });
+    const standardId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(standardId, { role: "user", content: "Hi" });
+    // First attempt fails retryably, second succeeds.
+    mockedVeniceStreamChat
+      .mockRejectedValueOnce(Object.assign(new Error("upstream"), { status: 502 }))
+      .mockResolvedValueOnce(undefined);
+
+    const promise = startStream(standardId, "llama-3.3-70b");
+    await vi.advanceTimersByTimeAsync(2000);
+    await promise;
+
+    // Change global selection between attempts must not matter; every call
+    // for this standard conversation must lack character_slug.
+    for (const call of mockedVeniceStreamChat.mock.calls) {
+      const params = (call[0] as Record<string, unknown>).venice_parameters as Record<string, unknown>;
+      expect(params).not.toHaveProperty("character_slug");
+    }
+    expect(hostedId).not.toBe(standardId);
   });
 });

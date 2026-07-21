@@ -85,13 +85,51 @@ function extractCanonicalChatMediaReferences(toolResult: { ok: boolean; data?: u
   return [ref];
 }
 
-export async function runChatAgentLoop(
-  request: { profileId?: string; agentSessionId?: string; body?: unknown; signal?: AbortSignal },
-  onDelta: (chunk: SseChunk) => void
-): Promise<GuardedVeniceResult> {
-  const profileId = request.profileId ?? "";
-  const agentSessionId = request.agentSessionId;
+/**
+ * Bounded multi-turn agent loop.
+ *
+ * Phase 3 §3.7 — VF-20260720-005 verification.
+ *
+ * Why bounded: the prior implementation stopped after the first tool
+ * execution. The model never saw its own tool outputs and could not
+ * iterate, reply, or self-correct. This implementation streams up to
+ * 8 model turns and 16 executed tool calls per request, then returns
+ * the last `GuardedVeniceResult`. The loop terminates early when:
+ *
+ * - the upstream finishes with a non-`tool_calls` finish_reason,
+ * - the body contains no usable tool calls,
+ * - the caller signal aborts,
+ * - the bound (8 turns / 16 executed tool calls) is reached.
+ *
+ * The dispatched chat messages (assistant tool_calls + tool result
+ * tool messages) are appended to the request body's `messages` array
+ * before the next turn dispatch.
+ */
+const MAX_AGENT_TURNS = 8;
+const MAX_AGENT_TOOL_CALLS = 16;
+const TOOL_RESULT_MAX_CHARS = 50000;
 
+interface TurnResult {
+  result: GuardedVeniceResult;
+  finishReason: string | null;
+  aggregatedToolCalls: Map<number, AssistantToolCall>;
+  appendedMessages: ToolResultMessage[];
+  hasToolCalls: boolean;
+}
+
+type AppMessageRole = "tool";
+type ToolResultMessage = {
+  role: AppMessageRole;
+  tool_call_id: string;
+  name: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+};
+
+async function streamAndExecuteTurn(
+  request: { profileId: string; agentSessionId?: string; body?: unknown; signal?: AbortSignal },
+  onDelta: (chunk: SseChunk) => void
+): Promise<TurnResult> {
   const aggregatedToolCalls = new Map<number, AssistantToolCall>();
   let finalFinishReason: string | null = null;
 
@@ -130,39 +168,129 @@ export async function runChatAgentLoop(
     },
   });
 
-  if (result.kind === "blocked") return result;
+  if (result.kind === "blocked") {
+    return {
+      result,
+      finishReason: null,
+      aggregatedToolCalls,
+      appendedMessages: [],
+      hasToolCalls: false,
+    };
+  }
 
+  const appendedMessages: ToolResultMessage[] = [];
   if (aggregatedToolCalls.size > 0 && finalFinishReason === "tool_calls") {
     const toolCalls = Array.from(aggregatedToolCalls.values());
-    const appendedMessages = [];
 
     for (const call of toolCalls) {
       if (request.signal?.aborted) break;
-      const toolResult = await executeAgentTool(profileId, call, agentSessionId);
+      const toolResult = await executeAgentTool(request.profileId, call, request.agentSessionId);
       const rawResult = toolResult.ok ? JSON.stringify(toolResult.data) : JSON.stringify(toolResult.error);
       const chatMediaRefs = extractCanonicalChatMediaReferences(toolResult);
       const metadata: Record<string, unknown> | undefined = chatMediaRefs.length > 0
         ? { generatedMedia: chatMediaRefs }
         : undefined;
-      const toolMsg = {
-        role: "tool" as const,
+      const toolMsg: ToolResultMessage = {
+        role: "tool",
         tool_call_id: call.id,
         name: call.function.name,
-        content: rawResult.length > 50000 ? rawResult.slice(0, 50000) + "...[truncated]" : rawResult,
-        // Attach the canonical `ChatMediaReference[]` only when the executor
-        // produced a validated ref. P0-03 audit finding #3 — without this
-        // the chat-store Media Studio upsert path either skipped validation
-        // entirely or surfaced a stub `{mediaId, mimeType}` object that failed
-        // the canonical contract and rendered as a broken link.
+        content: rawResult.length > TOOL_RESULT_MAX_CHARS
+          ? rawResult.slice(0, TOOL_RESULT_MAX_CHARS) + "...[truncated]"
+          : rawResult,
         ...(metadata ? { metadata } : {})
       };
       appendedMessages.push(toolMsg);
     }
 
     if (appendedMessages.length > 0) {
-      onDelta({ appendedMessages });
+      // Cast: `SseChunk.appendedMessages` accepts either tool result
+      // messages (this streamAndExecuteTurn path) or other providers
+      // (assistant tool_calls). The agent loop only emits tool result
+      // messages here, so the narrower `ToolResultMessage[]` is valid.
+      const chunk = { appendedMessages } as unknown as SseChunk;
+      onDelta(chunk);
     }
   }
 
-  return result;
+  return {
+    result,
+    finishReason: finalFinishReason,
+    aggregatedToolCalls,
+    appendedMessages,
+    hasToolCalls: aggregatedToolCalls.size > 0 && finalFinishReason === "tool_calls",
+  };
+}
+
+export async function runChatAgentLoop(
+  request: { profileId?: string; agentSessionId?: string; body?: unknown; signal?: AbortSignal },
+  onDelta: (chunk: SseChunk) => void
+): Promise<GuardedVeniceResult> {
+  const profileId = request.profileId ?? "";
+  const agentSessionId = request.agentSessionId;
+
+  let currentBody = request.body;
+  let lastResult: GuardedVeniceResult | null = null;
+  let totalToolCallCount = 0;
+
+  for (let turn = 0; turn < MAX_AGENT_TURNS; turn++) {
+    if (request.signal?.aborted) break;
+    if (totalToolCallCount >= MAX_AGENT_TOOL_CALLS) break;
+
+    const turnResult = await streamAndExecuteTurn(
+      { profileId, agentSessionId, body: currentBody, signal: request.signal },
+      onDelta
+    );
+
+    lastResult = turnResult.result;
+
+    if (turnResult.result.kind === "blocked") {
+      return turnResult.result;
+    }
+
+    if (!turnResult.hasToolCalls) {
+      // Final assistant turn (no tool calls pending): exit the loop.
+      return turnResult.result;
+    }
+
+    totalToolCallCount += turnResult.aggregatedToolCalls.size;
+
+    // Build next request body: append an assistant message describing the
+    // tool calls followed by every tool result message. The model reads
+    // both halves on the next stream and decides whether more tool work
+    // is needed before producing the user-visible reply.
+    const assistantToolCalls = Array.from(turnResult.aggregatedToolCalls.values()).map(tc => ({
+      id: tc.id || "",
+      type: "function" as const,
+      function: {
+        name: tc.function.name,
+        arguments: tc.function.arguments,
+      },
+    }));
+    const assistantMessage = {
+      role: "assistant" as const,
+      content: "",
+      tool_calls: assistantToolCalls,
+    };
+    const previousMessages = Array.isArray((currentBody as { messages?: unknown } | null)?.messages)
+      ? ((currentBody as { messages: unknown[] }).messages)
+      : [];
+    const nextMessages = [
+      ...previousMessages,
+      assistantMessage,
+      ...turnResult.appendedMessages,
+    ];
+    currentBody = { ...(currentBody as Record<string, unknown>), messages: nextMessages };
+  }
+
+  return lastResult ?? {
+    kind: "response",
+    response: {
+      ok: false,
+      status: 500,
+      statusText: "Internal Server Error",
+      headers: {},
+      body: { error: "agent loop produced no response" },
+      contentType: "application/json",
+    },
+  };
 }

@@ -5,12 +5,17 @@ import { rendererCsp } from "./rendererCsp";
 
 describe("rendererCsp", () => {
   // VERIFY-062: production CSP must not allow arbitrary https: images.
-  it("production CSP does not allow arbitrary https: image sources", () => {
+  // VF-20260720-002: durable generated images render via venice-media:, so
+  // img-src must permit that scheme without opening arbitrary remote/file
+  // sources.
+  it("production CSP permits internal image schemes but no arbitrary https: image sources", () => {
     const csp = rendererCsp(false);
-    expect(csp).toContain("img-src 'self' data: blob: venice-character-cache:");
+    expect(csp).toContain("img-src 'self' data: blob: venice-character-cache: venice-media:");
     expect(csp).toContain("media-src 'self' blob: venice-media:");
-    expect(csp).not.toContain("img-src 'self' data: blob: https: venice-character-cache:");
     expect(csp).not.toMatch(/img-src[^;]*\shttps:/);
+    expect(csp).not.toMatch(/img-src[^;]*\shttp:/);
+    expect(csp).not.toMatch(/img-src[^;]*\sfile:/);
+    expect(csp).not.toMatch(/img-src[^;]*\s\*(;|$)/);
   });
 
   it("development CSP keeps local dev origins for HMR", () => {
