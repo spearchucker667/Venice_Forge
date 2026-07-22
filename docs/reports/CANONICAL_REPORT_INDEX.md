@@ -14,6 +14,7 @@ This index maps retained audit and report artifacts to their current authority. 
 | 2026-07-17 03:10 deep-scan audit input and evidence manifest | Deleted (remediated live status remains in ROADMAP.md and summary_of_work.md) |
 | 2026-07-12/13 media and character snapshot evidence | [`MEDIA_CHARACTER_REMEDIATION_REPORT.md`](MEDIA_CHARACTER_REMEDIATION_REPORT.md) |
 | 2026-07-15 video, Character Chats, and UI snapshot evidence | [`VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md`](VIDEO_GALLERY_CHARACTER_CHATS_UI_SURFACE_REMEDIATION_REPORT.md) |
+| 2026-07-21 Theme Engine, Border System, and Theme Portability Audit Report | [`VENICE_FORGE_THEME_ENGINE_BORDER_AND_PORTABILITY_AUDIT_2026-07-21.md`](VENICE_FORGE_THEME_ENGINE_BORDER_AND_PORTABILITY_AUDIT_2026-07-21.md) |
 
 Only the first four rows are current operational authorities. Dated evidence rows are immutable inputs and never override the live tree or roadmap.
 

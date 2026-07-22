@@ -132,6 +132,10 @@ interface SettingsState {
   setSelectedThemeId: (id: string) => void
   customTheme: Theme | null
   setCustomTheme: (theme: Theme | null) => void
+  customThemes: Theme[]
+  setCustomThemes: (themes: Theme[]) => void
+  saveCustomTheme: (theme: Theme) => void
+  deleteCustomTheme: (id: string) => void
   appearanceMode: 'dark' | 'light'
   setAppearanceMode: (mode: 'dark' | 'light') => void
   imageDownloadDirectory: string
@@ -237,6 +241,31 @@ export const useSettingsStore = create<SettingsState>()(
       setSelectedThemeId: (id) => set({ selectedThemeId: id }),
       customTheme: null,
       setCustomTheme: (theme) => set({ customTheme: theme }),
+      customThemes: [],
+      setCustomThemes: (themes) => set({ customThemes: themes }),
+      saveCustomTheme: (theme) => set((state) => {
+        const existingIdx = state.customThemes.findIndex((t) => t.id === theme.id);
+        const updated = existingIdx >= 0
+          ? state.customThemes.map((t, idx) => (idx === existingIdx ? theme : t))
+          : [...state.customThemes, theme];
+        return {
+          customThemes: updated,
+          customTheme: theme,
+          selectedThemeId: theme.id,
+          appearanceMode: theme.mode,
+        };
+      }),
+      deleteCustomTheme: (id) => set((state) => {
+        const filtered = state.customThemes.filter((t) => t.id !== id);
+        const wasActive = state.selectedThemeId === id || (id === 'custom' && state.selectedThemeId === 'custom');
+        const fallbackTheme = filtered.length > 0 ? filtered[0] : null;
+        return {
+          customThemes: filtered,
+          customTheme: wasActive ? fallbackTheme : state.customTheme,
+          selectedThemeId: wasActive ? (fallbackTheme ? fallbackTheme.id : 'builtin-venice') : state.selectedThemeId,
+          appearanceMode: wasActive ? (fallbackTheme ? fallbackTheme.mode : 'dark') : state.appearanceMode,
+        };
+      }),
       appearanceMode: 'dark',
       setAppearanceMode: (mode) => set({ appearanceMode: mode }),
       imageDownloadDirectory: '',
@@ -315,7 +344,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'venice-settings',
-      version: 11,
+      version: 12,
       storage: createJSONStorage(() => createSafeStorage()),
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
@@ -369,6 +398,10 @@ export const useSettingsStore = create<SettingsState>()(
           // prompt text is never exported/copied unless explicitly opted in;
           // we only preserve an explicit on-state that already lives in storage.
           diagnosticsIncludePrompts: state.diagnosticsIncludePrompts === true,
+          // v12: customThemes array migration. Existing single customTheme is preserved.
+          customThemes: Array.isArray(state.customThemes)
+            ? state.customThemes
+            : (state.customTheme ? [state.customTheme] : []),
         } as SettingsState
       },
       merge: (persisted, current) => ({

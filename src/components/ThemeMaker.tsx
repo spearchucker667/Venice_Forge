@@ -91,12 +91,43 @@ const TOKEN_LABELS: Record<keyof ThemeTokens, string> = {
   glow: "Glow",
 };
 
+const TOKEN_CATEGORIES: Array<{
+  name: string;
+  keys: Array<keyof ThemeTokens>;
+}> = [
+  {
+    name: "Surfaces & Backgrounds",
+    keys: ["background", "surface", "surfaceElevated", "surfaceMuted", "overlay", "glow"],
+  },
+  {
+    name: "Typography & Text",
+    keys: ["foreground", "foregroundMuted", "foregroundSubtle", "placeholder", "disabledForeground", "link"],
+  },
+  {
+    name: "Borders & Focus",
+    keys: ["border", "borderStrong", "focusRing", "selectionBackground", "selectionForeground"],
+  },
+  {
+    name: "Controls & Buttons",
+    keys: ["accent", "accentHover", "accentForeground", "buttonPrimaryBackground", "buttonPrimaryForeground", "buttonSecondaryBackground", "buttonSecondaryForeground", "inputBackground", "inputForeground"],
+  },
+  {
+    name: "Status & Feedback",
+    keys: ["success", "successForeground", "warning", "warningForeground", "danger", "dangerForeground", "info"],
+  },
+];
+
 function cloneTheme(theme: Theme): Theme {
   return { ...theme, tokens: completeThemeTokens(theme.mode, theme.tokens) };
 }
 
 function defaultCustomTheme(): Theme {
-  return cloneTheme(BUILTIN_VENICE);
+  return {
+    id: `custom-${Date.now()}`,
+    name: "My Custom Theme",
+    mode: "dark",
+    tokens: completeThemeTokens("dark", BUILTIN_VENICE.tokens),
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -158,7 +189,7 @@ export async function yamlToTheme(yamlStr: string): Promise<Theme> {
     const name = typeof first.display_name === "string" && first.display_name.trim()
       ? first.display_name.trim()
       : "Imported Theme";
-    return { id: "custom", name, mode, tokens: importedTokens(mode, first.tokens) };
+    return { id: `custom-${Date.now()}`, name, mode, tokens: importedTokens(mode, first.tokens) };
   }
 
   const background = typeof raw.background === "string" ? raw.background : null;
@@ -209,26 +240,27 @@ export async function yamlToTheme(yamlStr: string): Promise<Theme> {
     overlay: mode === "light" ? "rgba(0, 0, 0, 0.25)" : "rgba(0, 0, 0, 0.6)",
     glow: `${accent}25`,
   };
-  return { id: "custom", name, mode, tokens: completeThemeTokens(mode, legacy) };
+  return { id: `custom-${Date.now()}`, name, mode, tokens: completeThemeTokens(mode, legacy) };
+}
+
+const EMPTY_CUSTOM_THEMES: Theme[] = [];
+
+interface ImportPreviewModalState {
+  theme: Theme;
+  conflictId?: string;
+  conflictName?: string;
 }
 
 export function ThemeMaker() {
   const selectedThemeId = useSettingsStore((s) => s.selectedThemeId) || "builtin-venice";
   const customTheme = useSettingsStore((s) => s.customTheme);
+  const customThemes = useSettingsStore((s) => s.customThemes) ?? EMPTY_CUSTOM_THEMES;
   const setSelectedThemeId = useSettingsStore((s) => s.setSelectedThemeId);
   const setCustomTheme = useSettingsStore((s) => s.setCustomTheme);
+  const saveCustomThemeStore = useSettingsStore((s) => s.saveCustomTheme);
+  const deleteCustomThemeStore = useSettingsStore((s) => s.deleteCustomTheme);
   const setAppearanceMode = useSettingsStore((s) => s.setAppearanceMode);
   const yamlThemes = useConfigStore((s) => s.yamlThemes);
-
-  const [draft, setDraft] = useState<Theme>(() => cloneTheme(customTheme || defaultCustomTheme()));
-  const [selector, setSelector] = useState<string>(selectedThemeId || "builtin-venice");
-
-  useEffect(() => {
-    if (selectedThemeId === "custom" && customTheme) {
-      setDraft(cloneTheme(customTheme));
-    }
-    setSelector(selectedThemeId || "builtin-venice");
-  }, [selectedThemeId, customTheme]);
 
   const builtInMap: Record<string, Theme> = useMemo(
     () => ({
@@ -271,7 +303,37 @@ export function ThemeMaker() {
     []
   );
 
-  const allThemesMap = useMemo(() => ({ ...builtInMap, ...yamlThemes }), [builtInMap, yamlThemes]);
+  const customThemesMap = useMemo(() => {
+    const map: Record<string, Theme> = {};
+    customThemes.forEach((t) => { map[t.id] = t; });
+    if (customTheme && !map[customTheme.id]) {
+      map[customTheme.id] = customTheme;
+    }
+    return map;
+  }, [customThemes, customTheme]);
+
+  const allThemesMap = useMemo(() => ({ ...builtInMap, ...yamlThemes, ...customThemesMap }), [builtInMap, yamlThemes, customThemesMap]);
+
+  const [selector, setSelector] = useState<string>(selectedThemeId || "builtin-venice");
+  const [draft, setDraft] = useState<Theme>(() => {
+    const active = allThemesMap[selectedThemeId] || customTheme || BUILTIN_VENICE;
+    return cloneTheme(active);
+  });
+  const [importModal, setImportModal] = useState<ImportPreviewModalState | null>(null);
+
+  useEffect(() => {
+    setSelector(selectedThemeId || "builtin-venice");
+    const active = allThemesMap[selectedThemeId] || customTheme || BUILTIN_VENICE;
+    setDraft(cloneTheme(active));
+  }, [selectedThemeId, customTheme, customThemes, allThemesMap]);
+
+  const isCustomSelected = selector === "custom" || Boolean(customThemesMap[selector]);
+
+  const isDraftDirty = useMemo(() => {
+    const currentStored = allThemesMap[selector] || customTheme || BUILTIN_VENICE;
+    if (draft.name !== currentStored.name || draft.mode !== currentStored.mode) return true;
+    return JSON.stringify(draft.tokens) !== JSON.stringify(currentStored.tokens);
+  }, [draft, selector, allThemesMap, customTheme]);
 
   const themeOptions = useMemo(() => {
     const builtInOptions = [
@@ -312,22 +374,45 @@ export function ThemeMaker() {
       { id: "builtin-ultraviolet-rain", label: "Ultraviolet Rain" },
     ];
     const yamlOptions = Object.entries(yamlThemes).map(([id, theme]) => ({ id, label: theme.name }));
-    return [...builtInOptions, ...yamlOptions, { id: "custom", label: "Custom" }];
-  }, [yamlThemes]);
+    const customUserOptions = Object.values(customThemesMap).map((theme) => ({ id: theme.id, label: theme.name }));
+    const options = [...builtInOptions, ...yamlOptions, ...customUserOptions];
+    if (!options.some((o) => o.id === "custom")) {
+      options.push({ id: "custom", label: "Custom Theme" });
+    }
+    return options;
+  }, [yamlThemes, customThemesMap]);
 
   function handleSelect(id: string) {
     setSelector(id);
     if (id !== "custom") {
       const theme = allThemesMap[id] || BUILTIN_VENICE;
+      setDraft(cloneTheme(theme));
       applyTheme(theme);
       setSelectedThemeId(id);
       setAppearanceMode(theme.mode);
-      setCustomTheme(null);
+      if (customThemesMap[id]) {
+        setCustomTheme(customThemesMap[id]);
+      }
     } else {
       const base = customTheme ? cloneTheme(customTheme) : defaultCustomTheme();
       setDraft(base);
       applyTheme(base);
     }
+  }
+
+  function handleCreateNewFromActive() {
+    const base = allThemesMap[selector] || draft || BUILTIN_VENICE;
+    const newTheme: Theme = {
+      id: `user-theme-${Date.now()}`,
+      name: `${base.name} (Custom)`,
+      mode: base.mode,
+      tokens: completeThemeTokens(base.mode, base.tokens),
+    };
+    setDraft(newTheme);
+    setSelector(newTheme.id);
+    applyTheme(newTheme);
+    saveCustomThemeStore(newTheme);
+    toast.success(`Created new custom theme "${newTheme.name}"`);
   }
 
   function updateToken(key: keyof ThemeTokens, value: string) {
@@ -338,23 +423,39 @@ export function ThemeMaker() {
     });
   }
 
+  function updateMode(mode: ThemeMode) {
+    setDraft((prev: Theme) => {
+      const next = cloneTheme(prev);
+      next.mode = mode;
+      return next;
+    });
+  }
+
+  function updateName(name: string) {
+    setDraft((prev: Theme) => ({ ...prev, name }));
+  }
+
   useEffect(() => {
-    if (selector === "custom") {
+    if (isCustomSelected || isDraftDirty) {
       applyTheme(draft);
     }
-  }, [draft, selector]);
+  }, [draft, isCustomSelected, isDraftDirty]);
 
   function handleSave() {
-    setSelectedThemeId("custom");
-    setAppearanceMode(draft.mode);
+    saveCustomThemeStore(draft);
     setCustomTheme(draft);
-    toast.success("Theme saved successfully");
+    setSelectedThemeId(draft.id);
+    setAppearanceMode(draft.mode);
+    setSelector(draft.id);
+    toast.success(`Theme "${draft.name}" saved successfully`);
   }
 
   function handleReset() {
-    const base = customTheme ? cloneTheme(customTheme) : defaultCustomTheme();
-    setDraft(base);
-    applyTheme(base);
+    const stored = allThemesMap[selector] || customTheme || BUILTIN_VENICE;
+    const reverted = cloneTheme(stored);
+    setDraft(reverted);
+    applyTheme(reverted);
+    toast.info("Unsaved draft changes reset");
   }
 
   function handleRestoreDefaults() {
@@ -363,46 +464,113 @@ export function ThemeMaker() {
     setSelectedThemeId("builtin-venice");
     setAppearanceMode("dark");
     setCustomTheme(null);
+    setDraft(cloneTheme(BUILTIN_VENICE));
+    toast.info("Restored default Venice theme");
+  }
+
+  function handleDeleteCustom() {
+    if (!customThemesMap[selector] && selector !== "custom") return;
+    const targetId = selector;
+    deleteCustomThemeStore(targetId);
+    toast.info("Custom theme deleted");
   }
 
   async function handleExport() {
     try {
       const yaml = await themeToYaml(draft);
-      await desktopFiles.exportYaml(yaml, "theme.yaml");
+      const filename = `${draft.name.toLowerCase().replace(/[^a-z0-9_-]/g, "_")}.theme.yaml`;
+      await desktopFiles.exportYaml(yaml, filename);
+      toast.success("Theme exported successfully");
     } catch (err) {
       toast.error("Failed to export theme", redactErrorMessage(err));
     }
   }
 
-  async function handleImport() {
+  async function handleImportClick() {
     try {
       const yaml = await desktopFiles.importYamlString();
       if (!yaml) return;
       const importedTheme = await yamlToTheme(yaml);
-      setDraft(importedTheme);
-      applyTheme(importedTheme);
-      toast.info("Theme imported, make sure to save it.");
+
+      const conflict = customThemes.find((t) => t.id === importedTheme.id || t.name.toLowerCase() === importedTheme.name.toLowerCase());
+      setImportModal({
+        theme: importedTheme,
+        conflictId: conflict?.id,
+        conflictName: conflict?.name,
+      });
     } catch (err) {
       toast.error("Failed to import theme", redactErrorMessage(err));
     }
   }
 
-  const validColor = (v: string) => isValidColorValue(v);
+  function confirmImport(mode: "apply" | "copy" | "replace") {
+    if (!importModal) return;
+    const targetId = (mode === "copy" || (mode === "apply" && importModal.conflictId))
+      ? `user-theme-${Date.now()}`
+      : (mode === "replace" && importModal.conflictId) ? importModal.conflictId : importModal.theme.id;
+    const targetName = (mode === "copy" || (mode === "apply" && importModal.conflictId))
+      ? `${importModal.theme.name} (Imported)`
+      : importModal.theme.name;
 
+    const finalTheme: Theme = {
+      ...cloneTheme(importModal.theme),
+      id: targetId,
+      name: targetName,
+    };
+    saveCustomThemeStore(finalTheme);
+    setDraft(finalTheme);
+    setSelectedThemeId(finalTheme.id);
+    setSelector(finalTheme.id);
+    setAppearanceMode(finalTheme.mode);
+    applyTheme(finalTheme);
+    setImportModal(null);
+    toast.success(`Theme "${finalTheme.name}" imported and applied`);
+  }
+
+  const validColor = (v: string) => isValidColorValue(v);
 
   return (
     <div className="space-y-6">
+      {/* Header Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-text-primary">Theme System & Editor</h3>
+          <p className="text-xs text-text-muted">
+            Configure theme colors, border contrast, focus rings, and action button styles across Venice Forge.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="btn" onClick={handleCreateNewFromActive}>
+            + Create New Theme
+          </button>
+          <button className="btn" onClick={handleImportClick}>
+            Import Theme…
+          </button>
+          <button className="btn" onClick={handleExport}>
+            Export Theme
+          </button>
+        </div>
+      </div>
+
+      {/* Theme Selector Palette */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-text-secondary">Theme</label>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-text-secondary">Select Active Theme</label>
+          {isDraftDirty && (
+            <span className="inline-flex items-center rounded-full bg-warning/20 px-2 py-0.5 text-xs font-medium text-warning border border-warning/30">
+              Unsaved Draft Changes
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1 border border-border rounded-lg bg-surface">
           {themeOptions.map((opt) => (
             <button
               key={opt.id}
               onClick={() => handleSelect(opt.id)}
-              className={`rounded-lg px-4 py-2 text-sm font-medium border transition-colors ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium border transition-colors ${
                 selector === opt.id
                   ? "bg-accent text-accent-fg border-accent"
-                  : "bg-surface text-text-secondary border-border hover:bg-surface-elevated hover:text-text-primary"
+                  : "bg-surface-elevated text-text-secondary border-border hover:bg-surface hover:text-text-primary"
               }`}
               aria-pressed={selector === opt.id}
             >
@@ -412,68 +580,163 @@ export function ThemeMaker() {
         </div>
       </div>
 
-      {selector === "custom" && (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(Object.keys(TOKEN_LABELS) as Array<keyof ThemeTokens>).map((key) => {
-              const value = draft.tokens[key];
-              const valid = validColor(value);
-              return (
-                <div key={key} className="flex items-center gap-3">
-                  <label htmlFor={`token-${key}`} className="w-40 text-sm text-text-secondary truncate">
-                    {TOKEN_LABELS[key]}
-                  </label>
-                  <input
-                    type="color"
-                    aria-label={`${TOKEN_LABELS[key]} color picker`}
-                    value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : COLOR_INPUT_FALLBACK}
-                    onChange={(e) => updateToken(key, e.target.value)}
-                    className="h-8 w-10 rounded border border-border bg-transparent"
-                  />
-                  <input
-                    id={`token-${key}`}
-                    type="text"
-                    value={value}
-                    onChange={(e) => updateToken(key, e.target.value)}
-                    aria-invalid={!valid}
-                    className={`w-28 rounded-md border px-2 py-1 text-sm font-mono bg-surface text-text-primary ${
-                      valid ? "border-border" : "border-danger"
-                    }`}
-                  />
-                  {!valid && (
-                    <span role="alert" className="text-xs text-danger">
-                      Invalid color
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+      {/* Draft Custom Editor */}
+      <div className="space-y-4 rounded-xl border border-border p-4 bg-surface">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              value={draft.name}
+              onChange={(e) => updateName(e.target.value)}
+              className="rounded-md border border-border bg-surface-elevated px-3 py-1 text-sm font-semibold text-text-primary"
+              aria-label="Theme name"
+            />
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-surface-elevated p-1">
+              <button
+                type="button"
+                onClick={() => updateMode("dark")}
+                className={`rounded px-2 py-0.5 text-xs font-medium ${
+                  draft.mode === "dark" ? "bg-accent text-accent-fg" : "text-text-muted hover:text-text-primary"
+                }`}
+              >
+                Dark Mode
+              </button>
+              <button
+                type="button"
+                onClick={() => updateMode("light")}
+                className={`rounded px-2 py-0.5 text-xs font-medium ${
+                  draft.mode === "light" ? "bg-accent text-accent-fg" : "text-text-muted hover:text-text-primary"
+                }`}
+              >
+                Light Mode
+              </button>
+            </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button className="btn primary" onClick={handleSave}>
-              Save custom theme
+          <div className="flex items-center gap-2">
+            <button className="btn primary" onClick={handleSave} disabled={!isDraftDirty && selector === draft.id}>
+              Save Theme
             </button>
-            <button className="btn" onClick={handleReset}>
-              Reset custom theme
+            <button className="btn" onClick={handleReset} disabled={!isDraftDirty}>
+              Cancel / Reset
             </button>
-            <button className="btn" onClick={handleImport}>
-              Import theme
-            </button>
-            <button className="btn" onClick={handleExport}>
-              Export theme
-            </button>
+            {customThemesMap[selector] && (
+              <button className="btn danger" onClick={handleDeleteCustom}>
+                Delete Theme
+              </button>
+            )}
             <button className="btn ghost" onClick={handleRestoreDefaults}>
-              Restore defaults
+              Restore Default Theme
             </button>
           </div>
-        </>
-      )}
+        </div>
 
-      <div className="space-y-2">
-        <div className="text-sm font-medium text-text-secondary">Preview</div>
-        <ThemePreview theme={selector === "custom" ? draft : allThemesMap[selector] || BUILTIN_DARK} />
+        {/* Semantic Token Categories */}
+        <div className="space-y-6 pt-2">
+          {TOKEN_CATEGORIES.map((cat) => (
+            <div key={cat.name} className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border/50 pb-1">
+                {cat.name}
+              </h4>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {cat.keys.map((key) => {
+                  const value = draft.tokens[key] || "";
+                  const valid = validColor(value);
+                  return (
+                    <div key={key} className="flex items-center gap-2 rounded-md border border-border/60 p-2 bg-surface-elevated">
+                      <input
+                        type="color"
+                        aria-label={`${TOKEN_LABELS[key]} color picker`}
+                        value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : COLOR_INPUT_FALLBACK}
+                        onChange={(e) => updateToken(key, e.target.value)}
+                        className="h-7 w-8 shrink-0 rounded border border-border bg-transparent cursor-pointer"
+                      />
+                      <div className="flex flex-1 flex-col min-w-0">
+                        <label htmlFor={`token-${key}`} className="text-xs text-text-secondary truncate">
+                          {TOKEN_LABELS[key]}
+                        </label>
+                        <input
+                          id={`token-${key}`}
+                          type="text"
+                          value={value}
+                          onChange={(e) => updateToken(key, e.target.value)}
+                          aria-invalid={!valid}
+                          className={`w-full rounded border px-1.5 py-0.5 text-xs font-mono bg-surface text-text-primary ${
+                            valid ? "border-border" : "border-danger"
+                          }`}
+                        />
+                      </div>
+                      {!valid && (
+                        <span role="alert" className="text-[10px] text-danger shrink-0">
+                          Invalid
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Live Preview Panel */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium text-text-secondary">Live Theme Preview</div>
+          <span className="text-xs text-text-muted">Showing live preview of active draft</span>
+        </div>
+        <ThemePreview theme={draft} />
+      </div>
+
+      {/* Import Preview Modal */}
+      {importModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">{/* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */}
+          <div className="w-full max-w-xl rounded-xl border border-border bg-surface-elevated p-6 space-y-4 shadow-2xl">
+            <div className="border-b border-border pb-3">
+              <h3 className="text-lg font-semibold text-text-primary">Import Theme Preview</h3>
+              <p className="text-xs text-text-muted">
+                Review theme metadata and preview layout before applying to your workspace.
+              </p>
+            </div>
+
+            <div className="space-y-2 text-sm text-text-secondary">
+              <div>
+                <strong>Theme Name:</strong> {importModal.theme.name}
+              </div>
+              <div>
+                <strong>Mode:</strong> {importModal.theme.mode}
+              </div>
+              {importModal.conflictName && (
+                <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+                  A custom theme named &ldquo;{importModal.conflictName}&rdquo; already exists in your workspace.
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border p-3 bg-surface">
+              <div className="text-xs font-semibold text-text-muted mb-2">Imported Layout Preview</div>
+              <ThemePreview theme={importModal.theme} />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border">
+              <button className="btn ghost" onClick={() => setImportModal(null)}>
+                Cancel
+              </button>
+              {importModal.conflictName && (
+                <button className="btn danger" onClick={() => confirmImport("replace")}>
+                  Replace Existing
+                </button>
+              )}
+              <button className="btn" onClick={() => confirmImport("copy")}>
+                Import as Copy
+              </button>
+              <button className="btn primary" onClick={() => confirmImport("apply")}>
+                Import & Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

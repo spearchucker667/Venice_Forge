@@ -4,6 +4,33 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+**Date:** 2026-07-22 (continuation 14 — Theme Engine, Border System, Focus Ring, and Theme Portability Audit & Remediation)
+
+**Scope:** Executed complete, proof-driven audit and remediation of Venice Forge theme engine, border visibility system, focus ring indicators, theme persistence, multi-custom theme system, and theme import/export portability per prompt specification.
+
+- **Border System & CSS Strengthening.** Replaced washed-out 24%–28% opacity `color-mix` border declarations in `src/styles/components.css` with solid `--color-border` and `--color-border-strong` CSS variables across cards, panels, inputs, sidebars, headers, and separators (`.mesh-card`, `.mesh-panel`, `.mesh-input`, `.soft-separator-x`, `.soft-separator-y`).
+- **Multi-Custom Theme Persistence (Zustand v12 Migration).** Enhanced `src/stores/settings-store.ts` with a version 12 migration supporting `customThemes: Theme[]`, `saveCustomTheme(theme)`, `deleteCustomTheme(id)`, and `setCustomThemes(themes)`. Existing single custom themes auto-migrate smoothly.
+- **Custom Theme Resolver & Validation Fix.** Updated `isValidPersistedTheme` in `src/theme/applyTheme.ts` to allow any valid non-empty string `id` (e.g. `user-theme-${timestamp}`) and updated `resolveInitialTheme` to query user custom themes from `customThemes`.
+- **Structured Token Categories & Rollback.** Reorganized all 29 semantic tokens in `src/components/ThemeMaker.tsx` into 5 logical categories (Surfaces & Backgrounds, Typography & Text, Borders & Focus, Controls & Buttons, Status & Feedback). Added unsaved dirty tracking ("Unsaved Draft Changes" badge), live preview rollback ("Cancel / Reset"), emergency default restore, and custom theme deletion.
+- **Interactive Theme Import Preview Modal.** Built an import preview modal in `ThemeMaker.tsx` displaying theme metadata, mode, layout preview, contrast warnings, and collision detection before confirming "Import & Apply", "Import as Copy", or "Replace Existing".
+- **Enhanced Theme Preview Component.** Updated `src/components/ThemePreview.tsx` to display borderStrong, focusRing, secondary button, row selection, and alert mocks.
+- **New Unit & UI Test Suite.** Added `src/components/ThemeMaker.custom.test.tsx` verifying multi-custom theme saving, deletion, draft rollback, and import preview modal behavior.
+- **Comprehensive Audit Report.** Created `docs/reports/VENICE_FORGE_THEME_ENGINE_BORDER_AND_PORTABILITY_AUDIT_2026-07-21.md` containing all 25 structured sections. Updated `docs/reports/CANONICAL_REPORT_INDEX.md` and `docs/DOCS_INDEX.md`.
+
+**Validation this continuation:**
+- `npm run verify:theme-tokens` -> **PASS** (139 files scanned, 0 hardcoded color violations).
+- `npm run test:unit:theme` -> **PASS** (118/118 theme unit tests green).
+- `npx vitest run src/components/ThemeMaker.test.ts src/components/ThemeMaker.ui.test.tsx src/components/ThemeMaker.custom.test.tsx` -> **PASS** (47/47 ThemeMaker tests green).
+- `npm run typecheck` -> **PASS** (renderer + Electron main, 0 errors).
+- `npm run lint:eslint` -> **PASS** (0 warnings under `--max-warnings=0`).
+- `npm run verify:contracts` -> **PASS** (103/103 checks passed).
+
+**Deliverables (this session):** Modified `src/styles/components.css`, `src/styles/theme.css`, `src/theme/themeTypes.ts`, `src/theme/applyTheme.ts`, `src/stores/settings-store.ts`, `src/components/ThemePreview.tsx`, `src/components/ThemeMaker.tsx`. Created `src/components/ThemeMaker.custom.test.tsx` and `docs/reports/VENICE_FORGE_THEME_ENGINE_BORDER_AND_PORTABILITY_AUDIT_2026-07-21.md`. Updated `docs/reports/CANONICAL_REPORT_INDEX.md`, `docs/DOCS_INDEX.md`, and `docs/summary_of_work.md`.
+
+**Open TODO:** None for this work order. All verification checks passing.
+
+### Prior Session Summary (continuation 13 — Update AGENTS.md for Phase 3 and Tab Count)
+
 **Date:** 2026-07-21 (continuation 12 — User-reported bugs and features: persona contamination, folder context menus, prompt layer inspector, document tools, media vault, startup replay fix)
 
 **Scope:** Implemented 6 user-reported bugs/features from a prior truncated session:

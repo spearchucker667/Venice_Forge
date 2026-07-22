@@ -96,4 +96,5 @@ export interface ThemeState {
   selectedThemeId: string;
   appearanceMode: ThemeMode;
   customTheme: Theme | null;
+  customThemes?: Theme[];
 }

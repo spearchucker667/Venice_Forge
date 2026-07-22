@@ -2,10 +2,10 @@ import { completeThemeTokens, type Theme } from './themeTypes';
 import { BUILTIN_THEMES, DEFAULT_THEME } from './themes';
 import { isValidColorValue } from './validateColor';
 
-function isValidPersistedTheme(value: unknown): value is Theme {
+export function isValidPersistedTheme(value: unknown): value is Theme {
   if (!value || typeof value !== 'object') return false;
   const theme = value as Partial<Theme>;
-  if (theme.id !== 'custom' || typeof theme.name !== 'string' || theme.name.length > 200) return false;
+  if (typeof theme.id !== 'string' || !theme.id || typeof theme.name !== 'string' || theme.name.length > 200) return false;
   if (theme.mode !== 'dark' && theme.mode !== 'light') return false;
   if (!theme.tokens || typeof theme.tokens !== 'object') return false;
   try {
@@ -89,11 +89,11 @@ export function findBuiltinTheme(id: string | null | undefined): Theme | null {
 
 /**
  * Resolve the initial theme from persisted bootstrap state. The order is:
- *   1. Custom theme (if `selectedThemeId === 'custom'` and a `customTheme`
- *      object is present)
- *   2. YAML theme by id (`findMergedTheme`)
- *   3. Built-in theme by id (`findBuiltinTheme`)
- *   4. Fallback to `BUILTIN_VENICE` (or `BUILTIN_LIGHT` if user prefers light
+ *   1. Custom theme matching selectedThemeId (or fallback to `bootstrap.customTheme`)
+ *   2. Custom theme from `bootstrap.customThemes`
+ *   3. YAML theme by id (`findMergedTheme`)
+ *   4. Built-in theme by id (`findBuiltinTheme`)
+ *   5. Fallback to `BUILTIN_VENICE` (or `BUILTIN_LIGHT` if user prefers light
  *      and the system is in light mode)
  *
  * Unknown / null / unrecognised ids always resolve to a real `Theme`, so
@@ -104,21 +104,26 @@ export function resolveInitialTheme(
     selectedThemeId: string;
     appearanceMode: 'dark' | 'light';
     customTheme: Theme | null;
+    customThemes?: Theme[];
   }>,
   yamlThemes?: Record<string, Theme>
 ): Theme {
-  if (bootstrap?.selectedThemeId === 'custom' && isValidPersistedTheme(bootstrap.customTheme)) {
+  const selectedId = bootstrap?.selectedThemeId || '';
+  if (selectedId === 'custom' && isValidPersistedTheme(bootstrap?.customTheme)) {
     return bootstrap.customTheme;
   }
-  const yamlTheme = yamlThemes?.[bootstrap?.selectedThemeId || ''];
+  const userCustom = bootstrap?.customThemes?.find((t) => t.id === selectedId);
+  if (userCustom && isValidPersistedTheme(userCustom)) {
+    return userCustom;
+  }
+  if (bootstrap?.customTheme && bootstrap.customTheme.id === selectedId && isValidPersistedTheme(bootstrap.customTheme)) {
+    return bootstrap.customTheme;
+  }
+  const yamlTheme = yamlThemes?.[selectedId];
   if (yamlTheme) return yamlTheme;
-  const builtin = findBuiltinTheme(bootstrap?.selectedThemeId);
+  const builtin = findBuiltinTheme(selectedId);
   if (builtin) return builtin;
   if (typeof window !== 'undefined') {
-    // Match the historical contract: `prefers-color-scheme: dark` is the
-    // probe. When the system prefers dark (or the probe is unset / mocked
-    // to `true`), use the Venice dark default. When the system is in
-    // light mode (`matches: false`), fall through to the light built-in.
     const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
     if (prefersDark) {
       return DEFAULT_THEME;
