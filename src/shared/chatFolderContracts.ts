@@ -35,6 +35,17 @@ export interface MoveConversationToFolderInput {
   folderId: string | null; // null means Unfiled
 }
 
+export interface MoveConversationsToFolderInput {
+  conversationIds: string[];
+  folderId: string | null; // null means Unfiled
+}
+
+export interface ChatFolderMutationResult {
+  committedIds: string[];
+  rolledBack: boolean;
+  recoveryRequired?: boolean;
+}
+
 export interface DeleteChatFolderInput {
   folderId: string;
   deleteConversations: boolean;
@@ -101,11 +112,23 @@ export interface ExportFolderBackupInput {
 export interface ExportFolderBackupResult {
   ok: boolean;
   error?: string;
-  backupPath?: string;
+  /** Neutral basename only. Absolute paths never cross into the renderer. */
+  fileName?: string;
+  canceled?: boolean;
 }
 
 export interface PreviewFolderImportInput {
-  backupFilePath: string;
+  /** Opaque, short-lived capability issued by the native file picker. */
+  fileCapability: string;
+}
+
+export interface PickFolderImportFileResult {
+  ok: boolean;
+  fileCapability?: string;
+  fileName?: string;
+  byteCount?: number;
+  canceled?: boolean;
+  error?: string;
 }
 
 export interface FolderImportPreview {
@@ -124,7 +147,8 @@ export interface FolderImportPreview {
 }
 
 export interface ImportFolderBackupInput {
-  backupFilePath: string;
+  /** Opaque, one-time capability issued by the native file picker. */
+  fileCapability: string;
   mode: "new-folder" | "merge";
   /**
    * User-supplied passphrase that was used when exporting this backup. Never

@@ -85,22 +85,24 @@ export function DataStoragePanel({
 
     try {
       if (mode === "newProfile" && newProfileName) {
-        const newProfile = useProfileStore.getState().addProfile(newProfileName);
-        
-        // Update profile store state manually so we don't trigger the built-in reload of requestSwitchProfile
-        useProfileStore.setState({ activeProfileId: newProfile.id });
-        
-        // Temporarily switch active profile id at the storage layer without reloading yet
+        const profileStateBeforeImport = useProfileStore.getState();
+        const previousProfileId = profileStateBeforeImport.activeProfileId;
+        const previousProfiles = profileStateBeforeImport.profiles;
+        const newProfile = profileStateBeforeImport.addProfile(newProfileName);
         const { setActiveProfileId } = await import("../../services/activeProfile");
-        setActiveProfileId(newProfile.id);
-        if (isElectron()) {
-          const { desktopProfilePassword } = await import("../../services/desktopBridge");
-          await desktopProfilePassword.activate(newProfile.id);
-        }
-        
-        // Now perform the import! StorageService and backupImportService will read the new active profile id
-        const summary = await parseAndImportBackup(manifestToImport, password);
-        
+        const { desktopProfilePassword } = await import("../../services/desktopBridge");
+        try {
+          // The profile remains a staging registration until parsing and every
+          // target-store write succeeds. Renderer, storage, and main-process
+          // profile authority move together and are restored together below.
+          useProfileStore.setState({ activeProfileId: newProfile.id });
+          setActiveProfileId(newProfile.id);
+          if (isElectron()) {
+            const activation = await desktopProfilePassword.activate(newProfile.id);
+            if (!activation.ok || !activation.verified) throw new Error("Unable to activate staging profile");
+          }
+          const summary = await parseAndImportBackup(manifestToImport, password);
+
         // VERIFY-135: surface skipped / tombstone-partial status as a
         // warning so a partial backup import never reads as "all green".
         if (summary.recordsImported === 0 && summary.recordsSkipped > 0) {
@@ -112,9 +114,23 @@ export function DataStoragePanel({
           toast.success(`Import complete into new profile: ${summary.recordsImported} imported. Reloading...`);
         }
         
-        // Give the toast a moment to render before reloading
-        setTimeout(() => window.location.reload(), 1500);
-        return;
+          // Give the toast a moment to render before reloading
+          setTimeout(() => window.location.reload(), 1500);
+          return;
+        } catch (error) {
+          // Remove the staging registration and restore all three profile
+          // authorities. Any partially written profile-scoped data is left
+          // unreachable (quarantined) instead of being exposed as a profile.
+          useProfileStore.setState({ profiles: previousProfiles, activeProfileId: previousProfileId });
+          setActiveProfileId(previousProfileId);
+          if (isElectron()) {
+            const restored = await desktopProfilePassword.activate(previousProfileId);
+            if (!restored.ok || !restored.verified) {
+              throw new Error("Import failed and the previous profile session could not be restored");
+            }
+          }
+          throw error;
+        }
       }
 
       let summary: ImportSummary;

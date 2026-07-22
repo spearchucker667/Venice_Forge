@@ -27,6 +27,7 @@ export interface ChatFolderState {
   deleteFolder: (id: string, deleteChats: boolean) => Promise<void>;
   getBackupPreview: (folderId: string) => Promise<FolderBackupPreview | null>;
   exportFolderBackup: (input: ExportFolderBackupInput) => Promise<string | null>;
+  pickImportFile: () => Promise<import('../shared/chatFolderContracts').PickFolderImportFileResult>;
   previewImport: (
     input: PreviewFolderImportInput,
   ) => Promise<FolderImportPreview | null>;
@@ -178,9 +179,8 @@ moveConversations: async (conversationIds: string[], destinationFolderId: string
     }
   }
   try {
-    for (const conversationId of conversationIds) {
-      await desktopChatFolders.moveConversation({ conversationId, folderId: destinationFolderId });
-    }
+    const res = await desktopChatFolders.moveConversations({ conversationIds, folderId: destinationFolderId });
+    if (!res.ok) throw new Error(res.error ?? 'Failed to move conversations');
     } catch (err) {
       toast.error('Failed to move conversations', String(err));
       throw err;
@@ -222,15 +222,18 @@ moveConversations: async (conversationIds: string[], destinationFolderId: string
     try {
       const res = await desktopChatFolders.exportBackup(input);
       if (res.ok) {
-        toast.success('Folder backup exported', res.backupPath ?? '');
-        return res.backupPath ?? null;
+        toast.success('Folder backup exported', res.fileName ?? 'Encrypted backup saved');
+        return res.fileName ?? null;
       }
+      if (res.canceled) return null;
       throw new Error(res.error ?? 'Unknown error');
     } catch (err) {
       toast.error('Failed to export folder backup', String(err));
       throw err;
     }
   },
+
+  pickImportFile: async () => desktopChatFolders.pickImportFile(),
 
   previewImport: async (input: PreviewFolderImportInput) => {
     try {
@@ -266,7 +269,7 @@ moveConversations: async (conversationIds: string[], destinationFolderId: string
     try {
       const res = await desktopChatFolders.lock(input);
       if (res.ok) {
-        toast.success('Folder locked');
+        toast.success('Folder privacy gate enabled');
         return res;
       }
       // Lock failures may include a structured retry-after; the caller renders
@@ -282,7 +285,7 @@ moveConversations: async (conversationIds: string[], destinationFolderId: string
     try {
       const res = await desktopChatFolders.unlock(input);
       if (res.ok) {
-        toast.success('Folder unlocked');
+        toast.success('Folder privacy gate opened');
         return res;
       }
       return res;

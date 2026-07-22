@@ -31,6 +31,7 @@ vi.mock("./logger", () => ({
 vi.mock("./chatFolderStorage", () => ({
   readChatFolder: vi.fn(),
   saveChatFolder: vi.fn(),
+  deleteChatFolderFile: vi.fn(async () => ({ ok: true })),
 }));
 
 vi.mock("./chatStorage", () => ({
@@ -124,7 +125,8 @@ describe("exportBackup — Phase 2.6 envelope", () => {
     // folder object with its conversations / metadata. Verify the manifest
     // body stays inside the encrypted ciphertext.
     const envelope = JSON.stringify(onDisk);
-    expect(onDisk.publicHeader.sourceFolderName).toBe("Persona Creation");
+    expect(onDisk.publicHeader.sourceFolderName).toBeUndefined();
+    expect(envelope).not.toContain("Persona Creation");
     // Conversation-result objects should not appear in cleartext anywhere.
     expect(envelope).not.toMatch(/"messages"\s*:/);
 

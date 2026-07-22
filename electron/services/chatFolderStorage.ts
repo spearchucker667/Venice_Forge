@@ -16,6 +16,9 @@ const TMP_SUFFIX = ".tmp";
 const MAX_SCAN_FILES = 1000;
 const MAX_LOAD_FILES = 1000;
 
+class ChatFolderContentError extends Error {}
+class ChatFolderUnsupportedSchemaError extends Error {}
+
 export function isValidId(id: unknown): id is string {
   return typeof id === "string" && isCanonicalValidId(id);
 }
@@ -109,19 +112,38 @@ export async function readChatFolder(id: string, profileId: string = "default"):
   const file = fileFor(id, profileId);
   try {
     const raw = await fs.readFile(file, "utf-8");
-    const parsed = JSON.parse(raw) as unknown;
-    if (isValidChatFolder(parsed)) return parsed;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw) as unknown;
+    } catch {
+      throw new ChatFolderContentError("invalid JSON");
+    }
+    if (isValidChatFolder(parsed)) {
+      if (parsed.schemaVersion > 1) throw new ChatFolderUnsupportedSchemaError("unsupported schema version");
+      return parsed;
+    }
     if (isLegacyChatFolder(parsed)) {
       return migrateLegacyFolder(parsed, profileId);
     }
-    throw new Error("schema validation failed");
+    throw new ChatFolderContentError("schema validation failed");
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") return null;
-    logError(`chat-folders file corrupt or unreadable`, { path: file, error: String(err) });
+    if (err instanceof ChatFolderUnsupportedSchemaError) {
+      logError("Unsupported chat-folder schema retained for migration", { fileName: path.basename(file) });
+      throw new Error("This chat folder was created by a newer version. The original file was left in place.");
+    }
+    if (!(err instanceof ChatFolderContentError)) {
+      logError("Unable to read chat-folder file; file left in place for retry", {
+        fileName: path.basename(file),
+        errorCode: err && typeof err === "object" && "code" in err ? String((err as NodeJS.ErrnoException).code) : "unknown",
+      });
+      throw new Error("Unable to read chat folder. The original file was left in place.");
+    }
+    logError("Chat-folder file failed content validation", { fileName: path.basename(file) });
     try {
       const backupPath = `${file}.backup.${Date.now()}.${crypto.randomUUID()}`;
       await fs.rename(file, backupPath);
-      logInfo(`Corrupt chat-folders file backed up`, backupPath);
+      logInfo("Corrupt chat-folder file quarantined", { fileName: path.basename(backupPath) });
     } catch {
       // best effort
     }
@@ -142,7 +164,8 @@ async function migrateLegacyFolder(legacy: LegacyChatFolder, profileId: string):
     schemaVersion: Math.max(legacy.schemaVersion, 1),
   };
   // Save the migrated version
-  await saveChatFolder(migrated, profileId);
+  const result = await saveChatFolder(migrated, profileId);
+  if (!result.ok) throw new Error(result.error ?? "Failed to migrate chat folder");
   return migrated;
 }
 
@@ -156,10 +179,17 @@ export async function saveChatFolder(folder: ChatFolder, profileId: string = "de
   const tmp = `${target}${TMP_SUFFIX}`;
   try {
     const raw = JSON.stringify(folder, null, 2);
-    await fs.writeFile(tmp, raw, "utf-8");
+    const handle = await fs.open(tmp, "w", 0o600);
+    try {
+      await handle.writeFile(raw, "utf-8");
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
     await fs.rename(tmp, target);
     return { ok: true };
   } catch {
+    await fs.unlink(tmp).catch(() => undefined);
     return { ok: false, error: "Failed to write chat-folders file" };
   }
 }

@@ -5,7 +5,7 @@
 // this test file only.
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from "vitest";
 import { Server as HttpServer } from "http";
-import { startBridgeServer, stopBridgeServer, getBridgeToken } from "./bridgeServer";
+import { startBridgeServer, stopBridgeServer, getBridgeToken, validateHeadlessBridgeToken } from "./bridgeServer";
 import { performVeniceRequest } from "./veniceClient";
 import { assessChildExploitationSafety } from "../../src/shared/safety";
 
@@ -465,6 +465,14 @@ describe("startBridgeServer env-var fallback (P2-009)", () => {
     const accepted = await startBridgeServer(port, host);
     expect(accepted).toBe(strong);
   }, 10000);
+});
+
+describe("headless bridge token delivery contract", () => {
+  it("fails closed when the operator did not provide a retrievable token", () => {
+    expect(validateHeadlessBridgeToken(undefined)).toBe("VENICE_BRIDGE_TOKEN is required");
+    expect(validateHeadlessBridgeToken("short")).toMatch(/too short/);
+    expect(validateHeadlessBridgeToken("A9!bcdefghijklmnopqrstuvwxyz0123456789")).toBeNull();
+  });
 });
 
 describe("bridgeServer restart lifecycle", () => {

@@ -8,6 +8,19 @@
 
 ---
 
+## 2026-07-22 status reconciliation
+
+This retained work order is historical execution evidence, not the current task ledger. `docs/ROADMAP.md` remains authoritative.
+
+- `REOPENED-001` was already resolved in the live tree; `npm run verify:release-metadata` passes under Node 22.
+- `REOPENED-002` was already resolved in the live tree; `src/stores/chat-store.test.ts` passes 32/32.
+- `REOPENED-003` mixed implemented contracts, future Document Agent scope, and manual acceptance prompts. Folder keyboard reordering and Privacy Gate terminology are now verified. Full workspace changeset/move/recoverable-trash UI and packaged QA remain explicitly tracked by `VF-DOCUMENT-AGENT-001` and `VF-VERIFY-005`; the unchecked boxes in the implementation specification are not a machine-readable completion ledger.
+- `REOPENED-004` is satisfied only by the current session's recorded `npm run ci` result in `docs/summary_of_work.md`; no historical claim substitutes for that command.
+
+The July 22 chat-folder findings and their per-finding dispositions are recorded in `docs/audits/TODO/Venice_Forge_Extensive_Scan_2026-07-22.md`.
+
+---
+
 ## Architectural Prohibitions (Mandatory Governance)
 
 All tasks in this work order MUST obey these negative constraints without exception:

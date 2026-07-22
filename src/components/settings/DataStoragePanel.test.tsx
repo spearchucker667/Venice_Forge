@@ -46,6 +46,8 @@ vi.mock("../../services/chatStorage", () => ({ listConversations: vi.fn(async ()
 vi.mock("../../stores/toast-store", () => ({ toast: toastApi }));
 
 import { DataStoragePanel } from "./DataStoragePanel";
+import { useProfileStore } from "../../stores/profile-store";
+import { getActiveProfileId, setActiveProfileId } from "../../services/activeProfile";
 
 const manifest = {
   version: 2,
@@ -70,6 +72,11 @@ describe("DataStoragePanel", () => {
       recovery: { id: "11111111-1111-4111-8111-111111111111", createdAt: "2026-07-15T00:01:00.000Z" },
     });
     getLatestReplaceImportRecovery.mockResolvedValue(null);
+    useProfileStore.setState({
+      profiles: [{ id: "default", name: "Default Profile", onboardingCompleted: false }],
+      activeProfileId: "default",
+    });
+    setActiveProfileId("default");
   });
 
   function renderPanel() {
@@ -260,5 +267,22 @@ describe("DataStoragePanel", () => {
       ),
     );
     expect(toastApi.success).not.toHaveBeenCalledWith(expect.stringContaining("Import complete into new profile"), expect.anything());
+  });
+
+  it("removes the staging profile and restores active-profile authority when new-profile import fails", async () => {
+    parseAndImportBackup.mockRejectedValueOnce(new Error("simulated import failure"));
+    renderPanel();
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText("Backup Password"), "password");
+    await user.click(screen.getByRole("button", { name: "Import Backup" }));
+    await screen.findByText("Review Import Plan");
+    await user.click(screen.getByRole("button", { name: /New Profile/i }));
+    await user.type(screen.getByPlaceholderText("e.g. Work Backup"), "Staging Failure");
+    await user.click(screen.getByRole("button", { name: "Confirm Import" }));
+
+    await waitFor(() => expect(toastApi.error).toHaveBeenCalledWith("Import failed."));
+    expect(useProfileStore.getState().profiles.map((profile) => profile.id)).toEqual(["default"]);
+    expect(useProfileStore.getState().activeProfileId).toBe("default");
+    expect(getActiveProfileId()).toBe("default");
   });
 });

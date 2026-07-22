@@ -124,6 +124,13 @@ export function validateBridgeTokenStrength(token: string): string | null {
   return null;
 }
 
+/** Headless mode has no authenticated UI from which an auto-generated token
+ * can be retrieved, so it requires an explicit operator-supplied token. */
+export function validateHeadlessBridgeToken(token: string | undefined): string | null {
+  if (!token) return "VENICE_BRIDGE_TOKEN is required";
+  return validateBridgeTokenStrength(token);
+}
+
 /** Constant-time comparison of two bearer tokens.
  *  The naive `token !== bridgeToken` leaks length and prefix-match timing
  *  through short-circuit string comparison. timingSafeEqual forces a

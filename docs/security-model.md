@@ -1,5 +1,9 @@
 # Security Model
 
+## Chat-folder privacy gate
+
+The chat-folder passphrase feature is an IPC access-control and privacy gate inside Venice Forge. It prevents ordinary renderer actions from listing, moving, renaming, deleting, or exporting a gated folder until the main process authorizes access. It is not per-folder encryption at rest: conversation storage remains protected by the operating-system account and application storage permissions. Encrypted `.vfbackup` export is a separate feature and uses Argon2id plus XChaCha20-Poly1305.
+
 Venice Forge keeps provider credentials in Electron `safeStorage`; the renderer receives configured-state information, not persisted keys. Venice requests cross the context-isolated preload boundary and are checked by the main-process guard pipeline. Web development uses the Express proxy and must not persist credentials in browser storage.
 
 Implemented fallback providers are explicitly allowlisted by the main process. Replicate, AWS Bedrock, Google Vertex AI, Azure OpenAI, Hugging Face, and Cohere are deferred: their UI controls cannot accept keys, provider settings discard them, routing rejects them before credential access, and no release claim treats them as available. Provider credentials can be manually removed and replaced; scheduled credential rotation is not implemented.

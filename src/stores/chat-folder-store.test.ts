@@ -14,9 +14,11 @@ vi.mock("../services/desktopBridge", () => ({
     rename: vi.fn(),
     reorder: vi.fn(),
     moveConversation: vi.fn(),
+    moveConversations: vi.fn(),
     delete: vi.fn(),
     getBackupPreview: vi.fn(),
     exportBackup: vi.fn(),
+    pickImportFile: vi.fn(),
     previewImport: vi.fn(),
     importBackup: vi.fn(),
     lock: vi.fn(),
@@ -172,10 +174,10 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
     expect(calls.some(([title, body]) => title === "Failed to read folder backup preview" && String(body) === "Folder not found")).toBe(true);
   });
 
-  it("returns the backup path on a successful folder export", async () => {
+  it("returns the neutral backup filename on a successful folder export", async () => {
     (desktopChatFolders.exportBackup as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      backupPath: "/tmp/chat-folder-standard-ops-123.vfbackup",
+      fileName: "venice-forge-folder-backup-123.vfbackup",
     });
     (desktopChatFolders.list as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
@@ -188,10 +190,10 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
       passphrase: "strength-12-chars-min",
     });
 
-    expect(path).toMatch(/chat-folder-standard-ops-.*\.vfbackup$/);
+    expect(path).toMatch(/venice-forge-folder-backup-.*\.vfbackup$/);
     expect(toast.success).toHaveBeenCalledWith(
       "Folder backup exported",
-      expect.stringMatching(/chat-folder-standard-ops-/),
+      expect.stringMatching(/venice-forge-folder-backup-/),
     );
   });
 
@@ -222,7 +224,7 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
 
     const preview = await useChatFolderStore
       .getState()
-      .previewImport({ backupFilePath: "/tmp/old.vfbackup" });
+      .previewImport({ fileCapability: "approved-old-backup" });
 
     expect(preview).toBeNull();
     const calls = (toast.error as unknown as ReturnType<typeof vi.fn>).mock.calls;
@@ -237,7 +239,7 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
 
     const preview = await useChatFolderStore
       .getState()
-      .previewImport({ backupFilePath: "/tmp/import.vfbackup" });
+      .previewImport({ fileCapability: "approved-import-backup" });
 
     expect(preview).toEqual(importPreview);
     expect(toast.error).not.toHaveBeenCalled();
@@ -254,7 +256,7 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
     });
 
     const res = await useChatFolderStore.getState().importFolderBackup({
-      backupFilePath: "/tmp/import.vfbackup",
+      fileCapability: "approved-import-backup",
       mode: "merge",
       targetFolderId: "folder-1",
       passphrase: "strength-12-chars-min",
@@ -403,6 +405,8 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
           createdAt: "2026-07-01T00:00:00Z",
           updatedAt: "2026-07-01T00:00:00Z",
           lockState: "locked",
+          profileId: "default",
+          schemaVersion: 1,
         },
       ],
     });
@@ -442,6 +446,8 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
           createdAt: "2026-07-01T00:00:00Z",
           updatedAt: "2026-07-01T00:00:00Z",
           lockState: "unlocked",
+          profileId: "default",
+          schemaVersion: 1,
         },
       ],
     });
@@ -471,6 +477,8 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
           createdAt: "2026-07-01T00:00:00Z",
           updatedAt: "2026-07-01T00:00:00Z",
           lockState: "locked",
+          profileId: "default",
+          schemaVersion: 1,
         },
       ],
     });
@@ -479,6 +487,19 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
       useChatFolderStore.getState().moveConversations(["c1", "c2"], "folder-locked"),
     ).rejects.toThrow(/Folder is locked/);
 
+    expect(desktopChatFolders.moveConversations).not.toHaveBeenCalled();
+  });
+
+  it("moveConversations surfaces a structured IPC failure without reporting success", async () => {
+    (desktopChatFolders.moveConversations as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      error: "transaction rolled back",
+    });
+
+    await expect(useChatFolderStore.getState().moveConversations(["c1", "c2"], null))
+      .rejects.toThrow("transaction rolled back");
+    expect(desktopChatFolders.moveConversations).toHaveBeenCalledTimes(1);
     expect(desktopChatFolders.moveConversation).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });

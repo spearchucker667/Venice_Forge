@@ -8,6 +8,7 @@ import type { WebContents } from "electron";
 import {
   __resetProfileSessionsForTests,
   getProfileSessionId,
+  requireProfileSessionId,
   setProfileSessionId,
 } from "./profileSession";
 
@@ -34,5 +35,12 @@ describe("profileSession", () => {
 
   it("rejects invalid profile ids", () => {
     expect(() => setProfileSessionId(sender(), "../escape")).toThrow("Invalid profile id");
+  });
+
+  it("fails closed for security-sensitive operations until the sender is explicitly bound", () => {
+    const webContents = sender();
+    expect(() => requireProfileSessionId(webContents)).toThrow("not bound");
+    setProfileSessionId(webContents, "default");
+    expect(requireProfileSessionId(webContents)).toBe("default");
   });
 });
