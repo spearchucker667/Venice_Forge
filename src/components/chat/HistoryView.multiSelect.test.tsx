@@ -28,6 +28,7 @@ vi.mock("../../services/desktopBridge", () => ({
   desktopChat: { list: () => Promise.resolve({ ok: false, conversations: [], truncated: false, totalScanned: 0, error: 'mock' }) },
   desktopChatFolders: {
     moveConversation: vi.fn().mockResolvedValue({ ok: true }),
+    moveConversations: vi.fn().mockResolvedValue({ ok: true }),
   },
 }));
 

@@ -20,7 +20,24 @@ type DecisionRequestOptions = {
   danger?: boolean;
 };
 
+type SecretRequestOptions = {
+  title: string;
+  detail?: string;
+  placeholder?: string;
+  actionLabel?: string;
+  cancelLabel?: string;
+  confirm?: boolean;
+  minLength?: number;
+  autocomplete?: "current-password" | "new-password";
+};
+
 type ModalRequest =
+  | {
+      id: number;
+      kind: "secret";
+      options: SecretRequestOptions;
+      resolve: (value: string | null) => void;
+    }
   | {
       id: number;
       kind: "text";
@@ -59,10 +76,23 @@ export function askDecision(options: DecisionRequestOptions): Promise<boolean> {
   });
 }
 
+export function askSecret(options: SecretRequestOptions): Promise<string | null> {
+  return new Promise((resolve) => {
+    const listener = activeListener;
+    if (!listener) {
+      resolve(null);
+      return;
+    }
+    listener({ id: nextRequestId++, kind: "secret", options, resolve });
+  });
+}
+
 export function ModalRequestHost() {
   const [request, setRequest] = useState<ModalRequest | null>(null);
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState("");
+  const [revealSecret, setRevealSecret] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   useFocusTrap(dialogRef, request !== null, () => cancelRequest(), inputRef);
@@ -75,8 +105,10 @@ export function ModalRequestHost() {
   }, []);
 
   useEffect(() => {
-    if (request?.kind === "text") {
-      setValue(request.options.initialValue ?? "");
+    if (request?.kind === "text" || request?.kind === "secret") {
+      setValue(request.kind === "text" ? request.options.initialValue ?? "" : "");
+      setConfirmation("");
+      setRevealSecret(false);
       setError(null);
     }
   }, [request]);
@@ -86,13 +118,15 @@ export function ModalRequestHost() {
   function closeRequest() {
     setRequest(null);
     setValue("");
+    setConfirmation("");
+    setRevealSecret(false);
     setError(null);
   }
 
   function cancelRequest() {
     if (!request) return;
     uiSoundController.play('secondaryClick')
-    if (request.kind === "text") request.resolve(null);
+    if (request.kind === "text" || request.kind === "secret") request.resolve(null);
     else request.resolve(false);
     closeRequest();
   }
@@ -107,6 +141,17 @@ export function ModalRequestHost() {
         return;
       }
       request.resolve(value);
+    } else if (request.kind === "secret") {
+      const minLength = request.options.minLength ?? 8;
+      if (value.length < minLength) {
+        setError(`Passphrase must be at least ${minLength} characters long.`);
+        return;
+      }
+      if (request.options.confirm && value !== confirmation) {
+        setError("Passphrases do not match.");
+        return;
+      }
+      request.resolve(value);
     } else {
       request.resolve(true);
     }
@@ -118,6 +163,8 @@ export function ModalRequestHost() {
   const actionLabel =
     request.kind === "text"
       ? request.options.actionLabel ?? "Save"
+      : request.kind === "secret"
+      ? request.options.actionLabel ?? "Continue"
       : request.options.actionLabel ?? "Continue";
   const cancelLabel = request.options.cancelLabel ?? "Cancel";
   const actionTone = request.kind === "decision" && request.options.danger ? "danger" : "primary";
@@ -146,7 +193,7 @@ export function ModalRequestHost() {
             {detail}
           </p>
         )}
-        {request.kind === "text" && (
+        {(request.kind === "text" || request.kind === "secret") && (
           <div className="mb-5">
             <input
               ref={inputRef}
@@ -162,11 +209,43 @@ export function ModalRequestHost() {
                 }
               }}
               placeholder={request.options.placeholder}
+              type={request.kind === "secret" && !revealSecret ? "password" : "text"}
+              autoComplete={request.kind === "secret" ? request.options.autocomplete ?? "current-password" : undefined}
               className="input w-full"
               aria-label={title}
               aria-invalid={error ? "true" : "false"}
               aria-describedby={error ? "modal-request-error" : undefined}
             />
+            {request.kind === "secret" && request.options.confirm && (
+              <input
+                value={confirmation}
+                onChange={(event) => {
+                  setConfirmation(event.currentTarget.value);
+                  setError(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    acceptRequest();
+                  }
+                }}
+                type={revealSecret ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder="Confirm passphrase"
+                className="input mt-3 w-full"
+                aria-label={`${title} confirmation`}
+                aria-invalid={error ? "true" : "false"}
+              />
+            )}
+            {request.kind === "secret" && (
+              <button
+                type="button"
+                className="mt-2 text-xs text-text-secondary hover:text-text-primary"
+                onClick={() => setRevealSecret((current) => !current)}
+              >
+                {revealSecret ? "Hide passphrase" : "Show passphrase"}
+              </button>
+            )}
             {error && (
               <p id="modal-request-error" className="mt-2 text-xs text-danger">
                 {error}

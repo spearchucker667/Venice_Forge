@@ -1,0 +1,176 @@
+{
+  "snapshot": "Venice_Forge-clean-20260722-074814.zip",
+  "version": "3.0.0-beta.1",
+  "commit": "2669b67dd4525e220c1d309af8c371eed818ff28",
+  "audit_date": "2026-07-22",
+  "counts": {
+    "P0": 3,
+    "P1": 6,
+    "P2": 5,
+    "total": 14
+  },
+  "execution_limit": "npm ci failed after four attempts due internal npm registry HTTP 503; runtime suites not executed",
+  "remediation_addendum": {
+    "date": "2026-07-22",
+    "status": "locally-actionable-findings-corrected",
+    "finding_statuses": {
+      "VF-SCAN-20260722-001": "corrected",
+      "VF-SCAN-20260722-002": "corrected",
+      "VF-SCAN-20260722-003": "corrected",
+      "VF-SCAN-20260722-004": "corrected",
+      "VF-SCAN-20260722-005": "corrected",
+      "VF-SCAN-20260722-006": "corrected",
+      "VF-SCAN-20260722-007": "corrected",
+      "VF-SCAN-20260722-008": "corrected-with-staging-quarantine",
+      "VF-SCAN-20260722-009": "corrected",
+      "VF-SCAN-20260722-010": "corrected",
+      "VF-SCAN-20260722-011": "corrected",
+      "VF-SCAN-20260722-012": "corrected",
+      "VF-SCAN-20260722-013": "corrected-and-missing-file-claim-not-reproducible",
+      "VF-SCAN-20260722-014": "corrected"
+    },
+    "external_evidence_remaining": [
+      "signed-macos-and-windows-packaging",
+      "paid-provider-operations",
+      "two-device-import-and-sync",
+      "screen-reader-and-headed-manual-qa"
+    ]
+  },
+  "findings": [
+    {
+      "id": "VF-SCAN-20260722-001",
+      "priority": "P0",
+      "title": "Chat-folder mutations can report success after failed persistence",
+      "files": [
+        "electron/services/chatFolderService.ts"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-002",
+      "priority": "P0",
+      "title": "Renderer-selected profile ID bypasses chat-folder session isolation",
+      "files": [
+        "electron/ipc/handlers/chatFolderHandlers.ts"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-003",
+      "priority": "P0",
+      "title": "Bulk conversation movement silently ignores structured failures",
+      "files": [
+        "src/stores/chat-folder-store.ts"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-004",
+      "priority": "P1",
+      "title": "Folder lock can enter secure-store/disk split-brain state",
+      "files": [
+        "electron/services/chatFolderLockService.ts"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-005",
+      "priority": "P1",
+      "title": "Folder unlock backoff is calculated but never enforced",
+      "files": [
+        "electron/services/chatFolderLockService.ts"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-006",
+      "priority": "P1",
+      "title": "Chat-folder import UI is nonfunctional in desktop application",
+      "files": [
+        "src/components/chat/HistoryView.tsx"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-007",
+      "priority": "P1",
+      "title": "Chat-folder IPC validation and file-path custody are incomplete",
+      "files": [
+        "electron/ipc/handlers/chatFolderHandlers.ts",
+        "electron/services/chatFolderBackupService.ts"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-008",
+      "priority": "P1",
+      "title": "New-profile backup import has no rollback",
+      "files": [
+        "src/components/settings/DataStoragePanel.tsx"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-009",
+      "priority": "P1",
+      "title": "Headless bridge can generate an unobtainable token",
+      "files": [
+        "electron/main.ts",
+        "docs/DEVELOPMENT/BRIDGE.md"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-010",
+      "priority": "P2",
+      "title": "Encrypted folder backup leaks folder name in plaintext",
+      "files": [
+        "electron/services/chatFolderBackupService.ts"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-011",
+      "priority": "P2",
+      "title": "Transient filesystem errors can quarantine valid folder files",
+      "files": [
+        "electron/services/chatFolderStorage.ts"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-012",
+      "priority": "P2",
+      "title": "Lock/export passphrases use generic plaintext input",
+      "files": [
+        "src/components/ui/modal-requests.tsx",
+        "src/components/chat/HistoryView.tsx"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-013",
+      "priority": "P2",
+      "title": "Documentation and work-order status contradict repository",
+      "files": [
+        "docs/DOCS_INDEX.md",
+        "docs/features/DOCUMENT_AGENT.md",
+        "docs/ROADMAP.md",
+        "docs/work-orders/VF-CHAT-FOLDERS-MEDIA-DOCUMENTS-001-REOPENED.md"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "VF-SCAN-20260722-014",
+      "priority": "P2",
+      "title": "Critical chat-folder main-process services lack direct tests",
+      "files": [
+        "electron/services/chatFolderService.ts",
+        "electron/services/chatFolderLockService.ts",
+        "electron/services/chatFolderStorage.ts",
+        "electron/ipc/handlers/chatFolderHandlers.ts"
+      ],
+      "status": "open"
+    }
+  ]
+}

@@ -378,43 +378,49 @@ const veniceForge = {
   },
 
   chatFolders: {
-    list(profileId?: string): Promise<{ ok: boolean; folders: import("../src/shared/chatFolderContracts").ChatFolder[]; error?: string }> {
-      return ipcRenderer.invoke("chat-folders:list", profileId);
+    list(): Promise<{ ok: boolean; folders: import("../src/shared/chatFolderContracts").ChatFolder[]; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:list");
     },
-    create(input: import("../src/shared/chatFolderContracts").CreateChatFolderInput & { profileId?: string }): Promise<{ ok: boolean; folder?: import("../src/shared/chatFolderContracts").ChatFolder; error?: string }> {
+    create(input: import("../src/shared/chatFolderContracts").CreateChatFolderInput): Promise<{ ok: boolean; folder?: import("../src/shared/chatFolderContracts").ChatFolder; error?: string }> {
       return ipcRenderer.invoke("chat-folders:create", input);
     },
-    rename(input: import("../src/shared/chatFolderContracts").RenameChatFolderInput & { profileId?: string }): Promise<{ ok: boolean; folder?: import("../src/shared/chatFolderContracts").ChatFolder; error?: string }> {
+    rename(input: import("../src/shared/chatFolderContracts").RenameChatFolderInput): Promise<{ ok: boolean; folder?: import("../src/shared/chatFolderContracts").ChatFolder; error?: string }> {
       return ipcRenderer.invoke("chat-folders:rename", input);
     },
-    reorder(input: import("../src/shared/chatFolderContracts").ReorderChatFoldersInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+    reorder(input: import("../src/shared/chatFolderContracts").ReorderChatFoldersInput): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("chat-folders:reorder", input);
     },
-    moveConversation(input: import("../src/shared/chatFolderContracts").MoveConversationToFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+    moveConversation(input: import("../src/shared/chatFolderContracts").MoveConversationToFolderInput): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("chat-folders:move-conversation", input);
     },
-    delete(input: import("../src/shared/chatFolderContracts").DeleteChatFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+    moveConversations(input: import("../src/shared/chatFolderContracts").MoveConversationsToFolderInput): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat-folders:move-conversations", input);
+    },
+    delete(input: import("../src/shared/chatFolderContracts").DeleteChatFolderInput): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("chat-folders:delete", input);
     },
-    getBackupPreview(input: import("../src/shared/chatFolderContracts").FolderBackupPreviewInput & { profileId?: string }): Promise<{ ok: boolean; preview?: import("../src/shared/chatFolderContracts").FolderBackupPreview; error?: string }> {
+    getBackupPreview(input: import("../src/shared/chatFolderContracts").FolderBackupPreviewInput): Promise<{ ok: boolean; preview?: import("../src/shared/chatFolderContracts").FolderBackupPreview; error?: string }> {
       return ipcRenderer.invoke("chat-folders:get-backup-preview", input);
     },
-    exportBackup(input: import("../src/shared/chatFolderContracts").ExportFolderBackupInput & { profileId?: string }): Promise<import("../src/shared/chatFolderContracts").ExportFolderBackupResult> {
+    exportBackup(input: import("../src/shared/chatFolderContracts").ExportFolderBackupInput): Promise<import("../src/shared/chatFolderContracts").ExportFolderBackupResult> {
       return ipcRenderer.invoke("chat-folders:export-backup", input);
     },
-    previewImport(input: import("../src/shared/chatFolderContracts").PreviewFolderImportInput & { profileId?: string }): Promise<{ ok: boolean; preview?: import("../src/shared/chatFolderContracts").FolderImportPreview; error?: string }> {
+    pickImportFile(): Promise<import("../src/shared/chatFolderContracts").PickFolderImportFileResult> {
+      return ipcRenderer.invoke("chat-folders:pick-import-file");
+    },
+    previewImport(input: import("../src/shared/chatFolderContracts").PreviewFolderImportInput): Promise<{ ok: boolean; preview?: import("../src/shared/chatFolderContracts").FolderImportPreview; error?: string }> {
       return ipcRenderer.invoke("chat-folders:preview-import", input);
     },
-    importBackup(input: import("../src/shared/chatFolderContracts").ImportFolderBackupInput & { profileId?: string }): Promise<import("../src/shared/chatFolderContracts").FolderImportResult> {
+    importBackup(input: import("../src/shared/chatFolderContracts").ImportFolderBackupInput): Promise<import("../src/shared/chatFolderContracts").FolderImportResult> {
       return ipcRenderer.invoke("chat-folders:import-backup", input);
     },
-    lock(input: import("../src/shared/chatFolderContracts").LockFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+    lock(input: import("../src/shared/chatFolderContracts").LockFolderInput): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("chat-folders:lock", input);
     },
-    unlock(input: import("../src/shared/chatFolderContracts").UnlockFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }> {
+    unlock(input: import("../src/shared/chatFolderContracts").UnlockFolderInput): Promise<{ ok: boolean; error?: string; retryAfter?: string }> {
       return ipcRenderer.invoke("chat-folders:unlock", input);
     },
-    getLockState(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; lockState?: import("../src/shared/chatFolderContracts").FolderLockState; error?: string }> {
+    getLockState(input: { folderId: string }): Promise<{ ok: boolean; lockState?: import("../src/shared/chatFolderContracts").FolderLockState; error?: string }> {
       return ipcRenderer.invoke("chat-folders:get-lock-state", input);
     }
   },

@@ -421,9 +421,11 @@ export const chatFolderIpcChannels = {
   rename: "chat-folders:rename",
   reorder: "chat-folders:reorder",
   moveConversation: "chat-folders:move-conversation",
+  moveConversations: "chat-folders:move-conversations",
   deleteFolder: "chat-folders:delete",
   getBackupPreview: "chat-folders:get-backup-preview",
   exportBackup: "chat-folders:export-backup",
+  pickImportFile: "chat-folders:pick-import-file",
   previewImport: "chat-folders:preview-import",
   importBackup: "chat-folders:import-backup",
   lock: "chat-folders:lock",
@@ -432,21 +434,23 @@ export const chatFolderIpcChannels = {
 } as const;
 
 export interface VeniceForgeChatFolders {
-  list(profileId?: string): Promise<{ ok: boolean; folders: import("../shared/chatFolderContracts").ChatFolder[]; error?: string }>;
-  create(input: import("../shared/chatFolderContracts").CreateChatFolderInput & { profileId?: string }): Promise<{ ok: boolean; folder?: import("../shared/chatFolderContracts").ChatFolder; error?: string }>;
-  rename(input: import("../shared/chatFolderContracts").RenameChatFolderInput & { profileId?: string }): Promise<{ ok: boolean; folder?: import("../shared/chatFolderContracts").ChatFolder; error?: string }>;
-  reorder(input: import("../shared/chatFolderContracts").ReorderChatFoldersInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }>;
-  moveConversation(input: import("../shared/chatFolderContracts").MoveConversationToFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }>;
-  delete(input: import("../shared/chatFolderContracts").DeleteChatFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }>;
+  list(): Promise<{ ok: boolean; folders: import("../shared/chatFolderContracts").ChatFolder[]; error?: string }>;
+  create(input: import("../shared/chatFolderContracts").CreateChatFolderInput): Promise<{ ok: boolean; folder?: import("../shared/chatFolderContracts").ChatFolder; error?: string }>;
+  rename(input: import("../shared/chatFolderContracts").RenameChatFolderInput): Promise<{ ok: boolean; folder?: import("../shared/chatFolderContracts").ChatFolder; error?: string }>;
+  reorder(input: import("../shared/chatFolderContracts").ReorderChatFoldersInput): Promise<{ ok: boolean; error?: string }>;
+  moveConversation(input: import("../shared/chatFolderContracts").MoveConversationToFolderInput): Promise<{ ok: boolean; error?: string }>;
+  moveConversations(input: import("../shared/chatFolderContracts").MoveConversationsToFolderInput): Promise<{ ok: boolean; error?: string }>;
+  delete(input: import("../shared/chatFolderContracts").DeleteChatFolderInput): Promise<{ ok: boolean; error?: string }>;
   
-  getBackupPreview(input: import("../shared/chatFolderContracts").FolderBackupPreviewInput & { profileId?: string }): Promise<{ ok: boolean; preview?: import("../shared/chatFolderContracts").FolderBackupPreview; error?: string }>;
-  exportBackup(input: import("../shared/chatFolderContracts").ExportFolderBackupInput & { profileId?: string }): Promise<import("../shared/chatFolderContracts").ExportFolderBackupResult>;
-  previewImport(input: import("../shared/chatFolderContracts").PreviewFolderImportInput & { profileId?: string }): Promise<{ ok: boolean; preview?: import("../shared/chatFolderContracts").FolderImportPreview; error?: string }>;
-  importBackup(input: import("../shared/chatFolderContracts").ImportFolderBackupInput & { profileId?: string }): Promise<import("../shared/chatFolderContracts").FolderImportResult>;
+  getBackupPreview(input: import("../shared/chatFolderContracts").FolderBackupPreviewInput): Promise<{ ok: boolean; preview?: import("../shared/chatFolderContracts").FolderBackupPreview; error?: string }>;
+  exportBackup(input: import("../shared/chatFolderContracts").ExportFolderBackupInput): Promise<import("../shared/chatFolderContracts").ExportFolderBackupResult>;
+  pickImportFile(): Promise<import("../shared/chatFolderContracts").PickFolderImportFileResult>;
+  previewImport(input: import("../shared/chatFolderContracts").PreviewFolderImportInput): Promise<{ ok: boolean; preview?: import("../shared/chatFolderContracts").FolderImportPreview; error?: string }>;
+  importBackup(input: import("../shared/chatFolderContracts").ImportFolderBackupInput): Promise<import("../shared/chatFolderContracts").FolderImportResult>;
   
-  lock(input: import("../shared/chatFolderContracts").LockFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }>;
-  unlock(input: import("../shared/chatFolderContracts").UnlockFolderInput & { profileId?: string }): Promise<{ ok: boolean; error?: string }>;
-  getLockState(input: { folderId: string; profileId?: string }): Promise<{ ok: boolean; lockState?: import("../shared/chatFolderContracts").FolderLockState; error?: string }>;
+  lock(input: import("../shared/chatFolderContracts").LockFolderInput): Promise<{ ok: boolean; error?: string }>;
+  unlock(input: import("../shared/chatFolderContracts").UnlockFolderInput): Promise<{ ok: boolean; error?: string; retryAfter?: string }>;
+  getLockState(input: { folderId: string }): Promise<{ ok: boolean; lockState?: import("../shared/chatFolderContracts").FolderLockState; error?: string }>;
 }
 
 export interface VeniceForge {

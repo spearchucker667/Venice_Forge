@@ -13,19 +13,20 @@ Venice Forge supports running as an autonomous headless loopback server. This mo
 
 ## 🚀 Headless Mode Startup
 
-Start the application with the `--headless` CLI flag. When run headless, Venice Forge bypasses graphical window initialization, generates an access token, and prints the startup details to `stdout`.
+Start the application with the `--headless` CLI flag. Headless startup fails closed unless the operator supplies a strong `VENICE_BRIDGE_TOKEN`; the token is never printed or exposed to the renderer.
 
 ### Development
 ```bash
-npm run dev:electron -- --headless --bridge-port 5062 --bridge-host 127.0.0.1
+VENICE_BRIDGE_TOKEN="$(openssl rand -hex 32)" npm run dev:electron -- --headless --bridge-port 5062 --bridge-host 127.0.0.1
 ```
 
 ### Packaged Binaries
 ```bash
 # macOS
-./dist/mac/Venice\ Forge.app/Contents/MacOS/Venice\ Forge --headless --bridge-port 5062
+VENICE_BRIDGE_TOKEN="<strong-operator-secret>" ./dist/mac/Venice\ Forge.app/Contents/MacOS/Venice\ Forge --headless --bridge-port 5062
 
 # Windows
+set VENICE_BRIDGE_TOKEN=<strong-operator-secret>
 Venice-Forge.exe --headless --bridge-port 5062
 ```
 
@@ -43,7 +44,7 @@ Venice-Forge.exe --headless --bridge-port 5062
 
 * **Loopback Bind by Default:** The server binds strictly to `127.0.0.1` (localhost) to prevent exposing the Venice API credentials to the public network.
 * **Token Authentication:** Every request must present a Bearer token in the `Authorization` header.
-* **Token Sourcing:** The token is read from the `VENICE_BRIDGE_TOKEN` environment variable on start. If the environment variable is absent, a secure random 32-byte hexadecimal token is generated and printed to `stdout` upon startup.
+* **Token Sourcing:** Set `VENICE_BRIDGE_TOKEN` before launch. It must be at least 32 characters with sufficient character diversity. Headless mode refuses to start when it is absent or weak; Venice Forge never prints it or exposes a renderer token getter.
 * **Safety Guards Active:** The loopback bridge server executes the child safety guard on every prompt payload. Attempting to bypass safety filters results in an immediate `451 Blocked by local safety guard` error response.
 
 ---

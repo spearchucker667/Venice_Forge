@@ -4,6 +4,22 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+**Date:** 2026-07-22 (July audit TODO reconciliation and remediation)
+
+**Scope:** Reconciled every artifact in `docs/audits/TODO/` against the live `main` worktree. The July 22 scan's 14 findings were independently reproduced or bounded, corrected in the chat-folder, backup/import, profile-session, headless-bridge, UI, and documentation layers, and recorded in the scan addendum. `Function_calling_todo.md` is retained as a feature specification rather than misclassified as an active status ledger.
+
+- Added durable operation journals and rollback/recovery for folder reorder, move, delete, and legacy migration; bulk movement now uses one main-process transaction and reports structured failures.
+- Made profile identity main-authoritative for folder IPC, added strict runtime validation, and replaced renderer-supplied import paths with expiring, sender/profile-bound file capabilities.
+- Hardened lock state with profile-scoped secure credentials, random device keys, enforced pre-KDF backoff, structured retry metadata, rollback on partial persistence, and key-buffer cleanup.
+- Completed the encrypted folder-backup UI flow with native user-mediated pickers, masked confirmed secrets, neutral filenames/headers, explicit preview/confirmation, and failed new-profile import registration rollback.
+- Distinguished corrupt content from transient filesystem failures so only invalid content is quarantined; durable writes now sync before atomic rename.
+- Added keyboard folder reordering and accessible focus treatment, corrected privacy-gate terminology, and fail-closed headless bridge token validation.
+- Archived the two completed prior audits from `docs/audits/active/` to `docs/audits/Records/` without content changes and registered the July 22 evidence in `docs/DOCS_INDEX.md`.
+
+**Automated evidence:** focused suites pass (12 files / 110 tests); the full `npm test` surface passes (402 files, 4,547 tests passed, 1 skipped); ESLint and both TypeScript projects pass. Aggregate contracts and production build are being recorded in the current Validation Matrix below. Manual signed/paid/two-device/headed acceptance remains external and is not inferred.
+
+### Prior Session Summary (VERIFY-007 inline-style CSP regression fix)
+
 **Date:** 2026-07-22 (continuation 12 — VERIFY-007 inline-style CSP regression fix)
 
 **Scope:** `npm run ci` meta-gate was failing on `tests/csp/inlineStyleInvariant.test.ts` because of two unfixed JSX inline `style={...}` attributes that slipped past the `VERIFY-007` regression guard. Per AGENTS.md §8 / §16 (do not hide API drift by weakening tests), the fix was applied in component code, not in the test. Two source files were refactored to swallow a `useRef` and apply the inline styles via `useLayoutEffect(el.style.setProperty(...))` so the runtime behaviour is preserved without using a JSX `style={...}` attribute. All other gates (`lint:eslint`, `typecheck`, `test:ci`, `build`, `verify:dist`) pass green against the current dirty worktree; only the pre-existing `npm audit --audit-level=moderate` gate fails on transitive dependency vulnerabilities that this session did not introduce.
@@ -644,6 +660,8 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
+**July 22 audit TODO reconciliation:** all 14 locally actionable findings in `docs/audits/TODO/Venice_Forge_Extensive_Scan_2026-07-22.md` now have implemented corrections and regression evidence. The scan and companion JSON retain the exact dispositions. No local implementation item from that scan remains open. Signed/paid/two-device/headed accessibility and packaged-dialog validation remain external acceptance under `VF-VERIFY-005`; `Function_calling_todo.md` remains a specification whose broader Document Agent product work is tracked only in `docs/ROADMAP.md`.
+
 `VERIFY-155` closes the Cross-Origin Resource Sharing defect on the `venice-media://`, `venice-tts://`, and `venice-character-cache://` custom protocols. `electron/main.ts` now registers every renderer-consumed scheme with `corsEnabled: true` (keeping `stream: true` on the audio/video ones); a centralised `evaluateCustomProtocolAccess` helper coordinates the per-protocol response headers so `venice-media` and `venice-tts` honor the same origin/referrer guard as `venice-character-cache`. The static audit `scripts/verify-custom-protocol-privileges.cjs` plus 26 regression tests (5 audit + 21 functional) lock the contract. Headed `npm run dev:electron` validation and packaged cross-platform Save As remain external acceptance rows under `VF-VERIFY-005`; no such result is inferred.
 
 `VERIFY-145..154` close the implemented Document Agent foundation, Limited Documents review flow, attachment-to-managed-document promotion, native export, workspace read boundary, and audit/redaction contracts. The feature is not yet a complete implementation of every acceptance row in `Function_calling_todo.md`: `VF-DOCUMENT-AGENT-001` in `docs/ROADMAP.md` retains source-blob policy, isolated/fuzzed complex parsing, full workspace mutation/recovery UI, canonical Chat/Workflow/Project agent-loop integration, crash-journal recovery, packaged cross-platform QA, and the manual matrix. These capabilities remain unexposed or fail closed; no autonomous workspace claim is made.
@@ -755,6 +773,22 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 ## Validation Matrix
 
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
+
+### July 22 — July audit TODO reconciliation
+
+| Command | Result | Evidence |
+|---|---|---|
+| `npm run lint:eslint` | PASS | 0 warnings across renderer, Electron, server, and scripts. |
+| `npm run typecheck` | PASS | 0 errors across renderer and Electron TypeScript projects. |
+| Focused Vitest regression suites | PASS | 12 files / 110 tests covering folder handlers, storage, lock state, operation journals, service rollback, profile sessions, store/UI behavior, import rollback, secret modal, and headless bridge token validation. |
+| `npm test` | PASS | 402 files passed, 1 skipped; 4,547 tests passed, 1 skipped. |
+| `npm run verify:safety-guard` | PASS | Safety enforcement and no-raw-log policy checks passed. |
+| `npm run verify:markdown-links` | PASS | 150 Markdown files checked with no broken links. |
+| `npm run verify:contracts` | PASS | Aggregate static, feature, workspace, and release contracts passed, including the native-picker policy gate. |
+| `npm run build` | PASS | Vite transformed 3,071 modules; server, Electron main, and preload bundles were produced successfully. |
+| `npm audit --audit-level=moderate` | PASS | 0 vulnerabilities on the locked dependency graph. |
+| `npm run ci` | PASS | Full meta-gate passed: lint, typecheck, segmented tests, audit, build, aggregate contracts, and `verify:dist`. |
+| Manual signed/paid/two-device/headed QA | NOT RUN | External credentials, devices, signing identity, and interactive acceptance are not available in this terminal session. |
 
 ### July 22 (continuation 12) — VERIFY-007 inline-style CSP regression fix
 
@@ -1165,6 +1199,14 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-22 — July audit TODO reconciliation and remediation
+
+- Reconciled all three `docs/audits/TODO/` artifacts against the live repository and classified the 14 July 22 findings without treating scan prose as authority.
+- Implemented transactional folder-operation journals, authoritative profile IPC, capability-bound backup import, secure lock/backoff state, corruption-vs-I/O storage handling, encrypted-backup UI completion, failed-profile-import rollback, keyboard reordering, and headless bridge token enforcement.
+- Added direct regression coverage at handler, service, storage, lock, profile-session, store, component, modal, and bridge layers; the full Vitest suite passes.
+- Updated the scan/JSON remediation addenda, work-order reconciliation, security/developer docs, roadmap, docs index, and this handoff ledger. Moved two completed audits from active to records with byte-identical content.
+- Manual signed/paid/two-device/headed acceptance remains explicitly external; no such result is claimed.
 
 ### 2026-07-22 (continuation 12) — VERIFY-007 inline-style CSP regression fix
 

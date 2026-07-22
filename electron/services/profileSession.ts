@@ -10,6 +10,13 @@ export function getProfileSessionId(sender: WebContents): string {
   return sessions.get(sender) ?? "default";
 }
 
+/** Returns the explicitly bound profile for security-sensitive IPC. */
+export function requireProfileSessionId(sender: WebContents): string {
+  const profileId = sessions.get(sender);
+  if (!profileId) throw new Error("Renderer profile session is not bound.");
+  return profileId;
+}
+
 /** Binds a validated profile to a renderer after the activation gate succeeds. */
 export function setProfileSessionId(sender: WebContents, profileId: string): void {
   if (!isValidProfileStorageId(profileId)) {

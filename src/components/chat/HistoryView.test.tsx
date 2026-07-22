@@ -7,11 +7,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import HistoryView from "./HistoryView";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
+import { useChatFolderStore } from "../../stores/chat-folder-store";
 import type { Conversation } from "../../types/conversation";
 import { askDecision } from "../ui/modal-requests";
 
 vi.mock("../ui/modal-requests", () => ({
   askDecision: vi.fn(),
+  askSecret: vi.fn(),
 }));
 
 // Polyfill localStorage for Node 26+ / jsdom environments where it may be missing
@@ -68,6 +70,7 @@ describe("HistoryView Component", () => {
       activeConversationId: null,
       pendingContext: null,
     });
+    useChatFolderStore.setState({ folders: [], isLoaded: true, isLoading: false });
   });
 
   // Helper to create mock conversations
@@ -318,5 +321,21 @@ describe("HistoryView Component", () => {
       expect(askDecision).toHaveBeenCalled();
     });
     expect(deleteConversationsSpy).not.toHaveBeenCalled();
+  });
+
+  it("offers keyboard-accessible folder reordering", async () => {
+    const reorderFolders = vi.fn().mockResolvedValue(undefined);
+    useChatFolderStore.setState({
+      folders: [
+        { id: "folder-1", profileId: "default", kind: "standard", name: "First", sortOrder: 1, createdAt: "now", updatedAt: "now", lockState: "unlocked", schemaVersion: 1 },
+        { id: "folder-2", profileId: "default", kind: "standard", name: "Second", sortOrder: 2, createdAt: "now", updatedAt: "now", lockState: "unlocked", schemaVersion: 1 },
+      ],
+      reorderFolders,
+    });
+
+    render(<HistoryView />);
+    fireEvent.click(screen.getByRole("button", { name: "Move Second folder up" }));
+    await waitFor(() => expect(reorderFolders).toHaveBeenCalledWith(["folder-2", "folder-1"], "standard"));
+    expect(screen.getByRole("button", { name: "Move First folder up" })).toBeDisabled();
   });
 });

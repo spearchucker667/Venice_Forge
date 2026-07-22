@@ -118,6 +118,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 - [ROADMAP.md](ROADMAP.md) — Canonical current-work-only task ledger; closed work and historical validation stay in the session ledger and historical reports.
 - [audits/TODO/Function_calling_todo.md](audits/TODO/Function_calling_todo.md) — Canonical Document Agent implementation and acceptance specification.
+- [audits/TODO/Venice_Forge_Extensive_Scan_2026-07-22.md](audits/TODO/Venice_Forge_Extensive_Scan_2026-07-22.md) — July 22 repository scan input with a dated, per-finding remediation addendum.
+- [audits/TODO/Venice_Forge_Findings_2026-07-22.json](audits/TODO/Venice_Forge_Findings_2026-07-22.json) — Machine-readable July 22 snapshot findings plus remediation disposition metadata.
 - [summary_of_work.md](summary_of_work.md) — Active session ledger (recent sessions only).
 - July 17 03:10 deep-scan audit evidence was processed; remediated live status remains in `ROADMAP.md` and `summary_of_work.md`.
 
@@ -135,6 +137,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [reports/VENICE_FORGE_CHAT_FOLDERS_MEDIA_DOCUMENTS_REPORT_2026-07-19.md](reports/VENICE_FORGE_CHAT_FOLDERS_MEDIA_DOCUMENTS_REPORT_2026-07-19.md) — Closure report for the 2026-07-19 chat folders / agent media / documents / video 9-phase work order (Phase 0+1+2+3+4+5+6+7+8+9 + vo-validate).
 - [reports/VENICE_FORGE_THEME_ENGINE_BORDER_AND_PORTABILITY_AUDIT_2026-07-21.md](reports/VENICE_FORGE_THEME_ENGINE_BORDER_AND_PORTABILITY_AUDIT_2026-07-21.md) — Closure report for the 2026-07-21 Theme Engine, Border System, Focus Ring, and Theme Portability audit & remediation.
 - [reports/historical/final-massive-bug-hunt-with-proof.md](reports/historical/final-massive-bug-hunt-with-proof.md) — Historical audit log of closed validation checks from the v2.1.0 release boundary.
+- [audits/Records/Venice_Forge_Full_Repository_Audit_2026-07-18/12-final-report.md](audits/Records/Venice_Forge_Full_Repository_Audit_2026-07-18/12-final-report.md) — Retained July 18 full-repository audit evidence, moved byte-for-byte from the former active-audit location.
+- [audits/Records/Venice_Forge_Most_Recent_Change_Audit_2026-07-20/09-final-report.md](audits/Records/Venice_Forge_Most_Recent_Change_Audit_2026-07-20/09-final-report.md) — Retained July 20 recent-change audit evidence, moved byte-for-byte from the former active-audit location.
 
 ---
 

@@ -5,7 +5,7 @@ import fs from "fs/promises";
 import path from "path";
 import { app } from "electron";
 import _sodium from "libsodium-wrappers-sumo";
-import { readChatFolder, saveChatFolder } from "./chatFolderStorage";
+import { deleteChatFolderFile, readChatFolder, saveChatFolder } from "./chatFolderStorage";
 import { listConversations, saveConversation, deleteConversation } from "./chatStorage";
 import { logError, logInfo } from "./logger";
 import type {
@@ -89,13 +89,10 @@ interface FolderBackupEncryptedPayload {
     payloadNonce: string; // base64
     ciphertext: string; // base64
   };
-  // Tiny header summary that is NOT encrypted only so the preview can show the
-  // source folder name without forcing the user to type the passphrase before
-  // they know whether this is the right backup. Anything sensitive stays
-  // inside the encrypted manifest.
+  // Only non-content technical metadata is public. User-chosen names remain
+  // inside the authenticated encrypted manifest.
   publicHeader: {
     sourceFolderKind: ChatFolderKind;
-    sourceFolderName: string;
     createdAt: string;
     appVersion: string;
     includesMedia: boolean;
@@ -159,7 +156,11 @@ export async function getBackupPreview(input: FolderBackupPreviewInput, profileI
   };
 }
 
-export async function exportBackup(input: ExportFolderBackupInput, profileId: string = "default"): Promise<ExportFolderBackupResult> {
+export async function exportBackup(
+  input: ExportFolderBackupInput,
+  profileId: string = "default",
+  destinationPath?: string,
+): Promise<ExportFolderBackupResult> {
   const folder = await readChatFolder(input.folderId, profileId);
   if (!folder || folder.deletedAt) throw new Error("Folder not found");
   if (folder.lockState === "locked") throw new Error("Cannot export a locked folder");
@@ -256,7 +257,6 @@ export async function exportBackup(input: ExportFolderBackupInput, profileId: st
     },
     publicHeader: {
       sourceFolderKind: manifest.sourceFolderKind,
-      sourceFolderName: folder.name,
       createdAt: manifest.createdAt,
       appVersion: manifest.appVersion,
       includesMedia: manifest.includesMedia,
@@ -264,20 +264,32 @@ export async function exportBackup(input: ExportFolderBackupInput, profileId: st
     },
   };
 
-  const backupDir = getBackupsDir(profileId);
-  await fs.mkdir(backupDir, { recursive: true });
+  const backupFileName = `venice-forge-folder-backup-${Date.now()}.vfbackup`;
+  const backupPath = destinationPath ?? path.join(getBackupsDir(profileId), backupFileName);
+  await fs.mkdir(path.dirname(backupPath), { recursive: true });
+  const temporaryPath = `${backupPath}.${crypto.randomUUID()}.tmp`;
+  try {
+    const handle = await fs.open(temporaryPath, "w", 0o600);
+    try {
+      await handle.writeFile(JSON.stringify(encrypted, null, 2), "utf-8");
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    await fs.rename(temporaryPath, backupPath);
+  } catch (error) {
+    await fs.unlink(temporaryPath).catch(() => undefined);
+    throw error;
+  }
 
-  const backupFileName = `chat-folder-${folder.kind}-${folder.name.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}-${Date.now()}.vfbackup`;
-  const backupPath = path.join(backupDir, backupFileName);
-
-  await fs.writeFile(backupPath, JSON.stringify(encrypted, null, 2), "utf-8");
-
-  logInfo("Exported chat folder backup", { folderId: folder.id, backupPath });
-
-  return { ok: true, backupPath };
+  logInfo("Exported chat folder backup", { folderId: folder.id, fileName: backupFileName });
+  return { ok: true, fileName: path.basename(backupPath), backupPath } as ExportFolderBackupResult & { backupPath: string };
 }
 
-export async function previewImport(input: PreviewFolderImportInput, _profileId: string = "default"): Promise<FolderImportPreview> {
+type PreviewFolderImportFileInput = Omit<PreviewFolderImportInput, "fileCapability"> & { backupFilePath: string };
+type ImportFolderBackupFileInput = Omit<ImportFolderBackupInput, "fileCapability"> & { backupFilePath: string };
+
+export async function previewImport(input: PreviewFolderImportFileInput, _profileId: string = "default"): Promise<FolderImportPreview> {
   const backupPath = input.backupFilePath;
 
   try {
@@ -302,7 +314,7 @@ export async function previewImport(input: PreviewFolderImportInput, _profileId:
     }
 
     return {
-      sourceFolderName: backup.publicHeader.sourceFolderName,
+      sourceFolderName: "Encrypted folder backup",
       sourceFolderKind: backup.publicHeader.sourceFolderKind,
       newFolders: 1,
       newConversations: backup.publicHeader.conversationCount,
@@ -333,7 +345,7 @@ class BackupStructureError extends Error {
   }
 }
 
-export async function importBackup(input: ImportFolderBackupInput, profileId: string = "default"): Promise<FolderImportResult> {
+export async function importBackup(input: ImportFolderBackupFileInput, profileId: string = "default"): Promise<FolderImportResult> {
   const backupPath = input.backupFilePath;
 
   try {
@@ -459,19 +471,19 @@ export async function importBackup(input: ImportFolderBackupInput, profileId: st
     for (const raw of sourceConversations) {
       const prepared = prepareImportedConversation(raw, targetFolderId, profileId, existingIds);
       if (!prepared.ok) {
-        await rollbackCreatedConversations(createdIdsForRollback, profileId);
+        await rollbackImportedRecords(createdIdsForRollback, input.mode === "new-folder" ? targetFolderId : null, profileId);
         return {
           ok: false,
           error: prepared.error ?? "Failed to import a conversation from the backup",
           folderId: targetFolderId,
           imported,
           rollbackCount: createdIdsForRollback.length,
-          rolledBack: createdIdsForRollback.length > 0,
+          rolledBack: true,
         };
       }
       const saveRes = await saveConversation(prepared.conversation, profileId);
       if (!saveRes.ok) {
-        await rollbackCreatedConversations(createdIdsForRollback, profileId);
+        await rollbackImportedRecords(createdIdsForRollback, input.mode === "new-folder" ? targetFolderId : null, profileId);
         return {
           ok: false,
           error: saveRes.error ?? "Failed to save imported conversation",
@@ -643,5 +655,13 @@ async function rollbackCreatedConversations(ids: string[], profileId: string): P
     } catch (err) {
       logError("chat-folder-backup.rollbackCreatedConversations failed", err);
     }
+  }
+}
+
+async function rollbackImportedRecords(ids: string[], createdFolderId: string | null, profileId: string): Promise<void> {
+  await rollbackCreatedConversations(ids, profileId);
+  if (createdFolderId) {
+    const result = await deleteChatFolderFile(createdFolderId, profileId);
+    if (result && !result.ok) logError("chat-folder-backup folder rollback failed", { folderId: createdFolderId });
   }
 }

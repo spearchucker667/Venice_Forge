@@ -4,12 +4,12 @@ import { createPortal } from 'react-dom'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useChatFolderStore } from '../../stores/chat-folder-store'
-import { Search, Trash2, MessageSquare, Plus, ArrowRight, BookOpen, Zap, Folder, FolderPlus, ChevronDown, ChevronRight, Edit2, Lock, Unlock, Download, Upload } from 'lucide-react'
+import { Search, Trash2, MessageSquare, Plus, ArrowRight, ArrowUp, ArrowDown, BookOpen, Zap, Folder, FolderPlus, ChevronDown, ChevronRight, Edit2, Lock, Unlock, Download, Upload } from 'lucide-react'
 import { Meteocon } from '../ui/Meteocon'
 import { toast } from '../../stores/toast-store'
 import type { Conversation } from '../../types/conversation'
 import { contentToSearchText } from '../../utils/messageContent'
-import { askDecision, askText } from '../ui/modal-requests'
+import { askDecision, askSecret } from '../ui/modal-requests'
 import { getConversationDisplayTitle } from '../../utils/conversationDisplayTitle'
 import { CharacterAvatar } from '../characters/CharacterAvatar'
 import { getConversationKind } from '../../utils/conversationKind'
@@ -40,7 +40,7 @@ export default function HistoryView() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'character' | 'standard'>('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const { folders, isLoaded, loadFolders, createFolder, renameFolder, moveConversation, deleteFolder, lockFolder, exportFolderBackup, unlockFolder } = useChatFolderStore()
+  const { folders, isLoaded, loadFolders, createFolder, renameFolder, reorderFolders, moveConversation, deleteFolder, lockFolder, exportFolderBackup, unlockFolder, pickImportFile, previewImport, importFolderBackup } = useChatFolderStore()
 
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({})
   const [draggedChatId, setDraggedChatId] = useState<string | null>(null)
@@ -53,7 +53,6 @@ export default function HistoryView() {
     x: number
     y: number
   } | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   
   useEffect(() => { if (!isLoaded) loadFolders() }, [isLoaded, loadFolders])
 
@@ -73,6 +72,31 @@ export default function HistoryView() {
     el.style.setProperty('left', `${folderContextMenu.x}px`)
     el.style.setProperty('z-index', '9999')
   }, [folderContextMenu])
+
+  const handleImportFolder = async () => {
+    const selected = await pickImportFile()
+    if (!selected.ok || !selected.fileCapability) {
+      if (!selected.canceled) toast.error('Import failed', selected.error ?? 'Unable to select backup')
+      return
+    }
+    const preview = await previewImport({ fileCapability: selected.fileCapability })
+    if (!preview) return
+    const approved = await askDecision({
+      title: 'Import encrypted folder backup?',
+      detail: `${selected.fileName ?? 'Selected backup'} contains ${preview.newConversations} conversation${preview.newConversations === 1 ? '' : 's'} from Venice Forge ${preview.sourceAppVersion}. The backup will be imported as a new folder.`,
+      actionLabel: 'Continue',
+    })
+    if (!approved) return
+    const passphrase = await askSecret({
+      title: 'Unlock Backup',
+      detail: 'Enter the passphrase used when this encrypted backup was created.',
+      minLength: 8,
+      autocomplete: 'current-password',
+      actionLabel: 'Import',
+    })
+    if (!passphrase) return
+    await importFolderBackup({ fileCapability: selected.fileCapability, mode: 'new-folder', passphrase })
+  }
 
   const filtered = useMemo(() => {
     let result = conversations
@@ -384,6 +408,15 @@ export default function HistoryView() {
               const folderConvs = groupedConversations.groups[folder.id] || []
               const folderSelectedCount = folderConvs.filter((c) => selectedIds.includes(c.id)).length
               const isFolderFullySelected = folderConvs.length > 0 && folderSelectedCount === folderConvs.length
+              const orderedKindFolders = folders.filter((candidate) => candidate.kind === folder.kind).sort((a, b) => a.sortOrder - b.sortOrder)
+              const folderOrderIndex = orderedKindFolders.findIndex((candidate) => candidate.id === folder.id)
+              const moveFolder = async (direction: -1 | 1) => {
+                const targetIndex = folderOrderIndex + direction
+                if (folderOrderIndex < 0 || targetIndex < 0 || targetIndex >= orderedKindFolders.length) return
+                const ids = orderedKindFolders.map((candidate) => candidate.id)
+                ;[ids[folderOrderIndex], ids[targetIndex]] = [ids[targetIndex], ids[folderOrderIndex]]
+                await reorderFolders(ids, folder.kind)
+              }
 
               return (
                 <div
@@ -448,7 +481,27 @@ export default function HistoryView() {
                       </span>
                     </div>
                     
-                    <div className="flex items-center gap-2 opacity-0 group-hover/folder:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-2 opacity-0 group-hover/folder:opacity-100 group-focus-within/folder:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        disabled={folderOrderIndex <= 0}
+                        onClick={(e) => { e.stopPropagation(); void moveFolder(-1) }}
+                        className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-surface disabled:opacity-30"
+                        title="Move folder up"
+                        aria-label={`Move ${folder.name} folder up`}
+                      >
+                        <ArrowUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={folderOrderIndex < 0 || folderOrderIndex >= orderedKindFolders.length - 1}
+                        onClick={(e) => { e.stopPropagation(); void moveFolder(1) }}
+                        className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-surface disabled:opacity-30"
+                        title="Move folder down"
+                        aria-label={`Move ${folder.name} folder down`}
+                      >
+                        <ArrowDown size={14} />
+                      </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); setEditingFolderId(folder.id); setEditingFolderName(folder.name) }}
                         className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-surface"
@@ -794,22 +847,39 @@ export default function HistoryView() {
                     const fid = folderContextMenu.folderId
                     setFolderContextMenu(null)
                     if (isLocked) {
-                      const passphrase = await askText({
-                        title: 'Unlock Folder',
-                        detail: 'Enter the passphrase to unlock this folder'
+                      const passphrase = await askSecret({
+                        title: 'Open Privacy Gate',
+                        detail: 'Enter the passphrase to restore access. This gate restricts app access; it is not per-folder encryption at rest.',
+                        minLength: 8,
+                        autocomplete: 'current-password',
                       })
-                      if (passphrase) await unlockFolder({ folderId: fid, passphrase })
+                      if (passphrase) {
+                        const result = await unlockFolder({ folderId: fid, passphrase })
+                        if (!result.ok) {
+                          const retryDetail = result.retryAfter
+                            ? `Try again after ${new Date(result.retryAfter).toLocaleTimeString()}.`
+                            : result.error ?? 'The privacy gate could not be opened.'
+                          toast.warn('Privacy gate remains closed', retryDetail)
+                        }
+                      }
                     } else {
-                      const passphrase = await askText({
-                        title: 'Lock Folder',
-                        detail: 'Enter a passphrase to lock this folder'
+                      const passphrase = await askSecret({
+                        title: 'Enable Folder Privacy Gate',
+                        detail: 'Create a passphrase for this access gate. It restricts app access but does not encrypt conversation files at rest.',
+                        confirm: true,
+                        minLength: 8,
+                        autocomplete: 'new-password',
                       })
-                      if (passphrase) await lockFolder({ folderId: fid, passphrase })
+                      if (passphrase) {
+                        const result = await lockFolder({ folderId: fid, passphrase })
+                        if (!result.ok) toast.error('Privacy gate was not enabled', result.error ?? 'Unknown error')
+                      }
                     }
                   }}
+                  title="Privacy access gate; not per-folder encryption at rest"
                   className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
                 >
-                  {isLocked ? <><Unlock size={14} /> Unlock</> : <><Lock size={14} /> Lock</>}
+                  {isLocked ? <><Unlock size={14} /> Open Privacy Gate</> : <><Lock size={14} /> Enable Privacy Gate</>}
                 </button>
                 <button
                   onClick={(e) => {
@@ -841,12 +911,15 @@ export default function HistoryView() {
                     e.stopPropagation()
                     const fid = folderContextMenu.folderId
                     setFolderContextMenu(null)
-                    const passphrase = await askText({
+                    const passphrase = await askSecret({
                       title: 'Export Folder',
-                      detail: 'Enter a passphrase to encrypt the backup. Record it — it cannot be recovered.'
+                      detail: 'Create a passphrase to encrypt the backup. Record it — it cannot be recovered.',
+                      confirm: true,
+                      minLength: 8,
+                      autocomplete: 'new-password',
                     })
                     if (passphrase) {
-                      await exportFolderBackup({ folderId: fid, includeMedia: false, passphrase })
+                      await exportFolderBackup({ folderId: fid, includeMedia: false, passphrase, passphraseConfirmed: true })
                     }
                   }}
                   className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
@@ -854,10 +927,10 @@ export default function HistoryView() {
                   <Download size={14} /> Export
                 </button>
                 <button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    fileInputRef.current?.click()
                     setFolderContextMenu(null)
+                    await handleImportFolder()
                   }}
                   className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
                 >
@@ -870,21 +943,6 @@ export default function HistoryView() {
         document.body
       )}
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        className="hidden"
-        onChange={async (e) => {
-          const file = e.target.files?.[0]
-          if (!file) return
-          // The IPC-based importFolderBackup requires a file path (not raw JSON).
-          // In the web environment, show a toast explaining the limitation.
-          // In Electron, the user should use the native file picker path.
-          toast.warn('Import', 'Folder import requires the Electron file picker. Use the Desktop app to import backups.')
-          e.target.value = ''
-        }}
-      />
     </div>
   );
 }
