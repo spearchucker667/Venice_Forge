@@ -16,7 +16,9 @@ This is the active handoff and validation ledger. The canonical current-work led
 - Added keyboard folder reordering and accessible focus treatment, corrected privacy-gate terminology, and fail-closed headless bridge token validation.
 - Archived the two completed prior audits from `docs/audits/active/` to `docs/audits/Records/` without content changes and registered the July 22 evidence in `docs/DOCS_INDEX.md`.
 
-**Automated evidence:** focused suites pass (12 files / 110 tests); the full `npm test` surface passes (402 files, 4,547 tests passed, 1 skipped); ESLint and both TypeScript projects pass. Aggregate contracts and production build are being recorded in the current Validation Matrix below. Manual signed/paid/two-device/headed acceptance remains external and is not inferred.
+**Automated evidence:** focused suites pass (12 files / 110 tests); the full `npm test` surface passes (402 files, 4,547 tests passed, 1 skipped); ESLint, both TypeScript projects, aggregate contracts, the production build, dependency audit, distribution verification, and the complete local `npm run ci` meta-gate pass. Manual signed/paid/two-device/headed acceptance remains external and is not inferred.
+
+**Hosted publication:** PR #46 was opened from commit `09c1542`. CI run `29937052499` and CodeQL run `29937052339` were each retried once. Both attempts failed before executing any step: every failed job reports an empty step list, `runner_id: 0`, and no runner name across Ubuntu, macOS, and Windows. This is hosted-runner infrastructure/quota failure rather than a code-side test result. Required checks and independent review are not satisfied, so the PR remains open and `main` was not advanced or bypassed.
 
 ### Prior Session Summary (VERIFY-007 inline-style CSP regression fix)
 
@@ -789,6 +791,7 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 | `npm audit --audit-level=moderate` | PASS | 0 vulnerabilities on the locked dependency graph. |
 | `npm run ci` | PASS | Full meta-gate passed: lint, typecheck, segmented tests, audit, build, aggregate contracts, and `verify:dist`. |
 | Manual signed/paid/two-device/headed QA | NOT RUN | External credentials, devices, signing identity, and interactive acceptance are not available in this terminal session. |
+| GitHub Actions CI `29937052499` + CodeQL `29937052339` (attempts 1 and 2) | BLOCKED — HOSTED INFRASTRUCTURE | Every failed job completed in 2–12 seconds with no steps, `runner_id: 0`, and an empty runner name on Ubuntu, macOS, and Windows. No code-side hosted result exists; branch protection was not bypassed. |
 
 ### July 22 (continuation 12) — VERIFY-007 inline-style CSP regression fix
 
