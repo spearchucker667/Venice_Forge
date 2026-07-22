@@ -148,9 +148,16 @@ export const useChatFolderStore = create<ChatFolderState>((set, get) => ({
     }
   },
 
-  moveConversation: async (conversationId: string, destinationFolderId: string | null) => {
-    try {
-      const res = await desktopChatFolders.moveConversation({ conversationId, folderId: destinationFolderId });
+moveConversation: async (conversationId: string, destinationFolderId: string | null) => {
+  if (destinationFolderId !== null) {
+    const cached = useChatFolderStore.getState().folders.find((f) => f.id === destinationFolderId);
+    if (cached && cached.lockState === 'locked') {
+      toast.error('Folder is locked', `Unlock "${cached.name}" before moving conversations into it.`);
+      throw new Error('Folder is locked');
+    }
+  }
+  try {
+    const res = await desktopChatFolders.moveConversation({ conversationId, folderId: destinationFolderId });
       if (res.ok) {
         // We don't update chat-store here, the caller should trigger conversation reload
       } else {
@@ -162,11 +169,18 @@ export const useChatFolderStore = create<ChatFolderState>((set, get) => ({
     }
   },
 
-  moveConversations: async (conversationIds: string[], destinationFolderId: string | null) => {
-    try {
-      for (const conversationId of conversationIds) {
-        await desktopChatFolders.moveConversation({ conversationId, folderId: destinationFolderId });
-      }
+moveConversations: async (conversationIds: string[], destinationFolderId: string | null) => {
+  if (destinationFolderId !== null) {
+    const cached = useChatFolderStore.getState().folders.find((f) => f.id === destinationFolderId);
+    if (cached && cached.lockState === 'locked') {
+      toast.error('Folder is locked', `Unlock "${cached.name}" before moving conversations into it.`);
+      throw new Error('Folder is locked');
+    }
+  }
+  try {
+    for (const conversationId of conversationIds) {
+      await desktopChatFolders.moveConversation({ conversationId, folderId: destinationFolderId });
+    }
     } catch (err) {
       toast.error('Failed to move conversations', String(err));
       throw err;

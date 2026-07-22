@@ -390,4 +390,95 @@ describe("useChatFolderStore — Phase 2 backup + lock wiring", () => {
     expect(selectStandardFolders(state).map((f) => f.sortOrder)).toEqual([1, 3]);
     expect(selectCharacterFolders(state).map((f) => f.sortOrder)).toEqual([1]);
   });
+
+  // VERIFY-FOLDER-LOCK-SHORTCIRCUIT: client-side lock pre-check on moveConversation / moveConversations.
+  it("moveConversation short-circuits to a toast when the cached destination folder is locked", async () => {
+    useChatFolderStore.setState({
+      folders: [
+        {
+          id: "folder-locked",
+          name: "Vault",
+          kind: "standard",
+          sortOrder: 1,
+          createdAt: "2026-07-01T00:00:00Z",
+          updatedAt: "2026-07-01T00:00:00Z",
+          lockState: "locked",
+        },
+      ],
+    });
+
+    await expect(
+      useChatFolderStore.getState().moveConversation("conv-1", "folder-locked"),
+    ).rejects.toThrow(/Folder is locked/);
+
+    expect(desktopChatFolders.moveConversation).not.toHaveBeenCalled();
+    const errorCalls = (toast.error as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    expect(errorCalls.some(([title]) => title === "Folder is locked")).toBe(true);
+  });
+
+  it("moveConversation falls through to IPC when the cached folders[] has no entry for the destination", async () => {
+    (desktopChatFolders.moveConversation as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+    });
+
+    await expect(
+      useChatFolderStore.getState().moveConversation("conv-1", "folder-cold"),
+    ).resolves.toBeUndefined();
+
+    expect(desktopChatFolders.moveConversation).toHaveBeenCalledWith({
+      conversationId: "conv-1",
+      folderId: "folder-cold",
+    });
+  });
+
+  it("moveConversation calls IPC when the cached destination folder is unlocked", async () => {
+    useChatFolderStore.setState({
+      folders: [
+        {
+          id: "folder-open",
+          name: "Open",
+          kind: "standard",
+          sortOrder: 1,
+          createdAt: "2026-07-01T00:00:00Z",
+          updatedAt: "2026-07-01T00:00:00Z",
+          lockState: "unlocked",
+        },
+      ],
+    });
+    (desktopChatFolders.moveConversation as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+    });
+
+    await expect(
+      useChatFolderStore.getState().moveConversation("conv-1", "folder-open"),
+    ).resolves.toBeUndefined();
+
+    expect(desktopChatFolders.moveConversation).toHaveBeenCalledWith({
+      conversationId: "conv-1",
+      folderId: "folder-open",
+    });
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("moveConversations short-circuits the bulk loop when the destination folder is locked", async () => {
+    useChatFolderStore.setState({
+      folders: [
+        {
+          id: "folder-locked",
+          name: "Vault",
+          kind: "standard",
+          sortOrder: 1,
+          createdAt: "2026-07-01T00:00:00Z",
+          updatedAt: "2026-07-01T00:00:00Z",
+          lockState: "locked",
+        },
+      ],
+    });
+
+    await expect(
+      useChatFolderStore.getState().moveConversations(["c1", "c2"], "folder-locked"),
+    ).rejects.toThrow(/Folder is locked/);
+
+    expect(desktopChatFolders.moveConversation).not.toHaveBeenCalled();
+  });
 });
