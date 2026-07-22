@@ -25,21 +25,18 @@ import { toast } from '../../stores/toast-store';
 import { askDecision, askText } from '../ui/modal-requests';
 import { processFileAttachment } from '../../services/ingestion/attachmentAssembler';
 import { redactErrorMessage } from '../../shared/redaction';
+import { Meteocon } from '../ui/Meteocon';
 
-// Icons (mocking for now, will use existing if available)
-const SearchIcon = () => <span>🔍</span>;
-const ScrapeIcon = () => <span>🌐</span>;
-const PlusIcon = () => <span>+</span>;
-const TrashIcon = () => <span>🗑️</span>;
-const ArchiveIcon = () => <span>📦</span>;
-const StarIcon = ({ filled }: { filled: boolean }) => <span>{filled ? '⭐' : '☆'}</span>;
-const UploadIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <polyline points="17 8 12 3 7 8" />
-    <line x1="12" y1="3" x2="12" y2="15" />
-  </svg>
+// Icons using Meteocons
+const SearchIcon = () => <Meteocon name="compass" size={16} />;
+const ScrapeIcon = () => <Meteocon name="horizon" size={16} />;
+const PlusIcon = () => <Meteocon name="clear-day" size={14} />;
+const TrashIcon = () => <Meteocon name="weather-alarm" size={14} />;
+const ArchiveIcon = () => <Meteocon name="barometer" size={14} />;
+const StarIcon = ({ filled }: { filled: boolean }) => (
+  <Meteocon name="star" size={14} className={filled ? 'text-amber-400 font-bold' : 'opacity-40'} />
 );
+const UploadIcon = () => <Meteocon name="wind" size={16} />;
 
 function SourceLink({ title, url, onClick }: { title: string; url?: string; onClick?: (url: string) => void }) {
   const safeUrl = sanitizeResearchUrl(url);
@@ -283,7 +280,11 @@ export const ResearchWorkspaceView: React.FC = () => {
       {/* Sidebar - Session List */}
       <aside className={`${sessionSidebarCollapsed ? 'w-12' : 'w-[clamp(200px,22vw,256px)]'} flex-shrink-0 border-r border-border/50 flex flex-col bg-surface transition-[width]`} aria-label="Research sessions">
         <div className="p-4 border-b border-border/50 flex justify-between items-center">
-          {!sessionSidebarCollapsed && <h2 className="font-bold text-text-primary">Research</h2>}
+          {!sessionSidebarCollapsed && (
+            <h2 className="font-bold text-text-primary flex items-center gap-2">
+              <Meteocon name="compass" size={18} /> Research
+            </h2>
+          )}
           <div className="flex items-center gap-1">
             {!sessionSidebarCollapsed && (
               <button
@@ -511,7 +512,7 @@ export const ResearchWorkspaceView: React.FC = () => {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-text-muted flex-col gap-4">
-            <div className="text-64px text-text-muted">🔬</div>
+            <Meteocon name="compass" size={64} className="text-text-muted" />
             <p>Select a research session or create a new one to begin.</p>
             <button 
               onClick={handleCreateSession}

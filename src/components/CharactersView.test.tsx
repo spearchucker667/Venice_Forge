@@ -118,4 +118,41 @@ describe('CharactersView hosted hub adapters', () => {
       metadata: { sourceHostedSlug: 'alan-watts' },
     })))
   })
+
+  it('renders local characters in the hub and filters them via search query', async () => {
+    mockedUseCharacterImage.mockReturnValue({ imageUrl: undefined, loading: false, error: undefined, retry: vi.fn(), fallbackInitials: 'LC', showInitials: true })
+    const localCard = {
+      schema: 'CharacterCardV1' as const,
+      id: 'local-char-1',
+      name: 'Local Companion',
+      description: 'A local test character card',
+      systemPrompt: 'You are a local companion.',
+      tags: ['local', 'test'],
+      adult: false,
+      exampleDialogues: [],
+      createdAt: 1000,
+      updatedAt: 1000,
+    }
+    useCharacterStore.setState({
+      results: [],
+      isLoading: false,
+      error: null,
+      hasMore: false,
+      searchCharacters: vi.fn().mockResolvedValue(undefined),
+      fetchBySlug: vi.fn(),
+    })
+    useCharacterCardStore.setState({ cards: [localCard], load: vi.fn().mockResolvedValue(undefined) })
+
+    render(<CharactersView />)
+
+    expect(screen.getByText('Local Companion')).toBeInTheDocument()
+    expect(screen.getByText('A local test character card')).toBeInTheDocument()
+
+    // Test search filtering
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search characters' }), { target: { value: 'Nonexistent' } })
+    await waitFor(() => expect(screen.queryByText('Local Companion')).not.toBeInTheDocument())
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search characters' }), { target: { value: 'Companion' } })
+    await waitFor(() => expect(screen.getByText('Local Companion')).toBeInTheDocument())
+  })
 })

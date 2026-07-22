@@ -23,6 +23,7 @@ export interface ChatFolderState {
   renameFolder: (id: string, name: string) => Promise<void>;
   reorderFolders: (folderIds: string[], kind: ChatFolderKind) => Promise<void>;
   moveConversation: (conversationId: string, destinationFolderId: string | null) => Promise<void>;
+  moveConversations: (conversationIds: string[], destinationFolderId: string | null) => Promise<void>;
   deleteFolder: (id: string, deleteChats: boolean) => Promise<void>;
   getBackupPreview: (folderId: string) => Promise<FolderBackupPreview | null>;
   exportFolderBackup: (input: ExportFolderBackupInput) => Promise<string | null>;
@@ -157,6 +158,17 @@ export const useChatFolderStore = create<ChatFolderState>((set, get) => ({
       }
     } catch (err) {
       toast.error('Failed to move conversation', String(err));
+      throw err;
+    }
+  },
+
+  moveConversations: async (conversationIds: string[], destinationFolderId: string | null) => {
+    try {
+      for (const conversationId of conversationIds) {
+        await desktopChatFolders.moveConversation({ conversationId, folderId: destinationFolderId });
+      }
+    } catch (err) {
+      toast.error('Failed to move conversations', String(err));
       throw err;
     }
   },

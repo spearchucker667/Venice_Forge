@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { isElectron, desktopSync } from "../../services/desktopBridge";
 import { useSettingsStore } from "../../stores/settings-store";
 import { toast } from "../../stores/toast-store";
-import { FolderOpen, HardDrive, ShieldCheck, Activity } from "lucide-react";
+import { FolderOpen, HardDrive } from "lucide-react";
+import { Meteocon } from "../ui/Meteocon";
 import { initSyncEngine, pauseSyncEngine, reattachSyncEngine } from "../../services/syncEngine";
 import type { SyncRuntimeStatus } from "../../types/desktop";
 import { useConflicts } from "../../hooks/use-conflicts";
@@ -356,7 +357,7 @@ export function BackupSyncPanel() {
 
           <div className="flex flex-col gap-2 p-3 bg-accent/5 border border-accent/10 rounded-lg text-sm text-text-secondary">
             <div className="flex items-center space-x-2">
-              <ShieldCheck size={16} className="text-success" />
+              <Meteocon name="umbrella" size={16} className="text-success" />
               <span>Sync packets use Argon2id-derived XChaCha20-Poly1305 encryption before being written to this folder.</span>
             </div>
             <div className="flex items-center space-x-2 text-text-muted text-xs">
@@ -372,7 +373,7 @@ export function BackupSyncPanel() {
          <div className="p-4 border-b border-border/50 bg-surface-elevated/50 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-warning/10 rounded-lg">
-              <Activity size={18} className="text-warning" />
+              <Meteocon name="humidity" size={18} className="text-warning" />
             </div>
             <div>
               <h4 className="text-[14.5px] font-medium text-text-primary">Sync Status & Conflicts</h4>

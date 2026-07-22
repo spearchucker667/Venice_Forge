@@ -127,13 +127,19 @@ type ToolResultMessage = {
 };
 
 async function streamAndExecuteTurn(
-  request: { profileId: string; agentSessionId?: string; body?: unknown; signal?: AbortSignal },
+  request: { endpoint?: string; method?: string; profileId: string; agentSessionId?: string; body?: unknown; signal?: AbortSignal; headers?: Record<string, string>; signalId?: string },
   onDelta: (chunk: SseChunk) => void
 ): Promise<TurnResult> {
   const aggregatedToolCalls = new Map<number, AssistantToolCall>();
   let finalFinishReason: string | null = null;
 
-  const result = await performGuardedVeniceRequest(request, {
+  const fullRequest = {
+    endpoint: request.endpoint ?? "/chat/completions",
+    method: request.method ?? "POST",
+    ...request,
+  };
+
+  const result = await performGuardedVeniceRequest(fullRequest, {
     onDelta: (chunk: SseChunk) => {
       if (chunk.tool_calls) {
         for (const tc of chunk.tool_calls) {
@@ -222,11 +228,15 @@ async function streamAndExecuteTurn(
 }
 
 export async function runChatAgentLoop(
-  request: { profileId?: string; agentSessionId?: string; body?: unknown; signal?: AbortSignal },
+  request: { endpoint?: string; method?: string; profileId?: string; agentSessionId?: string; body?: unknown; signal?: AbortSignal; headers?: Record<string, string>; signalId?: string },
   onDelta: (chunk: SseChunk) => void
 ): Promise<GuardedVeniceResult> {
+  const endpoint = request.endpoint ?? "/chat/completions";
+  const method = request.method ?? "POST";
   const profileId = request.profileId ?? "";
   const agentSessionId = request.agentSessionId;
+  const signalId = request.signalId;
+  const headers = request.headers;
 
   let currentBody = request.body;
   let lastResult: GuardedVeniceResult | null = null;
@@ -237,7 +247,7 @@ export async function runChatAgentLoop(
     if (totalToolCallCount >= MAX_AGENT_TOOL_CALLS) break;
 
     const turnResult = await streamAndExecuteTurn(
-      { profileId, agentSessionId, body: currentBody, signal: request.signal },
+      { endpoint, method, profileId, agentSessionId, body: currentBody, signal: request.signal, headers, signalId },
       onDelta
     );
 

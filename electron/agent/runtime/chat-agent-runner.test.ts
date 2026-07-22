@@ -244,4 +244,28 @@ describe("runChatAgentLoop — P0-03 canonical ChatMediaReference regression", (
     expect(toolMsg.metadata).toBeUndefined();
     expect((toolMsg.content as string)).toContain("INVALID_ARGUMENTS");
   });
+
+  it("passes endpoint and method through to performGuardedVeniceRequest", async () => {
+    performGuardedVeniceRequest.mockReset();
+    performGuardedVeniceRequest.mockResolvedValueOnce({
+      kind: "response",
+      response: { ok: true, status: 200, headers: {}, body: {}, contentType: "application/json" },
+    });
+
+    await runChatAgentLoop(
+      {
+        endpoint: "/chat/completions",
+        method: "POST",
+        profileId: "default",
+        body: { model: "zai-org-glm-5", messages: [] },
+      },
+      () => {},
+    );
+
+    expect(performGuardedVeniceRequest).toHaveBeenCalledTimes(1);
+    const passedReq = performGuardedVeniceRequest.mock.calls[0][0] as Record<string, unknown>;
+    expect(passedReq.endpoint).toBe("/chat/completions");
+    expect(passedReq.method).toBe("POST");
+  });
 });
+

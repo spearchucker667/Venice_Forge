@@ -12,6 +12,7 @@ import { desktopApp, isElectron } from '../services/desktopBridge';
 import { getAuditSnapshot } from '../shared/safety';
 import { useSettingsStore } from '../stores/settings-store';
 import { useInspectorStore } from '../stores/inspector-store';
+import { Meteocon } from './ui/Meteocon';
 
 interface AppDiagnostics {
   appVersion: string;
@@ -104,7 +105,9 @@ export function StatusView() {
       </section>
 
       <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
-        <h3 className="text-[12px] uppercase tracking-wide text-text-muted">Runtime</h3>
+        <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
+          <Meteocon name="barometer" size={14} /> Runtime
+        </h3>
         <Row k="App version" v={diag.appVersion} />
         <Row k="Transport" v={diag.transport} />
         <Row k="Mode" v={diag.isDesktop ? 'Electron desktop' : 'Web (browser)'} />
@@ -114,7 +117,9 @@ export function StatusView() {
       </section>
 
       <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
-        <h3 className="text-[12px] uppercase tracking-wide text-text-muted">Storage</h3>
+        <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
+          <Meteocon name="humidity" size={14} /> Storage
+        </h3>
         <Row k="Secure store" v={diag.storageMode} />
         <Row k="Encryption available" v={diag.secureStorageAvailable ? 'yes' : 'no'} />
         <Row k="Venice key configured" v={diag.apiKeyConfigured ? 'yes' : 'no'} />
@@ -123,7 +128,9 @@ export function StatusView() {
       </section>
 
       <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
-        <h3 className="text-[12px] uppercase tracking-wide text-text-muted">Safety guard audit</h3>
+        <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
+          <Meteocon name="umbrella" size={14} /> Safety guard audit
+        </h3>
         <Row k="Allowed" v={String(audit.allowed)} />
         <Row k="Warned" v={String(audit.warned)} />
         <Row k="Blocked" v={String(audit.blocked)} />
@@ -139,7 +146,9 @@ export function StatusView() {
       </section>
 
       <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
-        <h3 className="text-[12px] uppercase tracking-wide text-text-muted">Last request</h3>
+        <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
+          <Meteocon name="time-morning" size={14} /> Last request
+        </h3>
         {lastRequest ? (
           <>
             <Row k="Endpoint" v={lastRequest.endpoint} mono />

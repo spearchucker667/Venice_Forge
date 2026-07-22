@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useProfileStore } from '../stores/profile-store'
 import { useSettingsStore } from '../stores/settings-store'
 import { AccessibleDialog } from './ui/AccessibleDialog'
-import { Sparkles, Shield, Lock, Layers } from 'lucide-react'
 import { VeniceLogo } from './ui/logo'
+import { Meteocon } from './ui/Meteocon'
 
 export function OnboardingSplash() {
   const { globalOnboardingCompleted, setGlobalOnboardingCompleted } = useProfileStore()
@@ -22,17 +22,17 @@ export function OnboardingSplash() {
     {
       title: 'Profiles',
       description: 'Create profiles for separate renderer settings and libraries. Some desktop vault files and shared caches remain machine-level.',
-      icon: <Layers className="w-12 h-12 mb-4 text-accent" />
+      icon: <Meteocon name="code-purple" size={48} className="mb-4" />
     },
     {
       title: 'Secure by Default',
       description: 'Passwords and secrets are encrypted via OS native keychain (macOS) or Credential Manager (Windows). Never stored in plaintext.',
-      icon: <Shield className="w-12 h-12 mb-4 text-accent" />
+      icon: <Meteocon name="umbrella" size={48} className="mb-4" />
     },
     {
       title: 'Family Safe Mode',
       description: 'A master password is required before Family Safe Mode can be turned on or off. Family Safe Mode also forces provider safe_mode where supported.',
-      icon: <Lock className="w-12 h-12 mb-4 text-accent" />
+      icon: <Meteocon name="weather-alarm" size={48} className="mb-4" />
     },
   ]
 
@@ -71,7 +71,7 @@ export function OnboardingSplash() {
         {/* Left branding panel */}
         <div className="hidden sm:flex flex-col bg-accent/5 w-1/3 p-6 border-r border-border/50 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Sparkles className="w-24 h-24 text-accent" />
+            <Meteocon name="star" size={96} className="text-accent" />
           </div>
           <VeniceLogo className="w-8 h-8 text-accent mb-4 z-10" />
           <h2 className="text-xl font-bold text-text-primary mt-auto z-10 leading-tight">

@@ -12,6 +12,7 @@ describe("rendererCsp", () => {
     const csp = rendererCsp(false);
     expect(csp).toContain("img-src 'self' data: blob: venice-character-cache: venice-media:");
     expect(csp).toContain("media-src 'self' blob: venice-media:");
+    expect(csp).toContain("worker-src 'self' blob:");
     expect(csp).not.toMatch(/img-src[^;]*\shttps:/);
     expect(csp).not.toMatch(/img-src[^;]*\shttp:/);
     expect(csp).not.toMatch(/img-src[^;]*\sfile:/);
@@ -22,6 +23,7 @@ describe("rendererCsp", () => {
     const csp = rendererCsp(true);
     expect(csp).toContain("connect-src 'self' http://localhost:5173 ws://localhost:5173");
     expect(csp).toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173");
+    expect(csp).toContain("worker-src 'self' blob: http://localhost:5173");
   });
 
   it("keeps object-src and frame-ancestors locked down", () => {

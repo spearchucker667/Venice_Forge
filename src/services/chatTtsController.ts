@@ -1,5 +1,10 @@
 import { useSettingsStore } from '../stores/settings-store';
 import { desktopTts, isElectron } from './desktopBridge';
+import { DEFAULT_TTS_MODEL } from '../constants/venice';
+import { DEFAULT_TTS_VOICE } from '../constants/tts';
+import { veniceBlob } from '../lib/venice-client';
+import { toast } from '../stores/toast-store';
+import { redactErrorMessage } from '../shared/redaction';
 
 export type TtsPlaybackState = 'idle' | 'loading' | 'playing' | 'paused';
 
@@ -30,19 +35,26 @@ class ChatTtsControllerImpl {
   }
 
   public async play(messageId: string, text: string) {
-    // Determine if we need to synthesize or just resume
+    // Resume if already cached and paused for this message
     if (this.currentMessageId === messageId && this.audio && this.state === 'paused') {
-      this.audio.play();
-      this.state = 'playing';
-      this.notify();
+      try {
+        await this.audio.play();
+        this.state = 'playing';
+        this.notify();
+      } catch (err) {
+        toast.fromError(err, 'TTS playback failed');
+        this.stop();
+      }
       return;
     }
 
     this.stop();
     const requestToken = ++this.requestToken;
-    
-    // We only support TTS on desktop right now due to API key security constraints
-    if (!isElectron()) return;
+
+    if (!text || !text.trim()) {
+      toast.warn('No text to speak in this message.');
+      return;
+    }
 
     this.currentMessageId = messageId;
     this.currentText = text;
@@ -54,82 +66,114 @@ class ChatTtsControllerImpl {
     
     let textToRead = text;
     if (prefs?.skipCodeBlocks) {
-      // Very basic regex to strip markdown code blocks
-      textToRead = text.replace(/```[\s\S]*?```/g, ' [Code block skipped] ');
+      textToRead = textToRead.replace(/```[\s\S]*?```/g, '');
     }
     if (prefs?.skipUrls) {
-      textToRead = textToRead.replace(/https?:\/\/\S+/gi, ' [Link skipped] ');
+      textToRead = textToRead.replace(/https?:\/\/\S+/gi, '');
+    }
+    textToRead = textToRead.trim();
+
+    if (!textToRead) {
+      toast.warn('No speakable text remaining in message.');
+      this.stop();
+      return;
     }
 
     try {
-      const result = await desktopTts.synthesize(
-        {
-          text: textToRead,
-          model: prefs?.model,
-          voice: prefs?.voice,
-          speed: prefs?.speed,
-        },
-        cacheEnabled
-      );
-
-      if (requestToken !== this.requestToken || this.currentMessageId !== messageId) return;
-      if (!result.ok || (!result.id && !result.audioBase64)) {
-        throw new Error(result.error || 'TTS Synthesis failed');
-      }
-
       let sourceUrl: string;
-      if (result.audioBase64) {
-        const binary = atob(result.audioBase64);
-        const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-        this.objectUrl = URL.createObjectURL(new Blob([bytes], { type: result.mimeType ?? 'audio/mpeg' }));
-        sourceUrl = this.objectUrl;
-      } else if (result.id && result.profileId) {
-        sourceUrl = `venice-tts://${result.profileId}/${result.id}.mp3`;
+
+      if (isElectron()) {
+        const result = await desktopTts.synthesize(
+          {
+            text: textToRead,
+            model: prefs?.model || DEFAULT_TTS_MODEL,
+            voice: prefs?.voice || DEFAULT_TTS_VOICE,
+            speed: prefs?.speed || 1.0,
+          },
+          cacheEnabled
+        );
+
+        if (requestToken !== this.requestToken || this.currentMessageId !== messageId) return;
+        if (!result.ok || (!result.id && !result.audioBase64)) {
+          throw new Error(result.error || 'TTS synthesis failed');
+        }
+
+        if (result.audioBase64) {
+          const binary = atob(result.audioBase64);
+          const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+          this.objectUrl = URL.createObjectURL(new Blob([bytes], { type: result.mimeType ?? 'audio/mpeg' }));
+          sourceUrl = this.objectUrl;
+        } else if (result.id && result.profileId) {
+          sourceUrl = `venice-tts://${result.profileId}/${result.id}.mp3`;
+        } else {
+          throw new Error('TTS playback target missing cache id or profile id.');
+        }
       } else {
-        throw new Error('TTS playback target missing cache id or profile id.');
+        // Web mode fallback using veniceBlob
+        const blob = await veniceBlob('/audio/speech', {
+          model: prefs?.model || DEFAULT_TTS_MODEL,
+          input: textToRead,
+          voice: prefs?.voice || DEFAULT_TTS_VOICE,
+          speed: prefs?.speed || 1.0,
+        });
+
+        if (requestToken !== this.requestToken || this.currentMessageId !== messageId) return;
+        if (blob.size === 0) {
+          throw new Error('Speech provider returned empty audio.');
+        }
+
+        this.objectUrl = URL.createObjectURL(blob);
+        sourceUrl = this.objectUrl;
       }
+
       if (requestToken !== this.requestToken || this.currentMessageId !== messageId) {
         if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
         this.objectUrl = null;
         return;
       }
-      this.audio = new Audio(sourceUrl);
-      this.audio.volume = prefs?.volume ?? 1.0;
-      this.audio.playbackRate = prefs?.speed ?? 1.0;
 
-      this.audio.onended = () => {
-        this.state = 'idle';
-        this.currentMessageId = null;
-        this.notify();
+      const audio = new Audio(sourceUrl);
+      this.audio = audio;
+      audio.volume = Math.max(0, Math.min(1, prefs?.volume ?? 1.0));
+      audio.playbackRate = Math.max(0.25, Math.min(4, prefs?.speed ?? 1.0));
+
+      audio.onended = () => {
+        if (this.audio === audio) {
+          this.state = 'idle';
+          this.currentMessageId = null;
+          this.notify();
+        }
       };
 
-      this.audio.onerror = (e) => {
+      audio.onerror = (e) => {
         console.error('TTS playback error', e);
-        this.state = 'idle';
-        this.currentMessageId = null;
-        this.notify();
+        if (this.audio === audio) {
+          toast.error('TTS playback error: unable to load audio element.');
+          this.stop();
+        }
       };
 
-      this.audio.onplay = () => {
-        this.state = 'playing';
-        this.notify();
+      audio.onplay = () => {
+        if (this.audio === audio) {
+          this.state = 'playing';
+          this.notify();
+        }
       };
 
-      this.audio.onpause = () => {
-        if (this.state === 'playing') {
+      audio.onpause = () => {
+        if (this.audio === audio && this.state === 'playing') {
           this.state = 'paused';
           this.notify();
         }
       };
 
       if (this.state === 'loading' && this.currentMessageId === messageId) {
-        await this.audio.play();
+        await audio.play();
       }
     } catch (err) {
       console.error('TTS error', err);
-      this.state = 'idle';
-      this.currentMessageId = null;
-      this.notify();
+      toast.error('TTS Failed', redactErrorMessage(err));
+      this.stop();
     }
   }
 
@@ -162,7 +206,9 @@ class ChatTtsControllerImpl {
     if (this.currentMessageId === messageId && this.audio) {
       this.audio.currentTime = 0;
       if (this.state !== 'playing') {
-        this.audio.play();
+        this.audio.play().catch((err) => {
+          toast.fromError(err, 'TTS restart failed');
+        });
       }
     } else {
       this.play(messageId, text);

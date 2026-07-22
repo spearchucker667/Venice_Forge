@@ -77,4 +77,14 @@ describe("chatTtsController", () => {
     expect(audioSources).toEqual([`venice-tts://default/${"b".repeat(64)}.mp3`]);
     expect(chatTtsController.getCurrentMessageId()).toBe("m2");
   });
+
+  it("handles empty or fully filtered text gracefully", async () => {
+    await chatTtsController.play("m3", "   ");
+    expect(synthesize).not.toHaveBeenCalled();
+    expect(chatTtsController.getState()).toBe("idle");
+
+    await chatTtsController.play("m4", "```all code```");
+    expect(synthesize).not.toHaveBeenCalled();
+    expect(chatTtsController.getState()).toBe("idle");
+  });
 });

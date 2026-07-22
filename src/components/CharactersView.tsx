@@ -315,10 +315,20 @@ export function CharactersView() {
 
   const visibleLocalCards = useMemo(() => {
     const active = localCards.filter((card) => !card.archivedAt)
-    if (hubSection === 'favorites') return active.filter((card) => card.metadata?.favorite === true)
-    if (hubSection === 'recent') return active.filter((card) => localLastUsed.has(card.id)).sort((a, b) => (localLastUsed.get(b.id) ?? 0) - (localLastUsed.get(a.id) ?? 0))
-    return active
-  }, [hubSection, localCards, localLastUsed])
+    const query = debouncedQuery.trim().toLowerCase()
+    let filtered = active
+    if (query) {
+      filtered = filtered.filter(
+        (card) =>
+          card.name.toLowerCase().includes(query) ||
+          (card.description && card.description.toLowerCase().includes(query)) ||
+          card.tags.some((tag) => tag.toLowerCase().includes(query))
+      )
+    }
+    if (hubSection === 'favorites') return filtered.filter((card) => card.metadata?.favorite === true)
+    if (hubSection === 'recent') return filtered.filter((card) => localLastUsed.has(card.id)).sort((a, b) => (localLastUsed.get(b.id) ?? 0) - (localLastUsed.get(a.id) ?? 0))
+    return filtered
+  }, [debouncedQuery, hubSection, localCards, localLastUsed])
 
   const toggleHostedFavorite = (character: VeniceCharacter) => {
     const next = favoriteHostedCharacterSlugs.includes(character.slug)
@@ -369,6 +379,25 @@ export function CharactersView() {
     />
   )
 
+  const renderLocalCard = (card: import('../types/rp').CharacterCardV1) => {
+    const meta = { id: card.id, localCharacterId: card.id, name: card.name, photoUrl: avatarDataUri(card.avatar), modelId: card.modelId }
+    return (
+      <article key={card.id} className="rounded-xl border border-border p-4 mesh-surface-elevated">
+        <div className="flex gap-3"><CharacterAvatar character={meta} cacheKey={`hub-local-${card.id}`} size="lg" /><div className="min-w-0"><h3 className="truncate font-semibold text-text-primary">{card.name}</h3><div className="flex flex-wrap gap-1"><span className="text-[11px] uppercase text-accent">{card.sourceFormat === 'tavern-v1-json' ? 'V1 Imported' : card.sourceFormat === 'card-v2-json' ? 'V2 JSON' : card.sourceFormat === 'card-v2-png' ? 'V2 PNG' : 'VF Native'}</span>{validateCharacterCardAuthoring(card).length > 0 && <span className="text-[11px] uppercase text-warning">Needs Validation</span>}</div></div></div>
+        <p className="mt-3 line-clamp-3 text-[12.5px] text-text-secondary">{card.description || 'No description'}</p>
+        <div className="mt-2 flex flex-wrap gap-1">{card.tags.slice(0, 4).map((tag) => <span key={tag} className="rounded bg-surface px-2 py-0.5 text-[11px] text-text-muted">{tag}</span>)}</div>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+          <button type="button" onClick={() => void startNormalChatForCharacter(card.id)} className="rounded bg-accent px-2 py-1.5 text-accent-fg">Start chat</button>
+          <button type="button" onClick={() => setActiveTab('rp-studio')} className="rounded border border-border px-2 py-1.5 text-text-secondary">Edit</button>
+          <button type="button" onClick={() => void upsertLocalCard({ ...card, id: crypto.randomUUID(), name: `${card.name} Copy`, createdAt: Date.now(), updatedAt: Date.now() })} className="rounded border border-border px-2 py-1.5 text-text-secondary">Duplicate</button>
+          <button type="button" onClick={() => void upsertLocalCard({ ...card, metadata: { ...card.metadata, favorite: card.metadata?.favorite !== true }, updatedAt: Date.now() })} className="rounded border border-border px-2 py-1.5 text-text-secondary">{card.metadata?.favorite === true ? 'Unfavorite' : 'Favorite'}</button>
+          <button type="button" onClick={async () => { const result = await desktopCharacterCards.exportJson({ cardId: card.id, profile: 'standard' }); if (!result.ok) toast.error(result.error ?? 'Export failed') }} className="col-span-2 rounded border border-border px-2 py-1.5 text-text-secondary">Export ST Card JSON</button>
+          <button type="button" onClick={async () => { if (await askDecision({ title: `Delete ${card.name}?`, detail: 'This removes the locally owned character card.', actionLabel: 'Delete', danger: true })) await removeLocalCard(card.id) }} className="col-span-2 rounded border border-danger/40 px-2 py-1.5 text-danger">Delete local character</button>
+        </div>
+      </article>
+    )
+  }
+
   const hostedDetailDialog = hostedDetail ? (
     <AccessibleDialog
       title={hostedDetail.name}
@@ -397,48 +426,9 @@ export function CharactersView() {
     </nav>
   )
 
-  if (hubSection !== 'hosted') {
-    return (
-      <div className="flex h-full flex-col mesh-surface shell-region">
-        <div className="flex-none space-y-3 p-5 soft-panel bg-surface/40">
-          <div><h2 className="text-[17px] font-semibold text-text-primary">Characters</h2><p className="text-[12.5px] text-text-muted">Hosted and locally authored characters in one hub.</p></div>
-          {hubNav}
-          <div className="flex flex-wrap gap-2"><button type="button" onClick={async () => { await createBlankCharacterCardDraft(); setActiveTab('rp-studio') }} className="rounded bg-accent px-3 py-1.5 text-[12px] text-accent-fg">Create ST Card</button><button type="button" onClick={() => { setActiveTab('rp-studio'); toast.info('Use Import card in the Character Library to review the mandatory preview.') }} className="rounded border border-border px-3 py-1.5 text-[12px] text-text-secondary">Import ST Card</button><button type="button" onClick={() => { setActiveTab('rp-studio'); toast.info('Open Drafts in the Character Library.') }} className="rounded border border-border px-3 py-1.5 text-[12px] text-text-secondary">Drafts</button></div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5">
-          {visibleHostedCards.length > 0 && (
-            <section className="mb-6">
-              <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-text-muted">Hosted</h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{visibleHostedCards.map(renderHostedCard)}</div>
-            </section>
-          )}
-          {visibleLocalCards.length > 0 && <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-text-muted">Local</h3>}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleLocalCards.map((card) => {
-              const meta = { id: card.id, localCharacterId: card.id, name: card.name, photoUrl: avatarDataUri(card.avatar), modelId: card.modelId }
-              return (
-                <article key={card.id} className="rounded-xl border border-border p-4 mesh-surface-elevated">
-                  <div className="flex gap-3"><CharacterAvatar character={meta} cacheKey={`hub-local-${card.id}`} size="lg" /><div className="min-w-0"><h3 className="truncate font-semibold text-text-primary">{card.name}</h3><div className="flex flex-wrap gap-1"><span className="text-[11px] uppercase text-accent">{card.sourceFormat === 'tavern-v1-json' ? 'V1 Imported' : card.sourceFormat === 'card-v2-json' ? 'V2 JSON' : card.sourceFormat === 'card-v2-png' ? 'V2 PNG' : 'VF Native'}</span>{validateCharacterCardAuthoring(card).length > 0 && <span className="text-[11px] uppercase text-warning">Needs Validation</span>}</div></div></div>
-                  <p className="mt-3 line-clamp-3 text-[12.5px] text-text-secondary">{card.description || 'No description'}</p>
-                  <div className="mt-2 flex flex-wrap gap-1">{card.tags.slice(0, 4).map((tag) => <span key={tag} className="rounded bg-surface px-2 py-0.5 text-[11px] text-text-muted">{tag}</span>)}</div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
-                    <button type="button" onClick={() => void startNormalChatForCharacter(card.id)} className="rounded bg-accent px-2 py-1.5 text-accent-fg">Start chat</button>
-                    <button type="button" onClick={() => setActiveTab('rp-studio')} className="rounded border border-border px-2 py-1.5 text-text-secondary">Edit</button>
-                    <button type="button" onClick={() => void upsertLocalCard({ ...card, id: crypto.randomUUID(), name: `${card.name} Copy`, createdAt: Date.now(), updatedAt: Date.now() })} className="rounded border border-border px-2 py-1.5 text-text-secondary">Duplicate</button>
-                    <button type="button" onClick={() => void upsertLocalCard({ ...card, metadata: { ...card.metadata, favorite: card.metadata?.favorite !== true }, updatedAt: Date.now() })} className="rounded border border-border px-2 py-1.5 text-text-secondary">{card.metadata?.favorite === true ? 'Unfavorite' : 'Favorite'}</button>
-                    <button type="button" onClick={async () => { const result = await desktopCharacterCards.exportJson({ cardId: card.id, profile: 'standard' }); if (!result.ok) toast.error(result.error ?? 'Export failed') }} className="col-span-2 rounded border border-border px-2 py-1.5 text-text-secondary">Export ST Card JSON</button>
-                    <button type="button" onClick={async () => { if (await askDecision({ title: `Delete ${card.name}?`, detail: 'This removes the locally owned character card.', actionLabel: 'Delete', danger: true })) await removeLocalCard(card.id) }} className="col-span-2 rounded border border-danger/40 px-2 py-1.5 text-danger">Delete local character</button>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-          {visibleLocalCards.length === 0 && visibleHostedCards.length === 0 && <div className="py-16 text-center text-[13px] text-text-muted">No {hubSection} characters yet.</div>}
-        </div>
-        {hostedDetailDialog}
-      </div>
-    )
-  }
+  const showHosted = hubSection === 'hosted' || hubSection === 'favorites' || hubSection === 'recent'
+  const showLocal = hubSection === 'local' || hubSection === 'hosted' || hubSection === 'favorites' || hubSection === 'recent'
+  const hostedList = hubSection === 'hosted' ? results : visibleHostedCards
 
   return (
     <div className="flex flex-col h-full mesh-surface shell-region">
@@ -448,8 +438,7 @@ export function CharactersView() {
             <div>
               <h2 className="text-[17px] font-semibold text-text-primary">Characters</h2>
               <p className="text-[12.5px] text-text-muted mt-0.5">
-                Browse characters hosted on Venice.ai and chat using{" "}
-                <code className="font-mono text-text-secondary">venice_parameters.character_slug</code>.
+                Browse hosted and locally authored characters in one hub.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -499,12 +488,18 @@ export function CharactersView() {
         </header>
         {hubNav}
 
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <button type="button" onClick={async () => { await createBlankCharacterCardDraft(); setActiveTab('rp-studio') }} className="rounded bg-accent px-3 py-1.5 text-[12px] text-accent-fg font-medium">Create ST Card</button>
+          <button type="button" onClick={() => { setActiveTab('rp-studio'); toast.info('Use Import card in the Character Library to review the mandatory preview.') }} className="rounded border border-border px-3 py-1.5 text-[12px] text-text-secondary">Import ST Card</button>
+          <button type="button" onClick={() => { setActiveTab('rp-studio'); toast.info('Open Drafts in the Character Library.') }} className="rounded border border-border px-3 py-1.5 text-[12px] text-text-secondary">Drafts</button>
+        </div>
+
         <div className="flex flex-col gap-3 pt-3 soft-separator-y">
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search Venice characters…"
+            placeholder="Search characters…"
             aria-label="Search characters"
             className="w-full bg-surface-elevated border border-border rounded-md px-3 py-2 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors"
           />
@@ -539,50 +534,76 @@ export function CharactersView() {
           </div>
         )}
 
-        {isLoading && results.length === 0 && (
+        {isLoading && results.length === 0 && localCards.length === 0 && (
           <div className="text-center py-12 text-[13px] text-text-muted">Loading characters…</div>
         )}
 
-        {!isLoading && results.length === 0 && !error && (
+        {showLocal && visibleLocalCards.length > 0 && (
+          <section className="mb-6">
+            <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
+              Local
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {visibleLocalCards.map(renderLocalCard)}
+            </div>
+          </section>
+        )}
+
+        {showHosted && hubSection === 'hosted' && (
+          <>
+            {grouped.standard.length > 0 && (
+              <section className="mb-6">
+                <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
+                  Characters
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {grouped.standard.map(renderHostedCard)}
+                </div>
+              </section>
+            )}
+
+            {grouped.featured.length > 0 && (
+              <section className="mb-6">
+                <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
+                  Featured
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {grouped.featured.map(renderHostedCard)}
+                </div>
+              </section>
+            )}
+
+            {grouped.adult.length > 0 && (
+              <section className="mb-6">
+                <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
+                  Adult
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {grouped.adult.map(renderHostedCard)}
+                </div>
+              </section>
+            )}
+          </>
+        )}
+
+        {showHosted && hubSection !== 'hosted' && visibleHostedCards.length > 0 && (
+          <section className="mb-6">
+            <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
+              Hosted
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {visibleHostedCards.map(renderHostedCard)}
+            </div>
+          </section>
+        )}
+
+        {!isLoading && visibleLocalCards.length === 0 && hostedList.length === 0 && !error && (
           <div className="text-center py-12 text-[13px] text-text-muted">
             No characters found. Try clearing the search box or enabling adult characters.
           </div>
         )}
 
-        {grouped.standard.length > 0 && (
-          <section className="mb-6">
-            <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
-              Characters
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {grouped.standard.map(renderHostedCard)}
-            </div>
-          </section>
-        )}
-
-        {grouped.featured.length > 0 && (
-          <section className="mb-6">
-            <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
-              Featured
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {grouped.featured.map(renderHostedCard)}
-            </div>
-          </section>
-        )}
-
-        {grouped.adult.length > 0 && (
-          <section className="mb-6">
-            <h3 className="text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold mb-3">
-              Adult
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {grouped.adult.map(renderHostedCard)}
-            </div>
-          </section>
-        )}
-
-        {hasMore && results.length > 0 && (
+        {hasMore && hubSection === 'hosted' && results.length > 0 && (
           <div className="flex justify-center mt-4">
             <button
               type="button"

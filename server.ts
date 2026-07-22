@@ -352,6 +352,9 @@ export function createServerApp() {
     const scriptSrc = isProduction
       ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`
       : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+    const workerSrc = isProduction
+      ? "worker-src 'self' blob:"
+      : "worker-src 'self' blob: http://localhost:5173";
     res.setHeader(
       "Content-Security-Policy",
       [
@@ -362,6 +365,7 @@ export function createServerApp() {
         connectSrc,
         "font-src 'self' data:",
         "media-src 'self' blob:",
+        workerSrc,
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'none'",

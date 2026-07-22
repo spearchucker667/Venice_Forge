@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { ModelInfo } from "../types/venice";
 import { Select } from "./ui/select";
-import { Lock } from "lucide-react";
+import { Meteocon } from "./ui/Meteocon";
 
 export function ModelSelect({
   value,
@@ -35,8 +35,8 @@ export function ModelSelect({
               {m.contextLength ? `${Math.round(m.contextLength / 1000)}k` : ""}
               {m.fidelity === 'high' && <span className="bg-primary/20 text-primary px-1 py-0.5 rounded flex items-center gap-1" title="High Fidelity">High Fidelity</span>}
               {m.fidelity === 'standard' && <span className="bg-surface-muted text-text-muted px-1 py-0.5 rounded flex items-center gap-1" title="Standard Fidelity">Standard</span>}
-              {m.privacy?.mode === 'anonymous' && <span className="bg-success/20 text-success px-1 py-0.5 rounded flex items-center gap-1" title="Anonymous Inference"><Lock size={10} /> Anon</span>}
-              {(m.privacy?.mode === 'private' || m.privacy?.privateInference) && <span className="bg-accent/20 text-accent px-1 py-0.5 rounded flex items-center gap-1" title="Private Inference"><Lock size={10} /> Private</span>}
+              {m.privacy?.mode === 'anonymous' && <span className="bg-success/20 text-success px-1 py-0.5 rounded flex items-center gap-1" title="Anonymous Inference"><Meteocon name="umbrella" size={10} /> Anon</span>}
+              {(m.privacy?.mode === 'private' || m.privacy?.privateInference) && <span className="bg-accent/20 text-accent px-1 py-0.5 rounded flex items-center gap-1" title="Private Inference"><Meteocon name="umbrella" size={10} /> Private</span>}
             </div>
           </div>
         </div>

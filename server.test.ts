@@ -304,6 +304,7 @@ describe("server.ts proxy validation", () => {
     const res = await request(createServerApp()).get("/api/venice/admin/blocked");
     const csp = res.headers["content-security-policy"] as string;
     expect(csp).toContain("img-src 'self' data: blob:");
+    expect(csp).toContain("worker-src 'self' blob:");
     expect(csp).not.toContain("img-src 'self' data: blob: https:");
     expect(csp).not.toMatch(/img-src[^;]*\shttps:/);
   });

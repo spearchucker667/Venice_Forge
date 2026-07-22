@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { chatTtsController, type TtsPlaybackState } from '../../services/chatTtsController';
-import { isElectron } from '../../services/desktopBridge';
 import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator';
 
 interface ChatTtsPlayerProps {
@@ -22,8 +21,6 @@ export function ChatTtsPlayer({ messageId, text, className = '' }: ChatTtsPlayer
       unsubscribe();
     };
   }, []);
-
-  if (!isElectron()) return null;
 
   const isActive = activeMessageId === messageId;
   const isPlaying = isActive && state === 'playing';

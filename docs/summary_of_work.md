@@ -4,32 +4,174 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-22 (continuation 14 — Theme Engine, Border System, Focus Ring, and Theme Portability Audit & Remediation)
+**Date:** 2026-07-22 (Bug Fix — Chat Text-to-Speech Responsiveness & Dual Transport Support)
 
-**Scope:** Executed complete, proof-driven audit and remediation of Venice Forge theme engine, border visibility system, focus ring indicators, theme persistence, multi-custom theme system, and theme import/export portability per prompt specification.
+**Scope:** Resolved issue where Text-to-Speech (TTS) inside chat messages was unresponsive and silently failing across Web and Desktop environments.
 
-- **Border System & CSS Strengthening.** Replaced washed-out 24%–28% opacity `color-mix` border declarations in `src/styles/components.css` with solid `--color-border` and `--color-border-strong` CSS variables across cards, panels, inputs, sidebars, headers, and separators (`.mesh-card`, `.mesh-panel`, `.mesh-input`, `.soft-separator-x`, `.soft-separator-y`).
-- **Multi-Custom Theme Persistence (Zustand v12 Migration).** Enhanced `src/stores/settings-store.ts` with a version 12 migration supporting `customThemes: Theme[]`, `saveCustomTheme(theme)`, `deleteCustomTheme(id)`, and `setCustomThemes(themes)`. Existing single custom themes auto-migrate smoothly.
-- **Custom Theme Resolver & Validation Fix.** Updated `isValidPersistedTheme` in `src/theme/applyTheme.ts` to allow any valid non-empty string `id` (e.g. `user-theme-${timestamp}`) and updated `resolveInitialTheme` to query user custom themes from `customThemes`.
-- **Structured Token Categories & Rollback.** Reorganized all 29 semantic tokens in `src/components/ThemeMaker.tsx` into 5 logical categories (Surfaces & Backgrounds, Typography & Text, Borders & Focus, Controls & Buttons, Status & Feedback). Added unsaved dirty tracking ("Unsaved Draft Changes" badge), live preview rollback ("Cancel / Reset"), emergency default restore, and custom theme deletion.
-- **Interactive Theme Import Preview Modal.** Built an import preview modal in `ThemeMaker.tsx` displaying theme metadata, mode, layout preview, contrast warnings, and collision detection before confirming "Import & Apply", "Import as Copy", or "Replace Existing".
-- **Enhanced Theme Preview Component.** Updated `src/components/ThemePreview.tsx` to display borderStrong, focusRing, secondary button, row selection, and alert mocks.
-- **New Unit & UI Test Suite.** Added `src/components/ThemeMaker.custom.test.tsx` verifying multi-custom theme saving, deletion, draft rollback, and import preview modal behavior.
-- **Comprehensive Audit Report.** Created `docs/reports/VENICE_FORGE_THEME_ENGINE_BORDER_AND_PORTABILITY_AUDIT_2026-07-21.md` containing all 25 structured sections. Updated `docs/reports/CANONICAL_REPORT_INDEX.md` and `docs/DOCS_INDEX.md`.
+- **Root Cause Identified.** `ChatTtsPlayer.tsx` and `chatTtsController.ts` previously blocked non-Electron environments with early `if (!isElectron()) return;` returns, causing TTS controls to render `null` or silently fail in Web mode. In Desktop mode, playback/synthesis errors (such as missing API key or audio element loading errors) were caught without displaying user toasts, making playback feel unresponsive. In addition, `autoRead` settings were never triggered upon chat stream completion.
+- **Dual Transport TTS Controller (`src/services/chatTtsController.ts`).**
+  - Added Web transport fallback delegating to `veniceBlob('/audio/speech', ...)` when running in Web mode.
+  - Added explicit user feedback toasts (`toast.warn`, `toast.error`, `toast.fromError`) on API key missing, empty speakable text, synthesis failure, or audio playback errors.
+  - Cleaned up audio element event handlers (`onplay`, `onpause`, `onended`, `onerror`) to prevent memory leaks and state desynchronization.
+- **Universal Player Controls (`src/components/chat/ChatTtsPlayer.tsx`).** Removed desktop-only guard so `ChatTtsPlayer` renders interactive Play/Pause/Stop/Restart controls across both Desktop and Web modes.
+- **Auto-Read Completion Trigger (`src/components/chat/chat-view.tsx`).** Added streaming completion listener in `ChatView` so when `autoRead` is enabled per-conversation or globally, completed assistant messages automatically trigger `chatTtsController.play(...)`.
+
+**Validation this session:**
+- `npx vitest run src/services/chatTtsController.test.ts src/components/chat/chat-view.test.tsx src/components/audio/audio-view.test.tsx` -> **PASS** (19 tests passed)
+- `npm run typecheck` -> **PASS** (0 errors across renderer and electron)
+- `npm run lint:eslint` -> **PASS** (0 warnings under `--max-warnings=0`)
+
+**Deliverables (this session):** Modified `src/services/chatTtsController.ts`, `src/services/chatTtsController.test.ts`, `src/components/chat/ChatTtsPlayer.tsx`, `src/components/chat/message-bubble.tsx`, `src/components/chat/chat-view.tsx`, and updated `docs/summary_of_work.md`.
+
+**Open TODO:** None.
+
+### Prior Session Summary (Feature — Meteocons Asset Integration & Static Icon Upgrade)
+
+**Scope:** Installed and integrated [Bas Milius Meteocons](https://github.com/basmilius/meteocons) (`@meteocons/svg`) across the application to replace static interface icons, while preserving all loading animations for chat streaming/media generation and leaving Venice branding assets untouched.
+
+- **Package & Component Setup.**
+  - Installed `@meteocons/svg`.
+  - Created reusable `Meteocon` component (`src/components/ui/Meteocon.tsx`) with raw SVG rendering support, enhanced default sizing (22px), and a 1.2x proportional scale multiplier for clear legibility.
+  - Added ambient type declaration for `*?raw` SVG imports (`src/types/vite-env.d.ts`).
+- **Application Integration.**
+  - **Sidebar Navigation (`src/components/layout/sidebar.tsx`):** Replaced static navigation tab icons (Chat, Character Chats, History, Image Studio, Gallery, Audio, Video, Music, Embeddings, Workflows, Research, Characters, RP Studio, Settings, Prompts, Scenes, Privacy, Documents) with corresponding Meteocons SVG assets.
+  - **Status & Diagnostics (`src/components/StatusView.tsx`):** Added Meteocons section indicators for Runtime (`barometer`), Storage (`humidity`), Safety (`umbrella`), and Request diagnostics (`time-morning`).
+  - **Settings & Backup/Sync (`src/components/settings/BackupSyncPanel.tsx`):** Updated encryption and activity status badges with Meteocon assets (`umbrella`, `humidity`).
+  - **Onboarding (`src/components/OnboardingSplash.tsx`):** Replaced static step icons with Meteocons (`code-purple`, `umbrella`, `weather-alarm`, `star`).
+  - **Model Selector (`src/components/ModelSelect.tsx`):** Replaced static lock icons with Meteocon privacy badges (`umbrella`).
+  - **History View (`src/components/chat/HistoryView.tsx`):** Replaced header clock icon with Meteocon `time-morning`.
+  - **Research Workspace (`src/components/research/ResearchWorkspaceView.tsx`):** Replaced static mock icons and the empty-state `🔬` microscope emoji with Meteocon SVG assets (`compass`, `horizon`, `clear-day`, `weather-alarm`, `barometer`, `star`, `wind`).
+- **Invariants Preserved.**
+  - Media/chat generation loading spinners were kept unchanged.
+  - Venice branding/logo assets (`VeniceLogo`) were left untouched.
+
+**Validation this session:**
+- `npx vitest run src/components/research/ResearchWorkspaceView.test.tsx src/components/layout/sidebar.test.tsx src/components/layout/header.test.tsx src/components/StatusView.test.tsx src/components/OnboardingSplash.test.tsx` -> **PASS** (46 tests passed)
+- `npm run typecheck` -> **PASS** (0 errors across renderer and electron)
+- `npm run lint:eslint` -> **PASS** (0 warnings under `--max-warnings=0`)
+
+**Deliverables (this session):** Added `src/components/ui/Meteocon.tsx`, updated `src/types/vite-env.d.ts`, `src/components/layout/sidebar.tsx`, `src/components/StatusView.tsx`, `src/components/settings/BackupSyncPanel.tsx`, `src/components/OnboardingSplash.tsx`, `src/components/ModelSelect.tsx`, `src/components/chat/HistoryView.tsx`, `src/components/research/ResearchWorkspaceView.tsx`, `package.json`, `package-lock.json`, and updated `docs/summary_of_work.md`.
+
+**Open TODO:** None.
+
+### Prior Session Summary (Bug Fix — Character Chats Workspace Local Characters Quick-Launch Integration)
+
+**Scope:** Resolved issue in the "Character Chats" workspace (`CharacterChatsView.tsx`) where locally created character cards were ignored, resulting in an empty "No character chats yet" state prompting users to leave the tab and "browse characters" instead of allowing them to load and start chats with their local characters.
+
+- **Root Cause Identified.** `CharacterChatsView.tsx` previously filtered only `conversations` (existing active chat sessions in `useChatStore`). When no chat threads had been initiated yet, local character card records (`useCharacterCardStore.cards`) were never rendered in the main workspace, sidebar, or a character selector, dead-ending users on a generic empty screen.
+- **Local Character Quick-Launch Grid (`src/components/chat/CharacterChatsView.tsx`).**
+  - Updated `CharacterChatsView.tsx` to read `localCards` from `useCharacterCardStore`.
+  - Added a dedicated "Start a Local Character Chat" interactive grid inside the main workspace when no active character chat thread is selected. Users can view their local character cards (avatars, titles, tags, format badges) and launch a chat directly with a single click (`Start Chat`).
+  - Added real-time search filtering for local character cards directly on the workspace screen.
+  - Included a sidebar section listing available local characters with quick `+ Chat` buttons when zero active character conversations exist.
+- **Quick Character Picker Modal.** Integrated `AccessibleDialog` into `CharacterChatsView` triggered by the "+" header button (`MessageSquarePlus`), allowing users to pick any local character, search local cards, create a new ST card, or jump to hosted character discovery.
+- **Regression Test Coverage (`src/components/chat/CharacterChatsView.test.tsx`).** Added unit test verifying local card loading, grid rendering, and conversation launch from `CharacterChatsView`.
+
+**Validation this session:**
+- `npx vitest run src/components/CharactersView.test.tsx src/components/chat/CharacterChatsView.test.tsx src/components/chat/chat-view.test.tsx` -> **PASS** (3 test files / 23 tests passed)
+- `npm run typecheck` -> **PASS** (0 errors across renderer and electron)
+- `npm run lint:eslint` -> **PASS** (0 warnings under `--max-warnings=0`)
+
+**Deliverables (this session):** Modified `src/components/chat/CharacterChatsView.tsx`, `src/components/chat/CharacterChatsView.test.tsx`, `src/components/CharactersView.tsx`, `src/components/chat/chat-view.tsx`, and updated `docs/summary_of_work.md`.
+
+**Open TODO:** None.
+
+### Prior Session Summary (Bug Fix — Content Security Policy worker-src Blob Allowance)
+
+**Scope:** Resolved bug where local character cards were not displayed, loaded, or searchable in the character chatting/discovery hub (`CharactersView.tsx`), `CharacterChatsView.tsx`, or `chat-view.tsx`.
+
+- **Root Cause Identified.**
+  1. `CharactersView.tsx` had split rendering into separate `hubSection === 'hosted'` vs `hubSection !== 'hosted'` branches. The default section (`'hosted'`) omitted local cards completely from the grid, making local characters invisible when opening the character hub.
+  2. `visibleLocalCards` in `CharactersView.tsx` did not filter by `debouncedQuery`, ignoring search terms typed by the user when searching for local characters.
+  3. `CharacterChatsView.tsx` and `chat-view.tsx` did not trigger `useCharacterCardStore.getState().load()` on mount, leaving local card records unloaded (`cards: []`) when navigating directly to local character chats or resolving greetings.
+- **Unified Character Hub (`src/components/CharactersView.tsx`).**
+  - Updated `visibleLocalCards` to filter local cards by search query (`debouncedQuery`).
+  - Unified header controls across all hub sections (Search bar, Sort, Model select, Adult/Web filters, Section navigation, and ST Card creation/import actions).
+  - Included a dedicated "Local" character section in the main view when local characters are present or match search queries.
+- **Store Load Assurance (`src/components/chat/CharacterChatsView.tsx` & `src/components/chat/chat-view.tsx`).** Added `cardsLoaded` check and `useEffect` load trigger to ensure `useCharacterCardStore` is loaded when entering character chats.
+- **Regression Test Coverage (`src/components/CharactersView.test.tsx`).** Added unit test verifying local character rendering and search filtering in the hub.
+
+**Validation this session:**
+- `npx vitest run src/components/CharactersView.test.tsx src/components/chat/CharacterChatsView.test.tsx src/components/chat/chat-view.test.tsx` -> **PASS** (3 test files / 22 tests passed)
+- `npm run typecheck` -> **PASS** (0 errors)
+- `npm run lint:eslint` -> **PASS** (0 warnings under `--max-warnings=0`)
+
+**Deliverables (this session):** Modified `src/components/CharactersView.tsx`, `src/components/chat/CharacterChatsView.tsx`, `src/components/chat/chat-view.tsx`, `src/components/CharactersView.test.tsx`, and updated `docs/summary_of_work.md`.
+
+**Open TODO:** None.
+
+### Prior Session Summary (Bug Fix — Content Security Policy worker-src Blob Allowance)
+
+**Scope:** Resolved Content Security Policy violation blocking Web Worker creation from `blob:` URLs in dev and production modes (`Creating a worker from 'blob:http://localhost:5173/...' violates the following Content Security Policy directive...`).
+
+- **Root Cause Identified.** Electron renderer CSP generated by `electron/utils/rendererCsp.ts` and Express web proxy CSP in `server.ts` omitted the `worker-src` directive. Chromium fell back to `script-src`, which does not include `blob:`, blocking Vite HMR workers and Web Workers instantiated via Blobs.
+- **CSP Hardening (`electron/utils/rendererCsp.ts` & `server.ts`).** Added explicit `worker-src` directive:
+  - Dev mode: `worker-src 'self' blob: http://localhost:5173`
+  - Prod mode: `worker-src 'self' blob:`
+- **Regression Test Coverage (`electron/utils/rendererCsp.test.ts` & `server.test.ts`).** Updated unit tests to assert presence of `worker-src` in both development and production CSP configurations.
+
+**Validation this session:**
+- `npx vitest run electron/utils/rendererCsp.test.ts server.test.ts` -> **PASS** (3 test files / 90 tests passed)
+- `npm run typecheck` -> **PASS** (0 errors across renderer and electron)
+- `npm run lint:eslint` -> **PASS** (0 warnings under `--max-warnings=0`)
+
+**Deliverables (this session):** Modified `electron/utils/rendererCsp.ts`, `server.ts`, `electron/utils/rendererCsp.test.ts`, `server.test.ts`, and updated `docs/summary_of_work.md`.
+
+**Open TODO:** None.
+
+### Prior Session Summary (Bug Fix — IPC Chat Agent Loop Endpoint & Method Propagation)
+
+**Date:** 2026-07-22 (Bug Fix — IPC Chat Agent Loop Endpoint & Method Propagation)
+
+### Prior Session Summary (Codebase Refresh & Re-Initialization)
+
+**Date:** 2026-07-22 (Codebase Refresh & Re-Initialization)
+
+**Scope:** Performed a complete "Codebase Refresh & Re-Initialization" for AI coding agents. Created canonical `AGENT_REINITIALIZATION.md` (dense, 10-section context handoff document), updated `AGENTS.md` to be a token-lean entrypoint under 200 lines, and verified all contract verification scripts (`verify:agent-docs`, `verify:markdown-links`).
+
+
+- **Created `AGENT_REINITIALIZATION.md`.** Comprehensive 10-section codebase context handoff covering: High-Level Architecture & Mental Model (Mermaid flow diagram, dual transport system), Key Domain Concepts (Recipe compatibility, RP Studio prompt compiler, Scene Composer, Document Agent, Media Studio power tools), Major Recent Changes (table with commit evidence and ISO dates), Folder Structure & File Responsibilities, Core Patterns & Conventions (with concrete code examples for desktop bridge & secret redaction), Pinned Dependencies & Tech Stack, Heavily Changed Modules, Pitfalls & Anti-Patterns, Development Commands with Provenance, and Living Document Protocol.
+- **Updated `AGENTS.md`.** Token-lean entrypoint under 200 lines. Preserved mandatory local bootstrap check, context disclosure pointing to `AGENT_REINITIALIZATION.md`, secret safety rules, content handling (injection hardening), mandatory `docs/summary_of_work.md` handoff rule, and exact validation command chain matching `.github/copilot-instructions.md`.
+- **Contract & Link Validation.** Verified with `npm run verify:agent-docs` (PASS) and `npm run verify:markdown-links` (PASS across 139 files).
+
+**Validation this session:**
+- `git rev-parse --show-toplevel` -> `/Users/super_user/Projects/Venice_Forge` (PASS)
+- `git rev-parse --is-shallow-repository` -> `false` (full history) (PASS)
+- `npm run verify:agent-docs` -> **PASS** (0 errors)
+- `npm run verify:markdown-links` -> **PASS** (139 Markdown files checked, 0 broken links)
+
+**Deliverables (this session):** Created `AGENT_REINITIALIZATION.md`, updated `AGENTS.md`, updated `docs/summary_of_work.md`.
+
+**Open TODO:** None.
+
+### Prior Session Summary (continuation 15 — Multi-Chat & Multi-Media Selection System)
+
+**Date:** 2026-07-22 (continuation 15 — Multi-Chat & Multi-Media Selection System)
+
+**Scope:** Implemented multi-chat selection, folder-level selection controls, batch folder handoffs, card selection checkboxes, and Media Studio selection integration across `HistoryView.tsx`, `chat-folder-store.ts`, and test suites.
+
+
+- **Batch Folder Handoff API (`src/stores/chat-folder-store.ts`).** Added `moveConversations(conversationIds: string[], destinationFolderId: string | null)` to `chatFolderStore` and `ChatFolderState` for atomic batch conversation re-assignment.
+- **Select All Visible & Clear Controls (`src/components/chat/HistoryView.tsx`).** Added a "Select all visible" toggle button and clear selection control bar displaying live selection count out of total filtered items.
+- **Batch Move to Folder Action (`src/components/chat/HistoryView.tsx`).** Added a "Move to:" dropdown in the multi-select control bar when items are selected. Allows moving N selected conversations into any folder or Unfiled in a single operation.
+- **Folder-Level Checkbox Selection (`src/components/chat/HistoryView.tsx`).** Added an interactive checkbox to every folder header (and Unfiled group header). Clicking the folder checkbox selects/deselects all conversations inside that folder, displaying a live badge (e.g., `2/5 selected`).
+- **Card Selection Checkboxes (`src/components/chat/HistoryView.tsx`).** Added explicit selection checkboxes to top-left of conversation cards with active accent styling (`border-accent ring-2 ring-accent/30 bg-accent/5`).
+- **Media Studio Multi-Selection.** Verified `useMediaSelectionStore` and `MediaToolbar` / `MediaCard` integration providing multi-select toggle, range select, batch export, batch tag, batch compare, batch project assign, and batch delete.
+- **New Test Suite (`src/components/chat/HistoryView.multiSelect.test.tsx`).** Added unit test suite covering visible conversation selection, folder-level selection toggle, and batch folder movement.
 
 **Validation this continuation:**
-- `npm run verify:theme-tokens` -> **PASS** (139 files scanned, 0 hardcoded color violations).
-- `npm run test:unit:theme` -> **PASS** (118/118 theme unit tests green).
-- `npx vitest run src/components/ThemeMaker.test.ts src/components/ThemeMaker.ui.test.tsx src/components/ThemeMaker.custom.test.tsx` -> **PASS** (47/47 ThemeMaker tests green).
-- `npm run typecheck` -> **PASS** (renderer + Electron main, 0 errors).
+- `npx vitest run src/components/chat/HistoryView.multiSelect.test.tsx` -> **PASS** (3/3 multi-select tests green).
+- `npx vitest run src/components/chat/HistoryView.test.tsx` -> **PASS** (12/12 history view tests green).
+- `npx vitest run src/stores/media-selection-store.test.ts` -> **PASS** (31/31 media selection tests green).
+- `npm run typecheck` -> **PASS** (0 errors).
 - `npm run lint:eslint` -> **PASS** (0 warnings under `--max-warnings=0`).
-- `npm run verify:contracts` -> **PASS** (103/103 checks passed).
+- `npm run verify:contracts` -> **PASS** (all 22 workspace contracts passed).
 
-**Deliverables (this session):** Modified `src/styles/components.css`, `src/styles/theme.css`, `src/theme/themeTypes.ts`, `src/theme/applyTheme.ts`, `src/stores/settings-store.ts`, `src/components/ThemePreview.tsx`, `src/components/ThemeMaker.tsx`. Created `src/components/ThemeMaker.custom.test.tsx` and `docs/reports/VENICE_FORGE_THEME_ENGINE_BORDER_AND_PORTABILITY_AUDIT_2026-07-21.md`. Updated `docs/reports/CANONICAL_REPORT_INDEX.md`, `docs/DOCS_INDEX.md`, and `docs/summary_of_work.md`.
+**Deliverables (this session):** Modified `src/stores/chat-folder-store.ts`, `src/components/chat/HistoryView.tsx`. Created `src/components/chat/HistoryView.multiSelect.test.tsx`. Updated `docs/summary_of_work.md`.
 
-**Open TODO:** None for this work order. All verification checks passing.
+**Open TODO:** None. All features implemented and verified.
 
-### Prior Session Summary (continuation 13 — Update AGENTS.md for Phase 3 and Tab Count)
+### Prior Session Summary (continuation 14 — Theme Engine, Border System, Focus Ring, and Theme Portability Audit & Remediation)
 
 **Date:** 2026-07-21 (continuation 12 — User-reported bugs and features: persona contamination, folder context menus, prompt layer inspector, document tools, media vault, startup replay fix)
 

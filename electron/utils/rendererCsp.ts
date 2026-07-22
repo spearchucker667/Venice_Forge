@@ -31,6 +31,9 @@ export function rendererCsp(isDev: boolean): string {
   const scriptSrc = isDev
     ? "'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173"
     : "'self'";
+  const workerSrc = isDev
+    ? "'self' blob: http://localhost:5173"
+    : "'self' blob:";
 
   return [
     "default-src 'self'",
@@ -40,6 +43,7 @@ export function rendererCsp(isDev: boolean): string {
     `connect-src ${connectSrc}`,
     "font-src 'self' data:",
     "media-src 'self' blob: venice-media:",
+    `worker-src ${workerSrc}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'none'",
