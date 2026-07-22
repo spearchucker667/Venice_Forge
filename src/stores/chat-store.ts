@@ -329,9 +329,28 @@ export const useChatStore = create<ChatState>()(
 
       setConversations: (conversations) => {
         const stable = conversations.map(ensureStableMessageIds)
+        // Remove trailing empty assistant messages left by aborted streams.
+        // If persisted in this state they can trigger a spurious re-stream on
+        // the next startup when the conversation is restored as active.
+        const cleaned = stable.map((conv) => {
+          const messages = [...(conv.messages ?? [])]
+          while (messages.length > 0) {
+            const last = messages[messages.length - 1]
+            if (
+              last.role === 'assistant' &&
+              (last.content === '' ||
+                (typeof last.content === 'string' && last.content.trim() === ''))
+            ) {
+              messages.pop()
+            } else {
+              break
+            }
+          }
+          return messages.length !== conv.messages.length ? { ...conv, messages } : conv
+        })
         set({
-          conversations: stable,
-          conversationSummaries: stable.map(toConversationSummary),
+          conversations: cleaned,
+          conversationSummaries: cleaned.map(toConversationSummary),
           _hasLoadedHistory: true,
         })
       },
@@ -981,6 +1000,13 @@ export const useChatStore = create<ChatState>()(
         if (!s.veniceParams || typeof s.veniceParams !== 'object') {
           s.veniceParams = { include_venice_system_prompt: true, enable_web_search: 'off', enable_document_tools: false }
         }
+        
+        // Clean up any stale character_slug that may have been persisted from a prior
+        // bug where buildStreamBody wrote character_slug into the global store.
+        if (s.veniceParams && 'character_slug' in s.veniceParams) {
+          delete (s.veniceParams as Record<string, unknown>).character_slug;
+        }
+
         if (version < 3) {
           // Remove conversations from local storage on version 3 upgrade
           delete (s as Record<string, unknown>).conversations

@@ -14,6 +14,7 @@ import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
 import type { AssistantToolCall, ChatMessage, VeniceParameters } from "../types/venice";
 import type { Conversation } from "../types/conversation";
 import { createCanonicalToolDefinitions, type ProviderToolSchema } from "../agent/registry/tool-registry";
+import { useDocumentAgentStore } from "./document-agent-store";
 import * as logger from "../shared/logger";
 import { getModelById } from "../services/modelService";
 
@@ -88,8 +89,13 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     delete veniceParamsForRequest.character_slug;
   }
 
-  const isCharacterConversation = !!conv.metadata?.character;
-  if (isCharacterConversation) {
+  // Use characterSlug as the authoritative signal: only suppress Venice's system
+  // prompt when the request actually carries a character_slug to Venice. A
+  // conversation with stale character metadata but no usable slug must not
+  // suppress the Venice system prompt (it would receive neither a local nor a
+  // hosted persona, producing a blank-persona response).
+  const isHostedCharacterRequest = !!characterSlug;
+  if (isHostedCharacterRequest) {
     veniceParamsForRequest.include_venice_system_prompt = false;
     if (
       conv.metadata?.character?.webEnabled &&
@@ -124,6 +130,21 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
   const mediaTools = allDefinitions.filter(d => d.internalName.startsWith('media.')).map(t => t.schema);
   if (mediaTools.length > 0) {
     baseBody.tools = baseBody.tools ? [...(baseBody.tools as ProviderToolSchema[]), ...mediaTools] : mediaTools;
+  }
+
+  // Include workspace tools when the Document Agent has an active workspace grant.
+  // The grant is set by DocumentAgentView when the user explicitly opens a workspace;
+  // it is null for ordinary chat and document-only sessions.
+  const docAgentState = useDocumentAgentStore.getState();
+  if (docAgentState.workspaceGrant) {
+    const workspaceTools = allDefinitions
+      .filter(d => d.internalName.startsWith('workspace.'))
+      .map(t => t.schema);
+    if (workspaceTools.length > 0) {
+      baseBody.tools = baseBody.tools
+        ? [...(baseBody.tools as ProviderToolSchema[]), ...workspaceTools]
+        : workspaceTools;
+    }
   }
 
   return applyVeniceApiSafeMode(

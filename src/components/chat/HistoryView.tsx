@@ -1,13 +1,14 @@
 import React from 'react'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useChatFolderStore } from '../../stores/chat-folder-store'
-import { Search, Trash2, MessageSquare, Plus, ArrowRight, BookOpen, Clock, Zap, Folder, FolderPlus, ChevronDown, ChevronRight, Edit2 } from 'lucide-react'
+import { Search, Trash2, MessageSquare, Plus, ArrowRight, BookOpen, Clock, Zap, Folder, FolderPlus, ChevronDown, ChevronRight, Edit2, Lock, Unlock, Download, Upload } from 'lucide-react'
 import { toast } from '../../stores/toast-store'
 import type { Conversation } from '../../types/conversation'
 import { contentToSearchText } from '../../utils/messageContent'
-import { askDecision } from '../ui/modal-requests'
+import { askDecision, askText } from '../ui/modal-requests'
 import { getConversationDisplayTitle } from '../../utils/conversationDisplayTitle'
 import { CharacterAvatar } from '../characters/CharacterAvatar'
 import { getConversationKind } from '../../utils/conversationKind'
@@ -38,7 +39,7 @@ export default function HistoryView() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'character' | 'standard'>('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const { folders, isLoaded, loadFolders, createFolder, renameFolder, moveConversation, deleteFolder } = useChatFolderStore()
+  const { folders, isLoaded, loadFolders, createFolder, renameFolder, moveConversation, deleteFolder, lockFolder, exportFolderBackup, unlockFolder } = useChatFolderStore()
 
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({})
   const [draggedChatId, setDraggedChatId] = useState<string | null>(null)
@@ -46,8 +47,21 @@ export default function HistoryView() {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null)
   const [editingFolderName, setEditingFolderName] = useState('')
+  const [folderContextMenu, setFolderContextMenu] = useState<{
+    folderId: string
+    x: number
+    y: number
+  } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   useEffect(() => { if (!isLoaded) loadFolders() }, [isLoaded, loadFolders])
+
+  useEffect(() => {
+    if (!folderContextMenu) return
+    const handleClick = () => setFolderContextMenu(null)
+    window.addEventListener('click', handleClick)
+    return () => window.removeEventListener('click', handleClick)
+  }, [folderContextMenu])
 
 
   const filtered = useMemo(() => {
@@ -289,6 +303,11 @@ export default function HistoryView() {
                 <div 
                   className="flex items-center justify-between px-2 py-1.5 hover:bg-surface-elevated rounded-md group/folder cursor-pointer"
                   onClick={() => setExpandedFolders(prev => ({ ...prev, [folder.id]: !prev[folder.id] }))}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setFolderContextMenu({ folderId: folder.id, x: e.clientX, y: e.clientY })
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-text-muted">
@@ -595,6 +614,118 @@ export default function HistoryView() {
           </div>
         </div>
       </div>
+
+      {folderContextMenu && typeof document !== 'undefined' && createPortal(
+        <div
+          style={{ position: 'fixed', top: folderContextMenu.y, left: folderContextMenu.x, zIndex: 9999 }}
+          className="bg-surface-elevated border border-border rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in-0 zoom-in-95"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {(() => {
+            // Note: lock-state is resolved lazily below in the onClick handlers.
+            // We can't await here (not in an async IIFE) without causing suspense issues,
+            // so we read the folder object's lockState directly.
+            const folder = folders.find(f => f.id === folderContextMenu.folderId)
+            const isLocked = folder?.lockState === 'locked'
+            return (
+              <>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    const fid = folderContextMenu.folderId
+                    setFolderContextMenu(null)
+                    if (isLocked) {
+                      const passphrase = await askText({
+                        title: 'Unlock Folder',
+                        detail: 'Enter the passphrase to unlock this folder'
+                      })
+                      if (passphrase) await unlockFolder({ folderId: fid, passphrase })
+                    } else {
+                      const passphrase = await askText({
+                        title: 'Lock Folder',
+                        detail: 'Enter a passphrase to lock this folder'
+                      })
+                      if (passphrase) await lockFolder({ folderId: fid, passphrase })
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  {isLocked ? <><Unlock size={14} /> Unlock</> : <><Lock size={14} /> Lock</>}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const f = folders.find(f => f.id === folderContextMenu.folderId)
+                    if (f) {
+                      setEditingFolderId(f.id)
+                      setEditingFolderName(f.name)
+                    }
+                    setFolderContextMenu(null)
+                  }}
+                  className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <Edit2 size={14} /> Rename
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    deleteFolder(folderContextMenu.folderId, false)
+                    setFolderContextMenu(null)
+                  }}
+                  className="w-full text-left px-3 py-2 text-[13px] text-danger hover:bg-danger/10 transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+                <div className="h-px bg-border/50 my-1" />
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    const fid = folderContextMenu.folderId
+                    setFolderContextMenu(null)
+                    const passphrase = await askText({
+                      title: 'Export Folder',
+                      detail: 'Enter a passphrase to encrypt the backup. Record it — it cannot be recovered.'
+                    })
+                    if (passphrase) {
+                      await exportFolderBackup({ folderId: fid, includeMedia: false, passphrase })
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <Download size={14} /> Export
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    fileInputRef.current?.click()
+                    setFolderContextMenu(null)
+                  }}
+                  className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
+                >
+                  <Upload size={14} /> Import
+                </button>
+              </>
+            )
+          })()}
+        </div>,
+        document.body
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          // The IPC-based importFolderBackup requires a file path (not raw JSON).
+          // In the web environment, show a toast explaining the limitation.
+          // In Electron, the user should use the native file picker path.
+          toast.warn('Import', 'Folder import requires the Electron file picker. Use the Desktop app to import backups.')
+          e.target.value = ''
+        }}
+      />
     </div>
   );
 }

@@ -53,6 +53,9 @@ import { LineageViewer } from "./lineage-viewer";
 import type { MediaItem, MediaItemPatch } from "../../types/media";
 import { cn } from "../../lib/utils";
 import { askDecision, askText } from "../ui/modal-requests";
+import { Lock, Unlock } from "lucide-react";
+import { MasterPasswordDialog } from "../settings/MasterPasswordDialog";
+import { desktopMasterPassword } from "../../services/desktopBridge";
 
 export function MediaStudioView() {
   const items = useMediaStore((state) => state.items);
@@ -69,6 +72,7 @@ export function MediaStudioView() {
   const patchRecord = useMediaStore((state) => state.patch);
   const remove = useMediaStore((state) => state.remove);
   const toggleFavorite = useMediaStore((state) => state.toggleFavorite);
+  const toggleVault = useMediaStore((state) => state.toggleVault);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MediaFilter>("all");
@@ -77,6 +81,10 @@ export function MediaStudioView() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [inspectorId, setInspectorId] = useState<string | null>(null);
+
+  const [vaultUnlocked, setVaultUnlocked] = useState(false);
+  const [showVaultDialog, setShowVaultDialog] = useState(false);
+  const [vaultView, setVaultView] = useState(false);
 
   // Phase 2B: selection lives in the Zustand store. Local "select" callbacks
   // delegate to it.
@@ -138,8 +146,11 @@ export function MediaStudioView() {
   const filtered = useMemo(() => {
     const searched = searchMedia(dynamicFiltered, query);
     const filteredItems = filterMedia(searched, filter);
-    return sortMedia(filteredItems, sort);
-  }, [dynamicFiltered, query, filter, sort]);
+    const vaultFiltered = (vaultView && vaultUnlocked)
+      ? filteredItems.filter((item) => item.vaultHidden)
+      : filteredItems.filter((item) => !item.vaultHidden);
+    return sortMedia(vaultFiltered, sort);
+  }, [dynamicFiltered, query, filter, sort, vaultView, vaultUnlocked]);
 
   // BUG-React#10 regression guard: combine setVisibleMediaIds +
   // reconcileWithVisible into a single scheduled effect on `filtered`
@@ -718,6 +729,34 @@ export function MediaStudioView() {
         </div>
       )}
 
+      <div className="flex items-center border-b border-border bg-surface px-5 py-2">
+        <button
+          type="button"
+          onClick={async () => {
+            if (vaultView) {
+              setVaultView(false)
+              setVaultUnlocked(false)
+            } else {
+              const isSetup = await desktopMasterPassword.isSet()
+              if (!isSetup) {
+                toast.error('Set up a master password in Settings > Security first')
+                return
+              }
+              setShowVaultDialog(true)
+            }
+          }}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors',
+            vaultView
+              ? 'bg-accent text-accent-fg'
+              : 'border border-border text-text-muted hover:text-text-primary hover:bg-surface-elevated'
+          )}
+        >
+          {vaultView ? <Unlock size={14} /> : <Lock size={14} />}
+          {vaultView ? 'Exit Vault' : 'Vault'}
+        </button>
+      </div>
+
       <div className="flex flex-1 overflow-hidden">
         <main className="flex-1 overflow-y-auto p-5">
           {loading && items.length === 0 ? (
@@ -762,6 +801,7 @@ export function MediaStudioView() {
                       }
                     }}
                     onToggleFavorite={(it) => void toggleFavorite(it.id)}
+                    onVaultToggle={(it) => void toggleVault(it.id)}
                     onDelete={(it) => void handleDelete(it)}
                   />
                 </div>
@@ -1000,6 +1040,20 @@ export function MediaStudioView() {
             </button>
           )}
         </div>
+      )}
+
+      {/* Vault Dialog */}
+      {showVaultDialog && (
+        <MasterPasswordDialog
+          isOpen={showVaultDialog}
+          mode="verify"
+          onClose={() => setShowVaultDialog(false)}
+          onSuccess={() => {
+            setVaultUnlocked(true)
+            setVaultView(true)
+            setShowVaultDialog(false)
+          }}
+        />
       )}
     </div>
   );

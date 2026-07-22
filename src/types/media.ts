@@ -63,6 +63,9 @@ export interface MediaItem extends GalleryImage {
    * this field is treated as opaque and only round-trips through IPC.
    */
   exportedPathToken?: string;
+  
+  /** True if this media item is hidden in the password-protected media vault. */
+  vaultHidden?: boolean;
 
   /** Phase 1 Recipe support (per approved workspace plan).
    * Captured at generation time so the item can be "replayed" or used as a preset.
@@ -108,6 +111,7 @@ export type MediaItemPatch = Partial<
     | "operation"
     | "viewCount"
     | "exportedPathToken"
+    | "vaultHidden"
     | "negative"
     | "style"
     | "prompt"

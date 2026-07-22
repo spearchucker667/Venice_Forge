@@ -43,6 +43,8 @@ interface MediaState {
   addTagsMany: (ids: readonly string[], tags: readonly string[]) => Promise<void>
   /** Remove a tag from many records. */
   removeTagMany: (ids: readonly string[], tag: string) => Promise<void>
+  /** Toggle vault hidden status on a single record. */
+  toggleVault: (id: string) => Promise<void>
 
   /** Selectors */
   byId: (id: string) => MediaItem | undefined
@@ -345,6 +347,12 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     const current = get().items.find((item) => item.id === id)
     if (!current) return
     await get().patch(id, { favorite: !current.favorite })
+  },
+
+  toggleVault: async (id) => {
+    const current = get().items.find((item) => item.id === id)
+    if (!current) return
+    await get().patch(id, { vaultHidden: !current.vaultHidden })
   },
 
   setFavoriteMany: async (ids, favorite) => {

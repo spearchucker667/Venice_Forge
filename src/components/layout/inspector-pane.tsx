@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInspectorStore } from '../../stores/inspector-store'
 import { useSettingsStore } from '../../stores/settings-store'
+import { useChatStore } from '../../stores/chat-store'
 import { cn } from '../../lib/utils'
 import {
   exportRedactedInspectorLogs,
@@ -28,6 +29,64 @@ export function InspectorPane() {
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState<InspectorLogFilter>('all')
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+
+  const [inspectorTab, setInspectorTab] = useState<'traffic' | 'prompt-layers'>('traffic')
+
+  const activeConversationId = useChatStore((s) => s.activeConversationId)
+  const conversations = useChatStore((s) => s.conversations)
+  const globalSystemPrompt = useChatStore((s) => s.systemPrompt)
+  const activeConversation = conversations.find((c) => c.id === activeConversationId)
+
+  const systemPromptLayers = useMemo(() => {
+    if (!activeConversation) return []
+    const layers: Array<{ id: string; label: string; content: string; active: boolean; source: string }> = []
+    
+    // Layer 1: Venice Default (API-side, not visible but noted)
+    const veniceParams = useChatStore.getState().veniceParams
+    layers.push({
+      id: 'venice-default',
+      label: 'Venice API Default',
+      content: veniceParams.include_venice_system_prompt !== false 
+        ? '(Venice applies its own default system prompt when include_venice_system_prompt is true)'
+        : '(Suppressed — include_venice_system_prompt is false)',
+      active: veniceParams.include_venice_system_prompt !== false,
+      source: 'venice-api'
+    })
+    
+    // Layer 2: Global App System Prompt
+    layers.push({
+      id: 'global',
+      label: 'Global App System Prompt',
+      content: globalSystemPrompt || '(empty)',
+      active: !!globalSystemPrompt && !activeConversation.metadata?.character,
+      source: 'settings'
+    })
+    
+    // Layer 3: Character System Prompt (if character conversation)
+    if (activeConversation.metadata?.character?.systemPrompt) {
+      layers.push({
+        id: 'character',
+        label: 'Character System Prompt',
+        content: activeConversation.metadata.character.systemPrompt,
+        active: true,
+        source: 'character'
+      })
+    }
+    
+    // Layer 4: Conversation Override
+    const mode = activeConversation.metadata?.systemPromptMode ?? 'inherit'
+    if (activeConversation.systemPrompt) {
+      layers.push({
+        id: 'conversation',
+        label: `Conversation Override (mode: ${mode})`,
+        content: activeConversation.systemPrompt,
+        active: mode !== 'disabled',
+        source: 'conversation'
+      })
+    }
+    
+    return layers
+  }, [activeConversation, globalSystemPrompt])
 
   useEffect(() => {
     if (!showInspector) return
@@ -206,7 +265,27 @@ export function InspectorPane() {
         </div>
       </div>
 
-      <div className="px-2 py-2 soft-separator-y flex flex-wrap gap-1">
+      <div className="flex px-3 gap-1 soft-separator-y pb-2 pt-2">
+        {(['traffic', 'prompt-layers'] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setInspectorTab(tab)}
+            className={cn(
+              'px-3 py-1 rounded-md text-[12px] font-medium transition-colors cursor-pointer',
+              inspectorTab === tab
+                ? 'bg-accent/20 text-accent'
+                : 'text-text-muted hover:text-text-primary hover:bg-surface-elevated'
+            )}
+          >
+            {tab === 'traffic' ? 'Traffic' : 'Prompt Layers'}
+          </button>
+        ))}
+      </div>
+
+      {inspectorTab === 'traffic' ? (
+        <>
+          <div className="px-2 py-2 soft-separator-y flex flex-wrap gap-1">
         {FILTER_CHIPS.map((chip) => (
           <button
             key={chip.id}
@@ -528,6 +607,47 @@ export function InspectorPane() {
           )}
         </div>
       </div>
+        </>
+      ) : (
+        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          {!activeConversation ? (
+            <div className="text-[12px] text-text-muted text-center py-8">
+              No active conversation. Open a chat to inspect prompt layers.
+            </div>
+          ) : (
+            <>
+              <div className="text-[11px] text-text-muted/60 uppercase tracking-wider font-semibold mb-2">
+                Active: {activeConversation.title || 'Untitled'}
+              </div>
+              {systemPromptLayers.map((layer, i) => (
+                <div
+                  key={layer.id}
+                  className={`rounded-lg border p-3 space-y-1.5 ${
+                    layer.active ? 'border-accent/30 bg-accent/5' : 'border-border/40 bg-surface-elevated/30 opacity-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] font-semibold text-text-secondary">
+                      {i + 1}. {layer.label}
+                    </span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                      layer.active 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : 'bg-text-muted/10 text-text-muted'
+                    }`}>
+                      {layer.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <pre className="text-[11px] text-text-muted whitespace-pre-wrap break-words font-mono leading-relaxed max-h-[200px] overflow-y-auto bg-surface/50 rounded p-2">
+                    {layer.content}
+                  </pre>
+                  <div className="text-[10px] text-text-muted/50">Source: {layer.source}</div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
     </aside>
   )
 }

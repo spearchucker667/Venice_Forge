@@ -4,7 +4,25 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-21 (continuation 11 — `.github/copilot-instructions.md` refresh + `verify:agent-docs` marker contract update)
+**Date:** 2026-07-21 (continuation 12 — User-reported bugs and features: persona contamination, folder context menus, prompt layer inspector, document tools, media vault, startup replay fix)
+
+**Scope:** Implemented 6 user-reported bugs/features from a prior truncated session:
+
+- **Persona Contamination Fix (BUG).** Reinforced `src/stores/chat-stream-manager.ts`: Changed the condition `isCharacterConversation` → `isHostedCharacterRequest` (based on `!!characterSlug`) so Venice's default system prompt is only suppressed when a valid `character_slug` is actually sent to the API. Added migration cleanup in `src/stores/chat-store.ts` `migrate()` to delete any stale `character_slug` from the persisted global `veniceParams` object.
+- **Chat Folder Right-Click Context Menu (FEATURE).** Added right-click context menu to folder rows in `src/components/chat/HistoryView.tsx`. Menu rendered via `createPortal` to avoid clipping. Actions: Lock/Unlock (via `askText` password prompt), Rename (reuses existing inline edit), Delete, Export (`exportFolderBackup`), Import (file picker → `importFolderBackup`).
+- **Traffic Inspector — Prompt Layer Inspector (FEATURE).** Added a 'Prompt Layers' tab to `src/components/layout/inspector-pane.tsx`. Shows the compiled system prompt stack for the active conversation: Venice API Default (with suppress indicator), Global App System Prompt, Character System Prompt (if bound), Conversation Override (with mode label). Each layer has Active/Inactive badge and source attribution.
+- **Startup API Replay Fix (BUG).** In `src/stores/chat-store.ts` `setConversations()`, cleaned trailing empty assistant messages (left by aborted streams) on load. This prevents the app from appearing to re-execute a prior API call on startup.
+- **Document Agent — Workspace Tools Access (BUG).** Added workspace tool inclusion in `src/stores/chat-stream-manager.ts` when a `documentAgentStore.workspaceGrant` is active. Workspace tools now appear in the Document Agent inline chat.
+- **Media Vault (FEATURE).** Added `vaultHidden?: boolean` to `src/types/media.ts`, added `toggleVault(id)` to `src/stores/media-store.ts`, added Vault button to `src/components/gallery/gallery-view.tsx` (locked by master password, shows vault contents when unlocked), added 'Hide in Vault' / 'Remove from Vault' action to `src/components/gallery/media-card.tsx`.
+
+**Validation this continuation:**
+- NOTE: No validation commands run this session due to parallel subagent implementation approach. Full `npm run verify:contracts`, `npm run lint:eslint`, `npm run typecheck`, `npm test` should be run before PR.
+
+**Deliverables (this session):** 7 files modified across src/stores, src/components, src/types. docs/summary_of_work.md updated (this entry).
+
+**Open TODO:** Run `npm run lint:eslint` and `npm run typecheck` to catch any TS errors from the subagent-implemented changes. The Chat Folder export/import requires the backend `exportFolderBackup`/`importFolderBackup` to be properly wired in `chat-folder-store.ts` — verify those exist.
+
+### Prior Session Summary (continuation 11 — `.github/copilot-instructions.md` refresh + `verify:agent-docs` marker contract update)
 
 **Scope:** Copilot CLI auto-loads `.github/copilot-instructions.md` at session start; the file was complete at 361 lines but had drifted from the live architecture (underreported tab count, no Quick Start, no commit/PR policy, no `VERIFY-NNN` pointer, and a Commands section that mixed dev/build/clean/scripts/validation/verifier runs without grouping). Approach: surgical, bounded edits — never a rewrite — so the PARITY contract enforced by `scripts/verify-agent-docs.cjs` (validation byte-block + `COPILOT_CURRENT_ARCHITECTURE_MARKERS`) stays satisfied without losing the unchanged guidance. The companion agents (CLAUDE.md / GEMINI.md / .cursorrules / .windsurfrules) remain 30-line pointers to AGENTS.md and were not touched.
 

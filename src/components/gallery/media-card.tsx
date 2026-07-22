@@ -2,7 +2,7 @@
  * thumbnail, title, badges, and quick action buttons. */
 
 import { memo, useState } from "react";
-import { Heart, Star, Trash2, Image as ImageIcon, Play, Music } from "lucide-react";
+import { Heart, Star, Trash2, Image as ImageIcon, Play, Music, Lock, Unlock } from "lucide-react";
 import { Badge } from "../ui/shared";
 import { useMediaThumb } from "../../hooks/useMediaThumb";
 import { mediaItemSource, formatDimensions, formatDuration, isVideoItem, isAudioItem } from "../../utils/mediaItem";
@@ -41,6 +41,7 @@ interface MediaCardProps {
   onSelect: (item: MediaItem, multi: boolean) => void;
   onOpen: (item: MediaItem) => void;
   onToggleFavorite: (item: MediaItem) => void;
+  onVaultToggle: (item: MediaItem) => void;
   onDelete: (item: MediaItem) => void;
 }
 
@@ -52,6 +53,7 @@ function MediaCardImpl({
   onSelect,
   onOpen,
   onToggleFavorite,
+  onVaultToggle,
   onDelete,
 }: MediaCardProps) {
   const [thumbFailed, setThumbFailed] = useState(false);
@@ -186,6 +188,19 @@ function MediaCardImpl({
             )}
           >
             <Star className={cn("h-3 w-3", item.favorite && "fill-current")} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onVaultToggle(item)}
+            aria-label={item.vaultHidden ? "Remove from Vault" : "Move to Vault"}
+            className={cn(
+              "rounded-md border px-2 py-1 text-[12px] transition-colors",
+              item.vaultHidden
+                ? "border-accent/40 bg-accent/[0.08] text-accent"
+                : "border-border text-text-secondary hover:border-accent hover:text-accent",
+            )}
+          >
+            {item.vaultHidden ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
           </button>
           <button
             type="button"
