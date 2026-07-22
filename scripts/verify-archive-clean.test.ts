@@ -225,7 +225,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       expect(summary).toMatch(/high_risk_hits=0/);
       expect(summary).toMatch(/raw_line_content_emitted=false/);
       expect(summary.split("\n").filter((line) => line === "0")).toHaveLength(0);
-      expect(summary).toMatch(/^high_risk_hits=0\nexample_hits=0\nraw_line_content_emitted=false\n?$/);
+      expect(summary).toMatch(/^high_risk_hits=0\nexample_hits=0\ntest_fixture_hits=\d+\nraw_line_content_emitted=false\n?$/);
     } finally {
       rmSync(repo, { recursive: true, force: true });
       rmSync(outDir, { recursive: true, force: true });
@@ -268,7 +268,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       const metaDir = join(extractDir, extractedName, "_REPO_EXTRACT_METADATA");
       const summary = readFileSync(join(metaDir, "SECRET_SCAN_SUMMARY.txt"), "utf8");
 
-      expect(summary).toMatch(/^high_risk_hits=0\nexample_hits=0\nraw_line_content_emitted=false\n?$/);
+      expect(summary).toMatch(/^high_risk_hits=0\nexample_hits=0\ntest_fixture_hits=0\nraw_line_content_emitted=false\n?$/);
     } finally {
       rmSync(repo, { recursive: true, force: true });
       rmSync(outDir, { recursive: true, force: true });
@@ -280,7 +280,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     const script = readFileSync(join(__dirname, "clean-repo-zip.sh"), "utf8");
     expect(script).toContain('"\\\\bsk-[A-Za-z0-9._~+/=-]{8,}"');
     expect(script).toContain('"\\\\bvn-[A-Za-z0-9._~+/=-]{8,}"');
-    expect(script).toContain('echo "==> Output: private path omitted"');
+    expect(script).toContain('log "Output: private path omitted"');
     expect(script).toContain('echo "ZIP:     $(basename "$ZIP_PATH") (output path omitted)"');
   });
 
@@ -312,7 +312,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
       expect(existsSync(extractInfoPath)).toBe(true);
       const extractInfo = readFileSync(extractInfoPath, "utf8");
       expect(extractInfo).toMatch(/Script provenance/);
-      expect(extractInfo).toMatch(/script_version=clean-repo-zip-v4/);
+      expect(extractInfo).toMatch(/script_version=clean-repo-zip-v5/);
       expect(extractInfo).toMatch(/script_sha256=[0-9a-f]{64}/);
 
       expect(existsSync(checksumPath)).toBe(true);

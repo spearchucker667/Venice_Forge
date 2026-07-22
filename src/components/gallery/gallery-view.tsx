@@ -729,7 +729,7 @@ export function MediaStudioView() {
         </div>
       )}
 
-      <div className="flex items-center border-b border-border bg-surface px-5 py-2">
+      <div className="flex items-center border-b border-border/50 bg-surface px-5 py-2">
         <button
           type="button"
           onClick={async () => {

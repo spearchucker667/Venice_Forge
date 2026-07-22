@@ -89,13 +89,9 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     delete veniceParamsForRequest.character_slug;
   }
 
-  // Use characterSlug as the authoritative signal: only suppress Venice's system
-  // prompt when the request actually carries a character_slug to Venice. A
-  // conversation with stale character metadata but no usable slug must not
-  // suppress the Venice system prompt (it would receive neither a local nor a
-  // hosted persona, producing a blank-persona response).
-  const isHostedCharacterRequest = !!characterSlug;
-  if (isHostedCharacterRequest) {
+  const binding = getConversationPersonaBinding(conv as unknown as Conversation);
+  const isCharacterRequest = binding.kind !== "standard";
+  if (isCharacterRequest) {
     veniceParamsForRequest.include_venice_system_prompt = false;
     if (
       conv.metadata?.character?.webEnabled &&

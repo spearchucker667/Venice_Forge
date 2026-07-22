@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 
 import clearDay from '@meteocons/svg/fill/clear-day.svg?raw';
 import clearNight from '@meteocons/svg/fill/clear-night.svg?raw';
@@ -60,11 +60,19 @@ export function Meteocon({ name, size = 22, className = '', ...props }: Meteocon
   const rawSvg = METEOCONS[name] || METEOCONS['cloudy'];
   const numericSize = typeof size === 'number' ? Math.round(size * 1.2) : size;
   const dim = typeof numericSize === 'number' ? `${numericSize}px` : numericSize;
+  const spanRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const el = spanRef.current;
+    if (!el) return;
+    el.style.setProperty('width', dim);
+    el.style.setProperty('height', dim);
+  }, [dim]);
 
   return (
     <span
+      ref={spanRef}
       className={`inline-flex shrink-0 items-center justify-center pointer-events-none [&>svg]:w-full [&>svg]:h-full ${className}`}
-      style={{ width: dim, height: dim }}
       dangerouslySetInnerHTML={{ __html: rawSvg }}
       {...props}
     />

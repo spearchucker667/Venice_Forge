@@ -59,14 +59,14 @@ Stack: React 19 + TypeScript strict + Tailwind CSS v4 (Premium Dark Glass Theme)
 > This block intentionally mirrors the validation block in `AGENTS.md`. `verify:agent-docs` (VERIFY-122) greps both files and asserts the captured chunk matches byte-for-byte across whitespace. Keep both in lock-step.
 
 ```bash
-npm run lint:eslint          # ESLint — zero warnings enforced (--max-warnings=0)
-npm run typecheck            # Renderer (tsconfig.json) + Electron main (tsconfig.electron.json)
-npm test                     # Vitest, serial (--fileParallelism=false)
-npm run verify:safety-guard  # Mandatory CI gate; see Security below
-npm run verify:markdown-links # Local Markdown files + heading fragments
-npm run verify:contracts     # Comprehensive suite of all 22+ sub-verifiers/contracts
-npm run build                # dist/ + dist-electron/ + dist/server.cjs
-npm run ci                   # Full parity including safety, markdown, contracts, and dist verification
+npm run lint:eslint
+npm run typecheck
+npm test
+npm run verify:safety-guard
+npm run verify:markdown-links
+npm run verify:contracts
+npm run build
+npm run ci
 ```
 
 ### Run scripts

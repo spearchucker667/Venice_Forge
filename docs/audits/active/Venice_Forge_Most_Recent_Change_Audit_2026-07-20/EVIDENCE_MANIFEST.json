@@ -1,0 +1,185 @@
+{
+  "auditDate": "2026-07-20",
+  "application": "Venice Forge",
+  "snapshot": {
+    "file": "Venice_Forge-main-ae1db1b",
+    "sha256": "ae1db1badf7d08ca32daf9c47ebc1181e3a288b9",
+    "reportedCommit": "d21e9fd3af64f67bf4fc50429eb1d3c35ae2ae71",
+    "verifiedCommit": "ae1db1badf7d08ca32daf9c47ebc1181e3a288b9",
+    "branch": "main",
+    "dirty": false
+  },
+  "supplementalArchive": {
+    "file": "none",
+    "sha256": "",
+    "totalEntries": 0,
+    "substantiveEntries": 0,
+    "duplicateEntries": 0,
+    "uniqueEntries": []
+  },
+  "environment": {
+    "platform": "darwin-arm64",
+    "architecture": "arm64",
+    "node": "v26.5.0",
+    "npm": "11.17.0",
+    "electron": "34.0.0",
+    "react": "19.0.0",
+    "vite": "6.0.7",
+    "typescript": "5.7.2",
+    "express": "4.21.2"
+  },
+  "commands": [
+    {
+      "command": "npm run typecheck",
+      "exitCode": 0,
+      "result": "pass",
+      "notes": "tsc --noEmit && tsc --noEmit --project tsconfig.electron.json"
+    },
+    {
+      "command": "npm run lint:eslint",
+      "exitCode": 0,
+      "result": "pass",
+      "notes": "eslint src electron server.ts scripts --max-warnings=0"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "result": "pass",
+      "notes": "Vite renderer + Express proxy + Electron main/preload build"
+    },
+    {
+      "command": "npm run verify:contracts",
+      "exitCode": 1,
+      "result": "fail",
+      "notes": "[verify:release-metadata] FAIL - AGENTS.md version must match package.json."
+    },
+    {
+      "command": "npm run test:ci",
+      "exitCode": 1,
+      "result": "fail",
+      "notes": "test:server pass, test:electron pass, test:ingestion pass; test:unit:stores:chat failed 1 test in chat-store.test.ts"
+    }
+  ],
+  "findings": [
+    {
+      "id": "P0-01",
+      "status": "stale finding",
+      "paths": [
+        "electron/services/chatFolderBackupService.ts"
+      ],
+      "tests": [
+        "electron/services/chatFolderBackupService.test.ts"
+      ],
+      "workOrderItems": [
+        "Phase 2.4"
+      ]
+    },
+    {
+      "id": "P0-02",
+      "status": "stale finding",
+      "paths": [
+        "electron/services/chatFolderBackupService.ts"
+      ],
+      "tests": [
+        "electron/services/chatFolderBackupService.test.ts"
+      ],
+      "workOrderItems": [
+        "Phase 2.3"
+      ]
+    },
+    {
+      "id": "P0-03",
+      "status": "stale finding",
+      "paths": [
+        "electron/agent/runtime/chat-agent-runner.ts",
+        "src/components/chat/message-bubble.tsx"
+      ],
+      "tests": [
+        "electron/agent/runtime/chat-agent-runner.test.ts"
+      ],
+      "workOrderItems": [
+        "Phase 5.4"
+      ]
+    },
+    {
+      "id": "P0-04",
+      "status": "stale finding",
+      "paths": [
+        "electron/agent/runtime/trusted-agent-request.ts"
+      ],
+      "tests": [
+        "electron/agent/runtime/trusted-agent-request.test.ts"
+      ],
+      "workOrderItems": [
+        "Phase 3.2"
+      ]
+    },
+    {
+      "id": "P0-05",
+      "status": "stale finding",
+      "paths": [
+        "electron/agent/runtime/agent-tool-executor.ts"
+      ],
+      "tests": [
+        "electron/agent/runtime/agent-tool-executor.test.ts"
+      ],
+      "workOrderItems": [
+        "Phase 5.1"
+      ]
+    },
+    {
+      "id": "P1-01",
+      "status": "verified",
+      "paths": [
+        "AGENTS.md",
+        "scripts/verify-release-metadata.cjs"
+      ],
+      "tests": [
+        "npm run verify:contracts"
+      ],
+      "workOrderItems": [
+        "Phase 9.1"
+      ]
+    },
+    {
+      "id": "P1-02",
+      "status": "verified",
+      "paths": [
+        "src/stores/chat-store.ts"
+      ],
+      "tests": [
+        "src/stores/chat-store.test.ts"
+      ],
+      "workOrderItems": [
+        "Phase 9.2"
+      ]
+    },
+    {
+      "id": "P1-03",
+      "status": "verified",
+      "paths": [
+        "docs/work-orders/VENICE_FORGE_CHAT_FOLDERS_MEDIA_DOCUMENTS_2026-07-19.md"
+      ],
+      "tests": [
+        "Checklist audit"
+      ],
+      "workOrderItems": [
+        "Phase 0.2"
+      ]
+    },
+    {
+      "id": "P1-04",
+      "status": "partial",
+      "paths": [
+        "electron/services/chatFolderLockService.ts",
+        "electron/services/chatFolderStorage.ts"
+      ],
+      "tests": [
+        "electron/services/chatFolderLockService.test.ts"
+      ],
+      "workOrderItems": [
+        "Phase 2.5"
+      ]
+    }
+  ]
+}

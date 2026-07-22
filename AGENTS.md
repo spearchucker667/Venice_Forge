@@ -3,7 +3,7 @@
 > **Canonical local repository root:** `/Users/super_user/Projects/Venice_Forge`
 > **GitHub:** `spearchucker667/Venice_Forge`
 > **Expected branch:** `main`
-> **Declared version:** `3.0.0-beta.1`
+> **Version:** 3.0.0-beta.1
 >
 > The absolute path is a local bootstrap constraint only. Never copy it into CI, portable exports, diagnostics, permanent reports, or user-facing documentation. Verify the declared version against `package.json` during release work.
 
@@ -197,14 +197,14 @@ Relevant verifiers include:
 
 ```bash
 npm run verify:agent-docs
-npm run verify:document-ingestion
-npm run verify:rp-studio-polish
-npm run verify:release-packaging-hardening
+npm run verify:document-ingestion   # VERIFY-058
+npm run verify:rp-studio-polish   # VERIFY-048
+npm run verify:release-packaging-hardening   # VERIFY-052
 npm run verify:workspace-contracts
 npm run verify:model-aware-recipes
 npm run verify:media-studio-power-tools
 npm run verify:status-diagnostics
-npm run verify:research-workspace
+npm run verify:research-workspace   # VERIFY-051
 ```
 
 Rules:
@@ -360,7 +360,7 @@ Backup/sync changes require secret-exclusion, plaintext-scan, tamper, wrong-pass
 * Use repository-relative paths in permanent documentation.
 * Register every new authoritative document in `docs/DOCS_INDEX.md`.
 * Repair Markdown links and heading fragments after moves/renames.
-* Do not renumber, reuse, or invent `VERIFY-*` IDs without inspecting the canonical verifier registry and tests.
+* Do not renumber, reuse, or invent `VERIFY-*` IDs without inspecting the canonical verifier registry and tests (VERIFY-168 is an intentional legacy allowlisted VERIFY ID).
 
 Every defect report must provide:
 

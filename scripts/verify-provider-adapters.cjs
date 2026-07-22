@@ -16,7 +16,7 @@ function run() {
   console.log('Running provider credential, routing, payload, and transport contract tests...');
   const result = spawnSync(
     process.execPath,
-    [vitestBinary, 'run', ...tests, '--fileParallelism=false'],
+    [vitestBinary, 'run', '--root', resolve(__dirname, '..'), ...tests, '--fileParallelism=false'],
     { stdio: 'inherit', cwd: resolve(__dirname, '..') },
   );
 

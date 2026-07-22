@@ -532,7 +532,7 @@ export function ThemeMaker() {
   return (
     <div className="space-y-6">
       {/* Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 pb-4">
         <div>
           <h3 className="text-lg font-semibold text-text-primary">Theme System & Editor</h3>
           <p className="text-xs text-text-muted">
@@ -582,7 +582,7 @@ export function ThemeMaker() {
 
       {/* Draft Custom Editor */}
       <div className="space-y-4 rounded-xl border border-border p-4 bg-surface">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
           <div className="flex items-center gap-3">
             <input
               type="text"
@@ -692,7 +692,7 @@ export function ThemeMaker() {
       {importModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">{/* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */}
           <div className="w-full max-w-xl rounded-xl border border-border bg-surface-elevated p-6 space-y-4 shadow-2xl">
-            <div className="border-b border-border pb-3">
+            <div className="border-b border-border/50 pb-3">
               <h3 className="text-lg font-semibold text-text-primary">Import Theme Preview</h3>
               <p className="text-xs text-text-muted">
                 Review theme metadata and preview layout before applying to your workspace.
@@ -718,7 +718,7 @@ export function ThemeMaker() {
               <ThemePreview theme={importModal.theme} />
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border">
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/50">
               <button className="btn ghost" onClick={() => setImportModal(null)}>
                 Cancel
               </button>

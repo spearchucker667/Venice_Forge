@@ -346,7 +346,7 @@ export const useChatStore = create<ChatState>()(
               break
             }
           }
-          return messages.length !== conv.messages.length ? { ...conv, messages } : conv
+          return messages.length !== (conv.messages?.length ?? 0) ? { ...conv, messages } : conv
         })
         set({
           conversations: cleaned,
@@ -1012,6 +1012,16 @@ export const useChatStore = create<ChatState>()(
           delete (s as Record<string, unknown>).conversations
         }
         return s as ChatState
+      },
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState as Partial<ChatState>) || {}
+        return {
+          ...currentState,
+          ...persisted,
+          conversations: currentState.conversations,
+          conversationSummaries: currentState.conversationSummaries,
+          _hasLoadedHistory: currentState._hasLoadedHistory,
+        }
       },
       partialize: (state) => ({
         // DO NOT persist conversations to localStorage anymore. Handled by IPC.

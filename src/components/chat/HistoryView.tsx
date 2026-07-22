@@ -1,5 +1,5 @@
 import React from 'react'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useChatStore } from '../../stores/chat-store'
 import { useSettingsStore } from '../../stores/settings-store'
@@ -64,6 +64,15 @@ export default function HistoryView() {
     return () => window.removeEventListener('click', handleClick)
   }, [folderContextMenu])
 
+  const folderMenuRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = folderMenuRef.current
+    if (!el || !folderContextMenu) return
+    el.style.setProperty('position', 'fixed')
+    el.style.setProperty('top', `${folderContextMenu.y}px`)
+    el.style.setProperty('left', `${folderContextMenu.x}px`)
+    el.style.setProperty('z-index', '9999')
+  }, [folderContextMenu])
 
   const filtered = useMemo(() => {
     let result = conversations
@@ -767,7 +776,7 @@ export default function HistoryView() {
 
       {folderContextMenu && typeof document !== 'undefined' && createPortal(
         <div
-          style={{ position: 'fixed', top: folderContextMenu.y, left: folderContextMenu.x, zIndex: 9999 }}
+          ref={folderMenuRef}
           className="bg-surface-elevated border border-border rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in-0 zoom-in-95"
           onClick={(e) => e.stopPropagation()}
         >
