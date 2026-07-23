@@ -1,4 +1,6 @@
 import { useBackgroundTaskStore } from '../stores/background-task-store'
+import { WorkflowExecutionError } from '../lib/workflow-errors'
+import { toUserFacingVideoError } from './task-errors'
 
 interface WorkflowVideoTaskInput {
   queueId: string
@@ -33,7 +35,9 @@ export function awaitWorkflowVideoTask(input: WorkflowVideoTaskInput): Promise<s
         finish(() => resolve(task.resultUrl!))
         return
       }
-      finish(() => reject(new Error(task.status === 'timeout' ? 'Video generation timed out.' : 'Video generation failed.')))
+      const rawError = task?.error || (task?.status === 'timeout' ? 'Video generation timed out.' : 'Video generation failed.')
+      const safeError = toUserFacingVideoError(rawError, 'Video generation failed.')
+      finish(() => reject(new WorkflowExecutionError(safeError)))
     }
     const onAbort = () => finish(() => reject(new DOMException('Aborted', 'AbortError')))
     const unsubscribe = useBackgroundTaskStore.subscribe(inspect)

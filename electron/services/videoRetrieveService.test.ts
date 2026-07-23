@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   request: vi.fn(),
   persistStream: vi.fn(),
   download: vi.fn(),
+  persistMedia: vi.fn(),
   getApiKey: vi.fn(() => 'secret-key'),
 }))
 vi.mock('electron', () => ({ app: { getVersion: () => 'test' } }))
@@ -15,6 +16,7 @@ vi.mock('https', () => ({ default: { request: mocks.request } }))
 vi.mock('./secureStore', () => ({ getApiKey: mocks.getApiKey }))
 vi.mock('./generatedMediaStream', () => ({ persistGeneratedMp4Stream: mocks.persistStream }))
 vi.mock('./generatedVideoDownload', () => ({ downloadGeneratedVideo: mocks.download }))
+vi.mock('./generatedMediaStore', () => ({ persistGeneratedMedia: mocks.persistMedia }))
 
 import { retrieveVideoQueueResult } from './videoRetrieveService'
 
@@ -40,6 +42,7 @@ describe('retrieveVideoQueueResult', () => {
     mocks.getApiKey.mockReturnValue('secret-key')
     mocks.persistStream.mockResolvedValue(durable)
     mocks.download.mockResolvedValue(durable)
+    mocks.persistMedia.mockResolvedValue(durable)
   })
 
   it('accepts a direct MP4 stream and reports retrieving/saving stages', async () => {
@@ -65,6 +68,14 @@ describe('retrieveVideoQueueResult', () => {
     await expect(retrieveVideoQueueResult({ queueId: 'q1', model: 'model', profileId: 'default' }))
       .resolves.toEqual({ kind: 'completed', media: durable })
     expect(mocks.download).toHaveBeenCalledWith('https://media.example/video.mp4', expect.any(Object))
+  })
+
+  it('persists inline data: URLs through persistGeneratedMedia', async () => {
+    const dataUrl = 'data:video/mp4;base64,dGVzdA=='
+    respond(200, 'application/json', Buffer.from(JSON.stringify({ status: 'COMPLETED', dataUrl })))
+    await expect(retrieveVideoQueueResult({ queueId: 'q1', model: 'model', profileId: 'default' }))
+      .resolves.toEqual({ kind: 'completed', media: durable })
+    expect(mocks.persistMedia).toHaveBeenCalledWith(Buffer.from('dGVzdA==', 'base64'), 'video/mp4')
   })
 
   it('rejects unsupported successful content types as terminal', async () => {

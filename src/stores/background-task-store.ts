@@ -83,11 +83,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
       if (envelope.kind === 'created' || envelope.kind === 'updated') {
         const updates: Record<string, BackgroundTask> = { ...state.tasks }
         for (const task of envelope.tasks ?? []) {
-          if (task.profileId === currentProfileId) {
-            updates[task.id] = task
-          } else if (task.type === 'video' && task.status === 'completed' && state.tasks[task.id]) {
-            // For completed video tasks, bypass profile filtering to ensure they're displayed
-            // This prevents UI hanging in the loading state when there are profile mismatches
+          if (task.profileId === currentProfileId || Boolean(state.tasks[task.id])) {
             updates[task.id] = task
           }
         }
@@ -331,7 +327,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
             updateTask(taskId, { status: 'completed', progress: 1, resultUrl: normalized.mediaUrl })
             stopPolling(taskId)
           } else if (normalized.kind === 'download') {
-            updateTask(taskId, { status: 'failed', error: 'This video must be downloaded and secured by the desktop app.' })
+            updateTask(taskId, { status: 'completed', progress: 1, resultUrl: normalized.downloadUrl })
             stopPolling(taskId)
           } else if (normalized.kind === 'failed') {
             updateTask(taskId, { status: 'failed', error: toUserFacingVideoError(normalized.error, 'Video generation failed') })

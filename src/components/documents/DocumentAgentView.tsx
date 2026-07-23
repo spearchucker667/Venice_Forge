@@ -84,12 +84,17 @@ export function DocumentAgentView() {
   const [proposal, setProposal] = useState<ProposalView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [workspaceFiles, setWorkspaceFiles] = useState<Array<{ relativePath: string; type: string }>>([])
+  const [workspaceQuery, setWorkspaceQuery] = useState('')
+  const [workspaceSearchResults, setWorkspaceSearchResults] = useState<Array<{ relativePath: string; line: number; snippet: string }>>([])
+  const [workspaceFileContent, setWorkspaceFileContent] = useState<{ path: string; text: string } | null>(null)
   const bridge = desktopDocumentAgent
   const projectId = activeProjectId ?? projects.find((project) => !project.archivedAt)?.id ?? null
 
   const refreshWorkspace = useCallback(async () => {
     if (!workspaceGrant) {
       setWorkspaceFiles([])
+      setWorkspaceSearchResults([])
+      setWorkspaceFileContent(null)
       return
     }
     const result = await bridge.workspace.list({
@@ -104,6 +109,28 @@ export function DocumentAgentView() {
       setWorkspaceFiles((result.result as { entries: Array<{ relativePath: string; type: string }> }).entries)
     }
   }, [workspaceGrant, agentSessionId, bridge.workspace])
+
+  const searchWorkspace = async () => {
+    if (!workspaceGrant || !workspaceQuery.trim()) return
+    setError(null)
+    const result = await bridge.workspace.search({ grantId: workspaceGrant.id, agentSessionId, query: workspaceQuery.trim() })
+    if (result.ok && result.result) {
+      setWorkspaceSearchResults(result.result)
+    } else {
+      setError(result.error || 'Workspace search failed.')
+    }
+  }
+
+  const readWorkspaceFile = async (relativePath: string) => {
+    if (!workspaceGrant) return
+    setError(null)
+    const result = await bridge.workspace.read({ grantId: workspaceGrant.id, agentSessionId, relativePath })
+    if (result.ok && result.result) {
+      setWorkspaceFileContent({ path: relativePath, text: result.result.content })
+    } else {
+      setError(result.error || 'Could not read workspace file.')
+    }
+  }
 
   useEffect(() => { void refreshWorkspace() }, [refreshWorkspace])
 
@@ -228,12 +255,55 @@ export function DocumentAgentView() {
 
             {workspaceGrant && (
               <Card className="p-4 space-y-3">
-                <h2 className="text-[14px] font-semibold text-foreground">Workspace Files</h2>
-                <div className="space-y-1 max-h-[300px] overflow-y-auto">
-                  {workspaceFiles.map((file: { relativePath: string; type: string }) => (
-                    <div key={file.relativePath} className="text-[12px] text-foreground soft-separator-x py-1">
-                      {file.type === 'directory' ? '📁 ' : '📄 '}{file.relativePath}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-[14px] font-semibold text-foreground">Workspace Files</h2>
+                  <span className="text-[11px] text-foreground-muted">{workspaceFiles.length} file(s)</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={workspaceQuery}
+                    onChange={(e) => setWorkspaceQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') void searchWorkspace() }}
+                    placeholder="Search workspace text…"
+                    className="flex-1 rounded-lg border border-border bg-input-bg px-2.5 py-1.5 text-[12px] text-input-fg outline-none focus:border-accent"
+                  />
+                  <GhostButton onClick={() => { void searchWorkspace() }}>Search</GhostButton>
+                </div>
+                {workspaceSearchResults.length > 0 && (
+                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto rounded-lg border border-border bg-surface-muted p-2">
+                    <div className="text-[11px] font-semibold text-foreground-muted">Search matches ({workspaceSearchResults.length})</div>
+                    {workspaceSearchResults.map((res, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => { void readWorkspaceFile(res.relativePath) }}
+                        className="w-full text-left text-[11px] text-foreground hover:bg-surface-elevated p-1 rounded transition-colors"
+                      >
+                        <span className="font-mono text-accent">{res.relativePath}:{res.line}</span> — {res.snippet}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {workspaceFileContent && (
+                  <div className="rounded-lg border border-border bg-surface-muted p-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-mono font-medium text-foreground">{workspaceFileContent.path}</span>
+                      <button type="button" onClick={() => setWorkspaceFileContent(null)} className="text-[11px] text-foreground-muted hover:text-foreground">Close</button>
                     </div>
+                    <pre className="overflow-auto rounded bg-surface p-2 text-[11px] text-foreground max-h-[180px] whitespace-pre-wrap">{workspaceFileContent.text}</pre>
+                  </div>
+                )}
+                <div className="space-y-1 max-h-[220px] overflow-y-auto">
+                  {workspaceFiles.map((file: { relativePath: string; type: string }) => (
+                    <button
+                      key={file.relativePath}
+                      type="button"
+                      onClick={() => { if (file.type !== 'directory') void readWorkspaceFile(file.relativePath) }}
+                      className="w-full text-left text-[12px] text-foreground soft-separator-x py-1 px-1.5 rounded hover:bg-surface-muted flex items-center justify-between transition-colors"
+                    >
+                      <span>{file.type === 'directory' ? '📁 ' : '📄 '}{file.relativePath}</span>
+                      {file.type !== 'directory' && <span className="text-[10px] text-foreground-muted">Read</span>}
+                    </button>
                   ))}
                   {workspaceFiles.length === 0 && <p className="text-[12px] text-foreground-muted">No files found.</p>}
                 </div>

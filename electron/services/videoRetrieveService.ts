@@ -6,6 +6,7 @@ import { VENICE_API_BASE_PATH, VENICE_API_HOST, VENICE_API_TIMEOUT_MS } from '..
 import { normalizeVideoRetrieveResult } from '../../src/services/video-retrieve-normalizer'
 import { buildVideoRetrieveRequest } from '../../src/services/media-request-adapter'
 import type { DurableGeneratedMedia } from './generatedMediaStore'
+import { persistGeneratedMedia } from './generatedMediaStore'
 import { persistGeneratedMp4Stream } from './generatedMediaStream'
 import { downloadGeneratedVideo } from './generatedVideoDownload'
 import { getApiKey } from './secureStore'
@@ -121,6 +122,16 @@ export async function retrieveVideoQueueResult(input: {
         if (normalized.kind === 'completed' && normalized.mediaUrl.startsWith('https://')) {
           await input.onStage?.('retrieving')
           const media = await downloadGeneratedVideo(normalized.mediaUrl, { onSaving: () => input.onStage?.('saving') })
+            .catch((error: unknown) => { throw classifyMediaFailure(error) })
+          return resolve({ kind: 'completed', media })
+        }
+        if (normalized.kind === 'completed' && normalized.mediaUrl.startsWith('data:')) {
+          await input.onStage?.('retrieving')
+          const commaIndex = normalized.mediaUrl.indexOf(',')
+          const base64Data = commaIndex >= 0 ? normalized.mediaUrl.slice(commaIndex + 1) : ''
+          const buffer = Buffer.from(base64Data, 'base64')
+          await input.onStage?.('saving')
+          const media = await persistGeneratedMedia(buffer, normalized.mimeType)
             .catch((error: unknown) => { throw classifyMediaFailure(error) })
           return resolve({ kind: 'completed', media })
         }

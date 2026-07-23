@@ -15,18 +15,13 @@ import { veniceFetch } from '../services/veniceClient/fetch'
 import { buildAudioRetrieveRequest } from '../services/media-request-adapter'
 import { normalizeAudioRetrieveResponse } from '../services/audio-retrieve-normalizer'
 import { awaitWorkflowVideoTask } from '../services/workflow-background-task'
+import { toUserFacingVideoError } from '../services/task-errors'
+import { WorkflowExecutionError } from './workflow-errors'
+
+export { WorkflowExecutionError }
 
 const POLL_INTERVAL_MS = 3000
 const POLL_MAX_ATTEMPTS = 200 // ~10 minutes per node
-
-export class WorkflowExecutionError extends Error {
-  nodeId?: string
-  constructor(message: string, nodeId?: string) {
-    super(message)
-    this.name = 'WorkflowExecutionError'
-    this.nodeId = nodeId
-  }
-}
 
 /** Returns a safe, generic error message for a failed node. Never exposes raw
  *  exception text, upstream error payloads, paths, or secrets to the UI. */
@@ -194,11 +189,17 @@ async function executeNode(
       }
       if (data.videoDuration) body.duration = data.videoDuration
       if (data.videoResolution) body.resolution = data.videoResolution
-      const queueResp = await venice<VideoQueueResponse>('/video/queue', {
-        method: 'POST',
-        body: JSON.stringify(body),
-        signal,
-      })
+      let queueResp: VideoQueueResponse
+      try {
+        queueResp = await venice<VideoQueueResponse>('/video/queue', {
+          method: 'POST',
+          body: JSON.stringify(body),
+          signal,
+        })
+      } catch (err) {
+        if (err instanceof WorkflowExecutionError) throw err
+        throw new WorkflowExecutionError(toUserFacingVideoError(err, 'Video generation failed.'))
+      }
       const videoId = queueResp.queue_id || queueResp.id || ''
       if (!videoId) throw new WorkflowExecutionError('Video generation did not return a queue ID.')
       const { image_url: _imageUrl, end_image_url: _endImageUrl, audio_url: _audioUrl, video_url: _videoUrl, reference_image_urls: _referenceImages, scene_image_urls: _sceneImages, ...requestSummary } = body

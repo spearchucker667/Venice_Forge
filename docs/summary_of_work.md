@@ -4,6 +4,28 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+**Date:** 2026-07-22 (Workflow Playground Video Fetching Fix)
+
+**Scope:** Fixed Workflow Playground video node polling, error masking, inline data URL handling, and background task IPC profile routing (`VF-WORKFLOW-VIDEO-001`).
+
+- **Video Retrieve Service Inline Media:** Updated `electron/services/videoRetrieveService.ts` to handle completed video responses carrying inline `data:` URLs via `persistGeneratedMedia` instead of rejecting with a non-retryable error.
+- **Web Mode Download URL Support:** Updated `src/stores/background-task-store.ts` so web-mode video polling treats `normalized.kind === 'download'` as a completed video result with the playable `downloadUrl`.
+- **IPC Profile Update Matcher:** Fixed `applyEnvelope` task matching in `src/stores/background-task-store.ts` (`task.profileId === currentProfileId || Boolean(state.tasks[task.id])`) so tasks registered by the current session receive status updates regardless of profile ID mismatch.
+- **Workflow Error Propagation:** Extracted `WorkflowExecutionError` to `src/lib/workflow-errors.ts`, updated `awaitWorkflowVideoTask` to reject with `WorkflowExecutionError(toUserFacingVideoError(...))`, and wrapped `/video/queue` in `workflow-engine.ts` so specific safe error messages are preserved on canvas nodes rather than masked by generic error text.
+- **Verification:** Unit tests added in `videoRetrieveService.test.ts`, TypeScript typecheck (`npm run typecheck`), targeted vitest suites (22/22 passed), and full repository test suite (`npm test` — 402 test files, 4,548 tests passed, 0 failed).
+
+### Prior Session Summary (Document Agent Workspace Search & Content Inspection Enhancement) [demoted from "Latest Session Summary"]
+
+**Date:** 2026-07-22 (Document Agent Workspace Search & Content Inspection Enhancement)
+
+**Scope:** Resolved open workspace file navigation and inspection debt in `DocumentAgentView.tsx` (`VF-DOCUMENT-AGENT-001`).
+
+- **Workspace File Search:** Added interactive workspace search input and results panel delegating to `bridge.workspace.search({ grantId, agentSessionId, query })`. Users can search text files across granted workspace directories directly from the UI with matching line numbers and snippets.
+- **Workspace File Content Inspector:** Added interactive file reading capability delegating to `bridge.workspace.read({ grantId, agentSessionId, relativePath })`. Clicking any non-directory file item opens a preview drawer displaying the file content without exposing raw filesystem paths.
+- **Full Test Suite & Static Contracts:** Verified with full `npm test` surface (402 test files, 4,547 tests passed, 0 failed), TypeScript typecheck (`typecheck`), ESLint (`lint:eslint`), and full release contracts (`verify:contracts`).
+
+### Prior Session Summary (July audit TODO reconciliation and remediation) [demoted from "Latest Session Summary"]
+
 **Date:** 2026-07-22 (July audit TODO reconciliation and remediation)
 
 **Scope:** Reconciled every artifact in `docs/audits/TODO/` against the live `main` worktree. The July 22 scan's 14 findings were independently reproduced or bounded, corrected in the chat-folder, backup/import, profile-session, headless-bridge, UI, and documentation layers, and recorded in the scan addendum. `Function_calling_todo.md` is retained as a feature specification rather than misclassified as an active status ledger.
