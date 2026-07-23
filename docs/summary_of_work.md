@@ -4,13 +4,12 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-23 (Image Inspector Remediation & Google/Brave Search Integration)
+**Date:** 2026-07-23 (CSP Custom Protocol connect-src & Image Inspector Base64 Conversion Fix)
 
 **Scope:** 
-- **Vision Model Selection:** Updated model filtering to strictly enforce `modelSupportsVision()` from `src/constants/venice`. Added a dedicated **Vision Model** `<Select>` dropdown control allowing users to explicitly pick among available vision-capable models (e.g. Gemini 2.5 Flash, Qwen VL).
-- **Google / Brave Search Routing:** Integrated `runResearchSearch` from `src/services/researchService` to route visual search / source discovery queries directly to Venice API search endpoints with `venice-google` (Google Search) and `venice-brave` (Brave Search) providers.
-- **UI & State:** Added search controls, editable queries, search status indicators, and result card rendering to `ImageInspectorView` and `image-inspector-store`.
-- **Validation:** `npm run typecheck` passed (0 errors), `npm run test:ui` passed. 
+- **CSP connect-src Fix:** Added `venice-media:`, `venice-character-cache:`, and `venice-tts:` custom protocol schemes to the `connect-src` CSP header directive in `electron/utils/rendererCsp.ts`. This eliminates the `Refused to connect because it violates the document's Content Security Policy` error when `fetch()` is used on custom app media schemes.
+- **Image Inspector Fallback:** Replaced direct `fetch(dataUrl)` in `src/stores/image-inspector-store.ts` with a resilient `resolveUriToDataUrl` helper that tries `fetch()` and falls back to rendering via `HTMLImageElement` (permitted by `img-src`) and painting to an offscreen `<canvas>` to extract base64 data URLs for vision model completions.
+- **Validation:** `npm run typecheck` passed (0 errors), `npx vitest run electron/utils/rendererCsp.test.ts` passed (3/3 tests). 
 
 
 **Changes Made:**

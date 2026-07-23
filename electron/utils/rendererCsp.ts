@@ -20,8 +20,8 @@
  */
 export function rendererCsp(isDev: boolean): string {
   const connectSrc = isDev
-    ? "'self' http://localhost:5173 ws://localhost:5173"
-    : "'self'";
+    ? "'self' http://localhost:5173 ws://localhost:5173 venice-media: venice-character-cache: venice-tts:"
+    : "'self' venice-media: venice-character-cache: venice-tts:";
   // Production style-src: 'self' only. Dev adds 'unsafe-inline' for Vite HMR
   // which injects inline style tags during fast refresh.
   const styleSrc = isDev

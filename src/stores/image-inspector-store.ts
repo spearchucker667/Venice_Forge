@@ -25,6 +25,54 @@ function extractContent(response: any): string {
   return "";
 }
 
+async function resolveUriToDataUrl(uri: string | undefined): Promise<string> {
+  if (!uri) throw new Error("No image URI available.");
+  if (uri.startsWith("data:")) return uri;
+
+  // 1. Try fetch first (permitted for self, data, blob, and custom protocols in connect-src)
+  try {
+    const resp = await fetch(uri);
+    if (resp.ok) {
+      const blob = await resp.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === "string") resolve(reader.result);
+          else reject(new Error("FileReader returned non-string result"));
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch {
+    // Fall through to HTMLImageElement + Canvas fallback
+  }
+
+  // 2. Fallback: render via HTMLImageElement (permitted by img-src) and draw to canvas
+  return new Promise<string>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width || 512;
+        canvas.height = img.naturalHeight || img.height || 512;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas 2D context unavailable for image conversion."));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () => reject(new Error(`Failed to load image element from URI: ${uri}`));
+    img.src = uri;
+  });
+}
+
 interface ImageInspectorState {
   // Current active session in the workspace
   activeSession: ImageInspectorSession | null;
@@ -178,22 +226,8 @@ export const useImageInspectorStore = create<ImageInspectorState>((set, get) => 
       };
       await StorageService.saveItem("imageInspectorSessions", runningSession as any);
       set({ activeSession: runningSession });
-
       // 1. Resolve URI to data URL
-      let dataUrl = activeInput?.uri;
-      if (!dataUrl?.startsWith("data:")) {
-        if (!dataUrl) {
-          throw new Error("No image URI available.");
-        }
-        const resp = await fetch(dataUrl);
-        const blob = await resp.blob();
-        dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      }
+      const dataUrl = await resolveUriToDataUrl(activeInput?.uri);
 
       // 2. Build system prompt
       const systemPrompt = `You are a strict, objective visual analysis system. 

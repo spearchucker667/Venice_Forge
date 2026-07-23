@@ -21,7 +21,7 @@ describe("rendererCsp", () => {
 
   it("development CSP keeps local dev origins for HMR", () => {
     const csp = rendererCsp(true);
-    expect(csp).toContain("connect-src 'self' http://localhost:5173 ws://localhost:5173");
+    expect(csp).toContain("connect-src 'self' http://localhost:5173 ws://localhost:5173 venice-media: venice-character-cache: venice-tts:");
     expect(csp).toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173");
     expect(csp).toContain("worker-src 'self' blob: http://localhost:5173");
   });
