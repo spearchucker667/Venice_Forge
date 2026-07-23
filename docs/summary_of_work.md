@@ -4,50 +4,24 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-23 (CSP Custom Protocol connect-src & Image Inspector Base64 Conversion Fix)
+**Date:** 2026-07-23 (Image Inspector failure handling, ingestion hardening, and source-discovery correction)
 
-**Scope:** 
-- **CSP connect-src Fix:** Added `venice-media:`, `venice-character-cache:`, and `venice-tts:` custom protocol schemes to the `connect-src` CSP header directive in `electron/utils/rendererCsp.ts`. This eliminates the `Refused to connect because it violates the document's Content Security Policy` error when `fetch()` is used on custom app media schemes.
-- **Image Inspector Fallback:** Replaced direct `fetch(dataUrl)` in `src/stores/image-inspector-store.ts` with a resilient `resolveUriToDataUrl` helper that tries `fetch()` and falls back to rendering via `HTMLImageElement` (permitted by `img-src`) and painting to an offscreen `<canvas>` to extract base64 data URLs for vision model completions.
-- **Validation:** `npm run typecheck` passed (0 errors), `npx vitest run electron/utils/rendererCsp.test.ts` passed (3/3 tests). 
+**Scope:** Reconciled the current Image Inspector implementation and the supplied Traffic Inspector record showing HTTP 200 with a provider-authored `Unable to fetch it` message. Completed the locally actionable repair without spending provider credits.
 
+- Replaced renderer-side custom-protocol fetching/canvas conversion with a narrow main-process media read using durable media IDs.
+- Added signature, decode, byte-size, dimension, and decoded-pixel validation for file, clipboard, attachment, and app-media inputs.
+- Reduced the preload surface to four implemented Image Inspector methods and removed the unrestricted remote-URL ingestion path.
+- Added an explicit versioned analysis schema, bounded runtime validation, secret-like-output rejection, and distinct provider-failure versus schema-failure errors.
+- Preserved safe provider-authored failure text in the failed session and rendered it in the UI instead of reducing it to a generic parse/network error.
+- Reclassified Google/Brave results as ranked text-based potential sources; removed synthetic visual-similarity scores and reverse-image-search wording.
+- Restricted rendered source links to valid HTTP/HTTPS URLs and discarded malformed or unsafe schemes without fabricating fallback destinations.
+- Made Traffic Inspector sanitization idempotent for existing `[data URL: N chars]` and `[text: N chars]` summaries.
+- Preserved the canonical Image Studio → Media Studio tab adjacency and aligned the cross-runtime backup fixture with the persisted `imageInspectorSessions` store.
+- Replaced the Phase 0 architecture note with the shipped contract and registered it in `docs/DOCS_INDEX.md`.
 
-**Changes Made:**
-1. **Built-in theme discovery:** Replaced isolated built-in lists with a canonical filesystem scan across packaged `config/themes/` (built-in) and user `userData/themes/` directories.
-2. **YAML parsing and schema validation:** Made the `version` field optional in `configSchema.ts` `validateThemesFile` to allow individual theme files to parse correctly without throwing warnings.
-3. **Theme persistence & Live updates:**
-   - Created `themeService.ts` to manage loading, saving, deleting, and file-watching of all `.yaml` themes.
-   - Added a `chokidar` file watcher for `userData/themes` which broadcasts `theme:updated` to all Electron windows via `webContents.send()`.
-   - The React renderer now subscribes to `theme:updated` and automatically triggers `refreshConfig()` to reload the merged `yamlThemes` dynamically.
-4. **Theme Import and Export:**
-   - Integrated IPC handlers for `config:saveTheme` and `config:deleteTheme`.
-   - Replaced renderer-side JSON stringification of custom themes in `ThemeMaker.tsx` with native `YamlTheme` config storage through the IPC layer.
-   - `ThemeMaker.tsx` now derives the list of custom themes exclusively from `yamlThemes`, eliminating local storage state duplication.
-5. **Electron Packager:** Updated `electron-builder.config.cjs` to include `config/themes/**/*` in the production build.
-6. **React warnings & Syntax fixes:**
-   - Fixed duplicate keys warning in `ThemeMaker.tsx` by using a `Map` to deduplicate built-in, YAML, and custom user themes by ID.
-   - Fixed pre-existing missing closing `</div>` syntax error in `src/components/documents/DocumentAgentView.tsx`.
+**Validation:** Node 22.13.1 lint and typecheck passed; 10 focused regression files passed with 74 tests; safety, Markdown, aggregate contracts, production build, and built-output verification passed. The repository-wide suite and `npm run ci` remain red on pre-existing theme/config/Documents tests outside this tranche; exact failures are recorded in the Validation Matrix.
 
-**Validation this session:**
-  - `npx vitest run src/stores/config-store.test.ts src/config/configSchema.test.ts src/services/syncEngine.test.ts` → **All PASS** (Config schema test updated to expect 0 warnings for omitted version).
-  - `npm run lint:eslint` → **PASS** (0 warnings).
-  - `npm run typecheck` → **PASS** (0 errors).
-  - `npx tsc --noEmit --project tsconfig.electron.json` → **PASS** (0 errors).
-
-**Files changed:**
-  - `electron-builder.config.cjs`
-  - `src/config/configSchema.ts` and `.test.ts`
-  - `electron/services/configService.ts`
-  - `electron/services/themeService.ts` (New)
-  - `electron/ipc/configHandlers.ts`
-  - `electron/preload.ts`
-  - `src/services/desktopBridge.ts`
-  - `src/types/desktop.ts`
-  - `src/stores/config-store.ts`
-  - `src/components/ThemeMaker.tsx`
-  - `src/components/documents/DocumentAgentView.tsx`
-
-**Manual QA:** Not run (Electron dev build not launched this session).
+**Manual QA:** Paid live-provider image analysis was not run because expenditure authorization was not provided. It remains external acceptance under `VF-VERIFY-005`.
 
 ### Prior Session Summary (Meteocon Dark/Light Theme Adaptation) [demoted from "Latest Session Summary"]
 
@@ -757,6 +731,8 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 ## Open TODO Ledger
 
+**Image Inspector closeout (2026-07-23):** no locally actionable implementation item remains from the supplied failure trace. The trace proves a successful `/chat/completions` transport and a provider-authored short failure, not a client-side fetch exception. The app now preserves that distinction, validates the response contract, narrows media IPC, and labels query-only discovery truthfully. Paid live-provider PNG/JPEG/WebP acceptance and headed Traffic Inspector export review remain external evidence under `VF-VERIFY-005`.
+
 **July 22 audit TODO reconciliation:** all 14 locally actionable findings in `docs/audits/TODO/Venice_Forge_Extensive_Scan_2026-07-22.md` now have implemented corrections and regression evidence. The scan and companion JSON retain the exact dispositions. No local implementation item from that scan remains open. Signed/paid/two-device/headed accessibility and packaged-dialog validation remain external acceptance under `VF-VERIFY-005`; `Function_calling_todo.md` remains a specification whose broader Document Agent product work is tracked only in `docs/ROADMAP.md`.
 
 `VERIFY-155` closes the Cross-Origin Resource Sharing defect on the `venice-media://`, `venice-tts://`, and `venice-character-cache://` custom protocols. `electron/main.ts` now registers every renderer-consumed scheme with `corsEnabled: true` (keeping `stream: true` on the audio/video ones); a centralised `evaluateCustomProtocolAccess` helper coordinates the per-protocol response headers so `venice-media` and `venice-tts` honor the same origin/referrer guard as `venice-character-cache`. The static audit `scripts/verify-custom-protocol-privileges.cjs` plus 26 regression tests (5 audit + 21 functional) lock the contract. Headed `npm run dev:electron` validation and packaged cross-platform Save As remain external acceptance rows under `VF-VERIFY-005`; no such result is inferred.
@@ -870,6 +846,22 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 ## Validation Matrix
 
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
+
+### July 23 — Image Inspector regression closure
+
+| Command | Result | Evidence |
+|---|---|---|
+| `npm run typecheck` | PASS | 0 errors across renderer and Electron TypeScript projects under Node 22.13.1. |
+| `npm run lint:eslint` | PASS | 0 warnings across renderer, Electron, server, and scripts. |
+| Focused Vitest regression suites | PASS | 10 files / 74 tests covering ingestion, IPC, parser/schema, store, UI labels, telemetry, Venice client, durable media, canonical tab order, and cross-runtime backup behavior. |
+| `npm test` | FAIL — mixed baseline | 404 files passed, 1 skipped; 4,579 tests passed, 1 skipped, and 10 failed. Two Image Inspector integration failures (tab adjacency and backup fixture parity) were corrected and pass in the focused rerun. The remaining 8 failures are pre-existing theme/config/Documents assertions in `meshSurfaceInvariant.test.ts`, `ThemeMaker.custom.test.tsx`, `configService.test.ts`, `config-store.test.ts`, and `ManagedDocumentAttachmentCard.test.tsx`; those files were not changed by this tranche. |
+| `npm run verify:safety-guard` | PASS | All guarded Venice transports and the no-raw-log policy passed. |
+| `npm run verify:markdown-links` | PASS | 152 Markdown files checked with no broken links. |
+| `npm run verify:contracts` | PASS | Static, feature, backup/sync, and release contracts passed, including theme-token, image-policy, network-boundary, native-dialog, and 103 release-packaging checks. |
+| `npm run build` | PASS | Vite transformed 3,082 modules; web, server, Electron main, and preload bundles were produced. |
+| `npm run verify:dist` | PASS | Build outputs for version 3.0.0-beta.1 verified successfully. |
+| `npm run ci` | FAIL — pre-existing theme/config tests | Lint, typecheck, and server tests pass. The meta-gate stops in `test:electron` on the two existing `electron/services/configService.test.ts` theme assertions, so audit/build/contracts/dist were not reached inside this command; build, contracts, and dist were run independently and pass. |
+| Paid live-provider and headed desktop QA | NOT RUN | No expenditure authorization was provided. Provider acceptance and headed Traffic Inspector export review remain under `VF-VERIFY-005`. |
 
 ### July 22 — July audit TODO reconciliation
 
@@ -1297,6 +1289,16 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-23 — Image Inspector regression closure
+
+- Verified the supplied record as HTTP 200 with a provider-authored short failure rather than a network exception.
+- Moved file/clipboard/app-media validation and durable image resolution into the Electron main process behind four typed IPC operations.
+- Added a strict versioned analysis schema and preserved safe provider failure text in persisted sessions and the UI.
+- Removed misleading reverse-image and similarity-score claims; Google/Brave remain query-only source discovery.
+- Restored the canonical Image Studio → Media Studio adjacency and added Image Inspector sessions to cross-runtime backup compatibility expectations.
+- Added regression coverage across input validation, IPC, parser, store, UI, and telemetry, and updated the canonical architecture, roadmap, index, and handoff docs.
+- Paid live-provider and headed desktop QA were not run and remain external under `VF-VERIFY-005`.
 
 ### 2026-07-22 — July audit TODO reconciliation and remediation
 

@@ -1,10 +1,8 @@
 export type ImageInspectorInputSource =
   | "file"
   | "clipboard"
-  | "url"
   | "attachment"
-  | "app-media"
-  | "media-record";
+  | "app-media";
 
 export interface ImageInspectorInput {
   id: string;
@@ -16,15 +14,11 @@ export interface ImageInspectorInput {
   height?: number;
   mediaId?: string;
   attachmentId?: string;
-  sanitizedRemoteUrl?: string;
   sha256?: string;
-  perceptualHash?: string;
   uri?: string;
 }
 
 export type ImageAnalysisDepth = "quick" | "standard" | "maximum" | "forensic";
-
-export type ImageInspectorOutputFormat = "markdown" | "json" | "raw-prompt";
 
 export type PromptTarget =
   | "generic"
@@ -34,28 +28,6 @@ export type PromptTarget =
   | "stable-diffusion"
   | "midjourney"
   | "custom";
-
-export interface PromptTargetProfile {
-  id: PromptTarget;
-  label: string;
-  supportsNegativePrompt: boolean;
-  supportsWeights: boolean;
-  supportsAspectRatioSyntax: boolean;
-  supportsSeed: boolean;
-  promptStyle: "natural-language" | "tagged" | "command";
-  systemSuffix?: string;
-}
-
-export interface InspectorVisionModel {
-  id: string;
-  name: string;
-  supportsVision: boolean;
-  supportsStreaming: boolean;
-  supportsSystemMessages: boolean;
-  contextLength?: number;
-  maxOutputTokens?: number;
-  status: "available" | "unavailable" | "unknown";
-}
 
 export interface VisualSubject {
   description: string;
@@ -99,13 +71,6 @@ export interface ConfidenceSummary {
   uncertainties: string[];
 }
 
-export interface EvidenceValue<T> {
-  value: T;
-  basis: "observed" | "inferred" | "unknown";
-  confidence: number;
-  alternatives?: T[];
-}
-
 export interface ReplicationPrompt {
   target: PromptTarget;
   positive: string;
@@ -136,32 +101,7 @@ export interface ImageInspectorAnalysis {
   warnings: string[];
 }
 
-export type ImageSearchMode =
-  | "visual-query"
-  | "reverse-image"
-  | "local-hash";
-
-export interface ProviderQuotaSummary {
-  limit?: number;
-  remaining?: number;
-  resetDate?: string;
-}
-
-export interface TrustedImageReference {
-  id: string;
-  type: "app-media" | "attachment" | "file-path" | "remote-url";
-  uri: string;
-}
-
-export interface ImageSearchRequest {
-  sessionId: string;
-  imageRef?: TrustedImageReference;
-  queries: SearchQueryCandidate[];
-  count: number;
-  safeSearch?: "off" | "moderate" | "strict";
-  country?: string;
-  language?: string;
-}
+export type ImageSearchMode = "text-source-discovery";
 
 export interface ImageSearchResult {
   id: string;
@@ -176,40 +116,9 @@ export interface ImageSearchResult {
   mimeType?: string;
   publishedAt?: string;
   indexedAt?: string;
-  matchType:
-    | "exact-local"
-    | "near-duplicate-local"
-    | "potential-source"
-    | "similar-image"
-    | "possible-repost";
+  matchType: "potential-source";
   matchReason: string;
-  score: number;
-}
-
-export interface ImageSearchProviderResult {
-  providerId: string;
-  results: ImageSearchResult[];
-  warnings: string[];
-  quota?: ProviderQuotaSummary;
-}
-
-export interface ImageSearchProviderContext {
-  signal?: AbortSignal;
-}
-
-export interface ImageSearchProvider {
-  id: string;
-  name: string;
-  mode: ImageSearchMode;
-  requiresApiKey: boolean;
-  acceptsImage: boolean;
-  acceptsImageUrl: boolean;
-  supportsSafeSearch: boolean;
-
-  search(
-    request: ImageSearchRequest,
-    context: ImageSearchProviderContext,
-  ): Promise<ImageSearchProviderResult>;
+  rank: number;
 }
 
 export type SanitizedInspectorError = {
@@ -218,23 +127,8 @@ export type SanitizedInspectorError = {
 };
 
 export type ImageInspectorErrorCode =
-  | "NO_INPUT"
-  | "UNSUPPORTED_IMAGE"
-  | "IMAGE_TOO_LARGE"
-  | "IMAGE_DECODE_FAILED"
-  | "REMOTE_IMAGE_BLOCKED"
-  | "NO_VISION_MODEL"
-  | "MODEL_UNAVAILABLE"
   | "ANALYSIS_REQUEST_FAILED"
-  | "ANALYSIS_PARSE_FAILED"
-  | "ANALYSIS_CANCELED"
-  | "PROVIDER_NOT_CONFIGURED"
-  | "SEARCH_CONSENT_REQUIRED"
-  | "SEARCH_RATE_LIMITED"
-  | "SEARCH_REQUEST_FAILED"
-  | "SEARCH_CANCELED"
-  | "SESSION_SAVE_FAILED"
-  | "EXPORT_FAILED";
+  | "ANALYSIS_PARSE_FAILED";
 
 export interface ImageInspectorSearchRun {
   id: string;
@@ -264,35 +158,10 @@ export interface ImageInspectorSession {
   request: {
     modelId: string;
     depth: ImageAnalysisDepth;
-    outputFormat: ImageInspectorOutputFormat;
     promptTarget: PromptTarget;
     userInstructions?: string;
   };
   analysis?: ImageInspectorAnalysis;
   searches: ImageInspectorSearchRun[];
   error?: SanitizedInspectorError;
-}
-
-export interface ImageInspectorSettings {
-  defaultVisionModelId?: string;
-  defaultDepth: ImageAnalysisDepth;
-  defaultOutputFormat: ImageInspectorOutputFormat;
-  defaultPromptTarget: PromptTarget;
-  sourceDiscoveryEnabled: boolean;
-  defaultSearchProviderId?: string;
-  searchSafeMode: "off" | "moderate" | "strict";
-  saveSessionsByDefault: boolean;
-  includePreciseMetadata: boolean;
-}
-
-export interface ImageComparisonResult {
-  sharedFeatures: EvidenceValue<string>[];
-  differences: EvidenceValue<string>[];
-  transformationPrompt: string;
-  similarityScore?: number;
-  hashEvidence?: {
-    exactMatch: boolean;
-    perceptualDistance?: number;
-  };
-  confidence: number;
 }

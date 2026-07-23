@@ -88,6 +88,7 @@ describe("cross-runtime backup compatibility", () => {
     researchSessions: [],
     visualWorkflows: [],
     playground: [],
+    imageInspectorSessions: [],
     tombstones: [],
     chat_folders: [],
   };

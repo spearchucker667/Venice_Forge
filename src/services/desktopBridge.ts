@@ -413,6 +413,35 @@ export const desktopBackgroundTask = {
   },
 };
 
+/** Narrow Image Inspector bridge. Media bytes remain main-owned until explicitly
+ * requested for a bounded Venice vision call. */
+export const desktopImageInspector = {
+  chooseImage() {
+    if (!isElectron()) {
+      return Promise.resolve({ ok: false as const, error: "Image Inspector is only available in the desktop app." });
+    }
+    return window.veniceForge!.imageInspector.chooseImage();
+  },
+  ingestClipboardImage() {
+    if (!isElectron()) {
+      return Promise.resolve({ ok: false as const, error: "Image Inspector is only available in the desktop app." });
+    }
+    return window.veniceForge!.imageInspector.ingestClipboardImage();
+  },
+  resolveMediaInput(input: { mediaId: string; type?: "app-media" | "attachment" }) {
+    if (!isElectron()) {
+      return Promise.resolve({ ok: false as const, error: "Image Inspector is only available in the desktop app." });
+    }
+    return window.veniceForge!.imageInspector.resolveMediaInput(input);
+  },
+  readMediaDataUrl(input: { mediaId: string }) {
+    if (!isElectron()) {
+      return Promise.resolve({ ok: false as const, error: "Image Inspector is only available in the desktop app." });
+    }
+    return window.veniceForge!.imageInspector.readMediaDataUrl(input);
+  },
+};
+
 /** Handles JSON file export and import, falling back to browser downloads in web mode. */
 export const desktopFiles = {
   async saveGeneratedMedia(mediaId: string, suggestedName?: string): Promise<boolean> {

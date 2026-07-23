@@ -52,6 +52,22 @@ describe("inspectorTelemetry", () => {
     expect(exported[0].requestHeaders.Authorization).toBe("******");
   });
 
+  it("keeps request sanitization idempotent for exported data URLs", () => {
+    const first = sanitizeInspectorPayload({
+      messages: [{
+        role: "user",
+        content: [{
+          type: "image_url",
+          image_url: { url: `data:image/png;base64,${"A".repeat(100_000)}` },
+        }],
+      }],
+    }) as { messages: Array<{ content: Array<{ image_url: { url: string } }> }> };
+    const second = sanitizeInspectorPayload(first);
+
+    expect(second).toEqual(first);
+    expect(first.messages[0].content[0].image_url.url).toMatch(/^\[data URL: \d+ chars\]$/);
+  });
+
   it("summarizes scrape bodies instead of storing full text", () => {
     const sanitized = sanitizeInspectorResponse({
       title: "Example",

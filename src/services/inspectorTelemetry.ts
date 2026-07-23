@@ -106,6 +106,9 @@ export function maskInspectorHeaders(headers?: Record<string, string>): Record<s
 }
 
 function summarizeString(value: string): string {
+  if (/^\[(?:data URL|text): \d+ chars\]$/.test(value)) {
+    return value;
+  }
   if (value.startsWith("data:")) {
     return `[data URL: ${value.length} chars]`;
   }

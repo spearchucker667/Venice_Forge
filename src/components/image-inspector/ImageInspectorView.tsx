@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ScanSearch, FileImage, ClipboardPaste, HardDriveUpload, Trash2, ArrowRight, Loader2, Search, Globe, ExternalLink } from 'lucide-react';
+import { ScanSearch, FileImage, ClipboardPaste, HardDriveUpload, Loader2, Search, Globe, ExternalLink } from 'lucide-react';
 import { useImageInspectorStore } from '../../stores/image-inspector-store';
-import { isElectron } from '../../services/desktopBridge';
+import { desktopImageInspector, isElectron } from '../../services/desktopBridge';
 import { Label, TextArea, PillGroup } from '../ui/shared';
 import { Select } from '../ui/select';
 import { toast } from '../../stores/toast-store';
 import { cn } from '../../lib/utils';
-import type { ImageAnalysisDepth, ImageInspectorOutputFormat, PromptTarget } from '../../types/imageInspector';
+import type { ImageAnalysisDepth, PromptTarget } from '../../types/imageInspector';
 import { useModels } from '../../hooks/use-models';
 import { modelSupportsVision } from '../../constants/venice';
 
@@ -29,7 +29,6 @@ export function ImageInspectorView() {
   const { data: models = [] } = useModels();
 
   const [depth, setDepth] = useState<ImageAnalysisDepth>('standard');
-  const [outputFormat, setOutputFormat] = useState<ImageInspectorOutputFormat>('json');
   const [target, setTarget] = useState<PromptTarget>('generic');
   const [instructions, setInstructions] = useState('');
   const [selectedModelId, setSelectedModelId] = useState<string>('');
@@ -67,28 +66,28 @@ export function ImageInspectorView() {
       return;
     }
     try {
-      const result = await window.veniceForge!.imageInspector.chooseImage();
+      const result = await desktopImageInspector.chooseImage();
       if (result.ok && result.result) {
-        createSession(result.result);
-      } else {
+        await createSession(result.result);
+      } else if (!("canceled" in result && result.canceled)) {
         toast.error(result.error || 'Failed to process image');
       }
-    } catch (e: any) {
-      toast.error(e.message || 'Unknown error');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
   const handleClipboardPaste = async () => {
     if (!isElectron()) return;
     try {
-      const result = await window.veniceForge!.imageInspector.ingestClipboardImage();
+      const result = await desktopImageInspector.ingestClipboardImage();
       if (result.ok && result.result) {
-        createSession(result.result);
+        await createSession(result.result);
       } else {
         toast.error(result.error || 'No image found on clipboard');
       }
-    } catch (e: any) {
-      toast.error(e.message || 'Unknown error');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
@@ -132,7 +131,7 @@ export function ImageInspectorView() {
                     activeSession?.id === s.id ? "bg-accent/10 text-accent-fg" : "hover:bg-surface-muted text-text-muted"
                   )}
                 >
-                  <div className="w-10 h-10 rounded overflow-hidden bg-black/20 flex-shrink-0 border border-border/50">
+                  <div className="w-10 h-10 rounded overflow-hidden bg-surface-muted flex-shrink-0 border border-border/50">
                     {s.inputs[0]?.uri && (
                       <img src={s.inputs[0].uri} className="w-full h-full object-cover" alt="" />
                     )}
@@ -160,7 +159,7 @@ export function ImageInspectorView() {
             
             {/* Image Preview & Config */}
             <div className="flex flex-col gap-6 w-full lg:w-[400px] flex-shrink-0">
-              <div className="rounded-lg border border-border/50 overflow-hidden bg-black/20 flex items-center justify-center min-h-[300px]">
+              <div className="rounded-lg border border-border/50 overflow-hidden bg-surface-muted flex items-center justify-center min-h-[300px]">
                 {activeInput?.uri ? (
                   <img src={activeInput.uri} className="max-w-full max-h-[500px] object-contain" alt="Target" />
                 ) : (
@@ -195,9 +194,10 @@ export function ImageInspectorView() {
                   <PillGroup
                     ariaLabel="Analysis Depth"
                     options={[
-                      { value: 'fast', label: 'Fast' },
+                      { value: 'quick', label: 'Quick' },
                       { value: 'standard', label: 'Standard' },
-                      { value: 'deep', label: 'Deep' }
+                      { value: 'maximum', label: 'Maximum' },
+                      { value: 'forensic', label: 'Forensic' }
                     ]}
                     value={depth}
                     onChange={(v) => setDepth(v as ImageAnalysisDepth)}
@@ -238,7 +238,7 @@ export function ImageInspectorView() {
                   </button>
                 ) : (
                   <button 
-                    onClick={() => startAnalysis(selectedModelId, depth, outputFormat, target, instructions)}
+                    onClick={() => startAnalysis(selectedModelId, depth, target, instructions)}
                     disabled={loading || visionModels.length === 0 || !selectedModelId}
                     className="w-full bg-accent text-accent-fg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-md font-medium py-2.5 mt-2 flex items-center justify-center gap-2 transition-colors"
                   >
@@ -285,11 +285,11 @@ export function ImageInspectorView() {
                     </div>
                   )}
 
-                  {/* Web Search & Source Discovery Section (Google / Brave Routing) */}
+                  {/* Text-based source discovery (not reverse-image matching). */}
                   <div className="pt-4 border-t border-border/50">
                     <h3 className="text-[14px] font-semibold text-text mb-3 flex items-center gap-2">
                       <Globe className="w-4 h-4 text-accent" />
-                      Source & Web Discovery
+                      Text-Based Source Discovery
                     </h3>
                     
                     <div className="space-y-3">
@@ -298,7 +298,7 @@ export function ImageInspectorView() {
                           type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search terms for visual discovery..."
+                          placeholder="Search terms derived from the visual analysis..."
                           className="flex-1 mesh-input rounded px-3 py-1.5 text-[13px] text-text outline-none border border-border/50"
                         />
                       </div>
@@ -310,7 +310,7 @@ export function ImageInspectorView() {
                           className="flex-1 bg-surface-elevated hover:bg-surface-muted border border-border/50 text-text rounded px-3 py-2 text-[12px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                         >
                           {searchLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5 text-blue-400" />}
-                          Search via Google
+                          Search the Web via Google
                         </button>
                         
                         <button
@@ -319,7 +319,7 @@ export function ImageInspectorView() {
                           className="flex-1 bg-surface-elevated hover:bg-surface-muted border border-border/50 text-text rounded px-3 py-2 text-[12px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                         >
                           {searchLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5 text-orange-400" />}
-                          Search via Brave
+                          Search the Web via Brave
                         </button>
                       </div>
                     </div>
@@ -365,6 +365,15 @@ export function ImageInspectorView() {
                   <div className="text-[14px]">Analyzing image contents...</div>
                   <div className="text-[12px] opacity-60 mt-2 max-w-xs text-center">
                     Extracting composition, style, and subjects to generate a high-quality prompt.
+                  </div>
+                </div>
+              ) : activeSession.status === 'failed' ? (
+                <div className="flex-1 flex items-center justify-center bg-error/5 rounded-lg border border-error/30 min-h-[400px] p-8">
+                  <div className="max-w-lg text-center">
+                    <div className="text-[14px] font-semibold text-error">Image analysis failed</div>
+                    <div className="text-[12px] text-text-muted mt-2">
+                      {activeSession.error?.message || 'The selected vision model could not analyze this image.'}
+                    </div>
                   </div>
                 </div>
               ) : (

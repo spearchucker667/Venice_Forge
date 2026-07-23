@@ -421,24 +421,8 @@ export interface VeniceForgeProfilePurge {
 export const imageInspectorIpc = {
   chooseImage: "imageInspector:chooseImage",
   ingestClipboardImage: "imageInspector:ingestClipboardImage",
-  ingestRemoteImage: "imageInspector:ingestRemoteImage",
   resolveMediaInput: "imageInspector:resolveMediaInput",
-  getInputMetadata: "imageInspector:getInputMetadata",
-  analyze: "imageInspector:analyze",
-  cancelAnalysis: "imageInspector:cancelAnalysis",
-  searchSources: "imageInspector:searchSources",
-  cancelSearch: "imageInspector:cancelSearch",
-  getSession: "imageInspector:getSession",
-  listSessions: "imageInspector:listSessions",
-  saveSession: "imageInspector:saveSession",
-  deleteSession: "imageInspector:deleteSession",
-  exportSession: "imageInspector:exportSession",
-  getSettings: "imageInspector:getSettings",
-  updateSettings: "imageInspector:updateSettings",
-  getProviderStatus: "imageInspector:getProviderStatus",
-  setProviderCredential: "imageInspector:setProviderCredential",
-  deleteProviderCredential: "imageInspector:deleteProviderCredential",
-  testProvider: "imageInspector:testProvider",
+  readMediaDataUrl: "imageInspector:readMediaDataUrl",
 } as const;
 
 export const chatFolderIpcChannels = {
@@ -480,26 +464,14 @@ export interface VeniceForgeChatFolders {
 }
 
 export interface VeniceForgeImageInspector {
-  chooseImage(): Promise<{ ok: boolean; result?: import("./imageInspector").ImageInspectorInput; error?: string }>;
+  chooseImage(): Promise<{ ok: boolean; canceled?: boolean; result?: import("./imageInspector").ImageInspectorInput; error?: string }>;
   ingestClipboardImage(): Promise<{ ok: boolean; result?: import("./imageInspector").ImageInspectorInput; error?: string }>;
-  ingestRemoteImage(input: { url: string }): Promise<{ ok: boolean; result?: import("./imageInspector").ImageInspectorInput; error?: string }>;
   resolveMediaInput(input: { mediaId: string; type?: "app-media" | "attachment" }): Promise<{ ok: boolean; result?: import("./imageInspector").ImageInspectorInput; error?: string }>;
-  getInputMetadata(input: { id: string }): Promise<{ ok: boolean; result?: import("./imageInspector").ImageInspectorInput; error?: string }>;
-  analyze(input: { sessionId: string; imageId: string; modelId: string; depth: import("./imageInspector").ImageAnalysisDepth; outputFormat: import("./imageInspector").ImageInspectorOutputFormat; target: import("./imageInspector").PromptTarget; userInstructions?: string }): Promise<{ ok: boolean; result?: import("./imageInspector").ImageInspectorAnalysis; error?: import("./imageInspector").SanitizedInspectorError }>;
-  cancelAnalysis(input: { sessionId: string }): Promise<{ ok: boolean }>;
-  searchSources(input: { sessionId: string; providerId: string; mode: import("./imageInspector").ImageSearchMode }): Promise<{ ok: boolean; result?: import("./imageInspector").ImageSearchProviderResult; error?: import("./imageInspector").SanitizedInspectorError }>;
-  cancelSearch(input: { sessionId: string; searchRunId: string }): Promise<{ ok: boolean }>;
-  getSession(input: { id: string }): Promise<{ ok: boolean; result?: import("./imageInspector").ImageInspectorSession; error?: string }>;
-  listSessions(): Promise<{ ok: boolean; result?: import("./imageInspector").ImageInspectorSession[]; error?: string }>;
-  saveSession(input: { session: import("./imageInspector").ImageInspectorSession }): Promise<{ ok: boolean; error?: string }>;
-  deleteSession(input: { id: string }): Promise<{ ok: boolean; error?: string }>;
-  exportSession(input: { id: string; format: "markdown" | "json" }): Promise<{ ok: boolean; error?: string }>;
-  getSettings(): Promise<{ ok: boolean; result?: import("./imageInspector").ImageInspectorSettings; error?: string }>;
-  updateSettings(input: { settings: Partial<import("./imageInspector").ImageInspectorSettings> }): Promise<{ ok: boolean; error?: string }>;
-  getProviderStatus(): Promise<{ ok: boolean; result?: Record<string, { configured: boolean; mode: import("./imageInspector").ImageSearchMode[] }>; error?: string }>;
-  setProviderCredential(input: { providerId: string; credential: Record<string, string> }): Promise<{ ok: boolean; error?: string }>;
-  deleteProviderCredential(input: { providerId: string }): Promise<{ ok: boolean; error?: string }>;
-  testProvider(input: { providerId: string }): Promise<{ ok: boolean; result?: { success: boolean; message?: string }; error?: string }>;
+  readMediaDataUrl(input: { mediaId: string }): Promise<{
+    ok: boolean;
+    result?: { dataUrl: string; mimeType: string; byteLength: number };
+    error?: string;
+  }>;
 }
 
 export interface VeniceForge {

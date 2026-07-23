@@ -42,6 +42,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [memory-isolation.md](memory-isolation.md) — Conversation-scoped memory retrieval, exclusions, and preview lifecycle.
 - [rp-token-counting.md](rp-token-counting.md) — Compiled prompt estimates and over-budget save behavior.
 - [DEVELOPMENT/image-model-capabilities.md](DEVELOPMENT/image-model-capabilities.md) — Image model capability registry, Seedream model reference, and guide for adding future models.
+- [developer/image-inspector-architecture.md](developer/image-inspector-architecture.md) — Image Inspector ingestion, IPC, structured analysis, error, source-discovery, and privacy contracts.
 - [developer/CHARACTER_CARD_CODEC.md](developer/CHARACTER_CARD_CODEC.md) — Trusted Character Card V2 PNG codec, limits, and verification contract.
 - [developer/CHARACTER_CARD_MAPPINGS.md](developer/CHARACTER_CARD_MAPPINGS.md) — Tavern/V2 DTO, internal card, and character-book mappings.
 - [data-export-format.md](data-export-format.md) — Authenticated `.vfbackup` envelope, portability, and compatibility contract.
