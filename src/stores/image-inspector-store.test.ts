@@ -108,6 +108,33 @@ describe("Image Inspector store", () => {
     const body = veniceFetch.mock.calls[0][1].body;
     expect(body.messages[0].content).toContain('"schemaVersion":1');
     expect(body.messages[1].content[1].image_url.url).toBe("data:image/png;base64,AAAA");
+    expect(body.response_format).toBeUndefined();
+  });
+
+  it("requests the Venice JSON schema when the selected model supports it", async () => {
+    veniceFetch.mockResolvedValue({
+      data: { choices: [{ message: { content: JSON.stringify(validAnalysis()) } }] },
+    });
+    await createSession();
+    await useImageInspectorStore.getState().startAnalysis(
+      "schema-vision-model",
+      "standard",
+      "flux",
+      undefined,
+      true,
+    );
+
+    const body = veniceFetch.mock.calls[0][1].body;
+    expect(body.response_format).toMatchObject({
+      type: "json_schema",
+      json_schema: {
+        properties: {
+          replicationPrompt: {
+            properties: { target: { enum: ["flux"] } },
+          },
+        },
+      },
+    });
   });
 
   it("preserves a provider-side image failure in the failed session", async () => {

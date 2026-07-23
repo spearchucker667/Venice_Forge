@@ -38,6 +38,7 @@ export function ImageInspectorView() {
   const visionModels = useMemo(() => {
     return models.filter((m) => modelSupportsVision(m.id, m.model_spec?.capabilities));
   }, [models]);
+  const selectedModel = visionModels.find((model) => model.id === selectedModelId);
 
   useEffect(() => {
     if (visionModels.length > 0 && (!selectedModelId || !visionModels.some(m => m.id === selectedModelId))) {
@@ -238,7 +239,13 @@ export function ImageInspectorView() {
                   </button>
                 ) : (
                   <button 
-                    onClick={() => startAnalysis(selectedModelId, depth, target, instructions)}
+                    onClick={() => startAnalysis(
+                      selectedModelId,
+                      depth,
+                      target,
+                      instructions,
+                      selectedModel?.model_spec?.capabilities?.supportsResponseSchema === true,
+                    )}
                     disabled={loading || visionModels.length === 0 || !selectedModelId}
                     className="w-full bg-accent text-accent-fg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-md font-medium py-2.5 mt-2 flex items-center justify-center gap-2 transition-colors"
                   >

@@ -39,9 +39,18 @@ function stringList(value: unknown, maxItems = MAX_LIST_ITEMS, maxLength = 2_000
 }
 
 function descriptionObject(value: unknown): { description: string } | null {
+  if (typeof value === "string") {
+    return { description: value.slice(0, MAX_TEXT_CHARS) };
+  }
   const item = record(value);
   const description = stringValue(item?.description);
   return description === null ? null : { description };
+}
+
+function jsonPayload(content: string): string {
+  const trimmed = content.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenced?.[1]?.trim() ?? trimmed;
 }
 
 function safeProviderMessage(content: string): string {
@@ -187,7 +196,99 @@ export function validateImageInspectorAnalysis(value: unknown): ImageInspectorAn
   };
 }
 
-export function parseImageInspectorAnalysis(response: unknown): ImageInspectorAnalysis {
+function normalizeImageInspectorAnalysis(value: unknown, expectedTarget: PromptTarget): unknown {
+  const raw = record(value);
+  if (!raw) return value;
+  const hasAnalysisDetail = (
+    (Array.isArray(raw.subjects) && raw.subjects.length > 0) ||
+    typeof raw.replicationPrompt === "string" ||
+    record(raw.replicationPrompt) !== null ||
+    ["composition", "lighting", "color", "environment", "style", "technical", "mood"]
+      .some((key) => raw[key] !== undefined)
+  );
+  if (!hasAnalysisDetail) return value;
+
+  const normalizeStrings = (candidate: unknown): string[] =>
+    Array.isArray(candidate)
+      ? candidate.filter((item): item is string => typeof item === "string")
+      : [];
+  const normalizeDescriptions = (candidate: unknown): Array<{ description: string; attributes: string[] }> =>
+    Array.isArray(candidate)
+      ? candidate.flatMap((item) => {
+          if (typeof item === "string") return [{ description: item, attributes: [] }];
+          const subject = record(item);
+          const description = stringValue(subject?.description);
+          return description === null
+            ? []
+            : [{ description, attributes: normalizeStrings(subject?.attributes) }];
+        })
+      : [];
+  const normalizePairs = (
+    candidate: unknown,
+    firstKey: "text" | "type" | "query",
+    secondKey: "type" | "value",
+    secondDefault: string,
+  ): Array<Record<string, string>> =>
+    Array.isArray(candidate)
+      ? candidate.flatMap((item) => {
+          if (typeof item === "string") return [{ [firstKey]: item, [secondKey]: secondDefault }];
+          const pair = record(item);
+          const first = stringValue(pair?.[firstKey], 2_000);
+          const second = stringValue(pair?.[secondKey], 2_000) ?? secondDefault;
+          return first === null ? [] : [{ [firstKey]: first, [secondKey]: second }];
+        })
+      : [];
+
+  const promptRaw = raw.replicationPrompt;
+  const prompt = record(promptRaw);
+  const positive = typeof promptRaw === "string"
+    ? promptRaw
+    : stringValue(prompt?.positive, 20_000);
+  const negativePrompt = stringValue(raw.negativePrompt, 20_000)
+    ?? stringValue(prompt?.negative, 20_000)
+    ?? "";
+  const confidenceRaw = raw.confidence;
+  const confidence = record(confidenceRaw);
+  const overall = typeof confidenceRaw === "number"
+    ? confidenceRaw
+    : confidence?.overall;
+
+  return {
+    ...raw,
+    schemaVersion: raw.schemaVersion ?? 1,
+    subjects: normalizeDescriptions(raw.subjects),
+    composition: descriptionObject(raw.composition) ?? { description: "Not provided by model." },
+    lighting: descriptionObject(raw.lighting) ?? { description: "Not provided by model." },
+    color: descriptionObject(raw.color) ?? { description: "Not provided by model." },
+    environment: descriptionObject(raw.environment) ?? { description: "Not provided by model." },
+    style: descriptionObject(raw.style) ?? { description: "Not provided by model." },
+    technical: descriptionObject(raw.technical) ?? { description: "Not provided by model." },
+    mood: descriptionObject(raw.mood) ?? { description: "Not provided by model." },
+    visibleText: normalizePairs(raw.visibleText, "text", "type", "text"),
+    sourceClues: normalizePairs(raw.sourceClues, "type", "value", "unknown"),
+    replicationPrompt: {
+      ...prompt,
+      target: typeof prompt?.target === "string" ? prompt.target : expectedTarget,
+      positive: positive ?? stringValue(raw.summary, 20_000) ?? "",
+      negative: stringValue(prompt?.negative, 20_000) ?? negativePrompt,
+      cameraHints: normalizeStrings(prompt?.cameraHints),
+      lightingHints: normalizeStrings(prompt?.lightingHints),
+      colorHints: normalizeStrings(prompt?.colorHints),
+    },
+    negativePrompt,
+    searchQueries: normalizePairs(raw.searchQueries, "query", "type", "descriptive"),
+    confidence: {
+      overall: typeof overall === "number" ? overall : 0,
+      uncertainties: normalizeStrings(confidence?.uncertainties),
+    },
+    warnings: normalizeStrings(raw.warnings),
+  };
+}
+
+export function parseImageInspectorAnalysis(
+  response: unknown,
+  expectedTarget: PromptTarget = "generic",
+): ImageInspectorAnalysis {
   const content = extractImageInspectorContent(response);
   if (isPromptSecretLike(content)) {
     throw new ImageInspectorAnalysisError(
@@ -198,15 +299,20 @@ export function parseImageInspectorAnalysis(response: unknown): ImageInspectorAn
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(content);
+    parsed = JSON.parse(jsonPayload(content));
   } catch {
+    const looksLikeJson = /^\s*(?:```(?:json)?\s*)?(?:\{|\[)/i.test(content);
     throw new ImageInspectorAnalysisError(
-      "ANALYSIS_REQUEST_FAILED",
-      `The vision model could not return an image analysis: ${safeProviderMessage(content)}`,
+      looksLikeJson ? "ANALYSIS_PARSE_FAILED" : "ANALYSIS_REQUEST_FAILED",
+      looksLikeJson
+        ? "The vision model returned incomplete or malformed JSON."
+        : `The vision model could not return an image analysis: ${safeProviderMessage(content)}`,
     );
   }
 
-  const analysis = validateImageInspectorAnalysis(parsed);
+  const analysis = validateImageInspectorAnalysis(
+    normalizeImageInspectorAnalysis(parsed, expectedTarget),
+  );
   if (!analysis) {
     throw new ImageInspectorAnalysisError(
       "ANALYSIS_PARSE_FAILED",
@@ -214,6 +320,100 @@ export function parseImageInspectorAnalysis(response: unknown): ImageInspectorAn
     );
   }
   return analysis;
+}
+
+export function buildImageInspectorResponseFormat(target: PromptTarget): Record<string, unknown> {
+  const description = {
+    type: "object",
+    additionalProperties: false,
+    properties: { description: { type: "string" } },
+    required: ["description"],
+  };
+  const stringArray = { type: "array", items: { type: "string" } };
+  return {
+    type: "json_schema",
+    json_schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        schemaVersion: { type: "integer", const: 1 },
+        summary: { type: "string" },
+        subjects: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: { description: { type: "string" }, attributes: stringArray },
+            required: ["description", "attributes"],
+          },
+        },
+        composition: description,
+        lighting: description,
+        color: description,
+        environment: description,
+        style: description,
+        technical: description,
+        mood: description,
+        visibleText: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: { text: { type: "string" }, type: { type: "string" } },
+            required: ["text", "type"],
+          },
+        },
+        sourceClues: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: { type: { type: "string" }, value: { type: "string" } },
+            required: ["type", "value"],
+          },
+        },
+        replicationPrompt: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            target: { type: "string", enum: [target] },
+            positive: { type: "string" },
+            negative: { type: "string" },
+            aspectRatioHint: { type: "string" },
+            cameraHints: stringArray,
+            lightingHints: stringArray,
+            colorHints: stringArray,
+          },
+          required: ["target", "positive", "negative", "cameraHints", "lightingHints", "colorHints"],
+        },
+        negativePrompt: { type: "string" },
+        searchQueries: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: { query: { type: "string" }, type: { type: "string" } },
+            required: ["query", "type"],
+          },
+        },
+        confidence: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            overall: { type: "number", minimum: 0, maximum: 1 },
+            uncertainties: stringArray,
+          },
+          required: ["overall", "uncertainties"],
+        },
+        warnings: stringArray,
+      },
+      required: [
+        "schemaVersion", "summary", "subjects", "composition", "lighting", "color",
+        "environment", "style", "technical", "mood", "visibleText", "sourceClues",
+        "replicationPrompt", "negativePrompt", "searchQueries", "confidence", "warnings",
+      ],
+    },
+  };
 }
 
 export function buildImageInspectorSystemPrompt(input: {

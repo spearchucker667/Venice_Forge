@@ -13,6 +13,7 @@ import { runResearchSearch } from '../services/researchService';
 import { desktopImageInspector } from '../services/desktopBridge';
 import {
   buildImageInspectorSystemPrompt,
+  buildImageInspectorResponseFormat,
   ImageInspectorAnalysisError,
   parseImageInspectorAnalysis,
 } from '../services/imageInspectorAnalysis';
@@ -64,7 +65,13 @@ interface ImageInspectorState {
   updateSession: (id: string, patch: Partial<ImageInspectorSession>) => Promise<void>;
   
   // Analysis Actions
-  startAnalysis: (modelId: string, depth: ImageAnalysisDepth, target: PromptTarget, instructions?: string) => Promise<void>;
+  startAnalysis: (
+    modelId: string,
+    depth: ImageAnalysisDepth,
+    target: PromptTarget,
+    instructions?: string,
+    supportsResponseSchema?: boolean,
+  ) => Promise<void>;
   cancelAnalysis: () => Promise<void>;
   performSearch: (provider: 'venice-google' | 'venice-brave', queryOverride?: string) => Promise<void>;
 }
@@ -167,7 +174,7 @@ export const useImageInspectorStore = create<ImageInspectorState>((set, get) => 
     }
   },
 
-  startAnalysis: async (modelId, depth, target, instructions) => {
+  startAnalysis: async (modelId, depth, target, instructions, supportsResponseSchema) => {
     const { activeSession } = get();
     if (!activeSession) {
       toast.error("Load a session before starting analysis.");
@@ -217,10 +224,13 @@ export const useImageInspectorStore = create<ImageInspectorState>((set, get) => 
             ]}
           ],
           temperature: 0.2,
+          ...(supportsResponseSchema
+            ? { response_format: buildImageInspectorResponseFormat(target) }
+            : {}),
         }
       });
       
-      const analysis = parseImageInspectorAnalysis(result.data);
+      const analysis = parseImageInspectorAnalysis(result.data, target);
 
       // Update session with analysis
       const updated: ImageInspectorSession = { 

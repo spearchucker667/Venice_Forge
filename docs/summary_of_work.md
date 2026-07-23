@@ -4,6 +4,22 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+**Date:** 2026-07-23 (Image Inspector structured-response compatibility follow-up)
+
+**Scope:** Reproduced the two supplied post-fix failures from sanitized Traffic Inspector evidence: one model wrapped its JSON in a Markdown fence, while another returned parseable JSON that drifted from the canonical analysis shape.
+
+- Added safe extraction of exactly one fenced JSON object without accepting surrounding prose or attempting to repair truncated JSON.
+- Added bounded normalization for common semantic drift: string section descriptions, string subjects, string replication prompts, numeric confidence, and omitted list fields. Summary-only or otherwise content-free objects still fail closed.
+- Added Venice `response_format: { type: "json_schema" }` for selected vision models whose runtime metadata declares `supportsResponseSchema`; unsupported models retain the prompt-only path instead of receiving a known-incompatible request field.
+- Reclassified incomplete JSON as `ANALYSIS_PARSE_FAILED` with a stable non-echoing message, while preserving short plain-text provider failures as `ANALYSIS_REQUEST_FAILED`.
+- Added regression coverage for fenced JSON, truncated JSON, bounded schema normalization, target-specific response schemas, and capability-gated request construction.
+
+**Validation:** 3 focused files / 15 tests passed; zero-warning ESLint, renderer and Electron TypeScript projects, safety enforcement, aggregate contracts, the complete Vitest suite (411 files / 4,594 tests passed; one file/test skipped), and production web/server/Electron builds passed. Validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
+
+**Manual QA:** The supplied provider calls are evidence inputs only. No additional paid provider request or headed desktop analysis was run.
+
+### Prior Session Summary (Image Inspector closure and repository-gate recovery)
+
 **Date:** 2026-07-23 (Image Inspector closure and repository-gate recovery)
 
 **Scope:** Reconciled the current Image Inspector implementation and the supplied Traffic Inspector record showing HTTP 200 with a provider-authored `Unable to fetch it` message. Completed the locally actionable repair without spending provider credits.
@@ -735,6 +751,8 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 **Image Inspector closeout (2026-07-23):** no locally actionable implementation item remains from the supplied failure trace. The trace proves a successful `/chat/completions` transport and a provider-authored short failure, not a client-side fetch exception. The app now preserves that distinction, validates the response contract, narrows media IPC, and labels query-only discovery truthfully. Paid live-provider PNG/JPEG/WebP acceptance and headed Traffic Inspector export review remain external evidence under `VF-VERIFY-005`.
 
+**Image Inspector structured-response follow-up (2026-07-23):** the two newly supplied local failures are corrected. The parser accepts a single fenced JSON object, normalizes bounded common schema drift, and rejects truncated JSON without echoing raw model output. Models advertising `supportsResponseSchema` receive the canonical Venice JSON Schema; other vision models remain best-effort and may still fail closed if they return neither the canonical schema nor a supported normalized shape. Paid/headed acceptance remains external under `VF-VERIFY-005`.
+
 **Local gate closeout (2026-07-23):** the eight theme/config/Documents baseline failures recorded during the Image Inspector tranche are resolved. Custom themes now update the main-owned YAML file plus immediate renderer caches only after successful IPC persistence; failed save/delete results fail visibly. The main theme loader ignores legacy terminal-color templates already owned by the renderer built-in registry and merges structured theme files without false schema errors. Documents use the required soft separators, and the two drifted test harnesses now install their declared matcher/bridge contracts. Full `npm test` and `npm run ci` pass.
 
 **July 22 audit TODO reconciliation:** all 14 locally actionable findings in `docs/audits/TODO/Venice_Forge_Extensive_Scan_2026-07-22.md` now have implemented corrections and regression evidence. The scan and companion JSON retain the exact dispositions. No local implementation item from that scan remains open. Signed/paid/two-device/headed accessibility and packaged-dialog validation remain external acceptance under `VF-VERIFY-005`; `Function_calling_todo.md` remains a specification whose broader Document Agent product work is tracked only in `docs/ROADMAP.md`.
@@ -855,6 +873,10 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 
 | Command | Result | Evidence |
 |---|---|---|
+| Image Inspector focused Vitest follow-up | PASS | 3 files / 15 tests cover fenced/truncated JSON, bounded schema normalization, capability-gated `json_schema`, store persistence, and UI integration. |
+| Follow-up `npm test` | PASS | 411 files passed, 1 skipped; 4,594 tests passed, 1 skipped. |
+| Follow-up `npm run build` | PASS | Vite transformed 3,082 modules; web, server, Electron main, and preload bundles were produced. |
+| Follow-up `npm run lint:eslint`; `npm run typecheck`; `npm run verify:safety-guard`; `npm run verify:contracts` | PASS | Zero warnings/errors; safety and all static/feature/release contracts passed under local Node 26.5.0/npm 11.17.0. |
 | `npm run typecheck` | PASS | 0 errors across renderer and Electron TypeScript projects under Node 22.13.1. |
 | `npm run lint:eslint` | PASS | 0 warnings across renderer, Electron, server, and scripts. |
 | Focused Vitest regression suites | PASS | 10 files / 74 tests covering ingestion, IPC, parser/schema, store, UI labels, telemetry, Venice client, durable media, canonical tab order, and cross-runtime backup behavior. |
@@ -1293,6 +1315,14 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-23 — Image Inspector structured-response compatibility follow-up
+
+- Reproduced fenced-JSON parsing and structurally drifted JSON from the two supplied sanitized provider traces.
+- Added exact fenced-object extraction, bounded semantic normalization, and stable non-echoing truncated-JSON errors.
+- Added capability-gated Venice JSON Schema response formatting tied to the selected model’s runtime metadata.
+- Added five regression cases and passed 3 focused files / 15 tests, full 4,594-test Vitest, lint, both typechecks, safety, aggregate contracts, and production build.
+- No additional paid provider or headed desktop request was run.
 
 ### 2026-07-23 — Aggregate gate recovery after Image Inspector closure
 

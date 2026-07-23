@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildImageInspectorSystemPrompt,
+  buildImageInspectorResponseFormat,
   ImageInspectorAnalysisError,
   parseImageInspectorAnalysis,
   validateImageInspectorAnalysis,
@@ -73,6 +74,57 @@ describe("Image Inspector analysis contract", () => {
     expect(() => parseImageInspectorAnalysis({
       choices: [{ message: { content: JSON.stringify({ summary: "partial" }) } }],
     })).toThrow(/required Image Inspector schema/);
+  });
+
+  it("accepts a single fenced JSON object", () => {
+    const result = parseImageInspectorAnalysis({
+      choices: [{ message: { content: `\`\`\`json\n${JSON.stringify(validAnalysis())}\n\`\`\`` } }],
+    }, "venice-image");
+    expect(result.summary).toBe("A blue ceramic cup on a wooden table.");
+  });
+
+  it("normalizes bounded common model schema drift", () => {
+    const result = parseImageInspectorAnalysis({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            summary: "A blue cup",
+            subjects: ["Blue ceramic cup"],
+            composition: "Centered",
+            replicationPrompt: "A blue ceramic cup on a table",
+            confidence: 0.8,
+          }),
+        },
+      }],
+    }, "flux");
+    expect(result).toMatchObject({
+      schemaVersion: 1,
+      subjects: [{ description: "Blue ceramic cup", attributes: [] }],
+      composition: { description: "Centered" },
+      replicationPrompt: { target: "flux", positive: "A blue ceramic cup on a table" },
+      confidence: { overall: 0.8 },
+    });
+  });
+
+  it("classifies truncated JSON as a parse failure without echoing its body", () => {
+    try {
+      parseImageInspectorAnalysis({
+        choices: [{ message: { content: '```json\n{"schemaVersion":1,"summary":"partial"' } }],
+      });
+      throw new Error("Expected malformed JSON to fail.");
+    } catch (error) {
+      expect(error).toMatchObject({ code: "ANALYSIS_PARSE_FAILED" });
+      expect((error as Error).message).toBe("The vision model returned incomplete or malformed JSON.");
+    }
+  });
+
+  it("builds the Venice json_schema response contract for the selected target", () => {
+    const responseFormat = buildImageInspectorResponseFormat("flux") as {
+      type: string;
+      json_schema: { properties: { replicationPrompt: { properties: { target: { enum: string[] } } } } };
+    };
+    expect(responseFormat.type).toBe("json_schema");
+    expect(responseFormat.json_schema.properties.replicationPrompt.properties.target.enum).toEqual(["flux"]);
   });
 
   it("supplies an exact injection-resistant schema prompt", () => {
