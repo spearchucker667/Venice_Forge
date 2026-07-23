@@ -4,7 +4,7 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-23 (Image Inspector failure handling, ingestion hardening, and source-discovery correction)
+**Date:** 2026-07-23 (Image Inspector closure and repository-gate recovery)
 
 **Scope:** Reconciled the current Image Inspector implementation and the supplied Traffic Inspector record showing HTTP 200 with a provider-authored `Unable to fetch it` message. Completed the locally actionable repair without spending provider credits.
 
@@ -17,9 +17,11 @@ This is the active handoff and validation ledger. The canonical current-work led
 - Restricted rendered source links to valid HTTP/HTTPS URLs and discarded malformed or unsafe schemes without fabricating fallback destinations.
 - Made Traffic Inspector sanitization idempotent for existing `[data URL: N chars]` and `[text: N chars]` summaries.
 - Preserved the canonical Image Studio → Media Studio tab adjacency and aligned the cross-runtime backup fixture with the persisted `imageInspectorSessions` store.
+- Closed the eight unrelated baseline failures exposed by the first aggregate run: custom-theme file/cache synchronization and IPC error handling, structured built-in theme merging, the config watcher test contract, Documents mesh separators, and the managed-document matcher setup.
+- Corrected the stale tab-order assertion to lock the intended Image Studio → Media Studio → Image Inspector sequence.
 - Replaced the Phase 0 architecture note with the shipped contract and registered it in `docs/DOCS_INDEX.md`.
 
-**Validation:** Node 22.13.1 lint and typecheck passed; 10 focused regression files passed with 74 tests; safety, Markdown, aggregate contracts, production build, and built-output verification passed. The repository-wide suite and `npm run ci` remain red on pre-existing theme/config/Documents tests outside this tranche; exact failures are recorded in the Validation Matrix.
+**Validation:** Node 22.13.1 zero-warning lint and both TypeScript projects passed; the full Vitest suite passed with 411 files / 4,589 tests and one intentional skipped file/test; safety, 152-file Markdown, aggregate contracts, production build, dependency audit (zero vulnerabilities), built-output verification, and the complete `npm run ci` meta-gate passed.
 
 **Manual QA:** Paid live-provider image analysis was not run because expenditure authorization was not provided. It remains external acceptance under `VF-VERIFY-005`.
 
@@ -733,6 +735,8 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 **Image Inspector closeout (2026-07-23):** no locally actionable implementation item remains from the supplied failure trace. The trace proves a successful `/chat/completions` transport and a provider-authored short failure, not a client-side fetch exception. The app now preserves that distinction, validates the response contract, narrows media IPC, and labels query-only discovery truthfully. Paid live-provider PNG/JPEG/WebP acceptance and headed Traffic Inspector export review remain external evidence under `VF-VERIFY-005`.
 
+**Local gate closeout (2026-07-23):** the eight theme/config/Documents baseline failures recorded during the Image Inspector tranche are resolved. Custom themes now update the main-owned YAML file plus immediate renderer caches only after successful IPC persistence; failed save/delete results fail visibly. The main theme loader ignores legacy terminal-color templates already owned by the renderer built-in registry and merges structured theme files without false schema errors. Documents use the required soft separators, and the two drifted test harnesses now install their declared matcher/bridge contracts. Full `npm test` and `npm run ci` pass.
+
 **July 22 audit TODO reconciliation:** all 14 locally actionable findings in `docs/audits/TODO/Venice_Forge_Extensive_Scan_2026-07-22.md` now have implemented corrections and regression evidence. The scan and companion JSON retain the exact dispositions. No local implementation item from that scan remains open. Signed/paid/two-device/headed accessibility and packaged-dialog validation remain external acceptance under `VF-VERIFY-005`; `Function_calling_todo.md` remains a specification whose broader Document Agent product work is tracked only in `docs/ROADMAP.md`.
 
 `VERIFY-155` closes the Cross-Origin Resource Sharing defect on the `venice-media://`, `venice-tts://`, and `venice-character-cache://` custom protocols. `electron/main.ts` now registers every renderer-consumed scheme with `corsEnabled: true` (keeping `stream: true` on the audio/video ones); a centralised `evaluateCustomProtocolAccess` helper coordinates the per-protocol response headers so `venice-media` and `venice-tts` honor the same origin/referrer guard as `venice-character-cache`. The static audit `scripts/verify-custom-protocol-privileges.cjs` plus 26 regression tests (5 audit + 21 functional) lock the contract. Headed `npm run dev:electron` validation and packaged cross-platform Save As remain external acceptance rows under `VF-VERIFY-005`; no such result is inferred.
@@ -841,7 +845,7 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 - **Combined Phase 3 §3.7 validation:** `npx vitest run electron/agent/runtime/` → **26/26 PASS in 1.65 s**. `tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json` → **0 errors**. `lint:eslint --max-warnings=0` → **0 warnings**.
 - **Phase 3 remaining sub-steps** (§3.1 dedicated Component, §3.2 dedicated IPC channel, §3.3 grantId-from-model leak in `agent-tool-executor.ts`, §3.4 schema matrix, §3.5 unified `document.create`, §3.6 unimplemented-tool unadvertise, §3.10 `media.generateImage` executor contract hardening, §3.11 `DocumentAgentChat.tsx` UI, §3.12 17-bullet acceptance matrix) remain pending and progress to continuation 12.
 
-**Pre-existing transitive dependency audit vulnerabilities (continuation 12 — VERIFY-007 inline-style CSP regression fix; surfaced 2026-07-22):** `npm audit --audit-level=moderate` reports **11 high-severity** transitive findings on the locked dependency tree at `git HEAD ae1db1b`: `fast-uri 3.0.0..3.1.3` (host confusion via literal backslash authority delimiter, GHSA-v2hh-gcrm-f6hx), `js-yaml 4.0.0..4.2.0` (YAML merge-key quadratic CPU, GHSA-52cp-r559-cp3m), and `shell-quote <=1.8.4` (quadratic-complexity DoS in `parse()`, GHSA-395f-4hp3-45gv). Reachability: `fast-uri` is a transitive dep of `app-builder-lib`/`electron-builder`; `js-yaml` flows through `app-builder-lib` → `dmg-builder` → `electron-builder` → `electron-updater`; `shell-quote` is a transitive dep of `concurrently 9.2.1`. These vulnerabilities exist on `main` before this session and are not introduced by either the `VERIFY-007` fix or any other dirty-worktree edit; they represent pre-existing supply-chain debt on the Electron-builder packaging pipeline. `npm` itself flags `npm audit fix --force` as a breaking change (it would advance `concurrently 9.2.1 → 9.2.4`). Per AGENTS.md §5 the dependency metadata is NOT modified this session; explicit user authorization is required before running `npm audit fix --force` (or alternatives). The `npm run ci` meta-gate returns exit 1 at the audit step. Validation evidence: the rest of the chain (`lint:eslint`, `typecheck`, `test:ci`, `build`, `verify:contracts:static`, `verify:dist`) is independently verified PASS so the audit finding is purely a non-functional supply-chain gate. Resolution options for user review: (a) `npm audit fix --force` accepting the `concurrently 9.2.1 → 9.2.4` breaking change and regenerating `package-lock.json`; (b) targeted `overrides` block in `package.json` pinning `js-yaml` ≥ 4.2.1 and `fast-uri` ≥ 3.1.4 (and `shell-quote` ≥ 1.8.5 if reachable); (c) bump `app-builder-lib` / `electron-builder` to a release that pulls in the fixed transitive deps. Requires user direction.
+**Dependency-audit status (refreshed 2026-07-23):** the prior July 22 transitive-vulnerability note is superseded by the current locked dependency tree. `npm audit --audit-level=moderate` now reports zero vulnerabilities inside the passing `npm run ci` gate; no dependency edit was required in this session.
 
 ## Validation Matrix
 
@@ -854,13 +858,13 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 | `npm run typecheck` | PASS | 0 errors across renderer and Electron TypeScript projects under Node 22.13.1. |
 | `npm run lint:eslint` | PASS | 0 warnings across renderer, Electron, server, and scripts. |
 | Focused Vitest regression suites | PASS | 10 files / 74 tests covering ingestion, IPC, parser/schema, store, UI labels, telemetry, Venice client, durable media, canonical tab order, and cross-runtime backup behavior. |
-| `npm test` | FAIL — mixed baseline | 404 files passed, 1 skipped; 4,579 tests passed, 1 skipped, and 10 failed. Two Image Inspector integration failures (tab adjacency and backup fixture parity) were corrected and pass in the focused rerun. The remaining 8 failures are pre-existing theme/config/Documents assertions in `meshSurfaceInvariant.test.ts`, `ThemeMaker.custom.test.tsx`, `configService.test.ts`, `config-store.test.ts`, and `ManagedDocumentAttachmentCard.test.tsx`; those files were not changed by this tranche. |
+| `npm test` | PASS | 411 files passed, 1 skipped; 4,589 tests passed, 1 skipped. The initial 10 failures were all corrected and the complete suite was rerun from a clean process. |
 | `npm run verify:safety-guard` | PASS | All guarded Venice transports and the no-raw-log policy passed. |
 | `npm run verify:markdown-links` | PASS | 152 Markdown files checked with no broken links. |
 | `npm run verify:contracts` | PASS | Static, feature, backup/sync, and release contracts passed, including theme-token, image-policy, network-boundary, native-dialog, and 103 release-packaging checks. |
 | `npm run build` | PASS | Vite transformed 3,082 modules; web, server, Electron main, and preload bundles were produced. |
 | `npm run verify:dist` | PASS | Build outputs for version 3.0.0-beta.1 verified successfully. |
-| `npm run ci` | FAIL — pre-existing theme/config tests | Lint, typecheck, and server tests pass. The meta-gate stops in `test:electron` on the two existing `electron/services/configService.test.ts` theme assertions, so audit/build/contracts/dist were not reached inside this command; build, contracts, and dist were run independently and pass. |
+| `npm run ci` | PASS | Full meta-gate passed: zero-warning lint, both TypeScript projects, every segmented test shard, zero-vulnerability dependency audit, production build, aggregate contracts, and `verify:dist`. |
 | Paid live-provider and headed desktop QA | NOT RUN | No expenditure authorization was provided. Provider acceptance and headed Traffic Inspector export review remain under `VF-VERIFY-005`. |
 
 ### July 22 — July audit TODO reconciliation
@@ -1289,6 +1293,16 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-23 — Aggregate gate recovery after Image Inspector closure
+
+- Reproduced and closed all eight residual theme/config/Documents failures from the initial aggregate run.
+- Synchronized custom-theme main-process persistence with immediate renderer settings/config caches and rejected unsuccessful IPC result envelopes.
+- Kept legacy terminal-color templates out of the structured YAML registry while preserving the renderer-owned built-in themes.
+- Replaced four forbidden hard document dividers with mesh-system soft separators and repaired two drifted test harness contracts.
+- Corrected the canonical navigation assertion to lock Image Studio → Media Studio → Image Inspector.
+- Passed the full suite (411 files / 4,589 tests, one intentional skip), zero-warning lint, both TypeScript projects, safety, Markdown, aggregate contracts, production build, zero-vulnerability audit, distribution verification, and full `npm run ci`.
+- Paid-provider and headed desktop acceptance remain external under `VF-VERIFY-005`.
 
 ### 2026-07-23 — Image Inspector regression closure
 

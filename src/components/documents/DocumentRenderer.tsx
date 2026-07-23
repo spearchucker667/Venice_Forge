@@ -12,7 +12,7 @@ export function DocumentRenderer({ blocks }: { blocks: DocumentBlock[] }) {
           case 'heading': {
             const Tag = `h${block.level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
             const sizeClasses: Record<number, string> = {
-              1: 'text-2xl font-bold mt-4 mb-2 text-foreground border-b border-border pb-1',
+              1: 'text-2xl font-bold mt-4 mb-2 text-foreground soft-separator-y pb-1',
               2: 'text-xl font-bold mt-3 mb-2 text-foreground',
               3: 'text-lg font-semibold mt-3 mb-1 text-foreground',
               4: 'text-base font-semibold mt-2 mb-1 text-foreground',
@@ -72,7 +72,7 @@ export function DocumentRenderer({ blocks }: { blocks: DocumentBlock[] }) {
                     {block.rows.map((row, rIdx) => (
                       <tr
                         key={row.id}
-                        className={rIdx === 0 ? 'bg-surface-elevated font-semibold border-b border-border' : 'border-b border-border/40 hover:bg-surface-elevated/30'}
+                        className={rIdx === 0 ? 'bg-surface-elevated font-semibold soft-separator-y' : 'border-b border-border/40 hover:bg-surface-elevated/30'}
                       >
                         {row.cells.map((cell) => (
                           <td key={cell.id} className="p-2 border-r border-border/30 last:border-r-0">

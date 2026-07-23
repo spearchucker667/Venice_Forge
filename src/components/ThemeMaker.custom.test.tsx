@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ThemeMaker, themeToYaml } from "./ThemeMaker";
 import { useSettingsStore } from "../stores/settings-store";
+import { useConfigStore } from "../stores/config-store";
 import { desktopFiles } from "../services/desktopBridge";
 import { BUILTIN_DRACULA, BUILTIN_VENICE } from "../theme";
 
@@ -17,6 +18,12 @@ vi.mock("../services/desktopBridge", async () => {
       exportYaml: vi.fn().mockResolvedValue(true),
       importYamlString: vi.fn().mockResolvedValue(null),
     },
+    desktopConfig: {
+      saveTheme: vi.fn().mockResolvedValue({ ok: true }),
+      deleteTheme: vi.fn().mockResolvedValue({ ok: true }),
+      loadMergedThemes: vi.fn().mockResolvedValue({ ok: true, themes: {}, warnings: [] }),
+      onThemeUpdated: vi.fn(() => () => {}),
+    },
   };
 });
 
@@ -28,6 +35,7 @@ describe("ThemeMaker Custom Theme Engine Features", () => {
       customThemes: [],
       appearanceMode: "dark",
     });
+    useConfigStore.getState().reset();
   });
 
   it("saves a new custom theme into settingsStore customThemes", async () => {
@@ -37,9 +45,11 @@ describe("ThemeMaker Custom Theme Engine Features", () => {
     const saveButton = screen.getByRole("button", { name: "Save Theme" });
     fireEvent.click(saveButton);
 
-    const state = useSettingsStore.getState();
-    expect(state.customThemes.length).toBeGreaterThan(0);
-    expect(state.selectedThemeId).toContain("user-theme-");
+    await waitFor(() => {
+      const state = useSettingsStore.getState();
+      expect(state.customThemes.length).toBeGreaterThan(0);
+      expect(state.selectedThemeId).toContain("user-theme-");
+    });
   });
 
   it("resets unsaved draft token changes when Cancel / Reset is clicked", async () => {
@@ -74,9 +84,11 @@ describe("ThemeMaker Custom Theme Engine Features", () => {
     const deleteButton = screen.getByRole("button", { name: "Delete Theme" });
     fireEvent.click(deleteButton);
 
-    const state = useSettingsStore.getState();
-    expect(state.customThemes).toEqual([]);
-    expect(state.selectedThemeId).toBe("builtin-venice");
+    await waitFor(() => {
+      const state = useSettingsStore.getState();
+      expect(state.customThemes).toEqual([]);
+      expect(state.selectedThemeId).toBe("builtin-venice");
+    });
   });
 
   it("opens structured import preview modal when a YAML file is loaded", async () => {

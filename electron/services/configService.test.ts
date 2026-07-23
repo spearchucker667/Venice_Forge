@@ -562,7 +562,7 @@ describe("configService export and folder", () => {
 });
 
 describe("configService loadMergedThemes", () => {
-  it("returns the themes.yaml contents", async () => {
+  it("merges structured built-in themes when the override file is empty", async () => {
     const envConfig = path.join(tmpRoot, "config.yaml");
     const envThemes = path.join(tmpRoot, "themes.yaml");
     await writeYaml(envConfig, "version: 1\n");
@@ -571,10 +571,12 @@ describe("configService loadMergedThemes", () => {
     process.env.VENICE_FORGE_THEMES_FILE = envThemes;
 
     const result = await loadMergedThemes();
-    expect(result.themes).toEqual({});
+    expect(Object.keys(result.themes).length).toBeGreaterThan(0);
+    expect(result.themes["aurora-boreal"]?.display_name).toBe("Aurora Boreal");
+    expect(result.warnings.filter((warning) => warning.severity === "error")).toEqual([]);
   });
 
-  it("loads the 15 unique themes from the repository canonical themes.example.yaml", async () => {
+  it("merges repository example themes with structured built-in themes", async () => {
     const exampleThemesContent = await fs.readFile(
       path.join(process.cwd(), ".config", "themes.example.yaml"),
       "utf-8"

@@ -31,6 +31,12 @@ export async function readThemeFile(filePath: string): Promise<{ themes: Record<
     const content = await fs.readFile(filePath, "utf-8");
     const raw = yaml.parse(content);
     if (!raw) return { themes: {}, warnings: [] };
+    // Legacy terminal-color templates are already represented by the renderer's
+    // built-in theme registry. Only schema-versioned/`themes` mappings belong in
+    // the merged YAML registry.
+    if (typeof raw === "object" && raw !== null && !Array.isArray(raw) && !("themes" in raw)) {
+      return { themes: {}, warnings: [] };
+    }
     return validateThemesFile(raw);
   } catch (err) {
     return { themes: {}, warnings: [{ field: filePath, message: err instanceof Error ? err.message : String(err), severity: "error" }] };

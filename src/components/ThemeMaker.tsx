@@ -258,8 +258,11 @@ export function ThemeMaker() {
   const customThemes = useSettingsStore((s) => s.customThemes) ?? EMPTY_CUSTOM_THEMES;
   const setSelectedThemeId = useSettingsStore((s) => s.setSelectedThemeId);
   const setCustomTheme = useSettingsStore((s) => s.setCustomTheme);
+  const saveCustomTheme = useSettingsStore((s) => s.saveCustomTheme);
+  const deleteCustomTheme = useSettingsStore((s) => s.deleteCustomTheme);
   const setAppearanceMode = useSettingsStore((s) => s.setAppearanceMode);
   const yamlThemes = useConfigStore((s) => s.yamlThemes);
+  const setYamlThemes = useConfigStore((s) => s.setYamlThemes);
 
   const builtInMap: Record<string, Theme> = useMemo(
     () => ({
@@ -304,15 +307,21 @@ export function ThemeMaker() {
 
   const customThemesMap = useMemo(() => {
     const map: Record<string, Theme> = {};
+    for (const theme of customThemes) {
+      map[theme.id] = theme;
+    }
     for (const [id, theme] of Object.entries(yamlThemes)) {
       if (!builtInMap[id]) {
         map[id] = theme;
       }
     }
     return map;
-  }, [yamlThemes, builtInMap]);
+  }, [customThemes, yamlThemes, builtInMap]);
 
-  const allThemesMap = useMemo(() => ({ ...builtInMap, ...yamlThemes }), [builtInMap, yamlThemes]);
+  const allThemesMap = useMemo(
+    () => ({ ...builtInMap, ...customThemesMap, ...yamlThemes }),
+    [builtInMap, customThemesMap, yamlThemes],
+  );
 
   const [selector, setSelector] = useState<string>(selectedThemeId || "builtin-venice");
   const [draft, setDraft] = useState<Theme>(() => {
@@ -423,7 +432,10 @@ export function ThemeMaker() {
     applyTheme(newTheme);
     
     try {
-      await desktopConfig.saveTheme(newTheme);
+      const result = await desktopConfig.saveTheme(newTheme);
+      if (!result.ok) throw new Error(result.error || "Theme persistence failed.");
+      saveCustomTheme(newTheme);
+      setYamlThemes({ ...useConfigStore.getState().yamlThemes, [newTheme.id]: newTheme });
       toast.success(`Created new custom theme "${newTheme.name}"`);
     } catch (err) {
       toast.error(`Failed to create theme: ${redactErrorMessage(err)}`);
@@ -458,10 +470,10 @@ export function ThemeMaker() {
 
   async function handleSave() {
     try {
-      await desktopConfig.saveTheme(draft);
-      setCustomTheme(draft);
-      setSelectedThemeId(draft.id);
-      setAppearanceMode(draft.mode);
+      const result = await desktopConfig.saveTheme(draft);
+      if (!result.ok) throw new Error(result.error || "Theme persistence failed.");
+      saveCustomTheme(draft);
+      setYamlThemes({ ...useConfigStore.getState().yamlThemes, [draft.id]: draft });
       setSelector(draft.id);
       toast.success(`Theme "${draft.name}" saved successfully`);
     } catch (err) {
@@ -491,7 +503,17 @@ export function ThemeMaker() {
     if (!customThemesMap[selector] && selector !== "custom") return;
     const targetId = selector;
     try {
-      await desktopConfig.deleteTheme(targetId);
+      const result = await desktopConfig.deleteTheme(targetId);
+      if (!result.ok) throw new Error(result.error || "Theme deletion failed.");
+      deleteCustomTheme(targetId);
+      const nextYamlThemes = { ...useConfigStore.getState().yamlThemes };
+      delete nextYamlThemes[targetId];
+      setYamlThemes(nextYamlThemes);
+      const settings = useSettingsStore.getState();
+      const fallback = allThemesMap[settings.selectedThemeId] || BUILTIN_VENICE;
+      setSelector(settings.selectedThemeId);
+      setDraft(cloneTheme(fallback));
+      applyTheme(fallback);
       toast.info("Custom theme deleted");
     } catch (err) {
       toast.error(`Failed to delete theme: ${redactErrorMessage(err)}`);
@@ -541,11 +563,12 @@ export function ThemeMaker() {
       name: targetName,
     };
     try {
-      await desktopConfig.saveTheme(finalTheme);
+      const result = await desktopConfig.saveTheme(finalTheme);
+      if (!result.ok) throw new Error(result.error || "Theme persistence failed.");
+      saveCustomTheme(finalTheme);
+      setYamlThemes({ ...useConfigStore.getState().yamlThemes, [finalTheme.id]: finalTheme });
       setDraft(finalTheme);
-      setSelectedThemeId(finalTheme.id);
       setSelector(finalTheme.id);
-      setAppearanceMode(finalTheme.mode);
       applyTheme(finalTheme);
       setImportModal(null);
       toast.success(`Theme "${finalTheme.name}" imported and applied`);

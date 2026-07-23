@@ -9,6 +9,7 @@ const setVeniceApiSafeModeMock = vi.fn();
 const desktopConfigGetMock = vi.fn();
 const desktopConfigReloadMock = vi.fn();
 const desktopConfigLoadMergedThemesMock = vi.fn();
+const desktopConfigOnThemeUpdatedMock = vi.fn((_callback: () => void) => () => {});
 
 vi.mock("../services/desktopBridge", async () => {
   const actual = await vi.importActual<typeof import("../services/desktopBridge")>("../services/desktopBridge");
@@ -19,6 +20,7 @@ vi.mock("../services/desktopBridge", async () => {
       get: (...args: unknown[]) => desktopConfigGetMock(...args),
       reload: (...args: unknown[]) => desktopConfigReloadMock(...args),
       loadMergedThemes: (...args: unknown[]) => desktopConfigLoadMergedThemesMock(...args),
+      onThemeUpdated: (callback: () => void) => desktopConfigOnThemeUpdatedMock(callback),
     },
   };
 });

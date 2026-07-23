@@ -307,7 +307,7 @@ export function DocumentAgentView() {
         onRevoke={() => { if (workspaceGrant) void bridge.workspace.revoke({ grantId: workspaceGrant.id, agentSessionId }).then(() => setWorkspaceGrant(null)) }}
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between border-b border-border pb-3">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between soft-separator-y pb-3">
         {/* Working Group Selector */}
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
@@ -391,7 +391,7 @@ export function DocumentAgentView() {
             {selected ? (
               <div className="flex-1 flex flex-col min-h-0 space-y-3">
                 {/* Document Header Controls */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 soft-separator-y pb-3 flex-shrink-0">
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-[16px] font-semibold text-foreground">{selected.displayName}</h2>
