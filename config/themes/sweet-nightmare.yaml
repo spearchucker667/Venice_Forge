@@ -1,0 +1,41 @@
+themes:
+  sweet-nightmare:
+    display_name: Sweet Nightmare
+    mode: dark
+    tokens:
+      accent: "#8BC7D0"
+      background: "#211923"
+      surface: "#2D2130"
+      surface_elevated: "#412A3A"
+      surface_muted: "#37283A"
+      border: "#675B6E"
+      border_strong: "#8A6D91"
+      text_primary: "#F3EDEB"
+      text_secondary: "#CDBEC9"
+      text_muted: "#BBA7B6"
+      foreground: "#F3EDEB"
+      foreground_muted: "#CDBEC9"
+      foreground_subtle: "#BBA7B6"
+      accent_hover: "#A2D3DC"
+      accent_foreground: "#1A121C"
+      success: "#7FCFA9"
+      success_foreground: "#1A121C"
+      warning: "#F0B880"
+      warning_foreground: "#1A121C"
+      danger: "#F0739E"
+      danger_foreground: "#1A121C"
+      info: "#B995C8"
+      input_background: "#37283A"
+      input_foreground: "#F3EDEB"
+      placeholder: "#BBA7B6"
+      disabled_foreground: "#988494"
+      button_primary_background: "#8BC7D0"
+      button_primary_foreground: "#1A121C"
+      button_secondary_background: "#412A3A"
+      button_secondary_foreground: "#F3EDEB"
+      link: "#8BC7D0"
+      focus_ring: "#E18AAF"
+      selection_background: "#633D59"
+      selection_foreground: "#F3EDEB"
+      overlay: rgba(33, 25, 35, 0.75)
+      glow: rgba(139, 199, 208, 0.25)

@@ -560,7 +560,7 @@ export function validateThemesFile(raw: unknown): { themes: Record<string, YamlT
     return { themes: out, warnings };
   }
   const r = raw as Record<string, unknown>;
-  if (r.version !== 1) {
+  if (r.version !== undefined && r.version !== 1) {
     warnings.push({ field: "version", message: `Unknown themes version "${String(r.version)}"; expected 1. Skipping file.`, severity: "error" });
     return { themes: out, warnings };
   }

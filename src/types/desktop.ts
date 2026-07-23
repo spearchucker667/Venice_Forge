@@ -311,6 +311,9 @@ export interface VeniceForgeConfig {
   writeSanitized(patch: unknown): Promise<{ ok: boolean; error?: string; redactedFields?: string[] }>;
   exportTemplate(): Promise<{ ok: boolean; canceled?: boolean; error?: string }>;
   loadMergedThemes(): Promise<{ ok: boolean; themes?: Record<string, unknown>; warnings?: unknown[]; error?: string }>;
+  saveTheme(theme: unknown): Promise<{ ok: boolean; error?: string }>;
+  deleteTheme(id: string): Promise<{ ok: boolean; error?: string }>;
+  onThemeUpdated(callback: () => void): () => void;
   resetSecureStoreKeys(): Promise<{ ok: boolean; removed?: { venice: boolean; jina: boolean }; error?: string }>;
 }
 

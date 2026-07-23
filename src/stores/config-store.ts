@@ -153,9 +153,18 @@ export async function loadYamlThemes(): Promise<Record<string, Theme>> {
   }
 }
 
+let themeWatcherAttached = false;
+
 /** Loads the config payload from the desktop bridge and updates the store. */
 export async function refreshConfig(): Promise<void> {
   if (!isElectron()) return;
+  if (!themeWatcherAttached) {
+    themeWatcherAttached = true;
+    desktopConfig.onThemeUpdated(async () => {
+      const yamlThemes = await loadYamlThemes();
+      useConfigStore.getState().setYamlThemes(yamlThemes);
+    });
+  }
   useConfigStore.getState().setLoading(true);
   try {
     const res = await desktopConfig.get();

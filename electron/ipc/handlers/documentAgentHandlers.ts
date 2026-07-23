@@ -304,7 +304,7 @@ export function registerDocumentAgentHandlers(): void {
         relativePath: stringField(value, "relativePath"),
         displayName: typeof value.displayName === "string" ? value.displayName : undefined,
         mimeType,
-        bodyB64: stringField(value, "bodyB64"),
+        bodyB64: stringField(value, "bodyB64", 2_000_000),
       });
       await audit.record({
         sessionId: rendererSession(event.sender.id),

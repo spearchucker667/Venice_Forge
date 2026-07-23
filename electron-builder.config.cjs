@@ -33,6 +33,7 @@ const config = {
     "dist-electron/**/*",
     "!dist-electron/**/*.map",
     "assets/**/*",
+    "config/themes/**/*",
     "package.json",
     "!**/*.map",
   ],

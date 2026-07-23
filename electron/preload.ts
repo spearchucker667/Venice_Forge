@@ -497,6 +497,17 @@ const veniceForge = {
     loadMergedThemes(): Promise<{ ok: boolean; themes?: Record<string, unknown>; warnings?: unknown[]; error?: string }> {
       return ipcRenderer.invoke("config:loadMergedThemes");
     },
+    saveTheme(theme: unknown): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("config:saveTheme", theme);
+    },
+    deleteTheme(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("config:deleteTheme", id);
+    },
+    onThemeUpdated(callback: () => void): () => void {
+      const handler = () => callback();
+      ipcRenderer.on("theme:updated", handler);
+      return () => ipcRenderer.off("theme:updated", handler);
+    },
     resetSecureStoreKeys(): Promise<{ ok: boolean; removed?: { venice: boolean; jina: boolean }; error?: string }> {
       return ipcRenderer.invoke("config:resetSecureStoreKeys");
     },

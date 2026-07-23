@@ -33,6 +33,10 @@ import { BUILTIN_SOLARIZED_LIGHT } from './solarizedLight';
 import { BUILTIN_ONE_DARK } from './oneDark';
 import { BUILTIN_MONOKAI } from './monokai';
 import { BUILTIN_GITHUB_LIGHT } from './githubLight';
+import { BUILTIN_COTTON_CANDY_CONSOLE } from './cottonCandyConsole';
+import { BUILTIN_SWEET_NIGHTMARE } from './sweetNightmare';
+import { BUILTIN_DUAL_PERSONA } from './dualPersona';
+import { BUILTIN_POLAROID_BOARD } from './polaroidBoard';
 
 export {
   BUILTIN_OBSIDIAN_BLOOM,
@@ -70,6 +74,10 @@ export {
   BUILTIN_ONE_DARK,
   BUILTIN_MONOKAI,
   BUILTIN_GITHUB_LIGHT,
+  BUILTIN_COTTON_CANDY_CONSOLE,
+  BUILTIN_SWEET_NIGHTMARE,
+  BUILTIN_DUAL_PERSONA,
+  BUILTIN_POLAROID_BOARD,
 };
 
 export const BUILTIN_THEMES = [
@@ -108,6 +116,10 @@ export const BUILTIN_THEMES = [
   BUILTIN_ONE_DARK,
   BUILTIN_MONOKAI,
   BUILTIN_GITHUB_LIGHT,
+  BUILTIN_COTTON_CANDY_CONSOLE,
+  BUILTIN_SWEET_NIGHTMARE,
+  BUILTIN_DUAL_PERSONA,
+  BUILTIN_POLAROID_BOARD,
 ];
 
 export const DEFAULT_THEME = BUILTIN_VENICE;

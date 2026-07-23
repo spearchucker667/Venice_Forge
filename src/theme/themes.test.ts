@@ -13,6 +13,10 @@ import {
   BUILTIN_MONOKAI,
   BUILTIN_GITHUB_LIGHT,
   BUILTIN_LIGHT,
+  BUILTIN_COTTON_CANDY_CONSOLE,
+  BUILTIN_SWEET_NIGHTMARE,
+  BUILTIN_DUAL_PERSONA,
+  BUILTIN_POLAROID_BOARD,
 } from "./themes";
 
 const NEW_BUILTINS = [
@@ -26,6 +30,10 @@ const NEW_BUILTINS = [
   BUILTIN_GITHUB_LIGHT,
   // Light themes with explicit WCAG AA coverage
   BUILTIN_LIGHT,
+  BUILTIN_COTTON_CANDY_CONSOLE,
+  BUILTIN_SWEET_NIGHTMARE,
+  BUILTIN_DUAL_PERSONA,
+  BUILTIN_POLAROID_BOARD,
 ];
 
 function expectedYamlNames(themeId: string): string[] {
@@ -129,6 +137,6 @@ describe("built-in theme collection", () => {
 
   it("exports the expected number of built-in themes", () => {
     // This guard ensures the count stays in sync with the handoff-specified inventory.
-    expect(BUILTIN_THEMES.length).toBe(35);
+    expect(BUILTIN_THEMES.length).toBe(39);
   });
 });

@@ -51,6 +51,7 @@ import { useSettingsStore } from "../stores/settings-store";
 import { useConfigStore } from "../stores/config-store";
 import { toast } from "../stores/toast-store";
 import { redactErrorMessage } from "../shared/redaction";
+import { desktopConfig } from "../services/desktopBridge";
 
 const TOKEN_LABELS: Record<keyof ThemeTokens, string> = {
   background: "Background",
@@ -257,8 +258,6 @@ export function ThemeMaker() {
   const customThemes = useSettingsStore((s) => s.customThemes) ?? EMPTY_CUSTOM_THEMES;
   const setSelectedThemeId = useSettingsStore((s) => s.setSelectedThemeId);
   const setCustomTheme = useSettingsStore((s) => s.setCustomTheme);
-  const saveCustomThemeStore = useSettingsStore((s) => s.saveCustomTheme);
-  const deleteCustomThemeStore = useSettingsStore((s) => s.deleteCustomTheme);
   const setAppearanceMode = useSettingsStore((s) => s.setAppearanceMode);
   const yamlThemes = useConfigStore((s) => s.yamlThemes);
 
@@ -305,14 +304,15 @@ export function ThemeMaker() {
 
   const customThemesMap = useMemo(() => {
     const map: Record<string, Theme> = {};
-    customThemes.forEach((t) => { map[t.id] = t; });
-    if (customTheme && !map[customTheme.id]) {
-      map[customTheme.id] = customTheme;
+    for (const [id, theme] of Object.entries(yamlThemes)) {
+      if (!builtInMap[id]) {
+        map[id] = theme;
+      }
     }
     return map;
-  }, [customThemes, customTheme]);
+  }, [yamlThemes, builtInMap]);
 
-  const allThemesMap = useMemo(() => ({ ...builtInMap, ...yamlThemes, ...customThemesMap }), [builtInMap, yamlThemes, customThemesMap]);
+  const allThemesMap = useMemo(() => ({ ...builtInMap, ...yamlThemes }), [builtInMap, yamlThemes]);
 
   const [selector, setSelector] = useState<string>(selectedThemeId || "builtin-venice");
   const [draft, setDraft] = useState<Theme>(() => {
@@ -373,10 +373,20 @@ export function ThemeMaker() {
       { id: "builtin-glacial-ink", label: "Glacial Ink" },
       { id: "builtin-ultraviolet-rain", label: "Ultraviolet Rain" },
     ];
-    const yamlOptions = Object.entries(yamlThemes).map(([id, theme]) => ({ id, label: theme.name }));
-    const customUserOptions = Object.values(customThemesMap).map((theme) => ({ id: theme.id, label: theme.name }));
-    const options = [...builtInOptions, ...yamlOptions, ...customUserOptions];
-    if (!options.some((o) => o.id === "custom")) {
+    
+    const optionsMap = new Map<string, { id: string, label: string }>();
+    
+    // Add built-ins first
+    builtInOptions.forEach(opt => optionsMap.set(opt.id, opt));
+    
+    // Add yaml themes (overriding built-ins with the same ID, though they should be identical)
+    Object.entries(yamlThemes).forEach(([id, theme]) => optionsMap.set(id, { id, label: theme.name }));
+    
+    // Add custom user themes
+    Object.values(customThemesMap).forEach(theme => optionsMap.set(theme.id, { id: theme.id, label: theme.name }));
+
+    const options = Array.from(optionsMap.values());
+    if (!optionsMap.has("custom")) {
       options.push({ id: "custom", label: "Custom Theme" });
     }
     return options;
@@ -400,7 +410,7 @@ export function ThemeMaker() {
     }
   }
 
-  function handleCreateNewFromActive() {
+  async function handleCreateNewFromActive() {
     const base = allThemesMap[selector] || draft || BUILTIN_VENICE;
     const newTheme: Theme = {
       id: `user-theme-${Date.now()}`,
@@ -411,8 +421,13 @@ export function ThemeMaker() {
     setDraft(newTheme);
     setSelector(newTheme.id);
     applyTheme(newTheme);
-    saveCustomThemeStore(newTheme);
-    toast.success(`Created new custom theme "${newTheme.name}"`);
+    
+    try {
+      await desktopConfig.saveTheme(newTheme);
+      toast.success(`Created new custom theme "${newTheme.name}"`);
+    } catch (err) {
+      toast.error(`Failed to create theme: ${redactErrorMessage(err)}`);
+    }
   }
 
   function updateToken(key: keyof ThemeTokens, value: string) {
@@ -441,13 +456,17 @@ export function ThemeMaker() {
     }
   }, [draft, isCustomSelected, isDraftDirty]);
 
-  function handleSave() {
-    saveCustomThemeStore(draft);
-    setCustomTheme(draft);
-    setSelectedThemeId(draft.id);
-    setAppearanceMode(draft.mode);
-    setSelector(draft.id);
-    toast.success(`Theme "${draft.name}" saved successfully`);
+  async function handleSave() {
+    try {
+      await desktopConfig.saveTheme(draft);
+      setCustomTheme(draft);
+      setSelectedThemeId(draft.id);
+      setAppearanceMode(draft.mode);
+      setSelector(draft.id);
+      toast.success(`Theme "${draft.name}" saved successfully`);
+    } catch (err) {
+      toast.error(`Failed to save theme: ${redactErrorMessage(err)}`);
+    }
   }
 
   function handleReset() {
@@ -468,11 +487,15 @@ export function ThemeMaker() {
     toast.info("Restored default Venice theme");
   }
 
-  function handleDeleteCustom() {
+  async function handleDeleteCustom() {
     if (!customThemesMap[selector] && selector !== "custom") return;
     const targetId = selector;
-    deleteCustomThemeStore(targetId);
-    toast.info("Custom theme deleted");
+    try {
+      await desktopConfig.deleteTheme(targetId);
+      toast.info("Custom theme deleted");
+    } catch (err) {
+      toast.error(`Failed to delete theme: ${redactErrorMessage(err)}`);
+    }
   }
 
   async function handleExport() {
@@ -492,7 +515,7 @@ export function ThemeMaker() {
       if (!yaml) return;
       const importedTheme = await yamlToTheme(yaml);
 
-      const conflict = customThemes.find((t) => t.id === importedTheme.id || t.name.toLowerCase() === importedTheme.name.toLowerCase());
+      const conflict = Object.values(customThemesMap).find((t) => t.id === importedTheme.id || t.name.toLowerCase() === importedTheme.name.toLowerCase());
       setImportModal({
         theme: importedTheme,
         conflictId: conflict?.id,
@@ -503,7 +526,7 @@ export function ThemeMaker() {
     }
   }
 
-  function confirmImport(mode: "apply" | "copy" | "replace") {
+  async function confirmImport(mode: "apply" | "copy" | "replace") {
     if (!importModal) return;
     const targetId = (mode === "copy" || (mode === "apply" && importModal.conflictId))
       ? `user-theme-${Date.now()}`
@@ -517,14 +540,18 @@ export function ThemeMaker() {
       id: targetId,
       name: targetName,
     };
-    saveCustomThemeStore(finalTheme);
-    setDraft(finalTheme);
-    setSelectedThemeId(finalTheme.id);
-    setSelector(finalTheme.id);
-    setAppearanceMode(finalTheme.mode);
-    applyTheme(finalTheme);
-    setImportModal(null);
-    toast.success(`Theme "${finalTheme.name}" imported and applied`);
+    try {
+      await desktopConfig.saveTheme(finalTheme);
+      setDraft(finalTheme);
+      setSelectedThemeId(finalTheme.id);
+      setSelector(finalTheme.id);
+      setAppearanceMode(finalTheme.mode);
+      applyTheme(finalTheme);
+      setImportModal(null);
+      toast.success(`Theme "${finalTheme.name}" imported and applied`);
+    } catch (err) {
+      toast.error(`Failed to import theme: ${redactErrorMessage(err)}`);
+    }
   }
 
   const validColor = (v: string) => isValidColorValue(v);

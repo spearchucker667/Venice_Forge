@@ -4,6 +4,7 @@ import { getAgentServices } from "./agent-services";
 import { type ToolResult, safeToolError } from "../../../src/agent/contracts/tool-results";
 import { internalToolNameForProvider } from "../../../src/agent/registry/tool-name-map";
 import type { DocumentBlock, DocumentEditOperation } from "../../../src/agent/contracts/documents";
+import { serializableDocumentToBlocks } from "../../../src/agent/documents/document-source";
 import type { AssistantToolCall } from "../../../src/types/venice";
 import { sanitizeErrorText } from "../../../src/shared/redaction";
 import { performGuardedVeniceRequest } from "../../services/guardPipeline";
@@ -37,12 +38,49 @@ export async function executeAgentTool(profileId: string, toolCall: AssistantToo
       }
 
       case "document.create": {
-        const { projectId, relativePath, format, blocks, displayName } = args as { projectId: string; relativePath: string; format: "txt" | "md" | "json" | "csv" | "html" | "docx" | "pdf"; blocks: DocumentBlock[]; displayName: string };
+        const { projectId, relativePath, format, document, blocks, displayName, overwrite } = args as {
+          projectId: string;
+          relativePath: string;
+          format: "txt" | "md" | "json" | "csv" | "html" | "docx" | "pdf";
+          document?: unknown;
+          blocks?: DocumentBlock[];
+          displayName?: string;
+          overwrite?: boolean;
+        };
+        if (overwrite === true) {
+          return safeToolError(internalName, toolCall.id, "INVALID_ARGUMENTS", "document.create overwrite must be false.");
+        }
+        const resolvedBlocks = serializableDocumentToBlocks(document ?? blocks, format);
+        const resolvedDisplayName = displayName || relativePath;
         const result = await services.documents.create(profileId, {
-          projectId, relativePath, format, blocks, displayName
+          projectId,
+          relativePath,
+          format,
+          blocks: resolvedBlocks,
+          displayName: resolvedDisplayName,
         });
         await services.audit.record({ sessionId: `runtime_${profileId}`, toolName: "document.create", outcome: "execution", resourceIds: [result.document.id] });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: result };
+        const chatDocumentRef = {
+          documentId: result.document.id,
+          projectId: result.document.projectId,
+          relativePath: result.document.libraryRelativePath,
+          displayName: result.document.displayName,
+          format: result.document.originalFormat,
+          revisionId: result.revision.id,
+        };
+        return {
+          ok: true,
+          toolName: internalName,
+          requestId: toolCall.id,
+          data: {
+            documentId: result.document.id,
+            revisionId: result.revision.id,
+            displayName: result.document.displayName,
+            format: result.document.originalFormat,
+            relativePath: result.document.libraryRelativePath,
+            chatDocumentRef,
+          },
+        };
       }
 
       case "document.proposeEdits": {

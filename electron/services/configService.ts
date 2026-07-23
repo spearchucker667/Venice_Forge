@@ -28,7 +28,6 @@ import {
   emptyConfig,
   sanitizeConfig,
   validateConfig,
-  validateThemesFile,
   type ConfigWarning,
   type SanitizedConfig,
   type YamlConfig,
@@ -520,25 +519,9 @@ function buildStatus(args: {
 
 /** Discovers available built-in + merged theme ids. */
 async function discoverAvailableThemes(themesPath: string, _fallback: string): Promise<{ ids: string[]; warnings: ConfigWarning[] }> {
-  const warnings: ConfigWarning[] = [];
-  const { BUILTIN_THEMES } = await import("../../src/theme/themes");
-  const ids = BUILTIN_THEMES.map((t) => t.id);
-
-  // Merge in local themes.
-  const themes = await loadYaml(themesPath);
-  if (themes.error) {
-    warnings.push({ field: "(themes)", message: themes.error, severity: "error" });
-    return { ids, warnings };
-  }
-  if (themes.value === null) {
-    return { ids, warnings };
-  }
-  const result = validateThemesFile(themes.value);
-  warnings.push(...result.warnings);
-  for (const name of Object.keys(result.themes)) {
-    if (!ids.includes(name)) ids.push(name);
-  }
-  return { ids, warnings };
+  const { loadAllThemes } = await import("./themeService");
+  const { themes, warnings } = await loadAllThemes(themesPath);
+  return { ids: Object.keys(themes), warnings };
 }
 
 /** Initializes the config service: resolves paths, ensures files, parses,
@@ -583,12 +566,10 @@ export async function initializeConfig(): Promise<ConfigStatus> {
 
     const { ids: availableThemes } = await discoverAvailableThemes(paths.themesPath, parsed.theme.active);
 
-    // Effective active theme: only fall back if the configured one is missing.
     let activeTheme = parsed.theme.active;
     if (!availableThemes.includes(activeTheme)) {
       // Fall back to first available built-in.
-      const { BUILTIN_THEMES } = await import("../../src/theme/themes");
-      activeTheme = BUILTIN_THEMES[0]?.id ?? "builtin-dark";
+      activeTheme = availableThemes.length > 0 ? availableThemes[0] : "builtin-dark";
       warnings.push({ field: "theme.active", message: `Configured theme "${parsed.theme.active}" not found; falling back to "${activeTheme}".`, severity: "warn" });
     }
 
@@ -618,6 +599,10 @@ export async function initializeConfig(): Promise<ConfigStatus> {
 
     setRuntimeLocalFamilySafeModeEnabled(currentConfig.safety.local_family_safe_mode_enabled);
     setRuntimeVeniceApiSafeMode(currentConfig.safety.venice_api_safe_mode);
+    
+    const { startThemeWatcher } = await import("./themeService");
+    await startThemeWatcher();
+    
     return currentStatus;
   } catch (err) {
     logError("Config initialization failed", String(err));
@@ -657,11 +642,8 @@ export function getPaths(): ResolvedPaths {
 /** Returns the parsed themes file (built-in + merged) for theme loaders. */
 export async function loadMergedThemes(): Promise<{ themes: Record<string, YamlTheme>; warnings: ConfigWarning[] }> {
   const paths = resolvePaths();
-  const themes = await loadYaml(paths.themesPath);
-  if (themes.error || themes.value === null) {
-    return { themes: {}, warnings: themes.error ? [{ field: "(themes)", message: themes.error, severity: "error" }] : [] };
-  }
-  return validateThemesFile(themes.value);
+  const { loadAllThemes } = await import("./themeService");
+  return loadAllThemes(paths.themesPath);
 }
 
 /** Opens the active config directory in the OS file manager. */

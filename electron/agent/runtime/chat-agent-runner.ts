@@ -10,6 +10,7 @@ import {
   isChatMediaReferenceArrayContract,
   type ChatMediaReferenceContract,
 } from "../../../src/shared/chatMediaReferenceContracts";
+import { isChatDocumentRef, type ChatDocumentRef } from "../../../src/types/chatDocument";
 
 interface SseChunk {
   content?: string;
@@ -83,6 +84,15 @@ function extractCanonicalChatMediaReferences(toolResult: { ok: boolean; data?: u
   }
   if (!isChatMediaReferenceArrayContract([ref])) return [];
   return [ref];
+}
+
+function extractCanonicalChatDocumentReferences(toolResult: { ok: boolean; data?: unknown }): ChatDocumentRef[] {
+  if (!toolResult.ok) return [];
+  const data = (toolResult.data ?? {}) as { chatDocumentRef?: unknown };
+  if (!data || typeof data !== "object") return [];
+  const candidate = data.chatDocumentRef;
+  if (!candidate || !isChatDocumentRef(candidate)) return [];
+  return [candidate];
 }
 
 /**
@@ -192,9 +202,14 @@ async function streamAndExecuteTurn(
       if (request.signal?.aborted) break;
       const toolResult = await executeAgentTool(request.profileId, call, request.agentSessionId);
       const rawResult = toolResult.ok ? JSON.stringify(toolResult.data) : JSON.stringify(toolResult.error);
+
       const chatMediaRefs = extractCanonicalChatMediaReferences(toolResult);
-      const metadata: Record<string, unknown> | undefined = chatMediaRefs.length > 0
-        ? { generatedMedia: chatMediaRefs }
+      const chatDocRefs = extractCanonicalChatDocumentReferences(toolResult);
+      const metadata: Record<string, unknown> | undefined = (chatMediaRefs.length > 0 || chatDocRefs.length > 0)
+        ? {
+            ...(chatMediaRefs.length > 0 ? { generatedMedia: chatMediaRefs } : {}),
+            ...(chatDocRefs.length > 0 ? { managedDocuments: chatDocRefs } : {}),
+          }
         : undefined;
       const toolMsg: ToolResultMessage = {
         role: "tool",

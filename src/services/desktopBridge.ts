@@ -1268,6 +1268,21 @@ export const desktopConfig = {
     if (!isElectron()) return { ok: false, themes: {}, warnings: [] };
     return window.veniceForge!.config.loadMergedThemes();
   },
+  /** Saves a custom theme directly via IPC. */
+  async saveTheme(theme: unknown): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Not available in web" };
+    return window.veniceForge!.config.saveTheme(theme);
+  },
+  /** Deletes a custom theme directly via IPC. */
+  async deleteTheme(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Not available in web" };
+    return window.veniceForge!.config.deleteTheme(id);
+  },
+  /** Subscribes to theme update broadcasts from the main process. */
+  onThemeUpdated(callback: () => void): () => void {
+    if (!isElectron()) return () => {};
+    return window.veniceForge!.config.onThemeUpdated(callback);
+  },
   /** Removes any secure-store API keys. */
   async resetSecureStoreKeys(): Promise<{ ok: boolean; removed?: { venice: boolean; jina: boolean }; error?: string }> {
     if (!isElectron()) return { ok: false, error: "Local config is only available in desktop mode." };

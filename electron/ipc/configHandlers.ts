@@ -107,6 +107,27 @@ export function registerConfigIpcHandlers() {
     }
   });
 
+  handleIpc("config:saveTheme", async (_event, theme: unknown) => {
+    try {
+      const { saveTheme } = await import("../services/themeService");
+      // Use cast to YamlTheme & { id: string }
+      await saveTheme(theme as import("../../src/config/configSchema").YamlTheme & { id: string });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  handleIpc("config:deleteTheme", async (_event, id: string) => {
+    try {
+      const { deleteTheme } = await import("../services/themeService");
+      await deleteTheme(id);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
   handleIpc("config:resetSecureStoreKeys", () => {
     try {
       const removed = resetSecureStoreKeys();

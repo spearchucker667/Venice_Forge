@@ -191,9 +191,9 @@ describe("configSchema", () => {
   });
 
   describe("validateThemesFile", () => {
-    it("rejects themes without a valid version", () => {
+    it("accepts themes without a version", () => {
       const result = validateThemesFile({ themes: {} });
-      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings.length).toBe(0);
     });
 
     it("skips invalid theme entries with a warning", () => {

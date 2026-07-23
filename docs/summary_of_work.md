@@ -4,6 +4,74 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+**Date:** 2026-07-23 (Venice Forge Theme Engine Regression Audit and Live Custom-Theme Loading Work Order)
+
+**Scope:** Audited the complete Venice Forge theme lifecycle and corrected regressions affecting custom-theme discovery, YAML parsing, theme persistence, and live theme updates.
+
+**Changes Made:**
+1. **Built-in theme discovery:** Replaced isolated built-in lists with a canonical filesystem scan across packaged `config/themes/` (built-in) and user `userData/themes/` directories.
+2. **YAML parsing and schema validation:** Made the `version` field optional in `configSchema.ts` `validateThemesFile` to allow individual theme files to parse correctly without throwing warnings.
+3. **Theme persistence & Live updates:**
+   - Created `themeService.ts` to manage loading, saving, deleting, and file-watching of all `.yaml` themes.
+   - Added a `chokidar` file watcher for `userData/themes` which broadcasts `theme:updated` to all Electron windows via `webContents.send()`.
+   - The React renderer now subscribes to `theme:updated` and automatically triggers `refreshConfig()` to reload the merged `yamlThemes` dynamically.
+4. **Theme Import and Export:**
+   - Integrated IPC handlers for `config:saveTheme` and `config:deleteTheme`.
+   - Replaced renderer-side JSON stringification of custom themes in `ThemeMaker.tsx` with native `YamlTheme` config storage through the IPC layer.
+   - `ThemeMaker.tsx` now derives the list of custom themes exclusively from `yamlThemes`, eliminating local storage state duplication.
+5. **Electron Packager:** Updated `electron-builder.config.cjs` to include `config/themes/**/*` in the production build.
+6. **React warnings & Syntax fixes:**
+   - Fixed duplicate keys warning in `ThemeMaker.tsx` by using a `Map` to deduplicate built-in, YAML, and custom user themes by ID.
+   - Fixed pre-existing missing closing `</div>` syntax error in `src/components/documents/DocumentAgentView.tsx`.
+
+**Validation this session:**
+  - `npx vitest run src/stores/config-store.test.ts src/config/configSchema.test.ts src/services/syncEngine.test.ts` → **All PASS** (Config schema test updated to expect 0 warnings for omitted version).
+  - `npm run lint:eslint` → **PASS** (0 warnings).
+  - `npm run typecheck` → **PASS** (0 errors).
+  - `npx tsc --noEmit --project tsconfig.electron.json` → **PASS** (0 errors).
+
+**Files changed:**
+  - `electron-builder.config.cjs`
+  - `src/config/configSchema.ts` and `.test.ts`
+  - `electron/services/configService.ts`
+  - `electron/services/themeService.ts` (New)
+  - `electron/ipc/configHandlers.ts`
+  - `electron/preload.ts`
+  - `src/services/desktopBridge.ts`
+  - `src/types/desktop.ts`
+  - `src/stores/config-store.ts`
+  - `src/components/ThemeMaker.tsx`
+  - `src/components/documents/DocumentAgentView.tsx`
+
+**Manual QA:** Not run (Electron dev build not launched this session).
+
+### Prior Session Summary (Meteocon Dark/Light Theme Adaptation) [demoted from "Latest Session Summary"]
+
+**Date:** 2026-07-23 (Meteocon Dark/Light Theme Adaptation)
+
+**Scope:** Corrected and validated four new built-in themes (Cotton Candy Console, Sweet Nightmare, Dual Persona, Polaroid Board) through the canonical theme engine (`VF-THEME-PASTEL-001`).
+
+- **Polaroid Board correction (`src/theme/builtins/polaroidBoard.ts`):** Replaced off-palette accent `#3D6478` with reference-palette powder aqua `#9EBFD0`.
+- **YAML sync (`config/themes/polaroid-board.yaml`):** Synchronized all corrected token values with the TypeScript file.
+- **Cotton Candy Console, Sweet Nightmare, Dual Persona:** Confirmed all tokens already correct and WCAG AA compliant.
+- **Test results:** `src/theme/themes.test.ts` 31/31 passed; `src/theme` module 130/130 passed.
+
+### Prior Session Summary (Documents Working-Groups and Attachment Rework) [demoted from "Latest Session Summary"]
+
+**Date:** 2026-07-23 (Documents Working-Groups and Attachment Rework)
+
+**Scope:** Dedicated Documents tab workspace organized around working groups and explicit environments, model-generated chat attachment references, bounded attachment IPC, and structured document block rendering (`VF-DOCUMENT-AGENT-001`).
+
+- **Documents Tab Architecture (`src/components/documents/DocumentAgentView.tsx`):** Completely removed `ChatView` from `DocumentAgentView.tsx`. Built a purpose-built workspace organized around working groups (backed by `useProjectStore`) and explicit environments (`Managed Library` vs `Connected Workspace`).
+- **Managed & Connected Environments:** Managed Library supports app-managed revisioned documents, structured preview, source editing, proposal reviews, immutable revision history, native file exports, document creation, and multi-file attachment imports. Connected Workspace supports session-scoped directory grants, file listing, text searching, and file content previews via `bridge.workspace`.
+- **Structured Block Parsing & Rendering (`src/agent/documents/document-source.ts`, `src/components/documents/DocumentRenderer.tsx`):** Added a shared parser/serializer supporting Markdown headings, lists, block quotes, code blocks, tables, CSV tables, page breaks, and HTML/JSON source blocks. Created `DocumentRenderer` for safe structured preview without injecting raw HTML.
+- **Canonical Tool Contract & Executor Alignment (`src/agent/registry/tool-registry.ts`, `electron/agent/runtime/agent-tool-executor.ts`):** Standardized `document.create` to accept `document` payloads converted via `serializableDocumentToBlocks`, constrained `overwrite` to `false`, and updated return values to include `chatDocumentRef`.
+- **Chat Document Attachment Cards (`src/types/chatDocument.ts`, `src/components/documents/ManagedDocumentAttachmentCard.tsx`, `electron/agent/runtime/chat-agent-runner.ts`, `src/components/chat/message-bubble.tsx`):** Extracted `chatDocumentRef` into `message.metadata.managedDocuments`. Rendered `ManagedDocumentAttachmentCard` in chat messages which deep-links directly to the corresponding working group and document in the Documents tab.
+- **IPC Payload Bounds (`electron/ipc/handlers/documentAgentHandlers.ts`):** Increased base64 payload length validation for `documentAgent:attachments:promote` to support documents up to 1 MiB.
+- **Verification:** Unit tests added in `document-source.test.ts`, `documentViewHelpers.test.ts`, `ManagedDocumentAttachmentCard.test.tsx`, and `agent-tool-executor.documents.test.ts`. Passed `verify:document-ingestion`, `verify:document-agent`, `verify:network-boundaries`, `verify:safety-guard`, and `verify:no-native-dialogs`.
+
+### Prior Session Summary (Workflow Playground Video Fetching Fix) [demoted from "Latest Session Summary"]
+
 **Date:** 2026-07-22 (Workflow Playground Video Fetching Fix)
 
 **Scope:** Fixed Workflow Playground video node polling, error masking, inline data URL handling, and background task IPC profile routing (`VF-WORKFLOW-VIDEO-001`).

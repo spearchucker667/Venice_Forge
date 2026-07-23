@@ -90,13 +90,13 @@ flowchart LR
   VF["Venice Forge"]
   VF --> Conversation["Conversation<br/>Chat · Character Chats · History"]
   VF --> Generate["Generate<br/>Image Studio · Media Studio · Prompts · Scene Composer<br/>Audio Studio · Music Studio · Video Studio · Embeddings<br/>Research · Characters"]
-  VF --> Build["Build<br/>RP Studio · Workflow Templates · Documents · Playground"]
+  VF --> Build["Build<br/>RP Studio · Workflows · Documents · Playground"]
   VF --> System["System<br/>Privacy · Config · Status"]
 ```
 
 ---
 
-## Core App Areas
+## Current Workspace Map
 
 | Area | Status | Purpose |
 | :--- | :---: | :--- |
@@ -112,7 +112,7 @@ flowchart LR
 | **Research** | Beta | Integrated search/scrape runner with Jina and Venice search synthesis |
 | **Characters & RP** | Beta | SillyTavern-compatible ST Card Studio, local cards, personas, lorebooks, and multi-character chats |
 | **RP Studio** | Beta | Standalone scenarios, openers, setting text, and character card seeding |
-| **Workflow Templates**| Beta | Versioned template-based automation chains |
+| **Workflows** | Beta | Versioned template-based automation chains |
 | **Playground** | Beta | Interactive visual node graph builder and multi-model workflow execution engine |
 | **Documents** | Beta | Managed-document tools, immutable revisions, workspace search/inspection, and directory grants |
 
@@ -151,8 +151,8 @@ Venice Forge provides a rich multimedia pipeline:
 
 Privacy is the core design pillar of Venice Forge:
 - **No Telemetry:** The application does not collect analytics, telemetry, or crash reports.
-- **Secure Key Storage:** In Electron, profile-scoped API keys are encrypted with Electron `safeStorage` and the ciphertext is stored in the owner-only `secure-prefs.json` app-data file. `safeStorage` uses Keychain-backed encryption on macOS and DPAPI on Windows.
-- **Profiles & Isolation:** Profiles separate settings, conversations, and API keys. Locked profiles can be password-protected; PBKDF2-SHA256 verifiers are managed entirely in the main process with a 5-attempt brute-force lockout.
+- **Secure Key Storage:** In Electron, profile-scoped API keys are encrypted with Electron `safeStorage` and the ciphertext is stored in the owner-only `secure-prefs.json` app-data file (`safeStorage` uses Keychain-backed encryption on macOS and DPAPI on Windows; password-verifier records protect profile passwords, and it does not store API keys in plaintext).
+- **Profiles & Isolation:** Profiles separate settings, conversations, and API keys. Locked profiles can be password-protected; password-verifier records and PBKDF2-SHA256 verifiers are managed entirely in the main process with a 5-attempt brute-force lockout.
 - **Data Redaction:** The Traffic Inspector, application log files, and diagnostics exports automatically strip bearer tokens, API keys (`sk-...`, `vn-...`), local system paths, and raw prompt/response bodies.
 - **Local Family Safe Mode:** Run-time guardrails screen outgoing prompts and inbound scrape responses locally. This is independent of the provider-side Venice API `safe_mode`.
 
@@ -162,7 +162,8 @@ Privacy is the core design pillar of Venice Forge:
 
 The user interface uses a token-based styling model matching dynamic glassmorphism aesthetics.
 - **YAML Themes:** Built-in and user-supplied themes live under `config/themes/` using standard CSS variable key-value maps.
-- **Built-in Catalog (35 Themes):**
+- **Built-in Catalog (39 Themes):**
+  - *Pastel Aqua/Pink Theme Pack:* cotton-candy-console, sweet-nightmare, dual-persona, polaroid-board.
   - *Dracula & Dark Palettes:* Basalt Noir, catppuccin, dracula, gruvbox_dark, midnight-velvet, monokai, nord, obsidian-bloom, one_dark, rosepine, solarized_dark, synthwave-harbor, tokyo_night, venice.
   - *Light & High Contrast:* amber-archive, arctic-glass, aurora-boreal, circuit-mint, copper, cyber-orchid, dark, desert-copperfield, ember-monastery, github_light, glacial-ink, harbor-fog, light, moss-circuit, neon-dusk, porcelain-daybreak, sakura-terminal, solar-ash, solarized_light, toxic-limewire, ultraviolet-rain.
 

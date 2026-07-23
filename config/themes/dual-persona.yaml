@@ -1,0 +1,41 @@
+themes:
+  dual-persona:
+    display_name: Dual Persona
+    mode: light
+    tokens:
+      accent: "#86BDCB"
+      background: "#E9EEF2"
+      surface: "#F3EDEB"
+      surface_elevated: "#FFFFFF"
+      surface_muted: "#F2DFE7"
+      border: "#C3B4C9"
+      border_strong: "#9AAFC0"
+      text_primary: "#412A3A"
+      text_secondary: "#574457"
+      text_muted: "#614E61"
+      foreground: "#412A3A"
+      foreground_muted: "#574457"
+      foreground_subtle: "#614E61"
+      accent_hover: "#6FAFC0"
+      accent_foreground: "#1F141C"
+      success: "#2B785B"
+      success_foreground: "#FFFFFF"
+      warning: "#A85E2E"
+      warning_foreground: "#FFFFFF"
+      danger: "#B84E70"
+      danger_foreground: "#FFFFFF"
+      info: "#74528A"
+      input_background: "#F2DFE7"
+      input_foreground: "#412A3A"
+      placeholder: "#614E61"
+      disabled_foreground: "#614E61"
+      button_primary_background: "#86BDCB"
+      button_primary_foreground: "#1F141C"
+      button_secondary_background: "#F2DFE7"
+      button_secondary_foreground: "#412A3A"
+      link: "#3C6D7E"
+      focus_ring: "#AA5B6E"
+      selection_background: "#D8E8EC"
+      selection_foreground: "#412A3A"
+      overlay: rgba(65, 42, 58, 0.4)
+      glow: rgba(134, 189, 203, 0.25)

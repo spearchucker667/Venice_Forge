@@ -18,6 +18,8 @@ import { copyText } from '../../stores/media-send-to'
 import { useKatexCss } from '../../hooks/useKatexCss'
 import { CharacterSceneCard } from './CharacterSceneCard'
 import type { CharacterSceneGenerationResult } from '../../types/characterSceneGeneration'
+import type { ChatDocumentRef } from '../../types/chatDocument'
+import { ManagedDocumentAttachmentCard } from '../documents/ManagedDocumentAttachmentCard'
 
 const ChatTtsPlayer = lazy(async () => {
   const module = await import('./ChatTtsPlayer')
@@ -481,6 +483,10 @@ function MessageBubbleImpl({ message, index, onCopy, onDelete, onEdit, onDeleteF
           </div>
         )}
         {injectedContextDisclosure}
+        
+        {Array.isArray(message.metadata?.managedDocuments) && (message.metadata.managedDocuments as ChatDocumentRef[]).map((docRef, i) => (
+          <ManagedDocumentAttachmentCard key={docRef.documentId || i} docRef={docRef} />
+        ))}
         
         {isAssistant && Array.isArray(message.metadata?.generatedMedia) && (message.metadata.generatedMedia as any[]).filter((r) => !r?.deletedFromChatAt).map((r) => (
           <div key={r.id} className="relative group mt-2 mb-1 w-full max-w-sm rounded-lg overflow-hidden border border-border bg-surface-sunken">

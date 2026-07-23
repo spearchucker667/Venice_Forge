@@ -1,0 +1,44 @@
+themes:
+  polaroid-board:
+    display_name: Polaroid Board
+    mode: light
+    tokens:
+      # accent corrected from #3D6478 to palette-canonical powder aqua #9EBFD0.
+      # border darkened from #C98F80 to #BA7D6E for visibility against warm cork background.
+      # focus_ring changed from #291A1E to muted violet #675B6E.
+      accent: "#9EBFD0"
+      background: "#D8B09E"
+      surface: "#F3EDEB"
+      surface_elevated: "#FFF9F5"
+      surface_muted: "#EADAD5"
+      border: "#BA7D6E"
+      border_strong: "#9E797A"
+      text_primary: "#291A1E"
+      text_secondary: "#442E35"
+      text_muted: "#543941"
+      foreground: "#291A1E"
+      foreground_muted: "#442E35"
+      foreground_subtle: "#543941"
+      accent_hover: "#86ADBE"
+      accent_foreground: "#1A1012"
+      success: "#287557"
+      success_foreground: "#FFFFFF"
+      warning: "#A35324"
+      warning_foreground: "#FFFFFF"
+      danger: "#AA5B6E"
+      danger_foreground: "#FFFFFF"
+      info: "#4A5F73"
+      input_background: "#FFF9F5"
+      input_foreground: "#291A1E"
+      placeholder: "#543941"
+      disabled_foreground: "#543941"
+      button_primary_background: "#9EBFD0"
+      button_primary_foreground: "#1A1012"
+      button_secondary_background: "#EADAD5"
+      button_secondary_foreground: "#291A1E"
+      link: "#3B5E70"
+      focus_ring: "#675B6E"
+      selection_background: "#CDD7DD"
+      selection_foreground: "#291A1E"
+      overlay: rgba(41, 26, 30, 0.45)
+      glow: rgba(158, 191, 208, 0.25)
