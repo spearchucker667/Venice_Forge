@@ -310,7 +310,7 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 
 | Path | Notes |
 |------|-------|
-| `src/components/` | Subdirectories for `audio`, `chat`, `command-palette`, `embeddings`, `gallery`, `image`, `layout`, `music`, `playground`, `privacy`, `prompts`, `research`, `rp-studio`, `scenes`, `status`, `ui`, `video`, `workflows`. The legacy filesystem directory name `gallery/` contains the canonical Media Studio implementation |
+| `src/components/` | Subdirectories for `audio`, `chat`, `command-palette`, `embeddings`, `gallery`, `image`, `image-inspector`, `layout`, `music`, `playground`, `privacy`, `prompts`, `research`, `rp-studio`, `scenes`, `status`, `ui`, `video`, `workflows`. The legacy filesystem directory name `gallery/` contains the canonical Media Studio implementation |
 | `src/stores/` | Zustand 5 stores — see the `src/stores/` table above for the full surface |
 | `src/lib/venice-client.ts` | Compatibility wrapper re-exporting canonical service client (`src/services/veniceClient.ts`) with the legacy `venice<T>()` / `veniceBlob()` / `veniceFormData()` surface. Safety guard is in the IPC layer — see `electron/ipc/handlers.ts:79`. The legacy hooks consume this simpler API; new code should import from `src/services/veniceClient.ts` directly |
 | `src/services/desktopBridge.ts` | Secure transport abstraction (IPC in Electron, proxy in web) |

@@ -24,7 +24,8 @@ Generated `dist/`, `dist-electron/`, `release/`, and `coverage/` trees are ignor
 |---|---|
 | `src/App.tsx` | Application view host |
 | `src/config/tabs.ts` | Canonical tab IDs, ordering, sidebar groups, shortcuts, and legacy aliases |
-| `src/components/` | Feature UI: standard/character chat, history, image/media/audio/music/video studios, prompts, scenes, research, characters/RP, workflows, privacy, settings, status, and command palette |
+| `src/components/` | Feature UI: standard/character chat, history, image/media/audio/music/video studios, Image Inspector, prompts, scenes, research, characters/RP, workflows, privacy, settings, status, and command palette |
+| `src/components/image-inspector/` | Image ingestion controls, vision-model analysis configuration, structured results, text-based source discovery, and shared processing animation |
 | `src/components/rp-studio/` | RP Studio and ST Card Studio UI, including the ten-step character editor, character-book editor, library, chats, prompt trace, and scene tools |
 | `src/services/desktopBridge.ts` | Only renderer boundary for Electron preload capabilities; web-safe fallbacks live here |
 | `src/services/characterCards/` | Character Card V1/V2 adapters, generation/refinement proposals, drafts, Studio handoffs, character-book mapping, and sync merge policy |

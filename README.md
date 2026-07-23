@@ -71,6 +71,7 @@ By prioritizing local data ownership, Venice Forge runs all storage operations l
 - **Projects & Workspaces:** Organize your chat histories, generation parameters, and media assets into logical local projects.
 - **Document Tools & Workspace Grants:** Create non-overwriting managed documents, review exact edit diffs, retain immutable revisions, search text files across granted workspace directories, and export through native save boundaries.
 - **Model-Aware Image Generation:** Image Studio UI dynamically adapts inputs to selected image models, preventing payload errors across edit, inpaint, background removal, and API-compliant 2×/4× upscaling.
+- **Image Inspector & Prompt Reconstruction:** Analyze PNG, JPEG, or WebP images with a selected vision model, generate structured visual breakdowns and target-specific replication prompts, and derive text queries for potential-source discovery.
 - **Media Studio Command Center:** Gallery view equipped with multi-select bulk operations, lineage graph tracing, visual diff comparison, and metadata-preserving exports.
 - **Video & Music Studios:** Queue text/image-to-video and lyrics-driven music requests with explicit stage tracking (`queued` → `generating` → `retrieving` → `saving` → `completed`), durable stream persistence, and MP4/audio exports.
 - **Research Workspace:** Synthesize facts using Venice/Jina-backed search, web scraping, and social discovery within an isolated sandbox.
@@ -89,7 +90,7 @@ The navigation below uses the canonical tab labels from `src/config/tabs.ts`:
 flowchart LR
   VF["Venice Forge"]
   VF --> Conversation["Conversation<br/>Chat · Character Chats · History"]
-  VF --> Generate["Generate<br/>Image Studio · Media Studio · Prompts · Scene Composer<br/>Audio Studio · Music Studio · Video Studio · Embeddings<br/>Research · Characters"]
+  VF --> Generate["Generate<br/>Image Studio · Media Studio · Image Inspector · Prompts · Scene Composer<br/>Audio Studio · Music Studio · Video Studio · Embeddings<br/>Research · Characters"]
   VF --> Build["Build<br/>RP Studio · Workflows · Documents · Playground"]
   VF --> System["System<br/>Privacy · Config · Status"]
 ```
@@ -103,6 +104,7 @@ flowchart LR
 | **Chat** | Beta | Streaming conversations, projects, prompt injects, attachments, classical/agent modes |
 | **Image Studio** | Beta | Model-aware generation, prompt enhancement, image editing, background removal, and 2×/4× upscaling |
 | **Media Studio** | Beta | Visual gallery, multi-image comparison, lineage tracking, metadata bundle exports |
+| **Image Inspector** | Beta | Bounded local-image ingestion, schema-validated visual analysis, target-specific replication prompts, and text-based potential-source discovery |
 | **Prompts** | Beta | Prompt Library with global/project scopes, version chains, and tag management |
 | **Scene Composer** | Beta | Visual composition tool for arranging prompts, media references, and models into scenes |
 | **Audio Studio** | Beta | TTS speech generation with voice selection and configurable audio response formats |
@@ -140,6 +142,7 @@ Roleplay and creative writing features are consolidated into a comprehensive **R
 
 Venice Forge provides a rich multimedia pipeline:
 - **Image Generation:** The Image Studio handles prompts, negatives, seeds, aspect ratios, and model-specific parameters.
+- **Image Inspection:** Image Inspector accepts bounded PNG, JPEG, and WebP inputs, uses live model capability metadata to select vision models, validates structured analysis before persistence, and produces prompts for Generic Natural Language, Venice Image Studio, FLUX, or Midjourney. Optional Google/Brave discovery uses editable text queries; it is not pixel-based reverse-image matching. See the [Image Inspector guide](docs/user/IMAGE_INSPECTOR.md).
 - **Media Studio:** The gallery indexes all outputs. You can select up to 4 images for a side-by-side field diff comparison, walk the parent-child lineage tree of remixed images, and export a redacted JSON manifest with deterministic sidecar filenames.
 - **Audio & Music:** Supports Text-to-Speech speech queues and lyrics-driven Music generation.
 - **Video:** Queues asynchronous text/image-to-video requests, shows explicit queued/generating/retrieving/saving stages, streams completed MP4 bytes into main-owned durable storage, and exports through a native Save As boundary.

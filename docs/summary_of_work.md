@@ -4,17 +4,20 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-23 (Image Inspector loading-state consistency)
+**Date:** 2026-07-23 (Image Inspector public documentation synchronization)
 
-**Scope:** Replaced the Image Inspector analysis panel's generic spinner with the shared anime generation animation used across the other generation and processing surfaces.
+**Scope:** Synchronized the shipped Image Inspector feature across the repository's canonical public, user, privacy, security, developer, repository-map, and release documentation.
 
-- Reused `GenerationLoadingIndicator` with the processing semantic state, large anime animation, accessible live status, analysis label, and explanatory detail.
-- Retained the compact spinner affordances inside Cancel Analysis and source-search buttons because those are control-local activity indicators rather than the primary analysis loading surface.
-- Added a UI regression proving the analyzing state renders the shared status component and animated image asset.
+- Added `docs/user/IMAGE_INSPECTOR.md` as the canonical user guide covering image-to-prompt usage, analysis depths and targets, supported inputs, privacy, troubleshooting, and limitations.
+- Added Image Inspector to the README feature highlights, workspace diagram/table, and multimodal overview, and to the About tab inventory.
+- Added FAQ entries for image-to-prompt use, model capability selection, transmitted data, and the distinction between text-based source discovery and pixel reverse-image matching.
+- Updated root and detailed privacy/security documentation with explicit image transmission, main-process validation, structured-output, diagnostics-redaction, and source-discovery boundaries.
+- Updated the developer architecture for the live JSON Schema envelope, bounded response normalization, and shared accessible loading animation.
+- Registered the new guide in `docs/DOCS_INDEX.md`, updated both repository maps, and added Image Inspector checks to the release smoke-test checklist.
 
-**Validation:** The focused Image Inspector UI suite passed 1 file / 3 tests. Zero-warning ESLint, renderer and Electron TypeScript projects, and production web/server/Electron builds passed. Validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
+**Validation:** `verify:markdown-links` passed for 153 Markdown files; `verify:agent-docs`, `verify:repo-handoff-hygiene`, and `git diff --check` passed. Documentation-only validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
 
-**Manual QA:** No headed desktop analysis was run; animation asset inclusion was confirmed by the production build and the rendered-component regression.
+**Manual QA:** No headed desktop or paid-provider operation was run in this documentation-only session.
 
 ### Prior Session Summary (Image Inspector closure and repository-gate recovery)
 
@@ -871,6 +874,7 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 
 | Command | Result | Evidence |
 |---|---|---|
+| Image Inspector public documentation synchronization | PASS | Markdown links pass across 153 files; agent-doc, repository-handoff, and whitespace/diff checks pass. |
 | Image Inspector shared loading-animation regression | PASS | 1 file / 3 tests proves the analyzing state renders the shared accessible anime loading indicator; zero-warning ESLint, both TypeScript projects, and production web/server/Electron builds also pass. |
 | Image Inspector focused Vitest follow-up | PASS | 3 files / 15 tests cover fenced/truncated JSON, bounded schema normalization, capability-gated `json_schema`, store persistence, and UI integration. |
 | Qwen structured-response envelope regression | PASS | 2 files / 13 tests prove the JSON Schema is nested at `response_format.json_schema.schema` with a stable name and strict mode. |
@@ -1315,6 +1319,14 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-23 — Image Inspector public documentation synchronization
+
+- Added the canonical Image Inspector user guide and registered it in the documentation index.
+- Updated README, About, FAQ, privacy, security, developer architecture, repository maps, and release acceptance documentation.
+- Documented image-to-prompt usage, live vision capability selection, supported image formats, structured response handling, shared loading animation, diagnostics redaction, and text-only source discovery without reverse-image claims.
+- Passed Markdown validation across 153 files, agent-doc verification, repository-handoff hygiene, and `git diff --check`.
+- No headed desktop or paid-provider operation was run.
 
 ### 2026-07-23 — Image Inspector loading-state consistency
 

@@ -18,6 +18,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [ABOUT.md](ABOUT.md) — Comprehensive overview of features, tabs, and local-first goals.
 - [FAQ.md](FAQ.md) — Answers on local key custody, safety modes, storage, and ST Card Studio import/export behavior.
 - [SUPPORT.md](SUPPORT.md) — User support guidelines.
+- [user/IMAGE_INSPECTOR.md](user/IMAGE_INSPECTOR.md) — Image-to-prompt analysis, supported inputs, text-based source discovery, privacy, and troubleshooting.
 - [LEGAL.md](../LEGAL.md) — Root legal notice, copyright statement, and trademark disclaimers.
 - [PRIVACY.md](../PRIVACY.md) — User privacy model summary.
 

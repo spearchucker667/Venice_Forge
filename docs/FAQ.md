@@ -152,7 +152,16 @@ Yes. Click the collapse/expand arrow at the top of the desktop sidebar. The stat
 - **URLs:** Scraped via the research provider and injected as `<doc url="…">…</doc>`.
 
 ### Which models support image attachments?
-Venice Forge uses a fallback allowlist and pattern matching to detect vision-capable models (IDs matching `/vision/i`, `/-vl/i`, or `/gemini-2\.[05]/i`). If a model's vision capability is unknown, attachments are disabled by default. There is no live vision flag from the Venice API yet.
+Venice Forge uses live model capability metadata when available, with a conservative compatibility fallback for known vision-model identifiers. If vision capability is unknown, image workflows fail closed instead of offering an unsupported model.
+
+### How do I turn an image into a prompt?
+Open **Image Inspector**, select a PNG, JPEG, or WebP image, choose a vision-capable model, analysis depth, and prompt target, then select **Analyze Image**. The result includes a structured visual breakdown and a replication prompt for Generic Natural Language, Venice Image Studio, FLUX, or Midjourney. See the [Image Inspector guide](user/IMAGE_INSPECTOR.md).
+
+### Does Image Inspector perform reverse-image search?
+No. Its optional source-discovery actions send an editable descriptive text query to a Google- or Brave-backed search provider. Results are potential leads, not pixel matches or proof of origin, ownership, or provenance.
+
+### What is sent when I inspect an image?
+When you explicitly start analysis, the selected image and instructions are sent through the credential-isolated Venice request path to the selected vision model. A source-discovery query is sent only when you separately start that search. Safe diagnostics exclude raw image bytes, base64 media, complete prompts, credentials, and local absolute paths.
 
 ### Where do uploaded files go?
 File and URL attachments are assembled into the current prompt context when you send a message. They are not shown in a dedicated Files tab in the UI. Generated images that the app saves from image workflows do appear in the **Media Studio** tab (renamed from the old "Library"), where you can preview, batch favorite/unstar/delete, inspect lineage, and export.

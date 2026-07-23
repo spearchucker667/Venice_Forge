@@ -209,6 +209,14 @@ The Character Card V2 PNG codec caps file size, decoded metadata, image dimensio
 
 Run `npm run test:character-cards`, `npm run verify:character-card-v2`, `npm run verify:character-card-png`, and `npm run verify:character-card-security` after changing these surfaces. See [`docs/security/ST_CARD_IMPORT_THREAT_MODEL.md`](docs/security/ST_CARD_IMPORT_THREAT_MODEL.md).
 
+## Image Inspector Boundary
+
+Image Inspector file and clipboard ingestion is main-process owned. The renderer receives a durable media reference rather than an unrestricted filesystem path. Before analysis, the main process verifies the supported MIME type, encoded signature, non-zero bounded byte count, decodability, dimensions, and decoded-pixel ceiling for PNG, JPEG, and WebP inputs.
+
+Vision requests use the canonical Venice client and main-authoritative safety pipeline. Model output is untrusted: the app requires a versioned structured analysis, normalizes only bounded compatible drift, rejects incomplete or secret-like output, and persists a failed session with a safe normalized error instead of treating malformed content as success. Traffic Inspector sanitization does not retain raw image payloads, base64 data, complete prompts, credentials, or local absolute paths.
+
+Optional source discovery is text based. It sends an editable query through existing Google- or Brave-backed research paths, retains only validated HTTP/HTTPS result URLs, and does not represent results as pixel matches or verified provenance. See the [user guide](docs/user/IMAGE_INSPECTOR.md) and [architecture contract](docs/developer/image-inspector-architecture.md).
+
 ## Headless Bridge Security
 
 When started with `--headless`, the application runs an Express loopback bridge server (`electron/services/bridgeServer.ts`). The following safety measures are strictly enforced:

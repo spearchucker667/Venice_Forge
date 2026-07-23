@@ -49,6 +49,8 @@ The matching preload and renderer types expose only those four operations. UI co
 
 The bundled Venice API reference permits base64 data URLs for multimodal `image_url` content. Local validation also enforces the provider's 64-pixel minimum before the request is made.
 
+When live capability metadata declares `supportsResponseSchema`, the request includes the provider-required OpenAI-compatible envelope at `response_format.json_schema.{name,strict,schema}`. Models without that declared capability retain the prompt-only path instead of receiving a known-incompatible request field.
+
 ## Response Contract and Error Semantics
 
 `src/services/imageInspectorAnalysis.ts` owns the response contract. The model is instructed to return one versioned JSON object containing the summary, subjects, visual attributes, visible text, source clues, replication prompt, search queries, confidence, and warnings.
@@ -56,7 +58,9 @@ The bundled Venice API reference permits base64 data URLs for multimodal `image_
 The runtime parser:
 
 - bounds the model response and every nested string/list;
+- accepts exactly one plain or Markdown-fenced JSON object without repairing truncated output;
 - requires `schemaVersion: 1` and every mandatory field;
+- normalizes only bounded compatible drift such as string section descriptions, a string subject or replication prompt, numeric confidence, and omitted list fields;
 - validates prompt targets and confidence range;
 - rejects secret-like output;
 - distinguishes a provider-authored non-JSON failure from a malformed structured response.
@@ -64,6 +68,8 @@ The runtime parser:
 For example, an HTTP 200 response whose assistant content is `Unable to fetch it` is recorded as `ANALYSIS_REQUEST_FAILED` with that redacted provider message. It is not mislabeled as a browser or network fetch failure. Valid JSON that does not satisfy the schema is recorded as `ANALYSIS_PARSE_FAILED`.
 
 The failed session and its safe error message are persisted and displayed in the workspace, allowing the user to select another live vision model or input without losing the diagnostic.
+
+While a request is active, the UI uses the shared `GenerationLoadingIndicator` processing state, including the application-wide anime animation, accessible live status, and reduced-motion fallback.
 
 ## Source Discovery
 
@@ -91,6 +97,8 @@ Focused coverage is provided by:
 - `src/services/inspectorTelemetry.test.ts`
 
 These suites cover signature/dimension validation, durable persistence, IPC registration and redaction, schema enforcement, preservation of provider-authored failure text, narrow media resolution, truthful source-discovery labels, and telemetry idempotence.
+
+For the user workflow, see the [Image Inspector guide](../user/IMAGE_INSPECTOR.md).
 
 ## External Acceptance
 

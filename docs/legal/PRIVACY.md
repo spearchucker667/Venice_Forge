@@ -97,6 +97,12 @@ privacy or complete safety protection.
 - `shell.openExternal` only allows `https:` URLs with public routable
   hostnames.
 
+### Image Inspector
+
+Image Inspector resolves a user-selected PNG, JPEG, or WebP through the main process, validates its encoded and decoded bounds, and sends the image plus user-selected analysis instructions to the chosen Venice vision model only after an explicit analysis action. Structured results and safe provider-authored failures may be stored in the local Image Inspector session record.
+
+Potential-source discovery is a separate explicit action. It sends an editable descriptive text query to the selected Google- or Brave-backed search path; it does not send the image to a reverse-image-search service or claim pixel similarity. Safe diagnostics and Traffic Inspector exports exclude raw image bytes, base64 media, complete prompts, credentials, and local absolute paths.
+
 ## Known Limits
 
 - Local storage encryption is not equivalent to OS credential storage.
