@@ -59,6 +59,7 @@ const ENCRYPTED_STORES: StoreName[] = [
   "playground",
   "tombstones",
   "chat_folders",
+  "imageInspectorSessions",
 ];
 
 export interface GetItemsResult<T = unknown> {

@@ -29,6 +29,9 @@ function StatusIcon() {
 function ImageIcon() {
   return <Meteocon name="rainbow-clear" size={20} />
 }
+function ImageInspectorIcon() {
+  return <Meteocon name="compass" size={20} />
+}
 function GalleryIcon() {
   return <Meteocon name="horizon" size={20} />
 }
@@ -93,6 +96,7 @@ const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
   'character-chats': CharacterChatsIcon,
   history: HistoryIcon,
   image: ImageIcon,
+  'image-inspector': ImageInspectorIcon,
   media: GalleryIcon,
   prompts: PromptsIcon,
   scenes: SceneIcon,

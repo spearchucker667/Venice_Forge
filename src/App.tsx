@@ -66,8 +66,13 @@ function HistoryView() {
 }
 
 const LazyImagePage = lazy(() => import('./components/image/image-page').then(m => ({ default: m.ImagePage })))
+const LazyImageInspectorView = lazy(() => import('./components/image-inspector/ImageInspectorView').then(m => ({ default: m.ImageInspectorView })))
 function ImagePage() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading Image Studio…</div>}><LazyImagePage /></Suspense>
+}
+
+function ImageInspectorPage() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50">Loading Image Inspector…</div>}><LazyImageInspectorView /></Suspense>
 }
 
 const LazyAudioView = lazy(() => import('./components/audio/audio-view').then(m => ({ default: m.AudioView })))
@@ -140,6 +145,7 @@ const views: Record<TabId, React.ComponentType> = {
   'character-chats': CharacterChatsView,
   history: HistoryView,
   image: ImagePage,
+  'image-inspector': ImageInspectorPage,
   media: MediaStudioView,
   prompts: PromptLibraryView,
   scenes: SceneComposerView,

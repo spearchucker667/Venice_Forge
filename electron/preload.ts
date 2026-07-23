@@ -425,6 +425,69 @@ const veniceForge = {
     }
   },
 
+  imageInspector: {
+    chooseImage(): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:chooseImage");
+    },
+    ingestClipboardImage(): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:ingestClipboardImage");
+    },
+    ingestRemoteImage(input: { url: string }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:ingestRemoteImage", input);
+    },
+    resolveMediaInput(input: { mediaId: string; type?: "app-media" | "attachment" }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:resolveMediaInput", input);
+    },
+    getInputMetadata(input: { id: string }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:getInputMetadata", input);
+    },
+    analyze(input: any): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:analyze", input);
+    },
+    cancelAnalysis(input: { sessionId: string }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:cancelAnalysis", input);
+    },
+    searchSources(input: any): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:searchSources", input);
+    },
+    cancelSearch(input: { sessionId: string; searchRunId: string }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:cancelSearch", input);
+    },
+    getSession(input: { id: string }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:getSession", input);
+    },
+    listSessions(): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:listSessions");
+    },
+    saveSession(input: any): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:saveSession", input);
+    },
+    deleteSession(input: { id: string }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:deleteSession", input);
+    },
+    exportSession(input: { id: string; format: "markdown" | "json" }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:exportSession", input);
+    },
+    getSettings(): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:getSettings");
+    },
+    updateSettings(input: any): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:updateSettings", input);
+    },
+    getProviderStatus(): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:getProviderStatus");
+    },
+    setProviderCredential(input: any): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:setProviderCredential", input);
+    },
+    deleteProviderCredential(input: { providerId: string }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:deleteProviderCredential", input);
+    },
+    testProvider(input: { providerId: string }): Promise<any> {
+      return ipcRenderer.invoke("imageInspector:testProvider", input);
+    }
+  },
+
   updates: {
     checkForUpdates(): Promise<{ ok: boolean; version?: string; error?: string }> {
       return ipcRenderer.invoke("app:checkForUpdates");

@@ -205,13 +205,14 @@ export const STORE_NAMES = [
   "tombstones",
   // Phase 1 (Folders) — chat folder definitions.
   "chat_folders",
+  "imageInspectorSessions",
 ];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
-/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store; 11 for Phase 2G Workflow Templates "workflowTemplates" store; 12 for Phase 2I Research Workspace "researchSessions" store; 13 for Phase 2J visualWorkflows store; 14 for Phase 2K playground store; 15 for multi-profile profileId index on every store; 16 for Phase 2G Sync tombstones store; 17 for chat_folders. */
-export const DB_VERSION = 18;
+/** Version of the IndexedDB schema. Bumped to 6 for timestamp index; 7 for Project Workspace "projects" store; 8 for Phase 2D Prompt Library "promptLibrary" store; 9 for Phase 2E Scene Composer "scenes" store; 10 for Phase 2F RP Studio Polish "rpScenarios" store; 11 for Phase 2G Workflow Templates "workflowTemplates" store; 12 for Phase 2I Research Workspace "researchSessions" store; 13 for Phase 2J visualWorkflows store; 14 for Phase 2K playground store; 15 for multi-profile profileId index on every store; 16 for Phase 2G Sync tombstones store; 17 for chat_folders. 18 was previous, 19 for imageInspectorSessions. */
+export const DB_VERSION = 19;
 
 /**
  * Known vision-capable model ids. This is a conservative fallback for when

@@ -16,6 +16,7 @@ import { registerCharacterCardFileHandlers } from "../characterCardFileHandlers"
 import { registerDocumentAgentHandlers } from "./documentAgentHandlers";
 
 import { registerChatFolderHandlers } from "./chatFolderHandlers";
+import { registerImageInspectorHandlers } from "./imageInspectorHandlers";
 
 let ipcHandlersRegistered = false;
 
@@ -41,6 +42,7 @@ export function registerIpcHandlers(): void {
   registerCharacterCardFileHandlers();
   registerDocumentAgentHandlers();
   registerChatFolderHandlers();
+  registerImageInspectorHandlers();
 
   // ── Background task manager (persistent main-process queue ownership) ──
   registerBackgroundTaskHandlers();

@@ -248,6 +248,15 @@ export const MIGRATIONS: MigrationStep[] = [
       }
     },
   },
+  {
+    toVersion: 19,
+    description: "Add imageInspectorSessions store for Image Inspector feature",
+    up(db) {
+      if (!db.objectStoreNames.contains("imageInspectorSessions")) {
+        db.createObjectStore("imageInspectorSessions", { keyPath: "id" });
+      }
+    },
+  },
 ];
 
 /**
