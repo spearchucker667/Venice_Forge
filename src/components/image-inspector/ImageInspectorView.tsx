@@ -9,6 +9,7 @@ import { cn } from '../../lib/utils';
 import type { ImageAnalysisDepth, PromptTarget } from '../../types/imageInspector';
 import { useModels } from '../../hooks/use-models';
 import { modelSupportsVision } from '../../constants/venice';
+import { GenerationLoadingIndicator } from '../generation/GenerationLoadingIndicator';
 
 export function ImageInspectorView() {
   const store = useImageInspectorStore();
@@ -367,12 +368,13 @@ export function ImageInspectorView() {
                   </div>
                 </div>
               ) : activeSession.status === 'analyzing' ? (
-                <div className="flex-1 flex items-center justify-center flex-col text-text-muted/50 bg-surface rounded-lg border border-border/50 min-h-[400px]">
-                  <Loader2 className="w-8 h-8 animate-spin mb-4" />
-                  <div className="text-[14px]">Analyzing image contents...</div>
-                  <div className="text-[12px] opacity-60 mt-2 max-w-xs text-center">
-                    Extracting composition, style, and subjects to generate a high-quality prompt.
-                  </div>
+                <div className="flex-1 flex items-center justify-center bg-surface rounded-lg border border-border/50 min-h-[400px]">
+                  <GenerationLoadingIndicator
+                    state="processing"
+                    size="lg"
+                    label="Analyzing image contents…"
+                    detail="Extracting composition, style, and subjects to generate a high-quality prompt."
+                  />
                 </div>
               ) : activeSession.status === 'failed' ? (
                 <div className="flex-1 flex items-center justify-center bg-error/5 rounded-lg border border-error/30 min-h-[400px] p-8">

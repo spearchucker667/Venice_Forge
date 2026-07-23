@@ -37,7 +37,7 @@ const actions = {
   refreshSessions: vi.fn(),
 };
 
-function session(status: "complete" | "failed") {
+function session(status: "analyzing" | "complete" | "failed") {
   return {
     id: "session-1",
     schemaVersion: 1 as const,
@@ -80,12 +80,12 @@ function session(status: "complete" | "failed") {
         confidence: { overall: 0.9, uncertainties: [] },
         warnings: [],
       },
-    } : {
+    } : status === "failed" ? {
       error: {
         code: "ANALYSIS_REQUEST_FAILED" as const,
         message: "The vision model could not return an image analysis: Unable to fetch it",
       },
-    }),
+    } : {}),
   };
 }
 
@@ -123,5 +123,21 @@ describe("ImageInspectorView", () => {
     expect(screen.getByText("Text-Based Source Discovery")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Search the Web via Google" })).toBeInTheDocument();
     expect(screen.queryByText(/reverse image/i)).not.toBeInTheDocument();
+  });
+
+  it("uses the shared anime loading indicator while analysis is running", () => {
+    const analyzing = session("analyzing");
+    storeState.value = {
+      ...actions,
+      activeSession: analyzing,
+      sessions: [analyzing],
+      loading: true,
+      searchLoading: false,
+      searchResults: [],
+    };
+    render(<ImageInspectorView />);
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Analyzing image contents");
+    expect(status.querySelector("img")).toBeInTheDocument();
   });
 });

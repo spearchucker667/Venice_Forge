@@ -4,20 +4,17 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-23 (Image Inspector structured-response compatibility follow-up)
+**Date:** 2026-07-23 (Image Inspector loading-state consistency)
 
-**Scope:** Reproduced the two supplied post-fix failures from sanitized Traffic Inspector evidence: one model wrapped its JSON in a Markdown fence, while another returned parseable JSON that drifted from the canonical analysis shape.
+**Scope:** Replaced the Image Inspector analysis panel's generic spinner with the shared anime generation animation used across the other generation and processing surfaces.
 
-- Added safe extraction of exactly one fenced JSON object without accepting surrounding prose or attempting to repair truncated JSON.
-- Added bounded normalization for common semantic drift: string section descriptions, string subjects, string replication prompts, numeric confidence, and omitted list fields. Summary-only or otherwise content-free objects still fail closed.
-- Added Venice `response_format: { type: "json_schema" }` for selected vision models whose runtime metadata declares `supportsResponseSchema`; unsupported models retain the prompt-only path instead of receiving a known-incompatible request field.
-- Corrected the live Qwen/Venice structured-output envelope to the provider-required OpenAI shape: `response_format.json_schema.{name,strict,schema}`. The bundled Swagger example currently shows the schema directly under `json_schema`, but the observed 400 explicitly requires the nested `schema` object.
-- Reclassified incomplete JSON as `ANALYSIS_PARSE_FAILED` with a stable non-echoing message, while preserving short plain-text provider failures as `ANALYSIS_REQUEST_FAILED`.
-- Added regression coverage for fenced JSON, truncated JSON, bounded schema normalization, target-specific response schemas, and capability-gated request construction.
+- Reused `GenerationLoadingIndicator` with the processing semantic state, large anime animation, accessible live status, analysis label, and explanatory detail.
+- Retained the compact spinner affordances inside Cancel Analysis and source-search buttons because those are control-local activity indicators rather than the primary analysis loading surface.
+- Added a UI regression proving the analyzing state renders the shared status component and animated image asset.
 
-**Validation:** 3 focused files / 15 tests passed for the parser/normalizer tranche; the exact Qwen envelope correction then passed 2 files / 13 tests. Zero-warning ESLint, renderer and Electron TypeScript projects, safety enforcement, aggregate contracts, the complete Vitest suite (411 files / 4,594 tests passed; one file/test skipped), and production web/server/Electron builds passed. Validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
+**Validation:** The focused Image Inspector UI suite passed 1 file / 3 tests. Zero-warning ESLint, renderer and Electron TypeScript projects, and production web/server/Electron builds passed. Validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
 
-**Manual QA:** The supplied provider calls are evidence inputs only. No additional paid provider request or headed desktop analysis was run.
+**Manual QA:** No headed desktop analysis was run; animation asset inclusion was confirmed by the production build and the rendered-component regression.
 
 ### Prior Session Summary (Image Inspector closure and repository-gate recovery)
 
@@ -874,6 +871,7 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 
 | Command | Result | Evidence |
 |---|---|---|
+| Image Inspector shared loading-animation regression | PASS | 1 file / 3 tests proves the analyzing state renders the shared accessible anime loading indicator; zero-warning ESLint, both TypeScript projects, and production web/server/Electron builds also pass. |
 | Image Inspector focused Vitest follow-up | PASS | 3 files / 15 tests cover fenced/truncated JSON, bounded schema normalization, capability-gated `json_schema`, store persistence, and UI integration. |
 | Qwen structured-response envelope regression | PASS | 2 files / 13 tests prove the JSON Schema is nested at `response_format.json_schema.schema` with a stable name and strict mode. |
 | Follow-up `npm test` | PASS | 411 files passed, 1 skipped; 4,594 tests passed, 1 skipped. |
@@ -1317,6 +1315,13 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-23 — Image Inspector loading-state consistency
+
+- Replaced the analysis result panel's generic Lucide spinner with the shared `GenerationLoadingIndicator` used across generation and processing surfaces.
+- Preserved compact control-local activity indicators for cancellation and text-based source search.
+- Added an analyzing-state UI regression and passed 1 focused file / 3 tests, zero-warning ESLint, both TypeScript projects, and the production web/server/Electron build.
+- No headed desktop analysis was run.
 
 ### 2026-07-23 — Image Inspector structured-response compatibility follow-up
 
