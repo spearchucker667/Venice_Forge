@@ -1,31 +1,65 @@
-import { useState, useEffect } from 'react';
-import { ScanSearch, FileImage, ClipboardPaste, HardDriveUpload, Trash2, ArrowRight, Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ScanSearch, FileImage, ClipboardPaste, HardDriveUpload, Trash2, ArrowRight, Loader2, Search, Globe, ExternalLink } from 'lucide-react';
 import { useImageInspectorStore } from '../../stores/image-inspector-store';
-import { isElectron, desktopMedia } from '../../services/desktopBridge';
-import { PrimaryButton, Label, TextArea, PillGroup } from '../ui/shared';
+import { isElectron } from '../../services/desktopBridge';
+import { Label, TextArea, PillGroup } from '../ui/shared';
 import { Select } from '../ui/select';
 import { toast } from '../../stores/toast-store';
 import { cn } from '../../lib/utils';
 import type { ImageAnalysisDepth, ImageInspectorOutputFormat, PromptTarget } from '../../types/imageInspector';
 import { useModels } from '../../hooks/use-models';
+import { modelSupportsVision } from '../../constants/venice';
 
 export function ImageInspectorView() {
   const store = useImageInspectorStore();
-  const { activeSession, sessions, loading, startAnalysis, cancelAnalysis, createSession, loadSession, clearActiveSession, refreshSessions } = store;
+  const { 
+    activeSession, 
+    sessions, 
+    loading, 
+    searchLoading, 
+    searchResults, 
+    startAnalysis, 
+    cancelAnalysis, 
+    performSearch, 
+    createSession, 
+    loadSession, 
+    refreshSessions 
+  } = store;
+  
   const { data: models = [] } = useModels();
 
   const [depth, setDepth] = useState<ImageAnalysisDepth>('standard');
   const [outputFormat, setOutputFormat] = useState<ImageInspectorOutputFormat>('json');
   const [target, setTarget] = useState<PromptTarget>('generic');
   const [instructions, setInstructions] = useState('');
+  const [selectedModelId, setSelectedModelId] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   
-  // Find a vision-capable model
-  const visionModels = models.filter(m => m.model_spec?.capabilities?.supportsVision) || [];
-  const selectedModelId = visionModels.length > 0 ? visionModels[0].id : 'venice-vision-fallback';
+  // Filter models strictly to vision-capable models using canonical modelSupportsVision
+  const visionModels = useMemo(() => {
+    return models.filter((m) => modelSupportsVision(m.id, m.model_spec?.capabilities));
+  }, [models]);
+
+  useEffect(() => {
+    if (visionModels.length > 0 && (!selectedModelId || !visionModels.some(m => m.id === selectedModelId))) {
+      setSelectedModelId(visionModels[0].id);
+    }
+  }, [visionModels, selectedModelId]);
 
   useEffect(() => {
     refreshSessions();
   }, [refreshSessions]);
+
+  // Set default search query when active session analysis changes
+  useEffect(() => {
+    if (activeSession?.analysis?.searchQueries?.[0]?.query) {
+      setSearchQuery(activeSession.analysis.searchQueries[0].query);
+    } else if (activeSession?.analysis?.summary) {
+      setSearchQuery(activeSession.analysis.summary.slice(0, 100));
+    } else if (activeSession?.title) {
+      setSearchQuery(activeSession.title);
+    }
+  }, [activeSession]);
 
   const handleUploadClick = async () => {
     if (!isElectron()) {
@@ -135,6 +169,27 @@ export function ImageInspectorView() {
               </div>
               
               <div className="space-y-5 bg-surface p-5 rounded-lg border border-border/50">
+                {/* Vision Model Selection (Strictly Limited to Vision Models) */}
+                <div className="space-y-2">
+                  <Label>Vision Model</Label>
+                  {visionModels.length > 0 ? (
+                    <Select
+                      value={selectedModelId}
+                      onChange={(v) => setSelectedModelId(v)}
+                      className="w-full"
+                      placeholder="Select a vision model..."
+                      options={visionModels.map((m) => ({
+                        value: m.id,
+                        label: m.model_spec?.name || m.id,
+                      }))}
+                    />
+                  ) : (
+                    <div className="text-[12px] p-2 bg-error/10 border border-error/20 rounded text-error">
+                      No vision-capable models available in catalog.
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label>Analysis Depth</Label>
                   <PillGroup
@@ -184,18 +239,17 @@ export function ImageInspectorView() {
                 ) : (
                   <button 
                     onClick={() => startAnalysis(selectedModelId, depth, outputFormat, target, instructions)}
-                    disabled={loading || visionModels.length === 0}
+                    disabled={loading || visionModels.length === 0 || !selectedModelId}
                     className="w-full bg-accent text-accent-fg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-md font-medium py-2.5 mt-2 flex items-center justify-center gap-2 transition-colors"
                   >
                     <ScanSearch className="w-4 h-4" />
                     Analyze Image
                   </button>
                 )}
-                {visionModels.length === 0 && <div className="text-[11px] text-error/80 text-center">No vision-capable models available.</div>}
               </div>
             </div>
             
-            {/* Analysis Results */}
+            {/* Analysis Results & Search Discovery */}
             <div className="flex-1 flex flex-col min-w-0 space-y-6">
               {analysis ? (
                 <div className="bg-surface p-6 rounded-lg border border-border/50 space-y-6">
@@ -230,6 +284,80 @@ export function ImageInspectorView() {
                       </ul>
                     </div>
                   )}
+
+                  {/* Web Search & Source Discovery Section (Google / Brave Routing) */}
+                  <div className="pt-4 border-t border-border/50">
+                    <h3 className="text-[14px] font-semibold text-text mb-3 flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-accent" />
+                      Source & Web Discovery
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search terms for visual discovery..."
+                          className="flex-1 mesh-input rounded px-3 py-1.5 text-[13px] text-text outline-none border border-border/50"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => performSearch('venice-google', searchQuery)}
+                          disabled={searchLoading || !searchQuery.trim()}
+                          className="flex-1 bg-surface-elevated hover:bg-surface-muted border border-border/50 text-text rounded px-3 py-2 text-[12px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                          {searchLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5 text-blue-400" />}
+                          Search via Google
+                        </button>
+                        
+                        <button
+                          onClick={() => performSearch('venice-brave', searchQuery)}
+                          disabled={searchLoading || !searchQuery.trim()}
+                          className="flex-1 bg-surface-elevated hover:bg-surface-muted border border-border/50 text-text rounded px-3 py-2 text-[12px] font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                          {searchLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5 text-orange-400" />}
+                          Search via Brave
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Search Results Display */}
+                    {searchResults.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        <div className="text-[12px] font-medium text-text-muted">
+                          Search Results ({searchResults.length})
+                        </div>
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto p-1">
+                          {searchResults.map((res) => (
+                            <div key={res.id} className="p-3 bg-background rounded border border-border/40 text-[12px] space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <a
+                                  href={res.pageUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-medium text-accent hover:underline truncate flex items-center gap-1"
+                                >
+                                  {res.title}
+                                  <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                </a>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-muted text-text-muted border border-border/30">
+                                  {res.sourceDomain}
+                                </span>
+                              </div>
+                              {res.matchReason && (
+                                <p className="text-[11px] text-text-muted line-clamp-2">
+                                  {res.matchReason}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : activeSession.status === 'analyzing' ? (
                 <div className="flex-1 flex items-center justify-center flex-col text-text-muted/50 bg-surface rounded-lg border border-border/50 min-h-[400px]">

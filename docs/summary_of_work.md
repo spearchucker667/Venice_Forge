@@ -4,18 +4,13 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-23 (Image Inspector Full Implementation)
+**Date:** 2026-07-23 (Image Inspector Remediation & Google/Brave Search Integration)
 
 **Scope:** 
-- Implemented the full UI and React state lifecycle for the new **Image Inspector** section.
-- Built a split-pane layout integrating source input, sessions list, and analysis results following the `twMerge` and Tailwind conventions.
-- Added `ImageInspectorView` to `TAB_IDS` and navigation flow.
-- Added an `AbortController`-backed cancellation flow for vision analysis.
-- Resolved typecheck issues across the new UI and related store components.
-
-- **Completed Items:** Image Inspector UI, Session Storage, Analysis state machine, Typecheck and testing baseline fixes.
-- **Pending/Blocked Items:** "Optionally perform source and similarity discovery through configured search providers" remains partially integrated via stub APIs as explicit search providers are not fully configured for this feature yet.
-- **Validation:** Executed `npm run typecheck` (passed). Executed `npm run test:ui` (passes `layout` test). 
+- **Vision Model Selection:** Updated model filtering to strictly enforce `modelSupportsVision()` from `src/constants/venice`. Added a dedicated **Vision Model** `<Select>` dropdown control allowing users to explicitly pick among available vision-capable models (e.g. Gemini 2.5 Flash, Qwen VL).
+- **Google / Brave Search Routing:** Integrated `runResearchSearch` from `src/services/researchService` to route visual search / source discovery queries directly to Venice API search endpoints with `venice-google` (Google Search) and `venice-brave` (Brave Search) providers.
+- **UI & State:** Added search controls, editable queries, search status indicators, and result card rendering to `ImageInspectorView` and `image-inspector-store`.
+- **Validation:** `npm run typecheck` passed (0 errors), `npm run test:ui` passed. 
 
 
 **Changes Made:**
