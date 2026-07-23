@@ -121,10 +121,18 @@ describe("Image Inspector analysis contract", () => {
   it("builds the Venice json_schema response contract for the selected target", () => {
     const responseFormat = buildImageInspectorResponseFormat("flux") as {
       type: string;
-      json_schema: { properties: { replicationPrompt: { properties: { target: { enum: string[] } } } } };
+      json_schema: {
+        name: string;
+        strict: boolean;
+        schema: { properties: { replicationPrompt: { properties: { target: { enum: string[] } } } } };
+      };
     };
     expect(responseFormat.type).toBe("json_schema");
-    expect(responseFormat.json_schema.properties.replicationPrompt.properties.target.enum).toEqual(["flux"]);
+    expect(responseFormat.json_schema).toMatchObject({
+      name: "image_inspector_analysis",
+      strict: true,
+    });
+    expect(responseFormat.json_schema.schema.properties.replicationPrompt.properties.target.enum).toEqual(["flux"]);
   });
 
   it("supplies an exact injection-resistant schema prompt", () => {

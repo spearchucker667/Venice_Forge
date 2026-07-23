@@ -330,12 +330,10 @@ export function buildImageInspectorResponseFormat(target: PromptTarget): Record<
     required: ["description"],
   };
   const stringArray = { type: "array", items: { type: "string" } };
-  return {
-    type: "json_schema",
-    json_schema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    properties: {
         schemaVersion: { type: "integer", const: 1 },
         summary: { type: "string" },
         subjects: {
@@ -406,12 +404,19 @@ export function buildImageInspectorResponseFormat(target: PromptTarget): Record<
           required: ["overall", "uncertainties"],
         },
         warnings: stringArray,
-      },
-      required: [
-        "schemaVersion", "summary", "subjects", "composition", "lighting", "color",
-        "environment", "style", "technical", "mood", "visibleText", "sourceClues",
-        "replicationPrompt", "negativePrompt", "searchQueries", "confidence", "warnings",
-      ],
+    },
+    required: [
+      "schemaVersion", "summary", "subjects", "composition", "lighting", "color",
+      "environment", "style", "technical", "mood", "visibleText", "sourceClues",
+      "replicationPrompt", "negativePrompt", "searchQueries", "confidence", "warnings",
+    ],
+  };
+  return {
+    type: "json_schema",
+    json_schema: {
+      name: "image_inspector_analysis",
+      strict: true,
+      schema,
     },
   };
 }

@@ -11,10 +11,11 @@ This is the active handoff and validation ledger. The canonical current-work led
 - Added safe extraction of exactly one fenced JSON object without accepting surrounding prose or attempting to repair truncated JSON.
 - Added bounded normalization for common semantic drift: string section descriptions, string subjects, string replication prompts, numeric confidence, and omitted list fields. Summary-only or otherwise content-free objects still fail closed.
 - Added Venice `response_format: { type: "json_schema" }` for selected vision models whose runtime metadata declares `supportsResponseSchema`; unsupported models retain the prompt-only path instead of receiving a known-incompatible request field.
+- Corrected the live Qwen/Venice structured-output envelope to the provider-required OpenAI shape: `response_format.json_schema.{name,strict,schema}`. The bundled Swagger example currently shows the schema directly under `json_schema`, but the observed 400 explicitly requires the nested `schema` object.
 - Reclassified incomplete JSON as `ANALYSIS_PARSE_FAILED` with a stable non-echoing message, while preserving short plain-text provider failures as `ANALYSIS_REQUEST_FAILED`.
 - Added regression coverage for fenced JSON, truncated JSON, bounded schema normalization, target-specific response schemas, and capability-gated request construction.
 
-**Validation:** 3 focused files / 15 tests passed; zero-warning ESLint, renderer and Electron TypeScript projects, safety enforcement, aggregate contracts, the complete Vitest suite (411 files / 4,594 tests passed; one file/test skipped), and production web/server/Electron builds passed. Validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
+**Validation:** 3 focused files / 15 tests passed for the parser/normalizer tranche; the exact Qwen envelope correction then passed 2 files / 13 tests. Zero-warning ESLint, renderer and Electron TypeScript projects, safety enforcement, aggregate contracts, the complete Vitest suite (411 files / 4,594 tests passed; one file/test skipped), and production web/server/Electron builds passed. Validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
 
 **Manual QA:** The supplied provider calls are evidence inputs only. No additional paid provider request or headed desktop analysis was run.
 
@@ -751,7 +752,7 @@ The earlier P1 audit closure (P1 #1–#8 with `VERIFY-128..131`) remains the con
 
 **Image Inspector closeout (2026-07-23):** no locally actionable implementation item remains from the supplied failure trace. The trace proves a successful `/chat/completions` transport and a provider-authored short failure, not a client-side fetch exception. The app now preserves that distinction, validates the response contract, narrows media IPC, and labels query-only discovery truthfully. Paid live-provider PNG/JPEG/WebP acceptance and headed Traffic Inspector export review remain external evidence under `VF-VERIFY-005`.
 
-**Image Inspector structured-response follow-up (2026-07-23):** the two newly supplied local failures are corrected. The parser accepts a single fenced JSON object, normalizes bounded common schema drift, and rejects truncated JSON without echoing raw model output. Models advertising `supportsResponseSchema` receive the canonical Venice JSON Schema; other vision models remain best-effort and may still fail closed if they return neither the canonical schema nor a supported normalized shape. Paid/headed acceptance remains external under `VF-VERIFY-005`.
+**Image Inspector structured-response follow-up (2026-07-23):** the newly supplied local failures and subsequent Qwen 400 are corrected. The parser accepts a single fenced JSON object, normalizes bounded common schema drift, and rejects truncated JSON without echoing raw model output. Models advertising `supportsResponseSchema` receive the provider-required `json_schema.{name,strict,schema}` envelope; other vision models remain best-effort and may still fail closed if they return neither the canonical schema nor a supported normalized shape. Paid/headed acceptance remains external under `VF-VERIFY-005`.
 
 **Local gate closeout (2026-07-23):** the eight theme/config/Documents baseline failures recorded during the Image Inspector tranche are resolved. Custom themes now update the main-owned YAML file plus immediate renderer caches only after successful IPC persistence; failed save/delete results fail visibly. The main theme loader ignores legacy terminal-color templates already owned by the renderer built-in registry and merges structured theme files without false schema errors. Documents use the required soft separators, and the two drifted test harnesses now install their declared matcher/bridge contracts. Full `npm test` and `npm run ci` pass.
 
@@ -874,6 +875,7 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 | Command | Result | Evidence |
 |---|---|---|
 | Image Inspector focused Vitest follow-up | PASS | 3 files / 15 tests cover fenced/truncated JSON, bounded schema normalization, capability-gated `json_schema`, store persistence, and UI integration. |
+| Qwen structured-response envelope regression | PASS | 2 files / 13 tests prove the JSON Schema is nested at `response_format.json_schema.schema` with a stable name and strict mode. |
 | Follow-up `npm test` | PASS | 411 files passed, 1 skipped; 4,594 tests passed, 1 skipped. |
 | Follow-up `npm run build` | PASS | Vite transformed 3,082 modules; web, server, Electron main, and preload bundles were produced. |
 | Follow-up `npm run lint:eslint`; `npm run typecheck`; `npm run verify:safety-guard`; `npm run verify:contracts` | PASS | Zero warnings/errors; safety and all static/feature/release contracts passed under local Node 26.5.0/npm 11.17.0. |
@@ -1321,6 +1323,7 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 - Reproduced fenced-JSON parsing and structurally drifted JSON from the two supplied sanitized provider traces.
 - Added exact fenced-object extraction, bounded semantic normalization, and stable non-echoing truncated-JSON errors.
 - Added capability-gated Venice JSON Schema response formatting tied to the selected model’s runtime metadata.
+- Corrected the follow-up Qwen 400 by nesting the schema at `response_format.json_schema.schema`, matching the live provider validator rather than the stale direct-schema Swagger example.
 - Added five regression cases and passed 3 focused files / 15 tests, full 4,594-test Vitest, lint, both typechecks, safety, aggregate contracts, and production build.
 - No additional paid provider or headed desktop request was run.
 

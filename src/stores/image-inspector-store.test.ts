@@ -128,9 +128,13 @@ describe("Image Inspector store", () => {
     expect(body.response_format).toMatchObject({
       type: "json_schema",
       json_schema: {
-        properties: {
-          replicationPrompt: {
-            properties: { target: { enum: ["flux"] } },
+        name: "image_inspector_analysis",
+        strict: true,
+        schema: {
+          properties: {
+            replicationPrompt: {
+              properties: { target: { enum: ["flux"] } },
+            },
           },
         },
       },
