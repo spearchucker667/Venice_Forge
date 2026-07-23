@@ -10,7 +10,7 @@
 
 **Unofficial local-first desktop workspace for the Venice API.**
 
-*An advanced frontend client for streaming chat, image studio pipelines, research synthesis, SillyTavern-compatible character authoring, roleplay scripting, and local creative asset management.*
+*An advanced frontend client for streaming chat, image studio pipelines, video & music generation, research synthesis, SillyTavern-compatible character authoring, roleplay scripting, visual workflows, and local creative asset management.*
 
 <p align="center">
   <a href="https://github.com/spearchucker667/Venice_Forge/actions/workflows/ci.yml">
@@ -41,12 +41,18 @@
 
 ---
 
+<p align="center">
+  <img src="assets/ChatGPT Image Jul 22, 2026, 07_51_49 PM.png" alt="Venice Forge - Your Local AI Workspace" width="100%" />
+</p>
+
+---
+
 > [!IMPORTANT]
 > **Venice Forge is an unofficial third-party project.** It is not affiliated with, endorsed by, sponsored by, or maintained by Venice.ai (Venice.ai, Inc.). Venice brand assets, names, and trademark marks are the property of Venice.ai, Inc.
 
 > [!WARNING]
-> The `main` branch is active development and may be unstable. Normal users should install a tagged release from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases).
-> Document Agent now provides limited function calling for app-managed documents and explicit, single-directory workspace grants. It cannot access shell, Git, network, keychain, databases, sibling directories, or OS controls. See the [Document Agent guide](docs/features/DOCUMENT_AGENT.md).
+> The `main` branch is active development. Normal users should install a tagged release from [GitHub Releases](https://github.com/spearchucker667/Venice_Forge/releases).
+> Document Agent provides limited function calling for app-managed documents and explicit, single-directory workspace grants. It cannot access shell, Git, network, keychain, databases, sibling directories, or OS controls. See the [Document Agent guide](docs/features/DOCUMENT_AGENT.md).
 
 ---
 
@@ -54,34 +60,37 @@
 
 Venice Forge is an unofficial, local-first creative desktop client for the [Venice API](https://docs.venice.ai). Designed as a premium, secure workspace, it empowers authors, artists, developers, and researchers with advanced local tooling that goes far beyond generic web interfaces.
 
-
 By prioritizing local data ownership, Venice Forge runs all storage operations locally on your machine—utilizing IndexedDB with AES-GCM encryption in the browser/renderer and secure OS-level keychain boundaries for credentials.
 
 ---
 
 ## Feature Highlights
 
-- **Local-First Backup & Sync:** Manually export/import encrypted backups, or use a background sync folder (e.g. iCloud, Dropbox) with automated end-to-end encrypted packet syncing and robust conflict resolution. Venice Forge does not implement WebDAV, S3-compatible, or other direct remote-sync protocols.
-- **Streaming AI Conversations:** Experience highly responsive model outputs with full Markdown and LaTeX support.
+- **Local-First Backup & Sync:** Manually export/import encrypted `.vfbackup` archives, or use a background sync folder (e.g. iCloud, Dropbox) with automated end-to-end encrypted packet syncing and robust conflict resolution.
+- **Streaming AI Conversations:** Experience highly responsive model outputs with full Markdown, LaTeX math rendering, prompt limits enforcement, and attachment context.
 - **Projects & Workspaces:** Organize your chat histories, generation parameters, and media assets into logical local projects.
-- **Limited Document Tools:** Create non-overwriting managed documents, review exact edit diffs, retain immutable revisions, restore prior content as a new revision, and export through a native save dialog. Optional workspace access is session-scoped to one user-selected directory.
-- **Model-Aware Image Generation:** Image Studio UI dynamically hides fields unsupported by the selected image model, preventing payload errors.
+- **Document Tools & Workspace Grants:** Create non-overwriting managed documents, review exact edit diffs, retain immutable revisions, search text files across granted workspace directories, and export through native save boundaries.
+- **Model-Aware Image Generation:** Image Studio UI dynamically adapts inputs to selected image models, preventing payload errors across edit, inpaint, background removal, and API-compliant 2×/4× upscaling.
 - **Media Studio Command Center:** Gallery view equipped with multi-select bulk operations, lineage graph tracing, visual diff comparison, and metadata-preserving exports.
-- **Research Workspace & Embedded Browser:** Synthesize facts using Venice/Jina-backed search, scraping, and social discovery within an isolated sandbox.
-- **Prompt Library:** Cleanly version, tags, and reuse system or user prompts with automatic secret filtering on import/export.
-- **ST Card Studio & RP Studio:** Create, preview-import, edit, version, test, and verified-export Tavern V1 / Character Card V2 JSON and V2 PNG cards; manage personas, scenarios, lorebooks, multi-character chats, and scene generation from the same local workspace.
-- **Token-Based Styling:** Dynamic premium glassmorphism theme system supporting standard dark/light modes and fully custom YAML theme imports.
+- **Video & Music Studios:** Queue text/image-to-video and lyrics-driven music requests with explicit stage tracking (`queued` → `generating` → `retrieving` → `saving` → `completed`), durable stream persistence, and MP4/audio exports.
+- **Research Workspace:** Synthesize facts using Venice/Jina-backed search, web scraping, and social discovery within an isolated sandbox.
+- **Prompt Library & Scene Composer:** Version, tag, and reuse prompts; arrange prompts, media references, and models into structured visual scene compositions.
+- **ST Card Studio & RP Studio:** Create, preview-import, edit, version, test, and verified-export Tavern V1 / Character Card V2 JSON and V2 PNG cards; manage personas, scenarios, lorebooks, multi-character chats, and scene generation.
+- **Playground & Workflow Editor:** Interactive visual node graph builder for constructing and running multi-modal AI task chains.
+- **Token-Based Styling:** Dynamic premium glassmorphism theme system supporting 35 built-in themes and fully custom YAML palette imports.
+
+---
 
 ## Current Workspace Map
 
-The navigation below uses the canonical tab labels from `src/config/tabs.ts`; legacy aliases such as `Library`, `Gallery`, `Batch`, and `Diagnostics` are intentionally absent.
+The navigation below uses the canonical tab labels from `src/config/tabs.ts`:
 
 ```mermaid
 flowchart LR
   VF["Venice Forge"]
   VF --> Conversation["Conversation<br/>Chat · Character Chats · History"]
   VF --> Generate["Generate<br/>Image Studio · Media Studio · Prompts · Scene Composer<br/>Audio Studio · Music Studio · Video Studio · Embeddings<br/>Research · Characters"]
-  VF --> Build["Build<br/>RP Studio · Workflows · Documents · Playground"]
+  VF --> Build["Build<br/>RP Studio · Workflow Templates · Documents · Playground"]
   VF --> System["System<br/>Privacy · Config · Status"]
 ```
 
@@ -92,24 +101,26 @@ flowchart LR
 | Area | Status | Purpose |
 | :--- | :---: | :--- |
 | **Chat** | Beta | Streaming conversations, projects, prompt injects, attachments, classical/agent modes |
-| **Image Studio** | Beta | Model-aware generation, prompt enhancement, image editing, background removal, and API-compliant 2×/4× upscaling |
+| **Image Studio** | Beta | Model-aware generation, prompt enhancement, image editing, background removal, and 2×/4× upscaling |
 | **Media Studio** | Beta | Visual gallery, multi-image comparison, lineage tracking, metadata bundle exports |
-| **Prompts** | Beta | Prompt Library with global/project scopes, version chains, and Tag manager |
-| **Audio/Music/Video** | Experimental | Whisper transcripts, speech generation, lyrics-driven music, and async video queues |
-| **Research** | Experimental | Integrated search/scrape runner with Jina and Venice search synthesis |
-| **Characters & RP** | Beta | SillyTavern-compatible Card Studio, local cards, personas, lorebooks, multi-character chats, and scene compiler |
-| **Workflow Templates** | Experimental | Versioned template-based automation chains; visual graph building remains in Playground |
-| **Documents** | Experimental | Limited managed-document tools, immutable revisions, exact proposal approval, native export, and one-directory workspace grants |
+| **Prompts** | Beta | Prompt Library with global/project scopes, version chains, and tag management |
+| **Scene Composer** | Beta | Visual composition tool for arranging prompts, media references, and models into scenes |
+| **Audio Studio** | Beta | TTS speech generation with voice selection and configurable audio response formats |
+| **Music Studio** | Beta | Lyrics-driven music generation, duration control, and instrumental toggle |
+| **Video Studio** | Beta | Asynchronous text/image-to-video queues, stage tracking, durable stream persistence, and MP4 exports |
+| **Embeddings** | Beta | Text vector array inspection and model evaluation |
+| **Research** | Beta | Integrated search/scrape runner with Jina and Venice search synthesis |
+| **Characters & RP** | Beta | SillyTavern-compatible ST Card Studio, local cards, personas, lorebooks, and multi-character chats |
+| **RP Studio** | Beta | Standalone scenarios, openers, setting text, and character card seeding |
+| **Workflow Templates**| Beta | Versioned template-based automation chains |
+| **Playground** | Beta | Interactive visual node graph builder and multi-model workflow execution engine |
+| **Documents** | Beta | Managed-document tools, immutable revisions, workspace search/inspection, and directory grants |
 
 ---
 
 ## Research and Jina
 
-The supported Research workspace provides Venice/Jina search, page scraping,
-AI synthesis, citations, saved sessions, document upload, findings, summaries,
-and prompt/workflow handoffs. The former embedded Research Browser is inactive;
-its implementation is retained only under `inactive-features/research-browser/`
-and is not imported, tested, bundled, or packaged.
+The supported Research workspace provides Venice/Jina search, page scraping, AI synthesis, citations, saved sessions, document upload, findings, summaries, and prompt/workflow handoffs. The former embedded Research Browser is inactive; its implementation is retained only under `inactive-features/research-browser/` and is not imported, tested, bundled, or packaged.
 
 ---
 
@@ -129,8 +140,8 @@ Roleplay and creative writing features are consolidated into a comprehensive **R
 
 Venice Forge provides a rich multimedia pipeline:
 - **Image Generation:** The Image Studio handles prompts, negatives, seeds, aspect ratios, and model-specific parameters.
-- **Media Studio:** The gallery indexes all outputs. You can select up to 4 images for a side-by-side field diff comparison, walk the parent-child lineage tree of remixed images, and export a redacted JSON manifest with deterministic sidecar filenames. The current export does not assemble or embed a ZIP/media archive.
-- **Audio & Music:** Supports Whisper-powered transcriptions, Text-to-Speech speech queues, and lyrics-driven Music generation.
+- **Media Studio:** The gallery indexes all outputs. You can select up to 4 images for a side-by-side field diff comparison, walk the parent-child lineage tree of remixed images, and export a redacted JSON manifest with deterministic sidecar filenames.
+- **Audio & Music:** Supports Text-to-Speech speech queues and lyrics-driven Music generation.
 - **Video:** Queues asynchronous text/image-to-video requests, shows explicit queued/generating/retrieving/saving stages, streams completed MP4 bytes into main-owned durable storage, and exports through a native Save As boundary.
 - **Embeddings:** Evaluates text strings against available embedding models to inspect raw vector arrays.
 
@@ -140,11 +151,10 @@ Venice Forge provides a rich multimedia pipeline:
 
 Privacy is the core design pillar of Venice Forge:
 - **No Telemetry:** The application does not collect analytics, telemetry, or crash reports.
-- **Secure Key Storage:** In Electron, profile-scoped API keys are encrypted with Electron `safeStorage` and the ciphertext is stored in the owner-only `secure-prefs.json` app-data file. `safeStorage` uses Keychain-backed encryption on macOS and DPAPI on Windows. The scoped Windows Credential Manager bridge is reserved for strict password-verifier records; it does not store API keys. Linux fails closed when OS encryption is unavailable unless the documented plaintext fallback is explicitly enabled.
+- **Secure Key Storage:** In Electron, profile-scoped API keys are encrypted with Electron `safeStorage` and the ciphertext is stored in the owner-only `secure-prefs.json` app-data file. `safeStorage` uses Keychain-backed encryption on macOS and DPAPI on Windows.
 - **Profiles & Isolation:** Profiles separate settings, conversations, and API keys. Locked profiles can be password-protected; PBKDF2-SHA256 verifiers are managed entirely in the main process with a 5-attempt brute-force lockout.
 - **Data Redaction:** The Traffic Inspector, application log files, and diagnostics exports automatically strip bearer tokens, API keys (`sk-...`, `vn-...`), local system paths, and raw prompt/response bodies.
 - **Local Family Safe Mode:** Run-time guardrails screen outgoing prompts and inbound scrape responses locally. This is independent of the provider-side Venice API `safe_mode`.
-- **Fallback Provider Consent:** In Electron, fallback-provider enablement, ordering, and provider-native automatic fallback models are profile-scoped and enforced by the main process; renderer request payloads cannot opt a provider in. Replicate, AWS Bedrock, Google Vertex AI, Azure OpenAI, Hugging Face, and Cohere are explicitly deferred and cannot accept keys or traffic in this release. Provider keys can be manually removed/replaced; scheduled key rotation is not implemented.
 
 ---
 
@@ -155,7 +165,6 @@ The user interface uses a token-based styling model matching dynamic glassmorphi
 - **Built-in Catalog (35 Themes):**
   - *Dracula & Dark Palettes:* Basalt Noir, catppuccin, dracula, gruvbox_dark, midnight-velvet, monokai, nord, obsidian-bloom, one_dark, rosepine, solarized_dark, synthwave-harbor, tokyo_night, venice.
   - *Light & High Contrast:* amber-archive, arctic-glass, aurora-boreal, circuit-mint, copper, cyber-orchid, dark, desert-copperfield, ember-monastery, github_light, glacial-ink, harbor-fog, light, moss-circuit, neon-dusk, porcelain-daybreak, sakura-terminal, solar-ash, solarized_light, toxic-limewire, ultraviolet-rain.
-- **Visual Parity:** Custom themes automatically style the main workspace, sidebar lists, settings, inputs, and generation progress surfaces.
 
 ---
 
@@ -196,7 +205,7 @@ npm run dev
 
 ## Validation / CI Gates
 
-Before submitting a pull request, you must verify that all linting, typing, tests, and contract verifications pass:
+Before submitting a pull request, verify that all linting, typing, tests, and contract verifications pass:
 
 ```bash
 # 1. Run ESLint (zero warnings enforced)
@@ -214,12 +223,10 @@ npm run verify:contracts
 # 5. Build production bundles
 npm run build
 
-# 6. Verify release packaging hardening (Phase 2J) and dist output
+# 6. Verify release packaging hardening and dist output
 npm run verify:release-packaging-hardening
 npm run verify:dist
 ```
-
-Release-readiness is enforced by `verify:release-packaging-hardening` (Phase 2J / VERIFY-052) and the `verify:dist` build-output gate. Maintainers must run `npm run verify:contracts` and `npm run verify:dist` before tagging a release, in addition to the steps above.
 
 ---
 
@@ -247,40 +254,12 @@ For a complete breakdown of every file, see [FILE_TREE.md](docs/FILE_TREE.md). B
 
 ---
 
-## Configuration
-
-Local overrides can be declared in YAML format. The app will search for `.config/config.yaml` or `.config/config.local.yaml` (which are gitignored to prevent credential leaks).
-
-```bash
-# Initialize local configuration files from templates
-npm run config:init
-
-# Print the sanitized effective configuration
-npm run config:print
-```
-
-Refer to [CONFIG.md](docs/DEVELOPMENT/CONFIG.md) for a detailed list of configuration keys.
-
----
-
 ## Legal, Privacy, Safety, and Abuse Policy
 
 - **Unofficial Status:** Venice Forge is an independent frontend wrapper. Venice.ai does not offer direct support for this client.
 - **Abuse Prohibitions:** Venice Forge must not be used to facilitate illegal content generation or harassment.
 - **Vulnerability Disclosures:** Report security flaws or potential data leaks privately via GitHub Vulnerability Reporting.
 - **Full Terms:** Read [LEGAL.md](LEGAL.md) and [PRIVACY.md](PRIVACY.md).
-
----
-
-## Contributing
-
-We welcome community enhancements. Please review [CONTRIBUTING.md](CONTRIBUTING.md) and ensure all validation checks pass locally before opening a pull request.
-
----
-
-## Support
-
-For issues with this client application, please open an issue on our [GitHub Tracker](https://github.com/spearchucker667/Venice_Forge/issues). For API account, token billing, or model-level concerns, refer to official [Venice.ai Support](https://venice.ai/support). See also [SUPPORT.md](SUPPORT.md).
 
 ---
 
