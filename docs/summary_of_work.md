@@ -4,18 +4,25 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-24 (LLM Reply Message Action Icons Display Fix)
+**Date:** 2026-07-24 (Character Persona & Instruction File Sourcing Feature)
 
-**Scope:** Resolved display rendering issues with action buttons below assistant (LLM) chat responses in `message-bubble.tsx`.
+**Scope:** Added support for loading character instructions, persona, personality, system prompts, scenarios, and post-history instructions from text files (`.txt`, `.md`, `.pdf`) and automatically sourcing & storing these files directly inside character persona records.
 
-- Updated `ActionBtn` styling from `text-text-muted/40` (ultra-faint 40% opacity) to `text-text-muted hover:text-text-primary` with `p-1.5 flex items-center justify-center`, providing crisp high-contrast icon rendering across dark and light themes.
-- Replaced raw Unicode text characters (`⑂`, `⌫`, `↻`) used for "Fork chat from here", "Delete from here", and "Regenerate from here" with clean, standardized 14px vector SVG icons.
-- Standardized SVG dimensions to 14px × 14px with `strokeWidth="2"` across all action buttons (Copy, Edit, Fork, Delete from here, Regenerate, Create Scene, Delete).
-- Updated action container visibility to `opacity-90 sm:opacity-0` so action buttons remain accessible on touch/mobile devices while keeping the hover transition on desktop.
+- Added `targetField` and `loadedAt` properties to `CharacterContextFile` in `src/types/rp.ts` and updated `characterCardService.ts` normalization to persist target field metadata.
+- Added `FieldFileLoader` file picker buttons next to `Personality`, `Scenario`, `System prompt`, `Post-history instructions`, and `Instructions` in `CharacterEditor.tsx`, allowing users to select `.txt` or `.md` files to populate fields.
+- Automated automatic sourcing of loaded instruction files into `draft.contextFiles`, preserving filename, size, target field badge, and content right inside the character card (`CharacterCardV1`).
+- Added a Sourced & Context Files manager with file content viewer modal (`viewingContextFile`), "Re-apply to field" actions, and file deletion.
+- Updated `promptBuilderService.ts` to include general sourced context files in the compiled prompt block (`[Sourced Context Files]`).
+- Added file loading support for `UserPersonaV1` descriptions in `PersonaManager.tsx`.
+- Added unit test suite in `CharacterEditor.test.tsx` verifying instruction file loading and context file sourcing.
 
-**Validation:** Typecheck passed cleanly (`npm run typecheck`). Unit tests passed (16/16 tests in `message-bubble.test.tsx` and 14/14 tests in `chat-view.test.tsx`).
+**Validation:** Typecheck passed cleanly (`npm run typecheck`). Unit tests passed (13 files / 100 tests passed, including 34 tests in `CharacterEditor.test.tsx`). ESLint passed with 0 warnings (`npm run lint:eslint`).
 
 **Manual QA:** No headed Electron click-through was run.
+
+### Prior Session Summary (LLM Reply Message Action Icons Display Fix) [demoted from "Latest Session Summary"]
+
+**Date:** 2026-07-24 (LLM Reply Message Action Icons Display Fix)
 
 ### Prior Session Summary (Media Generation Negative Prompt Payload Fix) [demoted from "Latest Session Summary"]
 

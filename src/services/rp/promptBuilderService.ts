@@ -117,11 +117,16 @@ export function buildCharactersBlock(characters: CharacterCardV1[]): string {
         .filter((d) => d.speaker && d.text)
         .map((d) => `  ${d.speaker}: ${d.text}`)
         .join("\n");
+      const contextFiles = (c.contextFiles ?? [])
+        .filter((f) => f.content && f.content.trim() && (!f.targetField || f.targetField === "general"))
+        .map((f) => `[Sourced File: ${f.name}]\n${f.content.trim()}`)
+        .join("\n\n");
       return block(
         `[Character: ${c.name}]`,
         desc,
         personality ? `[Personality]\n${personality}` : undefined,
         instructions ? `[Creator instructions]\n${instructions}` : undefined,
+        contextFiles ? `[Sourced Context Files]\n${contextFiles}` : undefined,
         ex ? `Example exchanges:\n${ex}` : undefined,
       );
     })

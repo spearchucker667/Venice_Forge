@@ -17,7 +17,7 @@
  */
 
 import { isElectron, desktopCharacterCards } from "../desktopBridge";
-import type { CharacterCardV1, CharacterCardAvatar, CharacterUrlScrapingProvider } from "../../types/rp";
+import type { CharacterCardV1, CharacterCardAvatar, CharacterContextFile, CharacterUrlScrapingProvider } from "../../types/rp";
 import { CARD_FIELD_MAX, MAX_TAGS, RP_SCHEMA_VERSION, isValidRpId } from "../../types/rp";
 import { assessCharacterImport } from "../../shared/safety/characterImportSafety";
 import { SafetyGuardBlockedError } from "../../shared/safety";
@@ -177,12 +177,25 @@ export function normalizeCard(input: unknown): CharacterCardV1 | null {
   })();
 
   const contextFiles = Array.isArray(r.contextFiles)
-    ? r.contextFiles.filter((f): f is Record<string, unknown> => !!f && typeof f === "object").map(f => ({
-        id: typeof f.id === "string" ? f.id : "",
-        name: typeof f.name === "string" ? f.name : "",
-        content: typeof f.content === "string" ? f.content : "",
-        size: typeof f.size === "number" ? f.size : 0,
-      })).filter(f => f.id && f.name && f.content)
+    ? r.contextFiles
+        .filter((f): f is Record<string, unknown> => !!f && typeof f === "object")
+        .map((f) => ({
+          id: typeof f.id === "string" ? f.id : "",
+          name: typeof f.name === "string" ? f.name : "",
+          content: typeof f.content === "string" ? f.content : "",
+          size: typeof f.size === "number" ? f.size : 0,
+          targetField:
+            f.targetField === "systemPrompt" ||
+            f.targetField === "personality" ||
+            f.targetField === "instructions" ||
+            f.targetField === "scenario" ||
+            f.targetField === "postHistoryInstructions" ||
+            f.targetField === "general"
+              ? (f.targetField as CharacterContextFile["targetField"])
+              : undefined,
+          loadedAt: typeof f.loadedAt === "number" ? f.loadedAt : undefined,
+        }))
+        .filter((f) => f.id && f.name && f.content)
     : undefined;
 
   const createdAt = typeof r.createdAt === "number" ? r.createdAt : Date.now();

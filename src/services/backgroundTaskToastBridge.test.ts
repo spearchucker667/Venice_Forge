@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { useBackgroundTaskStore } from '../stores/background-task-store'
 import { toast, useToastStore } from '../stores/toast-store'
 import {

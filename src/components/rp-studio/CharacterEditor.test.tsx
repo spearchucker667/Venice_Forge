@@ -646,3 +646,46 @@ describe("CharacterEditor — Step Tab Navigation", () => {
   });
 });
 
+describe("CharacterEditor — Instruction file loading & sourced context files", () => {
+  beforeEach(() => {
+    (useCharacterCardStore.getState() as any).setCards([fixtures.sampleCard]);
+  });
+
+  it("loads instruction file text into target field and sources file inside contextFiles", async () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+
+    // Select Step 3 Persona
+    fireEvent.click(screen.getByRole("button", { name: "3. Persona" }));
+
+    // Find the file inputs for loading file into personality
+    const fileInputs = screen.getAllByText("Load file (.txt, .md)");
+    expect(fileInputs.length).toBeGreaterThan(0);
+
+    const testFile = new File(["Mysterious space traveler with secret knowledge."], "personality-bio.md", {
+      type: "text/markdown",
+    });
+
+    const hiddenInputs = document.querySelectorAll('input[type="file"]');
+    const personalityFileInput = Array.from(hiddenInputs).find(
+      (input) => (input as HTMLInputElement).accept.includes(".txt")
+    ) as HTMLInputElement;
+
+    expect(personalityFileInput).toBeDefined();
+
+    fireEvent.change(personalityFileInput, { target: { files: [testFile] } });
+
+    await waitFor(() => {
+      const personalityArea = screen.getByLabelText("Personality") as HTMLTextAreaElement;
+      expect(personalityArea.value).toBe("Mysterious space traveler with secret knowledge.");
+    });
+
+    // Switch to Model and Context step to check sourced files section
+    fireEvent.click(screen.getByRole("button", { name: "8. Model and Context" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("personality-bio.md")).toBeInTheDocument();
+      expect(screen.getByText("personality")).toBeInTheDocument();
+    });
+  });
+});
+

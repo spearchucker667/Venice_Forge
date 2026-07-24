@@ -56,6 +56,38 @@ function avatarFromDataUrl(value: string): CharacterCardAvatar | undefined {
   return byteLength > 0 && byteLength <= MAX_AVATAR_BYTES ? { mimeType: match[1].toLowerCase() as CharacterCardAvatar["mimeType"], data, byteLength } : undefined;
 }
 
+function FieldFileLoader({
+  targetField,
+  onSelectFile,
+  disabled = false,
+}: {
+  targetField: CharacterContextFile["targetField"];
+  onSelectFile: (file: File, targetField: CharacterContextFile["targetField"]) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label className={`inline-flex items-center gap-1 text-[11.5px] text-accent hover:underline cursor-pointer ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="12" y1="18" x2="12" y2="12" />
+        <polyline points="9 15 12 12 15 15" />
+      </svg>
+      Load file (.txt, .md)
+      <input
+        type="file"
+        className="hidden"
+        accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onSelectFile(f, targetField);
+          e.target.value = "";
+        }}
+      />
+    </label>
+  );
+}
+
 interface Props {
   cardId: string;
   onClose: () => void;
@@ -111,6 +143,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   const [greetingPreviewIndex, setGreetingPreviewIndex] = useState(0);
   const [exportReport, setExportReport] = useState<CharacterCardExportReport | null>(null);
   const [comparisonVersionId, setComparisonVersionId] = useState<string | null>(null);
+  const [viewingContextFile, setViewingContextFile] = useState<CharacterContextFile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const generationAbortRef = useRef<AbortController | null>(null);
   const refinementAbortRef = useRef<AbortController | null>(null);
@@ -193,9 +226,12 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
   };
 
   
-  const handleContextFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleInstructionFileSelect = async (
+    file: File,
+    targetField: CharacterContextFile["targetField"] = "general",
+    mode: "replace" | "append" = "replace"
+  ) => {
+    if (!draft) return;
     const ext = file.name.toLowerCase().split(".").pop() ?? "";
     const allowedExts = new Set(["txt", "md", "pdf"]);
     const allowedMimeTypes = new Set([
@@ -205,12 +241,9 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
       "text/x-markdown",
     ]);
     if (file.size > 5 * 1024 * 1024) {
-      setError("Context file must be 5MB or smaller.");
-      e.target.value = "";
+      setError("Instruction file must be 5MB or smaller.");
       return;
     }
-    // Enforce MIME type when the browser reports one, and always require a
-    // matching extension as defense-in-depth.
     const mimeAllowed = !file.type || allowedMimeTypes.has(file.type);
     const extAllowed = allowedExts.has(ext);
     if (!mimeAllowed || !extAllowed) {
@@ -219,54 +252,120 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           file.type ? ` (MIME type: ${file.type})` : ""
         }. ` +
         `These formats are wired to the local PDF text extractor and pass-through readers; ` +
-        `JSON or CSV context is intentionally rejected to avoid prompt-injection via structured data.`,
+        `JSON or CSV context is intentionally rejected to avoid prompt-injection via structured data.`
       );
-      e.target.value = "";
       return;
     }
+
+    let text = "";
     if (ext === "pdf") {
       try {
         const { extractPdfText } = await import("../../services/pdfParserService");
         const result = await extractPdfText(file);
         if (result.isImageOnly) {
           setError(
-            "This PDF has no embedded text layer (likely a scanned image). " +
-            "Use the Venice /augment/text-parser endpoint for OCR, or convert to .txt / .md first.",
+            "This PDF has no embedded text layer (likely a scanned image). Use OCR or convert to .txt / .md first."
           );
-          e.target.value = "";
           return;
         }
-        const newFile: CharacterContextFile = {
-          id: Date.now().toString() + Math.random(),
-          name: file.name,
-          content: result.text.slice(0, 100_000),
-          size: file.size,
-        };
-        update("contextFiles", [...(draft.contextFiles || []), newFile]);
+        text = result.text.slice(0, 100_000);
       } catch {
-        // Normalize PDF extraction failures to a safe user-facing message.
-        // Raw parser errors may contain local paths or internal details.
-        setError(
-          "Failed to extract PDF text. The file may be corrupt, password-protected, or unreadable. " +
-          "Try converting the file to .txt or .md.",
-        );
+        setError("Failed to extract PDF text. Try converting the file to .txt or .md.");
+        return;
       }
-      e.target.value = "";
+    } else {
+      try {
+        text = await file.text();
+      } catch {
+        setError("Failed to read instruction file.");
+        return;
+      }
+    }
+
+    if (!text.trim()) {
+      setError("Instruction file is empty.");
       return;
     }
-    try {
-      const text = await file.text();
-      const newFile: CharacterContextFile = {
-        id: Date.now().toString() + Math.random(),
-        name: file.name,
-        content: text,
-        size: file.size
-      };
-      update("contextFiles", [...(draft.contextFiles || []), newFile]);
-    } catch {
-      setError("Failed to read context file.");
+
+    let fieldLabel = "General Context";
+    if (targetField === "systemPrompt") {
+      fieldLabel = "System Prompt";
+      const current = draft.systemPrompt || "";
+      const updated = mode === "append" && current ? `${current}\n\n${text}` : text;
+      if (countPromptCharacters(updated) > getUserSystemPromptLimit()) {
+        setError(`File content exceeds character system prompt limit (${getUserSystemPromptLimit()} chars).`);
+        return;
+      }
+      update("systemPrompt", updated);
+    } else if (targetField === "personality") {
+      fieldLabel = "Personality";
+      const current = draft.personality || "";
+      const updated = mode === "append" && current ? `${current}\n\n${text}` : text;
+      update("personality", updated.slice(0, CARD_FIELD_MAX));
+    } else if (targetField === "instructions") {
+      fieldLabel = "Instructions";
+      const current = draft.instructions || "";
+      const updated = mode === "append" && current ? `${current}\n\n${text}` : text;
+      update("instructions", updated.slice(0, CARD_FIELD_MAX));
+    } else if (targetField === "scenario") {
+      fieldLabel = "Scenario";
+      const current = draft.scenario || "";
+      const updated = mode === "append" && current ? `${current}\n\n${text}` : text;
+      update("scenario", updated.slice(0, CARD_FIELD_MAX));
+    } else if (targetField === "postHistoryInstructions") {
+      fieldLabel = "Post-history Instructions";
+      const current = draft.postHistoryInstructions || "";
+      const updated = mode === "append" && current ? `${current}\n\n${text}` : text;
+      update("postHistoryInstructions", updated.slice(0, CARD_FIELD_MAX));
     }
+
+    const newFile: CharacterContextFile = {
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
+      name: file.name,
+      content: text,
+      size: file.size,
+      targetField,
+      loadedAt: Date.now(),
+    };
+
+    const existingFiles = draft.contextFiles || [];
+    const fileIndex = existingFiles.findIndex((f) => f.name === file.name);
+    let updatedFiles: CharacterContextFile[];
+    if (fileIndex >= 0) {
+      updatedFiles = [...existingFiles];
+      updatedFiles[fileIndex] = newFile;
+    } else {
+      updatedFiles = [...existingFiles, newFile];
+    }
+    update("contextFiles", updatedFiles);
+    setError(null);
+    toast.success("File loaded & sourced", `Loaded "${file.name}" into ${fieldLabel} and saved inside character file.`);
+  };
+
+  const handleContextFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleInstructionFileSelect(file, "general");
     e.target.value = "";
+  };
+
+  const handleReapplySourcedFile = (file: CharacterContextFile) => {
+    if (!file.targetField || file.targetField === "general") {
+      toast.info("General context file", "This file is supplied directly as general character context.");
+      return;
+    }
+    if (file.targetField === "systemPrompt") {
+      update("systemPrompt", file.content);
+    } else if (file.targetField === "personality") {
+      update("personality", file.content);
+    } else if (file.targetField === "instructions") {
+      update("instructions", file.content);
+    } else if (file.targetField === "scenario") {
+      update("scenario", file.content);
+    } else if (file.targetField === "postHistoryInstructions") {
+      update("postHistoryInstructions", file.content);
+    }
+    toast.success("Re-applied sourced file", `Re-loaded "${file.name}" content into ${file.targetField}.`);
   };
 
   const removeContextFile = (id: string) => {
@@ -754,13 +853,19 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">3. Persona</h3>
             <div>
-              <Label htmlFor="card-personality">Personality</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="card-personality">Personality</Label>
+                <FieldFileLoader targetField="personality" onSelectFile={handleInstructionFileSelect} />
+              </div>
               <TextArea id="card-personality" value={draft.personality ?? ""} onChange={(value) => update("personality", value)} rows={4} maxLength={CARD_FIELD_MAX} ariaLabel="Personality" />
             </div>
             <div>
-              <Label htmlFor="card-scenario" hint="optional">
-                Scenario
-              </Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="card-scenario" hint="optional">
+                  Scenario
+                </Label>
+                <FieldFileLoader targetField="scenario" onSelectFile={handleInstructionFileSelect} />
+              </div>
               <TextArea
                 value={draft.scenario ?? ""}
                 onChange={(v) => update("scenario", v || undefined)}
@@ -778,9 +883,12 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">4. Prompt Behavior</h3>
             <div>
-              <Label htmlFor="card-system" hint={`${countPromptCharacters(draft.systemPrompt)}/${getUserSystemPromptLimit()}`}>
-                System prompt
-              </Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="card-system" hint={`${countPromptCharacters(draft.systemPrompt)}/${getUserSystemPromptLimit()}`}>
+                  System prompt
+                </Label>
+                <FieldFileLoader targetField="systemPrompt" onSelectFile={handleInstructionFileSelect} />
+              </div>
               <TextArea
                 value={draft.systemPrompt}
                 onChange={(v) => {
@@ -800,13 +908,19 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               )}
             </div>
             <div>
-              <Label htmlFor="card-post-history">Post-history instructions</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="card-post-history">Post-history instructions</Label>
+                <FieldFileLoader targetField="postHistoryInstructions" onSelectFile={handleInstructionFileSelect} />
+              </div>
               <TextArea id="card-post-history" value={draft.postHistoryInstructions ?? ""} onChange={(value) => update("postHistoryInstructions", value)} rows={3} maxLength={CARD_FIELD_MAX} ariaLabel="Post-history instructions" />
             </div>
             <div>
-              <Label htmlFor="card-instructions" hint={`${(draft.instructions ?? "").length}/${CARD_FIELD_MAX}`}>
-                Instructions
-              </Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="card-instructions" hint={`${(draft.instructions ?? "").length}/${CARD_FIELD_MAX}`}>
+                  Instructions
+                </Label>
+                <FieldFileLoader targetField="instructions" onSelectFile={handleInstructionFileSelect} />
+              </div>
               <TextArea
                 id="card-instructions"
                 value={draft.instructions ?? ""}
@@ -1009,25 +1123,47 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             </div>
             <div className="space-y-2 pt-2 border-t border-border/50">
               <div className="flex items-center justify-between mb-2">
-                <Label>Context Files</Label>
-                <label className="text-[12px] px-2 py-1 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 cursor-pointer transition-colors">
+                <div>
+                  <Label>Sourced & Context Files</Label>
+                  <p className="text-[11.5px] text-text-muted">Files loaded into personality, system prompt, instructions, or attached as general context are stored directly inside this character card.</p>
+                </div>
+                <label className="text-[12px] px-2.5 py-1 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 cursor-pointer transition-colors shrink-0">
                   Upload File (Max 5MB)
                   <input type="file" className="hidden" onChange={handleContextFileUpload} accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" />
                 </label>
               </div>
               {(!draft.contextFiles || draft.contextFiles.length === 0) ? (
-                <div className="text-[12px] text-text-muted italic">No context files uploaded.</div>
+                <div className="text-[12px] text-text-muted italic">No sourced or context files uploaded.</div>
               ) : (
                 <div className="space-y-2">
                   {draft.contextFiles.map((f) => (
-                    <div key={f.id} className="flex gap-2 items-center justify-between bg-surface-elevated border border-border rounded-lg p-2">
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[12.5px] text-text-primary truncate">{f.name}</span>
-                        <span className="text-[12px] text-text-muted">{(f.size / 1024).toFixed(1)} KB</span>
+                    <div key={f.id} className="flex gap-2 items-center justify-between bg-surface-elevated border border-border rounded-lg p-2.5">
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12.5px] font-medium text-text-primary truncate">{f.name}</span>
+                          {f.targetField && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded border border-accent/30 bg-accent/10 text-accent font-medium uppercase tracking-wider">
+                              {f.targetField}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11.5px] text-text-muted">
+                          {(f.size / 1024).toFixed(1)} KB {f.loadedAt ? `· ${new Date(f.loadedAt).toLocaleDateString()}` : ""}
+                        </span>
                       </div>
-                      <button type="button" onClick={() => removeContextFile(f.id)} className="text-text-muted hover:text-rose-300 p-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <GhostButton onClick={() => setViewingContextFile(f)}>
+                          View
+                        </GhostButton>
+                        {f.targetField && f.targetField !== "general" && (
+                          <GhostButton onClick={() => handleReapplySourcedFile(f)}>
+                            Re-apply
+                          </GhostButton>
+                        )}
+                        <button type="button" onClick={() => removeContextFile(f.id)} aria-label={`Remove file ${f.name}`} className="text-text-muted hover:text-rose-300 p-1">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1362,6 +1498,43 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           </div>
         )}
       </div>
+
+      {viewingContextFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="flex flex-col w-full max-w-2xl max-h-[80vh] rounded-xl border border-border bg-surface shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated">
+              <div>
+                <h3 className="text-[14px] font-semibold text-text-primary">{viewingContextFile.name}</h3>
+                <p className="text-[11px] text-text-muted">
+                  {(viewingContextFile.size / 1024).toFixed(1)} KB
+                  {viewingContextFile.targetField ? ` · Target field: ${viewingContextFile.targetField}` : " · General context file"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingContextFile(null)}
+                className="text-text-muted hover:text-text-primary p-1 rounded-md"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 font-mono text-[12px] text-text-secondary whitespace-pre-wrap bg-surface-elevated/30">
+              {viewingContextFile.content}
+            </div>
+            <div className="flex items-center justify-end px-4 py-3 border-t border-border bg-surface gap-2">
+              {viewingContextFile.targetField && viewingContextFile.targetField !== "general" && (
+                <PrimaryButton size="sm" onClick={() => { handleReapplySourcedFile(viewingContextFile); setViewingContextFile(null); }}>
+                  Re-apply to {viewingContextFile.targetField}
+                </PrimaryButton>
+              )}
+              <GhostButton onClick={() => setViewingContextFile(null)}>Close</GhostButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       {saving && (
         <div role="status" aria-label="Saving character" aria-live="polite" className="absolute inset-0 flex items-center justify-center gap-2 bg-black/30 pointer-events-none"> {/* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */}

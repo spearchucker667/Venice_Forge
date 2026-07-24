@@ -68,6 +68,8 @@ export interface CharacterContextFile {
   name: string;
   content: string;
   size: number;
+  targetField?: "systemPrompt" | "personality" | "instructions" | "scenario" | "postHistoryInstructions" | "general";
+  loadedAt?: number;
 }
 
 /** Persisted location for a single character card. */

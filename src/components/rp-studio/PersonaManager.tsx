@@ -222,6 +222,18 @@ export function PersonaEditor({ personaId, onClose, onSave, disabled = false }: 
     setError(null);
   };
 
+  const handlePersonaFileSelect = async (file: File) => {
+    try {
+      const text = await file.text();
+      if (text.trim()) {
+        update("description", text);
+        setError(null);
+      }
+    } catch {
+      setError("Failed to read persona file.");
+    }
+  };
+
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
@@ -288,7 +300,28 @@ export function PersonaEditor({ personaId, onClose, onSave, disabled = false }: 
           />
         </div>
         <div>
-          <Label htmlFor="persona-desc">Description</Label>
+          <div className="flex items-center justify-between mb-1">
+            <Label htmlFor="persona-desc">Description</Label>
+            <label className="inline-flex items-center gap-1 text-[11.5px] text-accent hover:underline cursor-pointer">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="12" y1="18" x2="12" y2="12" />
+                <polyline points="9 15 12 12 15 15" />
+              </svg>
+              Load from file (.txt, .md)
+              <input
+                type="file"
+                className="hidden"
+                accept=".txt,.md,text/plain,text/markdown"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void handlePersonaFileSelect(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
           <TextArea
             value={draft.description}
             onChange={(v) => update("description", v)}
