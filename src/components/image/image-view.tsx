@@ -301,6 +301,7 @@ export function ImageView() {
   const applyDraftFromGallery = useCallback(
     (draft: {
       prompt?: string;
+      negative?: string;
       negativePrompt?: string;
       style?: string;
       steps?: number;
@@ -314,7 +315,8 @@ export function ImageView() {
       seed?: number | null;
     }) => {
       if (typeof draft.prompt === "string") setPromptClamped(draft.prompt);
-      if (typeof draft.negativePrompt === "string") setNegativePrompt(draft.negativePrompt);
+      const neg = draft.negativePrompt ?? draft.negative;
+      if (typeof neg === "string") setNegativePrompt(neg);
       if (typeof draft.style === "string") setStyle(draft.style);
       if (typeof draft.steps === "number" && Number.isFinite(draft.steps)) setSteps(draft.steps);
       if (typeof draft.cfgScale === "number" && Number.isFinite(draft.cfgScale)) setCfgScale(draft.cfgScale);

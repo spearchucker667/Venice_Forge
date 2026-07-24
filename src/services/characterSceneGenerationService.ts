@@ -141,6 +141,7 @@ export async function generateCharacterScene(
     const draft: ImageDraftLike = {
       prompt,
       negative: negativePrompt,
+      negativePrompt,
       width: options.width ?? 1024,
       height: options.height ?? 1024,
       aspectRatio: options.aspectRatio,

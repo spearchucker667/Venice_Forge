@@ -220,6 +220,7 @@ export function serializeSeed(
 export interface ImageDraftLike {
   prompt: string;
   negative?: string;
+  negativePrompt?: string;
   width?: number | string;
   height?: number | string;
   aspectRatio?: string;
@@ -306,7 +307,8 @@ function clampDimension(value: unknown): number {
  */
 export function normalizeImageDraft(draft: ImageDraftLike): ImageDraftLike {
   const prompt = String(draft.prompt ?? "").trim();
-  const negative = String(draft.negative ?? "").trim();
+  const rawNegative = draft.negative ?? draft.negativePrompt;
+  const negative = String(rawNegative ?? "").trim();
   const aspectRatio = String(draft.aspectRatio ?? "").trim();
   const resolution = String(draft.resolution ?? "").trim();
   const rawQuality = String(draft.quality ?? "").trim().toLowerCase();
@@ -319,6 +321,7 @@ export function normalizeImageDraft(draft: ImageDraftLike): ImageDraftLike {
   return {
     prompt: prompt.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
     negative: negative.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
+    negativePrompt: negative.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
     width: clampDimension(draft.width),
     height: clampDimension(draft.height),
     aspectRatio: aspectRatio || undefined,
@@ -419,7 +422,7 @@ export function buildImagePayload(
     );
   }
 
-  const negative = normalized.negative?.trim();
+  const negative = (normalized.negative ?? normalized.negativePrompt)?.trim();
   if (negative && draft.supportsNegativePrompt !== false) {
     payload.negative_prompt = negative;
   }

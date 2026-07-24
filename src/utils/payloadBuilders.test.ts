@@ -127,6 +127,19 @@ describe("normalizeImageDraft", () => {
     expect((result.negative ?? "").length).toBe(1500);
   });
 
+  it("normalizes negative prompts supplied via negative or negativePrompt property", () => {
+    const res1 = normalizeImageDraft({ prompt: "cat", negativePrompt: "blurry, low quality" });
+    expect(res1.negative).toBe("blurry, low quality");
+    expect(res1.negativePrompt).toBe("blurry, low quality");
+
+    const res2 = normalizeImageDraft({ prompt: "cat", negative: "foggy, distorted" });
+    expect(res2.negative).toBe("foggy, distorted");
+    expect(res2.negativePrompt).toBe("foggy, distorted");
+
+    const payload = buildImagePayload("flux-dev", { prompt: "cat", negativePrompt: "blurry, low quality" });
+    expect(payload.negative_prompt).toBe("blurry, low quality");
+  });
+
   /** Verifies that empty prompts are preserved (rejected later by UI). */
   it("trims empty prompts", () => {
     const result = normalizeImageDraft({ prompt: "   " });

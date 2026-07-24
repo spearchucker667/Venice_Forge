@@ -606,3 +606,43 @@ describe("CharacterEditor — token budget display", () => {
     expect(mocks.upsertMock).not.toHaveBeenCalled();
   });
 });
+
+describe("CharacterEditor — Step Tab Navigation", () => {
+  it("filters visible sections when clicking step tabs and navigates via Next/Previous", async () => {
+    render(<CharacterEditor cardId="card_test_001" onClose={() => {}} />);
+
+    // Initially "All Steps" is active, so all sections (e.g. Identity, Workflow, Persona) are visible
+    expect(screen.getByRole("heading", { name: "1. Source & Avatar" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "2. Identity" })).toBeInTheDocument();
+    expect(screen.getByTestId("character-editor-workflow")).toBeInTheDocument();
+
+    // Click "1. Source" tab
+    fireEvent.click(screen.getByRole("button", { name: "1. Source" }));
+    expect(screen.getByRole("heading", { name: "1. Source & Avatar" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "2. Identity" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("character-editor-workflow")).not.toBeInTheDocument();
+
+    // Click Next button -> moves to Step 2: Identity
+    fireEvent.click(screen.getByRole("button", { name: /^Next: Identity/i }));
+    expect(screen.queryByRole("heading", { name: "1. Source & Avatar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "2. Identity" })).toBeInTheDocument();
+
+    // Click "5. Greetings" tab
+    fireEvent.click(screen.getByRole("button", { name: "5. Greetings" }));
+    expect(screen.getByRole("heading", { name: "5. Greetings" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "2. Identity" })).not.toBeInTheDocument();
+
+    // Click "10. Export" tab
+    fireEvent.click(screen.getByRole("button", { name: "10. Export" }));
+    expect(screen.getByRole("heading", { name: "10. Export & Workflow" })).toBeInTheDocument();
+    expect(screen.getByTestId("character-editor-workflow")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "5. Greetings" })).not.toBeInTheDocument();
+
+    // Click "All Steps" tab -> shows all steps again
+    fireEvent.click(screen.getByRole("button", { name: "All Steps" }));
+    expect(screen.getByRole("heading", { name: "1. Source & Avatar" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "2. Identity" })).toBeInTheDocument();
+    expect(screen.getByTestId("character-editor-workflow")).toBeInTheDocument();
+  });
+});
+

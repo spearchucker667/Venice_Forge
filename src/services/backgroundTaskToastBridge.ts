@@ -9,6 +9,10 @@ import { useSettingsStore } from '../stores/settings-store'
  */
 let isInitialized = false
 
+export function __resetBackgroundTaskToastBridgeForTests() {
+  isInitialized = false
+}
+
 export function initBackgroundTaskToastBridge() {
   if (isInitialized) return
   isInitialized = true
@@ -70,7 +74,8 @@ export function initBackgroundTaskToastBridge() {
           })
         }
       } else if (task.status === 'completed') {
-        if (!prevTask || prevTask.status !== 'completed') {
+        // Only trigger completion toast if the task was observed transitioning to completed in this session
+        if (prevTask && prevTask.status !== 'completed') {
           toast.upsertToast(dedupeKey, {
             variant: 'success',
             title,
@@ -95,24 +100,32 @@ export function initBackgroundTaskToastBridge() {
           })
         }
       } else if (task.status === 'failed' || task.status === 'timeout' || task.status === 'aborted') {
-        if (!prevTask || prevTask.status !== task.status) {
+        // Only trigger failure toast if the task was observed in a different status in this session
+        // (prevents pre-existing failed tasks from prior sessions popping up toasts on boot)
+        if (prevTask && prevTask.status !== task.status) {
           toast.upsertToast(dedupeKey, {
             variant: 'error',
             title: `${title} failed`,
             description: task.error || 'An error occurred.',
-            persistent: true, // Phase 7: Keep failures persistent
+            persistent: true,
             actions: [
               ...(isProviderPolledBackgroundTaskType(task.type) ? [{
                 id: 'retry',
                 label: 'Retry',
                 kind: 'retry-task' as const,
-                onClick: () => useBackgroundTaskStore.getState().retryTask(taskId)
+                onClick: () => {
+                  toast.dismissByKey(dedupeKey)
+                  useBackgroundTaskStore.getState().retryTask(taskId)
+                }
               }] : []),
               {
                 id: 'dismiss',
                 label: 'Dismiss',
                 kind: 'dismiss',
-                onClick: () => toast.dismissByKey(dedupeKey)
+                onClick: () => {
+                  toast.dismissByKey(dedupeKey)
+                  useBackgroundTaskStore.getState().clearTask(taskId)
+                }
               }
             ]
           })
@@ -120,15 +133,11 @@ export function initBackgroundTaskToastBridge() {
       }
     }
 
-    // Check for removed tasks to dismiss their toasts if they were still persistent
-    for (const [taskId, prevTask] of Object.entries(previousTasks)) {
+    // Check for removed tasks to dismiss their toasts if they were still active
+    for (const [taskId] of Object.entries(previousTasks)) {
       if (!currentTasks[taskId]) {
-        // If it was removed while still running, clear the toast
-        if (['queued', 'processing'].includes(prevTask.status)) {
-           const dedupeKey = `task:${taskId}`
-           const toastId = toast.getToasts().find(t => t.dedupeKey === dedupeKey)?.id
-           if (toastId) toast.dismiss(toastId)
-        }
+        const dedupeKey = `task:${taskId}`
+        toast.dismissByKey(dedupeKey)
       }
     }
 

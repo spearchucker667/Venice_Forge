@@ -4,6 +4,53 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+**Date:** 2026-07-24 (Media Generation Negative Prompt Payload Fix)
+
+**Scope:** Resolved missing negative prompt payload inclusion across Image Generation, RP Studio Scene Generation, and Media Studio draft loading.
+
+- Updated `ImageDraftLike` and `normalizeImageDraft` in `src/utils/payloadBuilders.ts` so `draft.negativePrompt` and `draft.negative` are both recognized and normalized into `negative` and `negativePrompt`.
+- Updated `buildImagePayload` in `src/utils/payloadBuilders.ts` to inspect both `normalized.negative` and `normalized.negativePrompt`, ensuring `payload.negative_prompt` is emitted whenever a negative prompt is provided for models that support it.
+- Updated `applyDraftFromGallery` in `src/components/image/image-view.tsx` to read both `draft.negativePrompt` and `draft.negative` so applying gallery drafts correctly populates the Negative Prompt UI field.
+- Updated `characterSceneGenerationService.ts` to include both `negative` and `negativePrompt` in the draft object passed to `buildImagePayload`.
+- Added unit tests in `src/utils/payloadBuilders.test.ts` verifying that `normalizeImageDraft` and `buildImagePayload` correctly emit `negative_prompt` regardless of whether `negative` or `negativePrompt` is passed.
+
+**Validation:** Typecheck passed cleanly (`npm run typecheck`). Targeted image payload and UI suites passed (3 files / 75 tests passed, including 55 tests in `payloadBuilders.test.ts`).
+
+**Manual QA:** No headed Electron click-through was run.
+
+### Prior Session Summary (Persistent Background Task Toast Notification Fix) [demoted from "Latest Session Summary"]
+
+**Date:** 2026-07-24 (Persistent Background Task Toast Notification Fix)
+
+**Scope:** Resolved persistent re-firing of historical background task failure/completion toast notifications on every application startup.
+
+- Updated `backgroundTaskToastBridge.ts` so pre-existing tasks loaded during initial app boot (`!prevTask`) do not trigger toast notifications if they are already in a terminal state (`failed`, `timeout`, `aborted`, `completed`).
+- Updated the toast notification `Dismiss` action so clicking "Dismiss" on a failed task's toast removes the toast and clears the task from `useBackgroundTaskStore` and Electron's persistent task journal (`tasks.json`).
+- Updated the `Retry` action so clicking "Retry" dismisses the active error toast before re-queueing the task.
+- Added unit test suite in `src/services/backgroundTaskToastBridge.test.ts` verifying that pre-existing failed/completed tasks do not pop up toasts on startup, and that clicking Dismiss clears the task store record.
+
+**Validation:** Typecheck passed cleanly. Unit test suite passed (including 3/3 in `backgroundTaskToastBridge.test.ts` and 108/108 in core unit test suites).
+
+**Manual QA:** No headed Electron click-through was run.
+
+### Prior Session Summary (ST Card Studio Character Creator Tab Navigation Fix) [demoted from "Latest Session Summary"]
+
+**Date:** 2026-07-24 (ST Card Studio Character Creator Tab Navigation Fix)
+
+**Scope:** Resolved non-functional step tab navigation in `CharacterEditor.tsx` (RP Studio / ST Card Creator).
+
+- Updated `activeStudioStep` state in `CharacterEditor.tsx` to support individual step index selection (`0..9`) as well as `"all"` mode.
+- Wrapped form sections in step-visibility logic (`isStepVisible`) so clicking any of the 10 step tabs (`1. Source`, `2. Identity`, `3. Persona`, `4. Prompt Behavior`, `5. Greetings`, `6. Example Dialogue`, `7. Character Book`, `8. Model and Context`, `9. Test`, `10. Export`) filters and displays only the corresponding step section.
+- Added an "All Steps" tab option alongside the 10 step tabs so users can view the full form continuously when desired.
+- Added Next Step / Previous Step bottom navigation buttons when viewing individual steps for step-by-step authoring flow.
+- Added dedicated unit tests in `CharacterEditor.test.tsx` verifying step tab filtering and Next/Previous navigation.
+
+**Validation:** `npm run typecheck` and `npm run test:unit` passed cleanly (10 files / 108 tests passed, including 33 tests in `CharacterEditor.test.tsx`).
+
+**Manual QA:** No headed Electron click-through was run.
+
+### Prior Session Summary (Chat-folder multi-select movement repair) [demoted from "Latest Session Summary"]
+
 **Date:** 2026-07-24 (Chat-folder multi-select movement repair)
 
 **Scope:** Reproduced the competing drag-and-drop and multi-select movement paths in Chat History, repaired character-folder compatibility, and made multi-select the sole conversation-movement workflow.
@@ -114,6 +161,12 @@ This is the active handoff and validation ledger. The canonical current-work led
 **Automated evidence:** focused suites pass (12 files / 110 tests); the full `npm test` surface passes (402 files, 4,547 tests passed, 1 skipped); ESLint, both TypeScript projects, aggregate contracts, the production build, dependency audit, distribution verification, and the complete local `npm run ci` meta-gate pass. Manual signed/paid/two-device/headed acceptance remains external and is not inferred.
 
 **Hosted publication:** PR #46 was opened from commit `09c1542`. CI run `29937052499` and CodeQL run `29937052339` were each retried once. Both attempts failed before executing any step: every failed job reports an empty step list, `runner_id: 0`, and no runner name across Ubuntu, macOS, and Windows. This is hosted-runner infrastructure/quota failure rather than a code-side test result. Required checks and independent review are not satisfied, so the PR remains open and `main` was not advanced or bypassed.
+
+### 2026-07-24 — ST Card Studio Character Creator Tab Navigation Fix
+
+- **Scope:** Resolved non-functional step tab navigation in `CharacterEditor.tsx` (RP Studio / ST Card Creator).
+- **Changes:** Updated `activeStudioStep` state to support step index (`0..9`) and `"all"` mode. Wrapped sections in `isStepVisible` so clicking any of the 10 step tabs (`1. Source`, `2. Identity`, `3. Persona`, `4. Prompt Behavior`, `5. Greetings`, `6. Example Dialogue`, `7. Character Book`, `8. Model and Context`, `9. Test`, `10. Export`) filters and displays only that step's controls. Added an "All Steps" tab button and Next/Previous step navigation buttons at the bottom of steps.
+- **Validation:** Added unit tests in `CharacterEditor.test.tsx` verifying step tab filtering and Next/Previous navigation (33/33 tests passed). `npm run typecheck` and `npm run test:unit` passed 10 files / 108 tests.
 
 ### Prior Session Summary (VERIFY-007 inline-style CSP regression fix)
 
