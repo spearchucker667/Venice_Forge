@@ -4,19 +4,27 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-24 (Image Inspector session deletion and model pricing)
+**Date:** 2026-07-24 (Chat-folder multi-select movement repair)
 
-**Scope:** Reproduced the missing saved-session delete control, added model cost visibility, and verified the requested direct image-based Google/Brave search against current provider contracts.
+**Scope:** Reproduced the competing drag-and-drop and multi-select movement paths in Chat History, repaired character-folder compatibility, and made multi-select the sole conversation-movement workflow.
 
-- Added a confirmation-gated delete control to every non-analyzing Image Inspector session; deletion removes the inspection record and clears active search results without deleting the underlying Media Studio image.
-- Kept active requests non-deletable until cancellation to avoid a persistence race.
-- Continued to exclude models that explicitly lack vision support and added live model-catalog USD input/output rates per one million tokens to the selector and selected-model details. Missing rates are labeled unavailable.
-- Verified that Venice `/augment/search` accepts only a 1–400 character text query and costs $0.01 per request. Brave's official Image Search API also requires a text `q`; neither contract accepts source-image bytes.
-- Disabled the query-derived Google/Brave action in Image Inspector rather than misrepresenting AI-generated text results as image matches; legacy results remain labeled and readable. Direct matching is tracked as `VF-IMAGE-SEARCH-001`.
+- Removed conversation-card dragging and folder drop targets; folder movement now uses the visible checkbox multi-select bar and destination selector.
+- Filtered destination folders to the selected conversation type. Mixed standard/character selections can be moved to Unfiled but cannot be submitted to an incompatible typed folder.
+- Cleared selection after a successful atomic bulk move and retained the existing main-process transaction and renderer-store synchronization.
+- Replaced Electron's narrow `metadata.character` classifier with the canonical shared conversation-kind classifier, fixing valid legacy/local-character moves identified by `metadata.source`.
+- Updated empty-folder copy so it no longer instructs users to drag conversations.
 
-**Validation:** Focused Image Inspector UI/store suites passed 2 files / 11 tests; renderer and Electron typechecks, zero-warning ESLint, production web/server/Electron builds, Markdown links across 153 files, roadmap currency, repository-handoff hygiene, and `git diff --check` passed. Validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
+**Validation:** The focused folder/UI regression surface passed 5 files / 50 tests, followed by 2 files / 12 tests after the strict fixture correction. Zero-warning ESLint, renderer and Electron typechecks, production web/server/Electron builds, Markdown links across 153 files, aggregate contracts, and `git diff --check` passed. Validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
 
-**Manual QA:** No headed desktop, paid-provider, or unsupported direct-image search request was run.
+**Manual QA:** No headed Electron click-through was run.
+
+### Prior Session Summary (Image Inspector session deletion and model pricing)
+
+**Date:** 2026-07-24
+
+**Scope:** Added confirmation-gated saved-session deletion and live model pricing, and disabled the unsupported query-derived Google/Brave action after verifying current provider contracts do not accept source-image bytes.
+
+**Validation:** Focused Image Inspector UI/store suites passed 2 files / 11 tests; renderer and Electron typechecks, zero-warning ESLint, production web/server/Electron builds, Markdown links across 153 files, roadmap currency, repository-handoff hygiene, and `git diff --check` passed.
 
 ### Prior Session Summary (Image Inspector closure and repository-gate recovery)
 
@@ -869,6 +877,19 @@ One lint nag was sanitized during this session: the unused `originalRecord` dest
 
 Only commands actually run in today's session are listed. Earlier dated runs are documented under Session History.
 
+### July 24 — Chat-folder multi-select movement repair
+
+| Command | Result | Evidence |
+|---|---|---|
+| Focused folder/UI Vitest surface | PASS | 5 files / 50 tests cover History multi-select, History behavior, renderer folder store, Electron folder service, and IPC handlers. |
+| Focused post-fixture Vitest rerun | PASS | 2 files / 12 tests cover type-filtered destinations, non-draggable cards, bulk bridge calls, selection clearing, and legacy local-character movement. |
+| `npm run lint:eslint` | PASS | Zero warnings across renderer, Electron, server, and scripts. |
+| `npm run typecheck` | PASS | Zero errors across renderer and Electron TypeScript projects after correcting the strict test fixture. |
+| `npm run build` | PASS | Vite transformed 3,082 modules; web, server, Electron main, and preload bundles were produced. |
+| `npm run verify:markdown-links` | PASS | All links across 153 Markdown files passed. |
+| `npm run verify:contracts` | PASS | Static, feature, backup/sync, and release-packaging contracts passed. |
+| Headed Electron folder-movement QA | NOT RUN | No headed desktop click-through was run in this session. |
+
 ### July 23 — Image Inspector regression closure
 
 | Command | Result | Evidence |
@@ -1319,6 +1340,14 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-24 — Chat-folder multi-select movement repair
+
+- Removed the competing drag-and-drop path from Chat History and retained checkbox multi-selection as the sole movement UI.
+- Filtered destination folders by selected chat kind while preserving mixed-selection movement to Unfiled.
+- Fixed legacy/local character movement by sharing the canonical conversation-kind classifier with the Electron service.
+- Added regression coverage for the bridge payload, successful selection clearing, compatible destination filtering, non-draggable cards, and legacy local-character persistence.
+- Passed focused tests, zero-warning ESLint, both TypeScript projects, the production build, Markdown links, and aggregate contracts; headed Electron QA was not run.
 
 ### 2026-07-24 — Image Inspector session deletion and model pricing
 

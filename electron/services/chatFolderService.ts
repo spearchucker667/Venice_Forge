@@ -20,6 +20,7 @@ import type {
   ChatFolderMutationResult,
 } from "../../src/shared/chatFolderContracts";
 import type { Conversation } from "../../src/types/conversation";
+import { getConversationKind } from "../../src/utils/conversationKind";
 import { logInfo } from "./logger";
 import {
   createChatFolderOperationJournal,
@@ -121,10 +122,6 @@ export async function reorderChatFolders(input: ReorderChatFoldersInput, profile
     if (!rolledBack) throw new Error("Folder reorder failed and requires recovery");
     throw error;
   }
-}
-
-function getConversationKind(conversation: any): "standard" | "character" {
-  return conversation.metadata?.character ? "character" : "standard";
 }
 
 export async function moveConversationToFolder(input: MoveConversationToFolderInput, profileId: string = "default"): Promise<ChatFolderMutationResult> {

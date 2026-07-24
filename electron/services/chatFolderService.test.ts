@@ -131,6 +131,21 @@ describe("chatFolderService durable mutations", () => {
     expect(chats.saveConversation).not.toHaveBeenCalled();
   });
 
+  it("moves a legacy local-character conversation into a character folder", async () => {
+    chats.getConversation.mockResolvedValue({
+      ...conversation("chat-1"),
+      metadata: { source: "localCharacter" },
+    });
+    storage.readChatFolder.mockResolvedValue(folder({ id: "characters", kind: "character" }));
+
+    await expect(moveConversationsToFolder({ conversationIds: ["chat-1"], folderId: "characters" }))
+      .resolves.toEqual({ committedIds: ["chat-1"], rolledBack: false });
+    expect(chats.saveConversation).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "chat-1", folderId: "characters" }),
+      "default",
+    );
+  });
+
   it("restores deleted conversations when a later delete fails", async () => {
     storage.readChatFolder.mockResolvedValue(folder());
     chats.listConversations.mockResolvedValue([conversation("chat-1"), conversation("chat-2")]);

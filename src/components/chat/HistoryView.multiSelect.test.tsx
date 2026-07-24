@@ -8,6 +8,7 @@ import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { useChatFolderStore } from "../../stores/chat-folder-store";
 import type { Conversation } from "../../types/conversation";
+import { desktopChatFolders } from "../../services/desktopBridge";
 
 // Polyfill localStorage
 const localStorageStore: Record<string, string> = {};
@@ -54,6 +55,17 @@ describe("HistoryView Multi-Select & Batch Folder Handoff", () => {
           profileId: "default",
           name: "Project Alpha",
           kind: "standard",
+          sortOrder: 0,
+          lockState: "unlocked",
+          schemaVersion: 1,
+          createdAt: isoNow,
+          updatedAt: isoNow,
+        },
+        {
+          id: "characters",
+          profileId: "default",
+          name: "Character Stories",
+          kind: "character",
           sortOrder: 0,
           lockState: "unlocked",
           schemaVersion: 1,
@@ -152,5 +164,53 @@ describe("HistoryView Multi-Select & Batch Folder Handoff", () => {
       expect(convs.find(c => c.id === "c1")?.folderId).toBe("f1");
       expect(convs.find(c => c.id === "c2")?.folderId).toBe("f1");
     });
+    expect(desktopChatFolders.moveConversations).toHaveBeenCalledWith({
+      conversationIds: ["c1", "c2"],
+      folderId: "f1",
+    });
+    expect(screen.getByText("0 selected")).toBeInTheDocument();
+  });
+
+  it("filters move destinations to the selected conversation type", async () => {
+    const user = userEvent.setup();
+    useChatStore.setState({
+      conversations: [
+        {
+          ...createMockConv("character-chat", "Character Chat"),
+          metadata: {
+            tags: [],
+            pinned: false,
+            archived: false,
+            source: "localCharacter",
+            messageCount: 1,
+          },
+        },
+      ],
+    });
+
+    render(<HistoryView />);
+    await user.click(screen.getAllByTitle("Select")[0]);
+
+    const destination = screen.getByDisplayValue("Select destination folder...");
+    expect(screen.getByRole("option", { name: "Character Stories" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Project Alpha" })).not.toBeInTheDocument();
+    await user.selectOptions(destination, "characters");
+
+    await waitFor(() => {
+      expect(desktopChatFolders.moveConversations).toHaveBeenCalledWith({
+        conversationIds: ["character-chat"],
+        folderId: "characters",
+      });
+    });
+  });
+
+  it("does not make conversation cards draggable", () => {
+    useChatStore.setState({
+      conversations: [createMockConv("c1", "Not Draggable")],
+    });
+
+    const { container } = render(<HistoryView />);
+
+    expect(container.querySelector("[draggable='true']")).not.toBeInTheDocument();
   });
 });

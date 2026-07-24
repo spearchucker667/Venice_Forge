@@ -40,10 +40,9 @@ export default function HistoryView() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'character' | 'standard'>('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const { folders, isLoaded, loadFolders, createFolder, renameFolder, reorderFolders, moveConversation, deleteFolder, lockFolder, exportFolderBackup, unlockFolder, pickImportFile, previewImport, importFolderBackup } = useChatFolderStore()
+  const { folders, isLoaded, loadFolders, createFolder, renameFolder, reorderFolders, moveConversations, deleteFolder, lockFolder, exportFolderBackup, unlockFolder, pickImportFile, previewImport, importFolderBackup } = useChatFolderStore()
 
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({})
-  const [draggedChatId, setDraggedChatId] = useState<string | null>(null)
   const [newFolderName, setNewFolderName] = useState('')
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null)
@@ -136,32 +135,6 @@ export default function HistoryView() {
     return { unfiled, groups, visibleFolders }
   }, [filtered, folders, filterType])
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    e.dataTransfer.setData('text/plain', id)
-    setDraggedChatId(id)
-  }
-
-  const handleDrop = async (e: React.DragEvent, folderId: string | null) => {
-    e.preventDefault()
-    const id = e.dataTransfer.getData('text/plain')
-    if (id) {
-      try {
-        await moveConversation(id, folderId)
-        // Manually update the chat store to keep it in sync
-        const state = useChatStore.getState()
-        const conv = state.conversations.find(c => c.id === id)
-        if (conv) {
-          const updated = { ...conv, folderId: folderId }
-          state.setConversations(state.conversations.map(c => c.id === id ? updated : c))
-        }
-      } catch (error) {
-        // Silently ignore drag and drop errors to maintain smooth UX
-        console.warn("Failed to move conversation to folder:", error);
-      }
-    }
-    setDraggedChatId(null)
-  }
-
   const handleSelect = (id: string) => {
     const conversation = conversations.find((item) => item.id === id)
     setActiveConversation(id)
@@ -208,10 +181,23 @@ export default function HistoryView() {
     }
   }
 
+  const selectedKinds = useMemo(
+    () => new Set(
+      conversations
+        .filter((conversation) => selectedIds.includes(conversation.id))
+        .map((conversation) => getConversationKind(conversation)),
+    ),
+    [conversations, selectedIds],
+  )
+  const selectedKind = selectedKinds.size === 1 ? [...selectedKinds][0] : null
+  const destinationFolders = selectedKind
+    ? folders.filter((folder) => folder.kind === selectedKind)
+    : []
+
   const handleBatchMoveFolder = async (targetFolderId: string | null) => {
     if (selectedIds.length === 0) return
     try {
-      await useChatFolderStore.getState().moveConversations(selectedIds, targetFolderId)
+      await moveConversations(selectedIds, targetFolderId)
       const state = useChatStore.getState()
       state.setConversations(
         state.conversations.map((c) => (selectedIds.includes(c.id) ? { ...c, folderId: targetFolderId } : c)),
@@ -223,6 +209,7 @@ export default function HistoryView() {
         'Moved conversations',
         `Moved ${selectedIds.length} conversation${selectedIds.length === 1 ? '' : 's'} to ${targetName}.`,
       )
+      setSelectedIds([])
     } catch (err) {
       toast.error('Failed to move conversations', String(err))
     }
@@ -375,10 +362,13 @@ export default function HistoryView() {
                   >
                     <option value="" disabled>Select destination folder...</option>
                     <option value="__unfiled__">Unfiled (No folder)</option>
-                    {folders.map((f) => (
+                    {destinationFolders.map((f) => (
                       <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
                   </select>
+                  {selectedKinds.size > 1 && (
+                    <span className="text-[11px] text-text-muted">Choose one chat type to move into a folder.</span>
+                  )}
                 </label>
               )}
 
@@ -422,8 +412,6 @@ export default function HistoryView() {
                 <div
                   key={folder.id}
                   className="space-y-4"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => handleDrop(e, folder.id)}
                 >
                   <div 
                     className="flex items-center justify-between px-2 py-1.5 hover:bg-surface-elevated rounded-md group/folder cursor-pointer"
@@ -526,15 +514,13 @@ export default function HistoryView() {
 
                 <div
                   key={conv.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, conv.id)}
                   onClick={() => handleSelect(conv.id)}
                   aria-selected={selectedIds.includes(conv.id)}
                   className={`group relative flex flex-col p-5 bg-surface-elevated border rounded-xl hover:border-accent hover:shadow-md cursor-pointer transition-all duration-200 ${
                     selectedIds.includes(conv.id)
                       ? 'border-accent ring-2 ring-accent/30 bg-accent/5'
                       : 'border-border'
-                  } ${draggedChatId === conv.id ? 'opacity-50' : ''}`}
+                  }`}
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
@@ -617,7 +603,7 @@ export default function HistoryView() {
                   
                   {expandedFolders[folder.id] !== false && folderConvs.length === 0 && (
                     <div className="pl-8 py-4 text-[13px] text-text-muted/60 italic border border-dashed border-border/50 rounded-lg text-center">
-                      Empty folder. Drop conversations here.
+                      No conversations in this folder.
                     </div>
                   )}
                 </div>
@@ -633,8 +619,6 @@ export default function HistoryView() {
               return (
                 <div
                   className="space-y-4"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => handleDrop(e, null)}
                 >
                   <div 
                     className="flex items-center justify-between px-2 py-1.5 hover:bg-surface-elevated rounded-md group/unfiled cursor-pointer"
@@ -674,15 +658,13 @@ export default function HistoryView() {
 
                 <div
                   key={conv.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, conv.id)}
                   onClick={() => handleSelect(conv.id)}
                   aria-selected={selectedIds.includes(conv.id)}
                   className={`group relative flex flex-col p-5 bg-surface-elevated border rounded-xl hover:border-accent hover:shadow-md cursor-pointer transition-all duration-200 ${
                     selectedIds.includes(conv.id)
                       ? 'border-accent ring-2 ring-accent/30 bg-accent/5'
                       : 'border-border'
-                  } ${draggedChatId === conv.id ? 'opacity-50' : ''}`}
+                  }`}
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
