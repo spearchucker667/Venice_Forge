@@ -4,6 +4,21 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+**Date:** 2026-07-24 (LLM Reply Message Action Icons Display Fix)
+
+**Scope:** Resolved display rendering issues with action buttons below assistant (LLM) chat responses in `message-bubble.tsx`.
+
+- Updated `ActionBtn` styling from `text-text-muted/40` (ultra-faint 40% opacity) to `text-text-muted hover:text-text-primary` with `p-1.5 flex items-center justify-center`, providing crisp high-contrast icon rendering across dark and light themes.
+- Replaced raw Unicode text characters (`⑂`, `⌫`, `↻`) used for "Fork chat from here", "Delete from here", and "Regenerate from here" with clean, standardized 14px vector SVG icons.
+- Standardized SVG dimensions to 14px × 14px with `strokeWidth="2"` across all action buttons (Copy, Edit, Fork, Delete from here, Regenerate, Create Scene, Delete).
+- Updated action container visibility to `opacity-90 sm:opacity-0` so action buttons remain accessible on touch/mobile devices while keeping the hover transition on desktop.
+
+**Validation:** Typecheck passed cleanly (`npm run typecheck`). Unit tests passed (16/16 tests in `message-bubble.test.tsx` and 14/14 tests in `chat-view.test.tsx`).
+
+**Manual QA:** No headed Electron click-through was run.
+
+### Prior Session Summary (Media Generation Negative Prompt Payload Fix) [demoted from "Latest Session Summary"]
+
 **Date:** 2026-07-24 (Media Generation Negative Prompt Payload Fix)
 
 **Scope:** Resolved missing negative prompt payload inclusion across Image Generation, RP Studio Scene Generation, and Media Studio draft loading.
