@@ -158,10 +158,10 @@ Venice Forge uses live model capability metadata when available, with a conserva
 Open **Image Inspector**, select a PNG, JPEG, or WebP image, choose a vision-capable model, analysis depth, and prompt target, then select **Analyze Image**. The result includes a structured visual breakdown and a replication prompt for Generic Natural Language, Venice Image Studio, FLUX, or Midjourney. See the [Image Inspector guide](user/IMAGE_INSPECTOR.md).
 
 ### Does Image Inspector perform reverse-image search?
-No. Its optional source-discovery actions send an editable descriptive text query to a Google- or Brave-backed search provider. Results are potential leads, not pixel matches or proof of origin, ownership, or provenance.
+No. The configured Venice Google/Brave and Brave Image Search contracts accept text queries rather than source-image bytes. The former model-derived query action is disabled so it cannot be mistaken for image matching. Direct image-based web search requires a supported provider and a separate credential, privacy, and cost design.
 
 ### What is sent when I inspect an image?
-When you explicitly start analysis, the selected image and instructions are sent through the credential-isolated Venice request path to the selected vision model. A source-discovery query is sent only when you separately start that search. Safe diagnostics exclude raw image bytes, base64 media, complete prompts, credentials, and local absolute paths.
+When you explicitly start analysis, the selected image and instructions are sent through the credential-isolated Venice request path to the selected vision model. Image Inspector currently exposes no follow-up web-search transmission. Safe diagnostics exclude raw image bytes, base64 media, complete prompts, credentials, and local absolute paths.
 
 ### Where do uploaded files go?
 File and URL attachments are assembled into the current prompt context when you send a message. They are not shown in a dedicated Files tab in the UI. Generated images that the app saves from image workflows do appear in the **Media Studio** tab (renamed from the old "Library"), where you can preview, batch favorite/unstar/delete, inspect lineage, and export.

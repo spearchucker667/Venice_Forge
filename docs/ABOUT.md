@@ -86,7 +86,7 @@ tabs are:
 | History | Browse prior conversations and restore or inspect saved chat state |
 | Image Studio | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling) |
 | Media Studio | Generated-image and -video library with local persistence, native generated-media export, full-size preview, batch favorite/unstar/delete, lineage (parent + children) tracking, and per-model capability hints |
-| Image Inspector | Analyze bounded PNG/JPEG/WebP inputs with vision-capable models, produce schema-validated visual breakdowns and target-specific replication prompts, and run optional text-based potential-source searches |
+| Image Inspector | Analyze bounded PNG/JPEG/WebP inputs with vision-capable models, view live model pricing, produce schema-validated visual breakdowns and target-specific replication prompts, and manage deletable inspection history; direct image-based web matching is provider-blocked |
 | Prompts | Versioned prompt library for chat, image, system, recipe, and workflow prompts |
 | Scene Composer | Structured scene components that compile into image-generation recipes |
 | Audio Studio | Text-to-speech with 50+ voices and formats, plus audio transcription via Whisper |

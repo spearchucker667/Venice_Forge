@@ -198,4 +198,30 @@ describe("Image Inspector store", () => {
       maxResults: 10,
     });
   });
+
+  it("deletes a saved inspection and clears its active search results", async () => {
+    await createSession();
+    const id = useImageInspectorStore.getState().activeSession!.id;
+    useImageInspectorStore.setState({
+      searchResults: [{
+        id: "result-1",
+        providerId: "venice-google",
+        title: "Result",
+        pageUrl: "https://example.com",
+        sourceDomain: "example.com",
+        matchType: "potential-source",
+        matchReason: "Text result",
+        rank: 1,
+      }],
+    });
+
+    await useImageInspectorStore.getState().deleteSession(id);
+
+    expect(records.has(id)).toBe(false);
+    expect(useImageInspectorStore.getState()).toMatchObject({
+      activeSession: null,
+      sessions: [],
+      searchResults: [],
+    });
+  });
 });

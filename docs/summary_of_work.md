@@ -4,20 +4,19 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
-**Date:** 2026-07-23 (Image Inspector public documentation synchronization)
+**Date:** 2026-07-24 (Image Inspector session deletion and model pricing)
 
-**Scope:** Synchronized the shipped Image Inspector feature across the repository's canonical public, user, privacy, security, developer, repository-map, and release documentation.
+**Scope:** Reproduced the missing saved-session delete control, added model cost visibility, and verified the requested direct image-based Google/Brave search against current provider contracts.
 
-- Added `docs/user/IMAGE_INSPECTOR.md` as the canonical user guide covering image-to-prompt usage, analysis depths and targets, supported inputs, privacy, troubleshooting, and limitations.
-- Added Image Inspector to the README feature highlights, workspace diagram/table, and multimodal overview, and to the About tab inventory.
-- Added FAQ entries for image-to-prompt use, model capability selection, transmitted data, and the distinction between text-based source discovery and pixel reverse-image matching.
-- Updated root and detailed privacy/security documentation with explicit image transmission, main-process validation, structured-output, diagnostics-redaction, and source-discovery boundaries.
-- Updated the developer architecture for the live JSON Schema envelope, bounded response normalization, and shared accessible loading animation.
-- Registered the new guide in `docs/DOCS_INDEX.md`, updated both repository maps, and added Image Inspector checks to the release smoke-test checklist.
+- Added a confirmation-gated delete control to every non-analyzing Image Inspector session; deletion removes the inspection record and clears active search results without deleting the underlying Media Studio image.
+- Kept active requests non-deletable until cancellation to avoid a persistence race.
+- Continued to exclude models that explicitly lack vision support and added live model-catalog USD input/output rates per one million tokens to the selector and selected-model details. Missing rates are labeled unavailable.
+- Verified that Venice `/augment/search` accepts only a 1–400 character text query and costs $0.01 per request. Brave's official Image Search API also requires a text `q`; neither contract accepts source-image bytes.
+- Disabled the query-derived Google/Brave action in Image Inspector rather than misrepresenting AI-generated text results as image matches; legacy results remain labeled and readable. Direct matching is tracked as `VF-IMAGE-SEARCH-001`.
 
-**Validation:** `verify:markdown-links` passed for 153 Markdown files; `verify:agent-docs`, `verify:repo-handoff-hygiene`, and `git diff --check` passed. Documentation-only validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
+**Validation:** Focused Image Inspector UI/store suites passed 2 files / 11 tests; renderer and Electron typechecks, zero-warning ESLint, production web/server/Electron builds, Markdown links across 153 files, roadmap currency, repository-handoff hygiene, and `git diff --check` passed. Validation ran under local Node 26.5.0/npm 11.17.0 rather than the repository-declared Node 22 runtime.
 
-**Manual QA:** No headed desktop or paid-provider operation was run in this documentation-only session.
+**Manual QA:** No headed desktop, paid-provider, or unsupported direct-image search request was run.
 
 ### Prior Session Summary (Image Inspector closure and repository-gate recovery)
 
@@ -874,6 +873,7 @@ Only commands actually run in today's session are listed. Earlier dated runs are
 
 | Command | Result | Evidence |
 |---|---|---|
+| Image Inspector deletion and model-pricing regression | PASS | Focused UI/store tests cover confirmed deletion, active result cleanup, vision-only selection, pricing display, prior analysis/search behavior, and loading/error states. |
 | Image Inspector public documentation synchronization | PASS | Markdown links pass across 153 files; agent-doc, repository-handoff, and whitespace/diff checks pass. |
 | Image Inspector shared loading-animation regression | PASS | 1 file / 3 tests proves the analyzing state renders the shared accessible anime loading indicator; zero-warning ESLint, both TypeScript projects, and production web/server/Electron builds also pass. |
 | Image Inspector focused Vitest follow-up | PASS | 3 files / 15 tests cover fenced/truncated JSON, bounded schema normalization, capability-gated `json_schema`, store persistence, and UI integration. |
@@ -1319,6 +1319,15 @@ This earlier run added the six P0 blockers and `VERIFY-132..137`; its P1 command
 | Signing/paid/two-device/manual accessibility prerequisites | BLOCKED EXTERNALLY | `gh secret list` reports no release secrets; `security find-identity -v -p codesigning` reports zero valid identities; no second device or paid-operation authorization/credentials are available. No success claim is made for those rows. |
 
 ## Session History
+
+### 2026-07-24 — Image Inspector session deletion and model pricing
+
+- Added confirmation-gated deletion for saved inspections without deleting durable media, with active analysis protected until cancellation.
+- Added live USD input/output pricing to vision-only model choices and selected-model details.
+- Verified from current primary provider contracts that Venice Google/Brave search and Brave Image Search accept text queries, not source-image bytes.
+- Disabled the incompatible query-derived UI path while preserving visibly labeled legacy results.
+- Tracked direct source-image web matching as `VF-IMAGE-SEARCH-001` pending a supported provider, credential-custody, privacy, allowlist, cost, and test design.
+- Passed focused Image Inspector tests, both TypeScript projects, zero-warning ESLint, and production build; no headed or paid request was run.
 
 ### 2026-07-23 — Image Inspector public documentation synchronization
 

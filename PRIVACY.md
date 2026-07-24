@@ -25,7 +25,7 @@ Because Venice Forge is a client app, your data does leave your device when you 
 - **Jina AI:** Scraper and search queries are sent to Jina AI endpoints if the Jina provider is active for research.
 - **Abuse Screening:** Local Family Safe Mode screens your prompts on your device *before* they are sent upstream. If a prompt is blocked, no network request is dispatched to the provider.
 - **Card generation and refinement:** ST Card Studio sends content upstream only when you explicitly request image analysis, text-to-card generation, field refinement, or a test turn. Proposals are shown before application; they do not silently mutate a card.
-- **Image Inspector:** Analysis sends the selected image only after you start the request. Optional potential-source discovery sends an editable text query only after a separate search action; it does not send the image to a pixel-based reverse-image-search service. Safe diagnostics exclude raw image bytes, base64 media, full prompts, credentials, and local absolute paths.
+- **Image Inspector:** Analysis sends the selected image only after you start the request. Direct image-based web matching is not currently exposed, and the former query-derived Google/Brave action is disabled. Safe diagnostics exclude raw image bytes, base64 media, full prompts, credentials, and local absolute paths.
 
 ---
 

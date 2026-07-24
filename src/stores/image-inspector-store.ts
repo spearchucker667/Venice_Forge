@@ -146,7 +146,8 @@ export const useImageInspectorStore = create<ImageInspectorState>((set, get) => 
       await StorageService.deleteItem("imageInspectorSessions", id);
       set((state) => ({
         sessions: state.sessions.filter(s => s.id !== id),
-        activeSession: state.activeSession?.id === id ? null : state.activeSession
+        activeSession: state.activeSession?.id === id ? null : state.activeSession,
+        searchResults: state.activeSession?.id === id ? [] : state.searchResults,
       }));
     } catch (error) {
       toast.error(errorMessage(error));

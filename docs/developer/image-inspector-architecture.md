@@ -1,6 +1,6 @@
 # Image Inspector Architecture
 
-Image Inspector turns a bounded local image into a structured visual analysis and a reusable image-generation prompt. Its optional source-discovery step is a text web search derived from the analysis; it is not pixel-based reverse image search.
+Image Inspector turns a bounded local image into a structured visual analysis and a reusable image-generation prompt. Direct source-image web matching is currently unavailable and fail-closed.
 
 ## Supported Inputs
 
@@ -39,6 +39,8 @@ The matching preload and renderer types expose only those four operations. UI co
 
 `src/components/image-inspector/ImageInspectorView.tsx` obtains the live model catalog and filters it through `modelSupportsVision()`. Live `model_spec.capabilities.supportsVision` metadata takes precedence over static fallback knowledge.
 
+The model selector displays the catalog's USD input and output prices per one million tokens. Missing pricing is labeled unavailable rather than estimated. Non-vision models are excluded.
+
 `src/stores/image-inspector-store.ts` sends the analysis through the canonical `veniceFetch("/chat/completions", ...)` path with:
 
 - the selected vision-capable model;
@@ -71,13 +73,17 @@ The failed session and its safe error message are persisted and displayed in the
 
 While a request is active, the UI uses the shared `GenerationLoadingIndicator` processing state, including the application-wide anime animation, accessible live status, and reduced-motion fallback.
 
+Saved inspections can be removed through a confirmation-gated session action. Deleting an inspection removes only its `imageInspectorSessions` record and clears active result state; it does not delete the durable Media Studio image. The UI requires an active request to be canceled before deletion.
+
 ## Source Discovery
 
-After a successful analysis, the user may run Google- or Brave-backed research search using a generated or edited text query. Search results are stored as ranked `potential-source` records under the `text-source-discovery` mode.
+Earlier application versions allowed Google- or Brave-backed research search using a generated or edited text query. Those historical records remain readable as ranked `potential-source` records under the `text-source-discovery` mode, but the action is no longer exposed in Image Inspector because it does not satisfy direct source-image matching.
 
 Only valid HTTP or HTTPS result URLs are rendered. Missing, malformed, or non-web schemes are discarded rather than replaced with a fabricated fallback destination.
 
 The feature does not upload the source image to a reverse-image-search engine, compare perceptual hashes, or calculate visual similarity. It therefore does not display fabricated similarity percentages or claim that a result is an exact or near image match.
+
+The Venice `/augment/search` contract and Brave Image Search API both require a text query; neither accepts the inspected image bytes as a search key. Direct image-based web matching remains unimplemented until a supported provider, credential-custody path, privacy disclosure, and main-process network allowlist are selected. The UI therefore disables query-derived source search instead of misrepresenting those results as reverse-image matches.
 
 ## Telemetry and Privacy
 

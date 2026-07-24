@@ -215,7 +215,7 @@ Image Inspector file and clipboard ingestion is main-process owned. The renderer
 
 Vision requests use the canonical Venice client and main-authoritative safety pipeline. Model output is untrusted: the app requires a versioned structured analysis, normalizes only bounded compatible drift, rejects incomplete or secret-like output, and persists a failed session with a safe normalized error instead of treating malformed content as success. Traffic Inspector sanitization does not retain raw image payloads, base64 data, complete prompts, credentials, or local absolute paths.
 
-Optional source discovery is text based. It sends an editable query through existing Google- or Brave-backed research paths, retains only validated HTTP/HTTPS result URLs, and does not represent results as pixel matches or verified provenance. See the [user guide](docs/user/IMAGE_INSPECTOR.md) and [architecture contract](docs/developer/image-inspector-architecture.md).
+Direct source-image web matching is fail-closed. The configured Google/Brave contracts accept text queries rather than image bytes, so the former query-derived action is disabled and historical results remain explicitly labeled. A future implementation requires an allowlisted provider, main-owned credentials, explicit transmission disclosure, cost handling, and bounded response validation. See the [user guide](docs/user/IMAGE_INSPECTOR.md) and [architecture contract](docs/developer/image-inspector-architecture.md).
 
 ## Headless Bridge Security
 

@@ -95,7 +95,7 @@ For local single-architecture builds, use:
 - [ ] Model refresh succeeds after a valid key is saved.
 - [ ] Chat and image generation work.
 - [ ] Image Inspector accepts valid PNG, JPEG, and WebP inputs with current live vision metadata; structured analysis, target-specific prompts, cancellation, persisted failures, and the shared loading animation behave correctly.
-- [ ] Image Inspector source discovery is labeled and verified as text-query based, and exported Traffic Inspector data contains no raw image bytes, base64 media, complete prompts, credentials, or local absolute paths.
+- [ ] Image Inspector direct image search remains fail-closed unless a supported image-byte provider is configured; legacy query-derived results remain labeled, and exported Traffic Inspector data contains no raw image bytes, base64 media, complete prompts, credentials, or local absolute paths.
 - [ ] Batch run completes successfully.
 - [ ] Research (web search, scrape, text-parser) returns results.
 - [ ] Public Profile Discovery authorization gate and run.

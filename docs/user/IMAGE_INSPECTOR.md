@@ -1,6 +1,6 @@
 # Image Inspector
 
-Image Inspector turns a local image into a structured visual analysis and a reusable image-generation prompt. It can also derive editable text queries for potential-source discovery. It does not perform pixel-based reverse-image matching.
+Image Inspector turns a local image into a structured visual analysis and a reusable image-generation prompt. Direct image-based web matching is currently unavailable and fail-closed.
 
 ## What It Produces
 
@@ -21,6 +21,7 @@ Model responses are validated against a versioned schema before they are stored 
 1. Open **Image Inspector** from the Generate section.
 2. Select **Open File**, or use the clipboard button in the desktop app.
 3. Choose a vision-capable model.
+   The selector excludes models that explicitly lack vision support and displays the live USD input/output rates reported by the model catalog. Rates are per one million tokens; the final charge depends on the image and generated response.
 4. Select an analysis depth:
    - **Quick** for a compact result
    - **Standard** for normal prompt reconstruction
@@ -32,17 +33,19 @@ Model responses are validated against a versioned schema before they are stored 
 
 The shared anime processing animation remains visible while analysis is running. You can cancel an in-progress request. Completed and failed sessions remain available in the Image Inspector session list.
 
+Use the delete button beside a completed, failed, canceled, or draft session to remove that inspection after confirmation. Deleting an inspection does not delete the underlying Media Studio image. An active analysis must be canceled before it can be deleted.
+
 ## Supported Inputs
 
 Desktop ingestion accepts valid PNG, JPEG, and WebP images through the native file picker or clipboard. Images are decoded and checked for type, signature, byte size, dimensions, and total decoded pixels before a provider request is allowed.
 
 Image bytes are resolved through the main process. The renderer does not receive unrestricted filesystem access or arbitrary local paths.
 
-## Text-Based Source Discovery
+## Image-Based Source Search
 
-After a successful analysis, review or edit the suggested query and select the Google- or Brave-backed search action. Results are ranked as potential text-query sources.
+Direct image-based web matching is currently unavailable. The prior Google/Brave action used a model-derived text query, not the inspected image bytes, so that action is disabled rather than presented as reverse-image search. Historical text-query results remain visibly labeled as legacy results.
 
-This feature:
+The historical query-derived feature:
 
 - Searches with descriptive text derived from the analysis
 - May help identify visually described subjects, products, artists, or pages
@@ -50,6 +53,8 @@ This feature:
 - Does not calculate pixel similarity or prove that a result is the original source
 
 Treat source results as leads that require human verification.
+
+The currently configured Venice Google/Brave search contract accepts text queries only. Direct source-image upload requires a separate supported reverse-image provider and credential/privacy design; the app does not describe query-derived results as raw-image matches.
 
 ## Privacy and Diagnostics
 
@@ -69,7 +74,7 @@ Venice Forge does not place raw image bytes, base64 data, complete prompts, API 
 
 - Live provider model availability and structured-output support can change.
 - Analysis and reconstruction prompts are model interpretations, not factual guarantees.
-- Source discovery is text based and cannot establish visual identity, ownership, provenance, or copyright status.
+- Direct source-image web matching cannot be enabled until a supported provider and credential/privacy design are implemented.
 - Paid-provider PNG, JPEG, and WebP acceptance remains part of release manual verification.
 
 For implementation and security details, see [Image Inspector Architecture](../developer/image-inspector-architecture.md).

@@ -2,20 +2,32 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent } from "@testing-library/react";
 
 const storeState = vi.hoisted(() => ({
   value: {} as Record<string, unknown>,
 }));
+const askDecision = vi.hoisted(() => vi.fn());
 
 vi.mock("../../stores/image-inspector-store", () => ({
   useImageInspectorStore: () => storeState.value,
 }));
 vi.mock("../../hooks/use-models", () => ({
   useModels: () => ({
-    data: [{
-      id: "vision-model",
-      model_spec: { name: "Vision Model", capabilities: { supportsVision: true } },
-    }],
+    data: [
+      {
+        id: "vision-model",
+        model_spec: {
+          name: "Vision Model",
+          capabilities: { supportsVision: true },
+          pricing: { input: { usd: 0.7 }, output: { usd: 2.8 } },
+        },
+      },
+      {
+        id: "text-only-model",
+        model_spec: { name: "Text Only Model", capabilities: { supportsVision: false } },
+      },
+    ],
   }),
 }));
 vi.mock("../../services/desktopBridge", () => ({
@@ -25,8 +37,9 @@ vi.mock("../../services/desktopBridge", () => ({
     ingestClipboardImage: vi.fn(),
   },
 }));
+vi.mock("../ui/modal-requests", () => ({ askDecision }));
 
-import { ImageInspectorView } from "./ImageInspectorView";
+import { formatImageInspectorModelCost, ImageInspectorView } from "./ImageInspectorView";
 
 const actions = {
   startAnalysis: vi.fn(),
@@ -35,6 +48,7 @@ const actions = {
   createSession: vi.fn(),
   loadSession: vi.fn(),
   refreshSessions: vi.fn(),
+  deleteSession: vi.fn(),
 };
 
 function session(status: "analyzing" | "complete" | "failed") {
@@ -92,6 +106,7 @@ function session(status: "analyzing" | "complete" | "failed") {
 describe("ImageInspectorView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    askDecision.mockResolvedValue(true);
   });
 
   it("shows the preserved provider failure instead of a generic empty state", () => {
@@ -109,7 +124,7 @@ describe("ImageInspectorView", () => {
     expect(screen.getByText(/Unable to fetch it/)).toBeInTheDocument();
   });
 
-  it("labels query-only results as text-based source discovery", () => {
+  it("disables query-derived search rather than presenting it as image matching", () => {
     const complete = session("complete");
     storeState.value = {
       ...actions,
@@ -120,9 +135,9 @@ describe("ImageInspectorView", () => {
       searchResults: [],
     };
     render(<ImageInspectorView />);
-    expect(screen.getByText("Text-Based Source Discovery")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Search the Web via Google" })).toBeInTheDocument();
-    expect(screen.queryByText(/reverse image/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Image-Based Source Search")).toBeInTheDocument();
+    expect(screen.getByText(/Query-generated search has been disabled/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Search the Web via/ })).not.toBeInTheDocument();
   });
 
   it("uses the shared anime loading indicator while analysis is running", () => {
@@ -139,5 +154,57 @@ describe("ImageInspectorView", () => {
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("Analyzing image contents");
     expect(status.querySelector("img")).toBeInTheDocument();
+  });
+
+  it("confirms and deletes a prior image inspection without deleting media", async () => {
+    const complete = session("complete");
+    storeState.value = {
+      ...actions,
+      activeSession: complete,
+      sessions: [complete],
+      loading: false,
+      searchLoading: false,
+      searchResults: [],
+    };
+    render(<ImageInspectorView />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete image inspection cup.png" }));
+    expect(askDecision).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Delete image inspection?",
+      danger: true,
+    }));
+    await vi.waitFor(() => expect(actions.deleteSession).toHaveBeenCalledWith("session-1"));
+  });
+
+  it("formats live model pricing for the selector", () => {
+    expect(formatImageInspectorModelCost({
+      id: "priced-vision",
+      object: "model",
+      created: 0,
+      owned_by: "venice",
+      model_spec: {
+        pricing: {
+          input: { usd: 0.7 },
+          output: { usd: 2.8 },
+        },
+      },
+    })).toBe("$0.70 input / $2.80 output per 1M tokens");
+    expect(formatImageInspectorModelCost(undefined)).toBe("Cost unavailable");
+  });
+
+  it("offers only vision-capable models and displays the selected model cost", () => {
+    const complete = session("complete");
+    storeState.value = {
+      ...actions,
+      activeSession: complete,
+      sessions: [complete],
+      loading: false,
+      searchLoading: false,
+      searchResults: [],
+    };
+    render(<ImageInspectorView />);
+    expect(screen.getByTestId("image-inspector-model-cost")).toHaveTextContent(
+      "$0.70 input / $2.80 output per 1M tokens",
+    );
+    expect(screen.queryByText(/Text Only Model/)).not.toBeInTheDocument();
   });
 });
