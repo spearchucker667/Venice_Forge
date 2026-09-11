@@ -4,6 +4,8 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-11 Live GitHub ruleset synchronization and release-readiness verification (`VF-RULES01-SYNC-2026-08-31`).** Executed live administrative ruleset synchronization on `spearchucker667/Venice_Forge` via `scripts/enforce-github-rules.sh`. Ruleset `21229461` ("Rules01") is active and strictly enforces all 13 status checks (`lint-and-typecheck`, `unit-and-integration-tests`, `coverage`, `script-coverage`, `contracts`, `build`, `windows-sensitive-tests`, `macos-sensitive-tests`, `electron-smoke-macos`, `electron-smoke-windows`, `electron-smoke-linux`, `Analyze javascript-typescript`, and `Analyze actions`). Verified live state via GitHub API (`gh api /repos/spearchucker667/Venice_Forge/rulesets/21229461`) and unit tests in `scripts/enforce-github-rules.test.ts` (4/4 PASS). Removed `VF-RULES01-SYNC-2026-08-31` from `docs/ROADMAP.md` per roadmap rules. Validation: `npm run verify:contracts:static` PASS, `npm run lint:eslint` PASS, `npm run typecheck` PASS, `npm run verify:release-packaging-hardening` PASS (104 checks), `npm run test:server` PASS (66/66), `npm run test:contracts` PASS (23 files / 269 tests), `npm run test:electron` PASS (107 files / 1,174 tests), `npm run test:ingestion` PASS (9 files / 65 tests), `npm run test:coverage:scripts` PASS (34 files / 276 tests), and `npm run verify:roadmap-current` PASS.
+
 - **2026-09-11 Dependabot and CodeQL security remediation (published and verified).** Resolved open Dependabot alerts #31 and #32 (`joi` prototype pollution / CVE-2026-84367 and CVE-2026-84368) by adding `"joi": "^18.2.9"` to `package.json` overrides and updating `package-lock.json`. Verified `npm audit` reports 0 vulnerabilities across all tiers (dev and prod). Remediated CodeQL alert #263 (`js/request-forgery` in `server.ts:983-997`) by validating the incoming hostname against the allowlist to select a constant literal origin (`https://r.jina.ai` or `https://s.jina.ai`), stripping leading slashes to prevent protocol-relative authority confusion, and verifying that the reconstructed URL's origin strictly equals the allowlisted base origin before dispatching `fetch(safeTargetUrl, ...)` with `redirect: "error"`. Updated `SECURITY.md` and added regression tests in `server.test.ts`. Validation: `npm run lint:eslint` PASS, `npm run typecheck` PASS, `npm run test:server` PASS (66/66), `npm run verify:release-packaging-hardening` PASS (104 checks), `npm run verify:contracts:static` PASS, `npm run test:contracts` PASS (23 files / 269 tests), `npm run build` PASS, and `git diff --check` PASS. Pushed commit `f30203eb` directly to `origin/main`. Hosted GitHub verification: CodeQL workflow `34616887064` completed with success (alert #263 confirmed `fixed`; alert #264 dismissed as false positive with SSRF mitigation note); full CI workflow `34616887138` completed with success across all 10 jobs (windows-sensitive-tests, unit-and-integration-tests, macos-sensitive-tests, contracts, lint-and-typecheck, coverage, script-coverage, build, electron-smoke-linux, electron-smoke-windows, electron-smoke-macos). Repository currently has **0 open Dependabot alerts** and **0 open Code Scanning alerts**.
 
 - **2026-09-11 repository organization, hygiene, and gitignore overhaul.** Executed an exhaustive repository hygiene, documentation architecture, and `.gitignore` overhaul across `spearchucker667/Venice_Forge` on `main`. Created root `.editorconfig` enforcing UTF-8, LF, 2-space indentation, final newline, and trailing whitespace trimming. Standardized `.gitattributes` with `* text=auto eol=lf`, script line endings, and explicit binary attributes for all media, fonts, documents, and packaging formats. Overhauled `.gitignore` to eliminate tracked-file masking, unignored canonical docs (`/docs/ROADMAP.md`, `/docs/DOCS_INDEX.md`, `/inactive-features/research-browser/`), fixed casing bugs, unignored tracked audits and maintenance manifests (`!/docs/audits/repo-management/`, `!/docs/repository-maintenance/`), and ignored transient linter caches and test reports. Renamed non-ASCII em-dash and space-bearing files in `docs/audits/repo-management/` to clean POSIX kebab-case (`2026-08-22-exhaustive-repository-audit-plan.md` and `2026-08-22-repository-hygiene-handoff.md`). Appended immutable historical record notices to the 3 un-bannered reports in `docs/reports/`. Repaired internal link breakages and updated `docs/DOCS_INDEX.md` with unindexed implementation reports, superpower specs/plans, and the new `docs/repository-maintenance/` suite. Updated root `README.md` with Theme Engine V2 highlights, dedicated Documentation index section, and complete Repository Map. Generated comprehensive hygiene report and move/deletion manifests in `docs/repository-maintenance/`. Validation: `npm run verify:markdown-links` PASS (323 files), `npm run verify:contracts:static` PASS (all static checks), `npm run lint:eslint` PASS (0 warnings), `npm run typecheck` PASS (3 tsconfigs), `npm run test:server` PASS (64/64), `npm run test:electron` PASS (107 files / 1,174 tests), `npm run verify:release-packaging-hardening` PASS (104 checks), `npm run test:contracts` PASS (23 files / 269 tests), `npm run build` PASS (web, server, electron), `git diff --check` PASS (0 whitespace errors), and automated secret scan PASS.
@@ -61,6 +63,28 @@ This is the active handoff and validation ledger. The canonical current-work led
 - **Validation matrix (attachment registry hardening):** Focused lint of changed files PASS (0 warnings); `npx vitest run electron/agent/attachments/attachment-registry.test.ts electron/ipc/handlers/documentAgentHandlers.attachments.test.ts` PASS (37/37); `npx vitest run electron/ipc/handlers/apiKeyHandlers.reserved.test.ts` PASS (5/5); `npx vitest run electron/main.test.ts` PASS (33/33). Full `npm run lint:eslint` and `npm run typecheck` are blocked by pre-existing baseline failures in `scripts/collect-release-evidence.test.ts`, `scripts/write-signature-evidence.test.ts`, `electron/agent/runtime/agent-tool-executor.ts`, and `src/agent/registry/tool-registry.ts` that were not introduced by this change.
 
 ## Session History
+
+### 2026-09-11 — Live GitHub Ruleset Synchronization (VF-RULES01-SYNC-2026-08-31)
+
+- **Scope:** Execution of live administrative ruleset synchronization on `spearchucker667/Venice_Forge` to enforce all required CI and packaged smoke status checks before merge, followed by roadmap and handoff reconciliation.
+- **Ruleset Synchronization:**
+  - Executed `bash scripts/enforce-github-rules.sh` with active `gh` CLI credentials.
+  - Successfully updated ruleset ID `21229461` ("Rules01").
+  - Confirmed via `gh api /repos/spearchucker667/Venice_Forge/rulesets/21229461`: `enforcement: "active"`, with all 13 required status checks enforced (`lint-and-typecheck`, `unit-and-integration-tests`, `coverage`, `script-coverage`, `contracts`, `build`, `windows-sensitive-tests`, `macos-sensitive-tests`, `electron-smoke-macos`, `electron-smoke-windows`, `electron-smoke-linux`, `Analyze javascript-typescript`, `Analyze actions`).
+  - Closed `VF-RULES01-SYNC-2026-08-31` and removed it from `docs/ROADMAP.md` (which is reserved for unfinished work only).
+- **Validation:**
+  - `scripts/enforce-github-rules.test.ts` PASS (4/4 tests).
+  - `gh api /repos/spearchucker667/Venice_Forge/rulesets/21229461` PASS (verified 13 checks).
+  - `npm run verify:contracts:static` PASS (all static checks, 85 provider-adapter tests).
+  - `npm run lint:eslint` PASS (0 warnings).
+  - `npm run typecheck` PASS (all 3 tsconfigs).
+  - `npm run verify:release-packaging-hardening` PASS (104 checks).
+  - `npm run test:server` PASS (66/66).
+  - `npm run test:contracts` PASS (23 files / 269 tests).
+  - `npm run test:electron` PASS (107 files / 1,174 tests).
+  - `npm run test:ingestion` PASS (9 files / 65 tests).
+  - `npm run test:coverage:scripts` PASS (34 files / 276 tests).
+  - `npm run verify:roadmap-current` PASS.
 
 ### 2026-09-11 — Dependabot and CodeQL Security Remediation
 
@@ -975,18 +999,34 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * The 2026-09-01 CI/CodeQL remediation is locally complete. Hosted exact-SHA CI, CodeQL analysis, alert closure, PR state transition, and remote branch deletion remain publication acceptance steps.
 * `PROV-001` and `PROV-005` are locally closed. Live credentialed provider acceptance and headed accessibility acceptance remain under `VF-VERIFY-005`.
 * `VF-DOCUMENT-AGENT-001` is regression-repaired in this session. The shared workspace contract, lazy directory tree, `ToolExecutionContext` authority, preset semantics, attachment registry/promotion, approval boundary, and supported tool matrix are documented and locally implemented. Closure awaits the headed manual acceptance suite and packaged cross-platform smoke.
-* `P1-004` onboarding/restored-profile coverage is implemented locally. Exact-SHA packaged smoke evidence is green after the 2026-09-01 repair; live Rules01 synchronization is now actionable via `scripts/enforce-github-rules.sh` and awaits administrator application.
-* `VF-RULES01-SYNC-2026-08-31` is actionable (local helper + CI agreement verified). Live ruleset `21229461` still requires only lint-and-typecheck, unit-and-integration-tests, coverage, contracts, build, windows/macos-sensitive-tests, and CodeQL Analyze jobs — it does **not** yet require `script-coverage` or `electron-smoke-{macos,windows,linux}`. A repository administrator must run `scripts/enforce-github-rules.sh`.
+* `P1-004` onboarding/restored-profile coverage is implemented locally. Exact-SHA packaged smoke evidence is green after the 2026-09-01 repair; live Rules01 synchronization was completed via `scripts/enforce-github-rules.sh` and verified via GitHub API.
+* `VF-RULES01-SYNC-2026-08-31` is Completed. Live ruleset `21229461` was updated via `scripts/enforce-github-rules.sh` and verified via GitHub API (enforces all 13 status checks including script-coverage and electron-smoke-{macos,windows,linux}). Removed from `docs/ROADMAP.md`.
 * `VF-EXTERNAL-RELEASE-ACCEPTANCE-2026-08-31` remains BETA/INCOMPLETE; signed/paid/two-device/headed release evidence still must be produced on a real publication tag.
 * `CSP-001` is closed by the Meteocon remediation recorded above; the canonical roadmap no longer lists it as unfinished work.
 * `VF-MEDIA-APPROVAL-2026-09-01` (P1 agent media tool contract/authorization/approval) is locally implemented for `media.generateImage`: capability-gated tool visibility, trusted runtime model resolution, immutable approval plans, and approved-plan execution through the durable paid-submission manager. Broader media tool surface (video/audio), custom protocol capability-token wiring, semantic classifier implementation, and release-packaging evidence remain deferred per `docs/ROADMAP.md`.
 * Live paid replay of `wai-Illustrious` `/image/generate` after omitting dummy `cfg_scale: 1` is unverified. The CLI `.env` key returned `402` DIEM spend-limit; the Electron inspector session that captured the 500 used a different funded key.
 * `VF-GENERATION-CONTRACT-PARITY-2026-09-01` items 1–2 are implemented in the unpublished worktree. Item 3 is scoped: optional `upscale_factor` already exists on quote/queue builders; enhancement-only Topaz fields stay off default text/image-to-video bodies until Video Studio has an enhancement-model surface. This item does not reclassify the WAI upstream worker outage as a Forge defect.
-* `VF-AUD-20260910` and `VF-AUD-20260911` local findings are implemented and locally/package verified. Remaining project-wide work is `VF-EXTERNAL-RELEASE-ACCEPTANCE`, including exact-SHA hosted acceptance after publication, native i18n review, and Rules01 admin sync. See `docs/ROADMAP.md`.
+* `VF-AUD-20260910` and `VF-AUD-20260911` local findings are implemented and locally/package verified. Remaining project-wide work is `VF-EXTERNAL-RELEASE-ACCEPTANCE`, including exact-SHA hosted acceptance after publication, native i18n review, and signed/paid release evidence. See `docs/ROADMAP.md`.
 * Web video retrieve-as-bytes plays a session `blob:` URL and does not write a durable IDB blob store. Reload on web still cannot recover those bytes; Electron main-process retrieve remains the restart-safe path.
 * The 2026-09-11 Repository Organization, Documentation Architecture, File Hygiene, and Gitignore Overhaul is locally complete. All 10 validation commands passed; 0 tracked files are ignored; 0 broken links in 323 markdown files; all manifests generated in `docs/repository-maintenance/`.
 
 ## Validation Matrix
+
+### 2026-09-11 — Live GitHub Ruleset Synchronization (VF-RULES01-SYNC-2026-08-31)
+
+- `bash scripts/enforce-github-rules.sh` — PASS (ruleset 21229461 successfully updated via GitHub API).
+- `gh api /repos/spearchucker667/Venice_Forge/rulesets/21229461` — PASS (confirmed active, 13 required status checks enforced).
+- `npx vitest run scripts/enforce-github-rules.test.ts` — PASS (4/4 tests).
+- `npm run verify:contracts:static` — PASS (all static checks, 85 provider-adapter tests).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+- `npm run typecheck` — PASS (all 3 tsconfigs).
+- `npm run verify:release-packaging-hardening` — PASS (104 checks).
+- `npm run test:server` — PASS (1 file / 66 tests).
+- `npm run test:contracts` — PASS (23 files / 269 tests).
+- `npm run test:electron` — PASS (107 files / 1,174 tests).
+- `npm run test:ingestion` — PASS (9 files / 65 tests).
+- `npm run test:coverage:scripts` — PASS (34 files / 276 tests).
+- `npm run verify:roadmap-current` — PASS (canonical current work only).
 
 ### 2026-09-11 — Dependabot and CodeQL Security Remediation
 
