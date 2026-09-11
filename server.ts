@@ -879,8 +879,22 @@ export function createServerApp() {
       }
 
       const parsed = new URL(requestUrl);
-      const allowedHosts = ["r.jina.ai", "s.jina.ai"];
-      if (parsed.protocol !== "https:" || !allowedHosts.includes(parsed.hostname)) {
+      let safeBaseOrigin: "https://r.jina.ai" | "https://s.jina.ai";
+      if (parsed.hostname === "r.jina.ai") {
+        safeBaseOrigin = "https://r.jina.ai";
+      } else if (parsed.hostname === "s.jina.ai") {
+        safeBaseOrigin = "https://s.jina.ai";
+      } else {
+        return res.status(403).json({ error: "Only Jina Reader/Search HTTPS endpoints are allowed." });
+      }
+      if (parsed.protocol !== "https:") {
+        return res.status(403).json({ error: "Only Jina Reader/Search HTTPS endpoints are allowed." });
+      }
+
+      const safePath = parsed.pathname.replace(/^\/+/, "");
+      const safeTargetUrl = `${safeBaseOrigin}/${safePath}${parsed.search}`;
+      const targetUrlObj = new URL(safeTargetUrl);
+      if (targetUrlObj.origin !== safeBaseOrigin) {
         return res.status(403).json({ error: "Only Jina Reader/Search HTTPS endpoints are allowed." });
       }
 
@@ -967,13 +981,12 @@ export function createServerApp() {
       );
 
       try {
-        // nosec:js/request-forgery — `parsed` is a URL parsed from a
-        // user-supplied string but then validated against an allowlist of
-        // two hostnames (r.jina.ai, s.jina.ai) and required to use the
-        // https: protocol (server.ts:362-365). SSRF to internal services
-        // is impossible by construction.
+        // nosec:js/request-forgery — `safeTargetUrl` is reconstructed from
+        // an allowlist of two literal host origins (https://r.jina.ai, https://s.jina.ai)
+        // with stripped leading slashes, https protocol verification, and origin equality check.
+        // SSRF to internal services is impossible by construction.
         // nosec:js/request-forgery
-        const response = await fetch(parsed.toString(), {
+        const response = await fetch(safeTargetUrl, {
           method: "GET",
           headers,
           signal: controller.signal,

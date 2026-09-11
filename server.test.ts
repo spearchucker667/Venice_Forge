@@ -755,6 +755,43 @@ describe("server.ts Jina proxy error handling", () => {
     expect(response.body.error).toMatch(/mandatory child-safety protection/i);
     expect(JSON.stringify(response.body)).not.toContain("upstream body");
   });
+
+  it("rejects non-allowlisted Jina endpoints and protocols with 403", async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    const res1 = await request(createServerApp())
+      .post("/api/proxy-jina")
+      .send({ url: "https://evil.com/https://example.com" });
+    expect(res1.status).toBe(403);
+    expect(res1.body.error).toMatch(/Only Jina Reader\/Search HTTPS endpoints are allowed/);
+
+    const res2 = await request(createServerApp())
+      .post("/api/proxy-jina")
+      .send({ url: "http://r.jina.ai/https://example.com" });
+    expect(res2.status).toBe(403);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("calls fetch with reconstructed safe URL for allowed Jina endpoint", async () => {
+    const fetchMock = vi.fn(async () => new Response("ok", {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    })) as unknown as typeof globalThis.fetch;
+    globalThis.fetch = fetchMock;
+
+    const res = await request(createServerApp())
+      .post("/api/proxy-jina")
+      .set("X-Venice-Forge-Family-Safe-Mode", "false")
+      .send({ url: "https://r.jina.ai/https://example.com" });
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://r.jina.ai/https://example.com",
+      expect.objectContaining({ method: "GET" })
+    );
+  });
 });
 
 describe("server.ts Local Family Safe Mode decision matrix", () => {

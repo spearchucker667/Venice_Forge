@@ -4,6 +4,8 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-11 Dependabot and CodeQL security remediation.** Resolved open Dependabot alerts #31 and #32 (`joi` prototype pollution / CVE-2026-84367 and CVE-2026-84368) by adding `"joi": "^18.2.9"` to `package.json` overrides and updating `package-lock.json`. Verified `npm audit` reports 0 vulnerabilities across all tiers (dev and prod). Remediated CodeQL alert #263 (`js/request-forgery` in `server.ts:983-997`) by validating the incoming hostname against the allowlist to select a constant literal origin (`https://r.jina.ai` or `https://s.jina.ai`), stripping leading slashes to prevent protocol-relative authority confusion, and verifying that the reconstructed URL's origin strictly equals the allowlisted base origin before dispatching `fetch(safeTargetUrl, ...)` with `redirect: "error"`. Updated `SECURITY.md` and added regression tests in `server.test.ts`. Validation: `npm run lint:eslint` PASS, `npm run typecheck` PASS, `npm run test:server` PASS (66/66), `npm run verify:release-packaging-hardening` PASS (104 checks), `npm run verify:contracts:static` PASS, `npm run test:contracts` PASS (23 files / 269 tests), `npm run build` PASS, and `git diff --check` PASS.
+
 - **2026-09-11 repository organization, hygiene, and gitignore overhaul.** Executed an exhaustive repository hygiene, documentation architecture, and `.gitignore` overhaul across `spearchucker667/Venice_Forge` on `main`. Created root `.editorconfig` enforcing UTF-8, LF, 2-space indentation, final newline, and trailing whitespace trimming. Standardized `.gitattributes` with `* text=auto eol=lf`, script line endings, and explicit binary attributes for all media, fonts, documents, and packaging formats. Overhauled `.gitignore` to eliminate tracked-file masking, unignored canonical docs (`/docs/ROADMAP.md`, `/docs/DOCS_INDEX.md`, `/inactive-features/research-browser/`), fixed casing bugs, unignored tracked audits and maintenance manifests (`!/docs/audits/repo-management/`, `!/docs/repository-maintenance/`), and ignored transient linter caches and test reports. Renamed non-ASCII em-dash and space-bearing files in `docs/audits/repo-management/` to clean POSIX kebab-case (`2026-08-22-exhaustive-repository-audit-plan.md` and `2026-08-22-repository-hygiene-handoff.md`). Appended immutable historical record notices to the 3 un-bannered reports in `docs/reports/`. Repaired internal link breakages and updated `docs/DOCS_INDEX.md` with unindexed implementation reports, superpower specs/plans, and the new `docs/repository-maintenance/` suite. Updated root `README.md` with Theme Engine V2 highlights, dedicated Documentation index section, and complete Repository Map. Generated comprehensive hygiene report and move/deletion manifests in `docs/repository-maintenance/`. Validation: `npm run verify:markdown-links` PASS (323 files), `npm run verify:contracts:static` PASS (all static checks), `npm run lint:eslint` PASS (0 warnings), `npm run typecheck` PASS (3 tsconfigs), `npm run test:server` PASS (64/64), `npm run test:electron` PASS (107 files / 1,174 tests), `npm run verify:release-packaging-hardening` PASS (104 checks), `npm run test:contracts` PASS (23 files / 269 tests), `npm run build` PASS (web, server, electron), `git diff --check` PASS (0 whitespace errors), and automated secret scan PASS.
 
 - **2026-09-11 exhaustive-audit remediation and publication validation.** Revalidated `main` / `origin/main` at baseline `c3ae21af`, package `3.0.0-beta.3`, and reviewed every visible item in the inherited 122-path tracked plus 41-path untracked worktree before staging. Remediated all six follow-up findings: production static-root resolution (`P1-001`), workspace approval renderer/profile isolation (`P1-002`), CSP-safe logo (`P2-001`), IME-safe Enter actions (`P2-002`), same-ID chat hydration precedence (`P2-003`), and Document Agent selector naming (`P3-001`). Clean `npm ci`, complete `npm run ci`, strict i18n content generation (4,034 keys), production `npm start` HTTP probe, `dist:mac:arm64`, real packaged Electron smoke (3 files / 7 tests), and arm64 distribution verification pass. Local packaging is intentionally unsigned. Exact-SHA hosted CI/CodeQL remains required after the authorized push; signed/paid/two-device/native/headed acceptance remains external.
@@ -59,6 +61,30 @@ This is the active handoff and validation ledger. The canonical current-work led
 - **Validation matrix (attachment registry hardening):** Focused lint of changed files PASS (0 warnings); `npx vitest run electron/agent/attachments/attachment-registry.test.ts electron/ipc/handlers/documentAgentHandlers.attachments.test.ts` PASS (37/37); `npx vitest run electron/ipc/handlers/apiKeyHandlers.reserved.test.ts` PASS (5/5); `npx vitest run electron/main.test.ts` PASS (33/33). Full `npm run lint:eslint` and `npm run typecheck` are blocked by pre-existing baseline failures in `scripts/collect-release-evidence.test.ts`, `scripts/write-signature-evidence.test.ts`, `electron/agent/runtime/agent-tool-executor.ts`, and `src/agent/registry/tool-registry.ts` that were not introduced by this change.
 
 ## Session History
+
+### 2026-09-11 — Dependabot and CodeQL Security Remediation
+
+- **Scope:** Complete resolution of open GitHub security alerts on `spearchucker667/Venice_Forge`: Dependabot alerts #31 and #32 (`joi`), and CodeQL alert #263 (`js/request-forgery`).
+- **Dependabot Remediation (#31 & #32):**
+  - Upgraded transitive dependency `joi` from `18.2.3` to `18.2.9` via `package.json` overrides and `package-lock.json`.
+  - Fixes GHSA-gg4h-3hg2-grpc (CVE-2026-84367) and GHSA-6w3j-5fw6-r9vr (CVE-2026-84368).
+  - Clean `npm audit` confirms 0 vulnerabilities across all tiers (0 low, 0 moderate, 0 high, 0 critical).
+- **CodeQL Remediation (#263):**
+  - Hardened `/api/proxy-jina` in `server.ts` against Server-Side Request Forgery.
+  - Selected a compile-time string literal origin (`https://r.jina.ai` or `https://s.jina.ai`) based on allowlist matching.
+  - Stripped leading slashes from user path to prevent protocol-relative (`//evil.com`) authority confusion.
+  - Verified `new URL(safeTargetUrl).origin === safeBaseOrigin` before making outbound request.
+  - Dispatched `fetch` with `redirect: "error"` to prevent open-redirect SSRF.
+  - Updated `SECURITY.md` and added regression tests in `server.test.ts` (66/66 passing).
+- **Validation:**
+  - `npm run lint:eslint` PASS (0 warnings)
+  - `npm run typecheck` PASS (3 tsconfigs)
+  - `npm run test:server` PASS (66/66 tests)
+  - `npm run verify:contracts:static` PASS (all static verifiers)
+  - `npm run verify:release-packaging-hardening` PASS (104 checks)
+  - `npm run test:contracts` PASS (23 files / 269 tests)
+  - `npm run build` PASS
+  - `git diff --check` PASS (0 whitespace errors)
 
 ### 2026-09-11 — Repository Organization, Documentation Architecture, File Hygiene, and Gitignore Overhaul
 
@@ -961,6 +987,18 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * The 2026-09-11 Repository Organization, Documentation Architecture, File Hygiene, and Gitignore Overhaul is locally complete. All 10 validation commands passed; 0 tracked files are ignored; 0 broken links in 323 markdown files; all manifests generated in `docs/repository-maintenance/`.
 
 ## Validation Matrix
+
+### 2026-09-11 — Dependabot and CodeQL Security Remediation
+
+- `npm audit` — PASS (0 vulnerabilities across all tiers, dev and prod; joi bumped to 18.2.9).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run typecheck` — PASS (all 3 tsconfig targets: root src, tsconfig.electron.json, tsconfig.electron.test.json).
+- `npm run test:server` — PASS (1 file / 66 tests, including Jina SSRF rejection and safe URL reconstruction tests).
+- `npm run verify:contracts:static` — PASS (all static checks, 85 provider-adapter tests).
+- `npm run verify:release-packaging-hardening` — PASS (104 checks; release contract intact).
+- `npm run test:contracts` — PASS (23 files / 269 tests).
+- `npm run build` — PASS (web, server, electron).
+- `git diff --check` — PASS (0 whitespace errors).
 
 ### 2026-09-11 — Repository Organization, Documentation Architecture, File Hygiene, and Gitignore Overhaul
 

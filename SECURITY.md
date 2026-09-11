@@ -404,10 +404,11 @@ justification:
 - `server.ts:917-931` — `js/resource-exhaustion`: `setTimeout` duration is
   `Math.min(timeoutMs, 180000) || 30000` (3-minute max). CodeQL does not see
   the clamp because it lives inside a conditional expression.
-- `server.ts:926-931` — `js/request-forgery`: The Jina Reader URL is parsed
-  from a user-supplied string but then restricted to the `r.jina.ai` /
-  `s.jina.ai` allowlist (`const allowedHosts = ["r.jina.ai", "s.jina.ai"];` in
-  `server.ts:838-840`) and required to use `https:`. SSRF to internal services
+- `server.ts:983-997` — `js/request-forgery`: The Jina Reader URL hostname is parsed
+  from a user-supplied string and strictly matched against the `r.jina.ai` /
+  `s.jina.ai` allowlist to select a constant base origin (`https://r.jina.ai` or
+  `https://s.jina.ai`). The outgoing URL is reconstructed with stripped leading slashes
+  and re-verified against the allowlisted origin before fetch. SSRF to internal services
   is impossible by construction.
 - `electron/services/syncFolderWatcher.ts:124` — `js/insecure-temporary-file`:
   The file path originates from the user-configured sync folder (validated
