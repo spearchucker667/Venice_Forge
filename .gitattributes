@@ -1,16 +1,47 @@
+# Git attributes for Venice Forge
+# Enforce LF normalization on checkout/checkin across platforms
 * text=auto eol=lf
+
+# Windows scripts
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
+# Shell scripts
+*.sh text eol=lf
+
+# Binary media formats
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.gif binary
 *.webp binary
+*.avif binary
 *.ico binary
 *.icns binary
+
+# Binary document and audio formats
 *.pdf binary
+*.mp3 binary
+*.mp4 binary
+*.wav binary
+
+# Font binaries
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Binary packages, archives, and installers
 *.zip binary
+*.tar binary
+*.tar.gz binary
+*.tgz binary
 *.dmg binary
+*.pkg binary
 *.exe binary
+*.msi binary
+*.AppImage binary
+*.deb binary
+*.rpm binary
+*.vfbackup binary

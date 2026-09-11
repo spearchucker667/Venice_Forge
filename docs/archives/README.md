@@ -13,4 +13,4 @@ Tracked content that remains here:
 
 For active tasks, refer to [`docs/ROADMAP.md`](../ROADMAP.md).
 For the live session ledger, see [`docs/summary_of_work.md`](../summary_of_work.md).
-For this hygiene pass, see [`docs/audits/repository-hygiene-audit.md`](../audits/repository-hygiene-audit.md).
+For this hygiene pass, see [`docs/audits/Records/repository-hygiene-audit.md`](../audits/Records/repository-hygiene-audit.md).

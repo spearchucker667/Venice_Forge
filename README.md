@@ -193,14 +193,30 @@ Privacy is the core design pillar of Venice Forge:
 
 ---
 
-## Theme System
+## Theme System (Theme Engine V2)
 
 The user interface uses a token-based styling model matching dynamic glassmorphism aesthetics.
 - **YAML Themes:** Built-in and user-supplied themes live under `config/themes/` using standard CSS variable key-value maps.
+- **Theme-Aware Syntax Highlighting:** Fenced and inline code blocks are dynamically syntax-highlighted with color palettes matched to the active theme via a 33-token code theme contract.
+- **Theme Maker:** Create, customize, and preview themes in real time, including a dedicated Code & Syntax palette editor.
 - **Built-in Catalog (43 Themes):**
   - *Pastel Aqua/Pink Theme Pack:* cotton-candy-console, sweet-nightmare, dual-persona, polaroid-board.
   - *Dracula & Dark Palettes:* basalt-noir, catppuccin, dracula, gruvbox_dark, midnight-cobalt, midnight-velvet, monokai, nord, obsidian-bloom, obsidian-ember, one_dark, rosepine, solarized_dark, synthwave-harbor, terminal-forest, tokyo_night, venice.
   - *Light & High Contrast:* amber-archive, arctic-glass, aurora-boreal, circuit-mint, copper, cyber-orchid, dark, desert-copperfield, ember-monastery, github_light, glacial-ink, harbor-fog, light, moss-circuit, neon-dusk, polaroid-board, porcelain-daybreak, porcelain-sky, sakura-terminal, sandstone, solar-ash, solarized_light, toxic-limewire, ultraviolet-rain.
+
+---
+
+## Documentation
+
+Venice Forge documentation follows the [Diátaxis](https://diataxis.fr) framework (tutorials, how-to guides, reference, and explanation) and is indexed centrally in [`docs/DOCS_INDEX.md`](docs/DOCS_INDEX.md).
+
+- **[Documentation Index](docs/DOCS_INDEX.md)** — Canonical navigation map for all project documentation.
+- **[About Venice Forge](docs/ABOUT.md)** — Architecture, philosophy, core features, and data flow.
+- **[Frequently Asked Questions](docs/FAQ.md)** — Privacy, safety, storage, API compatibility, and troubleshooting.
+- **[Contributing Guide](CONTRIBUTING.md)** — Code conventions, validation commands, and pull request checklist.
+- **[Agent Instructions](AGENTS.md)** — Guidelines, authority order, and safety rules for AI coding assistants.
+- **[API Reference](docs/reference/Venice_swagger_api.yaml)** — Bundled OpenAPI specification for the Venice API.
+- **[Repository Maintenance & Hygiene](docs/repository-maintenance/README.md)** — Repository organization policies, hygiene report, and file manifests.
 
 ---
 
@@ -280,19 +296,25 @@ For a complete breakdown of every file, see [FILE_TREE.md](docs/DEVELOPMENT/FILE
 ```text
 .
 ├── electron/              # Main process, preload, IPC, native OS services
-│   ├── ipc/               # IPC handlers partitioned by domain
+│   ├── agent/             # Document Agent execution, approval, and workspace services
+│   ├── ipc/               # Typed IPC handlers partitioned by domain
 │   └── services/          # Secure storage, logger, updater, guard pipelines
 ├── src/                   # React renderer, stores, services, visual views
 │   ├── components/        # UI views (chat, image, media, settings, etc.)
-│   ├── services/          # Venice API client, export, IndexedDB adapters
-│   ├── stores/            # Zustand 5 slice stores (auth, settings, media)
-│   └── theme/             # Token mappings, built-in YAML palettes, apply helpers
-├── config/themes/         # Built-in YAML theme definitions
-├── public/                # Static assets and browser default home page
-├── docs/                  # Design, release, development, and legal docs
+│   ├── services/          # Venice API client, desktop bridge, IndexedDB adapters
+│   ├── stores/            # Zustand 5 slice stores (chat, settings, media, etc.)
+│   └── theme/             # Token mappings, syntax highlighting, apply helpers
+├── assets/                # Repository branding and preview media
+├── config/                # Built-in YAML theme definitions and i18n baselines
+├── docs/                  # Diátaxis documentation, DOCS_INDEX, maintenance, and legal
+├── inactive-features/     # Archived inactive features (research-browser)
+├── public/                # Static web assets served by Vite/Express
 ├── scripts/               # Build, verify, release, and hygiene scripts
-├── tests/                 # Playwright smoke tests and accessibility suites
-└── package.json           # Scripts, engines, and dependencies
+├── tests/                 # Playwright smoke tests, contract suites, and invariants
+├── package.json           # Scripts, engines, and dependencies
+├── .editorconfig          # Repository-wide code formatting rules
+├── .gitattributes         # Line endings and binary file declarations
+└── .gitignore             # Hardened ignore rules for untracked artifacts
 ```
 
 ---

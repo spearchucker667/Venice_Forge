@@ -1,5 +1,9 @@
 # Media Save Pipeline Audit — 2026-07-28
 
+> [!NOTE]
+> **IMMUTABLE HISTORICAL RECORD**
+> This report is a point-in-time snapshot of the repository state as of July 28, 2026. It is preserved for historical context and is not updated to track current `main`.
+
 ## Executive Summary
 
 VF-VERIFY-005 found five renderer save variants and two obsolete main-process writers that bypassed the current single-item Save As contract. The implementation now has one renderer entry point, `desktopMedia.saveMediaAs`, and one Electron export owner, `electron/services/generatedMediaExport.ts`. Generated IDs and legacy data, blob, HTTP, and allowlisted custom-protocol sources converge before the native dialog. The main process validates format signatures, normalizes filenames, and atomically writes the original bytes.

@@ -1,5 +1,9 @@
 # Venice Forge — Current-Main CI Repair, Exhaustive Repository Audit, and Remediation Report
 
+> [!NOTE]
+> **IMMUTABLE HISTORICAL RECORD**
+> This report is a point-in-time snapshot of the repository state as of August 26, 2026 (commit `eba90428...`). It is preserved for historical context and is not updated to track current `main`.
+
 **Date:** 2026-08-26  
 **Repository:** `spearchucker667/Venice_Forge`  
 **Starting SHA:** `eba90428be6c87b85a96e07b83be09e0f383db89`  

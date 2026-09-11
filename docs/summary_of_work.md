@@ -4,6 +4,8 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-11 repository organization, hygiene, and gitignore overhaul.** Executed an exhaustive repository hygiene, documentation architecture, and `.gitignore` overhaul across `spearchucker667/Venice_Forge` on `main`. Created root `.editorconfig` enforcing UTF-8, LF, 2-space indentation, final newline, and trailing whitespace trimming. Standardized `.gitattributes` with `* text=auto eol=lf`, script line endings, and explicit binary attributes for all media, fonts, documents, and packaging formats. Overhauled `.gitignore` to eliminate tracked-file masking, unignored canonical docs (`/docs/ROADMAP.md`, `/docs/DOCS_INDEX.md`, `/inactive-features/research-browser/`), fixed casing bugs, unignored tracked audits and maintenance manifests (`!/docs/audits/repo-management/`, `!/docs/repository-maintenance/`), and ignored transient linter caches and test reports. Renamed non-ASCII em-dash and space-bearing files in `docs/audits/repo-management/` to clean POSIX kebab-case (`2026-08-22-exhaustive-repository-audit-plan.md` and `2026-08-22-repository-hygiene-handoff.md`). Appended immutable historical record notices to the 3 un-bannered reports in `docs/reports/`. Repaired internal link breakages and updated `docs/DOCS_INDEX.md` with unindexed implementation reports, superpower specs/plans, and the new `docs/repository-maintenance/` suite. Updated root `README.md` with Theme Engine V2 highlights, dedicated Documentation index section, and complete Repository Map. Generated comprehensive hygiene report and move/deletion manifests in `docs/repository-maintenance/`. Validation: `npm run verify:markdown-links` PASS (323 files), `npm run verify:contracts:static` PASS (all static checks), `npm run lint:eslint` PASS (0 warnings), `npm run typecheck` PASS (3 tsconfigs), `npm run test:server` PASS (64/64), `npm run test:electron` PASS (107 files / 1,174 tests), `npm run verify:release-packaging-hardening` PASS (104 checks), `npm run test:contracts` PASS (23 files / 269 tests), `npm run build` PASS (web, server, electron), `git diff --check` PASS (0 whitespace errors), and automated secret scan PASS.
+
 - **2026-09-11 exhaustive-audit remediation and publication validation.** Revalidated `main` / `origin/main` at baseline `c3ae21af`, package `3.0.0-beta.3`, and reviewed every visible item in the inherited 122-path tracked plus 41-path untracked worktree before staging. Remediated all six follow-up findings: production static-root resolution (`P1-001`), workspace approval renderer/profile isolation (`P1-002`), CSP-safe logo (`P2-001`), IME-safe Enter actions (`P2-002`), same-ID chat hydration precedence (`P2-003`), and Document Agent selector naming (`P3-001`). Clean `npm ci`, complete `npm run ci`, strict i18n content generation (4,034 keys), production `npm start` HTTP probe, `dist:mac:arm64`, real packaged Electron smoke (3 files / 7 tests), and arm64 distribution verification pass. Local packaging is intentionally unsigned. Exact-SHA hosted CI/CodeQL remains required after the authorized push; signed/paid/two-device/native/headed acceptance remains external.
 
 - **2026-09-11 VF-AUD-20260910 remediations wave 3 (unpublished).** Closed the leftover risks from wave 2 on `main` at SHA `c3ae21af` without commit/push. Web video COMPLETED JSON without a URL (and signed `download_url`) now retries `Accept: video/mp4` through the proxy and plays a session `blob:` URL; gallery persist still refuses `https:`/`data:`/`blob:`. Replaced the remaining 77 key-name leftover catalog strings; `verify:i18n` is warning-free. Regenerated the vitest 4.1.11 lockfile so `npm ci` succeeds (the `--legacy-peer-deps` lockfile had dropped `electron-builder-squirrel-windows`). Video enhancement-only fields are scoped out of default queue bodies; `upscale_factor` stays optional when a caller supplies it. Live Rules01 still omits `script-coverage` and the three packaged smoke jobs (admin apply only). Native i18n and external release acceptance remain blocked on human/signed evidence.
@@ -57,6 +59,43 @@ This is the active handoff and validation ledger. The canonical current-work led
 - **Validation matrix (attachment registry hardening):** Focused lint of changed files PASS (0 warnings); `npx vitest run electron/agent/attachments/attachment-registry.test.ts electron/ipc/handlers/documentAgentHandlers.attachments.test.ts` PASS (37/37); `npx vitest run electron/ipc/handlers/apiKeyHandlers.reserved.test.ts` PASS (5/5); `npx vitest run electron/main.test.ts` PASS (33/33). Full `npm run lint:eslint` and `npm run typecheck` are blocked by pre-existing baseline failures in `scripts/collect-release-evidence.test.ts`, `scripts/write-signature-evidence.test.ts`, `electron/agent/runtime/agent-tool-executor.ts`, and `src/agent/registry/tool-registry.ts` that were not introduced by this change.
 
 ## Session History
+
+### 2026-09-11 — Repository Organization, Documentation Architecture, File Hygiene, and Gitignore Overhaul
+
+- **Scope:** Exhaustive repository-wide hygiene, documentation architecture, file organization, POSIX naming conventions, `.gitignore` overhaul, `.gitattributes` normalization, `.editorconfig` creation, historical report notices, and documentation indexing.
+- **Repository Metadata & Tooling:**
+  - Created `.editorconfig` setting `charset = utf-8`, `end_of_line = lf`, `indent_style = space`, `indent_size = 2`, `insert_final_newline = true`, and `trim_trailing_whitespace = true`.
+  - Normalized `.gitattributes` with `* text=auto eol=lf`, shell/cmd/powershell line endings, and explicit `binary` flags for all image, video, audio, font, archive, and executable extensions.
+  - Hardened `.gitignore` to eliminate rules that shadowed tracked files (`/docs/ROADMAP.md`, `/docs/DOCS_INDEX.md`, `/inactive-features/research-browser/`), fixed `/docs/Repo-management/` casing typo, added un-ignores for tracked audit directories (`!/docs/audits/repo-management/`, `!/docs/repository-maintenance/`), and added ignores for test/linter artifacts (`/playwright-report/`, `/test-results/`, `.eslintcache`, `npm-debug.log*`).
+  - Automated verification confirmed exactly 0 tracked files are ignored by `.gitignore`.
+- **POSIX Filename Remediation:**
+  - Renamed 2 tracked files containing em-dashes and spaces under `docs/audits/repo-management/` using `git mv`:
+    - `Venice Forge — Exhaustive Repository A.md` -> `2026-08-22-exhaustive-repository-audit-plan.md`
+    - `Venice Forge — Repository Hygiene, Reo.md` -> `2026-08-22-repository-hygiene-handoff.md`
+  - Created `docs/audits/repo-management/README.md` indexing the historical audit plans.
+- **Documentation Architecture & Link Integrity:**
+  - Repaired broken links in `docs/archives/README.md` and `docs/DOCS_INDEX.md` referencing historical audit records under `docs/audits/Records/`.
+  - Added standard `IMMUTABLE HISTORICAL RECORD` warning banners to `docs/reports/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md`, `docs/reports/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md`, and `docs/reports/MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md`.
+  - Updated `docs/DOCS_INDEX.md` to index `docs/implementation/document-agent-implementation-report.md`, `docs/reports/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md`, 4 missing superpower specs/plans (`2026-08-30` and `2026-08-31`), and the `docs/repository-maintenance/` directory.
+  - Verified `npm run verify:markdown-links` passes cleanly with 0 broken links across 323 markdown files.
+- **Maintenance Manifests:**
+  - Created `docs/repository-maintenance/README.md` introducing the maintenance documentation suite.
+  - Created `docs/repository-maintenance/REPOSITORY_HYGIENE_REPORT.md` detailing the entire repository audit, conventions, and hygiene rules.
+  - Created `docs/repository-maintenance/FILE_MOVE_MANIFEST.md` documenting file moves and compatibility notes.
+  - Created `docs/repository-maintenance/DELETION_MANIFEST.md` documenting deletions, un-tracked files, and keep rationale.
+- **Validation:**
+  - `npm run verify:markdown-links` PASS (323 files)
+  - `npm run verify:contracts:static` PASS (all static checks, 85 provider-adapter tests)
+  - `npm run lint:eslint` PASS (0 warnings)
+  - `npm run typecheck` PASS (all 3 tsconfigs: src, electron, electron.test)
+  - `npm run test:server` PASS (64/64)
+  - `npm run test:electron` PASS (107 files / 1,174 tests)
+  - `npm run verify:release-packaging-hardening` PASS (104 checks)
+  - `npm run test:contracts` PASS (23 files / 269 tests)
+  - `npm run build` PASS (Vite web build, esbuild server, electron bundling)
+  - `git diff --check` PASS (0 whitespace errors)
+  - Automated secret scan PASS (no API keys, tokens, or credentials introduced)
+- **Publication Authority:** No commits or pushes performed. Changes reside cleanly on local `main`.
 
 ### 2026-09-11 — Current-worktree exhaustive-audit follow-up
 
@@ -919,8 +958,24 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * `VF-GENERATION-CONTRACT-PARITY-2026-09-01` items 1–2 are implemented in the unpublished worktree. Item 3 is scoped: optional `upscale_factor` already exists on quote/queue builders; enhancement-only Topaz fields stay off default text/image-to-video bodies until Video Studio has an enhancement-model surface. This item does not reclassify the WAI upstream worker outage as a Forge defect.
 * `VF-AUD-20260910` and `VF-AUD-20260911` local findings are implemented and locally/package verified. Remaining project-wide work is `VF-EXTERNAL-RELEASE-ACCEPTANCE`, including exact-SHA hosted acceptance after publication, native i18n review, and Rules01 admin sync. See `docs/ROADMAP.md`.
 * Web video retrieve-as-bytes plays a session `blob:` URL and does not write a durable IDB blob store. Reload on web still cannot recover those bytes; Electron main-process retrieve remains the restart-safe path.
+* The 2026-09-11 Repository Organization, Documentation Architecture, File Hygiene, and Gitignore Overhaul is locally complete. All 10 validation commands passed; 0 tracked files are ignored; 0 broken links in 323 markdown files; all manifests generated in `docs/repository-maintenance/`.
 
 ## Validation Matrix
+
+### 2026-09-11 — Repository Organization, Documentation Architecture, File Hygiene, and Gitignore Overhaul
+
+- `npm run verify:markdown-links` — PASS (323 Markdown files checked, 0 broken links).
+- `npm run verify:contracts:static` — PASS (all static checks, 85 provider-adapter tests).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run typecheck` — PASS (all 3 tsconfig targets: root src, tsconfig.electron.json, tsconfig.electron.test.json).
+- `npm run test:server` — PASS (1 file / 64 tests).
+- `npm run test:electron` — PASS (107 files / 1,174 tests).
+- `npm run verify:release-packaging-hardening` — PASS (104 checks).
+- `npm run test:contracts` — PASS (23 files / 269 tests).
+- `npm run build` — PASS (Vite web build, esbuild server, electron bundling).
+- `git diff --check` — PASS (0 whitespace errors).
+- Automated secret and credential pattern scan — PASS (0 matches across diff and untracked files).
+- Git status / worktree audit — clean tracked status; exactly 0 tracked files ignored by `.gitignore`.
 
 ### 2026-09-11 — Current-worktree exhaustive-audit follow-up
 

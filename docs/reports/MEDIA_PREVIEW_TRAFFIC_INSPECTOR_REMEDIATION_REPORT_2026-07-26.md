@@ -1,5 +1,9 @@
 # Media Preview and Traffic Inspector Remediation — 2026-07-26
 
+> [!NOTE]
+> **IMMUTABLE HISTORICAL RECORD**
+> This report is a point-in-time snapshot of the repository state as of July 26, 2026. It is preserved for historical context and is not updated to track current `main`.
+
 > Snapshot report for the Venice Forge work order of the same name.
 > Scanned repository: `spearchucker667/Venice_Forge`, branch `main`.
 > Scope: renderer-side image preview, legacy `venice()` request helper, main-process traffic telemetry, and inspector pane UI semantics.

@@ -13,6 +13,9 @@
 
 /node_modules/
 /.node22/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
 
 
 # -----------------------------------------------------------------------------
@@ -24,6 +27,9 @@
 /release/
 /coverage/
 /.vite/
+/playwright-report/
+/test-results/
+.eslintcache
 
 
 # -----------------------------------------------------------------------------
@@ -90,12 +96,20 @@
 /docs/design/*
 !/docs/design/*.md
 
-/docs/Repo-management/
-/docs/archives/
-
-/docs/ROADMAP.md
 /docs/ROADMAP.md.clean
-/docs/DOCS_INDEX.md
+
+# Historical archives: keep tracked archives, ignore local session dumps
+/docs/archives/*
+!/docs/archives/README.md
+!/docs/archives/superpowers/
+!/docs/archives/work-orders/
+/docs/archives/work-orders/*session*
+/docs/archives/work-orders/kimi-*
+/docs/archives/work-orders/writing-block*
+/docs/archives/work-orders/Venice_Forge_Unified_Agent_Handoff.md
+/docs/archives/work-orders/VENICE_FORGE_COMPLETE_AUDIT.md
+/docs/archives/work-orders/grok_session.md
+/docs/archives/session-history-pre-*.md
 
 
 # -----------------------------------------------------------------------------
@@ -167,6 +181,7 @@
 
 !/docs/audits/Records/
 !/docs/audits/active/
+!/docs/audits/repo-management/
 !/docs/audits/*.md
 !/docs/audits/*.yaml
 !/docs/audits/*.yml
@@ -223,7 +238,6 @@
 /.local/
 /.local-dev/
 /.dev/
-/inactive-features/research-browser/
 /.agents/
 /.agent/
 /.ai/

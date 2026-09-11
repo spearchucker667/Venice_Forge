@@ -146,6 +146,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [design/PUBLIC_PROFILE_DISCOVERY.md](design/PUBLIC_PROFILE_DISCOVERY.md) — Platform-specific site query logic.
 - [design/VENICE_UI_EXTRACTION.md](design/VENICE_UI_EXTRACTION.md) — Internal UI extraction/reference notes; implementation remains authoritative.
 - [design/pastel-theme-pack-report.md](design/pastel-theme-pack-report.md) — Pastel Aqua/Pink Theme Pack implementation report.
+- [implementation/document-agent-implementation-report.md](implementation/document-agent-implementation-report.md) — Document Agent implementation and verification report.
 
 ### Discovery & Planning
 
@@ -156,6 +157,10 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [superpowers/plans/2026-08-31-csp-meteocon-remediation.md](superpowers/plans/2026-08-31-csp-meteocon-remediation.md) — Test-first plan for CSP-compatible Meteocon SVG transformation and source/build/package regression coverage.
 - [superpowers/plans/2026-08-31-replicate-paid-submission-durability.md](superpowers/plans/2026-08-31-replicate-paid-submission-durability.md) — Test-first plan for Replicate write-ahead persistence, deduplication, ambiguity handling, restart recovery, and bounded reads.
 - [superpowers/plans/2026-08-31-theme-ci-reconciliation.md](superpowers/plans/2026-08-31-theme-ci-reconciliation.md) — Reconciliation plan for the inherited Theme Engine V2 and CI/package implementation.
+- [superpowers/specs/2026-08-31-theme-engine-v2-and-ci-hardening-design.md](superpowers/specs/2026-08-31-theme-engine-v2-and-ci-hardening-design.md) — Approved design for Theme Engine V2 architecture and CI workflow hardening.
+- [superpowers/plans/2026-08-31-theme-engine-v2-and-ci-hardening.md](superpowers/plans/2026-08-31-theme-engine-v2-and-ci-hardening.md) — Test-first implementation plan for Theme Engine V2 and CI hardening.
+- [superpowers/specs/2026-08-30-audit-remediation-design.md](superpowers/specs/2026-08-30-audit-remediation-design.md) — Approved design for August 30 audit findings remediation.
+- [superpowers/plans/2026-08-30-audit-remediation.md](superpowers/plans/2026-08-30-audit-remediation.md) — Test-first implementation plan for August 30 audit findings remediation.
 - [superpowers/plans/2026-09-01-theme-aware-code-blocks.md](superpowers/plans/2026-09-01-theme-aware-code-blocks.md) — Implementation plan for theme-aware syntax-colorized code rendering and Theme Maker Code & Syntax editor.
 - [superpowers/specs/2026-09-01-theme-aware-code-rendering-design.md](superpowers/specs/2026-09-01-theme-aware-code-rendering-design.md) — Design specification for theme-aware syntax highlighting, code-theme tokens, preset registry, and persistence contracts.
 - [superpowers/specs/2026-08-23-semantic-image-prompt-enhancer-design.md](superpowers/specs/2026-08-23-semantic-image-prompt-enhancer-design.md) — Implemented semantic grounding, trust-layer, model-context, configuration-migration, and validation contract for Image Studio prompt enhancement/remix.
@@ -187,11 +192,18 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 - [audits/venice-forge-exhaustive-audit-2026-09-11/README.md](audits/venice-forge-exhaustive-audit-2026-09-11/README.md) — 2026-09-11 current-worktree audit, six resolved follow-up findings, and local/package validation evidence for baseline SHA `c3ae21af`. External acceptance remains in `ROADMAP.md`.
 - [audits/venice-forge-exhaustive-audit-2026-09-10/README.md](audits/venice-forge-exhaustive-audit-2026-09-10/README.md) — 2026-09-10 exhaustive current-`main` audit package (SHA `c3ae21af`). Evidence only; remaining work is in `ROADMAP.md`.
-- [audits/repository-hygiene-audit.md](audits/repository-hygiene-audit.md) — 2026-09-01 repository hygiene inventory and keep/remove rationale.
-- [audits/repository-hygiene-final-report.md](audits/repository-hygiene-final-report.md) — 2026-09-01 hygiene execution report.
+- [audits/Records/repository-hygiene-audit.md](audits/Records/repository-hygiene-audit.md) — 2026-09-01 repository hygiene inventory and keep/remove rationale.
+- [audits/Records/repository-hygiene-final-report.md](audits/Records/repository-hygiene-final-report.md) — 2026-09-01 hygiene execution report.
 - [audits/Records/Function_calling_todo.md](audits/Records/Function_calling_todo.md) — Implementation/acceptance specification referenced by roadmap; not a checkbox ledger.
 - [audits/Records/Venice_Forge_Video_Research_Browser_Remediation_Work_Order.md](audits/Records/Venice_Forge_Video_Research_Browser_Remediation_Work_Order.md) — Historical work order for the inactive research-browser feature.
-- [audits/repo-management/](audits/repo-management/) — Historical repository hygiene and reorganization handoffs.
+- [audits/repo-management/README.md](audits/repo-management/README.md) — Historical repository hygiene and reorganization handoffs.
+
+### Repository Maintenance & Hygiene
+
+- [repository-maintenance/README.md](repository-maintenance/README.md) — 2026-09-11 repository organization, hygiene report, and move/deletion manifests.
+- [repository-maintenance/REPOSITORY_HYGIENE_REPORT.md](repository-maintenance/REPOSITORY_HYGIENE_REPORT.md) — Comprehensive repository hygiene audit, policy enforcement, and validation evidence.
+- [repository-maintenance/FILE_MOVE_MANIFEST.md](repository-maintenance/FILE_MOVE_MANIFEST.md) — Complete file move and rename manifest with backwards-compatibility notes.
+- [repository-maintenance/DELETION_MANIFEST.md](repository-maintenance/DELETION_MANIFEST.md) — Exhaustive deletion and un-tracking manifest with rationale.
 
 ### Historical Reports
 
@@ -199,6 +211,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [reports/historical/remediation-report-2026-09-01.md](reports/historical/remediation-report-2026-09-01.md) — 2026-09-01 Code Health, Performance & Security Remediation Report.
 - [reports/historical/CANONICAL_REPORT_INDEX.md](reports/historical/CANONICAL_REPORT_INDEX.md) — Navigator for past validation audits.
 - [reports/VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md](reports/VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md) — 2026-08-25 Post-August-24 provider-update audit and remediation report.
+- [reports/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md](reports/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md) — 2026-08-26 Current-main CI repair, exhaustive repository audit, and remediation report.
 - [reports/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md](reports/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md) — 2026-07-26 Traffic Inspector emitter wiring remediation report.
 - [reports/MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md](reports/MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md) — 2026-07-28 Media Studio Save As pipeline audit report.
 - [reports/historical/FINAL_ACCEPTANCE_REPORT.md](reports/historical/FINAL_ACCEPTANCE_REPORT.md) — 2026-08-23 Final acceptance and release readiness report.
