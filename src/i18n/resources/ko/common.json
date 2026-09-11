@@ -37,13 +37,13 @@
     "unlock": "잠금 해제",
     "saving": "저장 중...",
     "importAll": "모두 가져오기",
-    "saveAs": "Tr: Save As…",
-    "lock": "Tr: Lock",
-    "favorite": "Tr: Favorite",
-    "unfavorite": "Tr: Unfavorite",
-    "regenerate": "Tr: Regenerate",
-    "download": "Tr: Download",
-    "open": "Tr: Open"
+    "saveAs": "다른 이름으로 저장…",
+    "lock": "잠금",
+    "favorite": "즐겨찾기",
+    "unfavorite": "즐겨찾기 해제",
+    "regenerate": "다시 생성",
+    "download": "다운로드",
+    "open": "열기"
   },
   "status": {
     "active": "활성",
@@ -2643,7 +2643,7 @@
             "thinking": "생각…",
             "removeFromChat": "채팅에서 삭제",
             "tokensUsedForThisMessage": "이 메시지에 사용된 토큰",
-            "generatedMedia": "Tr: Generated media"
+            "generatedMedia": "생성된 미디어"
           }
         }
       },
@@ -3313,7 +3313,7 @@
             "summarizeTheFinding": "결과 요약",
             "addSupportingDetailsAndCitations": "지원 세부정보 및 인용 추가",
             "removeFindingValue1": "{{value1}} 발견 항목 삭제",
-            "deleteSessionValue1": "runtimeGenerated.components.research.researchworkspaceview.attribute.deleteSessionValue1 {{value1}}"
+            "deleteSessionValue1": "세션 {{value1}} 삭제"
           },
           "text": {
             "processing": "처리 중...",
@@ -4123,7 +4123,7 @@
           "networkErrorTestingJinaApiKey": "네트워크 오류 테스트 Jina API 키"
         },
         "error": {
-          "notSupportedInWebMode": "Tr: Not supported in web mode"
+          "notSupportedInWebMode": "웹 모드에서 지원되지 않음"
         }
       },
       "imageinspectoranalysis": {
@@ -4429,11 +4429,11 @@
           "mistralAiModelsAndEndpoints": "Mistral AI 모델 및 엔드포인트.",
           "claudeAndOtherSafeFoundationModels": "Claude 및 기타 안전한 기초 모델.",
           "searchGroundedAndFastLlmApis": "검색 기반의 빠른 LLM API.",
-          "cohereEnterpriseReadyMultilingualModels": "Tr: Enterprise-ready multilingual models.",
-          "huggingFaceOpenSourceInferenceProviders": "Tr: Open-source model inference via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Tr: Azure OpenAI deployment-based chat completions.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Tr: AWS Bedrock Mantle OpenAI-compatible inference.",
-          "googleVertexAiExpressModeApiKey": "Tr: Google Vertex AI Express Mode (API-key authentication)."
+          "cohereEnterpriseReadyMultilingualModels": "엔터프라이즈급 다국어 모델.",
+          "huggingFaceOpenSourceInferenceProviders": "Hugging Face Inference Providers를 통한 오픈 소스 모델 추론.",
+          "azureOpenAiDeploymentBasedChatCompletions": "Azure OpenAI 배포 기반 채팅 완성.",
+          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle OpenAI 호환 추론.",
+          "googleVertexAiExpressModeApiKey": "Google Vertex AI Express 모드(API 키 인증)."
         }
       }
     },
@@ -4592,51 +4592,51 @@
     "characterPersonaReferences": "캐릭터/페르소나 참고자료"
   },
   "mediaSave": {
-    "success": "Tr: Media saved successfully",
-    "failed": "Tr: Media save failed",
-    "noBytes": "Tr: No media bytes could be read",
-    "noItems": "Tr: No exportable media items found.",
-    "exportFailed": "Tr: Media export failed. No files were saved.",
-    "prepareFailed": "Tr: Media export failed. No files could be prepared.",
-    "exported": "mediaSave.exported {{count}}",
-    "partiallyExported": "mediaSave.partiallyExported {{saved}} {{total}}",
-    "failedWithDetail": "mediaSave.failedWithDetail {{detail}}"
+    "success": "미디어가 저장되었습니다",
+    "failed": "미디어 저장 실패",
+    "noBytes": "미디어 바이트를 읽을 수 없습니다",
+    "noItems": "내보낼 미디어 항목이 없습니다.",
+    "exportFailed": "미디어 내보내기에 실패했습니다. 저장된 파일이 없습니다.",
+    "prepareFailed": "미디어 내보내기에 실패했습니다. 파일을 준비할 수 없습니다.",
+    "exported": "미디어 파일 {{count}}개를 내보냈습니다.",
+    "partiallyExported": "미디어 파일 {{total}}개 중 {{saved}}개를 내보냈습니다. 일부 항목을 확인할 수 없습니다.",
+    "failedWithDetail": "미디어 내보내기에 실패했습니다. {{detail}}"
   },
   "layout": {
     "sidebar": {
-      "resize": "Tr: Resize sidebar",
-      "resetWidth": "Tr: Reset sidebar width",
-      "width": "Tr: Sidebar width"
+      "resize": "사이드바 크기 조절",
+      "resetWidth": "사이드바 너비 재설정",
+      "width": "사이드바 너비"
     }
   },
   "safetyDecision": {
     "userMessage": {
-      "mandatory-child-safety": "Tr: Generation blocked: mandatory child-safety protection triggered.",
-      "optional-family-policy": "Tr: Generation blocked: optional Family Safe Mode triggered.",
-      "provider-policy": "Tr: Generation blocked: provider policy violation.",
-      "request-validation": "Tr: Generation blocked: request validation failed."
+      "mandatory-child-safety": "생성이 차단되었습니다. 필수 아동 안전 보호가 작동했습니다.",
+      "optional-family-policy": "생성이 차단되었습니다. 선택적 가족 안전 모드가 작동했습니다.",
+      "provider-policy": "생성이 차단되었습니다. 제공자 정책 위반입니다.",
+      "request-validation": "생성이 차단되었습니다. 요청 검증에 실패했습니다."
     },
     "layer": {
-      "mandatory-child-safety": "Tr: Mandatory child safety",
-      "optional-family-policy": "Tr: Optional family policy",
-      "provider-policy": "Tr: Provider policy",
-      "request-validation": "Tr: Request validation"
+      "mandatory-child-safety": "필수 아동 안전",
+      "optional-family-policy": "선택적 가족 정책",
+      "provider-policy": "제공자 정책",
+      "request-validation": "요청 검증"
     },
     "category": {
-      "minor-sexualization": "Tr: Minor sexualization",
-      "csam": "Tr: CSAM or child exploitation",
-      "grooming": "Tr: Grooming or exploitation",
-      "age-evasion": "Tr: Age evasion",
-      "adult-explicit-image": "Tr: Adult explicit image",
-      "graphic-gore": "Tr: Graphic gore",
-      "provider-restriction": "Tr: Provider restriction",
-      "validation-error": "Tr: Validation error",
-      "unknown": "Tr: Unknown safety category"
+      "minor-sexualization": "미성년자 성애화",
+      "csam": "CSAM 또는 아동 착취",
+      "grooming": "그루밍 또는 착취",
+      "age-evasion": "연령 회피",
+      "adult-explicit-image": "성인 노골적 이미지",
+      "graphic-gore": "노골적인 고어",
+      "provider-restriction": "제공자 제한",
+      "validation-error": "검증 오류",
+      "unknown": "알 수 없는 안전 범주"
     },
     "label": {
-      "blockingLayer": "safetyDecision.label.blockingLayer {{layer}}",
-      "category": "safetyDecision.label.category {{category}}",
-      "reasonCode": "safetyDecision.label.reasonCode {{reasonCode}}"
+      "blockingLayer": "차단 계층: {{layer}}",
+      "category": "범주: {{category}}",
+      "reasonCode": "사유 코드: {{reasonCode}}"
     }
   }
 }

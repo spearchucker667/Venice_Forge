@@ -87,6 +87,17 @@ describe('retrieveVideoQueueResult', () => {
       .rejects.toMatchObject({ retryable: false })
   })
 
+  it('retries COMPLETED JSON without download_url as Accept video/mp4', async () => {
+    respond(200, 'application/json', Buffer.from(JSON.stringify({ status: 'COMPLETED' })))
+    respond(200, 'video/mp4', Buffer.from('streamed'))
+    await expect(retrieveVideoQueueResult({ queueId: 'q1', model: 'vps-model', profileId: 'default' }))
+      .resolves.toEqual({ kind: 'completed', media: durable })
+    expect(mocks.persistStream).toHaveBeenCalled()
+    expect(mocks.download).not.toHaveBeenCalled()
+    expect(mocks.request.mock.calls[0][0].headers.Accept).toBe('application/json, video/mp4')
+    expect(mocks.request.mock.calls[1][0].headers.Accept).toBe('video/mp4')
+  })
+
   it('classifies invalid media persistence as terminal and a reset stream as retryable', async () => {
     respond(200, 'video/mp4', Buffer.from('invalid'))
     mocks.persistStream.mockRejectedValueOnce(new Error('MP4 signature was invalid'))

@@ -393,7 +393,9 @@
     "removePassword": {
       "title": "Ta bort profillösenord?",
       "detail": "\"{{name}}\" kommer inte längre att kräva upplåsning innan byte.",
-      "action": "Ta bort"
+      "action": "Ta bort",
+      "confirmTitle": "Ange aktuellt lösenord",
+      "confirmDetail": "Att ta bort låset kräver profilens aktuella lösenord."
     },
     "errors": {
       "removeFailed": "Det gick inte att ta bort profillösenord",
@@ -435,7 +437,8 @@
       "labelUnlock": "Upplåsningslösenord",
       "labelConfirm": "Bekräfta profillösenord",
       "savePassword": "Spara lösenord"
-    }
+    },
+    "passwordPlaceholder": "Lösenord"
   },
   "providers": {
     "errors": {
@@ -462,25 +465,25 @@
     },
     "status": {
       "keyConfigured": "API-nyckel konfigurerad",
-      "credentialConfigured": "Tr: Credential Configured"
+      "credentialConfigured": "Autentiseringsuppgift konfigurerad"
     },
     "actions": {
       "removeKey": "Ta bort nyckel"
     },
     "inputs": {
       "keyPlaceholder": "Ange API-nyckel",
-      "azureResourceName": "Tr: Azure Resource Name",
-      "azureDeploymentName": "Tr: Azure Deployment Name",
-      "azureApiVersion": "Tr: API Version",
-      "azureApiKey": "Tr: Azure API Key",
-      "awsRegion": "Tr: AWS Region",
-      "awsApiKey": "Tr: AWS Bedrock API Key",
-      "vertexExpressMode": "Tr: Express Mode (API key)",
-      "vertexFullMode": "Tr: Full Vertex (project/location + OAuth/service account)",
-      "vertexApiKey": "Tr: Vertex API Key",
-      "vertexProjectId": "Tr: Google Cloud Project ID",
-      "vertexLocation": "Tr: Vertex Location",
-      "vertexCredentialsJson": "Tr: Service-Account / OAuth Credentials JSON"
+      "azureResourceName": "Azure-resursnamn",
+      "azureDeploymentName": "Azure-distributionsnamn",
+      "azureApiVersion": "API-version",
+      "azureApiKey": "Azure-API-nyckel",
+      "awsRegion": "AWS-region",
+      "awsApiKey": "AWS Bedrock-API-nyckel",
+      "vertexExpressMode": "Express-läge (API-nyckel)",
+      "vertexFullMode": "Fullständig Vertex (projekt/plats + OAuth/tjänstkonto)",
+      "vertexApiKey": "Vertex-API-nyckel",
+      "vertexProjectId": "Google Cloud-projekt-ID",
+      "vertexLocation": "Vertex-plats",
+      "vertexCredentialsJson": "JSON för tjänstkonto-/OAuth-uppgifter"
     }
   },
   "errors": {

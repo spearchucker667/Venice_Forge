@@ -14,6 +14,7 @@ import type { ChatMessage, ContentPart } from "../../types/venice";
 import type { ChatAttachmentRef } from "../../types/chatAttachment";
 import type { ConversationCharacterMeta } from "../../types/conversationVault";
 import { cn } from "../../lib/utils";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import { CharacterAvatar } from "../characters/CharacterAvatar";
 import { useSettingsStore } from "../../stores/settings-store";
 import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
@@ -37,7 +38,7 @@ const ChatTtsPlayer = lazy(async () => {
 
 // Vite owns the emitted URL so it remains valid for both HTTP development and
 // packaged file:// execution.
-export const DEFAULT_AI_AVATAR_SRC = "/assets/branding/venice-seal-red-fill.svg";
+export const DEFAULT_AI_AVATAR_SRC = "assets/branding/venice-seal-red-fill.svg";
 import { ChatMarkdown } from "./ChatMarkdown";
 
 type InjectedContextSource = NonNullable<
@@ -608,6 +609,7 @@ function MessageBubbleImpl({
                   value={editText}
                   onChange={(event) => setEditText(event.target.value)}
                   onKeyDown={(event) => {
+                    if (isImeCompositionEvent(event)) return;
                     if (event.key === "Escape") setIsEditing(false);
                     if (
                       event.key === "Enter" &&
@@ -820,6 +822,7 @@ function MessageBubbleImpl({
               value={editText}
               onChange={(event) => setEditText(event.target.value)}
               onKeyDown={(event) => {
+                if (isImeCompositionEvent(event)) return;
                 if (event.key === "Escape") setIsEditing(false);
                 if (event.key === "Enter" && (event.metaKey || event.ctrlKey))
                   saveEdit();

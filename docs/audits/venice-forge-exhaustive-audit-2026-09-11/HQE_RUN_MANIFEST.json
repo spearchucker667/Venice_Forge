@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-09-11",
+  "repository": "spearchucker667/Venice_Forge",
+  "branch": "main",
+  "baselineSha": "c3ae21af2f723111d92b43c7888a60930226d213",
+  "originMainSha": "c3ae21af2f723111d92b43c7888a60930226d213",
+  "packageVersion": "3.0.0-beta.3",
+  "runtime": {
+    "os": "macOS 27.0 arm64",
+    "node": "22.23.2",
+    "npm": "10.9.8"
+  },
+  "workingTreeAtStart": {
+    "state": "modified",
+    "modifiedOrDeletedTrackedPaths": 122,
+    "visibleUntrackedPaths": 41
+  },
+  "findingCounts": {
+    "P0": 0,
+    "P1": 2,
+    "P2": 3,
+    "P3": 1
+  },
+  "releaseReadiness": "CONDITIONAL",
+  "remoteMutations": []
+}

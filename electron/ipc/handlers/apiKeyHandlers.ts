@@ -438,10 +438,10 @@ export function registerApiKeyHandlers(): void {
   registerPrivilegedIpcChannel("credential:get", (_event, key: string) => {
     try {
       if (isReservedCredentialName(key)) {
-        return { ok: true, value: null };
+        return { ok: true, configured: false };
       }
       const val = getCredential(key);
-      return { ok: true, value: val };
+      return { ok: true, configured: typeof val === "string" && val.length > 0 };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
@@ -560,13 +560,17 @@ export function registerApiKeyHandlers(): void {
       }
       const previousProfileId = getProfileSessionId(event.sender);
       if (previousProfileId !== validId) {
-        // Best-effort cleanup of attachment records tied to the previous
-        // profile on this renderer before binding the new profile.
+        // Best-effort cleanup of profile-scoped capabilities tied to the
+        // previous profile on this renderer before binding the new profile.
         try {
-          getAgentServices().attachmentRegistry.revokeRendererSession(
+          const services = getAgentServices();
+          services.attachmentRegistry.revokeRendererSession(
             RUNTIME_SESSION_ID,
             previousProfileId,
             event.sender.id,
+          );
+          services.workspaceGrants.revokeSessionFamily(
+            `${RUNTIME_SESSION_ID}:renderer_${event.sender.id}`,
           );
         } catch {
           // ignore
@@ -623,12 +627,26 @@ export function registerApiKeyHandlers(): void {
     }
   });
 
-  registerPrivilegedIpcChannel("profilePassword:clear", (event, profileId: unknown) => {
+  registerPrivilegedIpcChannel("profilePassword:clear", (event, payload: unknown) => {
     try {
       // The default profile cannot acquire a verifier; allowing explicit
       // default cleanup preserves recovery from historical orphan rows.
-      const requestedId = parseProfileId(profileId);
+      const record = payload && typeof payload === "object" ? payload as { profileId?: unknown; currentPassword?: unknown } : { profileId: payload };
+      const requestedId = parseProfileId(record.profileId);
       const validId = requestedId === "default" ? "default" : getProfileSessionId(event.sender);
+      if (validId !== "default") {
+        if (typeof record.currentPassword !== "string") {
+          return { ok: false, error: "Current password is required to clear profile password." };
+        }
+        const verified = verifyProfilePassword(record.currentPassword, validId);
+        const lockedOutSeconds = getProfilePasswordLockoutSeconds(validId);
+        if (!verified) {
+          if (lockedOutSeconds > 0) {
+            return { ok: false, error: `Too many attempts. Try again in ${lockedOutSeconds}s.`, lockedOutSeconds };
+          }
+          return { ok: false, error: "Incorrect profile password." };
+        }
+      }
       clearProfilePassword(validId);
       return { ok: true };
     } catch (err) {

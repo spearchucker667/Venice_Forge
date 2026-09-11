@@ -120,9 +120,10 @@ export function registerSyncHandlers(): void {
         }
         case "character_cards": {
           const storage = await import("../../services/characterCardStorage");
+          const profileId = getProfileSessionId(event.sender);
           const result = deleting
-            ? await storage.deleteCharacterCard(input.id)
-            : await storage.saveCharacterCard(record);
+            ? await storage.deleteCharacterCard(input.id, profileId)
+            : await storage.saveCharacterCard(record, profileId);
           if (!(result as { ok: boolean }).ok) {
             return { ok: false, error: `character_cards(${deleting ? "delete" : "save"}): ${(result as { ok: boolean; error?: string }).error ?? "rejected"}` };
           }
@@ -136,9 +137,10 @@ export function registerSyncHandlers(): void {
           const target = input.storeName === "personas" ? stores.personaStore
             : input.storeName === "lorebooks" ? stores.lorebookStore
               : input.storeName === "rp_assets" ? stores.rpAssetStore : stores.scenarioStore;
+          const profileId = getProfileSessionId(event.sender);
           const result = deleting
-            ? await target.remove(input.id)
-            : await target.save(record);
+            ? await target.remove(input.id, profileId)
+            : await target.save(record, profileId);
           // VERIFY-134: rpStore save/remove return { ok } shapes; surface
           // them through the IPC boundary the same way the storage layer does.
           if (!result.ok) {
@@ -148,9 +150,10 @@ export function registerSyncHandlers(): void {
         }
         case "rp_chats": {
           const storage = await import("../../services/rpChatStorage");
+          const profileId = getProfileSessionId(event.sender);
           const result = deleting
-            ? await storage.deleteRpChat(input.id)
-            : await storage.saveRpChat(record);
+            ? await storage.deleteRpChat(input.id, profileId)
+            : await storage.saveRpChat(record, profileId);
           if (!(result as { ok: boolean }).ok) {
             return { ok: false, error: `rp_chats(${deleting ? "delete" : "save"}): ${(result as { ok: boolean; error?: string }).error ?? "rejected"}` };
           }

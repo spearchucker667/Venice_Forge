@@ -132,9 +132,9 @@
     "enhancementProviderError": "L'amplificateur interne n'a pas pu atteindre ou terminer la requête Venice. Votre invite d'origine a été conservée.",
     "enhancementInvalidOutput": "L'amplificateur interne n'a pas renvoyé d'invite d'image utilisable. Votre invite d'origine a été conservée.",
     "enhancementSafetyBlocked": "L’amélioration du prompt a été arrêtée par les protections obligatoires de sécurité des enfants, qui sont distinctes des paramètres facultatifs du mode sécurisé. Votre prompt d’origine a été conservé.",
-    "enhancementSafetyBlockedMandatory": "Tr: Prompt enhancement was stopped by mandatory child-safety protections, which are separate from optional Safe Mode settings. Your original prompt was kept.",
-    "enhancementSafetyBlockedFamily": "Tr: Prompt enhancement was stopped by optional Family Safe Mode. Your original prompt was kept.",
-    "enhancementSafetyBlockedProvider": "Tr: Prompt enhancement was stopped by provider policy. Your original prompt was kept.",
+    "enhancementSafetyBlockedMandatory": "L’amélioration du prompt a été arrêtée par les protections obligatoires de sécurité des mineurs, distinctes des réglages facultatifs du mode sécurisé. Votre prompt d’origine a été conservé.",
+    "enhancementSafetyBlockedFamily": "L’amélioration du prompt a été arrêtée par le mode familial sécurisé facultatif. Votre prompt d’origine a été conservé.",
+    "enhancementSafetyBlockedProvider": "L’amélioration du prompt a été arrêtée par la politique du fournisseur. Votre prompt d’origine a été conservé.",
     "styleReferences": "Références de style",
     "styleReferenceHelp": "Ajoutez jusqu’à {{count}} images de référence PNG, JPEG ou WebP. Les références ne sont envoyées qu’aux modèles qui annoncent leur prise en charge à l’exécution.",
     "addStyleReferenceImages": "Ajouter des images de référence de style",
@@ -152,13 +152,13 @@
     "styleReferenceTooLarge": "Les images de référence de style doivent faire moins de 8 Mo."
   },
   "contextMenu": {
-    "saveAs": "Tr: Save As…",
-    "copyImage": "Tr: Copy image",
-    "openInInspector": "Tr: Open in Inspector",
-    "sendToImageTools": "Tr: Send to Image Tools",
-    "sendToCharacterCreator": "Tr: Send to Character Creator",
-    "saveToMediaStudio": "Tr: Save to Media Studio",
-    "revealInFinder": "Tr: Reveal in Finder",
-    "removeFromChat": "Tr: Remove from chat"
+    "saveAs": "Enregistrer sous…",
+    "copyImage": "Copier l’image",
+    "openInInspector": "Ouvrir dans l’inspecteur",
+    "sendToImageTools": "Envoyer vers les outils d’image",
+    "sendToCharacterCreator": "Envoyer vers le créateur de personnages",
+    "saveToMediaStudio": "Enregistrer dans Media Studio",
+    "revealInFinder": "Afficher dans le Finder",
+    "removeFromChat": "Retirer du chat"
   }
 }

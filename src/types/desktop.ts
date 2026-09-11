@@ -483,7 +483,7 @@ export interface VeniceForgeHuggingFace {
 
 export interface VeniceForgeCredentials {
   set(key: string, value: string): Promise<{ ok: boolean; error?: string }>;
-  get(key: string): Promise<{ ok: boolean; value: string | null; error?: string }>;
+  get(key: string): Promise<{ ok: boolean; configured?: boolean; error?: string }>;
   delete(key: string): Promise<{ ok: boolean; error?: string }>;
 }
 
@@ -504,7 +504,7 @@ export interface VeniceForgeProfilePassword {
   isSet(profileId: string): Promise<boolean>;
   set(profileId: string, password: string): Promise<{ ok: boolean; error?: string }>;
   verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; lockedOutSeconds?: number; error?: string }>;
-  clear(profileId: string): Promise<{ ok: boolean; error?: string }>;
+  clear(profileId: string, currentPassword?: string): Promise<{ ok: boolean; error?: string; lockedOutSeconds?: number }>;
 }
 
 export interface VeniceForgeProfilePurge {

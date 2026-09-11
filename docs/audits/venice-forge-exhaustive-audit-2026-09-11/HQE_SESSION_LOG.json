@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "events": [
+    {"phase": "bootstrap", "result": "pass", "note": "root, main branch, local/remote SHA, dirty state, package and toolchain verified"},
+    {"phase": "inventory", "result": "pass-with-limit", "note": "all tracked files accounted for; fresh literal manual line review of every substantive file not claimed"},
+    {"phase": "static-and-contract", "result": "pass-after-remediation", "note": "canonical npm run ci and static/feature/release contracts passed"},
+    {"phase": "runtime-web", "result": "pass-after-remediation", "note": "production start served hashed built entry with no source entry"},
+    {"phase": "runtime-electron", "result": "pass", "note": "packaged arm64 app passed 7 smoke assertions"},
+    {"phase": "hosted-ci", "result": "pending-publication", "note": "baseline hosted CI passed; remediated exact SHA requires post-push verification"},
+    {"phase": "cleanup", "result": "pass", "note": "staging removed; generated i18n status retained as intended publication content"}
+  ]
+}

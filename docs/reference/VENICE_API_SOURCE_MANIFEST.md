@@ -2,9 +2,9 @@
 
 > **Upstream Repository:** `https://github.com/veniceai/api-docs`  
 > **Upstream Branch:** `main`  
-> **Upstream Commit SHA:** `601b7bb19921f0e31bc805d51322085cd6fc4ac5`
-> **Retrieval Date:** `2026-08-23`
-> **Schema Version (`info.version`):** `20260821.193530`
+> **Upstream Commit SHA:** `2f0f7e41e5fc6178a0e7c887eb8c43e61edd6c57`
+> **Retrieval Date:** `2026-09-11`
+> **Schema Version (`info.version`):** `20260911.010226`
 > **Local Reference Path (Ignored):** `docs/reference/venice-api-upstream/`  
 > **Tracked Canonical Snapshot:** `docs/reference/Venice_swagger_api.yaml`  
 
@@ -12,7 +12,7 @@
 
 ## 1. Upstream Precedence and Source Authority
 
-1. **Tier 1 — Wire Contract:** `docs/reference/venice-api-upstream/swagger.yaml` (OpenAPI 3.0.0, version `20260814.194349`). Defines endpoint paths, methods, request/response schemas, parameter enums, and content types.
+1. **Tier 1 — Wire Contract:** `docs/reference/venice-api-upstream/swagger.yaml` (OpenAPI 3.0.0, version `20260911.010226`). Defines endpoint paths, methods, request/response schemas, parameter enums, and content types. Optional `upscale_factor` is already on Forge quote/queue builders when a caller supplies it. Enhancement-only fields (`enhancement_model`, interpolation/HDR knobs) stay unexposed until Video Studio has an enhancement-model surface gated by live `/models` constraints.
 2. **Tier 2 — Endpoint Documentation:** `docs/reference/venice-api-upstream/api-reference/**`. Defines endpoint-specific operational semantics.
 3. **Tier 3 — Media Guides:** `docs/reference/venice-api-upstream/guides/media/**`. Multi-step operational workflows (image generation, editing, upscaling, Seedance 2.0, Seedance face consent, video generation, TTS, STT, music, voice cloning).
 4. **Tier 4 — Runtime Model Metadata:** Live `/models`, `/models/traits`, and `/models/compatibility_mapping` APIs. Authoritative for active models, dynamic constraints, pricing, and capabilities.

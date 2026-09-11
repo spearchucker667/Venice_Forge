@@ -37,13 +37,13 @@
     "unlock": "ロック解除",
     "saving": "保存中...",
     "importAll": "すべてインポート",
-    "saveAs": "Tr: Save As…",
-    "lock": "Tr: Lock",
-    "favorite": "Tr: Favorite",
-    "unfavorite": "Tr: Unfavorite",
-    "regenerate": "Tr: Regenerate",
-    "download": "Tr: Download",
-    "open": "Tr: Open"
+    "saveAs": "名前を付けて保存…",
+    "lock": "ロック",
+    "favorite": "お気に入り",
+    "unfavorite": "お気に入り解除",
+    "regenerate": "再生成",
+    "download": "ダウンロード",
+    "open": "開く"
   },
   "status": {
     "active": "アクティブ",
@@ -2643,7 +2643,7 @@
             "thinking": "考え…",
             "removeFromChat": "チャットから削除する",
             "tokensUsedForThisMessage": "このメッセージに使用されるトークン",
-            "generatedMedia": "Tr: Generated media"
+            "generatedMedia": "生成されたメディア"
           }
         }
       },
@@ -3313,7 +3313,7 @@
             "summarizeTheFinding": "調査結果を要約する",
             "addSupportingDetailsAndCitations": "裏付けとなる詳細と引用を追加する",
             "removeFindingValue1": "検出結果{{value1}}を削除",
-            "deleteSessionValue1": "runtimeGenerated.components.research.researchworkspaceview.attribute.deleteSessionValue1 {{value1}}"
+            "deleteSessionValue1": "セッション {{value1}} を削除"
           },
           "text": {
             "processing": "処理...",
@@ -4123,7 +4123,7 @@
           "networkErrorTestingJinaApiKey": "ネットワークエラーテストJina APIキー"
         },
         "error": {
-          "notSupportedInWebMode": "Tr: Not supported in web mode"
+          "notSupportedInWebMode": "Web モードでは未対応"
         }
       },
       "imageinspectoranalysis": {
@@ -4429,11 +4429,11 @@
           "mistralAiModelsAndEndpoints": "Mistral AI モデルとエンドポイント。",
           "claudeAndOtherSafeFoundationModels": "クロードなどの安全な基礎モデル。",
           "searchGroundedAndFastLlmApis": "検索ベースの高速 LLM API。",
-          "cohereEnterpriseReadyMultilingualModels": "Tr: Enterprise-ready multilingual models.",
-          "huggingFaceOpenSourceInferenceProviders": "Tr: Open-source model inference via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Tr: Azure OpenAI deployment-based chat completions.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Tr: AWS Bedrock Mantle OpenAI-compatible inference.",
-          "googleVertexAiExpressModeApiKey": "Tr: Google Vertex AI Express Mode (API-key authentication)."
+          "cohereEnterpriseReadyMultilingualModels": "エンタープライズ向け多言語モデル。",
+          "huggingFaceOpenSourceInferenceProviders": "Hugging Face Inference Providers 経由のオープンソースモデル推論。",
+          "azureOpenAiDeploymentBasedChatCompletions": "Azure OpenAI デプロイベースのチャット補完。",
+          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle の OpenAI 互換推論。",
+          "googleVertexAiExpressModeApiKey": "Google Vertex AI Express モード（API キー認証）。"
         }
       }
     },
@@ -4592,51 +4592,51 @@
     "characterPersonaReferences": "キャラクター/ペルソナのリファレンス"
   },
   "mediaSave": {
-    "success": "Tr: Media saved successfully",
-    "failed": "Tr: Media save failed",
-    "noBytes": "Tr: No media bytes could be read",
-    "noItems": "Tr: No exportable media items found.",
-    "exportFailed": "Tr: Media export failed. No files were saved.",
-    "prepareFailed": "Tr: Media export failed. No files could be prepared.",
-    "exported": "mediaSave.exported {{count}}",
-    "partiallyExported": "mediaSave.partiallyExported {{saved}} {{total}}",
-    "failedWithDetail": "mediaSave.failedWithDetail {{detail}}"
+    "success": "メディアを保存しました",
+    "failed": "メディアの保存に失敗しました",
+    "noBytes": "メディアのバイトを読み取れませんでした",
+    "noItems": "書き出せるメディア項目が見つかりません。",
+    "exportFailed": "メディアの書き出しに失敗しました。ファイルは保存されていません。",
+    "prepareFailed": "メディアの書き出しに失敗しました。ファイルを準備できませんでした。",
+    "exported": "{{count}} 件のメディアファイルを書き出しました。",
+    "partiallyExported": "{{total}} 件中 {{saved}} 件のメディアファイルを書き出しました。一部の項目を解決できませんでした。",
+    "failedWithDetail": "メディアの書き出しに失敗しました。{{detail}}"
   },
   "layout": {
     "sidebar": {
-      "resize": "Tr: Resize sidebar",
-      "resetWidth": "Tr: Reset sidebar width",
-      "width": "Tr: Sidebar width"
+      "resize": "サイドバーのサイズ変更",
+      "resetWidth": "サイドバー幅をリセット",
+      "width": "サイドバーの幅"
     }
   },
   "safetyDecision": {
     "userMessage": {
-      "mandatory-child-safety": "Tr: Generation blocked: mandatory child-safety protection triggered.",
-      "optional-family-policy": "Tr: Generation blocked: optional Family Safe Mode triggered.",
-      "provider-policy": "Tr: Generation blocked: provider policy violation.",
-      "request-validation": "Tr: Generation blocked: request validation failed."
+      "mandatory-child-safety": "生成がブロックされました。必須の児童安全保護が作動しました。",
+      "optional-family-policy": "生成がブロックされました。任意のファミリーセーフモードが作動しました。",
+      "provider-policy": "生成がブロックされました。プロバイダーポリシー違反です。",
+      "request-validation": "生成がブロックされました。リクエストの検証に失敗しました。"
     },
     "layer": {
-      "mandatory-child-safety": "Tr: Mandatory child safety",
-      "optional-family-policy": "Tr: Optional family policy",
-      "provider-policy": "Tr: Provider policy",
-      "request-validation": "Tr: Request validation"
+      "mandatory-child-safety": "必須の児童安全",
+      "optional-family-policy": "任意のファミリーポリシー",
+      "provider-policy": "プロバイダーポリシー",
+      "request-validation": "リクエスト検証"
     },
     "category": {
-      "minor-sexualization": "Tr: Minor sexualization",
-      "csam": "Tr: CSAM or child exploitation",
-      "grooming": "Tr: Grooming or exploitation",
-      "age-evasion": "Tr: Age evasion",
-      "adult-explicit-image": "Tr: Adult explicit image",
-      "graphic-gore": "Tr: Graphic gore",
-      "provider-restriction": "Tr: Provider restriction",
-      "validation-error": "Tr: Validation error",
-      "unknown": "Tr: Unknown safety category"
+      "minor-sexualization": "未成年者の性的描写",
+      "csam": "CSAM または児童搾取",
+      "grooming": "グルーミングまたは搾取",
+      "age-evasion": "年齢の回避",
+      "adult-explicit-image": "成人向け露骨な画像",
+      "graphic-gore": "過激な流血描写",
+      "provider-restriction": "プロバイダー制限",
+      "validation-error": "検証エラー",
+      "unknown": "不明な安全カテゴリ"
     },
     "label": {
-      "blockingLayer": "safetyDecision.label.blockingLayer {{layer}}",
-      "category": "safetyDecision.label.category {{category}}",
-      "reasonCode": "safetyDecision.label.reasonCode {{reasonCode}}"
+      "blockingLayer": "ブロック層: {{layer}}",
+      "category": "カテゴリ: {{category}}",
+      "reasonCode": "理由コード: {{reasonCode}}"
     }
   }
 }

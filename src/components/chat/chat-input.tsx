@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "../../lib/utils";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import { toast } from "../../stores/toast-store";
 import { redactErrorMessage } from "../../shared/redaction";
 import { IngestedAttachment } from "../../types/ingestion";
@@ -377,6 +378,7 @@ export function ChatInput({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => {
+              if (isImeCompositionEvent(e)) return;
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSubmit();

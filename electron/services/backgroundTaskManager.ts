@@ -50,8 +50,8 @@ const TASKS_FILE = path.join(TASKS_DIR, "tasks.json");
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 200;
-const MAX_VIDEO_GENERATION_MS = 120000; // 2 minutes (120s)
-const MAX_NON_VIDEO_GENERATION_MS = 120000; // 2 minutes
+const MAX_VIDEO_GENERATION_MS = 180000; // 3 minutes — above documented video P80 (145s)
+const MAX_NON_VIDEO_GENERATION_MS = 180000;
 const DURABLE_RESULT_URL_RE = /^venice-media:\/\/[a-f0-9]{64}$/;
 
 /** Ephemeral in-memory store for sensitive signed URLs (never persisted to tasks.json).

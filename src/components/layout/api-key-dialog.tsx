@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useAuthStore } from "../../stores/auth-store";
 import { VeniceLogo } from "../ui/logo";
 import { toast } from "../../stores/toast-store";
 import { isElectron } from "../../services/desktopBridge";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import { Trans, useTranslation } from "react-i18next";
 
 type ConnectionMessage =
@@ -26,6 +28,8 @@ export function ApiKeyDialog({
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<ConnectionMessage | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, Boolean(open), onClose);
 
   useEffect(() => {
     if (!open) return;
@@ -131,6 +135,7 @@ export function ApiKeyDialog({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center"
       role="dialog"
       aria-modal="true"
@@ -179,6 +184,7 @@ export function ApiKeyDialog({
           autoFocus
           autoComplete="off"
           onKeyDown={(e) => {
+            if (isImeCompositionEvent(e)) return;
             if (e.key === "Enter") handleConnect();
           }}
         />

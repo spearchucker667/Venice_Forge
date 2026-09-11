@@ -132,9 +132,9 @@
     "enhancementProviderError": "내부 강화기가 Venice 요청에 도달하거나 완료할 수 없었습니다. 원래 프롬프트가 유지되었습니다.",
     "enhancementInvalidOutput": "내부 강화기가 사용 가능한 이미지 프롬프트를 하나도 반환하지 않았습니다. 원래 프롬프트가 유지되었습니다.",
     "enhancementSafetyBlocked": "프롬프트 강화가 선택적 안전 모드 설정과 별개인 필수 아동 안전 보호 조치에 의해 중단되었습니다. 원래 프롬프트는 유지되었습니다.",
-    "enhancementSafetyBlockedMandatory": "Tr: Prompt enhancement was stopped by mandatory child-safety protections, which are separate from optional Safe Mode settings. Your original prompt was kept.",
-    "enhancementSafetyBlockedFamily": "Tr: Prompt enhancement was stopped by optional Family Safe Mode. Your original prompt was kept.",
-    "enhancementSafetyBlockedProvider": "Tr: Prompt enhancement was stopped by provider policy. Your original prompt was kept.",
+    "enhancementSafetyBlockedMandatory": "프롬프트 향상이 선택적 안전 모드 설정과 별개인 필수 아동 안전 보호에 의해 중지되었습니다. 원래 프롬프트는 유지되었습니다.",
+    "enhancementSafetyBlockedFamily": "프롬프트 향상이 선택적 가족 안전 모드에 의해 중지되었습니다. 원래 프롬프트는 유지되었습니다.",
+    "enhancementSafetyBlockedProvider": "프롬프트 향상이 제공자 정책에 의해 중지되었습니다. 원래 프롬프트는 유지되었습니다.",
     "styleReferences": "스타일 참조",
     "styleReferenceHelp": "PNG, JPEG 또는 WebP 참조 이미지를 최대 {{count}}개 추가하세요. 참조는 런타임 지원을 명시한 모델에만 전송됩니다.",
     "addStyleReferenceImages": "스타일 참조 이미지 추가",
@@ -152,13 +152,13 @@
     "styleReferenceTooLarge": "스타일 참조 이미지는 8 MB보다 작아야 합니다."
   },
   "contextMenu": {
-    "saveAs": "Tr: Save As…",
-    "copyImage": "Tr: Copy image",
-    "openInInspector": "Tr: Open in Inspector",
-    "sendToImageTools": "Tr: Send to Image Tools",
-    "sendToCharacterCreator": "Tr: Send to Character Creator",
-    "saveToMediaStudio": "Tr: Save to Media Studio",
-    "revealInFinder": "Tr: Reveal in Finder",
-    "removeFromChat": "Tr: Remove from chat"
+    "saveAs": "다른 이름으로 저장…",
+    "copyImage": "이미지 복사",
+    "openInInspector": "인스펙터에서 열기",
+    "sendToImageTools": "이미지 도구로 보내기",
+    "sendToCharacterCreator": "캐릭터 생성기로 보내기",
+    "saveToMediaStudio": "Media Studio에 저장",
+    "revealInFinder": "Finder에서 보기",
+    "removeFromChat": "채팅에서 제거"
   }
 }

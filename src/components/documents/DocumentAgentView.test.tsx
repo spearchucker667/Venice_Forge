@@ -111,4 +111,12 @@ describe("DocumentAgentView managed document deletion", () => {
     expect(useDocumentAgentStore.getState().selectedDocumentId).toBeNull();
     expect(listDocuments).toHaveBeenCalledTimes(2);
   });
+
+  it("exposes the working-group selector with its visible accessible name", async () => {
+    render(<DocumentAgentView />);
+
+    expect(
+      await screen.findByRole("combobox", { name: "Working Group" }),
+    ).toHaveValue("project_1");
+  });
 });

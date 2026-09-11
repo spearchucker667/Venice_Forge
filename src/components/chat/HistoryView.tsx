@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { useChatFolderStore } from "../../stores/chat-folder-store";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import {
   Search,
   Trash2,
@@ -682,6 +683,7 @@ export default function HistoryView() {
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => setEditingFolderName(e.target.value)}
                           onKeyDown={async (e) => {
+                            if (isImeCompositionEvent(e)) return;
                             if (e.key === "Enter") {
                               await renameFolder(folder.id, editingFolderName);
                               setEditingFolderId(null);
@@ -1137,6 +1139,7 @@ export default function HistoryView() {
                     autoFocus
                     onChange={(e) => setNewFolderName(e.target.value)}
                     onKeyDown={async (e) => {
+                      if (isImeCompositionEvent(e)) return;
                       if (e.key === "Enter" && newFolderName.trim()) {
                         await createFolder(
                           newFolderName.trim(),

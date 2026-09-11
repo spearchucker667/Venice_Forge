@@ -37,13 +37,13 @@
     "unlock": "فتح القفل",
     "saving": "جارٍ الحفظ...",
     "importAll": "استيراد الكل",
-    "saveAs": "Tr: Save As…",
-    "lock": "Tr: Lock",
-    "favorite": "Tr: Favorite",
-    "unfavorite": "Tr: Unfavorite",
-    "regenerate": "Tr: Regenerate",
-    "download": "Tr: Download",
-    "open": "Tr: Open"
+    "saveAs": "حفظ باسم…",
+    "lock": "قفل",
+    "favorite": "المفضلة",
+    "unfavorite": "إزالة من المفضلة",
+    "regenerate": "إعادة التوليد",
+    "download": "تنزيل",
+    "open": "فتح"
   },
   "status": {
     "active": "نشط",
@@ -2643,7 +2643,7 @@
             "thinking": "التفكير…",
             "removeFromChat": "إزالة من الدردشة",
             "tokensUsedForThisMessage": "الرموز المستخدمة لهذه الرسالة",
-            "generatedMedia": "Tr: Generated media"
+            "generatedMedia": "وسائط مُنشأة"
           }
         }
       },
@@ -3313,7 +3313,7 @@
             "summarizeTheFinding": "لخص النتيجة",
             "addSupportingDetailsAndCitations": "أضف التفاصيل والاستشهادات الداعمة",
             "removeFindingValue1": "إزالة النتيجة {{value1}}",
-            "deleteSessionValue1": "runtimeGenerated.components.research.researchworkspaceview.attribute.deleteSessionValue1 {{value1}}"
+            "deleteSessionValue1": "حذف الجلسة {{value1}}"
           },
           "text": {
             "processing": "يعالج...",
@@ -4123,7 +4123,7 @@
           "networkErrorTestingJinaApiKey": "خطأ في اختبار الشبكة لمفتاح Jina API"
         },
         "error": {
-          "notSupportedInWebMode": "Tr: Not supported in web mode"
+          "notSupportedInWebMode": "غير مدعوم في وضع الويب"
         }
       },
       "imageinspectoranalysis": {
@@ -4429,11 +4429,11 @@
           "mistralAiModelsAndEndpoints": "نماذج ميسترال للذكاء الاصطناعي ونقاط النهاية.",
           "claudeAndOtherSafeFoundationModels": "كلود ونماذج الأساس الآمنة الأخرى.",
           "searchGroundedAndFastLlmApis": "واجهات برمجة تطبيقات LLM المرتكزة على البحث والسريعة.",
-          "cohereEnterpriseReadyMultilingualModels": "Tr: Enterprise-ready multilingual models.",
-          "huggingFaceOpenSourceInferenceProviders": "Tr: Open-source model inference via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Tr: Azure OpenAI deployment-based chat completions.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Tr: AWS Bedrock Mantle OpenAI-compatible inference.",
-          "googleVertexAiExpressModeApiKey": "Tr: Google Vertex AI Express Mode (API-key authentication)."
+          "cohereEnterpriseReadyMultilingualModels": "نماذج متعددة اللغات جاهزة للمؤسسات.",
+          "huggingFaceOpenSourceInferenceProviders": "استدلال النماذج مفتوحة المصدر عبر Hugging Face Inference Providers.",
+          "azureOpenAiDeploymentBasedChatCompletions": "إكمالات الدردشة المعتمدة على نشر Azure OpenAI.",
+          "awsBedrockMantleOpenAiCompatibleInference": "استدلال متوافق مع OpenAI من AWS Bedrock Mantle.",
+          "googleVertexAiExpressModeApiKey": "وضع Express في Google Vertex AI (مصادقة بمفتاح API)."
         }
       }
     },
@@ -4592,51 +4592,51 @@
     "characterPersonaReferences": "مراجع الشخصية/الشخصية"
   },
   "mediaSave": {
-    "success": "Tr: Media saved successfully",
-    "failed": "Tr: Media save failed",
-    "noBytes": "Tr: No media bytes could be read",
-    "noItems": "Tr: No exportable media items found.",
-    "exportFailed": "Tr: Media export failed. No files were saved.",
-    "prepareFailed": "Tr: Media export failed. No files could be prepared.",
-    "exported": "mediaSave.exported {{count}}",
-    "partiallyExported": "mediaSave.partiallyExported {{saved}} {{total}}",
-    "failedWithDetail": "mediaSave.failedWithDetail {{detail}}"
+    "success": "تم حفظ الوسائط بنجاح",
+    "failed": "فشل حفظ الوسائط",
+    "noBytes": "تعذر قراءة بايتات الوسائط",
+    "noItems": "لم يتم العثور على عناصر وسائط قابلة للتصدير.",
+    "exportFailed": "فشل تصدير الوسائط. لم يتم حفظ أي ملفات.",
+    "prepareFailed": "فشل تصدير الوسائط. تعذر تجهيز أي ملفات.",
+    "exported": "تم تصدير {{count}} من ملفات الوسائط.",
+    "partiallyExported": "تم تصدير {{saved}} من أصل {{total}} ملفات وسائط. تعذر حل بعض العناصر.",
+    "failedWithDetail": "فشل تصدير الوسائط. {{detail}}"
   },
   "layout": {
     "sidebar": {
-      "resize": "Tr: Resize sidebar",
-      "resetWidth": "Tr: Reset sidebar width",
-      "width": "Tr: Sidebar width"
+      "resize": "تغيير حجم الشريط الجانبي",
+      "resetWidth": "إعادة تعيين عرض الشريط الجانبي",
+      "width": "عرض الشريط الجانبي"
     }
   },
   "safetyDecision": {
     "userMessage": {
-      "mandatory-child-safety": "Tr: Generation blocked: mandatory child-safety protection triggered.",
-      "optional-family-policy": "Tr: Generation blocked: optional Family Safe Mode triggered.",
-      "provider-policy": "Tr: Generation blocked: provider policy violation.",
-      "request-validation": "Tr: Generation blocked: request validation failed."
+      "mandatory-child-safety": "تم حظر التوليد: تم تفعيل حماية سلامة الأطفال الإلزامية.",
+      "optional-family-policy": "تم حظر التوليد: تم تفعيل وضع الأسرة الآمن الاختياري.",
+      "provider-policy": "تم حظر التوليد: انتهاك لسياسة المزوّد.",
+      "request-validation": "تم حظر التوليد: فشلت عملية التحقق من الطلب."
     },
     "layer": {
-      "mandatory-child-safety": "Tr: Mandatory child safety",
-      "optional-family-policy": "Tr: Optional family policy",
-      "provider-policy": "Tr: Provider policy",
-      "request-validation": "Tr: Request validation"
+      "mandatory-child-safety": "سلامة الأطفال الإلزامية",
+      "optional-family-policy": "سياسة عائلية اختيارية",
+      "provider-policy": "سياسة المزوّد",
+      "request-validation": "التحقق من الطلب"
     },
     "category": {
-      "minor-sexualization": "Tr: Minor sexualization",
-      "csam": "Tr: CSAM or child exploitation",
-      "grooming": "Tr: Grooming or exploitation",
-      "age-evasion": "Tr: Age evasion",
-      "adult-explicit-image": "Tr: Adult explicit image",
-      "graphic-gore": "Tr: Graphic gore",
-      "provider-restriction": "Tr: Provider restriction",
-      "validation-error": "Tr: Validation error",
-      "unknown": "Tr: Unknown safety category"
+      "minor-sexualization": "إضفاء طابع جنسي على القاصرين",
+      "csam": "مواد استغلال الأطفال أو استغلال الأطفال",
+      "grooming": "الاستدراج أو الاستغلال",
+      "age-evasion": "التفاف على العمر",
+      "adult-explicit-image": "صورة صريحة للبالغين",
+      "graphic-gore": "عنف دموي صريح",
+      "provider-restriction": "قيود المزوّد",
+      "validation-error": "خطأ في التحقق",
+      "unknown": "فئة سلامة غير معروفة"
     },
     "label": {
-      "blockingLayer": "safetyDecision.label.blockingLayer {{layer}}",
-      "category": "safetyDecision.label.category {{category}}",
-      "reasonCode": "safetyDecision.label.reasonCode {{reasonCode}}"
+      "blockingLayer": "طبقة الحظر: {{layer}}",
+      "category": "الفئة: {{category}}",
+      "reasonCode": "رمز السبب: {{reasonCode}}"
     }
   }
 }

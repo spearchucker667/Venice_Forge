@@ -20,6 +20,7 @@ import {
   Download,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import { GhostButton, Label, TextArea, Badge } from "../ui/shared";
 import {
   mediaActionCapabilities,
@@ -1117,6 +1118,7 @@ export function MediaInspector({
             value={tagDraft}
             onChange={(e) => setTagDraft(e.target.value)}
             onKeyDown={(e) => {
+              if (isImeCompositionEvent(e)) return;
               if (e.key === "Enter") {
                 e.preventDefault();
                 void handleAddTags();

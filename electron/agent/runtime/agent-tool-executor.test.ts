@@ -167,15 +167,10 @@ describe("executeAgentTool — media.generateImage durable approval path", () =>
     expect(plan.wirePayload).not.toHaveProperty("height");
   });
 
-  it("ignores model supplied by the LLM in tool arguments", async () => {
-    await executeAgentTool(makeMediaCtx(), makeToolCall({ prompt: "x", model: "attacker-model" }));
-
-    const [call] = mockApprovals.prepare.mock.calls;
-    if (call === undefined) throw new Error("Expected approval prepare call");
-    const [args] = call;
-    const plan = args.privateExecutionPlan;
-    expect(plan.modelId).toBe("flux-dev");
-    expect(plan.wirePayload.model).toBe("flux-dev");
+  it("rejects model supplied by the LLM in tool arguments", async () => {
+    const result = await executeAgentTool(makeMediaCtx(), makeToolCall({ prompt: "x", model: "attacker-model" }));
+    expect(result.ok).toBe(false);
+    expect(mockApprovals.prepare).not.toHaveBeenCalled();
   });
 
   it("records a proposal audit event", async () => {

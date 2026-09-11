@@ -129,6 +129,17 @@ export class ApprovalCoordinator {
     });
   }
 
+  async restoreConsumed(pendingApprovalId: string): Promise<void> {
+    return this.mutate(async () => {
+      const file = await this.read();
+      const approval = file.approvals.find((entry) => entry.id === pendingApprovalId);
+      if (!approval || approval.sessionId !== this.runtimeSessionId) return;
+      if (!approval.consumedAt) return;
+      delete approval.consumedAt;
+      await this.write(file);
+    });
+  }
+
   async withResourceLocks<T>(resources: string[], operation: () => Promise<T>): Promise<T> {
     const unique = [...new Set(resources)].sort();
     if (unique.some((resource) => this.locks.has(resource))) throw new Error("CONFLICT");

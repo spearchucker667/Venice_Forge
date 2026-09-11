@@ -27,6 +27,7 @@ export function isUntranslatedCatalogValue(value: unknown, keyPath?: string): bo
   if (typeof value !== 'string') return false;
   const trimmed = value.trim();
   if (trimmed.startsWith('__MISSING__:')) return true;
+  if (/^\s*Tr:\s/.test(trimmed)) return true;
   // [RU], [DE], [FR], [JA], [ZH], [ES], [PT], [HI], [AR], [KO], [SV] patterns
   // produced by the long-retired `scripts/generate-locales.cjs` (lines 837-849).
   if (/^\s*\[[A-Za-z][A-Za-z-]{1,10}\]\s/.test(trimmed)) return true;
@@ -38,9 +39,17 @@ export function isUntranslatedCatalogValue(value: unknown, keyPath?: string): bo
   // least one dot in the matched path to avoid flagging legitimate single-word
   // translations that happen to equal the leaf key.
   if (keyPath) {
-    if (trimmed === keyPath && keyPath.includes('.')) return true;
     const relativeKeyPath = keyPath.replace(/^[^.]+\./, '');
-    if (trimmed === relativeKeyPath && relativeKeyPath.includes('.')) return true;
+    for (const candidate of [keyPath, relativeKeyPath]) {
+      if (!candidate.includes('.')) continue;
+      if (trimmed === candidate) return true;
+      if (
+        trimmed.startsWith(candidate) &&
+        /^\s+\{\{/.test(trimmed.slice(candidate.length))
+      ) {
+        return true;
+      }
+    }
   }
   return false;
 }

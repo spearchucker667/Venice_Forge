@@ -9,7 +9,7 @@ import { getApiKey } from "./secureStore";
 import { logError, setLastApiError } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { validateVeniceIpcRequest } from "../ipc/validation";
-import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS } from "../../src/shared/apiConfig";
+import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS, VENICE_API_STREAM_TIMEOUT_MS } from "../../src/shared/apiConfig";
 import { resolveProviderRoute, type ProviderRouteSelection } from "./providerAdapters";
 import { getProviderSettings } from "./providerSettingsStore";
 import {
@@ -501,13 +501,14 @@ async function performSingleVeniceRequest(
       headers["Content-Length"] = Buffer.isBuffer(bodyText) ? bodyText.length : Buffer.byteLength(bodyText);
     }
 
+    const isSseStream = Boolean(options.onDelta);
     const req = https.request(
       {
         hostname,
         path,
         method: request.method,
         headers,
-        timeout: VENICE_API_TIMEOUT_MS,
+        timeout: isSseStream ? VENICE_API_STREAM_TIMEOUT_MS : VENICE_API_TIMEOUT_MS,
       },
       (res) => {
         const chunks: Buffer[] = [];
@@ -520,6 +521,7 @@ async function performSingleVeniceRequest(
         // events/errors for identical byte streams.
         let sseDecoder: SseDecoder | undefined;
         let streamText = "";
+        let streamTerminalError: string | undefined;
 
         const onDelta = options.onDelta;
         const consumeSseEvents = (events: SseEvent[]) => {
@@ -541,6 +543,9 @@ async function performSingleVeniceRequest(
               logError("Malformed SSE frame from Venice upstream", {
                 raw: redacted,
               });
+              if (outcome.errorMessage && !streamTerminalError) {
+                streamTerminalError = outcome.errorMessage;
+              }
             }
           }
         };
@@ -581,8 +586,28 @@ async function performSingleVeniceRequest(
               logError("SseDecodeError from Venice upstream (tail)", {
                 raw: redactErrorMessage(message),
               });
+              resolve({
+                ok: false,
+                status: 0,
+                statusText: "Stream Error",
+                headers: responseHeaders,
+                body: { error: "Venice stream ended with a truncated data sequence." },
+                contentType,
+              });
+              return;
             }
             consumeSseEvents(events);
+          }
+          if (streamTerminalError) {
+            resolve({
+              ok: false,
+              status: 502,
+              statusText: "Bad Gateway",
+              headers: responseHeaders,
+              body: { error: streamTerminalError },
+              contentType,
+            });
+            return;
           }
           const buffer = Buffer.concat(chunks);
           let body =

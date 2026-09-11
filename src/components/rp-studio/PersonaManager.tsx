@@ -14,6 +14,7 @@ import {
 } from "../ui/shared";
 import { Spinner } from "../ui/spinner";
 import { formatRelativeTime, truncate } from "./_shared";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import type { UserPersonaV1 } from "../../types/rp";
 import { MAX_PERSONA_IMAGE_BYTES } from "../../services/rp/personaService";
 import {
@@ -496,6 +497,7 @@ export function PersonaEditor({
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
+                if (isImeCompositionEvent(e)) return;
                 if (e.key === "Enter" || e.key === ",") {
                   e.preventDefault();
                   addTag();

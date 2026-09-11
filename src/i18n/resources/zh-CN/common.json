@@ -37,13 +37,13 @@
     "unlock": "解锁",
     "saving": "保存中...",
     "importAll": "全部导入",
-    "saveAs": "Tr: Save As…",
-    "lock": "Tr: Lock",
-    "favorite": "Tr: Favorite",
-    "unfavorite": "Tr: Unfavorite",
-    "regenerate": "Tr: Regenerate",
-    "download": "Tr: Download",
-    "open": "Tr: Open"
+    "saveAs": "另存为…",
+    "lock": "锁定",
+    "favorite": "收藏",
+    "unfavorite": "取消收藏",
+    "regenerate": "重新生成",
+    "download": "下载",
+    "open": "打开"
   },
   "status": {
     "active": "已激活",
@@ -2643,7 +2643,7 @@
             "thinking": "思维…",
             "removeFromChat": "从聊天中删除",
             "tokensUsedForThisMessage": "用于此消息的令牌",
-            "generatedMedia": "Tr: Generated media"
+            "generatedMedia": "已生成的媒体"
           }
         }
       },
@@ -3313,7 +3313,7 @@
             "summarizeTheFinding": "总结发现",
             "addSupportingDetailsAndCitations": "添加支持细节和引文",
             "removeFindingValue1": "删除查找结果{{value1}}",
-            "deleteSessionValue1": "runtimeGenerated.components.research.researchworkspaceview.attribute.deleteSessionValue1 {{value1}}"
+            "deleteSessionValue1": "删除会话 {{value1}}"
           },
           "text": {
             "processing": "加工...",
@@ -4123,7 +4123,7 @@
           "networkErrorTestingJinaApiKey": "网络错误测试 Jina API 密钥"
         },
         "error": {
-          "notSupportedInWebMode": "Tr: Not supported in web mode"
+          "notSupportedInWebMode": "网页模式不支持"
         }
       },
       "imageinspectoranalysis": {
@@ -4429,11 +4429,11 @@
           "mistralAiModelsAndEndpoints": "Mistral AI 模型和端点。",
           "claudeAndOtherSafeFoundationModels": "克劳德和其他安全基础模型。",
           "searchGroundedAndFastLlmApis": "基于搜索的快速 LLM API。",
-          "cohereEnterpriseReadyMultilingualModels": "Tr: Enterprise-ready multilingual models.",
-          "huggingFaceOpenSourceInferenceProviders": "Tr: Open-source model inference via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Tr: Azure OpenAI deployment-based chat completions.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Tr: AWS Bedrock Mantle OpenAI-compatible inference.",
-          "googleVertexAiExpressModeApiKey": "Tr: Google Vertex AI Express Mode (API-key authentication)."
+          "cohereEnterpriseReadyMultilingualModels": "面向企业的多语言模型。",
+          "huggingFaceOpenSourceInferenceProviders": "通过 Hugging Face Inference Providers 进行开源模型推理。",
+          "azureOpenAiDeploymentBasedChatCompletions": "基于 Azure OpenAI 部署的聊天补全。",
+          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle 的 OpenAI 兼容推理。",
+          "googleVertexAiExpressModeApiKey": "Google Vertex AI Express 模式（API 密钥认证）。"
         }
       }
     },
@@ -4592,51 +4592,51 @@
     "characterPersonaReferences": "角色/角色参考"
   },
   "mediaSave": {
-    "success": "Tr: Media saved successfully",
-    "failed": "Tr: Media save failed",
-    "noBytes": "Tr: No media bytes could be read",
-    "noItems": "Tr: No exportable media items found.",
-    "exportFailed": "Tr: Media export failed. No files were saved.",
-    "prepareFailed": "Tr: Media export failed. No files could be prepared.",
-    "exported": "mediaSave.exported {{count}}",
-    "partiallyExported": "mediaSave.partiallyExported {{saved}} {{total}}",
-    "failedWithDetail": "mediaSave.failedWithDetail {{detail}}"
+    "success": "媒体已成功保存",
+    "failed": "媒体保存失败",
+    "noBytes": "无法读取媒体字节",
+    "noItems": "未找到可导出的媒体项目。",
+    "exportFailed": "媒体导出失败。未保存任何文件。",
+    "prepareFailed": "媒体导出失败。无法准备任何文件。",
+    "exported": "已导出 {{count}} 个媒体文件。",
+    "partiallyExported": "已导出 {{total}} 个媒体文件中的 {{saved}} 个。部分项目无法解析。",
+    "failedWithDetail": "媒体导出失败。{{detail}}"
   },
   "layout": {
     "sidebar": {
-      "resize": "Tr: Resize sidebar",
-      "resetWidth": "Tr: Reset sidebar width",
-      "width": "Tr: Sidebar width"
+      "resize": "调整侧边栏大小",
+      "resetWidth": "重置侧边栏宽度",
+      "width": "侧边栏宽度"
     }
   },
   "safetyDecision": {
     "userMessage": {
-      "mandatory-child-safety": "Tr: Generation blocked: mandatory child-safety protection triggered.",
-      "optional-family-policy": "Tr: Generation blocked: optional Family Safe Mode triggered.",
-      "provider-policy": "Tr: Generation blocked: provider policy violation.",
-      "request-validation": "Tr: Generation blocked: request validation failed."
+      "mandatory-child-safety": "生成已阻止：触发了强制儿童安全保护。",
+      "optional-family-policy": "生成已阻止：触发了可选的家庭安全模式。",
+      "provider-policy": "生成已阻止：违反提供商政策。",
+      "request-validation": "生成已阻止：请求验证失败。"
     },
     "layer": {
-      "mandatory-child-safety": "Tr: Mandatory child safety",
-      "optional-family-policy": "Tr: Optional family policy",
-      "provider-policy": "Tr: Provider policy",
-      "request-validation": "Tr: Request validation"
+      "mandatory-child-safety": "强制儿童安全",
+      "optional-family-policy": "可选家庭政策",
+      "provider-policy": "提供商政策",
+      "request-validation": "请求验证"
     },
     "category": {
-      "minor-sexualization": "Tr: Minor sexualization",
-      "csam": "Tr: CSAM or child exploitation",
-      "grooming": "Tr: Grooming or exploitation",
-      "age-evasion": "Tr: Age evasion",
-      "adult-explicit-image": "Tr: Adult explicit image",
-      "graphic-gore": "Tr: Graphic gore",
-      "provider-restriction": "Tr: Provider restriction",
-      "validation-error": "Tr: Validation error",
-      "unknown": "Tr: Unknown safety category"
+      "minor-sexualization": "未成年人色情化",
+      "csam": "儿童性虐待材料或儿童剥削",
+      "grooming": "诱骗或剥削",
+      "age-evasion": "规避年龄限制",
+      "adult-explicit-image": "成人露骨图像",
+      "graphic-gore": "血腥画面",
+      "provider-restriction": "提供商限制",
+      "validation-error": "验证错误",
+      "unknown": "未知安全类别"
     },
     "label": {
-      "blockingLayer": "safetyDecision.label.blockingLayer {{layer}}",
-      "category": "safetyDecision.label.category {{category}}",
-      "reasonCode": "safetyDecision.label.reasonCode {{reasonCode}}"
+      "blockingLayer": "拦截层：{{layer}}",
+      "category": "类别：{{category}}",
+      "reasonCode": "原因代码：{{reasonCode}}"
     }
   }
 }

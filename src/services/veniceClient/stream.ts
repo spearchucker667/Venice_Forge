@@ -1,6 +1,6 @@
 /** @fileoverview Streaming chat completion helper for the Venice API. */
 
-import { PROXY_BASE_PATH } from "../../shared/apiConfig";
+import { PROXY_BASE_PATH, VENICE_API_STREAM_TIMEOUT_MS } from "../../shared/apiConfig";
 import { redactSecrets } from "../../shared/redaction";
 import {
   SseDecodeError,
@@ -170,7 +170,7 @@ export async function veniceStreamChat(
     // initial fetch and the SSE read loop. The same AbortSignal is used for
     // fetch and is wired to cancel the reader if the deadline expires (or if
     // the caller aborts), so total stream lifetime cannot exceed ~300s.
-    const STREAM_TIMEOUT_MS = 300_000;
+    const STREAM_TIMEOUT_MS = VENICE_API_STREAM_TIMEOUT_MS;
     const timeoutError = new Error(
       "Stream timed out after 5 minutes. The server may be overloaded — please try again."
     );
@@ -205,7 +205,7 @@ export async function veniceStreamChat(
         });
       } catch (err: unknown) {
         if (deadlineExpired) throw timeoutError;
-        if (signal?.aborted) throw new Error("Aborted");
+        if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
         throw err;
       }
 
@@ -266,6 +266,11 @@ export async function veniceStreamChat(
           });
           if (outcome.done) return true;
           if (outcome.malformed) {
+            if (outcome.errorMessage) {
+              const error: VeniceApiError = new Error(outcome.errorMessage);
+              error.status = 502;
+              throw error;
+            }
             malformedFrameCount++;
             const detail = redactSecrets(
               outcome.errorMessage || outcome.rawData || "unknown frame",
@@ -278,20 +283,20 @@ export async function veniceStreamChat(
 
       while (true) {
         if (deadlineExpired) throw timeoutError;
-        if (signal?.aborted) throw new Error("Aborted");
+        if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
 
         let result: ReadableStreamReadResult<Uint8Array>;
         try {
           result = await reader.read();
         } catch (err: unknown) {
           if (deadlineExpired) throw timeoutError;
-          if (signal?.aborted) throw new Error("Aborted");
+          if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
           throw err;
         }
 
         if (result.done) {
           if (deadlineExpired) throw timeoutError;
-          if (signal?.aborted) throw new Error("Aborted");
+          if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
           break;
         }
 

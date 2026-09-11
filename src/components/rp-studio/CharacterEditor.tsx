@@ -13,6 +13,7 @@ import { usePromptLibraryStore } from "../../stores/prompt-library-store";
 import { useSceneComposerStore } from "../../stores/scene-composer-store";
 import { useScenarioStore } from "../../stores/scenario-store";
 import { useWorkflowTemplateStore } from "../../stores/workflow-template-store";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import { type WorkflowStep } from "../../types/workflow";
 import {
   CARD_FIELD_MAX,
@@ -1392,6 +1393,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => {
+                    if (isImeCompositionEvent(e)) return;
                     if (e.key === "Enter" || e.key === ",") {
                       e.preventDefault();
                       addTag();

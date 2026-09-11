@@ -187,6 +187,20 @@
 !/docs/audits/venice-forge-exhaustive-audit-2026-08-15/*.md
 !/docs/audits/venice-forge-exhaustive-audit-2026-08-15/*.json
 
+# Approved exhaustive audit — 2026-09-10
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-10/
+/docs/audits/venice-forge-exhaustive-audit-2026-09-10/*
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-10/*.md
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-10/*.json
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-10/*.csv
+
+# Approved exhaustive audit — 2026-09-11
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-11/
+/docs/audits/venice-forge-exhaustive-audit-2026-09-11/*
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-11/*.md
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-11/*.json
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-11/*.csv
+
 # Approved visual regression snapshots
 !/docs/audits/visual-snapshots/
 /docs/audits/visual-snapshots/*
@@ -281,4 +295,3 @@ __MACOSX/
 .AppleDouble/
 ._*/
 _REPO_EXTRACT_METADATA/
-/docs/audits

@@ -12,6 +12,14 @@ export async function persistCompletedTaskMedia(
     return null;
   if (task.type !== "video" && task.type !== "music" && task.type !== "image")
     return null;
+  // Do not persist expiring provider URLs, inlined media data URLs, or
+  // session-only blob URLs as gallery state.
+  if (
+    /^https?:\/\//i.test(task.resultUrl) ||
+    task.resultUrl.startsWith("data:") ||
+    task.resultUrl.startsWith("blob:")
+  )
+    return null;
   const id = `task-result-${task.id}`;
   if (inFlight.has(id)) return null;
   inFlight.add(id);

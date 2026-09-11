@@ -2,6 +2,7 @@
 import { getAgentServices } from "./agent-services";
 import { type ToolResult, safeToolError } from "../../../src/agent/contracts/tool-results";
 import { internalToolNameForProvider } from "../../../src/agent/registry/tool-name-map";
+import { createCanonicalToolDefinitions } from "../../../src/agent/registry/tool-registry";
 import type { DocumentBlock, DocumentEditOperation, DocumentFormat } from "../../../src/agent/contracts/documents";
 import { serializableDocumentToBlocks } from "../../../src/agent/documents/document-source";
 import type { AssistantToolCall } from "../../../src/types/venice";
@@ -19,6 +20,10 @@ import {
 import { resolveGenerateImageModel } from "./image-model-resolver";
 import { computePayloadHash } from "../../../src/shared/venice-media-contract/payload-hash";
 
+const TOOL_VALIDATORS = new Map(
+  createCanonicalToolDefinitions().map((tool) => [tool.internalName, tool.argsValidator] as const),
+);
+
 export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: AssistantToolCall): Promise<ToolResult> {
   const services = getAgentServices();
   const internalName = internalToolNameForProvider(toolCall.function.name);
@@ -33,6 +38,10 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
       ? JSON.parse(toolCall.function.arguments)
       : toolCall.function.arguments;
     args = (parsed ?? {}) as Record<string, unknown>;
+    const validator = TOOL_VALIDATORS.get(internalName);
+    if (validator) {
+      args = validator.parse(args) as Record<string, unknown>;
+    }
   } catch (_error) {
     return safeToolError(toolName, toolCall.id, "INVALID_ARGUMENTS", sanitizeErrorText(`Failed to parse tool arguments: ${_error instanceof Error ? _error.message : String(_error)}`));
   }
@@ -110,7 +119,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           privateExecutionPlan: plan,
         });
         await services.audit.record({ sessionId: ctx.rendererSessionId, toolName: "media.generateImage", outcome: "proposal" });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id } };
+        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, proposalHash: pending.proposalHash, proposalType: pending.proposalType } };
       }
 
       case "document.get": {
@@ -186,7 +195,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           privateExecutionPlan: plan,
         });
         await services.audit.record({ sessionId: ctx.rendererSessionId, toolName: "document.proposeEdits", outcome: "proposal", resourceIds: [documentId] });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, preview } };
+        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, proposalHash: pending.proposalHash, proposalType: pending.proposalType, preview } };
       }
 
       case "document.export": {
@@ -206,7 +215,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           privateExecutionPlan: plan,
         });
         await services.audit.record({ sessionId: ctx.rendererSessionId, toolName: "document.export", outcome: "proposal", resourceIds: [documentId] });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id } };
+        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, proposalHash: pending.proposalHash, proposalType: pending.proposalType } };
       }
 
       case "document.getRevision": {
@@ -234,7 +243,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           privateExecutionPlan: plan,
         });
         await services.audit.record({ sessionId: ctx.rendererSessionId, toolName: "document.restoreRevision", outcome: "proposal", resourceIds: [documentId] });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, preview: { blocks: source.revision.blocks, warnings: source.revision.warnings } } };
+        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, proposalHash: pending.proposalHash, proposalType: pending.proposalType, preview: { blocks: source.revision.blocks, warnings: source.revision.warnings } } };
       }
 
       case "document.promoteAttachment": {
@@ -253,11 +262,12 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
         }
         // Use the main-internal accessor that returns the body buffer; the
         // public resolve() intentionally never returns the body (P1-002).
-        const attachment = services.attachmentRegistry.resolveWithBody(
-          ctx.profileId,
-          attachmentId,
-          ctx.rendererSessionId,
-        );
+        const rendererRoot = ctx.rendererSessionId.replace(/:agent_[a-zA-Z0-9_.-]+$/, "");
+        const attachment =
+          services.attachmentRegistry.resolveWithBody(ctx.profileId, attachmentId, ctx.rendererSessionId)
+          ?? (rendererRoot !== ctx.rendererSessionId
+            ? services.attachmentRegistry.resolveWithBody(ctx.profileId, attachmentId, rendererRoot)
+            : null);
         if (!attachment) {
           return safeToolError(toolName, toolCall.id, "INVALID_ARGUMENTS", "Attachment not found or access denied.");
         }
@@ -266,7 +276,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           projectId,
           relativePath,
           displayName,
-          mimeType,
+          mimeType: attachment.mimeType,
           bodyB64: attachment.body.toString("base64"),
         });
         await services.audit.record({
@@ -345,7 +355,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           privateExecutionPlan: plan,
         });
         await services.audit.record({ sessionId: grant.sessionId, toolName: "workspace.createFile", outcome: "proposal", resourceIds: affectedPaths });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, affectedPaths } };
+        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, proposalHash: pending.proposalHash, proposalType: pending.proposalType, affectedPaths } };
       }
 
       case "workspace.createDirectory": {
@@ -368,7 +378,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           privateExecutionPlan: plan,
         });
         await services.audit.record({ sessionId: grant.sessionId, toolName: "workspace.createDirectory", outcome: "proposal", resourceIds: affectedPaths });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, affectedPaths } };
+        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, proposalHash: pending.proposalHash, proposalType: pending.proposalType, affectedPaths } };
       }
 
       case "workspace.proposeChangeset": {
@@ -390,7 +400,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           privateExecutionPlan: plan,
         });
         await services.audit.record({ sessionId: grant.sessionId, toolName: "workspace.proposeChangeset", outcome: "proposal", resourceIds: affectedPaths });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, affectedPaths } };
+        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, proposalHash: pending.proposalHash, proposalType: pending.proposalType, affectedPaths } };
       }
 
       case "workspace.move": {
@@ -411,7 +421,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           privateExecutionPlan: plan,
         });
         await services.audit.record({ sessionId: grant.sessionId, toolName: "workspace.move", outcome: "proposal", resourceIds: [sourcePath, destinationPath] });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, sourcePath, destinationPath } };
+        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, proposalHash: pending.proposalHash, proposalType: pending.proposalType, sourcePath, destinationPath } };
       }
 
       case "workspace.trash": {
@@ -432,7 +442,7 @@ export async function executeAgentTool(ctx: ToolExecutionContext, toolCall: Assi
           privateExecutionPlan: plan,
         });
         await services.audit.record({ sessionId: grant.sessionId, toolName: "workspace.trash", outcome: "proposal", resourceIds: [relativePath] });
-        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, relativePath } };
+        return { ok: true, toolName: internalName, requestId: toolCall.id, data: { pendingApprovalId: pending.id, proposalHash: pending.proposalHash, proposalType: pending.proposalType, relativePath } };
       }
 
       default:

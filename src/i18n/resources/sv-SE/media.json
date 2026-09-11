@@ -132,9 +132,9 @@
     "enhancementProviderError": "Den interna förstärkaren kunde inte nå eller slutföra Venice-begäran. Din ursprungliga uppmaning behölls.",
     "enhancementInvalidOutput": "Den interna förstärkaren returnerade inte en användbar bilduppmaning. Din ursprungliga uppmaning behölls.",
     "enhancementSafetyBlocked": "Promptförbättringen stoppades av obligatoriska barnsäkerhetsskydd, som är separata från de valfria inställningarna för säkert läge. Din ursprungliga prompt behölls.",
-    "enhancementSafetyBlockedMandatory": "Tr: Prompt enhancement was stopped by mandatory child-safety protections, which are separate from optional Safe Mode settings. Your original prompt was kept.",
-    "enhancementSafetyBlockedFamily": "Tr: Prompt enhancement was stopped by optional Family Safe Mode. Your original prompt was kept.",
-    "enhancementSafetyBlockedProvider": "Tr: Prompt enhancement was stopped by provider policy. Your original prompt was kept.",
+    "enhancementSafetyBlockedMandatory": "Promptförbättringen stoppades av obligatoriskt barnskydd, skilt från valfria inställningar för säkert läge. Din ursprungliga prompt behölls.",
+    "enhancementSafetyBlockedFamily": "Promptförbättringen stoppades av valfritt familjesäkert läge. Din ursprungliga prompt behölls.",
+    "enhancementSafetyBlockedProvider": "Promptförbättringen stoppades av leverantörens policy. Din ursprungliga prompt behölls.",
     "styleReferences": "Stilreferenser",
     "styleReferenceHelp": "Lägg till upp till {{count}} referensbilder i PNG-, JPEG- eller WebP-format. Referenser skickas endast till modeller som anger stöd vid körning.",
     "addStyleReferenceImages": "Lägg till stilreferensbilder",
@@ -152,13 +152,13 @@
     "styleReferenceTooLarge": "Stilreferensbilder måste vara mindre än 8 MB."
   },
   "contextMenu": {
-    "saveAs": "Tr: Save As…",
-    "copyImage": "Tr: Copy image",
-    "openInInspector": "Tr: Open in Inspector",
-    "sendToImageTools": "Tr: Send to Image Tools",
-    "sendToCharacterCreator": "Tr: Send to Character Creator",
-    "saveToMediaStudio": "Tr: Save to Media Studio",
-    "revealInFinder": "Tr: Reveal in Finder",
-    "removeFromChat": "Tr: Remove from chat"
+    "saveAs": "Spara som…",
+    "copyImage": "Kopiera bild",
+    "openInInspector": "Öppna i inspektören",
+    "sendToImageTools": "Skicka till bildverktyg",
+    "sendToCharacterCreator": "Skicka till karaktärsskaparen",
+    "saveToMediaStudio": "Spara till Media Studio",
+    "revealInFinder": "Visa i Finder",
+    "removeFromChat": "Ta bort från chatten"
   }
 }

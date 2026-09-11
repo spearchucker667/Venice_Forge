@@ -2383,9 +2383,9 @@ export const desktopCredentials = {
   },
   async get(
     key: string,
-  ): Promise<{ ok: boolean; value: string | null; error?: string }> {
+  ): Promise<{ ok: boolean; configured?: boolean; error?: string }> {
     if (!isElectron())
-      return { ok: false, value: null, error: "Not available in web" };
+      return { ok: false, error: "Not available in web" };
     return window.veniceForge!.credentials.get(key);
   },
   async delete(key: string): Promise<{ ok: boolean; error?: string }> {
@@ -2469,9 +2469,9 @@ export const desktopProfilePassword = {
       return { ok: false, verified: false, error: "Not available in web" };
     return window.veniceForge!.profilePassword.verify(profileId, password);
   },
-  async clear(profileId: string): Promise<{ ok: boolean; error?: string }> {
+  async clear(profileId: string, currentPassword?: string): Promise<{ ok: boolean; error?: string; lockedOutSeconds?: number }> {
     if (!isElectron()) return { ok: false, error: "Not available in web" };
-    return window.veniceForge!.profilePassword.clear(profileId);
+    return window.veniceForge!.profilePassword.clear(profileId, currentPassword);
   },
 };
 

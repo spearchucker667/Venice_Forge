@@ -6,6 +6,7 @@ import type { VeniceNodeData } from '../stores/workflow-store'
 import { DEFAULT_TTS_MODEL, DEFAULT_VIDEO_MODEL } from '../constants/venice'
 import { awaitWorkflowVideoTask } from '../services/workflow-background-task'
 import { validateWorkflow } from './workflow-validator'
+import { replaceCanonicalModels } from '../services/modelCatalogCache'
 
 vi.mock('./venice-client', () => ({
   venice: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock('../services/workflow-background-task', () => ({
 describe('workflow-engine', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    replaceCanonicalModels([])
     vi.mocked(awaitWorkflowVideoTask).mockResolvedValue('venice-media://workflow-video')
   })
 

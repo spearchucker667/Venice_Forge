@@ -5,6 +5,7 @@ import { STORE_NAMES } from "../constants/venice";
 import {
   isElectron,
   desktopChat,
+  desktopConversations,
   desktopCharacterCards,
   desktopPersonas,
   desktopLorebooks,
@@ -53,6 +54,8 @@ export async function fetchStoreRecords(storeName: SyncStoreName): Promise<unkno
   if (isElectron()) {
     switch (storeName) {
       case "conversations": {
+        const vaultResult = await desktopConversations.list();
+        if (vaultResult.ok) return vaultResult.records ?? [];
         const chatsResult = await desktopChat.list();
         return chatsResult.ok ? chatsResult.conversations : [];
       }

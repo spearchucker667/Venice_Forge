@@ -89,7 +89,7 @@ const veniceForge = {
     set(key: string, value: string): Promise<{ ok: boolean; error?: string }> {
       return ipcRenderer.invoke("credential:set", { key, value });
     },
-    get(key: string): Promise<{ ok: boolean; value: string | null; error?: string }> {
+    get(key: string): Promise<{ ok: boolean; configured?: boolean; error?: string }> {
       return ipcRenderer.invoke("credential:get", key);
     },
     delete(key: string): Promise<{ ok: boolean; error?: string }> {
@@ -134,8 +134,8 @@ const veniceForge = {
     verify(profileId: string, password: string): Promise<{ ok: boolean; verified: boolean; lockedOutSeconds?: number; error?: string }> {
       return ipcRenderer.invoke("profilePassword:verify", { profileId, password });
     },
-    clear(profileId: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("profilePassword:clear", profileId);
+    clear(profileId: string, currentPassword?: string): Promise<{ ok: boolean; error?: string; lockedOutSeconds?: number }> {
+      return ipcRenderer.invoke("profilePassword:clear", { profileId, currentPassword });
     },
   },
 
@@ -325,12 +325,6 @@ const veniceForge = {
     },
     loadYamlFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }> {
       return ipcRenderer.invoke("app:loadYamlFile");
-    },
-    /** Opens a dialog to select and read a text file (for attachment import).
-     *  @returns A promise resolving with the file contents and filename.
-     */
-    readLocalFile(): Promise<{ ok: boolean; canceled?: boolean; content?: string; filename?: string; error?: string }> {
-      return ipcRenderer.invoke("app:readLocalFile");
     },
     /** Media Studio: read a file from an allowlisted directory and return it as a data URL. */
     importMedia(input: { filePath: string }): Promise<{

@@ -15,6 +15,7 @@ import { applyPatch, type WorkflowPatch } from "../../lib/workflow-mutations";
 import { validatePatch } from "../../lib/workflow-validator";
 import { generateId } from "../../lib/utils";
 import { cn } from "../../lib/utils";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import { Trans, useTranslation } from "react-i18next";
 
 const STARTER_PROMPTS = [
@@ -384,6 +385,7 @@ export function PlaygroundChat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
+              if (isImeCompositionEvent(e)) return;
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 send(input);

@@ -64,6 +64,7 @@ describe("chat-stream-manager", () => {
   // supportsFunctionCalling; the document/workspace flags alone must never
   // push tools to an unsupported model, and missing metadata fails closed.
   it("sends document tools (but not media tools) for capable models under the default documents preset", async () => {
+    useDocumentAgentStore.getState().setPreset("limited_documents");
     const convId = useChatStore.getState().createConversation("capable-model");
     useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
     useChatStore.getState().setVeniceParams({
@@ -80,6 +81,7 @@ describe("chat-stream-manager", () => {
     await startStream(convId, "capable-model");
 
     const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+    expect((body.venice_parameters as { enable_document_tools?: boolean } | undefined)?.enable_document_tools).toBeUndefined();
     const tools = body.tools as Array<{ function?: { name?: string } }>;
     expect(Array.isArray(tools)).toBe(true);
     const names = tools.map((t) => t.function?.name ?? "");

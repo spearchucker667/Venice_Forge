@@ -18,7 +18,7 @@ import {
 const TOKEN = "r8_test_token";
 
 vi.mock("electron", () => ({
-  app: { getVersion: () => "3.0.0-beta.2" },
+  app: { getVersion: () => "3.0.0-beta.3" },
 }));
 
 function mockFetch(response: {
@@ -107,7 +107,7 @@ describe("replicateService", () => {
       expect((init as RequestInit).headers).toMatchObject({
         Authorization: "Bearer r8_test_token",
         "Content-Type": "application/json",
-        "User-Agent": "VeniceForge/3.0.0-beta.2",
+        "User-Agent": "VeniceForge/3.0.0-beta.3",
       });
       const sentBody = JSON.parse((init as RequestInit).body as string);
       expect(sentBody).toEqual({ input: { prompt: "a cat" } });

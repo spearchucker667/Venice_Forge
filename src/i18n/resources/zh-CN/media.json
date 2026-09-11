@@ -132,9 +132,9 @@
     "enhancementProviderError": "内部增强器无法到达或完成 Venice 请求。您的原始提示已保留。",
     "enhancementInvalidOutput": "内部增强器未返回可用的图像提示。您的原始提示已保留。",
     "enhancementSafetyBlocked": "提示词增强已被强制儿童安全保护措施阻止；这些保护与可选的安全模式设置相互独立。原始提示词已保留。",
-    "enhancementSafetyBlockedMandatory": "Tr: Prompt enhancement was stopped by mandatory child-safety protections, which are separate from optional Safe Mode settings. Your original prompt was kept.",
-    "enhancementSafetyBlockedFamily": "Tr: Prompt enhancement was stopped by optional Family Safe Mode. Your original prompt was kept.",
-    "enhancementSafetyBlockedProvider": "Tr: Prompt enhancement was stopped by provider policy. Your original prompt was kept.",
+    "enhancementSafetyBlockedMandatory": "提示词增强已被强制儿童安全保护停止，该保护独立于可选的安全模式设置。已保留你的原始提示词。",
+    "enhancementSafetyBlockedFamily": "提示词增强已被可选的家庭安全模式停止。已保留你的原始提示词。",
+    "enhancementSafetyBlockedProvider": "提示词增强已被提供商政策停止。已保留你的原始提示词。",
     "styleReferences": "风格参考",
     "styleReferenceHelp": "最多添加 {{count}} 张 PNG、JPEG 或 WebP 参考图。参考图只会发送给声明支持该功能的模型。",
     "addStyleReferenceImages": "添加风格参考图",
@@ -152,13 +152,13 @@
     "styleReferenceTooLarge": "风格参考图必须小于 8 MB。"
   },
   "contextMenu": {
-    "saveAs": "Tr: Save As…",
-    "copyImage": "Tr: Copy image",
-    "openInInspector": "Tr: Open in Inspector",
-    "sendToImageTools": "Tr: Send to Image Tools",
-    "sendToCharacterCreator": "Tr: Send to Character Creator",
-    "saveToMediaStudio": "Tr: Save to Media Studio",
-    "revealInFinder": "Tr: Reveal in Finder",
-    "removeFromChat": "Tr: Remove from chat"
+    "saveAs": "另存为…",
+    "copyImage": "复制图像",
+    "openInInspector": "在检查器中打开",
+    "sendToImageTools": "发送到图像工具",
+    "sendToCharacterCreator": "发送到角色创建器",
+    "saveToMediaStudio": "保存到 Media Studio",
+    "revealInFinder": "在 Finder 中显示",
+    "removeFromChat": "从聊天中移除"
   }
 }

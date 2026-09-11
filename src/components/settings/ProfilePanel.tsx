@@ -2,7 +2,7 @@ import React, { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useProfileStore } from '../../stores/profile-store'
 import { DEFAULT_PROFILE_ID } from '../../services/activeProfile'
-import { askDecision } from '../ui/modal-requests'
+import { askDecision, askSecret } from '../ui/modal-requests'
 import { desktopProfilePassword, isElectron } from '../../services/desktopBridge'
 import { AccessibleDialog } from '../ui/AccessibleDialog'
 
@@ -99,7 +99,15 @@ export function ProfilePanel() {
       danger: true,
     })
     if (!confirmed) return
-    const result = await desktopProfilePassword.clear(profileId)
+    const currentPassword = await askSecret({
+      title: t('settings:profiles.removePassword.confirmTitle', 'Enter current password'),
+      detail: t('settings:profiles.removePassword.confirmDetail', 'Removing the lock requires the current profile password.'),
+      placeholder: t('settings:profiles.passwordPlaceholder', 'Password'),
+      actionLabel: t('settings:profiles.removePassword.action', 'Remove'),
+      autocomplete: 'current-password',
+    })
+    if (!currentPassword) return
+    const result = await desktopProfilePassword.clear(profileId, currentPassword)
     if (result.ok) {
       updateProfile(profileId, { hasPassword: false })
     } else {

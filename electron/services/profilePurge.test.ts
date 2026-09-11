@@ -14,13 +14,18 @@ vi.mock("./secureStore", () => ({
   deleteApiKey: vi.fn(),
   deleteJinaApiKey: vi.fn(),
   deleteProviderApiKey: vi.fn(),
+  deleteProviderCredential: vi.fn(),
   clearProfilePassword: vi.fn(),
+}));
+vi.mock("./rpProfilePaths", () => ({
+  purgeRpProfileDirs: vi.fn(async () => undefined),
 }));
 
 import { purgeProfileConversationVault } from "./conversationVault";
 import { purgeProfileChatHistory } from "./chatStorage";
 import { purgeProfileTtsCache } from "./chatTtsBridge";
-import { clearProfilePassword, deleteApiKey, deleteJinaApiKey, deleteProviderApiKey } from "./secureStore";
+import { clearProfilePassword, deleteApiKey, deleteJinaApiKey, deleteProviderApiKey, deleteProviderCredential } from "./secureStore";
+import { purgeRpProfileDirs } from "./rpProfilePaths";
 import { purgeMainProfileData } from "./profilePurge";
 import { PROVIDER_REGISTRY } from "../../src/types/provider";
 
@@ -45,8 +50,12 @@ describe("purgeMainProfileData", () => {
     expect(clearProfilePassword).toHaveBeenCalledWith("work");
     for (const providerId of Object.keys(PROVIDER_REGISTRY)) {
       expect(deleteProviderApiKey).toHaveBeenCalledWith(providerId, "work");
+      expect(deleteProviderCredential).toHaveBeenCalledWith(providerId, "work");
     }
+    expect(purgeRpProfileDirs).toHaveBeenCalledWith("work");
     expect(result.steps.providerApiKeys.removed).toBe(Object.keys(PROVIDER_REGISTRY).length);
+    expect(result.steps.providerCredentials.removed).toBe(Object.keys(PROVIDER_REGISTRY).length);
+    expect(result.steps.rpLibraries.ok).toBe(true);
   });
 
   it("redacts partial failures and remains actionable", async () => {

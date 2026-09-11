@@ -10,7 +10,7 @@ import nodeHttps from "node:https";
 import { randomBytes } from "node:crypto";
 
 import dotenv from "dotenv";
-import { createProxyMiddleware, responseInterceptor } from "http-proxy-middleware";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import {
   ALLOWED_VENICE_ENDPOINTS,
   ALLOWED_VENICE_METHODS,
@@ -34,7 +34,6 @@ import { isPrivateHostname } from "./src/shared/urlSecurity";
 import { JINA_MAX_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_RESPONSE_BYTES } from "./src/shared/limits";
 
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "./src/shared/readBoundedFetchBody";
-import { applyVeniceApiSafeMode } from "./src/shared/veniceSafeMode";
 import { checkSystemPromptMessages } from "./src/shared/promptLimits";
 
 function safeDecodeForScreening(value: string): string {
@@ -116,10 +115,9 @@ function isLocalFamilySafeModeEnabled(req: express.Request): boolean {
  *  and CJS bundled output (where import.meta.url is not available). */
 function getModuleDir(): string {
   try {
-    const g = globalThis as Record<string, unknown>;
-    if (typeof g.__filename === "string") {
-      return path.dirname(g.__filename);
-    }
+    // esbuild's CommonJS output runs inside Node's module wrapper, where the
+    // lexical __dirname points at dist/. It is not exposed on globalThis.
+    if (typeof __dirname === "string") return __dirname;
   } catch { /* ignore */ }
   try {
     return path.dirname(fileURLToPath(new URL(import.meta.url)));
@@ -167,15 +165,18 @@ export function applyVeniceProxyHeaders(
   }
 }
 
-function forceProviderSafeModeInJsonBody(endpoint: string, body: Buffer | undefined): Buffer | undefined {
-  if (!body || body.length === 0) return body;
-  try {
-    const parsed: unknown = JSON.parse(body.toString("utf-8"));
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return body;
-    const next = applyVeniceApiSafeMode(endpoint, parsed as Record<string, unknown>, true);
-    return Buffer.from(JSON.stringify(next), "utf-8");
-  } catch {
-    return body;
+const FSM_MEDIA_TOO_LARGE_JSON = JSON.stringify({
+  error: "Upstream response too large to screen under Family Safe Mode.",
+});
+
+function copyProxyResponseHeaders(proxyRes: http.IncomingMessage, res: express.Response): void {
+  if (proxyRes.statusCode) res.statusCode = proxyRes.statusCode;
+  if (proxyRes.statusMessage) res.statusMessage = proxyRes.statusMessage;
+  for (const [key, value] of Object.entries(proxyRes.headers)) {
+    if (value === undefined) continue;
+    const lower = key.toLowerCase();
+    if (lower === "content-encoding" || lower === "transfer-encoding" || lower === "trailer") continue;
+    res.setHeader(key, value);
   }
 }
 
@@ -470,6 +471,236 @@ export function createServerApp() {
   const CIRCUIT_MAX_FAILURES = 5;
   const CIRCUIT_RESET_TIMEOUT_MS = 30000;
 
+  const applyCircuitFromStatus = (statusCode?: number): void => {
+    if (statusCode && statusCode >= 500) {
+      circuitFailures++;
+      if (circuitFailures >= CIRCUIT_MAX_FAILURES || circuitHalfOpen) {
+        error(`[Circuit Breaker] Tripped! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
+        circuitOpenUntil = Date.now() + CIRCUIT_RESET_TIMEOUT_MS;
+        circuitHalfOpen = false;
+      }
+    } else if (statusCode && statusCode >= 200 && statusCode < 300) {
+      circuitFailures = 0;
+      circuitHalfOpen = false;
+    } else if (statusCode) {
+      circuitHalfOpen = false;
+    }
+  };
+
+  const applyRetryAfterHeaders = (proxyRes: http.IncomingMessage, proxyResRes: express.Response): void => {
+    const retryAfter = proxyRes.headers["retry-after"];
+    if (retryAfter) proxyResRes.setHeader("Retry-After", retryAfter);
+    const rlReset = proxyRes.headers["x-ratelimit-reset-requests"];
+    if (rlReset) proxyResRes.setHeader("X-RateLimit-Reset-Requests", rlReset);
+  };
+
+  const writeGenericProxyError = (err: Error, _errReq: express.Request, errRes: express.Response | import("net").Socket): void => {
+    error("Proxy error:", err.message);
+    circuitFailures++;
+    if (circuitFailures >= CIRCUIT_MAX_FAILURES || circuitHalfOpen) {
+      error(`[Circuit Breaker] Tripped (Network Error)! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
+      circuitOpenUntil = Date.now() + CIRCUIT_RESET_TIMEOUT_MS;
+      circuitHalfOpen = false;
+    }
+    if ("headersSent" in errRes && !(errRes as express.Response).headersSent) {
+      (errRes as express.Response).writeHead(502, { "Content-Type": "application/json" });
+      (errRes as express.Response).end(JSON.stringify({ error: "Proxy error" }));
+    }
+  };
+
+  const applyVeniceProxyReq = (proxyReq: VeniceProxyOutboundRequest, proxyReqReq: express.Request): void => {
+    applyVeniceProxyHeaders(
+      proxyReq,
+      proxyReqReq as VeniceProxyRequest,
+      getDevSessionKey(devSessionVeniceApiKey) || AppConfig.VENICE_API_KEY,
+    );
+  };
+
+  const standardProxyRes = (
+    proxyRes: http.IncomingMessage,
+    _req: express.Request,
+    res: express.Response,
+  ): void => {
+    applyRetryAfterHeaders(proxyRes, res);
+    applyCircuitFromStatus(proxyRes.statusCode);
+  };
+
+  const screenAndWriteFsmMedia = async (
+    buffer: Buffer,
+    proxyRes: http.IncomingMessage,
+    res: express.Response,
+  ): Promise<void> => {
+    const out: Buffer = buffer;
+    if (buffer.length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
+      res.statusCode = 413;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ error: "Response too large to screen under Family Safe Mode." }));
+      return;
+    }
+    if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+      const contentType = String(proxyRes.headers["content-type"] || "");
+      if (contentType.includes("application/json")) {
+        const bodyStr = buffer.toString("utf8");
+        try {
+          const parsed = JSON.parse(bodyStr) as Record<string, unknown>;
+          const keys = ["dataBase64", "image", "images", "dataUrl", "audio", "video"];
+          for (const key of keys) {
+            const val = parsed[key];
+            if (val === undefined || val === null) continue;
+            const items = Array.isArray(val) ? val : [val];
+            for (const item of items) {
+              let base64String = "";
+              if (typeof item === "string" && item.length > 0) base64String = item;
+              else if (typeof item === "object" && item !== null && typeof (item as { b64_json?: string }).b64_json === "string") {
+                base64String = (item as { b64_json: string }).b64_json;
+              } else if (typeof item === "object" && item !== null && typeof (item as { url?: string }).url === "string") {
+                base64String = (item as { url: string }).url;
+              }
+              if (base64String) {
+                const mediaScreen = await identifyAndValidateGeneratedMedia(base64String, "application/octet-stream", true);
+                if (!mediaScreen.allowed) {
+                  res.statusCode = 451;
+                  res.setHeader("Content-Type", "application/json");
+                  res.end(JSON.stringify({
+                    error: mediaScreen.userMessage || "Media blocked by safety filter",
+                    reasonCode: mediaScreen.reasonCode,
+                    category: mediaScreen.category,
+                    severity: "HIGH",
+                  }));
+                  return;
+                }
+              }
+            }
+          }
+        } catch {
+          res.statusCode = 451;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({
+            error: "Media response could not be screened. Blocked under Family Safe Mode.",
+            reasonCode: "CLASSIFIER_UNAVAILABLE",
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            severity: "HIGH",
+          }));
+          return;
+        }
+      } else if (contentType.startsWith("video/") || contentType.startsWith("audio/") || contentType.startsWith("image/")) {
+        const mediaScreen = await identifyAndValidateGeneratedMedia(buffer, contentType, true);
+        if (!mediaScreen.allowed) {
+          res.statusCode = 451;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({
+            error: mediaScreen.userMessage || "Media blocked by safety filter",
+            reasonCode: mediaScreen.reasonCode,
+            category: mediaScreen.category,
+            severity: "HIGH",
+          }));
+          return;
+        }
+      }
+    }
+    copyProxyResponseHeaders(proxyRes, res);
+    res.setHeader("content-length", Buffer.byteLength(out));
+    res.end(out);
+  };
+
+  const fsmMediaProxyRes = (
+    proxyRes: http.IncomingMessage,
+    _req: express.Request,
+    res: express.Response,
+  ): void => {
+    applyRetryAfterHeaders(proxyRes, res);
+
+    if (typeof proxyRes.on !== "function") {
+      applyCircuitFromStatus(proxyRes.statusCode);
+      return;
+    }
+
+    const contentLength = proxyRes.headers["content-length"];
+    if (contentLength) {
+      const declared = Number(contentLength);
+      if (Number.isFinite(declared) && declared > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
+        proxyRes.destroy();
+        applyCircuitFromStatus(proxyRes.statusCode);
+        if (!res.headersSent) {
+          res.statusCode = 413;
+          res.setHeader("Content-Type", "application/json");
+          res.end(FSM_MEDIA_TOO_LARGE_JSON);
+        }
+        return;
+      }
+    }
+
+    const chunks: Buffer[] = [];
+    let length = 0;
+    let exceeded = false;
+
+    proxyRes.on("data", (chunk: Buffer | string) => {
+      if (exceeded) return;
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      length += buf.length;
+      if (length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
+        exceeded = true;
+        chunks.length = 0;
+        proxyRes.destroy();
+        if (!res.headersSent) {
+          res.statusCode = 413;
+          res.setHeader("Content-Type", "application/json");
+          res.end(FSM_MEDIA_TOO_LARGE_JSON);
+        }
+        return;
+      }
+      chunks.push(buf);
+    });
+
+    proxyRes.on("end", () => {
+      if (exceeded || res.headersSent) {
+        applyCircuitFromStatus(proxyRes.statusCode);
+        return;
+      }
+      applyCircuitFromStatus(proxyRes.statusCode);
+      void screenAndWriteFsmMedia(Buffer.concat(chunks, length), proxyRes, res);
+    });
+
+    proxyRes.on("error", () => {
+      if (exceeded) return;
+      if (!res.headersSent) {
+        res.statusCode = 502;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: "Proxy error" }));
+      }
+    });
+  };
+
+  const veniceProxyBase = {
+    target: `https://${VENICE_API_HOST}${VENICE_API_BASE_PATH}`,
+    changeOrigin: true,
+    timeout: AppConfig.VENICE_API_STREAM_TIMEOUT_MS,
+    proxyTimeout: AppConfig.VENICE_API_STREAM_TIMEOUT_MS,
+    pathRewrite: {
+      "^/api/venice": "",
+    },
+  };
+
+  const standardVeniceProxy = createProxyMiddleware({
+    ...veniceProxyBase,
+    on: {
+      proxyReq: applyVeniceProxyReq,
+      proxyRes: standardProxyRes,
+      error: writeGenericProxyError,
+    },
+  });
+
+  const fsmMediaVeniceProxy = createProxyMiddleware({
+    ...veniceProxyBase,
+    headers: { "Accept-Encoding": "identity" },
+    selfHandleResponse: true,
+    on: {
+      proxyReq: applyVeniceProxyReq,
+      proxyRes: fsmMediaProxyRes,
+      error: writeGenericProxyError,
+    },
+  });
+
   app.use("/api/venice", (req, res, next) => {
     const now = Date.now();
     if (circuitOpenUntil > 0) {
@@ -628,244 +859,15 @@ export function createServerApp() {
         });
         return;
       }
-      if (familySafeModeEnabled && Buffer.isBuffer(req.body)) {
-        req.body = forceProviderSafeModeInJsonBody(endpoint, req.body);
-      }
       next();
     },
     (req, res, next) => {
       const isMedia = req.path.startsWith("/image/") || req.path.startsWith("/video/") || req.path.startsWith("/audio/");
       const isLocalFamilySafe = isLocalFamilySafeModeEnabled(req);
-      
-      // VF-WEB-001: For FSM media routes, force `Accept-Encoding: identity` so
-      // Venice returns raw (uncompressed) binary. This is applied via the proxy
-      // `headers` option, which http-proxy-middleware/httpxy sets on the outbound
-      // ClientRequest at creation time — before headers are flushed. The previous
-      // implementation called `proxyReq.removeHeader("Accept-Encoding")` inside the
-      // `proxyReq` event, but httpxy flushes headers before that event fires, so the
-      // removal threw `ERR_HTTP_HEADERS_SENT` and crashed the entire server on the
-      // first FSM media request.
-      const fsmMediaHeaders: Record<string, string> =
-        isMedia && isLocalFamilySafe ? { "Accept-Encoding": "identity" } : {};
-
-      const proxyConfig = {
-        target: `https://${VENICE_API_HOST}${VENICE_API_BASE_PATH}`,
-        changeOrigin: true,
-        timeout: AppConfig.VENICE_API_TIMEOUT_MS,
-        proxyTimeout: AppConfig.VENICE_API_TIMEOUT_MS,
-        pathRewrite: {
-          "^/api/venice": "", // remove base path
-        },
-        headers: fsmMediaHeaders,
-        on: {
-          proxyReq: (proxyReq: VeniceProxyOutboundRequest, proxyReqReq: express.Request, _proxyReqRes: express.Response) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            applyVeniceProxyHeaders(proxyReq as any, proxyReqReq as any, getDevSessionKey(devSessionVeniceApiKey) || AppConfig.VENICE_API_KEY);
-          },
-          proxyRes: (proxyRes: http.IncomingMessage, proxyResReq: express.Request, proxyResRes: express.Response) => {
-            const retryAfter = proxyRes.headers["retry-after"];
-            if (retryAfter) proxyResRes.setHeader("Retry-After", retryAfter);
-            const rlReset = proxyRes.headers["x-ratelimit-reset-requests"];
-            if (rlReset) proxyResRes.setHeader("X-RateLimit-Reset-Requests", rlReset);
-
-            // VF-WEB-001: Two-layer response size guard under Family Safe Mode.
-            //
-            // Layer 1 — Content-Length pre-check (declared size):
-            //   Fires immediately on response headers.  Destroys the upstream
-            //   connection before a single byte of the body is buffered.
-            //   Only applies when the server declares Content-Length.
-            //
-            // Layer 2 — Streaming byte counter (see below in the responseInterceptor
-            //   branch):  Attached via a Transform that counts bytes as they arrive
-            //   from the upstream socket.  Enforces the cap for chunked transfer
-            //   encoding (no Content-Length) and supersedes the post-buffer check
-            //   that previously ran only after the full body was in memory.
-            if (isMedia && isLocalFamilySafe) {
-              const contentLength = proxyRes.headers['content-length'];
-              if (contentLength) {
-                const declared = Number(contentLength);
-                if (Number.isFinite(declared) && declared > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
-                  proxyRes.destroy();
-                  proxyResRes.status(413).json({ error: 'Upstream response too large to screen under Family Safe Mode.' });
-                  return;
-                }
-              }
-            }
-
-            if (proxyRes.statusCode && proxyRes.statusCode >= 500) {
-              circuitFailures++;
-              if (circuitFailures >= CIRCUIT_MAX_FAILURES || circuitHalfOpen) {
-                error(`[Circuit Breaker] Tripped! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
-                circuitOpenUntil = Date.now() + CIRCUIT_RESET_TIMEOUT_MS;
-                circuitHalfOpen = false;
-              }
-            } else if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
-               circuitFailures = 0; // Reset only on successful responses
-               circuitHalfOpen = false;
-            } else if (proxyRes.statusCode) {
-               // 1xx, 3xx, 4xx — the upstream is reachable and responded.
-               // A completed HTTP response proves network connectivity, so
-               // transition half-open → closed.  (Previously 4xx left the
-               // circuit stuck half-open indefinitely.)
-               circuitHalfOpen = false;
-            }
-          },
-          error: (err: Error, errReq: express.Request, errRes: express.Response | import("net").Socket) => {
-            error("Proxy error:", err.message);
-            circuitFailures++;
-            if (circuitFailures >= CIRCUIT_MAX_FAILURES || circuitHalfOpen) {
-               error(`[Circuit Breaker] Tripped (Network Error)! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
-               circuitOpenUntil = Date.now() + CIRCUIT_RESET_TIMEOUT_MS;
-               circuitHalfOpen = false;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ("headersSent" in errRes && !(errRes as any).headersSent) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (errRes as any).writeHead(502, { "Content-Type": "application/json" });
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (errRes as any).end(JSON.stringify({ error: "Proxy error", details: err.message }));
-            }
-          }
-        }
-      };
-
       if (isMedia && isLocalFamilySafe) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (proxyConfig as any).selfHandleResponse = true;
-        const originalProxyRes = proxyConfig.on.proxyRes;
-
-        // VF-WEB-001 — Layer 2: Streaming byte counter wrapping responseInterceptor.
-        //
-        // responseInterceptor buffers the entire upstream response before calling our
-        // callback.  For chunked transfer encoding responses (Venice video/audio), no
-        // Content-Length is present, so Layer 1 cannot fire.  We install a 'data'
-        // listener on the raw proxyRes stream that counts bytes incrementally.  If
-        // bytesReceived exceeds the cap, the upstream socket is destroyed and an HTTP 413
-        // is sent before responseInterceptor ever buffers the body.
-        // Accept-Encoding is stripped on outbound FSM requests (see proxyReq above) so
-        // Venice returns uncompressed binary — decompression is not required here.
-        // When responseInterceptor does run, its own buffer-size check is kept as a
-        // defence-in-depth backstop using the named constant.
-
-        proxyConfig.on.proxyRes = responseInterceptor(async (responseBuffer, proxyRes, proxyReq, proxyResObj) => {
-          originalProxyRes(proxyRes, proxyReq, proxyResObj);
-
-          // Defence-in-depth post-buffer cap (Layer 2 streaming Transform should have
-          // already fired for chunked responses that exceed the limit).
-          if (responseBuffer.length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
-            proxyResObj.statusCode = 413;
-            proxyResObj.setHeader("Content-Type", "application/json");
-            return JSON.stringify({ error: "Response too large to screen under Family Safe Mode." });
-          }
-
-          if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
-            const contentType = String(proxyRes.headers['content-type'] || '');
-            if (contentType.includes('application/json')) {
-               const bodyStr = responseBuffer.toString('utf8');
-               try {
-                 const parsed = JSON.parse(bodyStr);
-                 // Check generated media fields
-                 const keys = ["dataBase64", "image", "images", "dataUrl", "audio", "video"];
-                 for (const key of keys) {
-                   const val = parsed[key];
-                   if (val === undefined || val === null) continue;
-                   const items = Array.isArray(val) ? val : [val];
-                   for (const item of items) {
-                     let base64String = "";
-                     if (typeof item === "string" && item.length > 0) base64String = item;
-                     else if (typeof item === "object" && item !== null && typeof item.b64_json === "string") {
-                       base64String = item.b64_json;
-                     } else if (typeof item === "object" && item !== null && typeof item.url === "string" && item.url.length > 0) {
-                       // Remote URL-bearing items cannot be downloaded and screened inline.
-                       // Fail closed: pass the URL string to the screener which returns CLASSIFIER_UNAVAILABLE for https:// URLs.
-                       base64String = item.url;
-                     }
-                     if (base64String) {
-                       const mediaScreen = await identifyAndValidateGeneratedMedia(base64String, "application/octet-stream", true);
-                       if (!mediaScreen.allowed) {
-                         proxyResObj.statusCode = 451;
-                         proxyResObj.setHeader("Content-Type", "application/json");
-                         return JSON.stringify({
-                           error: mediaScreen.userMessage || "Media blocked by safety filter",
-                           reasonCode: mediaScreen.reasonCode,
-                           category: mediaScreen.category,
-                           severity: "HIGH"
-                         });
-                       }
-                     }
-                   }
-                 }
-               } catch {
-                  // Malformed JSON under Family Safe Mode: fail closed.
-                  proxyResObj.statusCode = 451;
-                  proxyResObj.setHeader("Content-Type", "application/json");
-                  return JSON.stringify({
-                    error: "Media response could not be screened. Blocked under Family Safe Mode.",
-                    reasonCode: "CLASSIFIER_UNAVAILABLE",
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    severity: "HIGH"
-                  });
-               }
-            } else if (contentType.startsWith('video/') || contentType.startsWith('audio/') || contentType.startsWith('image/')) {
-              // Screen raw binary media responses under Family Safe Mode.
-              const mediaScreen = await identifyAndValidateGeneratedMedia(responseBuffer, contentType, true);
-              if (!mediaScreen.allowed) {
-                proxyResObj.statusCode = 451;
-                proxyResObj.setHeader("Content-Type", "application/json");
-                return JSON.stringify({
-                  error: mediaScreen.userMessage || "Media blocked by safety filter",
-                  reasonCode: mediaScreen.reasonCode,
-                  category: mediaScreen.category,
-                  severity: "HIGH"
-                });
-              }
-            }
-          }
-          return responseBuffer;
-        });
-
-        // VF-WEB-001 — Layer 2 stream interceptor: wrap the proxyRes stream with a
-        // PassThrough-based byte counter.  Must be applied AFTER proxyConfig.on.proxyRes
-        // is set to responseInterceptor so the counter sits upstream of the buffering.
-        const originalProxyMiddleware = createProxyMiddleware(proxyConfig);
-        return (function fsmStreamingProxy(fsmReq: express.Request, fsmRes: express.Response, fsmNext: express.NextFunction) {
-          let bytesReceived = 0;
-          let sizeLimitExceeded = false;
-
-          // Capture the original proxyConfig.on.proxyRes (now the responseInterceptor wrapper).
-          const wrappedProxyRes = proxyConfig.on.proxyRes;
-
-          // Re-attach a pre-interceptor that installs the byte counter on the raw socket.
-          proxyConfig.on.proxyRes = function byteLimitedProxyRes(
-            rawProxyRes: http.IncomingMessage,
-            rawReq: express.Request,
-            rawRes: express.Response
-          ) {
-            // Install streaming byte counter on the raw IncomingMessage before
-            // responseInterceptor buffers it.  We listen to 'data' on rawProxyRes
-            // (which is the decompressed stream when responseInterceptor is active).
-            // Since responseInterceptor replaces the handler after we set it, we need
-            // the counter on the original rawProxyRes before decompression.
-            rawProxyRes.on("data", (chunk: Buffer) => {
-              if (sizeLimitExceeded) return;
-              bytesReceived += chunk.length;
-              if (bytesReceived > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
-                sizeLimitExceeded = true;
-                rawProxyRes.destroy();
-                if (!rawRes.headersSent) {
-                  rawRes.status(413).json({ error: "Upstream response too large to screen under Family Safe Mode." });
-                }
-              }
-            });
-            return (wrappedProxyRes as (proxyRes: http.IncomingMessage, req: express.Request, res: express.Response) => void)(rawProxyRes, rawReq, rawRes);
-
-          };
-
-          return originalProxyMiddleware(fsmReq, fsmRes, fsmNext);
-        })(req, res, next);
-      } else {
-        return createProxyMiddleware(proxyConfig)(req, res, next);
+        return fsmMediaVeniceProxy(req, res, next);
       }
+      return standardVeniceProxy(req, res, next);
     },
   );
 
@@ -975,6 +977,7 @@ export function createServerApp() {
           method: "GET",
           headers,
           signal: controller.signal,
+          redirect: "error",
         });
 
         const contentType = response.headers.get("content-type") || "";

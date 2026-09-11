@@ -25,7 +25,7 @@ interface DocumentAgentState {
 
 export const useDocumentAgentStore = create<DocumentAgentState>()((set) => ({
   agentSessionId: crypto.randomUUID(),
-  preset: 'limited_documents',
+  preset: 'off',
   workspaceGrant: null,
   activeEnvironment: 'managed',
   selectedDocumentId: null,

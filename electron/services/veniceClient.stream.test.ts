@@ -74,6 +74,37 @@ describe("performVeniceRequest streaming safety", () => {
     ).rejects.toThrow("Venice response exceeded the local safety limit.");
   });
 
+  it("returns ok:false when the SSE stream ends on truncated UTF-8", async () => {
+    const requestMock = https.request as unknown as HttpsRequestMock;
+    requestMock.mockImplementation((_options, callback) => {
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn();
+      req.destroy = (error?: Error) => {
+        req.emit("error", error || new Error("destroyed"));
+        req.emit("close");
+      };
+      req.end = vi.fn(() => {
+        const res = new EventEmitter() as MockResponse;
+        res.headers = { "content-type": "text/event-stream" };
+        res.statusCode = 200;
+        res.statusMessage = "OK";
+        callback(res);
+        res.emit("data", Buffer.from("data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\n"));
+        res.emit("data", Buffer.from([0xe2, 0x82]));
+        res.emit("end");
+        req.emit("close");
+      });
+      return req;
+    });
+
+    const response = await performVeniceRequest(
+      { endpoint: "/chat/completions", method: "POST", body: { model: "venice-uncensored" } },
+      { onDelta: vi.fn() },
+    );
+    expect(response.ok).toBe(false);
+    expect(response.body).toMatchObject({ error: "Venice stream ended with a truncated data sequence." });
+  });
+
   it("caps concurrent Venice requests and queues overflow", async () => {
     const requestMock = https.request as unknown as HttpsRequestMock;
     const inflight: Array<{ req: MockRequest; res: MockResponse }> = [];

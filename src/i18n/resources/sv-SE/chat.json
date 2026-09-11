@@ -58,7 +58,7 @@
     "xSearch": "X sökning",
     "searchInStream": "Sök i stream",
     "documentTools": "Dokumentverktyg",
-    "documentToolsUnavailableTitle": "Tr: The active model does not support function calling, so tools cannot be sent with this chat.",
+    "documentToolsUnavailableTitle": "Den aktiva modellen stöder inte funktionsanrop, så verktyg kan inte skickas med den här chatten.",
     "newChatShortcut": "Ny chatt (⌘N)",
     "systemPromptPlaceholder": "Frivillig. Lämna tomt för att undvika att lägga till ett app-författat systemmeddelande.",
     "temperature": "Temperatur",
@@ -75,6 +75,6 @@
     }
   },
   "stream": {
-    "retryingFromCheckpoint": "Tr: Stream dropped. Retrying from checkpoint"
+    "retryingFromCheckpoint": "Strömmen avbröts. Försöker igen från kontrollpunkten"
   }
 }

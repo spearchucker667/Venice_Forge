@@ -18,6 +18,7 @@ import {
 import { useSettingsStore } from "../../stores/settings-store";
 import { useImageWorkspaceStore } from "../../stores/image-workspace-store";
 import { useProjectStore } from "../../stores/project-store";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import {
   useMediaSelectionStore,
   MEDIA_COMPARE_MAX,
@@ -1439,6 +1440,7 @@ export function MediaStudioView() {
             value={bulkTagInput}
             onChange={(e) => setBulkTagInput(e.target.value)}
             onKeyDown={(e) => {
+              if (isImeCompositionEvent(e)) return;
               if (e.key === "Enter") {
                 e.preventDefault();
                 void handleBatchAddTag();

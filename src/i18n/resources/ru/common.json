@@ -37,13 +37,13 @@
     "unlock": "Разблокировать",
     "saving": "Сохранение...",
     "importAll": "Импортировать все",
-    "saveAs": "Tr: Save As…",
-    "lock": "Tr: Lock",
-    "favorite": "Tr: Favorite",
-    "unfavorite": "Tr: Unfavorite",
-    "regenerate": "Tr: Regenerate",
-    "download": "Tr: Download",
-    "open": "Tr: Open"
+    "saveAs": "Сохранить как…",
+    "lock": "Заблокировать",
+    "favorite": "Избранное",
+    "unfavorite": "Убрать из избранного",
+    "regenerate": "Сгенерировать снова",
+    "download": "Скачать",
+    "open": "Открыть"
   },
   "status": {
     "active": "Активно",
@@ -2643,7 +2643,7 @@
             "thinking": "Думая…",
             "removeFromChat": "Удалить из чата",
             "tokensUsedForThisMessage": "Токены, использованные для этого сообщения",
-            "generatedMedia": "Tr: Generated media"
+            "generatedMedia": "Сгенерированные медиа"
           }
         }
       },
@@ -3313,7 +3313,7 @@
             "summarizeTheFinding": "Подведите итоги",
             "addSupportingDetailsAndCitations": "Добавьте подтверждающую информацию и цитаты.",
             "removeFindingValue1": "Удалить поиск {{value1}}",
-            "deleteSessionValue1": "runtimeGenerated.components.research.researchworkspaceview.attribute.deleteSessionValue1 {{value1}}"
+            "deleteSessionValue1": "Удалить сессию {{value1}}"
           },
           "text": {
             "processing": "Обработка...",
@@ -4123,7 +4123,7 @@
           "networkErrorTestingJinaApiKey": "Тестирование ошибок сети Jina API-ключ"
         },
         "error": {
-          "notSupportedInWebMode": "Tr: Not supported in web mode"
+          "notSupportedInWebMode": "Не поддерживается в веб-режиме"
         }
       },
       "imageinspectoranalysis": {
@@ -4429,11 +4429,11 @@
           "mistralAiModelsAndEndpoints": "Модели и конечные точки Mistral AI.",
           "claudeAndOtherSafeFoundationModels": "Клод и другие модели безопасного фундамента.",
           "searchGroundedAndFastLlmApis": "Основанные на поиске и быстрые API-интерфейсы LLM.",
-          "cohereEnterpriseReadyMultilingualModels": "Tr: Enterprise-ready multilingual models.",
-          "huggingFaceOpenSourceInferenceProviders": "Tr: Open-source model inference via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Tr: Azure OpenAI deployment-based chat completions.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Tr: AWS Bedrock Mantle OpenAI-compatible inference.",
-          "googleVertexAiExpressModeApiKey": "Tr: Google Vertex AI Express Mode (API-key authentication)."
+          "cohereEnterpriseReadyMultilingualModels": "Многоязычные модели корпоративного уровня.",
+          "huggingFaceOpenSourceInferenceProviders": "Инференс открытых моделей через Hugging Face Inference Providers.",
+          "azureOpenAiDeploymentBasedChatCompletions": "Чат-дополнения на базе развёртываний Azure OpenAI.",
+          "awsBedrockMantleOpenAiCompatibleInference": "Инференс AWS Bedrock Mantle, совместимый с OpenAI.",
+          "googleVertexAiExpressModeApiKey": "Режим Express Google Vertex AI (аутентификация по ключу API)."
         }
       }
     },
@@ -4592,51 +4592,51 @@
     "characterPersonaReferences": "Ссылки на персонажей / персоны"
   },
   "mediaSave": {
-    "success": "Tr: Media saved successfully",
-    "failed": "Tr: Media save failed",
-    "noBytes": "Tr: No media bytes could be read",
-    "noItems": "Tr: No exportable media items found.",
-    "exportFailed": "Tr: Media export failed. No files were saved.",
-    "prepareFailed": "Tr: Media export failed. No files could be prepared.",
-    "exported": "mediaSave.exported {{count}}",
-    "partiallyExported": "mediaSave.partiallyExported {{saved}} {{total}}",
-    "failedWithDetail": "mediaSave.failedWithDetail {{detail}}"
+    "success": "Медиа успешно сохранены",
+    "failed": "Не удалось сохранить медиа",
+    "noBytes": "Не удалось прочитать байты медиа",
+    "noItems": "Экспортируемые медиаэлементы не найдены.",
+    "exportFailed": "Экспорт медиа не выполнен. Файлы не сохранены.",
+    "prepareFailed": "Экспорт медиа не выполнен. Не удалось подготовить файлы.",
+    "exported": "Экспортировано медиафайлов: {{count}}.",
+    "partiallyExported": "Экспортировано {{saved}} из {{total}} медиафайлов. Некоторые элементы не удалось разрешить.",
+    "failedWithDetail": "Экспорт медиа не выполнен. {{detail}}"
   },
   "layout": {
     "sidebar": {
-      "resize": "Tr: Resize sidebar",
-      "resetWidth": "Tr: Reset sidebar width",
-      "width": "Tr: Sidebar width"
+      "resize": "Изменить размер боковой панели",
+      "resetWidth": "Сбросить ширину боковой панели",
+      "width": "Ширина боковой панели"
     }
   },
   "safetyDecision": {
     "userMessage": {
-      "mandatory-child-safety": "Tr: Generation blocked: mandatory child-safety protection triggered.",
-      "optional-family-policy": "Tr: Generation blocked: optional Family Safe Mode triggered.",
-      "provider-policy": "Tr: Generation blocked: provider policy violation.",
-      "request-validation": "Tr: Generation blocked: request validation failed."
+      "mandatory-child-safety": "Генерация заблокирована: сработала обязательная защита детей.",
+      "optional-family-policy": "Генерация заблокирована: сработал необязательный семейный безопасный режим.",
+      "provider-policy": "Генерация заблокирована: нарушение политики провайдера.",
+      "request-validation": "Генерация заблокирована: проверка запроса не пройдена."
     },
     "layer": {
-      "mandatory-child-safety": "Tr: Mandatory child safety",
-      "optional-family-policy": "Tr: Optional family policy",
-      "provider-policy": "Tr: Provider policy",
-      "request-validation": "Tr: Request validation"
+      "mandatory-child-safety": "Обязательная защита детей",
+      "optional-family-policy": "Необязательная семейная политика",
+      "provider-policy": "Политика провайдера",
+      "request-validation": "Проверка запроса"
     },
     "category": {
-      "minor-sexualization": "Tr: Minor sexualization",
-      "csam": "Tr: CSAM or child exploitation",
-      "grooming": "Tr: Grooming or exploitation",
-      "age-evasion": "Tr: Age evasion",
-      "adult-explicit-image": "Tr: Adult explicit image",
-      "graphic-gore": "Tr: Graphic gore",
-      "provider-restriction": "Tr: Provider restriction",
-      "validation-error": "Tr: Validation error",
-      "unknown": "Tr: Unknown safety category"
+      "minor-sexualization": "Сексуализация несовершеннолетних",
+      "csam": "CSAM или эксплуатация детей",
+      "grooming": "Груминг или эксплуатация",
+      "age-evasion": "Обход возрастных ограничений",
+      "adult-explicit-image": "Откровенное изображение для взрослых",
+      "graphic-gore": "Графическое насилие",
+      "provider-restriction": "Ограничение провайдера",
+      "validation-error": "Ошибка проверки",
+      "unknown": "Неизвестная категория безопасности"
     },
     "label": {
-      "blockingLayer": "safetyDecision.label.blockingLayer {{layer}}",
-      "category": "safetyDecision.label.category {{category}}",
-      "reasonCode": "safetyDecision.label.reasonCode {{reasonCode}}"
+      "blockingLayer": "Слой блокировки: {{layer}}",
+      "category": "Категория: {{category}}",
+      "reasonCode": "Код причины: {{reasonCode}}"
     }
   }
 }

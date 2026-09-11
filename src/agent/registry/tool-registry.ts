@@ -228,7 +228,7 @@ const DEFINITIONS: Array<{
       projectId: stringId,
       relativePath,
       format: { enum: ["txt", "md", "json", "csv", "html", "docx", "pdf"] },
-      document: { type: "object" },
+      document: { anyOf: [{ type: "object" }, { type: "string", minLength: 1, maxLength: 200_000 }] },
       overwrite: { const: false },
     },
     relativePathKeys: ["relativePath"],

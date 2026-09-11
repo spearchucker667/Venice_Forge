@@ -141,6 +141,22 @@ describe("ChatInput", () => {
     expect(input).toHaveValue("");
   });
 
+  it("does not submit when Enter confirms an active IME composition", () => {
+    const onSend = vi.fn();
+    render(<ChatInput onSend={onSend} onStop={vi.fn()} isStreaming={false} />);
+
+    const input = screen.getByLabelText("Message input");
+    fireEvent.change(input, { target: { value: "変換中" } });
+    fireEvent.keyDown(input, {
+      key: "Enter",
+      code: "Enter",
+      isComposing: true,
+    });
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(input).toHaveValue("変換中");
+  });
+
   it("does not submit when disabled", async () => {
     const onSend = vi.fn();
     render(

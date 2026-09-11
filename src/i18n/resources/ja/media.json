@@ -132,9 +132,9 @@
     "enhancementProviderError": "内部エンハンサーがVeniceリクエストに到達または完了できませんでした。元のプロンプトは保持されました。",
     "enhancementInvalidOutput": "内部エンハンサーは使用可能な画像プロンプトを1つも返しませんでした。元のプロンプトは保持されました。",
     "enhancementSafetyBlocked": "プロンプトの強化は、任意のセーフモード設定とは別の必須の児童安全保護によって停止されました。元のプロンプトは保持されました。",
-    "enhancementSafetyBlockedMandatory": "Tr: Prompt enhancement was stopped by mandatory child-safety protections, which are separate from optional Safe Mode settings. Your original prompt was kept.",
-    "enhancementSafetyBlockedFamily": "Tr: Prompt enhancement was stopped by optional Family Safe Mode. Your original prompt was kept.",
-    "enhancementSafetyBlockedProvider": "Tr: Prompt enhancement was stopped by provider policy. Your original prompt was kept.",
+    "enhancementSafetyBlockedMandatory": "プロンプト強化は、任意のセーフモード設定とは別の必須児童安全保護により停止されました。元のプロンプトは保持されています。",
+    "enhancementSafetyBlockedFamily": "プロンプト強化は任意のファミリーセーフモードにより停止されました。元のプロンプトは保持されています。",
+    "enhancementSafetyBlockedProvider": "プロンプト強化はプロバイダーポリシーにより停止されました。元のプロンプトは保持されています。",
     "styleReferences": "スタイル参照",
     "styleReferenceHelp": "PNG、JPEG、または WebP の参照画像を最大 {{count}} 枚追加できます。参照画像は、実行時対応を明示するモデルにのみ送信されます。",
     "addStyleReferenceImages": "スタイル参照画像を追加",
@@ -152,13 +152,13 @@
     "styleReferenceTooLarge": "スタイル参照画像は 8 MB 未満にしてください。"
   },
   "contextMenu": {
-    "saveAs": "Tr: Save As…",
-    "copyImage": "Tr: Copy image",
-    "openInInspector": "Tr: Open in Inspector",
-    "sendToImageTools": "Tr: Send to Image Tools",
-    "sendToCharacterCreator": "Tr: Send to Character Creator",
-    "saveToMediaStudio": "Tr: Save to Media Studio",
-    "revealInFinder": "Tr: Reveal in Finder",
-    "removeFromChat": "Tr: Remove from chat"
+    "saveAs": "名前を付けて保存…",
+    "copyImage": "画像をコピー",
+    "openInInspector": "インスペクターで開く",
+    "sendToImageTools": "画像ツールに送る",
+    "sendToCharacterCreator": "キャラクター作成に送る",
+    "saveToMediaStudio": "Media Studio に保存",
+    "revealInFinder": "Finder で表示",
+    "removeFromChat": "チャットから削除"
   }
 }

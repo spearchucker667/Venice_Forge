@@ -35,7 +35,7 @@ const make = (overrides: Partial<DemoRecord> = {}): DemoRecord => ({
 });
 
 describe("rpSingleFileStore", () => {
-  const store = createSingleFileStore<DemoRecord>("rp-test-store", validate);
+  const store = createSingleFileStore<DemoRecord>("personas", validate);
 
   beforeEach(async () => {
     try {

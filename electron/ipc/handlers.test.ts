@@ -328,7 +328,7 @@ describe("registerIpcHandlers", () => {
     setProfileSessionId(sender, "work");
     expect(await capturedHandlers.get("profilePassword:set")!(event, { profileId: "work", password: "secret" })).toEqual({ ok: true });
     expect(await capturedHandlers.get("profilePassword:verify")!(event, { profileId: "work", password: "secret" })).toEqual({ ok: true, verified: true, lockedOutSeconds: 0 });
-    expect(await capturedHandlers.get("profilePassword:clear")!(event, "work")).toEqual({ ok: true });
+    expect(await capturedHandlers.get("profilePassword:clear")!(event, { profileId: "work", currentPassword: "secret" })).toEqual({ ok: true });
 
     expect(setProfilePassword).toHaveBeenCalledWith("secret", "work");
     expect(verifyProfilePassword).toHaveBeenCalledWith("secret", "work");
@@ -429,7 +429,7 @@ describe("registerIpcHandlers", () => {
     ])("credential:get returns null for reserved name '%s'", async (key) => {
       const handler = capturedHandlers.get("credential:get");
       const result = await handler!(null, key);
-      expect(result).toEqual({ ok: true, value: null });
+      expect(result).toEqual({ ok: true, configured: false });
     });
 
     it.each([
@@ -1313,7 +1313,8 @@ describe("registerIpcHandlers", () => {
       const event = sessionCtx();
 
       expect(await capturedHandlers.get("profilePassword:set")!(event, { profileId: "personal", password: "secret" })).toEqual({ ok: true });
-      expect(await capturedHandlers.get("profilePassword:clear")!(event, "personal")).toEqual({ ok: true });
+      vi.mocked(verifyProfilePassword).mockReturnValueOnce(true);
+      expect(await capturedHandlers.get("profilePassword:clear")!(event, { profileId: "personal", currentPassword: "secret" })).toEqual({ ok: true });
 
       expect(setProfilePassword).toHaveBeenCalledWith("secret", "work");
       expect(clearProfilePassword).toHaveBeenCalledWith("work");

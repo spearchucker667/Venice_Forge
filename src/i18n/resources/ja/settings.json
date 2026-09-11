@@ -393,7 +393,9 @@
     "removePassword": {
       "title": "プロファイルパスワードを削除しますか？",
       "detail": "\"{{name}}\" の切り替え前にロック解除が不要になります。",
-      "action": "削除"
+      "action": "削除",
+      "confirmTitle": "現在のパスワードを入力",
+      "confirmDetail": "ロックを解除するには現在のプロファイルパスワードが必要です。"
     },
     "errors": {
       "removeFailed": "失敗：remove profile password",
@@ -435,7 +437,8 @@
       "labelUnlock": "ロック解除パスワード",
       "labelConfirm": "プロファイルパスワードを確認",
       "savePassword": "保存：Password"
-    }
+    },
+    "passwordPlaceholder": "パスワード"
   },
   "providers": {
     "errors": {
@@ -462,25 +465,25 @@
     },
     "status": {
       "keyConfigured": "APIキー設定済み",
-      "credentialConfigured": "Tr: Credential Configured"
+      "credentialConfigured": "資格情報が設定済み"
     },
     "actions": {
       "removeKey": "キーを削除"
     },
     "inputs": {
       "keyPlaceholder": "入力：API Key",
-      "azureResourceName": "Tr: Azure Resource Name",
-      "azureDeploymentName": "Tr: Azure Deployment Name",
-      "azureApiVersion": "Tr: API Version",
-      "azureApiKey": "Tr: Azure API Key",
-      "awsRegion": "Tr: AWS Region",
-      "awsApiKey": "Tr: AWS Bedrock API Key",
-      "vertexExpressMode": "Tr: Express Mode (API key)",
-      "vertexFullMode": "Tr: Full Vertex (project/location + OAuth/service account)",
-      "vertexApiKey": "Tr: Vertex API Key",
-      "vertexProjectId": "Tr: Google Cloud Project ID",
-      "vertexLocation": "Tr: Vertex Location",
-      "vertexCredentialsJson": "Tr: Service-Account / OAuth Credentials JSON"
+      "azureResourceName": "Azure リソース名",
+      "azureDeploymentName": "Azure デプロイ名",
+      "azureApiVersion": "API バージョン",
+      "azureApiKey": "Azure API キー",
+      "awsRegion": "AWS リージョン",
+      "awsApiKey": "AWS Bedrock API キー",
+      "vertexExpressMode": "Express モード（API キー）",
+      "vertexFullMode": "フル Vertex（プロジェクト/ロケーション + OAuth/サービスアカウント）",
+      "vertexApiKey": "Vertex API キー",
+      "vertexProjectId": "Google Cloud プロジェクト ID",
+      "vertexLocation": "Vertex ロケーション",
+      "vertexCredentialsJson": "サービスアカウント / OAuth 資格情報 JSON"
     }
   },
   "errors": {

@@ -58,7 +58,7 @@
     "xSearch": "búsqueda x",
     "searchInStream": "Buscar en flujo",
     "documentTools": "Herramientas de documentos",
-    "documentToolsUnavailableTitle": "Tr: The active model does not support function calling, so tools cannot be sent with this chat.",
+    "documentToolsUnavailableTitle": "El modelo activo no admite llamadas a funciones, por lo que no se pueden enviar herramientas con este chat.",
     "newChatShortcut": "Nuevo chat (⌘N)",
     "systemPromptPlaceholder": "Opcional. Déjelo vacío para evitar agregar un mensaje del sistema creado por la aplicación.",
     "temperature": "Temperatura",
@@ -75,6 +75,6 @@
     }
   },
   "stream": {
-    "retryingFromCheckpoint": "Tr: Stream dropped. Retrying from checkpoint"
+    "retryingFromCheckpoint": "La transmisión se interrumpió. Reintentando desde el punto de control"
   }
 }

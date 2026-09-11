@@ -129,6 +129,39 @@ describe('chat-store desktopBridge routing', () => {
     expect(conversationListMock).toHaveBeenCalled()
   })
 
+  it('preserves a same-id in-memory conversation when delayed history hydration completes', async () => {
+    let resolveList!: (value: {
+      ok: true
+      records: Conversation[]
+      truncated: false
+      totalScanned: number
+    }) => void
+    conversationListMock.mockReturnValueOnce(new Promise((resolve) => {
+      resolveList = resolve
+    }))
+
+    vi.resetModules()
+    const mod = await import('./chat-store')
+    useChatStore = mod.useChatStore
+    await Promise.resolve()
+
+    const id = useChatStore.getState().createConversation('llama-3')
+    useChatStore.getState().setConversationModel(id, 'local-model')
+    const local = useChatStore.getState().conversations.find((conversation) => conversation.id === id)
+    expect(local).toBeDefined()
+
+    resolveList({
+      ok: true,
+      records: [{ ...local!, model: 'stale-persisted-model', updatedAt: local!.updatedAt - 1 }],
+      truncated: false,
+      totalScanned: 1,
+    })
+    await vi.runAllTimersAsync()
+
+    expect(useChatStore.getState().conversations.find((conversation) => conversation.id === id)?.model)
+      .toBe('local-model')
+  })
+
   it('falls back to desktopChat.list when conversations returns an error', async () => {
     conversationListMock.mockResolvedValueOnce({
       ok: false,

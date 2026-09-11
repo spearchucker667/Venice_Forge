@@ -132,9 +132,9 @@
     "enhancementProviderError": "O intensificador interno não conseguiu alcançar ou concluir a solicitação do Venice. Seu prompt original foi mantido.",
     "enhancementInvalidOutput": "O intensificador interno não retornou um prompt de imagem utilizável. Seu prompt original foi mantido.",
     "enhancementSafetyBlocked": "O aprimoramento do prompt foi interrompido pelas proteções obrigatórias de segurança infantil, que são separadas das configurações opcionais do Modo Seguro. O prompt original foi mantido.",
-    "enhancementSafetyBlockedMandatory": "Tr: Prompt enhancement was stopped by mandatory child-safety protections, which are separate from optional Safe Mode settings. Your original prompt was kept.",
-    "enhancementSafetyBlockedFamily": "Tr: Prompt enhancement was stopped by optional Family Safe Mode. Your original prompt was kept.",
-    "enhancementSafetyBlockedProvider": "Tr: Prompt enhancement was stopped by provider policy. Your original prompt was kept.",
+    "enhancementSafetyBlockedMandatory": "A melhoria do prompt foi interrompida pelas proteções obrigatórias de segurança infantil, distintas das configurações opcionais do modo seguro. Seu prompt original foi mantido.",
+    "enhancementSafetyBlockedFamily": "A melhoria do prompt foi interrompida pelo modo familiar seguro opcional. Seu prompt original foi mantido.",
+    "enhancementSafetyBlockedProvider": "A melhoria do prompt foi interrompida pela política do provedor. Seu prompt original foi mantido.",
     "styleReferences": "Referências de estilo",
     "styleReferenceHelp": "Adicione até {{count}} imagens de referência PNG, JPEG ou WebP. As referências são enviadas apenas a modelos que informam suporte em tempo de execução.",
     "addStyleReferenceImages": "Adicionar imagens de referência de estilo",
@@ -152,13 +152,13 @@
     "styleReferenceTooLarge": "As imagens de referência de estilo devem ter menos de 8 MB."
   },
   "contextMenu": {
-    "saveAs": "Tr: Save As…",
-    "copyImage": "Tr: Copy image",
-    "openInInspector": "Tr: Open in Inspector",
-    "sendToImageTools": "Tr: Send to Image Tools",
-    "sendToCharacterCreator": "Tr: Send to Character Creator",
-    "saveToMediaStudio": "Tr: Save to Media Studio",
-    "revealInFinder": "Tr: Reveal in Finder",
-    "removeFromChat": "Tr: Remove from chat"
+    "saveAs": "Salvar como…",
+    "copyImage": "Copiar imagem",
+    "openInInspector": "Abrir no inspetor",
+    "sendToImageTools": "Enviar para ferramentas de imagem",
+    "sendToCharacterCreator": "Enviar para o criador de personagens",
+    "saveToMediaStudio": "Salvar no Media Studio",
+    "revealInFinder": "Mostrar no Finder",
+    "removeFromChat": "Remover do chat"
   }
 }

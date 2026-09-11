@@ -16,6 +16,7 @@ import {
 } from "./documentViewHelpers";
 import { useProjectStore } from "../../stores/project-store";
 import { useSettingsStore } from "../../stores/settings-store";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import { toast } from "../../stores/toast-store";
 import {
   useDocumentAgentStore,
@@ -63,6 +64,23 @@ function restoredProposal(value: {
         before: [],
         after: view.blocks as DocumentBlock[],
         resultingContentHash: "",
+      },
+    };
+  }
+  if (
+    value.approval.proposalType === "media_generate_image" ||
+    value.approval.proposalType === "document_export" ||
+    value.approval.proposalType === "workspace_changeset" ||
+    value.approval.proposalType === "workspace_move" ||
+    value.approval.proposalType === "workspace_trash"
+  ) {
+    const summary = typeof view.summary === "string" ? view.summary : value.approval.proposalType;
+    return {
+      pendingApproval: value.approval,
+      preview: {
+        before: [],
+        after: [],
+        resultingContentHash: summary,
       },
     };
   }
@@ -624,11 +642,15 @@ export function DocumentAgentView() {
         {/* Working Group Selector */}
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
-            <span className="text-[11px] font-semibold text-foreground-muted uppercase tracking-wider">
+            <label
+              htmlFor="document-agent-working-group"
+              className="text-[11px] font-semibold text-foreground-muted uppercase tracking-wider"
+            >
               <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.text.workingGroup" />
-            </span>
+            </label>
             <div className="flex items-center gap-2">
               <select
+                id="document-agent-working-group"
                 value={projectId || ""}
                 onChange={(e) => setActiveProject(e.target.value)}
                 className="rounded-lg border border-border bg-input-bg px-3 py-1.5 text-[14px] font-semibold text-foreground"
@@ -964,6 +986,7 @@ export function DocumentAgentView() {
                     value={workspaceQuery}
                     onChange={(e) => setWorkspaceQuery(e.target.value)}
                     onKeyDown={(e) => {
+                      if (isImeCompositionEvent(e)) return;
                       if (e.key === "Enter") void searchWorkspace();
                     }}
                     placeholder={tRuntime(

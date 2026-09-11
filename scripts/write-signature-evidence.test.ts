@@ -10,12 +10,12 @@ import { spawnSync } from "node:child_process";
 describe("write-signature-evidence.cjs", () => {
   describe("parseArgs", () => {
     it("parses platform, tag, and unsigned flag", () => {
-      expect(parseArgs(["--platform", "macos", "--tag", "v1.2.3"])).toEqual({
+      expect(parseArgs(["--platform", "macos", "--tag", "v1.2.3"])).toMatchObject({
         platform: "macos",
         tag: "v1.2.3",
         unsigned: false,
       });
-      expect(parseArgs(["--platform", "windows", "--tag", "v1.2.3", "--unsigned"])).toEqual({
+      expect(parseArgs(["--platform", "windows", "--tag", "v1.2.3", "--unsigned"])).toMatchObject({
         platform: "windows",
         tag: "v1.2.3",
         unsigned: true,
@@ -23,13 +23,16 @@ describe("write-signature-evidence.cjs", () => {
     });
 
     it("returns undefined for missing arguments", () => {
-      expect(parseArgs([])).toEqual({ platform: undefined, tag: undefined, unsigned: false });
+      expect(parseArgs([])).toMatchObject({ platform: undefined, tag: undefined, unsigned: false });
     });
   });
 
   describe("buildEvidence", () => {
-    it("builds macOS signed-and-notarized evidence", () => {
-      const evidence = buildEvidence("macos", "v1.2.3", false);
+    it("builds macOS signed-and-notarized evidence from verifier output", () => {
+      const evidence = buildEvidence("macos", "v1.2.3", false, {
+        codesignSummary: "Venice Forge.app: valid on disk\nVenice Forge.app: satisfies its Designated Requirement",
+        staplerSummary: "The validate action worked!",
+      });
       expect(evidence.platform).toBe("macos");
       expect(evidence.status).toBe("signed-and-notarized");
       expect(evidence.signed).toBe(true);
@@ -37,6 +40,14 @@ describe("write-signature-evidence.cjs", () => {
       expect(evidence.tag).toBe("v1.2.3");
       expect(evidence.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(evidence.note).toBeUndefined();
+      expect(evidence).toMatchObject({
+        codesign: { verified: true },
+        stapler: { validated: true },
+      });
+    });
+
+    it("refuses macOS signed-and-notarized evidence without verifier output", () => {
+      expect(() => buildEvidence("macos", "v1.2.3", false)).toThrow(/codesign/);
     });
 
     it("builds macOS unsigned-exception evidence", () => {
@@ -47,12 +58,16 @@ describe("write-signature-evidence.cjs", () => {
       expect(evidence.note).toBe("RELEASE_ALLOW_UNSIGNED=true; deliberately unsigned draft");
     });
 
-    it("builds Windows signed evidence", () => {
-      const evidence = buildEvidence("windows", "v1.2.3", false);
+    it("builds Windows signed evidence from Authenticode status", () => {
+      const evidence = buildEvidence("windows", "v1.2.3", false, { authenticodeStatus: "Valid" });
       expect(evidence.platform).toBe("windows");
       expect(evidence.status).toBe("signed");
       expect(evidence.signed).toBe(true);
       expect(evidence.signatureStatus).toBe("Valid");
+    });
+
+    it("refuses Windows signed evidence without Authenticode Valid", () => {
+      expect(() => buildEvidence("windows", "v1.2.3", false)).toThrow(/Authenticode/);
     });
 
     it("builds Windows unsigned-exception evidence", () => {

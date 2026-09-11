@@ -20,6 +20,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useSettingsStore } from "../../stores/settings-store";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import { useProjectStore } from "../../stores/project-store";
 import { TAB_REGISTRY, type TabId } from "../../config/tabs";
 import { toast } from "../../stores/toast-store";
@@ -275,6 +276,7 @@ export function CommandPalette({
     };
 
   const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (isImeCompositionEvent(e)) return;
     if (!open || !listRef.current) return;
     const items = Array.from(
       listRef.current.querySelectorAll<HTMLButtonElement>(

@@ -1,9 +1,9 @@
 # Venice Forge — Codebase Re-Initialization & Context Handoff
 
-> **Canonical Repository Root:** `/Users/super_user/Projects/Venice_Forge`  
-> **GitHub:** `spearchucker667/Venice_Forge`  
-> **Version:** `3.0.0-beta.2`  
-> **Last Re-Initialization:** 2026-08-26 (Anchored to git commit `eba90428be6c87b85a96e07b83be09e0f383db89`)  
+> **Canonical Repository Root:** `/Users/super_user/Projects/Venice_Forge`
+> **GitHub:** `spearchucker667/Venice_Forge`
+> **Version:** `3.0.0-beta.3`
+> **Last Re-Initialization:** 2026-08-26 (Anchored to git commit `eba90428be6c87b85a96e07b83be09e0f383db89`)
 > **Audience:** Senior Engineers & AI Coding Agents joining the project.
 
 ---

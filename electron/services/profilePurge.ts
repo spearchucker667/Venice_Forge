@@ -6,7 +6,9 @@ import {
   deleteApiKey,
   deleteJinaApiKey,
   deleteProviderApiKey,
+  deleteProviderCredential,
 } from "./secureStore";
+import { purgeRpProfileDirs } from "./rpProfilePaths";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { purgeProfileChatHistory } from "./chatStorage";
 import { purgeProfileTtsCache } from "./chatTtsBridge";
@@ -27,6 +29,8 @@ export interface MainProfilePurgeResult {
     veniceApiKey: MainProfilePurgeStep;
     jinaApiKey: MainProfilePurgeStep;
     providerApiKeys: MainProfilePurgeStep;
+    providerCredentials: MainProfilePurgeStep;
+    rpLibraries: MainProfilePurgeStep;
     passwordVerifier: MainProfilePurgeStep;
   };
 }
@@ -61,7 +65,26 @@ export async function purgeMainProfileData(profileId: string): Promise<MainProfi
     }
   });
   if (providerApiKeys.ok) providerApiKeys.removed = providerCount;
+  let credentialCount = 0;
+  const providerCredentials = await runStep(() => {
+    for (const providerId of Object.keys(PROVIDER_REGISTRY)) {
+      deleteProviderCredential(providerId, profileId);
+      credentialCount += 1;
+    }
+  });
+  if (providerCredentials.ok) providerCredentials.removed = credentialCount;
+  const rpLibraries = await runStep(() => purgeRpProfileDirs(profileId));
   const passwordVerifier = await runStep(() => clearProfilePassword(profileId));
-  const steps = { conversationVault, chatHistory, ttsCache, veniceApiKey, jinaApiKey, providerApiKeys, passwordVerifier };
+  const steps = {
+    conversationVault,
+    chatHistory,
+    ttsCache,
+    veniceApiKey,
+    jinaApiKey,
+    providerApiKeys,
+    providerCredentials,
+    rpLibraries,
+    passwordVerifier,
+  };
   return { ok: Object.values(steps).every((step) => step.ok), profileId, steps };
 }

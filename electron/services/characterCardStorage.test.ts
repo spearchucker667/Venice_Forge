@@ -277,4 +277,20 @@ describe("characterCardStorage", () => {
       expect(result.ok).toBe(false);
     });
   });
+
+  describe("profile isolation", () => {
+    it("stores cards under userData/profiles/<id>/characters", async () => {
+      const work = makeCard({ id: "card-work-1", name: "Work" });
+      const home = makeCard({ id: "card-home-1", name: "Home" });
+      await saveCharacterCard(work, "work");
+      await saveCharacterCard(home, "home");
+      const workList = await listCharacterCards("work");
+      const homeList = await listCharacterCards("home");
+      expect(workList.cards.map((c) => c.id)).toEqual(["card-work-1"]);
+      expect(homeList.cards.map((c) => c.id)).toEqual(["card-home-1"]);
+      expect(getCharactersDir("work")).toMatch(/profiles[/\\]work[/\\]characters$/);
+      await fs.rm(getCharactersDir("work"), { recursive: true, force: true });
+      await fs.rm(getCharactersDir("home"), { recursive: true, force: true });
+    });
+  });
 });

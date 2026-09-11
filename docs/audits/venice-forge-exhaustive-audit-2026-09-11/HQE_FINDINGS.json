@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "findings": [
+    {"id": "VF-AUD-20260911-P1-001", "severity": "P1", "classification": "CONFIRMED DEFECT", "status": "RESOLVED", "title": "Production web start serves source HTML and renders a blank page"},
+    {"id": "VF-AUD-20260911-P1-002", "severity": "P1", "classification": "CONFIRMED DEFECT", "status": "RESOLVED", "title": "Workspace approval previews crossed renderer/profile session boundaries"},
+    {"id": "VF-AUD-20260911-P2-001", "severity": "P2", "classification": "CONFIRMED DEFECT", "status": "RESOLVED", "title": "Shared logo is blocked by production style CSP"},
+    {"id": "VF-AUD-20260911-P2-002", "severity": "P2", "classification": "CONFIRMED DEFECT", "status": "RESOLVED", "title": "Enter handlers submit during active IME composition"},
+    {"id": "VF-AUD-20260911-P2-003", "severity": "P2", "classification": "CONFIRMED DEFECT", "status": "RESOLVED", "title": "Delayed history hydration overwrote newer same-ID chat state"},
+    {"id": "VF-AUD-20260911-P3-001", "severity": "P3", "classification": "CONFIRMED DEFECT", "status": "RESOLVED", "title": "Document Agent working-group selector lacks an accessible name"}
+  ]
+}

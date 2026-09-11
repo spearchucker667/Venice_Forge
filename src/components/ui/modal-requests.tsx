@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { uiSoundController } from "../../services/uiSoundController";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 
 type TextRequestOptions = {
   title: string;
@@ -219,6 +220,7 @@ export function ModalRequestHost() {
                 setError(null);
               }}
               onKeyDown={(event) => {
+                if (isImeCompositionEvent(event)) return;
                 if (event.key === "Enter") {
                   event.preventDefault();
                   acceptRequest();
@@ -246,6 +248,7 @@ export function ModalRequestHost() {
                   setError(null);
                 }}
                 onKeyDown={(event) => {
+                  if (isImeCompositionEvent(event)) return;
                   if (event.key === "Enter") {
                     event.preventDefault();
                     acceptRequest();

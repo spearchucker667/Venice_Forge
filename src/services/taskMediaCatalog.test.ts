@@ -14,11 +14,11 @@ const task: BackgroundTask = {
   type: 'music',
   status: 'completed',
   queueId: 'queue-one',
-  resultUrl: 'data:audio/mpeg;base64,SUQzAA==',
+  resultUrl: `venice-media://${'a'.repeat(64)}`,
   profileId: 'default',
   createdAt: 1,
   updatedAt: 2,
-  metadata: { model: 'music-model', request: { model: 'music-model', prompt: 'test prompt' } },
+  metadata: { model: 'music-model', request: { model: 'music-model', prompt: 'test prompt' }, mimeType: 'audio/mpeg' },
 }
 
 describe('persistCompletedTaskMedia', () => {
@@ -82,5 +82,18 @@ describe('persistCompletedTaskMedia', () => {
       resolution: '720p',
       aspectRatio: '16:9',
     }), { attachActiveProject: true, source: 'generated' })
+  })
+
+  it('refuses https, data, and blob URLs as gallery records', async () => {
+    vi.mocked(useMediaStore.getState).mockReturnValue({ items: [], loadById, upsert } as never)
+    for (const resultUrl of [
+      'https://signed.example/video.mp4',
+      'data:video/mp4;base64,AAAA',
+      'blob:http://localhost/abc',
+    ]) {
+      const saved = await persistCompletedTaskMedia({ ...task, id: `skip-${resultUrl.slice(0, 8)}`, resultUrl })
+      expect(saved).toBeNull()
+    }
+    expect(upsert).not.toHaveBeenCalled()
   })
 })

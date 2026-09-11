@@ -15,6 +15,7 @@ import type { CharacterCardExportReport, CharacterCardImportApplyOptions } from 
 import { mapCharacterBookV2ToLorebookV1 } from "../../src/services/characterCards/characterBookAdapter";
 import { lorebookStore } from "../services/rpStores";
 import { emitSyncPacket } from "../services/syncBridge";
+import { getProfileSessionId } from "../services/profileSession";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const HANDLE_TTL_MS = 5 * 60_000;
@@ -51,11 +52,11 @@ function snapshotVersion(card: CharacterCardV1, reason: string) {
   return { id: crypto.randomUUID(), createdAt: Date.now(), reason, snapshot: { name: card.name, description: card.description, personality: card.personality, systemPrompt: card.systemPrompt, creatorNotes: card.creatorNotes, postHistoryInstructions: card.postHistoryInstructions, alternateGreetings: [...(card.alternateGreetings ?? [])], characterVersion: card.characterVersion, tavernExtensions: structuredClone(card.tavernExtensions ?? {}), embeddedCharacterBook: card.embeddedCharacterBook ? structuredClone(card.embeddedCharacterBook) : undefined, rawExampleDialogue: card.rawExampleDialogue, scenario: card.scenario, firstMessage: card.firstMessage, tags: [...card.tags], adult: card.adult, exampleDialogues: structuredClone(card.exampleDialogues), modelId: card.modelId, author: card.author, instructions: card.instructions, temperature: card.temperature, topP: card.topP, webSearch: card.webSearch, urlScrapingProvider: card.urlScrapingProvider, enableThoughts: card.enableThoughts } };
 }
 
-async function materializeLinkedBook(card: CharacterCardV1): Promise<string | undefined> {
+async function materializeLinkedBook(card: CharacterCardV1, profileId: string): Promise<string | undefined> {
   if (!card.embeddedCharacterBook) return undefined;
   const id = `cardbook-${card.id}`.slice(0, 128);
   const book = mapCharacterBookV2ToLorebookV1(card.embeddedCharacterBook, { id, characterId: card.id });
-  const saved = await lorebookStore.save(book as unknown as Record<string, unknown>);
+  const saved = await lorebookStore.save(book as unknown as Record<string, unknown>, profileId);
   if (!saved.ok) throw new Error(saved.error ?? "Could not create linked lorebook.");
   await emitSyncPacket("lorebooks", book.id, book, "local-user");
   return book.id;
@@ -203,7 +204,8 @@ export function registerCharacterCardFileHandlers(): void {
       if (!candidate) return { ok: false, error: "Import preview expired or is no longer valid." };
       const decision = assessCharacterImport(candidate.card, getRuntimeLocalFamilySafeModeEnabled());
       if (!decision.allow) { entries!.delete(raw.handle); return { ok: false, error: decision.userMessage || "Character card was blocked by Local Family Safe Mode." }; }
-      const cards = (await listCharacterCards()).cards;
+      const profileId = getProfileSessionId(event.sender);
+      const cards = (await listCharacterCards(profileId)).cards;
       const fingerprint = contentFingerprint(candidate.card);
       const existing = cards.find((card) =>
         card.id === raw.existingCardId ||
@@ -235,14 +237,14 @@ export function registerCharacterCardFileHandlers(): void {
       next.metadata = { ...(next.metadata ?? {}), sourceFingerprint: fingerprint, ...(raw.favorite ? { favorite: true } : {}) };
       const bookMode = raw.characterBook ?? "both";
       if (bookMode === "none" || bookMode === "linked") delete next.embeddedCharacterBook;
-      const saved = await saveCharacterCard(next);
+      const saved = await saveCharacterCard(next, profileId);
       if (!saved.ok) return { ok: false, error: saved.error };
       if ((bookMode === "linked" || bookMode === "both") && candidate.card.embeddedCharacterBook) {
         const bookSource = { ...next, embeddedCharacterBook: candidate.card.embeddedCharacterBook };
-        const linkedId = await materializeLinkedBook(bookSource);
+        const linkedId = await materializeLinkedBook(bookSource, profileId);
         if (linkedId) {
           next.metadata = { ...(next.metadata ?? {}), linkedLorebookIds: Array.from(new Set([...(Array.isArray(next.metadata?.linkedLorebookIds) ? next.metadata.linkedLorebookIds.filter((id): id is string => typeof id === "string") : []), linkedId])), importedCharacterBookHash: crypto.createHash("sha256").update(JSON.stringify(candidate.card.embeddedCharacterBook)).digest("hex") };
-          await saveCharacterCard(next);
+          await saveCharacterCard(next, profileId);
         }
       }
       await emitSyncPacket("character_cards", next.id, next, "local-user");
@@ -268,17 +270,17 @@ export function registerCharacterCardFileHandlers(): void {
     const record = records?.get(handle);
     if (!record) return { ok: false, error: "Import undo expired or was already used." };
     records!.delete(handle);
-    const saved = await saveCharacterCard(record.previous);
+    const saved = await saveCharacterCard(record.previous, getProfileSessionId(event.sender));
     if (!saved.ok) return { ok: false, error: saved.error };
     await emitSyncPacket("character_cards", record.previous.id, record.previous, "local-user");
     return { ok: true, cardId: record.previous.id };
   });
 
-  registerPrivilegedIpcChannel("characterCards:exportJson", async (_event, payload: unknown) => {
+  registerPrivilegedIpcChannel("characterCards:exportJson", async (event, payload: unknown) => {
     try {
       const request = parseExportRequest(payload);
       if (!request) return { ok: false, error: "Invalid export request." };
-      const card = await readCharacterCard(request.cardId);
+      const card = await readCharacterCard(request.cardId, getProfileSessionId(event.sender));
       if (!card) return { ok: false, error: "Character card was not found." };
       const dto = exportDto(card, request.profile);
       const serialized = `${JSON.stringify(dto, null, 2)}\n`;
@@ -296,11 +298,11 @@ export function registerCharacterCardFileHandlers(): void {
     }
   });
 
-  registerPrivilegedIpcChannel("characterCards:exportPng", async (_event, payload: unknown) => {
+  registerPrivilegedIpcChannel("characterCards:exportPng", async (event, payload: unknown) => {
     try {
       const request = parseExportRequest(payload);
       if (!request) return { ok: false, error: "Invalid export request." };
-      const card = await readCharacterCard(request.cardId);
+      const card = await readCharacterCard(request.cardId, getProfileSessionId(event.sender));
       if (!card) return { ok: false, error: "Character card was not found." };
       if (!card.avatar?.data) return { ok: false, error: "A visible avatar is required for PNG export." };
       const source = Buffer.from(card.avatar.data.replace(/^data:[^;]+;base64,/, ""), "base64");

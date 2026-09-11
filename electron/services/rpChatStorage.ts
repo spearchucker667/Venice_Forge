@@ -6,7 +6,6 @@
  * the bad file. All ids MUST pass the central Windows-safe validator.
  */
 
-import { app } from "electron";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
@@ -14,18 +13,19 @@ import type { RpChatV1, RpMessageV1 } from "../../src/types/rp";
 import { MAX_ACTIVE_CHARACTERS } from "../../src/types/rp";
 import { isValidId as isCanonicalValidId } from "../../src/utils/idValidation";
 import { logError, logInfo } from "./logger";
+import { ensureRpProfileDir, getRpProfileDir } from "./rpProfilePaths";
 
 const RP_CHATS_DIR = "rp-chats";
 const TMP_SUFFIX = ".tmp";
 const MAX_LIST_RP_CHATS = 2000;
 const MAX_SCAN_FILES = MAX_LIST_RP_CHATS * 2;
 
-export function getRpChatsDir(): string {
-  return path.join(app.getPath("userData"), RP_CHATS_DIR);
+export function getRpChatsDir(profileId: string = "default"): string {
+  return getRpProfileDir(profileId, RP_CHATS_DIR);
 }
 
-export function rpChatPath(id: string): string {
-  return path.join(getRpChatsDir(), `${id}.json`);
+export function rpChatPath(id: string, profileId: string = "default"): string {
+  return path.join(getRpChatsDir(profileId), `${id}.json`);
 }
 
 export function isValidId(id: unknown): id is string {
@@ -69,8 +69,8 @@ function isValidChat(obj: unknown): obj is RpChatV1 {
   return true;
 }
 
-export async function listRpChats(): Promise<{ chats: RpChatV1[]; truncated: boolean; totalScanned: number }> {
-  const dir = getRpChatsDir();
+export async function listRpChats(profileId: string = "default"): Promise<{ chats: RpChatV1[]; truncated: boolean; totalScanned: number }> {
+  const dir = await ensureRpProfileDir(profileId, RP_CHATS_DIR);
   const names: string[] = [];
   let handle: Awaited<ReturnType<typeof fs.opendir>>;
   try {
@@ -100,16 +100,16 @@ export async function listRpChats(): Promise<{ chats: RpChatV1[]; truncated: boo
 
   const chats: RpChatV1[] = [];
   for (const id of names) {
-    const chat = await readRpChat(id);
+    const chat = await readRpChat(id, profileId);
     if (chat) chats.push(chat);
   }
   chats.sort((a, b) => b.updatedAt - a.updatedAt);
   return { chats: chats.slice(0, MAX_LIST_RP_CHATS), truncated: chats.length > MAX_LIST_RP_CHATS, totalScanned: names.length };
 }
 
-export async function readRpChat(id: string): Promise<RpChatV1 | null> {
+export async function readRpChat(id: string, profileId: string = "default"): Promise<RpChatV1 | null> {
   if (!isValidId(id)) return null;
-  const file = rpChatPath(id);
+  const file = rpChatPath(id, profileId);
   try {
     const raw = await fs.readFile(file, "utf-8");
     const parsed = JSON.parse(raw) as unknown;
@@ -131,7 +131,7 @@ export async function readRpChat(id: string): Promise<RpChatV1 | null> {
 
 export type SaveRpChatOutcome = { ok: true } | { ok: false; error: string };
 
-export async function saveRpChat(input: unknown): Promise<SaveRpChatOutcome> {
+export async function saveRpChat(input: unknown, profileId: string = "default"): Promise<SaveRpChatOutcome> {
   if (!input || typeof input !== "object") return { ok: false, error: "chat must be an object" };
   const c = input as Record<string, unknown>;
   if (!isValidId(c.id)) return { ok: false, error: "invalid chat id" };
@@ -184,18 +184,18 @@ export async function saveRpChat(input: unknown): Promise<SaveRpChatOutcome> {
     updatedAt,
   };
 
-  await fs.mkdir(getRpChatsDir(), { recursive: true });
-  const target = rpChatPath(chat.id);
+  await ensureRpProfileDir(profileId, RP_CHATS_DIR);
+  const target = rpChatPath(chat.id, profileId);
   const tmp = `${target}${TMP_SUFFIX}`;
   await fs.writeFile(tmp, JSON.stringify(chat, null, 2), { mode: 0o600 });
   await fs.rename(tmp, target);
   return { ok: true };
 }
 
-export async function deleteRpChat(id: string): Promise<{ ok: boolean; error?: string }> {
+export async function deleteRpChat(id: string, profileId: string = "default"): Promise<{ ok: boolean; error?: string }> {
   if (!isValidId(id)) return { ok: false, error: "invalid id" };
   try {
-    await fs.unlink(rpChatPath(id));
+    await fs.unlink(rpChatPath(id, profileId));
     return { ok: true };
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {

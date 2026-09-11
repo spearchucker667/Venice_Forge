@@ -4,6 +4,12 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-11 exhaustive-audit remediation and publication validation.** Revalidated `main` / `origin/main` at baseline `c3ae21af`, package `3.0.0-beta.3`, and reviewed every visible item in the inherited 122-path tracked plus 41-path untracked worktree before staging. Remediated all six follow-up findings: production static-root resolution (`P1-001`), workspace approval renderer/profile isolation (`P1-002`), CSP-safe logo (`P2-001`), IME-safe Enter actions (`P2-002`), same-ID chat hydration precedence (`P2-003`), and Document Agent selector naming (`P3-001`). Clean `npm ci`, complete `npm run ci`, strict i18n content generation (4,034 keys), production `npm start` HTTP probe, `dist:mac:arm64`, real packaged Electron smoke (3 files / 7 tests), and arm64 distribution verification pass. Local packaging is intentionally unsigned. Exact-SHA hosted CI/CodeQL remains required after the authorized push; signed/paid/two-device/native/headed acceptance remains external.
+
+- **2026-09-11 VF-AUD-20260910 remediations wave 3 (unpublished).** Closed the leftover risks from wave 2 on `main` at SHA `c3ae21af` without commit/push. Web video COMPLETED JSON without a URL (and signed `download_url`) now retries `Accept: video/mp4` through the proxy and plays a session `blob:` URL; gallery persist still refuses `https:`/`data:`/`blob:`. Replaced the remaining 77 key-name leftover catalog strings; `verify:i18n` is warning-free. Regenerated the vitest 4.1.11 lockfile so `npm ci` succeeds (the `--legacy-peer-deps` lockfile had dropped `electron-builder-squirrel-windows`). Video enhancement-only fields are scoped out of default queue bodies; `upscale_factor` stays optional when a caller supplies it. Live Rules01 still omits `script-coverage` and the three packaged smoke jobs (admin apply only). Native i18n and external release acceptance remain blocked on human/signed evidence.
+
+- **2026-09-10 exhaustive current-main audit.** Baseline `c3ae21af` (`main` = `origin/main`), package `3.0.0-beta.3`. Evidence package: `docs/audits/venice-forge-exhaustive-audit-2026-09-10/`. Independently confirmed P1 (8) and later P2/P3 as recorded in that package. Hosted CI `34044151608` and CodeQL `34044151609` success on the pre-remediation SHA.
+
 - **2026-09-06 Dependabot security remediation.** Resolved all 6 open Dependabot alerts across 3 transitive packages by updating the canonical `overrides` in `package.json` and cleanly updating `package-lock.json`: bumped `fast-uri` to `^3.1.6` (addressing alerts #25, #26, #29, #30 / CVE-2026-75931, CVE-2026-75899, CVE-2026-75975, CVE-2026-76172), pinned `qs` to `^6.16.0` (addressing alert #28 / CVE-2026-82562), and pinned `@xmldom/xmldom` to `^0.8.15` (addressing alert #27 / CVE-2026-83610). Validated with `npm audit` (0 vulnerabilities across all tiers), `npm run lint:eslint`, `npm run typecheck`, `npm run test:ingestion`, focused server/bridge tests, `npm run verify:safety-guard`, `npm run verify:markdown-links`, `npm run verify:contracts` (104/104 checks), `npm run build`, and `npm run verify:dist`.
 
 - **2026-09-05 Auto-read TTS fix and Research Tabs investigation.** Fixed a noisy console error ("Speech synthesis failed") occurring when `maybeAutoReadAssistantMessage` triggers a background text-to-speech request (e.g., when blocked by Family Safe Mode). I added an `isAutoRead` option to `chatTtsController.play()` to suppress the user-facing `toast.error` for these automatic requests while retaining normal error toasts for explicit user play interactions. Investigated a bug report ("cannot delete research tabs") corresponding to Research Sessions on the Research Workspace side-bar. Traced the deletion mechanism (`useResearchStore.deleteSession`, `StorageService.deleteItem`, IndexedDB sync tombstones, and React UI state mapping) but found no data-layer or component faults preventing deletion. The deletion relies on standard robust IndexedDB operations and correctly updates state via `zustand` `set(...)` whether or not desktop-sync was available. It is probable the TTS error logged by the user concurrently caused confusion, or that an out-of-bounds UI element was clicked. Awaiting further specifics from the user if the behavior persists.
@@ -51,6 +57,44 @@ This is the active handoff and validation ledger. The canonical current-work led
 - **Validation matrix (attachment registry hardening):** Focused lint of changed files PASS (0 warnings); `npx vitest run electron/agent/attachments/attachment-registry.test.ts electron/ipc/handlers/documentAgentHandlers.attachments.test.ts` PASS (37/37); `npx vitest run electron/ipc/handlers/apiKeyHandlers.reserved.test.ts` PASS (5/5); `npx vitest run electron/main.test.ts` PASS (33/33). Full `npm run lint:eslint` and `npm run typecheck` are blocked by pre-existing baseline failures in `scripts/collect-release-evidence.test.ts`, `scripts/write-signature-evidence.test.ts`, `electron/agent/runtime/agent-tool-executor.ts`, and `src/agent/registry/tool-registry.ts` that were not introduced by this change.
 
 ## Session History
+
+### 2026-09-11 — Current-worktree exhaustive-audit follow-up
+
+- **Scope:** current-worktree revalidation, complete finding remediation, dirty-tree ownership review, local/package acceptance, and user-authorized direct publication to `main`.
+- **Package:** `docs/audits/venice-forge-exhaustive-audit-2026-09-11/`, including full finding records, coverage/validation/runtime/CI/security reports, remediation order, CSV ledger, and HQE JSON manifests.
+- **Confirmed and resolved:** `VF-AUD-20260911-P1-001`, `P1-002`, `P2-001`, `P2-002`, `P2-003`, and `P3-001`. P0 0 / P1 2 / P2 3 / P3 1.
+- **Validation:** focused red/green regressions; `npm ci`; complete `npm run ci`; strict i18n generation; live production HTTP probe; `npm run dist:mac:arm64`; real packaged smoke (7/7); arm64 artifact/checksum verification. All pass after corrections. One low dev-only `joi` advisory remains below the configured audit threshold.
+- **Release:** CONDITIONAL. No confirmed local audit finding remains. Exact-SHA hosted CI/CodeQL and external signed/paid/two-device/native-language/headed acceptance remain.
+- **Coverage limit:** all tracked files are inventoried/accounted for, but a fresh principal manual line reading of all 1,535 substantive tracked files is not claimed.
+
+### 2026-09-11 — VF-AUD-20260910 remediations wave 3
+
+- **Scope:** leftover risks from wave 2 (web needs-binary, 77 catalog leftovers, `npm ci` lockfile, video enhancement scoping, Rules01/native/external status).
+- **Landed:** web retrieve-as-bytes via proxy `Accept: video/mp4` + session blob playback; gallery refuse `blob:`; 77 leftover catalog translations; CI-clean vitest 4.1.11 lockfile; enhancement-field scoping in ROADMAP/manifest.
+- **Still blocked:** live Rules01 missing `script-coverage` + `electron-smoke-{macos,windows,linux}` (admin `scripts/enforce-github-rules.sh`); `docs/i18n/native-review-status.json` all `first-pass-machine`; signed/paid/two-device/headed release evidence.
+- **Validation:** focused poller/catalog tests PASS (14); `verify:i18n` PASS with 0 leftover warnings; `verify:roadmap-current` PASS; `npm ci` PASS; production moderate audit PASS (0); `typecheck` PASS.
+
+### 2026-09-11 — VF-AUD-20260910 remediations wave 2
+
+- **Scope:** remaining audit items from the user list (P1-005, P2-003, P2-001/004, P2-006, P2-010/011, P2-019, P2-021, P3-008/009) on unpublished local `main` (still SHA `c3ae21af` until commit). No push.
+- **Landed:** VPS retrieve-as-bytes retry; vitest 4.1.11 lockfile via `--legacy-peer-deps`; workflow image live `/models`; Swagger `20260911.010226`; profile-scoped RP stores + purge credentials/RP dirs; SSE error-frame fail-closed and 300s stream timeout; 726 `Tr:` catalog replacements; signature evidence from verifier output; light-theme logo mask; `bg-background`/`text-error` theme aliases.
+- **Validation:** recorded in the Validation Matrix after the commands actually run this wave.
+
+### 2026-09-11 — VF-AUD-20260910 local remediations (wave 1)
+
+- **Scope:** implement audit Phase 1/2 on unpublished local `main` (still SHA `c3ae21af` until commit). No push.
+- **Landed:** js-yaml 4.3.2 override; hoisted Express Venice proxies with FSM streaming cap; vault-first backup export; chat history merge + profile-switch reload; Document Agent list/promote/validator/consume-restore/fail-closed `off`; poll timeout 180s; gallery persist refuses signed/`data:` URLs; credential get existence-only; profile-password clear requires current password; array system-prompt limit; abort typing; strip `enable_document_tools`; Command Palette after first-run; relative AI avatar; API-key focus trap; `Tr:` runtime scrub; delete `test-delete-session.js`; AGENT_REINITIALIZATION / Replicate UA beta.3.
+- **Blocked at wave-1 close:** vitest `>=4.1.11` lockfile bump (npm 10.9.2 arborist `edgesOut` when combined with coverage-v8 4.1.11). P1-005 VPS restart retrieve-as-bytes not implemented.
+- **Validation:** lint PASS; typecheck PASS; test:server 64; test:electron 106/1169; test:ui PASS; `npm audit --omit=dev --audit-level=moderate` PASS.
+
+### 2026-09-10 — Exhaustive current-main audit
+
+- **Scope:** read-only audit of SHA `c3ae21af`. Deliverable is `docs/audits/venice-forge-exhaustive-audit-2026-09-10/` plus `.gitignore` exceptions so the package is trackable. No product code changes.
+- **Confirmed P1 (8):** `js-yaml@4.3.1` / GHSA-2883-xcg3-v3hh (production via electron-updater); Conversation Vault write vs `desktopChat.list()` backup export; Document Agent `approvals:list` `limited:` filter hiding media/workspace proposals; video/music 120s poll timeout vs 145s P80 example; VPS `download_url` memory-only across restart; web gallery persistence of signed URLs / data URLs; FSM media Layer 2 never registers (`createProxyMiddleware` bind-at-constructor vs post-create mutation); `document.promoteAttachment` cannot resolve chat-registered attachments (register session vs `:agent_` suffix).
+- **Continuation:** Independently verified `server.ts` + `http-proxy-middleware` 4.2, Document Agent session helpers, Jina `fetch` redirects, `write-signature-evidence.cjs`, Command Palette vs FirstRunModal z-index, and `Tr:` catalogs. Promoted P1-007/008 and P2-013–021. Did not copy remaining specialist SRV/DOC/UI/I18/CI IDs.
+- **Validation:** lint PASS; typecheck PASS; build PASS; verify:dist PASS; verify:safety-guard / markdown-links / i18n / hardcoded-regressions / venice-contract-drift / network-boundaries / custom-protocol-privileges PASS; test:server 64 PASS; test:electron 106 files PASS; test:ui PASS; test:contracts 269 PASS; production npm audit FAIL.
+- **Hosted:** CI run 34044151608 success (including packaged smoke); CodeQL 34044151609 success.
+- **Manual QA:** not run (headed app). Packaged smoke on this SHA was hosted-green.
 
 ### 2026-09-06 — Dependabot security remediation
 
@@ -867,14 +911,101 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * `PROV-001` and `PROV-005` are locally closed. Live credentialed provider acceptance and headed accessibility acceptance remain under `VF-VERIFY-005`.
 * `VF-DOCUMENT-AGENT-001` is regression-repaired in this session. The shared workspace contract, lazy directory tree, `ToolExecutionContext` authority, preset semantics, attachment registry/promotion, approval boundary, and supported tool matrix are documented and locally implemented. Closure awaits the headed manual acceptance suite and packaged cross-platform smoke.
 * `P1-004` onboarding/restored-profile coverage is implemented locally. Exact-SHA packaged smoke evidence is green after the 2026-09-01 repair; live Rules01 synchronization is now actionable via `scripts/enforce-github-rules.sh` and awaits administrator application.
-* `VF-RULES01-SYNC-2026-08-31` is actionable (local helper + CI agreement verified); the live GitHub API mutation must be applied by a repository administrator.
+* `VF-RULES01-SYNC-2026-08-31` is actionable (local helper + CI agreement verified). Live ruleset `21229461` still requires only lint-and-typecheck, unit-and-integration-tests, coverage, contracts, build, windows/macos-sensitive-tests, and CodeQL Analyze jobs — it does **not** yet require `script-coverage` or `electron-smoke-{macos,windows,linux}`. A repository administrator must run `scripts/enforce-github-rules.sh`.
 * `VF-EXTERNAL-RELEASE-ACCEPTANCE-2026-08-31` remains BETA/INCOMPLETE; signed/paid/two-device/headed release evidence still must be produced on a real publication tag.
 * `CSP-001` is closed by the Meteocon remediation recorded above; the canonical roadmap no longer lists it as unfinished work.
 * `VF-MEDIA-APPROVAL-2026-09-01` (P1 agent media tool contract/authorization/approval) is locally implemented for `media.generateImage`: capability-gated tool visibility, trusted runtime model resolution, immutable approval plans, and approved-plan execution through the durable paid-submission manager. Broader media tool surface (video/audio), custom protocol capability-token wiring, semantic classifier implementation, and release-packaging evidence remain deferred per `docs/ROADMAP.md`.
 * Live paid replay of `wai-Illustrious` `/image/generate` after omitting dummy `cfg_scale: 1` is unverified. The CLI `.env` key returned `402` DIEM spend-limit; the Electron inspector session that captured the 500 used a different funded key.
-* `VF-GENERATION-CONTRACT-PARITY-2026-09-01` remains open for workflow image-node runtime model constraints, tracked Swagger refresh, and optional adoption of newly documented video enhancement fields. Existing Image Studio/image tools/video/music/TTS wire contracts were reconciled; this item does not reclassify the WAI upstream worker outage as a Forge defect.
+* `VF-GENERATION-CONTRACT-PARITY-2026-09-01` items 1–2 are implemented in the unpublished worktree. Item 3 is scoped: optional `upscale_factor` already exists on quote/queue builders; enhancement-only Topaz fields stay off default text/image-to-video bodies until Video Studio has an enhancement-model surface. This item does not reclassify the WAI upstream worker outage as a Forge defect.
+* `VF-AUD-20260910` and `VF-AUD-20260911` local findings are implemented and locally/package verified. Remaining project-wide work is `VF-EXTERNAL-RELEASE-ACCEPTANCE`, including exact-SHA hosted acceptance after publication, native i18n review, and Rules01 admin sync. See `docs/ROADMAP.md`.
+* Web video retrieve-as-bytes plays a session `blob:` URL and does not write a durable IDB blob store. Reload on web still cannot recover those bytes; Electron main-process retrieve remains the restart-safe path.
 
 ## Validation Matrix
+
+### 2026-09-11 — Current-worktree exhaustive-audit follow-up
+
+- `npm ci` — PASS (857 packages).
+- Focused red/green regression suites — PASS after fixes: production static root 1/1; chat input 25/25; Document Agent 2/2; workspace-grant/IPC 98/98; chat store 34/34.
+- `npm run ci` — PASS in full after removing one unused test import found by the first ESLint attempt. This includes ESLint, all three TypeScript projects, all segmented server/Electron/ingestion/store/service/UI/contract suites, dependency gates, build, contract verifiers, and distribution hygiene.
+- `npm run test:server` (inside CI) — PASS (64/64).
+- `npm run test:electron` (inside CI) — PASS (107 files / 1,174 tests).
+- Segmented UI suites (inside CI) — PASS (39 files / 375 tests).
+- `npm run test:contracts` (inside CI) — PASS (23 files / 269 tests), including the repaired logo CSP invariant.
+- `npm run verify:i18n:release` content stages — PASS (12 locales / 12 namespaces; 4,034 keys each). Generated status artifacts are part of the intended publication state; the final cleanliness stage is rerun after staging.
+- `npm audit --omit=dev --audit-level=moderate` — PASS (0 production vulnerabilities).
+- `npm audit --audit-level=critical` — PASS threshold; one low `joi` advisory remains.
+- `npm run dist:mac:arm64` — PASS; local package intentionally unsigned.
+- `RUN_ELECTRON_SMOKE=true npx vitest run tests/smoke/ --no-file-parallelism` — PASS (3 files / 7 tests) against the actual packaged arm64 application.
+- `node scripts/clean-release-staging.cjs` and `node scripts/verify-dist.cjs --mac --arch arm64` — PASS.
+- Production runtime: `PORT=43127 HOST=127.0.0.1 npm start` + HTTP probe — PASS (200, hashed built asset, no source entry, theme bootstrap present).
+- `npm run verify:contracts:static` — PASS, including 303 Markdown files and security/network/CSP/theme/API/release checks.
+- Audit package integrity — PASS (required artifacts present, valid JSON, tracked paths represented, no private absolute path in the retained package).
+- Git publication and exact-SHA hosted CI/CodeQL — pending at this checkpoint; results must be appended only after the authorized push completes.
+
+### 2026-09-11 — VF-AUD-20260910 remediations wave 3
+
+- `nvm use 22.15.0` — used for all local commands.
+- `npx vitest run src/stores/background-task-store.test.ts src/services/taskMediaCatalog.test.ts` — PASS (14).
+- `npm run verify:i18n` — PASS (12 locales / 12 namespaces; 0 leftover warnings).
+- `npm run verify:roadmap-current` — PASS.
+- Targeted eslint on poller/catalog files — PASS.
+- `npm ci` — PASS (857 packages) after regenerating the lockfile without `--legacy-peer-deps`.
+- `npm audit --omit=dev --audit-level=moderate` — PASS (0).
+- `npm run typecheck` — PASS.
+- Live GitHub Rules01 `21229461` inspected (read-only): missing `script-coverage` and packaged smoke jobs.
+- `npm run test:ui` / `npm run build` / full `test:ci` — not re-run this wave.
+- Headed manual QA — not run.
+- Git: no commit, no push. Live ruleset was not mutated.
+
+### 2026-09-11 — VF-AUD-20260910 remediations wave 2
+
+- `nvm use 22.15.0` — used for all local commands.
+- Focused wave-2 suites — PASS (11 files / 116 tests) then RP store follow-up (5 files / 38 tests; `rpSingleFileStore` 9/9 after allowlisted dir fix).
+- `npm run lint:eslint` — PASS (0 warnings) on the first wave-2 pass; targeted eslint on later-touched files PASS.
+- `npm run typecheck` — PASS after handling web `needs-binary` retrieve kind.
+- `npm run test:server` — PASS (64/64).
+- `npx vitest run electron --exclude tests/smoke --exclude tests/electron` — PASS (106 files / 1171 tests) after pointing the generic RP store test at an allowlisted directory.
+- `npm run verify:i18n` — PASS (12 locales / 12 namespaces; 77 allowed key-name-fallback warnings). Added missing `settings:profiles.removePassword.confirm*` keys from wave 1.
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+- `npm run verify:venice-api-docs` — PASS.
+- `npm run verify:venice-contract-drift` — PASS.
+- `npm run verify:theme-tokens` — PASS (182 files).
+- `npm run verify:roadmap-current` — PASS.
+- `npm audit --omit=dev --audit-level=moderate` — PASS (0 vulnerabilities). Lockfile vitest/`@vitest/mocker`/`@vitest/coverage-v8` 4.1.11.
+- `npm run test:ui` / `npm run build` / full `test:ci` — not re-run as a single invocation this wave.
+- Headed manual QA — not run (logo/theme-token visual check not executed).
+- Git: no commit, no push.
+
+### 2026-09-11 — VF-AUD-20260910 remediations (wave 1)
+
+- `nvm use 22.15.0` — used for all local commands.
+- `npm run lint:eslint` — PASS (0 warnings).
+- `npm run typecheck` — PASS.
+- `npm run test:server` — PASS (64/64).
+- `npx vitest run electron --exclude tests/smoke --exclude tests/electron` — PASS (106 files / 1169 tests).
+- `npm run test:ui` — PASS (layout 106, chat 111, gallery 72, image 46, research 21, settings 18).
+- `npm audit --omit=dev --audit-level=moderate` — PASS (js-yaml 4.3.2).
+- `npm run verify:agent-docs` — PASS.
+- `npm run build` / full `test:ci` — not re-run as a single invocation this session.
+- Headed manual QA — not run.
+- Git: no commit, no push.
+
+### 2026-09-10 — Exhaustive audit
+
+- `nvm use 22.15.0` — used for all local commands (`.nvmrc`).
+- `npm run lint:eslint` — PASS (0 warnings).
+- `npm run typecheck` — PASS (renderer, electron, electron tests).
+- `npm run test:server` — PASS (64/64).
+- `npm run test:electron` — PASS (106 files) as part of first `test:ci`.
+- `npm run test:ui` — PASS (layout/chat/media/research/settings).
+- `npm run test:contracts` — PASS (23 files / 269 tests).
+- `npm run build` — PASS; `npm run verify:dist` — PASS.
+- `npm audit --omit=dev --audit-level=moderate` — FAIL (`js-yaml@4.3.1`, GHSA-2883-xcg3-v3hh).
+- `npm audit --audit-level=critical` — PASS (exit 0).
+- `npm run verify:safety-guard`, `verify:markdown-links`, `verify:i18n`, `verify:i18n-hardcoded-regressions`, `verify:venice-contract-drift`, `verify:network-boundaries`, `verify:custom-protocol-privileges` — PASS.
+- Continuation closeout: `npm run verify:markdown-links` PASS (291 files); `npm run verify:roadmap-current` PASS. No product-code edits.
+- Hosted CI `34044151608` / CodeQL `34044151609` on SHA `c3ae21af` — PASS.
+- Headed manual QA — not run.
 
 ### 2026-09-02 — Static system-prompt token-limit migration
 

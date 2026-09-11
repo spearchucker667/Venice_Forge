@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useId } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../lib/utils";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import { Trans, useTranslation } from "react-i18next";
 
 interface SelectProps {
@@ -163,7 +164,7 @@ export function Select({
       setHighlightedIndex(filtered.length - 1);
       return;
     }
-    if (e.key === "Enter" || e.key === " ") {
+    if ((e.key === "Enter" || e.key === " ") && !isImeCompositionEvent(e)) {
       if (!open) {
         e.preventDefault();
         e.stopPropagation();

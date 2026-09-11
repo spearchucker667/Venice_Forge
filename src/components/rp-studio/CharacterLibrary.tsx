@@ -20,6 +20,7 @@ import { Spinner } from "../ui/spinner";
 import { avatarDataUri, formatRelativeTime, truncate } from "./_shared";
 import type { CharacterCardV1 } from "../../types/rp";
 import { generateId } from "../../services/rp/characterCardService";
+import { isImeCompositionEvent } from "../../lib/keyboard";
 import {
   startChatForCharacter,
   startNormalChatForCharacter,
@@ -353,6 +354,7 @@ export function CharacterLibrary({ onEdit }: Props) {
             value={createMePrompt}
             onChange={(e) => setCreateMePrompt(e.target.value)}
             onKeyDown={(e) => {
+              if (isImeCompositionEvent(e)) return;
               if (e.key === "Enter") handleCreateMe();
             }}
             className="text-[13px] bg-surface-elevated border border-border rounded px-3 py-1.5 focus:outline-none focus:border-accent"

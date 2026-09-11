@@ -9,7 +9,6 @@
  * `desktopBridge.characterCards` and the `characterCard:*` IPC channels.
  */
 
-import { app } from "electron";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
@@ -30,6 +29,7 @@ import {
   normalizeEmbeddedCharacterBook,
 } from "../../src/shared/characterCardCompatibility";
 import { logError, logInfo } from "./logger";
+import { ensureRpProfileDir, getRpProfileDir } from "./rpProfilePaths";
 
 /** Sub-directory under userData where character cards live. */
 const CHARACTERS_DIR = "characters";
@@ -42,23 +42,23 @@ const MAX_LIST_CARDS = 2000;
 const MAX_SCAN_FILES = MAX_LIST_CARDS * 2;
 
 /** Returns the absolute path to the characters directory. */
-export function getCharactersDir(): string {
-  return path.join(app.getPath("userData"), CHARACTERS_DIR);
+export function getCharactersDir(profileId: string = "default"): string {
+  return getRpProfileDir(profileId, CHARACTERS_DIR);
 }
 
 /** Returns the absolute path to a card's directory. */
-export function characterDir(id: string): string {
-  return path.join(getCharactersDir(), id);
+export function characterDir(id: string, profileId: string = "default"): string {
+  return path.join(getCharactersDir(profileId), id);
 }
 
 /** Returns the absolute path to a card's JSON file. */
-export function characterJsonPath(id: string): string {
-  return path.join(characterDir(id), "character.json");
+export function characterJsonPath(id: string, profileId: string = "default"): string {
+  return path.join(characterDir(id, profileId), "character.json");
 }
 
 /** Returns the absolute path to a card's avatar file. */
-export function characterAvatarPath(id: string): string {
-  return path.join(characterDir(id), "avatar.png");
+export function characterAvatarPath(id: string, profileId: string = "default"): string {
+  return path.join(characterDir(id, profileId), "avatar.png");
 }
 
 /** Validates that an id is safe to use as a directory name. */
@@ -84,16 +84,17 @@ function isValidCard(obj: unknown): obj is CharacterCardV1 {
   return true;
 }
 
-async function ensureCardDir(id: string): Promise<void> {
-  await fs.mkdir(characterDir(id), { recursive: true });
+async function ensureCardDir(id: string, profileId: string = "default"): Promise<void> {
+  await ensureRpProfileDir(profileId, CHARACTERS_DIR);
+  await fs.mkdir(characterDir(id, profileId), { recursive: true, mode: 0o700 });
 }
 
 /**
  * Lists all character card ids, sorted by `updatedAt` descending.
  * Soft caps at `MAX_LIST_CARDS` records.
  */
-export async function listCharacterCards(): Promise<{ cards: CharacterCardV1[]; truncated: boolean; totalScanned: number }> {
-  const dir = getCharactersDir();
+export async function listCharacterCards(profileId: string = "default"): Promise<{ cards: CharacterCardV1[]; truncated: boolean; totalScanned: number }> {
+  const dir = await ensureRpProfileDir(profileId, CHARACTERS_DIR);
   const cardDirs: string[] = [];
   let handle: Awaited<ReturnType<typeof fs.opendir>>;
   try {
@@ -120,7 +121,7 @@ export async function listCharacterCards(): Promise<{ cards: CharacterCardV1[]; 
 
   const cards: CharacterCardV1[] = [];
   for (const id of cardDirs) {
-    const card = await readCharacterCard(id);
+    const card = await readCharacterCard(id, profileId);
     if (card) cards.push(card);
   }
   cards.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -129,9 +130,9 @@ export async function listCharacterCards(): Promise<{ cards: CharacterCardV1[]; 
 }
 
 /** Reads and validates a single character card. Corrupt files are backed up and skipped. */
-export async function readCharacterCard(id: string): Promise<CharacterCardV1 | null> {
+export async function readCharacterCard(id: string, profileId: string = "default"): Promise<CharacterCardV1 | null> {
   if (!isValidId(id)) return null;
-  const file = characterJsonPath(id);
+  const file = characterJsonPath(id, profileId);
   let raw: string;
   try {
     raw = await fs.readFile(file, "utf-8");
@@ -147,7 +148,7 @@ export async function readCharacterCard(id: string): Promise<CharacterCardV1 | n
     // saved with `avatar: undefined` in the JSON, so we don't rely on it as a
     // presence signal.
     try {
-      const buf = await fs.readFile(characterAvatarPath(id));
+      const buf = await fs.readFile(characterAvatarPath(id, profileId));
       const mimeType = (parsed.avatar?.mimeType ?? "image/png") as CharacterCardAvatar["mimeType"];
       parsed.avatar = {
         mimeType,
@@ -204,7 +205,7 @@ function stripAvatar(card: CharacterCardV1): CharacterCardV1 {
 export type SaveCardOutcome = { ok: true } | { ok: false; error: string };
 
 /** Persists a character card (with avatar) atomically. */
-export async function saveCharacterCard(input: unknown): Promise<SaveCardOutcome> {
+export async function saveCharacterCard(input: unknown, profileId: string = "default"): Promise<SaveCardOutcome> {
   if (!input || typeof input !== "object") return { ok: false, error: "card must be an object" };
   const c = input as Record<string, unknown>;
   const id = c.id;
@@ -315,7 +316,7 @@ export async function saveCharacterCard(input: unknown): Promise<SaveCardOutcome
   if (typeof c.deviceId === "string") card.deviceId = c.deviceId.slice(0, 128);
   if (typeof c.deletedAt === "number" && Number.isFinite(c.deletedAt)) card.deletedAt = c.deletedAt;
 
-  await ensureCardDir(id);
+  await ensureCardDir(id, profileId);
 
   // Persist avatar separately.
   if (avatar) {
@@ -324,26 +325,26 @@ export async function saveCharacterCard(input: unknown): Promise<SaveCardOutcome
     if (buffer.length > MAX_AVATAR_BYTES) {
       return { ok: false, error: `avatar exceeds ${MAX_AVATAR_BYTES} bytes` };
     }
-    await atomicWrite(characterAvatarPath(id), buffer);
+    await atomicWrite(characterAvatarPath(id, profileId), buffer);
   } else {
     // No avatar provided: leave any prior file in place? No — drop it for hygiene.
     try {
-      await fs.unlink(characterAvatarPath(id));
+      await fs.unlink(characterAvatarPath(id, profileId));
     } catch {
       // ignore
     }
   }
 
   const withoutAvatar = stripAvatar(card);
-  await atomicWrite(characterJsonPath(id), Buffer.from(JSON.stringify(withoutAvatar, null, 2), "utf-8"));
+  await atomicWrite(characterJsonPath(id, profileId), Buffer.from(JSON.stringify(withoutAvatar, null, 2), "utf-8"));
   return { ok: true };
 }
 
 /** Deletes a character card and its avatar. */
-export async function deleteCharacterCard(id: string): Promise<{ ok: boolean; error?: string }> {
+export async function deleteCharacterCard(id: string, profileId: string = "default"): Promise<{ ok: boolean; error?: string }> {
   if (!isValidId(id)) return { ok: false, error: "invalid id" };
   try {
-    await fs.rm(characterDir(id), { recursive: true, force: true });
+    await fs.rm(characterDir(id, profileId), { recursive: true, force: true });
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

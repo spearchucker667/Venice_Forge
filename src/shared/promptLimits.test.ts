@@ -69,6 +69,16 @@ describe("static system-prompt policy", () => {
     expect(result).toMatchObject({ isOverLimit: true, reason: "code-point-limit" });
   });
 
+  it("enforces the policy on array/multimodal system content", () => {
+    const result = checkSystemPromptMessages([
+      {
+        role: "system",
+        content: [{ type: "text", text: "a".repeat(32_769) }],
+      },
+    ]);
+    expect(result).toMatchObject({ isOverLimit: true, reason: "code-point-limit" });
+  });
+
   it("labels the repository tokenizer as an estimate", () => {
     expect(estimateSystemPromptTokens("")).toEqual({
       count: 0,

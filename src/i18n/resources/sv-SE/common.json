@@ -37,13 +37,13 @@
     "unlock": "Lås upp",
     "saving": "Sparar...",
     "importAll": "Importera alla",
-    "saveAs": "Tr: Save As…",
-    "lock": "Tr: Lock",
-    "favorite": "Tr: Favorite",
-    "unfavorite": "Tr: Unfavorite",
-    "regenerate": "Tr: Regenerate",
-    "download": "Tr: Download",
-    "open": "Tr: Open"
+    "saveAs": "Spara som…",
+    "lock": "Lås",
+    "favorite": "Favorit",
+    "unfavorite": "Ta bort favorit",
+    "regenerate": "Återskapa",
+    "download": "Ladda ner",
+    "open": "Öppna"
   },
   "status": {
     "active": "Aktiv",
@@ -2643,7 +2643,7 @@
             "thinking": "Tänkande…",
             "removeFromChat": "Ta bort från chatten",
             "tokensUsedForThisMessage": "Tokens som används för detta meddelande",
-            "generatedMedia": "Tr: Generated media"
+            "generatedMedia": "Genererade medier"
           }
         }
       },
@@ -3313,7 +3313,7 @@
             "summarizeTheFinding": "Sammanfatta fyndet",
             "addSupportingDetailsAndCitations": "Lägg till stöddetaljer och citat",
             "removeFindingValue1": "Ta bort hitta {{value1}}",
-            "deleteSessionValue1": "runtimeGenerated.components.research.researchworkspaceview.attribute.deleteSessionValue1 {{value1}}"
+            "deleteSessionValue1": "Ta bort session {{value1}}"
           },
           "text": {
             "processing": "Bearbetar...",
@@ -4123,7 +4123,7 @@
           "networkErrorTestingJinaApiKey": "Nätverksfel testar Jina API-nyckel"
         },
         "error": {
-          "notSupportedInWebMode": "Tr: Not supported in web mode"
+          "notSupportedInWebMode": "Stöds inte i webbläge"
         }
       },
       "imageinspectoranalysis": {
@@ -4429,11 +4429,11 @@
           "mistralAiModelsAndEndpoints": "Mistral AI-modeller och slutpunkter.",
           "claudeAndOtherSafeFoundationModels": "Claude och andra säkra grundmodeller.",
           "searchGroundedAndFastLlmApis": "Sökbaserade och snabba LLM API:er.",
-          "cohereEnterpriseReadyMultilingualModels": "Tr: Enterprise-ready multilingual models.",
-          "huggingFaceOpenSourceInferenceProviders": "Tr: Open-source model inference via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Tr: Azure OpenAI deployment-based chat completions.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Tr: AWS Bedrock Mantle OpenAI-compatible inference.",
-          "googleVertexAiExpressModeApiKey": "Tr: Google Vertex AI Express Mode (API-key authentication)."
+          "cohereEnterpriseReadyMultilingualModels": "Företagsredo flerspråkiga modeller.",
+          "huggingFaceOpenSourceInferenceProviders": "Inferens för öppen källkodsmodeller via Hugging Face Inference Providers.",
+          "azureOpenAiDeploymentBasedChatCompletions": "Chattkompletteringar baserade på Azure OpenAI-distributioner.",
+          "awsBedrockMantleOpenAiCompatibleInference": "OpenAI-kompatibel inferens från AWS Bedrock Mantle.",
+          "googleVertexAiExpressModeApiKey": "Google Vertex AI Express-läge (API-nyckelautentisering)."
         }
       }
     },
@@ -4592,51 +4592,51 @@
     "characterPersonaReferences": "Karaktär / Persona referenser"
   },
   "mediaSave": {
-    "success": "Tr: Media saved successfully",
-    "failed": "Tr: Media save failed",
-    "noBytes": "Tr: No media bytes could be read",
-    "noItems": "Tr: No exportable media items found.",
-    "exportFailed": "Tr: Media export failed. No files were saved.",
-    "prepareFailed": "Tr: Media export failed. No files could be prepared.",
-    "exported": "mediaSave.exported {{count}}",
-    "partiallyExported": "mediaSave.partiallyExported {{saved}} {{total}}",
-    "failedWithDetail": "mediaSave.failedWithDetail {{detail}}"
+    "success": "Medier sparades",
+    "failed": "Det gick inte att spara medier",
+    "noBytes": "Inga mediebyte kunde läsas",
+    "noItems": "Inga exporterbara medieobjekt hittades.",
+    "exportFailed": "Mediaexporten misslyckades. Inga filer sparades.",
+    "prepareFailed": "Mediaexporten misslyckades. Inga filer kunde förberedas.",
+    "exported": "Exporterade {{count}} mediafiler.",
+    "partiallyExported": "Exporterade {{saved}} av {{total}} mediafiler. Vissa objekt kunde inte lösas.",
+    "failedWithDetail": "Mediaexporten misslyckades. {{detail}}"
   },
   "layout": {
     "sidebar": {
-      "resize": "Tr: Resize sidebar",
-      "resetWidth": "Tr: Reset sidebar width",
-      "width": "Tr: Sidebar width"
+      "resize": "Ändra storlek på sidofältet",
+      "resetWidth": "Återställ sidofältets bredd",
+      "width": "Sidofältets bredd"
     }
   },
   "safetyDecision": {
     "userMessage": {
-      "mandatory-child-safety": "Tr: Generation blocked: mandatory child-safety protection triggered.",
-      "optional-family-policy": "Tr: Generation blocked: optional Family Safe Mode triggered.",
-      "provider-policy": "Tr: Generation blocked: provider policy violation.",
-      "request-validation": "Tr: Generation blocked: request validation failed."
+      "mandatory-child-safety": "Generering blockerad: obligatoriskt barnskydd utlöstes.",
+      "optional-family-policy": "Generering blockerad: valfritt familjesäkert läge utlöstes.",
+      "provider-policy": "Generering blockerad: brott mot leverantörens policy.",
+      "request-validation": "Generering blockerad: begäran kunde inte valideras."
     },
     "layer": {
-      "mandatory-child-safety": "Tr: Mandatory child safety",
-      "optional-family-policy": "Tr: Optional family policy",
-      "provider-policy": "Tr: Provider policy",
-      "request-validation": "Tr: Request validation"
+      "mandatory-child-safety": "Obligatoriskt barnskydd",
+      "optional-family-policy": "Valfri familjepolicy",
+      "provider-policy": "Leverantörspolicy",
+      "request-validation": "Validering av begäran"
     },
     "category": {
-      "minor-sexualization": "Tr: Minor sexualization",
-      "csam": "Tr: CSAM or child exploitation",
-      "grooming": "Tr: Grooming or exploitation",
-      "age-evasion": "Tr: Age evasion",
-      "adult-explicit-image": "Tr: Adult explicit image",
-      "graphic-gore": "Tr: Graphic gore",
-      "provider-restriction": "Tr: Provider restriction",
-      "validation-error": "Tr: Validation error",
-      "unknown": "Tr: Unknown safety category"
+      "minor-sexualization": "Sexualisering av minderåriga",
+      "csam": "CSAM eller barnexploatering",
+      "grooming": "Grooming eller exploatering",
+      "age-evasion": "Ålderskringgående",
+      "adult-explicit-image": "Explicit vuxenbild",
+      "graphic-gore": "Grafiskt gore",
+      "provider-restriction": "Leverantörsbegränsning",
+      "validation-error": "Valideringsfel",
+      "unknown": "Okänd säkerhetskategori"
     },
     "label": {
-      "blockingLayer": "safetyDecision.label.blockingLayer {{layer}}",
-      "category": "safetyDecision.label.category {{category}}",
-      "reasonCode": "safetyDecision.label.reasonCode {{reasonCode}}"
+      "blockingLayer": "Blockeringslager: {{layer}}",
+      "category": "Kategori: {{category}}",
+      "reasonCode": "Orsakskod: {{reasonCode}}"
     }
   }
 }

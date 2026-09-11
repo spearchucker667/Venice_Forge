@@ -58,7 +58,7 @@
     "xSearch": "एक्स खोज",
     "searchInStream": "स्ट्रीम में खोजें",
     "documentTools": "दस्तावेज़ उपकरण",
-    "documentToolsUnavailableTitle": "Tr: The active model does not support function calling, so tools cannot be sent with this chat.",
+    "documentToolsUnavailableTitle": "सक्रिय मॉडल फ़ंक्शन कॉलिंग का समर्थन नहीं करता, इसलिए इस चैट के साथ टूल नहीं भेजे जा सकते।",
     "newChatShortcut": "नई चैट (⌘N)",
     "systemPromptPlaceholder": "वैकल्पिक। ऐप-लिखित सिस्टम संदेश जोड़ने से बचने के लिए इसे खाली छोड़ दें।",
     "temperature": "तापमान",
@@ -75,6 +75,6 @@
     }
   },
   "stream": {
-    "retryingFromCheckpoint": "Tr: Stream dropped. Retrying from checkpoint"
+    "retryingFromCheckpoint": "स्ट्रीम टूट गई। चेकपॉइंट से पुनः प्रयास"
   }
 }

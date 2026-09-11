@@ -37,13 +37,13 @@
     "unlock": "अनलॉक करें",
     "saving": "सहेजा जा रहा है...",
     "importAll": "सभी आयात करें",
-    "saveAs": "Tr: Save As…",
-    "lock": "Tr: Lock",
-    "favorite": "Tr: Favorite",
-    "unfavorite": "Tr: Unfavorite",
-    "regenerate": "Tr: Regenerate",
-    "download": "Tr: Download",
-    "open": "Tr: Open"
+    "saveAs": "इस रूप में सहेजें…",
+    "lock": "लॉक",
+    "favorite": "पसंदीदा",
+    "unfavorite": "पसंदीदा से हटाएँ",
+    "regenerate": "पुनः उत्पन्न करें",
+    "download": "डाउनलोड",
+    "open": "खोलें"
   },
   "status": {
     "active": "सक्रिय",
@@ -2643,7 +2643,7 @@
             "thinking": "सोच…",
             "removeFromChat": "चैट से हटाएँ",
             "tokensUsedForThisMessage": "इस संदेश के लिए उपयोग किए गए टोकन",
-            "generatedMedia": "Tr: Generated media"
+            "generatedMedia": "जनरेट किया गया मीडिया"
           }
         }
       },
@@ -3313,7 +3313,7 @@
             "summarizeTheFinding": "निष्कर्ष को संक्षेप में प्रस्तुत करें",
             "addSupportingDetailsAndCitations": "सहायक विवरण और उद्धरण जोड़ें",
             "removeFindingValue1": "खोज हटाएँ {{value1}}",
-            "deleteSessionValue1": "runtimeGenerated.components.research.researchworkspaceview.attribute.deleteSessionValue1 {{value1}}"
+            "deleteSessionValue1": "सत्र {{value1}} हटाएँ"
           },
           "text": {
             "processing": "प्रसंस्करण...",
@@ -4123,7 +4123,7 @@
           "networkErrorTestingJinaApiKey": "नेटवर्क त्रुटि परीक्षण जीना एपीआई कुंजी"
         },
         "error": {
-          "notSupportedInWebMode": "Tr: Not supported in web mode"
+          "notSupportedInWebMode": "वेब मोड में समर्थित नहीं"
         }
       },
       "imageinspectoranalysis": {
@@ -4429,11 +4429,11 @@
           "mistralAiModelsAndEndpoints": "मिस्ट्रल एआई मॉडल और समापन बिंदु।",
           "claudeAndOtherSafeFoundationModels": "क्लाउड और अन्य सुरक्षित फाउंडेशन मॉडल।",
           "searchGroundedAndFastLlmApis": "खोज-आधारित और तेज़ एलएलएम एपीआई।",
-          "cohereEnterpriseReadyMultilingualModels": "Tr: Enterprise-ready multilingual models.",
-          "huggingFaceOpenSourceInferenceProviders": "Tr: Open-source model inference via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Tr: Azure OpenAI deployment-based chat completions.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Tr: AWS Bedrock Mantle OpenAI-compatible inference.",
-          "googleVertexAiExpressModeApiKey": "Tr: Google Vertex AI Express Mode (API-key authentication)."
+          "cohereEnterpriseReadyMultilingualModels": "एंटरप्राइज़-तैयार बहुभाषी मॉडल।",
+          "huggingFaceOpenSourceInferenceProviders": "Hugging Face Inference Providers के माध्यम से ओपन-सोर्स मॉडल इनफेरेंस।",
+          "azureOpenAiDeploymentBasedChatCompletions": "Azure OpenAI परिनियोजन-आधारित चैट पूर्णताएँ।",
+          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle OpenAI-संगत इनफेरेंस।",
+          "googleVertexAiExpressModeApiKey": "Google Vertex AI एक्सप्रेस मोड (API-कुंजी प्रमाणीकरण)।"
         }
       }
     },
@@ -4592,51 +4592,51 @@
     "characterPersonaReferences": "चरित्र/व्यक्तित्व संदर्भ"
   },
   "mediaSave": {
-    "success": "Tr: Media saved successfully",
-    "failed": "Tr: Media save failed",
-    "noBytes": "Tr: No media bytes could be read",
-    "noItems": "Tr: No exportable media items found.",
-    "exportFailed": "Tr: Media export failed. No files were saved.",
-    "prepareFailed": "Tr: Media export failed. No files could be prepared.",
-    "exported": "mediaSave.exported {{count}}",
-    "partiallyExported": "mediaSave.partiallyExported {{saved}} {{total}}",
-    "failedWithDetail": "mediaSave.failedWithDetail {{detail}}"
+    "success": "मीडिया सफलतापूर्वक सहेजा गया",
+    "failed": "मीडिया सहेजना विफल",
+    "noBytes": "कोई मीडिया बाइट नहीं पढ़ा जा सका",
+    "noItems": "कोई निर्यात योग्य मीडिया आइटम नहीं मिला।",
+    "exportFailed": "मीडिया निर्यात विफल। कोई फ़ाइल सहेजी नहीं गई।",
+    "prepareFailed": "मीडिया निर्यात विफल। कोई फ़ाइल तैयार नहीं की जा सकी।",
+    "exported": "{{count}} मीडिया फ़ाइलें निर्यात की गईं।",
+    "partiallyExported": "{{total}} में से {{saved}} मीडिया फ़ाइलें निर्यात हुईं। कुछ आइटम हल नहीं हो सके।",
+    "failedWithDetail": "मीडिया निर्यात विफल। {{detail}}"
   },
   "layout": {
     "sidebar": {
-      "resize": "Tr: Resize sidebar",
-      "resetWidth": "Tr: Reset sidebar width",
-      "width": "Tr: Sidebar width"
+      "resize": "साइडबार का आकार बदलें",
+      "resetWidth": "साइडबार चौड़ाई रीसेट करें",
+      "width": "साइडबार चौड़ाई"
     }
   },
   "safetyDecision": {
     "userMessage": {
-      "mandatory-child-safety": "Tr: Generation blocked: mandatory child-safety protection triggered.",
-      "optional-family-policy": "Tr: Generation blocked: optional Family Safe Mode triggered.",
-      "provider-policy": "Tr: Generation blocked: provider policy violation.",
-      "request-validation": "Tr: Generation blocked: request validation failed."
+      "mandatory-child-safety": "जनरेशन अवरुद्ध: अनिवार्य बाल-सुरक्षा सुरक्षा सक्रिय हुई।",
+      "optional-family-policy": "जनरेशन अवरुद्ध: वैकल्पिक फ़ैमिली सेफ़ मोड सक्रिय हुआ।",
+      "provider-policy": "जनरेशन अवरुद्ध: प्रदाता नीति उल्लंघन।",
+      "request-validation": "जनरेशन अवरुद्ध: अनुरोध सत्यापन विफल।"
     },
     "layer": {
-      "mandatory-child-safety": "Tr: Mandatory child safety",
-      "optional-family-policy": "Tr: Optional family policy",
-      "provider-policy": "Tr: Provider policy",
-      "request-validation": "Tr: Request validation"
+      "mandatory-child-safety": "अनिवार्य बाल सुरक्षा",
+      "optional-family-policy": "वैकल्पिक पारिवारिक नीति",
+      "provider-policy": "प्रदाता नीति",
+      "request-validation": "अनुरोध सत्यापन"
     },
     "category": {
-      "minor-sexualization": "Tr: Minor sexualization",
-      "csam": "Tr: CSAM or child exploitation",
-      "grooming": "Tr: Grooming or exploitation",
-      "age-evasion": "Tr: Age evasion",
-      "adult-explicit-image": "Tr: Adult explicit image",
-      "graphic-gore": "Tr: Graphic gore",
-      "provider-restriction": "Tr: Provider restriction",
-      "validation-error": "Tr: Validation error",
-      "unknown": "Tr: Unknown safety category"
+      "minor-sexualization": "नाबालिग का यौनीकरण",
+      "csam": "CSAM या बाल शोषण",
+      "grooming": "ग्रूमिंग या शोषण",
+      "age-evasion": "आयु से बचाव",
+      "adult-explicit-image": "वयस्क स्पष्ट छवि",
+      "graphic-gore": "ग्राफिक हिंसा",
+      "provider-restriction": "प्रदाता प्रतिबंध",
+      "validation-error": "सत्यापन त्रुटि",
+      "unknown": "अज्ञात सुरक्षा श्रेणी"
     },
     "label": {
-      "blockingLayer": "safetyDecision.label.blockingLayer {{layer}}",
-      "category": "safetyDecision.label.category {{category}}",
-      "reasonCode": "safetyDecision.label.reasonCode {{reasonCode}}"
+      "blockingLayer": "ब्लॉकिंग परत: {{layer}}",
+      "category": "श्रेणी: {{category}}",
+      "reasonCode": "कारण कोड: {{reasonCode}}"
     }
   }
 }

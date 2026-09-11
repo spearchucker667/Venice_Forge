@@ -132,9 +132,9 @@
     "enhancementProviderError": "Внутренний усилитель не смог достичь или завершить запрос Venice. Ваш исходный запрос был сохранён.",
     "enhancementInvalidOutput": "Внутренний усилитель не вернул ни одного пригодного запроса изображения. Ваш исходный запрос был сохранён.",
     "enhancementSafetyBlocked": "Улучшение промпта было остановлено обязательными мерами защиты детей, которые не зависят от необязательных настроек безопасного режима. Исходный промпт был сохранён.",
-    "enhancementSafetyBlockedMandatory": "Tr: Prompt enhancement was stopped by mandatory child-safety protections, which are separate from optional Safe Mode settings. Your original prompt was kept.",
-    "enhancementSafetyBlockedFamily": "Tr: Prompt enhancement was stopped by optional Family Safe Mode. Your original prompt was kept.",
-    "enhancementSafetyBlockedProvider": "Tr: Prompt enhancement was stopped by provider policy. Your original prompt was kept.",
+    "enhancementSafetyBlockedMandatory": "Улучшение промпта остановлено обязательной защитой детей, отдельно от необязательных настроек безопасного режима. Исходный промпт сохранён.",
+    "enhancementSafetyBlockedFamily": "Улучшение промпта остановлено необязательным семейным безопасным режимом. Исходный промпт сохранён.",
+    "enhancementSafetyBlockedProvider": "Улучшение промпта остановлено политикой провайдера. Исходный промпт сохранён.",
     "styleReferences": "Референсы стиля",
     "styleReferenceHelp": "Добавьте до {{count}} референсных изображений PNG, JPEG или WebP. Референсы отправляются только моделям, которые заявляют поддержку во время выполнения.",
     "addStyleReferenceImages": "Добавить референсные изображения стиля",
@@ -152,13 +152,13 @@
     "styleReferenceTooLarge": "Размер референсных изображений стиля должен быть менее 8 МБ."
   },
   "contextMenu": {
-    "saveAs": "Tr: Save As…",
-    "copyImage": "Tr: Copy image",
-    "openInInspector": "Tr: Open in Inspector",
-    "sendToImageTools": "Tr: Send to Image Tools",
-    "sendToCharacterCreator": "Tr: Send to Character Creator",
-    "saveToMediaStudio": "Tr: Save to Media Studio",
-    "revealInFinder": "Tr: Reveal in Finder",
-    "removeFromChat": "Tr: Remove from chat"
+    "saveAs": "Сохранить как…",
+    "copyImage": "Копировать изображение",
+    "openInInspector": "Открыть в инспекторе",
+    "sendToImageTools": "Отправить в инструменты изображений",
+    "sendToCharacterCreator": "Отправить в конструктор персонажей",
+    "saveToMediaStudio": "Сохранить в Media Studio",
+    "revealInFinder": "Показать в Finder",
+    "removeFromChat": "Удалить из чата"
   }
 }

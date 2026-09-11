@@ -11,8 +11,16 @@ import type { VeniceNodeData, NodeResult } from '../stores/workflow-store'
 import { NODE_SCHEMAS, type IOKind } from './workflow-schema'
 import { validateWorkflow } from './workflow-validator'
 import { venice, veniceBlob } from './venice-client'
-import type { ChatCompletionResponse, ImageGenerateResponse, MusicQueueResponse, VideoQueueResponse } from '../types/venice'
+import type { ChatCompletionResponse, ImageConstraints, ImageGenerateResponse, MusicQueueResponse, VideoQueueResponse } from '../types/venice'
 import { veniceFetch } from '../services/veniceClient/fetch'
+import {
+  getCanonicalModelById,
+  hasCanonicalModelCatalog,
+} from '../services/modelCatalogCache'
+import {
+  buildDimensionOptions,
+  getImageModelCapabilities,
+} from '../config/image-model-capabilities'
 import {
   buildCanonicalImageGeneratePayload,
   buildCanonicalAudioSpeechPayload,
@@ -82,6 +90,51 @@ function resolvePrompt(template: string, input: string): string {
   return input ? `${template}\n\n${input}` : template
 }
 
+function asImageConstraints(value: unknown): ImageConstraints | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  if ('model_type' in (value as Record<string, unknown>)) return undefined
+  return value as ImageConstraints
+}
+
+function resolveWorkflowImageGeneratePayload(
+  data: VeniceNodeData,
+  prompt: string,
+): ReturnType<typeof buildCanonicalImageGeneratePayload> {
+  const modelId = data.model || DEFAULT_IMAGE_MODEL
+  const live = getCanonicalModelById(modelId)
+  if (live?.model_spec?.offline) {
+    throw new WorkflowExecutionError(`Image model '${modelId}' is offline.`)
+  }
+  if (hasCanonicalModelCatalog() && !live) {
+    throw new WorkflowExecutionError(`Image model '${modelId}' is not available.`)
+  }
+  const constraints = asImageConstraints(live?.model_spec?.constraints)
+  const caps = getImageModelCapabilities(modelId)
+  const dim = buildDimensionOptions(modelId, constraints)
+  const maxSteps = constraints?.steps?.max ?? 50
+  const defaultSteps = constraints?.steps?.default ?? 20
+  const requestedSteps = data.steps ?? defaultSteps
+  const steps = Math.min(Math.max(1, requestedSteps), maxSteps)
+  const aspectRatio = data.aspectRatio || dim.defaultDimensions.aspectRatio
+  const width = aspectRatio ? undefined : (data.width ?? dim.defaultDimensions.width ?? 1024)
+  const height = aspectRatio ? undefined : (data.height ?? dim.defaultDimensions.height ?? 1024)
+  const payload = buildCanonicalImageGeneratePayload({
+    model: modelId,
+    prompt,
+    negativePrompt: data.negativePrompt || undefined,
+    steps: caps.supportsSteps === false ? undefined : steps,
+    stylePreset: data.style || undefined,
+    aspectRatio: aspectRatio || undefined,
+    width,
+    height,
+    hideWatermark: data.hideWatermark ?? false,
+  })
+  if (caps.supportsHideWatermark === false) {
+    delete (payload as { hide_watermark?: boolean }).hide_watermark
+  }
+  return payload
+}
+
 async function executeNode(
   runId: string | undefined,
   node: Node<VeniceNodeData>,
@@ -114,17 +167,7 @@ async function executeNode(
 
     case 'imageGen': {
       const prompt = resolvePrompt(data.prompt, input)
-      const wirePayload = buildCanonicalImageGeneratePayload({
-        model: data.model || DEFAULT_IMAGE_MODEL,
-        prompt,
-        negativePrompt: data.negativePrompt || undefined,
-        steps: data.steps ?? 20,
-        stylePreset: data.style || undefined,
-        aspectRatio: data.aspectRatio || undefined,
-        width: data.aspectRatio ? undefined : (data.width ?? 1024),
-        height: data.aspectRatio ? undefined : (data.height ?? 1024),
-        hideWatermark: data.hideWatermark ?? true,
-      })
+      const wirePayload = resolveWorkflowImageGeneratePayload(data, prompt)
       const resp = await venice<ImageGenerateResponse>('/image/generate', {
         method: 'POST',
         body: JSON.stringify(wirePayload),

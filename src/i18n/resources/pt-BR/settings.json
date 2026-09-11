@@ -393,7 +393,9 @@
     "removePassword": {
       "title": "Remover senha do perfil?",
       "detail": "\"{{name}}\" não exigirá mais desbloqueio antes de alternar.",
-      "action": "Remover"
+      "action": "Remover",
+      "confirmTitle": "Digite a senha atual",
+      "confirmDetail": "Remover o bloqueio exige a senha atual do perfil."
     },
     "errors": {
       "removeFailed": "Falha ao remover senha do perfil",
@@ -435,7 +437,8 @@
       "labelUnlock": "Senha de desbloqueio",
       "labelConfirm": "Confirmar senha do perfil",
       "savePassword": "Salvar Senha"
-    }
+    },
+    "passwordPlaceholder": "Senha"
   },
   "providers": {
     "errors": {
@@ -462,25 +465,25 @@
     },
     "status": {
       "keyConfigured": "Chave de API Configurada",
-      "credentialConfigured": "Tr: Credential Configured"
+      "credentialConfigured": "Credencial configurada"
     },
     "actions": {
       "removeKey": "Remover Chave"
     },
     "inputs": {
       "keyPlaceholder": "Digite a Chave de API",
-      "azureResourceName": "Tr: Azure Resource Name",
-      "azureDeploymentName": "Tr: Azure Deployment Name",
-      "azureApiVersion": "Tr: API Version",
-      "azureApiKey": "Tr: Azure API Key",
-      "awsRegion": "Tr: AWS Region",
-      "awsApiKey": "Tr: AWS Bedrock API Key",
-      "vertexExpressMode": "Tr: Express Mode (API key)",
-      "vertexFullMode": "Tr: Full Vertex (project/location + OAuth/service account)",
-      "vertexApiKey": "Tr: Vertex API Key",
-      "vertexProjectId": "Tr: Google Cloud Project ID",
-      "vertexLocation": "Tr: Vertex Location",
-      "vertexCredentialsJson": "Tr: Service-Account / OAuth Credentials JSON"
+      "azureResourceName": "Nome do recurso do Azure",
+      "azureDeploymentName": "Nome da implantação do Azure",
+      "azureApiVersion": "Versão da API",
+      "azureApiKey": "Chave de API do Azure",
+      "awsRegion": "Região da AWS",
+      "awsApiKey": "Chave de API do AWS Bedrock",
+      "vertexExpressMode": "Modo Express (chave de API)",
+      "vertexFullMode": "Vertex completo (projeto/local + OAuth/conta de serviço)",
+      "vertexApiKey": "Chave de API do Vertex",
+      "vertexProjectId": "ID do projeto do Google Cloud",
+      "vertexLocation": "Local do Vertex",
+      "vertexCredentialsJson": "JSON de credenciais de conta de serviço / OAuth"
     }
   },
   "errors": {

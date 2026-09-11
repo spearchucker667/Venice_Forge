@@ -37,13 +37,13 @@
     "unlock": "Déverrouiller",
     "saving": "Enregistrement...",
     "importAll": "Tout importer",
-    "saveAs": "Tr: Save As…",
-    "lock": "Tr: Lock",
-    "favorite": "Tr: Favorite",
-    "unfavorite": "Tr: Unfavorite",
-    "regenerate": "Tr: Regenerate",
-    "download": "Tr: Download",
-    "open": "Tr: Open"
+    "saveAs": "Enregistrer sous…",
+    "lock": "Verrouiller",
+    "favorite": "Favori",
+    "unfavorite": "Retirer des favoris",
+    "regenerate": "Régénérer",
+    "download": "Télécharger",
+    "open": "Ouvrir"
   },
   "status": {
     "active": "Actif",
@@ -2643,7 +2643,7 @@
             "thinking": "Pensée…",
             "removeFromChat": "Supprimer du chat",
             "tokensUsedForThisMessage": "Jetons utilisés pour ce message",
-            "generatedMedia": "Tr: Generated media"
+            "generatedMedia": "Médias générés"
           }
         }
       },
@@ -3313,7 +3313,7 @@
             "summarizeTheFinding": "Résumer le résultat",
             "addSupportingDetailsAndCitations": "Ajouter des détails et des citations à l’appui",
             "removeFindingValue1": "Supprimer le résultat {{value1}}",
-            "deleteSessionValue1": "runtimeGenerated.components.research.researchworkspaceview.attribute.deleteSessionValue1 {{value1}}"
+            "deleteSessionValue1": "Supprimer la session {{value1}}"
           },
           "text": {
             "processing": "Traitement...",
@@ -4123,7 +4123,7 @@
           "networkErrorTestingJinaApiKey": "Test d'erreur réseau Clé API Jina"
         },
         "error": {
-          "notSupportedInWebMode": "Tr: Not supported in web mode"
+          "notSupportedInWebMode": "Non pris en charge en mode web"
         }
       },
       "imageinspectoranalysis": {
@@ -4429,11 +4429,11 @@
           "mistralAiModelsAndEndpoints": "Modèles et points de terminaison Mistral AI.",
           "claudeAndOtherSafeFoundationModels": "Claude et autres modèles de fondations sécuritaires.",
           "searchGroundedAndFastLlmApis": "API LLM rapides et basées sur la recherche.",
-          "cohereEnterpriseReadyMultilingualModels": "Tr: Enterprise-ready multilingual models.",
-          "huggingFaceOpenSourceInferenceProviders": "Tr: Open-source model inference via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Tr: Azure OpenAI deployment-based chat completions.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Tr: AWS Bedrock Mantle OpenAI-compatible inference.",
-          "googleVertexAiExpressModeApiKey": "Tr: Google Vertex AI Express Mode (API-key authentication)."
+          "cohereEnterpriseReadyMultilingualModels": "Modèles multilingues prêts pour l’entreprise.",
+          "huggingFaceOpenSourceInferenceProviders": "Inférence de modèles open source via Hugging Face Inference Providers.",
+          "azureOpenAiDeploymentBasedChatCompletions": "Complétions de chat basées sur les déploiements Azure OpenAI.",
+          "awsBedrockMantleOpenAiCompatibleInference": "Inférence compatible OpenAI d’AWS Bedrock Mantle.",
+          "googleVertexAiExpressModeApiKey": "Mode Express Google Vertex AI (authentification par clé API)."
         }
       }
     },
@@ -4592,51 +4592,51 @@
     "characterPersonaReferences": "Références de personnages/personas"
   },
   "mediaSave": {
-    "success": "Tr: Media saved successfully",
-    "failed": "Tr: Media save failed",
-    "noBytes": "Tr: No media bytes could be read",
-    "noItems": "Tr: No exportable media items found.",
-    "exportFailed": "Tr: Media export failed. No files were saved.",
-    "prepareFailed": "Tr: Media export failed. No files could be prepared.",
-    "exported": "mediaSave.exported {{count}}",
-    "partiallyExported": "mediaSave.partiallyExported {{saved}} {{total}}",
-    "failedWithDetail": "mediaSave.failedWithDetail {{detail}}"
+    "success": "Médias enregistrés avec succès",
+    "failed": "Échec de l’enregistrement des médias",
+    "noBytes": "Aucun octet de média n’a pu être lu",
+    "noItems": "Aucun élément multimédia exportable trouvé.",
+    "exportFailed": "Échec de l’export des médias. Aucun fichier n’a été enregistré.",
+    "prepareFailed": "Échec de l’export des médias. Aucun fichier n’a pu être préparé.",
+    "exported": "{{count}} fichiers multimédias exportés.",
+    "partiallyExported": "{{saved}} fichiers multimédias sur {{total}} exportés. Certains éléments n’ont pas pu être résolus.",
+    "failedWithDetail": "Échec de l’export des médias. {{detail}}"
   },
   "layout": {
     "sidebar": {
-      "resize": "Tr: Resize sidebar",
-      "resetWidth": "Tr: Reset sidebar width",
-      "width": "Tr: Sidebar width"
+      "resize": "Redimensionner la barre latérale",
+      "resetWidth": "Réinitialiser la largeur de la barre latérale",
+      "width": "Largeur de la barre latérale"
     }
   },
   "safetyDecision": {
     "userMessage": {
-      "mandatory-child-safety": "Tr: Generation blocked: mandatory child-safety protection triggered.",
-      "optional-family-policy": "Tr: Generation blocked: optional Family Safe Mode triggered.",
-      "provider-policy": "Tr: Generation blocked: provider policy violation.",
-      "request-validation": "Tr: Generation blocked: request validation failed."
+      "mandatory-child-safety": "Génération bloquée : protection obligatoire de sécurité des mineurs déclenchée.",
+      "optional-family-policy": "Génération bloquée : le mode familial sécurisé facultatif a été déclenché.",
+      "provider-policy": "Génération bloquée : violation de la politique du fournisseur.",
+      "request-validation": "Génération bloquée : la validation de la requête a échoué."
     },
     "layer": {
-      "mandatory-child-safety": "Tr: Mandatory child safety",
-      "optional-family-policy": "Tr: Optional family policy",
-      "provider-policy": "Tr: Provider policy",
-      "request-validation": "Tr: Request validation"
+      "mandatory-child-safety": "Sécurité des mineurs obligatoire",
+      "optional-family-policy": "Politique familiale facultative",
+      "provider-policy": "Politique du fournisseur",
+      "request-validation": "Validation de la requête"
     },
     "category": {
-      "minor-sexualization": "Tr: Minor sexualization",
-      "csam": "Tr: CSAM or child exploitation",
-      "grooming": "Tr: Grooming or exploitation",
-      "age-evasion": "Tr: Age evasion",
-      "adult-explicit-image": "Tr: Adult explicit image",
-      "graphic-gore": "Tr: Graphic gore",
-      "provider-restriction": "Tr: Provider restriction",
-      "validation-error": "Tr: Validation error",
-      "unknown": "Tr: Unknown safety category"
+      "minor-sexualization": "Sexualisation de mineurs",
+      "csam": "CSAM ou exploitation d’enfants",
+      "grooming": "Sollicitation ou exploitation",
+      "age-evasion": "Contournement de l’âge",
+      "adult-explicit-image": "Image explicite pour adultes",
+      "graphic-gore": "Gore graphique",
+      "provider-restriction": "Restriction du fournisseur",
+      "validation-error": "Erreur de validation",
+      "unknown": "Catégorie de sécurité inconnue"
     },
     "label": {
-      "blockingLayer": "safetyDecision.label.blockingLayer {{layer}}",
-      "category": "safetyDecision.label.category {{category}}",
-      "reasonCode": "safetyDecision.label.reasonCode {{reasonCode}}"
+      "blockingLayer": "Couche de blocage : {{layer}}",
+      "category": "Catégorie : {{category}}",
+      "reasonCode": "Code de motif : {{reasonCode}}"
     }
   }
 }

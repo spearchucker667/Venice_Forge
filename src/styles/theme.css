@@ -6,7 +6,11 @@
 
   /* Theme Engine dynamic variables mapped to Tailwind colors */
   --color-bg: var(--bg);
+  --color-background: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-base: var(--surface);
+  --color-error: var(--danger);
+  --color-error-fg: var(--danger-fg);
   --color-surface-elevated: var(--surface-elevated);
   --color-surface-muted: var(--surface-muted);
   --color-border: var(--border);
@@ -90,6 +94,22 @@ body {
 ::placeholder { color: var(--placeholder); opacity: 1; }
 :disabled { color: var(--disabled-fg); }
 a { color: var(--link); }
+
+.venice-logo {
+  mask-image: url("/assets/branding/venice-keys-white.svg");
+  -webkit-mask-image: url("/assets/branding/venice-keys-white.svg");
+  mask-position: center;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-size: contain;
+}
+
+:where(.venice-logo--20) { width: 20px; height: 20px; }
+:where(.venice-logo--24) { width: 24px; height: 24px; }
+:where(.venice-logo--26) { width: 26px; height: 26px; }
+:where(.venice-logo--32) { width: 32px; height: 32px; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }

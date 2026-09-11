@@ -17,20 +17,28 @@ import { persistCompletedTaskMedia } from '../services/taskMediaCatalog'
 
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 200
-const MAX_GENERATION_MS = 120000 // 2 minutes for video models
+const MAX_GENERATION_MS = 180000 // 3 minutes — above documented video P80 (145s)
 
 function revokeObjectUrl(url: string | undefined): void {
   if (!url?.startsWith('blob:')) return
   URL.revokeObjectURL(url)
 }
 
-function createAudioObjectUrl(dataBase64: string, mimeType: string): string {
+function createMediaObjectUrl(dataBase64: string, mimeType: string): string {
   const binary = atob(dataBase64)
   const bytes = new Uint8Array(binary.length)
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.charCodeAt(index)
   }
   return URL.createObjectURL(new Blob([bytes], { type: mimeType }))
+}
+
+function objectUrlFromDataUrl(dataUrl: string, mimeType: string): string | null {
+  if (!dataUrl.startsWith('data:')) return null
+  const commaIndex = dataUrl.indexOf(',')
+  const base64 = commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : ''
+  if (!base64) return null
+  return createMediaObjectUrl(base64, mimeType)
 }
 
 interface BackgroundTaskState {
@@ -292,8 +300,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
       attempts += 1
 
       // Check for video model specific timeout based on model metadata
-      const isVideoTask = task.type === 'video'
-      const effectiveTimeout = isVideoTask ? MAX_GENERATION_MS : 120000 // 2 minutes for non-video tasks
+      const effectiveTimeout = MAX_GENERATION_MS
       if (Date.now() - startedAt > effectiveTimeout) {
         capTimeout('Status checks stopped. Resume checking or try again.')
         isPolling = false
@@ -326,11 +333,44 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
             typeof task.metadata?.queueDownloadUrl === 'string' ? task.metadata.queueDownloadUrl : undefined,
           )
           consecutiveRetryableFailures = 0
-          if (normalized.kind === 'completed') {
-            updateTask(taskId, { status: 'completed', progress: 1, resultUrl: normalized.mediaUrl })
+          const needsBytes =
+            normalized.kind === 'needs-binary' ||
+            normalized.kind === 'download' ||
+            (normalized.kind === 'completed' && normalized.mediaUrl.startsWith('https://'))
+          if (needsBytes) {
+            const binaryResult = await veniceFetch<unknown>('/video/retrieve', {
+              method: 'POST',
+              body: buildVideoRetrieveRequest(taskModel, task.queueId!),
+              headers: { Accept: 'video/mp4' },
+              retry: false,
+            })
+            const latestAfterBinary = get().tasks[taskId]
+            if (!latestAfterBinary || ['completed', 'failed', 'aborted', 'timeout'].includes(latestAfterBinary.status)) return
+            const binaryNormalized = normalizeVideoRetrieveResult(binaryResult.data, binaryResult.headers)
+            const objectUrl =
+              binaryNormalized.kind === 'completed'
+                ? objectUrlFromDataUrl(binaryNormalized.mediaUrl, binaryNormalized.mimeType)
+                : null
+            if (objectUrl) {
+              updateTask(taskId, {
+                status: 'completed',
+                progress: 1,
+                resultUrl: objectUrl,
+                metadata: { ...latestAfterBinary.metadata, mimeType: 'video/mp4' },
+              })
+              stopPolling(taskId)
+              return
+            }
+            updateTask(taskId, {
+              status: 'failed',
+              error: toUserFacingVideoError('Video completed without a playable video response.', 'Video generation failed'),
+            })
             stopPolling(taskId)
-          } else if (normalized.kind === 'download') {
-            updateTask(taskId, { status: 'completed', progress: 1, resultUrl: normalized.downloadUrl })
+            return
+          }
+          if (normalized.kind === 'completed') {
+            const objectUrl = objectUrlFromDataUrl(normalized.mediaUrl, normalized.mimeType)
+            updateTask(taskId, { status: 'completed', progress: 1, resultUrl: objectUrl ?? normalized.mediaUrl })
             stopPolling(taskId)
           } else if (normalized.kind === 'failed') {
             updateTask(taskId, { status: 'failed', error: toUserFacingVideoError(normalized.error, 'Video generation failed') })
@@ -359,7 +399,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
               resultUrl: dataUrl,
               updatedAt: Date.now(),
             })
-            const objectUrl = createAudioObjectUrl(normalized.dataBase64, normalized.mimeType)
+            const objectUrl = createMediaObjectUrl(normalized.dataBase64, normalized.mimeType)
             updateTask(taskId, {
               status: 'completed',
               progress: 1,

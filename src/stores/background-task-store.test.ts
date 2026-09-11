@@ -47,7 +47,7 @@ describe('background task polling', () => {
     expect(useBackgroundTaskStore.getState().tasks['video-one']).toMatchObject({
       status: 'completed',
       progress: 1,
-      resultUrl: 'data:video/mp4;base64,AAAA',
+      resultUrl: 'blob:browser-audio',
     })
     expect(useBackgroundTaskStore.getState().activePolls['video-one']).toBeUndefined()
   })
@@ -172,6 +172,56 @@ describe('background task polling', () => {
     useBackgroundTaskStore.getState().clearTask('music-two')
 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:browser-audio')
+  })
+
+  it('retrieves COMPLETED JSON without download_url as video/mp4 bytes', async () => {
+    vi.mocked(veniceFetch)
+      .mockResolvedValueOnce({
+        data: { status: 'COMPLETED' },
+        headers: { 'content-type': 'application/json' },
+      } as never)
+      .mockResolvedValueOnce({
+        data: { dataUrl: 'data:video/mp4;base64,AAAA' },
+        headers: { 'content-type': 'video/mp4' },
+      } as never)
+
+    useBackgroundTaskStore.getState().registerQueueTask('video-vps', 'video', 'queue-vps', { model: 'vps-model' })
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(veniceFetch).toHaveBeenCalledTimes(2)
+    expect(veniceFetch).toHaveBeenNthCalledWith(
+      2,
+      '/video/retrieve',
+      expect.objectContaining({
+        headers: { Accept: 'video/mp4' },
+        retry: false,
+      }),
+    )
+    expect(useBackgroundTaskStore.getState().tasks['video-vps']).toMatchObject({
+      status: 'completed',
+      progress: 1,
+      resultUrl: 'blob:browser-audio',
+    })
+  })
+
+  it('does not store a signed download_url as the web result', async () => {
+    vi.mocked(veniceFetch)
+      .mockResolvedValueOnce({
+        data: { status: 'COMPLETED', download_url: 'https://signed.example/video.mp4' },
+        headers: { 'content-type': 'application/json' },
+      } as never)
+      .mockResolvedValueOnce({
+        data: { dataUrl: 'data:video/mp4;base64,BBBB' },
+        headers: { 'content-type': 'video/mp4' },
+      } as never)
+
+    useBackgroundTaskStore.getState().registerQueueTask('video-signed', 'video', 'queue-signed', { model: 'vps-model' })
+    await vi.advanceTimersByTimeAsync(0)
+
+    const task = useBackgroundTaskStore.getState().tasks['video-signed']
+    expect(task.status).toBe('completed')
+    expect(task.resultUrl).toBe('blob:browser-audio')
+    expect(task.resultUrl).not.toMatch(/^https:/)
   })
 
   it('journals synchronous tasks without polling or offering a false retry', async () => {

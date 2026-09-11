@@ -58,7 +58,7 @@
     "xSearch": "X-Suche",
     "searchInStream": "Im Stream suchen",
     "documentTools": "Dokumentwerkzeuge",
-    "documentToolsUnavailableTitle": "Tr: The active model does not support function calling, so tools cannot be sent with this chat.",
+    "documentToolsUnavailableTitle": "Das aktive Modell unterstützt keine Funktionsaufrufe, daher können mit diesem Chat keine Tools gesendet werden.",
     "newChatShortcut": "Neuer Chat (⌘N)",
     "systemPromptPlaceholder": "Optional. Leer lassen, um das Hinzufügen einer von der App erstellten Systemmeldung zu vermeiden.",
     "temperature": "Temperatur",
@@ -75,6 +75,6 @@
     }
   },
   "stream": {
-    "retryingFromCheckpoint": "Tr: Stream dropped. Retrying from checkpoint"
+    "retryingFromCheckpoint": "Stream unterbrochen. Wiederholung ab Prüfpunkt"
   }
 }

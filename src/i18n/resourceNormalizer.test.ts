@@ -28,6 +28,11 @@ describe('isUntranslatedCatalogValue', () => {
     expect(isUntranslatedCatalogValue('[ZH] 保存')).toBe(true);
   });
 
+  it('flags Tr: scaffolding and key-name leftovers with interpolations', () => {
+    expect(isUntranslatedCatalogValue('Tr: Save As…')).toBe(true);
+    expect(isUntranslatedCatalogValue('mediaSave.exported {{count}}', 'media.mediaSave.exported')).toBe(true);
+  });
+
   it('flags key-name fallback placeholders when keyPath is provided', () => {
     expect(isUntranslatedCatalogValue('contextMenu.saveAs', 'contextMenu.saveAs')).toBe(true);
     expect(

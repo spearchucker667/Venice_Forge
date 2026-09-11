@@ -37,13 +37,13 @@
     "unlock": "Desbloquear",
     "saving": "Salvando...",
     "importAll": "Importar tudo",
-    "saveAs": "Tr: Save As…",
-    "lock": "Tr: Lock",
-    "favorite": "Tr: Favorite",
-    "unfavorite": "Tr: Unfavorite",
-    "regenerate": "Tr: Regenerate",
-    "download": "Tr: Download",
-    "open": "Tr: Open"
+    "saveAs": "Salvar como…",
+    "lock": "Bloquear",
+    "favorite": "Favorito",
+    "unfavorite": "Remover dos favoritos",
+    "regenerate": "Regenerar",
+    "download": "Baixar",
+    "open": "Abrir"
   },
   "status": {
     "active": "Ativo",
@@ -2643,7 +2643,7 @@
             "thinking": "Pensamento…",
             "removeFromChat": "Remover do bate-papo",
             "tokensUsedForThisMessage": "Tokens usados ​​para esta mensagem",
-            "generatedMedia": "Tr: Generated media"
+            "generatedMedia": "Mídia gerada"
           }
         }
       },
@@ -3313,7 +3313,7 @@
             "summarizeTheFinding": "Resuma a descoberta",
             "addSupportingDetailsAndCitations": "Adicione detalhes e citações de apoio",
             "removeFindingValue1": "Remover descoberta {{value1}}",
-            "deleteSessionValue1": "runtimeGenerated.components.research.researchworkspaceview.attribute.deleteSessionValue1 {{value1}}"
+            "deleteSessionValue1": "Excluir sessão {{value1}}"
           },
           "text": {
             "processing": "Processamento...",
@@ -4123,7 +4123,7 @@
           "networkErrorTestingJinaApiKey": "Erro de rede ao testar a chave de API Jina"
         },
         "error": {
-          "notSupportedInWebMode": "Tr: Not supported in web mode"
+          "notSupportedInWebMode": "Não suportado no modo web"
         }
       },
       "imageinspectoranalysis": {
@@ -4429,11 +4429,11 @@
           "mistralAiModelsAndEndpoints": "Modelos e endpoints de IA Mistral.",
           "claudeAndOtherSafeFoundationModels": "Claude e outros modelos de fundações seguras.",
           "searchGroundedAndFastLlmApis": "APIs LLM rápidas e baseadas em pesquisa.",
-          "cohereEnterpriseReadyMultilingualModels": "Tr: Enterprise-ready multilingual models.",
-          "huggingFaceOpenSourceInferenceProviders": "Tr: Open-source model inference via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Tr: Azure OpenAI deployment-based chat completions.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Tr: AWS Bedrock Mantle OpenAI-compatible inference.",
-          "googleVertexAiExpressModeApiKey": "Tr: Google Vertex AI Express Mode (API-key authentication)."
+          "cohereEnterpriseReadyMultilingualModels": "Modelos multilíngues prontos para empresas.",
+          "huggingFaceOpenSourceInferenceProviders": "Inferência de modelos de código aberto via Hugging Face Inference Providers.",
+          "azureOpenAiDeploymentBasedChatCompletions": "Completions de chat baseadas em implantações do Azure OpenAI.",
+          "awsBedrockMantleOpenAiCompatibleInference": "Inferência compatível com OpenAI do AWS Bedrock Mantle.",
+          "googleVertexAiExpressModeApiKey": "Modo Express do Google Vertex AI (autenticação por chave de API)."
         }
       }
     },
@@ -4592,51 +4592,51 @@
     "characterPersonaReferences": "Referências de personagem/persona"
   },
   "mediaSave": {
-    "success": "Tr: Media saved successfully",
-    "failed": "Tr: Media save failed",
-    "noBytes": "Tr: No media bytes could be read",
-    "noItems": "Tr: No exportable media items found.",
-    "exportFailed": "Tr: Media export failed. No files were saved.",
-    "prepareFailed": "Tr: Media export failed. No files could be prepared.",
-    "exported": "mediaSave.exported {{count}}",
-    "partiallyExported": "mediaSave.partiallyExported {{saved}} {{total}}",
-    "failedWithDetail": "mediaSave.failedWithDetail {{detail}}"
+    "success": "Mídia salva com sucesso",
+    "failed": "Falha ao salvar a mídia",
+    "noBytes": "Nenhum byte de mídia pôde ser lido",
+    "noItems": "Nenhum item de mídia exportável encontrado.",
+    "exportFailed": "Falha na exportação da mídia. Nenhum arquivo foi salvo.",
+    "prepareFailed": "Falha na exportação da mídia. Nenhum arquivo pôde ser preparado.",
+    "exported": "{{count}} arquivos de mídia exportados.",
+    "partiallyExported": "{{saved}} de {{total}} arquivos de mídia exportados. Alguns itens não puderam ser resolvidos.",
+    "failedWithDetail": "Falha na exportação da mídia. {{detail}}"
   },
   "layout": {
     "sidebar": {
-      "resize": "Tr: Resize sidebar",
-      "resetWidth": "Tr: Reset sidebar width",
-      "width": "Tr: Sidebar width"
+      "resize": "Redimensionar a barra lateral",
+      "resetWidth": "Redefinir a largura da barra lateral",
+      "width": "Largura da barra lateral"
     }
   },
   "safetyDecision": {
     "userMessage": {
-      "mandatory-child-safety": "Tr: Generation blocked: mandatory child-safety protection triggered.",
-      "optional-family-policy": "Tr: Generation blocked: optional Family Safe Mode triggered.",
-      "provider-policy": "Tr: Generation blocked: provider policy violation.",
-      "request-validation": "Tr: Generation blocked: request validation failed."
+      "mandatory-child-safety": "Geração bloqueada: proteção obrigatória de segurança infantil acionada.",
+      "optional-family-policy": "Geração bloqueada: o modo familiar seguro opcional foi acionado.",
+      "provider-policy": "Geração bloqueada: violação da política do provedor.",
+      "request-validation": "Geração bloqueada: a validação da solicitação falhou."
     },
     "layer": {
-      "mandatory-child-safety": "Tr: Mandatory child safety",
-      "optional-family-policy": "Tr: Optional family policy",
-      "provider-policy": "Tr: Provider policy",
-      "request-validation": "Tr: Request validation"
+      "mandatory-child-safety": "Segurança infantil obrigatória",
+      "optional-family-policy": "Política familiar opcional",
+      "provider-policy": "Política do provedor",
+      "request-validation": "Validação da solicitação"
     },
     "category": {
-      "minor-sexualization": "Tr: Minor sexualization",
-      "csam": "Tr: CSAM or child exploitation",
-      "grooming": "Tr: Grooming or exploitation",
-      "age-evasion": "Tr: Age evasion",
-      "adult-explicit-image": "Tr: Adult explicit image",
-      "graphic-gore": "Tr: Graphic gore",
-      "provider-restriction": "Tr: Provider restriction",
-      "validation-error": "Tr: Validation error",
-      "unknown": "Tr: Unknown safety category"
+      "minor-sexualization": "Sexualização de menores",
+      "csam": "CSAM ou exploração infantil",
+      "grooming": "Aliciamento ou exploração",
+      "age-evasion": "Evasão de idade",
+      "adult-explicit-image": "Imagem explícita adulta",
+      "graphic-gore": "Violência gráfica",
+      "provider-restriction": "Restrição do provedor",
+      "validation-error": "Erro de validação",
+      "unknown": "Categoria de segurança desconhecida"
     },
     "label": {
-      "blockingLayer": "safetyDecision.label.blockingLayer {{layer}}",
-      "category": "safetyDecision.label.category {{category}}",
-      "reasonCode": "safetyDecision.label.reasonCode {{reasonCode}}"
+      "blockingLayer": "Camada de bloqueio: {{layer}}",
+      "category": "Categoria: {{category}}",
+      "reasonCode": "Código do motivo: {{reasonCode}}"
     }
   }
 }

@@ -108,24 +108,33 @@ jobs:
             echo "Skipping signature verification for deliberately unsigned build."
             exit 0
           fi
+          mkdir -p release-evidence
+          : > release-evidence/codesign-macos.txt
+          : > release-evidence/stapler-macos.txt
+          FOUND=0
           # Check x64 app
           if [ -d "release/mac/Venice Forge.app" ]; then
-            codesign --verify --deep --strict --verbose=4 "release/mac/Venice Forge.app"
+            FOUND=1
+            codesign --verify --deep --strict --verbose=4 "release/mac/Venice Forge.app" 2>> release-evidence/codesign-macos.txt
             spctl -a -vv --type execute "release/mac/Venice Forge.app"
-            xcrun stapler validate "release/mac/Venice Forge.app"
-            # Verify the distributed DMG carries the signed+notarized payload
+            xcrun stapler validate "release/mac/Venice Forge.app" | tee -a release-evidence/stapler-macos.txt
             if [ -f "release/Venice-Forge-${GITHUB_REF_NAME#v}-x64.dmg" ]; then
               echo "x64 DMG present, signed payload verified above"
             fi
           fi
           # Check arm64 app
           if [ -d "release/mac-arm64/Venice Forge.app" ]; then
-            codesign --verify --deep --strict --verbose=4 "release/mac-arm64/Venice Forge.app"
+            FOUND=1
+            codesign --verify --deep --strict --verbose=4 "release/mac-arm64/Venice Forge.app" 2>> release-evidence/codesign-macos.txt
             spctl -a -vv --type execute "release/mac-arm64/Venice Forge.app"
-            xcrun stapler validate "release/mac-arm64/Venice Forge.app"
+            xcrun stapler validate "release/mac-arm64/Venice Forge.app" | tee -a release-evidence/stapler-macos.txt
             if [ -f "release/Venice-Forge-${GITHUB_REF_NAME#v}-arm64.dmg" ]; then
               echo "arm64 DMG present, signed payload verified above"
             fi
+          fi
+          if [ "$FOUND" -eq 0 ]; then
+            echo "No Venice Forge.app directory was produced; refusing to skip signature verification."
+            exit 1
           fi
 
       - name: Write macOS signature evidence
@@ -135,11 +144,12 @@ jobs:
           RELEASE_ALLOW_UNSIGNED: ${{ vars.RELEASE_ALLOW_UNSIGNED }}
         run: |
           if [[ "$RELEASE_ALLOW_UNSIGNED" == "true" ]]; then
-            UNSIGNED_FLAG="--unsigned"
+            node scripts/write-signature-evidence.cjs --platform macos --tag "$GITHUB_REF_NAME" --unsigned
           else
-            UNSIGNED_FLAG=""
+            node scripts/write-signature-evidence.cjs --platform macos --tag "$GITHUB_REF_NAME" \
+              --codesign-output release-evidence/codesign-macos.txt \
+              --stapler-output release-evidence/stapler-macos.txt
           fi
-          node scripts/write-signature-evidence.cjs --platform macos --tag "$GITHUB_REF_NAME" $UNSIGNED_FLAG
 
       - name: Remove packaging staging directories
         run: node scripts/clean-release-staging.cjs
@@ -249,18 +259,23 @@ jobs:
             Write-Host "Skipping signature verification for deliberately unsigned build."
             exit 0
           }
+          New-Item -ItemType Directory -Force -Path "release-evidence" | Out-Null
           # Verify the Setup.exe installer
           $setups = Get-ChildItem -Path ".\release\Venice-Forge-*-x64-Setup.exe"
           if ($setups.Count -eq 0) {
             throw "Setup executable not found for signature verification."
           }
+          $statusLines = @()
           foreach ($file in $setups) {
             $sig = Get-AuthenticodeSignature $file.FullName
+            $statusLines += "$($file.Name)=$($sig.Status)"
             if ($sig.Status -ne 'Valid') {
               throw "Invalid Authenticode signature on $($file.Name): $($sig.Status)"
             }
             Write-Host "Valid signature found on $($file.Name)"
           }
+          Set-Content -Path "release-evidence/authenticode-windows.txt" -Value ($statusLines -join [Environment]::NewLine)
+          Set-Content -Path "release-evidence/authenticode-status.txt" -Value "Valid"
           # Verify the portable Windows executable if shipped as a signed
           # production artifact. The portable is currently an unauthenticated
           # wrapper; we still verify the Setup.exe, but the portable is
@@ -283,11 +298,12 @@ jobs:
           RELEASE_ALLOW_UNSIGNED: ${{ vars.RELEASE_ALLOW_UNSIGNED }}
         run: |
           if [[ "$RELEASE_ALLOW_UNSIGNED" == "true" ]]; then
-            UNSIGNED_FLAG="--unsigned"
+            node scripts/write-signature-evidence.cjs --platform windows --tag "$GITHUB_REF_NAME" --unsigned
           else
-            UNSIGNED_FLAG=""
+            node scripts/write-signature-evidence.cjs --platform windows --tag "$GITHUB_REF_NAME" \
+              --authenticode-status Valid \
+              --authenticode-output release-evidence/authenticode-windows.txt
           fi
-          node scripts/write-signature-evidence.cjs --platform windows --tag "$GITHUB_REF_NAME" $UNSIGNED_FLAG
 
       - name: Remove packaging staging directories
         run: node scripts/clean-release-staging.cjs

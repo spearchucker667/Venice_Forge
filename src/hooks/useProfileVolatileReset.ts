@@ -36,7 +36,7 @@ import { useEffect } from "react";
 import { subscribeActiveProfile, getActiveProfileId } from "../services/activeProfile";
 import { useImageWorkspaceStore } from "../stores/image-workspace-store";
 import { useInspectorStore } from "../stores/inspector-store";
-import { useChatStore } from "../stores/chat-store";
+import { hydrateConversationHistory, useChatStore } from "../stores/chat-store";
 import { useWorkflowTemplateStore } from "../stores/workflow-template-store";
 import { useBackgroundTaskStore } from "../stores/background-task-store";
 
@@ -61,6 +61,8 @@ export function resetVolatileProfileState(): void {
     const chat = useChatStore.getState();
     chat.setConversations([]);
     chat.setActiveConversation(null);
+    useChatStore.setState({ _hasLoadedHistory: false });
+    hydrateConversationHistory();
   } catch {
     /* store not yet initialised — ignore */
   }

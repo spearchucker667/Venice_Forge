@@ -446,7 +446,6 @@ export const useChatStore = create<ChatState>()(
         set({
           conversations: cleaned,
           conversationSummaries: cleaned.map(toConversationSummary),
-          _hasLoadedHistory: true,
         });
       },
       setPendingContext: (context) => set({ pendingContext: context }),
@@ -487,7 +486,6 @@ export const useChatStore = create<ChatState>()(
             ...s.conversationSummaries,
           ],
           activeConversationId: id,
-          _hasLoadedHistory: true,
         }));
         markDirtyConversation(id, conv, "structural");
         return id;
@@ -558,7 +556,6 @@ export const useChatStore = create<ChatState>()(
             ...s.conversationSummaries,
           ],
           activeConversationId: id,
-          _hasLoadedHistory: true,
         }));
         markDirtyConversation(id, conv, "structural");
         return id;
@@ -630,7 +627,6 @@ export const useChatStore = create<ChatState>()(
             ...s.conversationSummaries,
           ],
           activeConversationId: id,
-          _hasLoadedHistory: true,
         }));
         markDirtyConversation(id, conv, "structural");
         return id;
@@ -1511,6 +1507,13 @@ let cleanupUnloadListeners: (() => void) | undefined;
  */
 export { cleanupUnloadListeners };
 
+let hydrateConversationHistoryImpl = (): void => {};
+
+/** Re-list vault/IndexedDB conversations. Used after profile switch. */
+export function hydrateConversationHistory(): void {
+  hydrateConversationHistoryImpl();
+}
+
 // Sync conversations with Desktop backend
 if (typeof window !== "undefined") {
   // Load initially on the next microtask. The previous setTimeout(..., 100)
@@ -1529,20 +1532,31 @@ if (typeof window !== "undefined") {
   // below short-circuit cleanly and log the same shape of warning
   // we already use elsewhere so the failure is observable without
   // it escaping asynchronously and poisoning unrelated tests.
+  const applyLoadedHistory = (records: Conversation[]): void => {
+    const state = useChatStore.getState();
+    const byId = new Map<string, Conversation>();
+    for (const record of records) {
+      if (record && typeof record.id === "string") byId.set(record.id, record);
+    }
+    for (const local of state.conversations) {
+      // In-memory conversations may have been created or changed while the
+      // asynchronous history read was in flight. They are the newer authority
+      // for a matching id and must not be replaced by the stale read snapshot.
+      byId.set(local.id, local);
+    }
+    const merged = Array.from(byId.values());
+    useChatStore.setState({
+      conversations: merged,
+      conversationSummaries: merged.map(toConversationSummary),
+      _hasLoadedHistory: true,
+    });
+  };
+
   const loadWebConversations = async (): Promise<void> => {
     try {
       const records =
         await StorageService.getItems<Conversation>("conversations");
-      const state = useChatStore.getState();
-      if (!state._hasLoadedHistory) {
-        // If the store already contains conversations (e.g. a synchronous test
-        // seed or a createConversation call that beat the async load), keep the
-        // in-memory state and just mark history as loaded. This prevents the
-        // bootstrap from racing with callers that bypass setConversations().
-        state.setConversations(
-          state.conversations.length === 0 ? records : state.conversations,
-        );
-      }
+      applyLoadedHistory(records);
     } catch (err) {
       logger.error(
         "[chat] web conversations bootstrap failed",
@@ -1573,9 +1587,9 @@ if (typeof window !== "undefined") {
             }
           | undefined;
         if (!result) return;
-        if (!useChatStore.getState()._hasLoadedHistory && result.ok) {
-          const records = result.records ?? result.conversations ?? [];
-          useChatStore.getState().setConversations(records as never);
+        if (result.ok) {
+          const records = (result.records ?? result.conversations ?? []) as Conversation[];
+          applyLoadedHistory(records);
         } else if (!result.ok) {
           logger.error(`[chat] ${namespace}.list failed`, result.error);
         }
@@ -1594,7 +1608,7 @@ if (typeof window !== "undefined") {
       },
     );
   };
-  queueMicrotask(() => {
+  hydrateConversationHistoryImpl = () => {
     if (!isElectron()) {
       void loadWebConversations();
       return;
@@ -1604,11 +1618,14 @@ if (typeof window !== "undefined") {
       .finally(() => {
         // Legacy fallback: if the new conversation vault failed or is
         // unavailable (e.g. an older desktop build without the vault IPC),
-        // hydrate from the legacy chat namespace. The _hasLoadedHistory
-        // guard prevents overwriting a successful vault load.
+        // hydrate from the legacy chat namespace. Merge-by-id keeps in-memory
+        // creates that beat the list.
         return safeList("legacy", desktopChat as { list?: unknown });
       })
       .catch((err) => logger.error("[chat] legacy bootstrap threw", err));
+  };
+  queueMicrotask(() => {
+    hydrateConversationHistoryImpl();
   });
 
   // Flush explicit O(1) dirty entries on unload. Durable actions call

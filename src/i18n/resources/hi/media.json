@@ -132,9 +132,9 @@
     "enhancementProviderError": "आंतरिक एन्हांसर Venice अनुरोध तक नहीं पहुंच सका या उसे पूरा नहीं कर सका। आपका मूल प्रॉम्प्ट रखा गया था।",
     "enhancementInvalidOutput": "आंतरिक एन्हांसर ने एक भी उपयोग योग्य छवि प्रॉम्प्ट नहीं लौटाया। आपका मूल प्रॉम्प्ट रखा गया था।",
     "enhancementSafetyBlocked": "प्रॉम्प्ट सुधार को अनिवार्य बाल-सुरक्षा उपायों ने रोक दिया। ये वैकल्पिक सुरक्षित मोड सेटिंग से अलग हैं। आपका मूल प्रॉम्प्ट सुरक्षित रखा गया है।",
-    "enhancementSafetyBlockedMandatory": "Tr: Prompt enhancement was stopped by mandatory child-safety protections, which are separate from optional Safe Mode settings. Your original prompt was kept.",
-    "enhancementSafetyBlockedFamily": "Tr: Prompt enhancement was stopped by optional Family Safe Mode. Your original prompt was kept.",
-    "enhancementSafetyBlockedProvider": "Tr: Prompt enhancement was stopped by provider policy. Your original prompt was kept.",
+    "enhancementSafetyBlockedMandatory": "प्रॉम्प्ट संवर्धन अनिवार्य बाल-सुरक्षा सुरक्षाओं द्वारा रोका गया, जो वैकल्पिक सेफ़ मोड सेटिंग्स से अलग हैं। आपका मूल प्रॉम्प्ट रखा गया।",
+    "enhancementSafetyBlockedFamily": "प्रॉम्प्ट संवर्धन वैकल्पिक फ़ैमिली सेफ़ मोड द्वारा रोका गया। आपका मूल प्रॉम्प्ट रखा गया।",
+    "enhancementSafetyBlockedProvider": "प्रॉम्प्ट संवर्धन प्रदाता नीति द्वारा रोका गया। आपका मूल प्रॉम्प्ट रखा गया।",
     "styleReferences": "शैली संदर्भ",
     "styleReferenceHelp": "अधिकतम {{count}} PNG, JPEG या WebP संदर्भ चित्र जोड़ें। संदर्भ केवल उन मॉडलों को भेजे जाते हैं जो रनटाइम समर्थन घोषित करते हैं।",
     "addStyleReferenceImages": "शैली संदर्भ चित्र जोड़ें",
@@ -152,13 +152,13 @@
     "styleReferenceTooLarge": "शैली संदर्भ चित्र 8 MB से छोटे होने चाहिए।"
   },
   "contextMenu": {
-    "saveAs": "Tr: Save As…",
-    "copyImage": "Tr: Copy image",
-    "openInInspector": "Tr: Open in Inspector",
-    "sendToImageTools": "Tr: Send to Image Tools",
-    "sendToCharacterCreator": "Tr: Send to Character Creator",
-    "saveToMediaStudio": "Tr: Save to Media Studio",
-    "revealInFinder": "Tr: Reveal in Finder",
-    "removeFromChat": "Tr: Remove from chat"
+    "saveAs": "इस रूप में सहेजें…",
+    "copyImage": "छवि कॉपी करें",
+    "openInInspector": "इंस्पेक्टर में खोलें",
+    "sendToImageTools": "इमेज टूल पर भेजें",
+    "sendToCharacterCreator": "कैरेक्टर क्रिएटर पर भेजें",
+    "saveToMediaStudio": "मीडिया स्टूडियो में सहेजें",
+    "revealInFinder": "Finder में दिखाएँ",
+    "removeFromChat": "चैट से हटाएँ"
   }
 }

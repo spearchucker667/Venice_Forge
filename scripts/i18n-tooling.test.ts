@@ -270,6 +270,25 @@ describe("verify-i18n sentinel + missing-marker rejection", () => {
     expect(result.coverageResults.fr.translated).toBe(2);
   });
 
+  it("rejects Tr: scaffolding as a sentinel", () => {
+    const root = makeProject({
+      "en-US": { common: '{ "saveAs": "Save As…" }' },
+      es: { common: '{ "saveAs": "Tr: Save As…" }' },
+    });
+    const result = verifier.runVerification({
+      locales: ["en-US", "es"],
+      namespaces: ["common"],
+      resourcesDir: path.join(root, "src", "i18n", "resources"),
+      docsDir: path.join(root, "docs", "i18n"),
+      docsRequired: [],
+      skipSourceInventory: true,
+      nativeReviewStatus: { locales: {} },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => /sentinel/i.test(e) && /es/.test(e))).toBe(true);
+    expect(result.coverageResults.es.sentinelValues).toBe(1);
+  });
+
   it("rejects __MISSING__ markers with strict defaults", () => {
     const root = makeProject({
       "en-US": { common: '{ "save": "Save" }' },

@@ -41,8 +41,7 @@ describe('normalizeVideoRetrieveResult', () => {
       progressRatio: 0.5,
     })
     expect(normalizeVideoRetrieveResult({ status: 'COMPLETED' })).toEqual({
-      kind: 'failed',
-      error: 'Video completed without a playable video response.',
+      kind: 'needs-binary',
     })
   })
 

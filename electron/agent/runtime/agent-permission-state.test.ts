@@ -14,8 +14,8 @@ function sender(id: number): WebContents {
 describe("main-owned Document Agent permission state", () => {
   beforeEach(() => __resetAgentPermissionStateForTests());
 
-  it("defaults unknown renderer sessions to limited_documents", () => {
-    expect(getEffectiveAgentPermissionPreset(sender(1), "profile-a", "agent-1")).toBe("limited_documents");
+  it("defaults unknown renderer sessions to off", () => {
+    expect(getEffectiveAgentPermissionPreset(sender(1), "profile-a", "agent-1")).toBe("off");
   });
 
   it("applies a validated user-intent transition only to the owning sender, profile, and agent session", () => {
@@ -24,9 +24,9 @@ describe("main-owned Document Agent permission state", () => {
     setEffectiveAgentPermissionPreset(owner, "profile-a", "agent-1", "workspace_with_approval");
 
     expect(getEffectiveAgentPermissionPreset(owner, "profile-a", "agent-1")).toBe("workspace_with_approval");
-    expect(getEffectiveAgentPermissionPreset(owner, "profile-b", "agent-1")).toBe("limited_documents");
-    expect(getEffectiveAgentPermissionPreset(owner, "profile-a", "agent-2")).toBe("limited_documents");
-    expect(getEffectiveAgentPermissionPreset(other, "profile-a", "agent-1")).toBe("limited_documents");
+    expect(getEffectiveAgentPermissionPreset(owner, "profile-b", "agent-1")).toBe("off");
+    expect(getEffectiveAgentPermissionPreset(owner, "profile-a", "agent-2")).toBe("off");
+    expect(getEffectiveAgentPermissionPreset(other, "profile-a", "agent-1")).toBe("off");
   });
 
   it("rejects malformed sessions and unknown presets", () => {

@@ -63,7 +63,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### API & Network Contracts
 
-- [reference/Venice_swagger_api.yaml](reference/Venice_swagger_api.yaml) — Authoritative local OpenAPI snapshot (`20260821.193530`) for Venice API requests/responses.
+- [reference/Venice_swagger_api.yaml](reference/Venice_swagger_api.yaml) — Authoritative local OpenAPI snapshot (`20260911.010226`) for Venice API requests/responses.
 - [reference/Venice_api_LLM_info.md](reference/Venice_api_LLM_info.md) — Venice-provided LLM integration reference.
 - [reference/VENICE_API_SYSTEM_PROMPT.md](reference/VENICE_API_SYSTEM_PROMPT.md) — Core system prompt for AI agents integrating with the Venice API.
 - [reference/VENICE_API_SOURCE_MANIFEST.md](reference/VENICE_API_SOURCE_MANIFEST.md) — Upstream API documentation mirror provenance and sync contract.
@@ -185,6 +185,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Audit Evidence
 
+- [audits/venice-forge-exhaustive-audit-2026-09-11/README.md](audits/venice-forge-exhaustive-audit-2026-09-11/README.md) — 2026-09-11 current-worktree audit, six resolved follow-up findings, and local/package validation evidence for baseline SHA `c3ae21af`. External acceptance remains in `ROADMAP.md`.
+- [audits/venice-forge-exhaustive-audit-2026-09-10/README.md](audits/venice-forge-exhaustive-audit-2026-09-10/README.md) — 2026-09-10 exhaustive current-`main` audit package (SHA `c3ae21af`). Evidence only; remaining work is in `ROADMAP.md`.
 - [audits/repository-hygiene-audit.md](audits/repository-hygiene-audit.md) — 2026-09-01 repository hygiene inventory and keep/remove rationale.
 - [audits/repository-hygiene-final-report.md](audits/repository-hygiene-final-report.md) — 2026-09-01 hygiene execution report.
 - [audits/Records/Function_calling_todo.md](audits/Records/Function_calling_todo.md) — Implementation/acceptance specification referenced by roadmap; not a checkbox ledger.

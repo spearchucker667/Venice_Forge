@@ -33,6 +33,9 @@ vi.mock("../services/syncBridge", () => ({
   emitSyncPacket: vi.fn(async () => undefined),
   emitSyncTombstone: vi.fn(async () => undefined),
 }));
+vi.mock("../services/profileSession", () => ({
+  getProfileSessionId: vi.fn(() => "default"),
+}));
 
 const trustedEvent = { senderFrame: { url: "http://localhost:5173" } } as any;
 
@@ -98,7 +101,7 @@ describe("rpHandlers", () => {
     const result = await handler(trustedEvent, { card, origin: "local-user" });
 
     expect(result).toMatchObject({ ok: true, card: { id: "card-1" } });
-    expect(characterCardStorage.saveCharacterCard).toHaveBeenCalledWith(card);
+    expect(characterCardStorage.saveCharacterCard).toHaveBeenCalledWith(card, "default");
     expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith("character_cards", "card-1", card, "local-user");
   });
 
@@ -112,7 +115,7 @@ describe("rpHandlers", () => {
     const result = await handler(trustedEvent, { persona, origin: "remote-sync" });
 
     expect(result).toMatchObject({ ok: true, persona });
-    expect(personaStore.save).toHaveBeenCalledWith(persona);
+    expect(personaStore.save).toHaveBeenCalledWith(persona, "default");
     expect(syncBridge.emitSyncPacket).not.toHaveBeenCalled();
   });
 
@@ -177,7 +180,7 @@ describe("rpHandlers", () => {
 
     const result = await handler(trustedEvent, { id: "persona-1", origin: "local-user" });
     expect(result.ok).toBe(true);
-    expect(personaStore.remove).toHaveBeenCalledWith("persona-1");
+    expect(personaStore.remove).toHaveBeenCalledWith("persona-1", "default");
   });
 
   describe("origin-aware sync emission", () => {

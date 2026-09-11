@@ -38,10 +38,10 @@ export function getEffectiveAgentPermissionPreset(
   profileId: string,
   agentSessionId?: string,
 ): AgentPermissionPreset {
-  if (!agentSessionId) return "limited_documents";
+  if (!agentSessionId) return "off";
   validateAgentSessionId(agentSessionId);
   const record = state.get(sender)?.get(agentSessionId);
-  return record?.profileId === profileId ? record.preset : "limited_documents";
+  return record?.profileId === profileId ? record.preset : "off";
 }
 
 export function __resetAgentPermissionStateForTests(): void {

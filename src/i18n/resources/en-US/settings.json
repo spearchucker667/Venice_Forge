@@ -393,8 +393,11 @@
     "removePassword": {
       "title": "Remove profile password?",
       "detail": "\"{{name}}\" will no longer require unlock before switching.",
-      "action": "Remove"
+      "action": "Remove",
+      "confirmTitle": "Enter current password",
+      "confirmDetail": "Removing the lock requires the current profile password."
     },
+    "passwordPlaceholder": "Password",
     "errors": {
       "removeFailed": "Failed to remove profile password",
       "tooShort": "Password too short (min {{min}} characters)",

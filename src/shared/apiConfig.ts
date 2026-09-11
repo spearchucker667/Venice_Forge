@@ -11,6 +11,8 @@ import { AppConfig, parsePositiveInt } from "./configSchema";
 export const VENICE_API_HOST = AppConfig.VENICE_API_HOST;
 export const VENICE_API_BASE_PATH = AppConfig.VENICE_API_BASE_PATH;
 export const VENICE_API_TIMEOUT_MS = AppConfig.VENICE_API_TIMEOUT_MS;
+/** Chat SSE lifetime shared by Electron, Express proxy, and renderer. */
+export const VENICE_API_STREAM_TIMEOUT_MS = AppConfig.VENICE_API_STREAM_TIMEOUT_MS;
 export const parsePositiveIntEnv = parsePositiveInt;
 
 /** Base path for the local development proxy. */

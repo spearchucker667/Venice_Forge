@@ -206,19 +206,24 @@ export function registerDocumentAgentHandlers(): void {
   });
 
   registerPrivilegedIpcChannel("documentAgent:approvals:decide", async (event, input: unknown) => {
+    let consumedApprovalId: string | null = null;
     try {
       const value = record(input);
       const decision = stringField(value, "decision", 10);
       if (decision !== "approve" && decision !== "reject") throw new Error("Invalid approval decision.");
       const decided = await approvals.decide({ pendingApprovalId: stringField(value, "pendingApprovalId", 128), proposalHash: stringField(value, "proposalHash", 128), decision });
       if (decision === "reject") return { ok: true, rejected: true };
+      consumedApprovalId = decided.approval.id;
       const plan = decided.privateExecutionPlan;
       if (!isDocumentEditPlan(plan) && !isDocumentRestorePlan(plan) && !isDocumentExportPlan(plan) && !isWorkspaceChangesetPlan(plan) && !isWorkspaceMovePlan(plan) && !isWorkspaceTrashPlan(plan) && !isGenerateImagePlan(plan)) throw new Error("Invalid stored execution plan.");
       if (plan.profileId !== getProfileSessionId(event.sender)) throw new Error("APPROVAL_MISMATCH");
 
       if (isGenerateImagePlan(plan)) {
         const result = await executeApprovedGenerateImagePlan(plan);
-        if (!result.ok) return { ok: false, error: result.error };
+        if (!result.ok) {
+          await approvals.restoreConsumed(consumedApprovalId).catch(() => undefined);
+          return { ok: false, error: result.error };
+        }
         await audit.record({ sessionId: rendererSession(event.sender.id), toolName: "media.generateImage", outcome: "execution", resourceIds: [result.chatRef.mediaId] });
         return { ok: true, chatRef: result.chatRef, task: result.task };
       }
@@ -232,7 +237,11 @@ export function registerDocumentAgentHandlers(): void {
       }
 
       if (isDocumentExportPlan(plan)) {
-        return executeDocumentExport(event.sender, event.senderFrame, plan);
+        const exported = await executeDocumentExport(event.sender, event.senderFrame, plan);
+        if (exported.ok && exported.canceled) {
+          await approvals.restoreConsumed(consumedApprovalId).catch(() => undefined);
+        }
+        return exported;
       }
 
       const session = rendererSession(event.sender.id, plan.agentSessionId);
@@ -252,8 +261,12 @@ export function registerDocumentAgentHandlers(): void {
         await audit.record({ sessionId: session, toolName: "workspace.trash", outcome: "execution", resourceIds: [plan.relativePath], metadata: { recoveryId: recovery.id } });
         return { ok: true, recovery };
       }
+      await approvals.restoreConsumed(consumedApprovalId).catch(() => undefined);
       return { ok: false };
-    } catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
+    } catch (error) {
+      if (consumedApprovalId) await approvals.restoreConsumed(consumedApprovalId).catch(() => undefined);
+      return { ok: false, error: redactErrorMessage(error) };
+    }
   });
 
   registerPrivilegedIpcChannel("documentAgent:documents:proposeRestore", async (event, input: unknown) => {
@@ -281,8 +294,18 @@ export function registerDocumentAgentHandlers(): void {
 
   registerPrivilegedIpcChannel("documentAgent:approvals:list", async (event) => {
     try {
-      const grantId = `limited:${getProfileSessionId(event.sender)}`;
-      return { ok: true, pending: (await approvals.listPendingWithViews()).filter((entry) => entry.approval.grantId === grantId) };
+      const profileId = getProfileSessionId(event.sender);
+      const sessionFamily = rendererSession(event.sender.id);
+      const pending = (await approvals.listPendingWithViews()).filter((entry) => {
+        const grantId = entry.approval.grantId;
+        return (
+          grantId === `limited:${profileId}` ||
+          grantId === `media:${profileId}` ||
+          (grantId.startsWith("grant_") &&
+            workspaceGrants.isOwnedBySessionFamily(grantId, sessionFamily))
+        );
+      });
+      return { ok: true, pending };
     }
     catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
   });

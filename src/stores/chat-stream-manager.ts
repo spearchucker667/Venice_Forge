@@ -37,8 +37,18 @@ type StreamChunk = VeniceStreamDelta;
 const MAX_STREAM_RETRIES = 2;
 const RETRYABLE_STATUSES = [408, 429, 500, 502, 503, 504];
 
+function isAbortError(err: unknown): boolean {
+  if (err instanceof DOMException && err.name === "AbortError") return true;
+  if (typeof err === "object" && err !== null && "name" in err && (err as { name?: string }).name === "AbortError") return true;
+  if (err instanceof Error) {
+    const message = err.message;
+    if (message === "Aborted" || message === "Request aborted" || message === "The operation was aborted.") return true;
+  }
+  return false;
+}
+
 function isRetryableError(err: unknown): boolean {
-  if (err instanceof DOMException && err.name === "AbortError") return false;
+  if (isAbortError(err)) return false;
   if (typeof err === "object" && err !== null && "status" in err) {
     const status = (err as Record<string, unknown>).status;
     if (typeof status === "number" && RETRYABLE_STATUSES.includes(status)) return true;
@@ -121,8 +131,10 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
   }
   baseBody.venice_parameters = {
     ...veniceParamsForRequest,
-    enable_document_tools: docAgentState.preset !== "off" && docAgentState.preset !== "read_attachments",
   };
+  if (baseBody.venice_parameters && typeof baseBody.venice_parameters === "object") {
+    delete (baseBody.venice_parameters as { enable_document_tools?: boolean }).enable_document_tools;
+  }
 
   return applyVeniceApiSafeMode(
     "/chat/completions",
@@ -271,7 +283,7 @@ export async function startStream(
         return { aborted: false };
       } catch (err) {
         flushStreamDelta(convId);
-        if (err instanceof DOMException && err.name === "AbortError") {
+        if (isAbortError(err)) {
           return { aborted: true };
         }
         

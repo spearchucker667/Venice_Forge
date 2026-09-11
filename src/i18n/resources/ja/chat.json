@@ -58,7 +58,7 @@
     "xSearch": "X検索",
     "searchInStream": "ストリーム内を検索",
     "documentTools": "ドキュメントツール",
-    "documentToolsUnavailableTitle": "Tr: The active model does not support function calling, so tools cannot be sent with this chat.",
+    "documentToolsUnavailableTitle": "現在のモデルは関数呼び出しに対応していないため、このチャットにツールを送信できません。",
     "newChatShortcut": "新しいチャット (⌘N)",
     "systemPromptPlaceholder": "オプション。アプリ作成のシステム メッセージの追加を避けるには、空のままにします。",
     "temperature": "温度",
@@ -75,6 +75,6 @@
     }
   },
   "stream": {
-    "retryingFromCheckpoint": "Tr: Stream dropped. Retrying from checkpoint"
+    "retryingFromCheckpoint": "ストリームが切断されました。チェックポイントから再試行します"
   }
 }

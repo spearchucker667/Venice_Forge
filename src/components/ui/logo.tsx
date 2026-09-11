@@ -6,17 +6,19 @@ export function VeniceLogo({
   size = 24,
 }: {
   className?: string;
-  size?: number;
+  size?: 20 | 24 | 26 | 32;
 }) {
   const { t: tRuntime } = useTranslation("common");
   return (
-    <img
-      src="assets/branding/venice-keys-white.svg"
-      className={cn("shrink-0", className)}
-      width={size}
-      height={size}
-      alt={tRuntime(
+    <span
+      role="img"
+      aria-label={tRuntime(
         "runtimeGenerated.components.ui.logo.attribute.veniceForgeLogo",
+      )}
+      className={cn(
+        "venice-logo inline-block shrink-0 bg-current text-text-primary",
+        `venice-logo--${size}`,
+        className,
       )}
     />
   );

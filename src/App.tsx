@@ -337,11 +337,13 @@ export function App() {
       {firstRunAcked && !globalOnboardingCompleted && <OnboardingSplash />}
       <Toaster />
       <ModalRequestHost />
-      <CommandPalette
-        open={cmdPaletteOpen}
-        onClose={() => setCmdPaletteOpen(false)}
-        onToggle={() => setCmdPaletteOpen((value) => !value)}
-      />
+      {firstRunAcked && globalOnboardingCompleted ? (
+        <CommandPalette
+          open={cmdPaletteOpen}
+          onClose={() => setCmdPaletteOpen(false)}
+          onToggle={() => setCmdPaletteOpen((value) => !value)}
+        />
+      ) : null}
       <DiagnosticsDrawer />
       <TaskCenterDrawer />
     </div>

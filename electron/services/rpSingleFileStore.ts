@@ -4,13 +4,13 @@
  * Windows-safe validator.
  */
 
-import { app } from "electron";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import { logError, logInfo } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { isValidId as isCanonicalValidId } from "../../src/utils/idValidation";
+import { ensureRpProfileDir, getRpProfileDir } from "./rpProfilePaths";
 
 const TMP_SUFFIX = ".tmp";
 const MAX_SCAN_FILES = 4000;
@@ -30,11 +30,11 @@ export function createSingleFileStore<T>(
   dirName: string,
   validate: (obj: unknown) => obj is T
 ) {
-  const dir = () => path.join(app.getPath("userData"), dirName);
-  const fileFor = (id: string) => path.join(dir(), `${id}.json`);
+  const dir = (profileId: string = "default") => getRpProfileDir(profileId, dirName);
+  const fileFor = (id: string, profileId: string = "default") => path.join(dir(profileId), `${id}.json`);
 
-  async function list(): Promise<{ items: T[]; truncated: boolean; totalScanned: number }> {
-    const base = dir();
+  async function list(profileId: string = "default"): Promise<{ items: T[]; truncated: boolean; totalScanned: number }> {
+    const base = await ensureRpProfileDir(profileId, dirName);
     const names: string[] = [];
     let handle: Awaited<ReturnType<typeof fs.opendir>>;
     try {
@@ -63,15 +63,15 @@ export function createSingleFileStore<T>(
     }
     const items: T[] = [];
     for (const id of names.slice(0, MAX_LOAD_FILES)) {
-      const item = await read(id);
+      const item = await read(id, profileId);
       if (item) items.push(item);
     }
     return { items, truncated: names.length > MAX_LOAD_FILES, totalScanned: names.length };
   }
 
-  async function read(id: string): Promise<T | null> {
+  async function read(id: string, profileId: string = "default"): Promise<T | null> {
     if (!isValidId(id)) return null;
-    const file = fileFor(id);
+    const file = fileFor(id, profileId);
     try {
       const raw = await fs.readFile(file, "utf-8");
       const parsed = JSON.parse(raw) as unknown;
@@ -91,22 +91,22 @@ export function createSingleFileStore<T>(
     }
   }
 
-  async function save(input: unknown): Promise<{ ok: boolean; error?: string }> {
+  async function save(input: unknown, profileId: string = "default"): Promise<{ ok: boolean; error?: string }> {
     if (!validate(input)) return { ok: false, error: "schema validation failed" };
     const id = (input as { id?: unknown }).id;
     if (!isValidId(id)) return { ok: false, error: "invalid id" };
-    await fs.mkdir(dir(), { recursive: true });
-    const target = fileFor(id);
+    await ensureRpProfileDir(profileId, dirName);
+    const target = fileFor(id, profileId);
     const tmp = `${target}${TMP_SUFFIX}`;
     await fs.writeFile(tmp, JSON.stringify(input, null, 2), { mode: 0o600 });
     await fs.rename(tmp, target);
     return { ok: true };
   }
 
-  async function remove(id: string): Promise<{ ok: boolean; error?: string }> {
+  async function remove(id: string, profileId: string = "default"): Promise<{ ok: boolean; error?: string }> {
     if (!isValidId(id)) return { ok: false, error: "invalid id" };
     try {
-      await fs.unlink(fileFor(id));
+      await fs.unlink(fileFor(id, profileId));
       return { ok: true };
     } catch (err) {
       if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {

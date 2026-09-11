@@ -86,6 +86,38 @@ describe("veniceClient web regressions", () => {
     );
   });
 
+  it("fails closed on provider SSE error frames before [DONE]", async () => {
+    const encoder = new TextEncoder();
+    const frames = [
+      encoder.encode('data: {"error":{"message":"quota"}}\n\n'),
+      encoder.encode("data: [DONE]\n\n"),
+    ];
+    let index = 0;
+    const mockReader = {
+      read: async () => {
+        if (index < frames.length) {
+          return { done: false, value: frames[index++] };
+        }
+        return { done: true, value: undefined };
+      },
+      cancel: async () => undefined,
+      releaseLock: () => {},
+    };
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      body: { getReader: () => mockReader },
+    } as unknown as Response);
+
+    await expect(
+      veniceStreamChat(
+        { model: "venice-uncensored", messages: [] },
+        { onDelta: vi.fn() },
+      ),
+    ).rejects.toThrow(/quota/i);
+  });
+
   it("blocks CSAM payloads from being sent via veniceFetch", async () => {
     const dispatch = vi.fn() as unknown as AppDispatch;
     globalThis.fetch = vi.fn(); // Should not be called

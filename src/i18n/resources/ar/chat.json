@@ -58,7 +58,7 @@
     "xSearch": "بحث X",
     "searchInStream": "البحث في الدفق",
     "documentTools": "أدوات الوثيقة",
-    "documentToolsUnavailableTitle": "Tr: The active model does not support function calling, so tools cannot be sent with this chat.",
+    "documentToolsUnavailableTitle": "النموذج النشط لا يدعم استدعاء الدوال، لذا لا يمكن إرسال الأدوات مع هذه المحادثة.",
     "newChatShortcut": "دردشة جديدة (⌘N)",
     "systemPromptPlaceholder": "خياري. اتركه فارغًا لتجنب إضافة رسالة نظام مؤلفة من خلال التطبيق.",
     "temperature": "درجة حرارة",
@@ -75,6 +75,6 @@
     }
   },
   "stream": {
-    "retryingFromCheckpoint": "Tr: Stream dropped. Retrying from checkpoint"
+    "retryingFromCheckpoint": "انقطع البث. إعادة المحاولة من نقطة التحقق"
   }
 }

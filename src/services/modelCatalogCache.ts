@@ -43,3 +43,7 @@ export function mergeCanonicalModels(type: string, models: readonly ModelInfo[])
 export function getCanonicalModelById(modelId: string): ModelInfo | undefined {
   return canonicalModels.get(modelId);
 }
+
+export function hasCanonicalModelCatalog(): boolean {
+  return canonicalModels.size > 0;
+}

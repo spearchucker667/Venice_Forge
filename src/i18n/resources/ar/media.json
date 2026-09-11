@@ -132,9 +132,9 @@
     "enhancementProviderError": "تعذر على المحسن الداخلي الوصول إلى طلب Venice أو إكماله. تم الاحتفاظ بمطالبتك الأصلية.",
     "enhancementInvalidOutput": "لم يُرجع المحسن الداخلي مطالبة صورة واحدة قابلة للاستخدام. تم الاحتفاظ بمطالبتك الأصلية.",
     "enhancementSafetyBlocked": "تم إيقاف تحسين المطالبة بواسطة وسائل حماية سلامة الأطفال الإلزامية، وهي منفصلة عن إعدادات الوضع الآمن الاختيارية. تم الاحتفاظ بمطالبتك الأصلية.",
-    "enhancementSafetyBlockedMandatory": "Tr: Prompt enhancement was stopped by mandatory child-safety protections, which are separate from optional Safe Mode settings. Your original prompt was kept.",
-    "enhancementSafetyBlockedFamily": "Tr: Prompt enhancement was stopped by optional Family Safe Mode. Your original prompt was kept.",
-    "enhancementSafetyBlockedProvider": "Tr: Prompt enhancement was stopped by provider policy. Your original prompt was kept.",
+    "enhancementSafetyBlockedMandatory": "أُوقف تحسين المطالبة بواسطة حماية سلامة الأطفال الإلزامية، وهي منفصلة عن إعدادات الوضع الآمن الاختيارية. تم الاحتفاظ بمطالبتك الأصلية.",
+    "enhancementSafetyBlockedFamily": "أُوقف تحسين المطالبة بواسطة وضع الأسرة الآمن الاختياري. تم الاحتفاظ بمطالبتك الأصلية.",
+    "enhancementSafetyBlockedProvider": "أُوقف تحسين المطالبة بواسطة سياسة المزوّد. تم الاحتفاظ بمطالبتك الأصلية.",
     "styleReferences": "مراجع النمط",
     "styleReferenceHelp": "أضف ما يصل إلى {{count}} صور مرجعية بصيغة PNG أو JPEG أو WebP. لا تُرسل المراجع إلا إلى النماذج التي تعلن دعمها وقت التشغيل.",
     "addStyleReferenceImages": "إضافة صور مرجعية للنمط",
@@ -152,13 +152,13 @@
     "styleReferenceTooLarge": "يجب أن يكون حجم صور مراجع النمط أقل من 8 ميغابايت."
   },
   "contextMenu": {
-    "saveAs": "Tr: Save As…",
-    "copyImage": "Tr: Copy image",
-    "openInInspector": "Tr: Open in Inspector",
-    "sendToImageTools": "Tr: Send to Image Tools",
-    "sendToCharacterCreator": "Tr: Send to Character Creator",
-    "saveToMediaStudio": "Tr: Save to Media Studio",
-    "revealInFinder": "Tr: Reveal in Finder",
-    "removeFromChat": "Tr: Remove from chat"
+    "saveAs": "حفظ باسم…",
+    "copyImage": "نسخ الصورة",
+    "openInInspector": "فتح في المفتش",
+    "sendToImageTools": "إرسال إلى أدوات الصور",
+    "sendToCharacterCreator": "إرسال إلى منشئ الشخصيات",
+    "saveToMediaStudio": "حفظ في Media Studio",
+    "revealInFinder": "إظهار في Finder",
+    "removeFromChat": "إزالة من المحادثة"
   }
 }

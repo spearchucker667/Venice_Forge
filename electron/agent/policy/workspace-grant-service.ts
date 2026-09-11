@@ -8,6 +8,10 @@ const DEFAULT_EXTENSIONS = [".md", ".txt", ".json", ".html", ".csv", ".docx", ".
 export class WorkspaceGrantService {
   private readonly grants = new Map<string, WorkspaceGrant>();
 
+  private static sessionBelongsToFamily(sessionId: string, rootSessionId: string): boolean {
+    return sessionId === rootSessionId || sessionId.startsWith(`${rootSessionId}:agent_`);
+  }
+
   async issue(input: {
     sessionId: string;
     rootPath: string;
@@ -54,6 +58,15 @@ export class WorkspaceGrantService {
     return grant ? structuredClone(grant) : null;
   }
 
+  isOwnedBySessionFamily(grantId: string, rootSessionId: string): boolean {
+    const grant = this.grants.get(grantId);
+    return Boolean(
+      grant &&
+      (!grant.expiresAt || Date.parse(grant.expiresAt) > Date.now()) &&
+      WorkspaceGrantService.sessionBelongsToFamily(grant.sessionId, rootSessionId),
+    );
+  }
+
   revoke(grantId: string, sessionId: string): boolean {
     const grant = this.grants.get(grantId);
     return Boolean(grant && grant.sessionId === sessionId && this.grants.delete(grantId));
@@ -61,5 +74,13 @@ export class WorkspaceGrantService {
 
   revokeSession(sessionId: string): void {
     for (const [id, grant] of this.grants) if (grant.sessionId === sessionId) this.grants.delete(id);
+  }
+
+  revokeSessionFamily(rootSessionId: string): void {
+    for (const [id, grant] of this.grants) {
+      if (WorkspaceGrantService.sessionBelongsToFamily(grant.sessionId, rootSessionId)) {
+        this.grants.delete(id);
+      }
+    }
   }
 }

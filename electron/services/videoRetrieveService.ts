@@ -208,13 +208,16 @@ export async function retrieveVideoQueueResult(input: {
   }
 }
 
-async function runVideoQueueResult(input: {
-  queueId: string
-  model: string
-  profileId: string
-  queueDownloadUrl?: string
-  onStage?: (stage: VideoRetrieveStage) => void | Promise<void>
-}): Promise<VideoRetrieveResult> {
+async function runVideoQueueResult(
+  input: {
+    queueId: string
+    model: string
+    profileId: string
+    queueDownloadUrl?: string
+    onStage?: (stage: VideoRetrieveStage) => void | Promise<void>
+  },
+  options: { preferBinary?: boolean } = {},
+): Promise<VideoRetrieveResult> {
 
     const apiKey = getApiKey(input.profileId)
     if (!apiKey) throw new VideoRetrieveError('Venice API key is not configured.', false, 401)
@@ -233,7 +236,7 @@ async function runVideoQueueResult(input: {
         timeout: VENICE_API_TIMEOUT_MS,
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          Accept: 'application/json, video/mp4',
+          Accept: options.preferBinary ? 'video/mp4' : 'application/json, video/mp4',
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(body),
           'User-Agent': `VeniceForge/${app.getVersion()}`,
@@ -281,6 +284,14 @@ async function runVideoQueueResult(input: {
           const normalized = normalizeVideoRetrieveResult(payload, headers, input.queueDownloadUrl)
           if (normalized.kind === 'processing') return resolve({ kind: 'processing', progressRatio: normalized.progressRatio })
           if (normalized.kind === 'failed') return resolve({ kind: 'failed', error: normalized.error, retryable: false })
+          if (normalized.kind === 'needs-binary') {
+            if (!options.preferBinary) {
+              void runVideoQueueResult(input, { preferBinary: true }).then(resolve, reject)
+              return
+            }
+            reject(new VideoRetrieveError('Video completed without a playable video response.', false))
+            return
+          }
 
           /** Screen an in-memory buffer through FSM before it is persisted. */
           const screenVideoBuffer = async (buffer: Buffer, mimeType: string): Promise<VideoRetrieveError | null> => {
@@ -323,6 +334,10 @@ async function runVideoQueueResult(input: {
             const media = await persistGeneratedMedia(buffer, normalized.mimeType)
               .catch((error: unknown) => { throw classifyMediaFailure(error) })
             return resolve({ kind: 'completed', media })
+          }
+          if (!options.preferBinary) {
+            void runVideoQueueResult(input, { preferBinary: true }).then(resolve, reject)
+            return
           }
           reject(new VideoRetrieveError('Video retrieval returned inline media instead of a stream.', false))
         }, reject).catch(reject)

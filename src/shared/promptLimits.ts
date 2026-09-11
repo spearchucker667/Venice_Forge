@@ -105,19 +105,33 @@ export function checkSystemPromptLimit(systemPrompt: string): PromptLimitResult 
   };
 }
 
+/** Pulls user-visible text from string or multimodal array `content`. */
+export function extractPromptContentText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  const parts: string[] = [];
+  for (const part of content) {
+    if (typeof part === "string") {
+      parts.push(part);
+      continue;
+    }
+    if (!part || typeof part !== "object") continue;
+    const record = part as Record<string, unknown>;
+    if (typeof record.text === "string") parts.push(record.text);
+  }
+  return parts.join("");
+}
+
 /** Validates the complete system-message block so split messages cannot bypass policy. */
 export function checkSystemPromptMessages(messages: unknown): PromptLimitResult | undefined {
   if (!Array.isArray(messages)) return undefined;
   const systemParts: string[] = [];
   for (const message of messages) {
-    if (
-      message &&
-      typeof message === "object" &&
-      (message as Record<string, unknown>).role === "system" &&
-      typeof (message as Record<string, unknown>).content === "string"
-    ) {
-      systemParts.push((message as Record<string, unknown>).content as string);
-    }
+    if (!message || typeof message !== "object") continue;
+    const record = message as Record<string, unknown>;
+    if (record.role !== "system") continue;
+    const text = extractPromptContentText(record.content);
+    if (text.length > 0) systemParts.push(text);
   }
   return systemParts.length > 0
     ? checkSystemPromptLimit(systemParts.join("\n\n"))

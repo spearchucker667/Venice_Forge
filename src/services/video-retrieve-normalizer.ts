@@ -16,6 +16,9 @@ export type NormalizedVideoRetrieveResult =
       mimeType: 'video/mp4'
     }
   | {
+      kind: 'needs-binary'
+    }
+  | {
       kind: 'failed'
       error: string
     }
@@ -86,7 +89,9 @@ export function normalizeVideoRetrieveResult(
     if (durableDownloadUrl) {
       return { kind: 'download', downloadUrl: durableDownloadUrl, mimeType: 'video/mp4' }
     }
-    return { kind: 'failed', error: 'Video completed without a playable video response.' }
+    // VPS-backed retrieve JSON is status-only. Restart must re-request bytes
+    // with Accept: video/mp4 rather than treating a missing signed URL as failure.
+    return { kind: 'needs-binary' }
   }
   return { kind: 'failed', error: 'Video status response was malformed.' }
 }

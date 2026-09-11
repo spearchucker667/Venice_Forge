@@ -41,6 +41,7 @@ import type { UserPersonaV1, LorebookV1, RpAssetV1, ScenarioV1 } from "../../src
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { logError } from "../services/logger";
 import { validateMutationOrigin } from "./validation";
+import { getProfileSessionId } from "../services/profileSession";
 
 /** Parses a delete payload from the renderer. Accepts the shape `{ id, origin }`
  *  introduced in Task 6 and defaults missing origins to `"local-user"` for
@@ -96,9 +97,10 @@ export function registerRpIpcHandlers(): void {
   };
 
   // ── Character cards ──
-  handleIpc("characterCards:list", async () => {
+  handleIpc("characterCards:list", async (event) => {
     try {
-      const { cards, truncated, totalScanned } = await listCharacterCards();
+      const profileId = getProfileSessionId(event.sender);
+      const { cards, truncated, totalScanned } = await listCharacterCards(profileId);
       return { ok: true, cards, truncated, totalScanned };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -107,10 +109,10 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("characterCards:get", async (_event, id: unknown) => {
+  handleIpc("characterCards:get", async (event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", card: null };
-      const card = await readCharacterCard(id);
+      const card = await readCharacterCard(id, getProfileSessionId(event.sender));
       return { ok: true, card };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -119,18 +121,19 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("characterCards:save", async (_event, payload: unknown) => {
+  handleIpc("characterCards:save", async (event, payload: unknown) => {
     try {
       const [payloadError, parsed] = parseSavePayload(payload, "card");
       if (payloadError || !parsed) {
         return { ok: false, error: payloadError ?? "Invalid payload", card: null };
       }
       const { record: card, origin } = parsed;
-      const result = await saveCharacterCard(card);
+      const profileId = getProfileSessionId(event.sender);
+      const result = await saveCharacterCard(card, profileId);
       if (!result.ok) return { ok: false, error: result.error, card: null };
       // Read back the persisted card (with avatar hydrated) for the renderer.
       const id = (card as { id?: unknown })?.id;
-      const persisted = typeof id === "string" ? await readCharacterCard(id) : null;
+      const persisted = typeof id === "string" ? await readCharacterCard(id, profileId) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("character_cards", persisted.id, persisted, origin);
       }
@@ -142,14 +145,14 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("characterCards:delete", async (_event, payload: unknown) => {
+  handleIpc("characterCards:delete", async (event, payload: unknown) => {
     try {
       const [error, parsed] = parseDeletePayload(payload);
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
       const { id, origin } = parsed;
-      const result = await deleteCharacterCard(id);
+      const result = await deleteCharacterCard(id, getProfileSessionId(event.sender));
       if (result.ok && origin === "local-user") {
         await emitSyncTombstone("character_cards", id, origin);
       }
@@ -162,9 +165,9 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── Personas ──
-  handleIpc("personas:list", async () => {
+  handleIpc("personas:list", async (event) => {
     try {
-      const { items, truncated, totalScanned } = await personaStore.list();
+      const { items, truncated, totalScanned } = await personaStore.list(getProfileSessionId(event.sender));
       return { ok: true, personas: items, truncated, totalScanned };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -173,10 +176,10 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("personas:get", async (_event, id: unknown) => {
+  handleIpc("personas:get", async (event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", persona: null };
-      const persona = await personaStore.read(id);
+      const persona = await personaStore.read(id, getProfileSessionId(event.sender));
       return { ok: true, persona: persona as UserPersonaV1 | null };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -185,17 +188,18 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("personas:save", async (_event, payload: unknown) => {
+  handleIpc("personas:save", async (event, payload: unknown) => {
     try {
       const [payloadError, parsed] = parseSavePayload(payload, "persona");
       if (payloadError || !parsed) {
         return { ok: false, error: payloadError ?? "Invalid payload", persona: null };
       }
       const { record, origin } = parsed;
-      const result = await personaStore.save(record);
+      const profileId = getProfileSessionId(event.sender);
+      const result = await personaStore.save(record, profileId);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", persona: null };
       const id = record.id;
-      const persisted = typeof id === "string" ? await personaStore.read(id) : null;
+      const persisted = typeof id === "string" ? await personaStore.read(id, profileId) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("personas", persisted.id, persisted, origin);
       }
@@ -207,14 +211,14 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("personas:delete", async (_event, payload: unknown) => {
+  handleIpc("personas:delete", async (event, payload: unknown) => {
     try {
       const [error, parsed] = parseDeletePayload(payload);
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
       const { id, origin } = parsed;
-      const result = await personaStore.remove(id);
+      const result = await personaStore.remove(id, getProfileSessionId(event.sender));
       if (result.ok && origin === "local-user") {
         await emitSyncTombstone("personas", id, origin);
       }
@@ -227,9 +231,9 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── Lorebooks ──
-  handleIpc("lorebooks:list", async () => {
+  handleIpc("lorebooks:list", async (event) => {
     try {
-      const { items, truncated, totalScanned } = await lorebookStore.list();
+      const { items, truncated, totalScanned } = await lorebookStore.list(getProfileSessionId(event.sender));
       return { ok: true, lorebooks: items, truncated, totalScanned };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -238,10 +242,10 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("lorebooks:get", async (_event, id: unknown) => {
+  handleIpc("lorebooks:get", async (event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", lorebook: null };
-      const lorebook = await lorebookStore.read(id);
+      const lorebook = await lorebookStore.read(id, getProfileSessionId(event.sender));
       return { ok: true, lorebook: lorebook as LorebookV1 | null };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -250,17 +254,18 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("lorebooks:save", async (_event, payload: unknown) => {
+  handleIpc("lorebooks:save", async (event, payload: unknown) => {
     try {
       const [payloadError, parsed] = parseSavePayload(payload, "lorebook");
       if (payloadError || !parsed) {
         return { ok: false, error: payloadError ?? "Invalid payload", lorebook: null };
       }
       const { record, origin } = parsed;
-      const result = await lorebookStore.save(record);
+      const profileId = getProfileSessionId(event.sender);
+      const result = await lorebookStore.save(record, profileId);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", lorebook: null };
       const id = record.id;
-      const persisted = typeof id === "string" ? await lorebookStore.read(id) : null;
+      const persisted = typeof id === "string" ? await lorebookStore.read(id, profileId) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("lorebooks", persisted.id, persisted, origin);
       }
@@ -272,14 +277,14 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("lorebooks:delete", async (_event, payload: unknown) => {
+  handleIpc("lorebooks:delete", async (event, payload: unknown) => {
     try {
       const [error, parsed] = parseDeletePayload(payload);
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
       const { id, origin } = parsed;
-      const result = await lorebookStore.remove(id);
+      const result = await lorebookStore.remove(id, getProfileSessionId(event.sender));
       if (result.ok && origin === "local-user") {
         await emitSyncTombstone("lorebooks", id, origin);
       }
@@ -292,9 +297,9 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── RP Chats ──
-  handleIpc("rpChats:list", async () => {
+  handleIpc("rpChats:list", async (event) => {
     try {
-      const { chats, truncated, totalScanned } = await listRpChats();
+      const { chats, truncated, totalScanned } = await listRpChats(getProfileSessionId(event.sender));
       return { ok: true, chats, truncated, totalScanned };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -303,10 +308,10 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpChats:get", async (_event, id: unknown) => {
+  handleIpc("rpChats:get", async (event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", chat: null };
-      const chat = await readRpChat(id);
+      const chat = await readRpChat(id, getProfileSessionId(event.sender));
       return { ok: true, chat };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -315,17 +320,18 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpChats:save", async (_event, payload: unknown) => {
+  handleIpc("rpChats:save", async (event, payload: unknown) => {
     try {
       const [payloadError, parsed] = parseSavePayload(payload, "chat");
       if (payloadError || !parsed) {
         return { ok: false, error: payloadError ?? "Invalid payload", chat: null };
       }
       const { record: chat, origin } = parsed;
-      const result = await saveRpChat(chat);
+      const profileId = getProfileSessionId(event.sender);
+      const result = await saveRpChat(chat, profileId);
       if (!result.ok) return { ok: false, error: result.error, chat: null };
       const id = (chat as { id?: unknown })?.id;
-      const persisted = typeof id === "string" ? await readRpChat(id) : null;
+      const persisted = typeof id === "string" ? await readRpChat(id, profileId) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("rp_chats", persisted.id, persisted, origin);
       }
@@ -337,14 +343,14 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpChats:delete", async (_event, payload: unknown) => {
+  handleIpc("rpChats:delete", async (event, payload: unknown) => {
     try {
       const [error, parsed] = parseDeletePayload(payload);
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
       const { id, origin } = parsed;
-      const result = await deleteRpChat(id);
+      const result = await deleteRpChat(id, getProfileSessionId(event.sender));
       if (result.ok && origin === "local-user") {
         await emitSyncTombstone("rp_chats", id, origin);
       }
@@ -357,9 +363,9 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── RP Assets ──
-  handleIpc("rpAssets:list", async (_event, chatIdRaw: unknown) => {
+  handleIpc("rpAssets:list", async (event, chatIdRaw: unknown) => {
     try {
-      const { items, truncated, totalScanned } = await rpAssetStore.list();
+      const { items, truncated, totalScanned } = await rpAssetStore.list(getProfileSessionId(event.sender));
       const chatId = chatIdFilter(chatIdRaw);
       const filtered = chatId ? items.filter((a) => a.chatId === chatId) : items;
       return { ok: true, assets: filtered, truncated, totalScanned };
@@ -370,10 +376,10 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpAssets:get", async (_event, id: unknown) => {
+  handleIpc("rpAssets:get", async (event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", asset: null };
-      const asset = await rpAssetStore.read(id);
+      const asset = await rpAssetStore.read(id, getProfileSessionId(event.sender));
       return { ok: true, asset: asset as RpAssetV1 | null };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -382,17 +388,18 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpAssets:save", async (_event, payload: unknown) => {
+  handleIpc("rpAssets:save", async (event, payload: unknown) => {
     try {
       const [payloadError, parsed] = parseSavePayload(payload, "asset");
       if (payloadError || !parsed) {
         return { ok: false, error: payloadError ?? "Invalid payload", asset: null };
       }
       const { record, origin } = parsed;
-      const result = await rpAssetStore.save(record);
+      const profileId = getProfileSessionId(event.sender);
+      const result = await rpAssetStore.save(record, profileId);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", asset: null };
       const id = record.id;
-      const persisted = typeof id === "string" ? await rpAssetStore.read(id) : null;
+      const persisted = typeof id === "string" ? await rpAssetStore.read(id, profileId) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("rp_assets", persisted.id, persisted, origin);
       }
@@ -404,14 +411,14 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("rpAssets:delete", async (_event, payload: unknown) => {
+  handleIpc("rpAssets:delete", async (event, payload: unknown) => {
     try {
       const [error, parsed] = parseDeletePayload(payload);
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
       const { id, origin } = parsed;
-      const result = await rpAssetStore.remove(id);
+      const result = await rpAssetStore.remove(id, getProfileSessionId(event.sender));
       if (result.ok && origin === "local-user") {
         await emitSyncTombstone("rp_assets", id, origin);
       }
@@ -424,9 +431,9 @@ export function registerRpIpcHandlers(): void {
   });
 
   // ── Scenarios (Phase 2F) ──
-  handleIpc("scenarios:list", async () => {
+  handleIpc("scenarios:list", async (event) => {
     try {
-      const { items, truncated, totalScanned } = await scenarioStore.list();
+      const { items, truncated, totalScanned } = await scenarioStore.list(getProfileSessionId(event.sender));
       return { ok: true, scenarios: items, truncated, totalScanned };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -435,10 +442,10 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("scenarios:get", async (_event, id: unknown) => {
+  handleIpc("scenarios:get", async (event, id: unknown) => {
     try {
       if (typeof id !== "string") return { ok: false, error: "Invalid id", scenario: null };
-      const scenario = await scenarioStore.read(id);
+      const scenario = await scenarioStore.read(id, getProfileSessionId(event.sender));
       return { ok: true, scenario: scenario as ScenarioV1 | null };
     } catch (err) {
       const message = redactErrorMessage(err);
@@ -447,17 +454,18 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("scenarios:save", async (_event, payload: unknown) => {
+  handleIpc("scenarios:save", async (event, payload: unknown) => {
     try {
       const [payloadError, parsed] = parseSavePayload(payload, "scenario");
       if (payloadError || !parsed) {
         return { ok: false, error: payloadError ?? "Invalid payload", scenario: null };
       }
       const { record, origin } = parsed;
-      const result = await scenarioStore.save(record);
+      const profileId = getProfileSessionId(event.sender);
+      const result = await scenarioStore.save(record, profileId);
       if (!result.ok) return { ok: false, error: result.error ?? "Save failed", scenario: null };
       const id = record.id;
-      const persisted = typeof id === "string" ? await scenarioStore.read(id) : null;
+      const persisted = typeof id === "string" ? await scenarioStore.read(id, profileId) : null;
       if (persisted && origin === "local-user") {
         await emitSyncPacket("rpScenarios", persisted.id, persisted, origin);
       }
@@ -469,14 +477,14 @@ export function registerRpIpcHandlers(): void {
     }
   });
 
-  handleIpc("scenarios:delete", async (_event, payload: unknown) => {
+  handleIpc("scenarios:delete", async (event, payload: unknown) => {
     try {
       const [error, parsed] = parseDeletePayload(payload);
       if (error || !parsed) {
         return { ok: false, error: error ?? "Invalid payload" };
       }
       const { id, origin } = parsed;
-      const result = await scenarioStore.remove(id);
+      const result = await scenarioStore.remove(id, getProfileSessionId(event.sender));
       if (result.ok && origin === "local-user") {
         await emitSyncTombstone("rpScenarios", id, origin);
       }
