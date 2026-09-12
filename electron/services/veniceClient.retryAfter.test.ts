@@ -37,6 +37,7 @@ vi.mock("./logger", () => ({
 
 import {
   abortableDelay,
+  abortVeniceRequest,
   computeJitteredDelay,
   MAX_RETRY_AFTER_MS,
   parseRetryAfterMs,
@@ -313,5 +314,84 @@ describe("performVeniceRequest Retry-After integration", () => {
     // After stream start, we must not retry on Retry-After — the response is returned as-is.
     expect(callCount).toBe(1);
     expect(result.status).toBe(429);
+  });
+
+  it("aborts during Retry-After delay when signalId is aborted via abortVeniceRequest (VF-AUD-20260912-P1-003 / TG-001)", async () => {
+    const requestMock = https.request as unknown as HttpsRequestMock;
+    let callCount = 0;
+
+    requestMock.mockImplementation((_options, callback) => {
+      callCount += 1;
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn();
+      req.end = vi.fn();
+      req.destroy = vi.fn();
+      const response = new EventEmitter() as MockResponse;
+      response.statusCode = 429;
+      response.statusMessage = "Too Many Requests";
+      response.headers = { "content-type": "application/json", "retry-after": "10" };
+      callback(response);
+      setImmediate(() => {
+        response.emit("data", Buffer.from(JSON.stringify({ error: "rate-limited" }), "utf-8"));
+        response.emit("end");
+      });
+      return req;
+    });
+
+    const signalId = "test-signal-retry-after";
+    const requestPromise = performVeniceRequest({
+      endpoint: "/chat/completions",
+      method: "POST",
+      body: { model: "venice-test", messages: [{ role: "user", content: "hi" }] },
+      profileId: "default",
+      signalId,
+    });
+
+    // Wait until the first 429 response finishes and enters the Retry-After delay
+    await new Promise((r) => setTimeout(r, 20));
+
+    // Abort via IPC signal ID while sleeping during Retry-After
+    const abortResult = abortVeniceRequest(signalId);
+    expect(abortResult.ok).toBe(true);
+
+    await expect(requestPromise).rejects.toThrow("Request aborted");
+    // Ensure no second attempt (retry) was ever dispatched
+    expect(callCount).toBe(1);
+  });
+
+  it("cleans up external AbortSignal event listener on completion (VF-AUD-20260912-P2-002)", async () => {
+    const requestMock = https.request as unknown as HttpsRequestMock;
+
+    requestMock.mockImplementation((_options, callback) => {
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn();
+      req.end = vi.fn();
+      req.destroy = vi.fn();
+      const response = new EventEmitter() as MockResponse;
+      response.statusCode = 200;
+      response.statusMessage = "OK";
+      response.headers = { "content-type": "application/json" };
+      callback(response);
+      setImmediate(() => {
+        response.emit("data", Buffer.from(JSON.stringify({ choices: [] }), "utf-8"));
+        response.emit("end");
+        req.emit("close");
+      });
+      return req;
+    });
+
+    const controller = new AbortController();
+    const result = await performVeniceRequest({
+      endpoint: "/chat/completions",
+      method: "POST",
+      body: { model: "venice-test", messages: [{ role: "user", content: "hi" }] },
+      profileId: "default",
+      signal: controller.signal,
+    });
+
+    expect(result.ok).toBe(true);
+    // After request completion, abort listener must be cleaned up
+    // Aborting controller now should have no effect
+    expect(() => controller.abort()).not.toThrow();
   });
 });

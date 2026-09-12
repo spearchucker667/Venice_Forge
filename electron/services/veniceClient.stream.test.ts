@@ -21,7 +21,7 @@ vi.mock("./logger", () => ({
   setLastApiError: vi.fn(),
 }));
 
-import { getVeniceConcurrencyStateForTests, MAX_CONCURRENT_VENICE_REQUESTS, performVeniceRequest } from "./veniceClient";
+import { abortVeniceRequest, getVeniceConcurrencyStateForTests, MAX_CONCURRENT_VENICE_REQUESTS, performVeniceRequest } from "./veniceClient";
 
 interface MockRequest extends EventEmitter {
   write: ReturnType<typeof vi.fn>;
@@ -153,6 +153,58 @@ describe("performVeniceRequest streaming safety", () => {
     }
 
     await expect(Promise.all(requests)).resolves.toHaveLength(MAX_CONCURRENT_VENICE_REQUESTS + 2);
+    expect(getVeniceConcurrencyStateForTests()).toEqual({ active: 0, queued: 0 });
+  });
+
+  it("aborts a queued request waiting for a concurrency slot (VF-AUD-20260912-P2-001)", async () => {
+    const requestMock = https.request as unknown as HttpsRequestMock;
+    const inflight: Array<{ req: MockRequest; res: MockResponse }> = [];
+    requestMock.mockImplementation((_options, callback) => {
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn();
+      req.end = vi.fn();
+      req.destroy = vi.fn();
+      const res = new EventEmitter() as MockResponse;
+      res.headers = { "content-type": "application/json" };
+      res.statusCode = 200;
+      res.statusMessage = "OK";
+      inflight.push({ req, res });
+      callback(res);
+      return req;
+    });
+
+    // Fill up all active slots
+    const activeReqs = Array.from({ length: MAX_CONCURRENT_VENICE_REQUESTS }, () =>
+      performVeniceRequest({ endpoint: "/models", method: "GET" })
+    );
+    await Promise.resolve();
+
+    expect(getVeniceConcurrencyStateForTests()).toEqual({ active: MAX_CONCURRENT_VENICE_REQUESTS, queued: 0 });
+
+    // Enqueue an 11th request with a signalId
+    const queuedPromise = performVeniceRequest({
+      endpoint: "/models",
+      method: "GET",
+      signalId: "queued-slot-test",
+    });
+    await Promise.resolve();
+
+    expect(getVeniceConcurrencyStateForTests()).toEqual({ active: MAX_CONCURRENT_VENICE_REQUESTS, queued: 1 });
+
+    // Abort the queued request before any active request completes
+    const abortResult = abortVeniceRequest("queued-slot-test");
+    expect(abortResult.ok).toBe(true);
+
+    await expect(queuedPromise).rejects.toThrow("Request aborted");
+    expect(getVeniceConcurrencyStateForTests()).toEqual({ active: MAX_CONCURRENT_VENICE_REQUESTS, queued: 0 });
+
+    // Clean up inflight requests
+    for (const { req, res } of inflight) {
+      res.emit("data", Buffer.from("{}"));
+      res.emit("end");
+      req.emit("close");
+    }
+    await Promise.all(activeReqs);
     expect(getVeniceConcurrencyStateForTests()).toEqual({ active: 0, queued: 0 });
   });
 });

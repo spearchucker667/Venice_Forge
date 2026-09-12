@@ -31,9 +31,6 @@ describe("IPC Handler Registration", () => {
   });
 
   it("should register all handlers without duplicate channels", () => {
-    // Before replacing chatFolderHandlers.ts, this might throw if there are duplicates.
-    // Wait, currently chatFolderHandlers has duplicates so this will throw.
-    // Let's assert it throws for now, or just let it fail until we fix it.
     expect(() => {
       registerIpcHandlers();
     }).not.toThrow();

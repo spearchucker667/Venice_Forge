@@ -1,5 +1,4 @@
 import { translateRuntime } from "../i18n/runtimeTranslator";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /** @fileoverview Electron vs. web mode abstraction — never call window.veniceForge directly from modules. */
 
@@ -1352,7 +1351,7 @@ export const desktopChatFolders = {
       return {
         ok: false,
         error: "Chat folders are only available in desktop mode.",
-      } as any;
+      };
     return window.veniceForge!.chatFolders.exportBackup(input);
   },
   async pickImportFile(): Promise<
@@ -1386,7 +1385,7 @@ export const desktopChatFolders = {
       return {
         ok: false,
         error: "Chat folders are only available in desktop mode.",
-      } as any;
+      };
     return window.veniceForge!.chatFolders.importBackup(input);
   },
   async lock(
@@ -2496,7 +2495,7 @@ export const desktopDocumentAgent = {
     set(input: Parameters<import("../types/desktop").VeniceForgeDocumentAgent["permissions"]["set"]>[0]) {
       return isElectron()
         ? window.veniceForge!.documentAgent.permissions.set(input)
-        : Promise.resolve(documentAgentUnavailable as any);
+        : Promise.resolve(documentAgentUnavailable);
     }
   },
   documents: {

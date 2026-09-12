@@ -21,6 +21,11 @@ export const SIDEBAR_COLLAPSED_WIDTH = 60
 export const SIDEBAR_DEFAULT_WIDTH = 256
 export const SIDEBAR_MIN_WIDTH = 220
 export const SIDEBAR_MAX_WIDTH = 480
+export const MAX_CUSTOM_THEMES = 100
+/** When the custom theme count exceeds this, surface a soft warning so users
+ *  can prune their library before the hard cap silently truncates the oldest
+ *  theme. (VF-AUD-20260912-N6) */
+export const CUSTOM_THEMES_SOFT_WARNING_THRESHOLD = 90
 
 export function clampSidebarWidth(width: unknown): number {
   const numeric = typeof width === 'number' && Number.isFinite(width) ? width : SIDEBAR_DEFAULT_WIDTH
@@ -287,19 +292,46 @@ export const useSettingsStore = create<SettingsState>()(
       customTheme: null,
       setCustomTheme: (theme) => set({ customTheme: theme }),
       customThemes: [],
-      setCustomThemes: (themes) => set({ customThemes: themes }),
-      saveCustomTheme: (theme) => set((state) => {
-        const existingIdx = state.customThemes.findIndex((t) => t.id === theme.id);
-        const updated = existingIdx >= 0
-          ? state.customThemes.map((t, idx) => (idx === existingIdx ? theme : t))
-          : [...state.customThemes, theme];
-        return {
-          customThemes: updated,
-          customTheme: theme,
-          selectedThemeId: theme.id,
-          appearanceMode: theme.mode,
-        };
-      }),
+      setCustomThemes: (themes) => {
+        // Truncate to MAX_CUSTOM_THEMES (oldest dropped). Surface a warning
+        // so the user knows their oldest themes were dropped. (VF-AUD-20260912-N6)
+        const dropped = Math.max(0, themes.length - MAX_CUSTOM_THEMES);
+        if (dropped > 0) {
+          console.warn(
+            `[settings-store] setCustomThemes truncated ${dropped} oldest theme(s) to enforce MAX_CUSTOM_THEMES=${MAX_CUSTOM_THEMES}.`,
+          );
+        }
+        set({ customThemes: themes.slice(0, MAX_CUSTOM_THEMES) });
+      },
+      saveCustomTheme: (theme) => {
+        let droppedOldest = false;
+        set((state) => {
+          const existingIdx = state.customThemes.findIndex((t) => t.id === theme.id);
+          let updated: Theme[];
+          if (existingIdx >= 0) {
+            updated = state.customThemes.map((t, idx) => (idx === existingIdx ? theme : t));
+          } else {
+            const list = [...state.customThemes, theme];
+            if (list.length > MAX_CUSTOM_THEMES) {
+              droppedOldest = true;
+              updated = list.slice(list.length - MAX_CUSTOM_THEMES);
+            } else {
+              updated = list;
+            }
+          }
+          return {
+            customThemes: updated,
+            customTheme: theme,
+            selectedThemeId: theme.id,
+            appearanceMode: theme.mode,
+          };
+        });
+        if (droppedOldest) {
+          console.warn(
+            `[settings-store] saveCustomTheme dropped the oldest custom theme to enforce MAX_CUSTOM_THEMES=${MAX_CUSTOM_THEMES}. Consider pruning your theme library.`,
+          );
+        }
+      },
       deleteCustomTheme: (id) => set((state) => {
         const filtered = state.customThemes.filter((t) => t.id !== id);
         const wasActive = state.selectedThemeId === id || (id === 'custom' && state.selectedThemeId === 'custom');

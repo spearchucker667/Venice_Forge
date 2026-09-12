@@ -175,6 +175,21 @@ describe('settings-store', () => {
       expect(state.customThemes).toHaveLength(1)
       expect(state.customThemes[0].code.preset).toBe('dracula')
     })
+
+    it('bounds customThemes array to MAX_CUSTOM_THEMES (VF-AUD-20260912-P3-003)', () => {
+      const themes = Array.from({ length: 100 }, (_, i) =>
+        makeTheme(`theme-${i}`, `Theme ${i}`, 'dark', 'dracula')
+      )
+      useSettingsStore.getState().setCustomThemes(themes)
+      expect(useSettingsStore.getState().customThemes).toHaveLength(100)
+
+      const overflowTheme = makeTheme('theme-overflow', 'Theme Overflow', 'light', 'github-light')
+      useSettingsStore.getState().saveCustomTheme(overflowTheme)
+
+      const state = useSettingsStore.getState()
+      expect(state.customThemes).toHaveLength(100)
+      expect(state.customThemes[99].id).toBe('theme-overflow')
+    })
   })
 
   describe('misc settings', () => {

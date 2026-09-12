@@ -441,6 +441,38 @@ describe("configService writeSanitized", () => {
     const payload = getSanitizedConfig();
     expect(payload.config.internal_prompt_enhancer.enabled).toBe(false);
   });
+
+  it("uses atomic write pattern so failure during write does not corrupt active config.yaml (VF-AUD-20260912-P1-002 / TG-003)", async () => {
+    const envConfig = path.join(tmpRoot, "config.yaml");
+    const envThemes = path.join(tmpRoot, "themes.yaml");
+    const originalYaml = "version: 1\napp:\n  profile: default\n";
+    await writeYaml(envConfig, originalYaml);
+    await writeYaml(envThemes, "version: 1\nthemes: {}\n");
+    process.env.VENICE_FORGE_CONFIG_FILE = envConfig;
+    process.env.VENICE_FORGE_THEMES_FILE = envThemes;
+    await initializeConfig();
+    const beforeAttempt = await fs.readFile(envConfig, "utf-8");
+
+    const renameSpy = vi.spyOn(fs, "rename").mockRejectedValueOnce(new Error("simulated disk error on atomic rename"));
+
+    const result = await writeSanitizedConfig({
+      app: { profile: "corrupted-attempt" },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("simulated disk error on atomic rename");
+
+    // The original config file must remain uncorrupted and intact
+    const onDisk = await fs.readFile(envConfig, "utf-8");
+    expect(onDisk).toBe(beforeAttempt);
+    expect(onDisk).not.toContain("corrupted-attempt");
+
+    // Any temporary .tmp file must be cleaned up
+    const files = await fs.readdir(tmpRoot);
+    expect(files.some((name) => name.endsWith(".tmp"))).toBe(false);
+
+    renameSpy.mockRestore();
+  });
 });
 
 describe("configService export and folder", () => {

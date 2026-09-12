@@ -90,7 +90,17 @@ export function DataStoragePanel({
         const profileStateBeforeImport = useProfileStore.getState();
         const previousProfileId = profileStateBeforeImport.activeProfileId;
         const previousProfiles = profileStateBeforeImport.profiles;
-        const newProfile = profileStateBeforeImport.addProfile(newProfileName);
+        const addResult = profileStateBeforeImport.addProfile(newProfileName);
+        // VF-AUD-20260912-N7: addProfile now returns a Result so the user sees
+        // a localized limit/validation message instead of a thrown Error.
+        if (!addResult.ok) {
+          // Roll back optimistic state (none changed yet, but be defensive).
+          void previousProfileId;
+          void previousProfiles;
+          toast.error(addResult.message);
+          return;
+        }
+        const newProfile = addResult.profile;
         const { setActiveProfileId } = await import("../../services/activeProfile");
         const { desktopProfilePassword } = await import("../../services/desktopBridge");
         try {

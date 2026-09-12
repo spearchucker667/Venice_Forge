@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import crypto from "crypto";
 import {
   listChatFolders as listChatFoldersFromStore,
@@ -222,7 +220,7 @@ export async function deleteChatFolder(input: DeleteChatFolderInput, profileId: 
   }
 }
 
-function getConvKind(conversation: any): ChatFolderKind {
+function getConvKind(conversation: { metadata?: { character?: unknown } }): ChatFolderKind {
   return conversation.metadata?.character ? "character" : "standard";
 }
 

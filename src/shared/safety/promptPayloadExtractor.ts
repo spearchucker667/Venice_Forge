@@ -33,7 +33,7 @@ const ENDPOINT_FIELDS: Record<string, readonly string[]> = {
 /** Fields that should never be safety-checked (not user-controlled prompt content). */
 const DENY_FIELD_NAMES = new Set<string>([
   "model", "width", "height", "steps", "cfg_scale", "seed", "format",
-  "n", "response_format", "max_tokens", "temperature", "top_p", "stream",
+  "n", "response_format", "max_tokens", "max_completion_tokens", "temperature", "top_p", "stream",
   "stop", "presence_penalty", "frequency_penalty", "logit_bias", "user",
   "functions", "function_call", "tools", "tool_choice",
 ]);

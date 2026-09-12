@@ -24,10 +24,10 @@ beforeEach(() => {
   changeLanguage("en-US");
 });
 
-// Silence expected application logs during tests to keep CI output clean.
-// This is done at the module level so it captures logs emitted during store hydration (imports).
-console.warn = vi.fn();
-console.error = vi.fn();
+// VF-AUD-20260912-P2-005: Do not globally silence console.warn and console.error.
+// Expected warnings/errors should be scoped to individual tests via vi.spyOn(console, ...).
+// console.warn = vi.fn();
+// console.error = vi.fn();
 
 if (typeof globalThis.HTMLCanvasElement !== "undefined") {
   Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {

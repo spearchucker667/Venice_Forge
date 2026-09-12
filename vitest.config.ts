@@ -32,7 +32,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./tests/setup.ts"],
     exclude: [...configDefaults.exclude, "inactive-features/**"],
-    fileParallelism: false,
     pool: "forks",
     testTimeout: 30000,
     // CI-only JUnit output so failure artifacts carry real diagnostics

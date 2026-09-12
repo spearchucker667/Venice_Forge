@@ -116,7 +116,7 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     stream_options: { include_usage: true },
     temperature: state.temperature,
     top_p: state.topP,
-    max_tokens: compiled.maxTokens,
+    max_completion_tokens: compiled.maxTokens,
     venice_parameters: veniceParamsForRequest,
   };
 
@@ -290,7 +290,20 @@ export async function startStream(
         const retryable = isRetryableError(err);
         if (retryable && attempts < MAX_STREAM_RETRIES && !hasCommittedStreamState) {
           attempts++;
-          logger.warn({ category: "stream_retry", attempt: attempts, message: translateRuntime("chat:stream.retryingFromCheckpoint", "Stream dropped. Retrying from checkpoint"), status: (err as { status?: number, statusCode?: number })?.status || (err as { status?: number, statusCode?: number })?.statusCode || "unknown" });
+          // Extract status code from a structural cast (preferred over `as any`).
+          // The cast is a TypeScript-only fiction; `?.` correctly handles the
+          // case where the runtime object lacks these fields. (VF-AUD-20260912-N5)
+          const errStatus = err as { status?: number; statusCode?: number };
+          const status = errStatus?.status ?? errStatus?.statusCode ?? "unknown";
+          logger.warn({
+            category: "stream_retry",
+            attempt: attempts,
+            message: translateRuntime(
+              "chat:stream.retryingFromCheckpoint",
+              "Stream dropped. Retrying from checkpoint",
+            ),
+            status,
+          });
           // Exponential backoff before retry (1s, 2s)
           await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempts - 1)));
           continue;

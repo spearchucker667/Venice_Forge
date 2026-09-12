@@ -202,8 +202,9 @@ describe("chat-stream-manager", () => {
 
     const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
     expect(body.venice_parameters).toEqual(expect.objectContaining({ include_venice_system_prompt: false }));
-    expect(body.max_tokens).toBeGreaterThan(0);
-    expect(body.max_tokens).toBeLessThan(4096);
+    expect(body.max_completion_tokens).toBeGreaterThan(0);
+    expect(body.max_completion_tokens).toBeLessThan(4096);
+    expect(body.max_tokens).toBeUndefined();
     expect(JSON.stringify(body.messages)).not.toContain("venice_forge_scene_request");
   });
 
@@ -577,5 +578,19 @@ describe("persona isolation (VF-20260720-001)", () => {
       expect(params).not.toHaveProperty("character_slug");
     }
     expect(hostedId).not.toBe(standardId);
+  });
+
+  it("constructs payload with max_completion_tokens instead of deprecated max_tokens (VF-AUD-20260912-P2-004)", async () => {
+    useChatStore.setState({ maxTokens: 2048 });
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello Venice" });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "llama-3.3-70b");
+
+    expect(mockedVeniceStreamChat).toHaveBeenCalled();
+    const payload = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+    expect(payload.max_completion_tokens).toBe(2048);
+    expect(payload.max_tokens).toBeUndefined();
   });
 });

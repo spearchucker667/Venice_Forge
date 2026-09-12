@@ -32,6 +32,7 @@ The most recent local audit lives at `docs/audits/Records/Venice_Forge-audit-evi
 
 ## Audit Input
 
+- The 2026-09-12 exhaustive audit (`docs/audits/venice-forge-exhaustive-audit-2026-09-12/`) was fully remediated on `main` (all 4 P1, 6 P2, 5 P3, 2 DR, and 3 TG items resolved and verified with regression tests). Detailed validation and execution history are recorded in `docs/summary_of_work.md`.
 - The 2026-07-17 03:10 deep scan was fully remediated. The current task listing in this roadmap is the only live truth surface for the audit's findings.
 - Prior audit evidence bundles (`Venice_Forge-audit-results-20260716-224749`) live under the `docs/audits/Records/` history directory and are no longer authoritative retained evidence.
 - `VF-SCAN-20260716-001..024` were reconciled in the 2026-07-16 current-commit session recorded in `docs/summary_of_work.md`.

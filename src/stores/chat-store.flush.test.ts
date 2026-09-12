@@ -64,7 +64,11 @@ Object.defineProperty(window, 'veniceForge', {
   configurable: true,
 })
 
+import { toast } from './toast-store'
+
 let useChatStore: typeof import('./chat-store').useChatStore
+let flushAllPendingSaves: typeof import('./chat-store').flushAllPendingSaves
+const toastErrorSpy = vi.spyOn(toast, 'error')
 
 beforeAll(async () => {
   vi.useFakeTimers()
@@ -73,6 +77,7 @@ beforeAll(async () => {
   // store state per test file (vitest isolates per file).
   const mod = await import('./chat-store')
   useChatStore = mod.useChatStore
+  flushAllPendingSaves = mod.flushAllPendingSaves
   // Drain the initial queueMicrotask so the list() mock fires and sets
   // the empty initial state.
   await vi.runAllTimersAsync()
@@ -146,5 +151,32 @@ describe('chat-store flush-on-unload (BUG-3 regression)', () => {
     useChatStore.getState().addMessage(convId, { role: 'user', content: 'msg 2' })
     window.dispatchEvent(new Event('pagehide'))
     expect(saveMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('emits an error toast with a retry option when flushAllPendingSaves encounters a save failure (VF-AUD-20260912-P2-003)', async () => {
+    const convId = useChatStore.getState().createConversation('llama-3.3-70b')
+    saveMock.mockClear()
+    chatSaveMock.mockClear()
+    toastErrorSpy.mockClear()
+
+    saveMock.mockResolvedValueOnce({ ok: false, error: 'Disk write failed' })
+    chatSaveMock.mockResolvedValueOnce({ ok: false, error: 'Disk write failed' })
+
+    useChatStore.getState().addMessage(convId, { role: 'user', content: 'persisted fail' })
+
+    // Trigger flush
+    await flushAllPendingSaves()
+
+    expect(toastErrorSpy).toHaveBeenCalledTimes(1)
+    const [title, description, action] = toastErrorSpy.mock.calls[0]
+    expect(title).toBe('Failed to save conversation')
+    expect(description).toContain('Disk write failed')
+    expect(action?.label).toBe('Retry')
+
+    // Calling retry action retries flush
+    saveMock.mockResolvedValueOnce({ ok: true, id: convId })
+    toastErrorSpy.mockClear()
+    await action?.onClick?.()
+    expect(saveMock).toHaveBeenCalled()
   })
 })

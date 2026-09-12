@@ -1,0 +1,71 @@
+file,file_type,review_status,findings_count,notes
+electron/services/veniceClient.ts,source,REVIEWED,1,P0-001/P1-001/P1-002/P1-003/P1-004/P2-001/P2-002/P2-003 verified remediated; VF-AUD-20260912-N4 noted
+electron/services/veniceClient.stream.test.ts,test,REVIEWED,0,New regression test VF-AUD-20260912-P2-001 passes
+electron/services/veniceClient.error.test.ts,test,REVIEWED,0,Existing error tests pass
+electron/services/veniceClient.retryAfter.test.ts,test,REVIEWED,0,Existing retry-after tests pass
+electron/services/veniceClient.multipart.test.ts,test,NOT_REVIEWED_THIS_PASS,0,Referenced via test:contracts
+electron/services/veniceClient.sseParser.test.ts,test,NOT_REVIEWED_THIS_PASS,0,Referenced via test:contracts
+electron/services/veniceClient.adapters.test.ts,test,NOT_REVIEWED_THIS_PASS,0,Referenced via test:contracts
+electron/services/providerAdapters.ts,source,REVIEWED,0,P2-004 verified remediated (Gemini transform prefers max_completion_tokens)
+electron/services/guardPipeline.ts,source,REVIEWED,0,P0-004/P0-006/P1-006 verified remediated; runtime snapshot is sole source of truth
+electron/services/configService.ts,source,REVIEWED,2,P0-005 verified remediated; VF-AUD-20260912-N3 (assertPathContained exact-root edge case)
+electron/services/chatFolderService.ts,source,REVIEWED,0,P3-001 verified remediated (any removed)
+electron/services/configService.test.ts,test,NOT_REVIEWED_THIS_PASS,0,Modified in dirty tree; passes
+electron/services/veniceClient.error.test.ts,test,REVIEWED,0,Modified in dirty tree; passes
+electron/services/veniceClient.retryAfter.test.ts,test,REVIEWED,0,Modified in dirty tree; passes
+electron/ipc/handlers/index.ts,source,REVIEWED,0,Idempotent registration guard intact
+electron/ipc/handlers/common.ts,source,REVIEWED,0,Modified in dirty tree; passes
+electron/ipc/handlers/veniceHandlers.ts,source,REVIEWED,0,Modified in dirty tree; passes; P1-003/P1-006 verified remediated
+electron/ipc/handlers/documentAgentHandlers.ts,source,PARTIAL,0,workspace.list/read/search loop verified (P1 parity); workspace.propose* reachable via agent-tool-executor
+electron/ipc/handlers/imageInspectorHandlers.ts,source,REVIEWED,0,P1 parity resolved (constants map)
+electron/ipc/handlers/characterCreatorHandlers.ts,source,REFERENCED,0,P1 parity resolved (constants map)
+electron/ipc/handlers/registration.test.ts,test,NOT_REVIEWED_THIS_PASS,0,Modified in dirty tree; passes
+electron/main.ts,source,PARTIAL,0,Reviewed registration calls; trust-boundary intact (nodeIntegration=false, contextIsolation=true)
+electron/preload.ts,source,REVIEWED,0,contextBridge-only surface; no nodeIntegration; signalId wired end-to-end
+src/services/desktopBridge.ts,source,REVIEWED,0,`as any` casts remediated; no other defects
+src/stores/chat-store.ts,source,REVIEWED,0,P2-006 verified remediated (save-failure notification)
+src/stores/chat-store.flush.test.ts,test,NOT_REVIEWED_THIS_PASS,0,Modified in dirty tree; passes
+src/stores/chat-stream-manager.ts,source,REVIEWED,2,P0-003/P1-005 verified remediated; VF-AUD-20260912-N5 (style)
+src/stores/chat-stream-manager.test.ts,test,NOT_REVIEWED_THIS_PASS,0,Modified in dirty tree; passes
+src/stores/settings-store.ts,source,REVIEWED,1,VF-AUD-20260912-N6 (MAX_CUSTOM_THEMES silent truncation)
+src/stores/settings-store.test.ts,test,NOT_REVIEWED_THIS_PASS,0,Modified in dirty tree; passes
+src/stores/profile-store.ts,source,REVIEWED,1,VF-AUD-20260912-N7 (MAX_PROFILES silent throw)
+src/stores/profile-store.test.ts,test,NOT_REVIEWED_THIS_PASS,0,Modified in dirty tree; passes
+src/types/venice.ts,source,REVIEWED,0,P2-003 verified remediated (max_completion_tokens field added)
+src/components/chat/message-bubble.tsx,source,REVIEWED,0,`any` casts remediated; no other defects
+src/shared/safety/promptPayloadExtractor.ts,source,REVIEWED,0,P2-003 verified remediated (max_completion_tokens added to DENY_FIELD_NAMES)
+src/agent/registry/tool-registry.ts,source,PARTIAL,0,P1-005 verified remediated; full sweep delegated to prior ledger
+src/agent/registry/tool-name-map.ts,source,REVIEWED,0,Internal/provider tool name mapping intact
+electron/agent/runtime/agent-tool-executor.ts,source,PARTIAL,0,workspace.proposeChangeset/Move/Trash wired through tool-executor (not via preload)
+electron/agent/approvals/plan-factories.ts,source,REFERENCED,0,Plan factories used by workspace.propose*
+src/shared/sseStreamDecoder.ts,source,REFERENCED,0,Shared incremental SSE decoder; same transport contract
+src/shared/veniceSafeMode.ts,source,REFERENCED,0,Provider safe_mode override authority
+src/shared/veniceStreamDelta.ts,source,REFERENCED,0,Envelope shape (P1-002/P1-006)
+src/types/desktop.ts,source,REVIEWED,0,IPC channel constants map; imageInspectorIpc/chatFolderIpcChannels/etc.
+src/components/research/ResearchWorkspaceView.tsx,source,PARTIAL,0,i18n scan only; aria-labels use tRuntime
+src/App.tsx,source,REFERENCED,0,console.error usage only
+src/main.tsx,source,REFERENCED,0,console.error usage only
+tests/setup.ts,test,REVIEWED,0,P2-005 verified remediated (console not globally silenced)
+vitest.config.ts,config,REVIEWED,0,fileParallelism removed (good); pool=forks; coverage thresholds intact
+package.json,config,REVIEWED,0,3.0.0-beta.3; engines contract intact; scripts unchanged
+package-lock.json,lockfile,GENERATED,0,Generated artifact; npm ci reproducible
+.gitignore,config,REVIEWED,0,Modified in dirty tree; archive contaminant guards intact
+docs/DOCS_INDEX.md,doc,REVIEWED,0,Modified in dirty tree; will register audit package
+docs/ROADMAP.md,doc,REVIEWED,0,Modified in dirty tree; canonical TODO roadmap
+docs/summary_of_work.md,doc,REVIEWED,0,Modified in dirty tree; session handoff
+.github/workflows/ci.yml,workflow,REVIEWED,0,4 jobs: lint-typecheck, tests, coverage, script-coverage; .nvmrc-pinned
+.github/workflows/release.yml,workflow,REVIEWED,0,mac/win/linux signing+notarization gates; tag parity check; archive hygiene
+.github/workflows/codeql.yml,workflow,REVIEWED,0,javascript-typescript + actions; security-extended + security-and-quality
+.github/workflows/dependency-review.yml,workflow,REVIEWED,0,Dependabot review on PRs
+electron/services/runtimeSafetySettings.ts,source,REFERENCED,0,P0-006 single source of truth
+src/services/ingestion/*,source,NOT_REVIEWED_THIS_PASS,0,Covered indirectly by contract tests
+src/services/sync*/*,source,NOT_REVIEWED_THIS_PASS,0,Covered indirectly by contract tests
+src/audio*,src/video*,source,NOT_REVIEWED_THIS_PASS,0,Covered indirectly by existing tests
+src/research/*,source,NOT_REVIEWED_THIS_PASS,0,Covered indirectly by existing tests
+src/theme/*,source,NOT_REVIEWED_THIS_PASS,0,Covered by theme.test.ts + bootstrap-theme.test.ts
+src/i18n/resources/en-US/*,locale,REVIEWED,0,12 namespaces validated by verify:i18n
+src/i18n/resources/{ar,de,es,fr,hi,ja,ko,pt-BR,ru,sv-SE,zh-CN}/*,locale,REVIEWED,0,11 locales validated by verify:i18n
+public/assets/*,asset,NOT_REVIEWED_THIS_PASS,0,Vite-handled; bundled into dist/
+node_modules/,vendor,EXCLUDED,n/a,vendored dependencies
+dist/,generated,EXCLUDED,n/a,Vite build output
+dist-electron/,generated,EXCLUDED,n/a,Electron bundle output

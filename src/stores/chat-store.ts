@@ -1441,13 +1441,38 @@ async function writeConversation(conv: Conversation): Promise<void> {
   }
 }
 
+function notifySaveFailure(error: unknown): void {
+  toast.error(
+    translateRuntime(
+      "runtimeGenerated.stores.chatStore.notification.failedToSaveConversation",
+      "Failed to save conversation",
+    ),
+    redactErrorMessage(error),
+    {
+      label: translateRuntime("retry", "Retry"),
+      onClick: () => {
+        void flushAllPendingSaves();
+      },
+    },
+  );
+}
+
 async function flushConversationSave(id: string): Promise<void> {
   const conv = dirtyConversations.get(id);
   if (!conv) return;
-  await writeConversation(conv);
-  // A newer mutation may have replaced this entry while the async write was
-  // in flight. Only clear the exact snapshot that reached durable storage.
-  if (dirtyConversations.get(id) === conv) dirtyConversations.delete(id);
+  try {
+    await writeConversation(conv);
+    // A newer mutation may have replaced this entry while the async write was
+    // in flight. Only clear the exact snapshot that reached durable storage.
+    if (dirtyConversations.get(id) === conv) dirtyConversations.delete(id);
+  } catch (err) {
+    logger.error(
+      "[chat] flush conversation save failed",
+      redactErrorMessage(err),
+    );
+    notifySaveFailure(err);
+    throw err;
+  }
 }
 
 /** Flushes one conversation at a message/stream boundary. */
@@ -1474,16 +1499,23 @@ export async function flushAllPendingSaves(): Promise<void> {
     saveTimer = null;
   }
   const pending = Array.from(dirtyConversations.entries());
+  let lastError: unknown = null;
+  let failedCount = 0;
   for (const [id, conv] of pending) {
     try {
       await writeConversation(conv);
       if (dirtyConversations.get(id) === conv) dirtyConversations.delete(id);
     } catch (err) {
+      lastError = err;
+      failedCount++;
       logger.error(
         "[chat] flush conversation save failed",
         redactErrorMessage(err),
       );
     }
+  }
+  if (failedCount > 0 && lastError !== null) {
+    notifySaveFailure(lastError);
   }
 }
 

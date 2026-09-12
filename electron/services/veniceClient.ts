@@ -90,6 +90,19 @@ export function computeJitteredDelay(
   return Math.min(jittered, capMs);
 }
 
+/** Determines whether an error was produced by a request or delay cancellation. */
+export function isAbortError(err: unknown): boolean {
+  if (err instanceof Error) {
+    return (
+      err.message === "Request aborted" ||
+      err.name === "AbortError" ||
+      err.message.includes("aborted") ||
+      err.message.includes("abortableDelay")
+    );
+  }
+  return false;
+}
+
 /** Sleeps for the requested delay, aborting early if `signal` fires. Rejects
  *  with the signal's reason when aborted, otherwise resolves on timeout.
  *  @param ms The delay in milliseconds.
@@ -120,12 +133,32 @@ export const MAX_CONCURRENT_VENICE_REQUESTS = 10;
 let activeVeniceRequests = 0;
 const veniceQueue: Array<() => void> = [];
 
-async function acquireVeniceSlot(): Promise<() => void> {
+async function acquireVeniceSlot(signal?: AbortSignal): Promise<() => void> {
+  if (signal?.aborted) {
+    throw new Error("Request aborted");
+  }
   if (activeVeniceRequests < MAX_CONCURRENT_VENICE_REQUESTS) {
     activeVeniceRequests += 1;
     return releaseVeniceSlot;
   }
-  await new Promise<void>((resolve) => veniceQueue.push(resolve));
+  await new Promise<void>((resolve, reject) => {
+    let onAbort: (() => void) | undefined;
+    const waiter = () => {
+      if (onAbort && signal) signal.removeEventListener("abort", onAbort);
+      resolve();
+    };
+    if (signal) {
+      onAbort = () => {
+        const idx = veniceQueue.indexOf(waiter);
+        if (idx !== -1) {
+          veniceQueue.splice(idx, 1);
+        }
+        reject(new Error("Request aborted"));
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+    veniceQueue.push(waiter);
+  });
   activeVeniceRequests += 1;
   return releaseVeniceSlot;
 }
@@ -239,16 +272,18 @@ function sanitizeHeaders(headers: IncomingHttpHeaders): Record<string, string> {
  *  @param contentType The declared content-type header.
  *  @returns Parsed JSON, plain text, or base64-encoded data.
  */
-function parseBody(buffer: Buffer, contentType: string): unknown {
-  const text = buffer.toString("utf-8");
+export function parseBody(buffer: Buffer, contentType: string): unknown {
   if (contentType.includes("application/json")) {
+    const text = buffer.toString("utf-8");
     try {
       return text ? JSON.parse(text) : {};
     } catch {
       return { text: "Venice returned malformed JSON." };
     }
   }
-  if (contentType.startsWith("text/") || contentType.includes("event-stream")) return text;
+  if (contentType.startsWith("text/") || contentType.includes("event-stream")) {
+    return buffer.toString("utf-8");
+  }
   return { dataBase64: buffer.toString("base64") };
 }
 
@@ -303,125 +338,154 @@ export async function performVeniceRequest(
   let lastResponse: VeniceIpcResponse | null = null;
   let lastError: Error | null = null;
 
-  const requestSignal = (request as { signal?: AbortSignal }).signal;
+  const externalSignal = (request as { signal?: AbortSignal }).signal;
+  const abortController = new AbortController();
+  const onExternalAbort = () => abortController.abort(new Error("Request aborted"));
 
-  for (const providerId of providersToTry) {
-    let hasStartedStreaming = false;
-    // VF-AUD-20260831-P2-008: at most one Retry-After-aware retry per provider.
-    // 5xx/408/other retryable errors fall through to the next provider without
-    // an extra per-provider retry; the cross-provider fallback chain is the
-    // primary resilience path for non-429 failures.
-    try {
-      const currentRequest = request;
-      let providerSelection: ProviderRouteSelection | undefined;
-
-      // Automatic fallback must use a provider-native model, never a Venice model id.
-      if (providerId !== 'venice' && originalModel) {
-        const nativeModel = fallbackConfig.nativeFallbackModels[providerId as keyof typeof fallbackConfig.nativeFallbackModels];
-        if (!nativeModel) continue;
-        providerSelection = { providerId, model: nativeModel };
-      }
-
-      const wrappedOptions = {
-        ...options,
-        onDelta: options.onDelta ? (chunk: Parameters<Exclude<typeof options.onDelta, undefined>>[0]) => {
-          hasStartedStreaming = true;
-          options.onDelta!(chunk);
-        } : undefined
-      };
-
-      const response = await performSingleVeniceRequest(currentRequest, wrappedOptions, providerSelection);
-      lastResponse = response;
-
-      // If the adapter reported that this provider does not support the requested
-      // endpoint (e.g. a chat-only provider receiving an image request), skip it
-      // and continue to the next provider in the chain. This is not a terminal
-      // failure — it just means the provider is incompatible with this request.
-      const responseBody = response.body as Record<string, unknown> | null;
-      if (
-        !response.ok &&
-        responseBody?._adapterNotSupported === true &&
-        providerId !== 'venice'
-      ) {
-        logError(`Provider ${providerId} does not support this endpoint, skipping in fallback chain.`);
-        continue;
-      }
-
-      // Error policy: Only fallback on 5xx or rate limits (429), or 408 Timeout.
-      if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status)) {
-        return response; // Success, or a client error (e.g. 400 Bad Request, 401 Auth) that shouldn't be retried
-      }
-
-      if (hasStartedStreaming) {
-        logError(`Provider ${providerId} failed with ${response.status} after stream started, cannot fallback.`);
-        return response;
-      }
-
-      // VF-AUD-20260831-P2-008: 429 with a parseable Retry-After header
-      // triggers a single bounded, jittered delay followed by one retry on
-      // the same provider. If the retry also fails, we fall through to the
-      // next provider in the chain. The delay respects the request signal.
-      if (response.status === 429) {
-        const retryAfterMs = parseRetryAfterMs(response.headers["retry-after"]);
-        if (retryAfterMs !== null) {
-          const delayMs = computeJitteredDelay(retryAfterMs);
-          if (delayMs > 0) {
-            try {
-              await abortableDelay(delayMs, requestSignal);
-            } catch (err) {
-              // Aborted during the Retry-After wait — surface the abort.
-              throw err instanceof Error ? err : new Error(String(err));
-            }
-          }
-          logError(`Provider ${providerId} returned 429 with Retry-After=${response.headers["retry-after"]}; retrying once after ${delayMs}ms.`);
-          // Re-enter the inner try so a single retry attempt runs against
-          // the same provider. We intentionally do not loop here because
-          // a second 429 should fall through to the next provider.
-          try {
-            const retried = await performSingleVeniceRequest(currentRequest, wrappedOptions, providerSelection);
-            lastResponse = retried;
-            if (retried.ok) return retried;
-            // Non-OK retry: return the latest response so the caller can
-            // inspect the post-retry status without further fallback
-            // exhausting the user's patience.
-            logError(`Provider ${providerId} retry after Retry-After returned ${retried.status}.`);
-            return retried;
-          } catch (innerErr) {
-            if (innerErr instanceof Error && innerErr.message === "Request aborted") {
-              throw innerErr;
-            }
-            logError(`Provider ${providerId} retry after Retry-After threw.`, innerErr);
-            lastError = innerErr as Error;
-            continue;
-          }
-        }
-      }
-
-      // If we got here, it's a retryable error.
-      logError(`Provider ${providerId} failed with ${response.status}, attempting fallback if available.`);
-    } catch (err) {
-      lastError = err as Error;
-      // Network errors (fetch failed, aborted, etc)
-      // We only fallback if it's not a user abort and we haven't started streaming
-      if (err instanceof Error && err.message === "Request aborted") {
-        throw err;
-      }
-      if (hasStartedStreaming) {
-        logError(`Provider ${providerId} failed after stream started, cannot fallback.`, err);
-        throw err;
-      }
-      logError(`Provider ${providerId} network error, attempting fallback if available.`, err);
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      throw new Error("Request aborted");
     }
+    externalSignal.addEventListener("abort", onExternalAbort, { once: true });
   }
 
-  if (lastResponse) return lastResponse;
-  throw lastError || new Error("All fallback providers failed");
+  if (request.signalId) {
+    const previous = activeRequests.get(request.signalId);
+    if (previous) {
+      previous.destroy();
+    }
+    activeRequests.set(request.signalId, {
+      destroy: () => abortController.abort(new Error("Request aborted")),
+    });
+  }
+
+  try {
+    for (const providerId of providersToTry) {
+      let hasStartedStreaming = false;
+      // VF-AUD-20260831-P2-008: at most one Retry-After-aware retry per provider.
+      // 5xx/408/other retryable errors fall through to the next provider without
+      // an extra per-provider retry; the cross-provider fallback chain is the
+      // primary resilience path for non-429 failures.
+      try {
+        const currentRequest = request;
+        let providerSelection: ProviderRouteSelection | undefined;
+
+        // Automatic fallback must use a provider-native model, never a Venice model id.
+        if (providerId !== 'venice' && originalModel) {
+          const nativeModel = fallbackConfig.nativeFallbackModels[providerId as keyof typeof fallbackConfig.nativeFallbackModels];
+          if (!nativeModel) continue;
+          providerSelection = { providerId, model: nativeModel };
+        }
+
+        const wrappedOptions = {
+          ...options,
+          onDelta: options.onDelta ? (chunk: Parameters<Exclude<typeof options.onDelta, undefined>>[0]) => {
+            hasStartedStreaming = true;
+            options.onDelta!(chunk);
+          } : undefined
+        };
+
+        const response = await performSingleVeniceRequest(currentRequest, wrappedOptions, providerSelection, abortController.signal);
+        lastResponse = response;
+
+        // If the adapter reported that this provider does not support the requested
+        // endpoint (e.g. a chat-only provider receiving an image request), skip it
+        // and continue to the next provider in the chain. This is not a terminal
+        // failure — it just means the provider is incompatible with this request.
+        const responseBody = response.body as Record<string, unknown> | null;
+        if (
+          !response.ok &&
+          responseBody?._adapterNotSupported === true &&
+          providerId !== 'venice'
+        ) {
+          logError(`Provider ${providerId} does not support this endpoint, skipping in fallback chain.`);
+          continue;
+        }
+
+        // Error policy: Only fallback on 5xx or rate limits (429), or 408 Timeout.
+        if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status)) {
+          return response; // Success, or a client error (e.g. 400 Bad Request, 401 Auth) that shouldn't be retried
+        }
+
+        if (hasStartedStreaming) {
+          logError(`Provider ${providerId} failed with ${response.status} after stream started, cannot fallback.`);
+          return response;
+        }
+
+        // VF-AUD-20260831-P2-008: 429 with a parseable Retry-After header
+        // triggers a single bounded, jittered delay followed by one retry on
+        // the same provider. If the retry also fails, we fall through to the
+        // next provider in the chain. The delay respects the unified abort signal.
+        if (response.status === 429) {
+          const retryAfterMs = parseRetryAfterMs(response.headers["retry-after"]);
+          if (retryAfterMs !== null) {
+            const delayMs = computeJitteredDelay(retryAfterMs);
+            if (delayMs > 0) {
+              try {
+                await abortableDelay(delayMs, abortController.signal);
+              } catch (err) {
+                // Aborted during the Retry-After wait — surface the abort.
+                throw isAbortError(err) ? new Error("Request aborted") : (err instanceof Error ? err : new Error(String(err)));
+              }
+            }
+            logError(`Provider ${providerId} returned 429 with Retry-After=${response.headers["retry-after"]}; retrying once after ${delayMs}ms.`);
+            // Re-enter the inner try so a single retry attempt runs against
+            // the same provider. We intentionally do not loop here because
+            // a second 429 should fall through to the next provider.
+            try {
+              const retried = await performSingleVeniceRequest(currentRequest, wrappedOptions, providerSelection, abortController.signal);
+              lastResponse = retried;
+              if (retried.ok) return retried;
+              // Non-OK retry: return the latest response so the caller can
+              // inspect the post-retry status without further fallback
+              // exhausting the user's patience.
+              logError(`Provider ${providerId} retry after Retry-After returned ${retried.status}.`);
+              return retried;
+            } catch (innerErr) {
+              if (isAbortError(innerErr)) {
+                throw new Error("Request aborted");
+              }
+              logError(`Provider ${providerId} retry after Retry-After threw.`, innerErr);
+              lastError = innerErr as Error;
+              continue;
+            }
+          }
+        }
+
+        // If we got here, it's a retryable error.
+        logError(`Provider ${providerId} failed with ${response.status}, attempting fallback if available.`);
+      } catch (err) {
+        lastError = err as Error;
+        // Network errors (fetch failed, aborted, etc)
+        // We only fallback if it's not a user abort and we haven't started streaming
+        if (isAbortError(err)) {
+          throw new Error("Request aborted");
+        }
+        if (hasStartedStreaming) {
+          logError(`Provider ${providerId} failed after stream started, cannot fallback.`, err);
+          throw err;
+        }
+        logError(`Provider ${providerId} network error, attempting fallback if available.`, err);
+      }
+    }
+
+    if (lastResponse) return lastResponse;
+    throw lastError || new Error("All fallback providers failed");
+  } finally {
+    if (request.signalId) {
+      activeRequests.delete(request.signalId);
+    }
+    if (externalSignal) {
+      externalSignal.removeEventListener("abort", onExternalAbort);
+    }
+  }
 }
 
 async function performSingleVeniceRequest(
   request: ReturnType<typeof validateVeniceIpcRequest>,
   options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: Record<string, unknown>; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => void; body?: unknown } = {},
   providerSelection?: ProviderRouteSelection,
+  signal?: AbortSignal,
 ): Promise<VeniceIpcResponse> {
 
   // Check if this request should be routed to a fallback provider
@@ -455,11 +519,16 @@ async function performSingleVeniceRequest(
     };
   }
 
-  const release = await acquireVeniceSlot();
+  const release = await acquireVeniceSlot(signal);
 
   return new Promise<VeniceIpcResponse>((resolve, reject) => {
     let bodyText: string | Buffer | undefined;
     let contentTypeOverride: string | undefined;
+
+    if (signal?.aborted) {
+      reject(new Error("Request aborted"));
+      return;
+    }
 
     try {
       // Detect serialized FormData from the renderer and rebuild multipart body.
@@ -636,31 +705,28 @@ async function performSingleVeniceRequest(
       }
     );
 
+    let onAbortListener: (() => void) | undefined;
     const cleanup = () => {
-      if (request.signalId) activeRequests.delete(request.signalId);
+      if (signal && onAbortListener) {
+        signal.removeEventListener("abort", onAbortListener);
+      }
     };
 
-    if (request.signalId) {
-      const previous = activeRequests.get(request.signalId);
-      if (previous) {
-        previous.destroy();
+    if (signal) {
+      if (signal.aborted) {
+        req.destroy(new Error("Request aborted"));
+      } else {
+        onAbortListener = () => req.destroy(new Error("Request aborted"));
+        signal.addEventListener("abort", onAbortListener, { once: true });
       }
+    } else if (request.signalId && !activeRequests.has(request.signalId)) {
       activeRequests.set(request.signalId, {
         destroy: () => req.destroy(new Error("Request aborted")),
       });
     }
 
-    // P1-SAFETY-ABORT-RESIDUAL: forward direct AbortSignal if provided (in addition to signalId/IPC path)
-    const maybeSignal = (request as { signal?: AbortSignal }).signal;
-    if (maybeSignal) {
-      if (maybeSignal.aborted) {
-        req.destroy(new Error("Request aborted"));
-      } else {
-        maybeSignal.addEventListener("abort", () => req.destroy(new Error("Request aborted")), { once: true });
-      }
-    }
-
     req.on("error", (err) => {
+      cleanup();
       const message =
         err.message === "Request aborted"
           ? "Request aborted"
@@ -680,7 +746,15 @@ async function performSingleVeniceRequest(
 
     if (bodyText !== undefined) req.write(bodyText);
     req.end();
-  }).finally(release).then((response) => {
+  }).finally(() => {
+    // Wrap releaseVeniceSlot so the .finally callback can never accidentally
+    // resolve the outer promise with a non-undefined value. releaseVeniceSlot
+    // is typed `: void` today, but .finally forwards its callback's return
+    // value through to .then, so an unannotated future refactor could silently
+    // replace `response` with whatever the release function returned.
+    // (VF-AUD-20260912-N4)
+    release();
+  }).then((response) => {
     if (!response.ok) setLastApiError(readResponseError(response));
     return response;
   });

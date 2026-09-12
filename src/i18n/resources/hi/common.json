@@ -4385,6 +4385,12 @@
           "initialVersion": "प्रारंभिक संस्करण",
           "versionNextversionnumber": "संस्करण {{nextVersionNumber}}"
         }
+      },
+      "profileStore": {
+        "notification": {
+          "profileNameCannotBeEmpty": "__MISSING__:runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
+          "maximumProfileLimitReached": "__MISSING__:runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached {{limit}}"
+        }
       }
     },
     "types": {

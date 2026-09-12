@@ -19,7 +19,7 @@ type ProviderOperationFields = Readonly<
 >
 
 const TOGETHER_CHAT_FIELDS = [
-  'model', 'messages', 'max_tokens', 'stop', 'temperature', 'top_p', 'top_k',
+  'model', 'messages', 'max_tokens', 'max_completion_tokens', 'stop', 'temperature', 'top_p', 'top_k',
   'context_length_exceeded_behavior', 'repetition_penalty', 'stream', 'logprobs',
   'n', 'min_p', 'presence_penalty', 'frequency_penalty', 'logit_bias', 'seed',
   'function_call', 'response_format', 'tools', 'tool_choice', 'compliance',
@@ -258,7 +258,7 @@ function geminiTransformBody(body: Record<string, unknown>, _realModel: string):
     systemInstruction: systemMessage ? { parts: [{ text: systemMessage.content }] } : undefined,
     generationConfig: {
       temperature: body.temperature,
-      maxOutputTokens: body.max_tokens
+      maxOutputTokens: (body.max_completion_tokens as number | undefined) ?? body.max_tokens
     }
   }
 }
@@ -392,7 +392,7 @@ export const providerAdapters: Record<string, AdapterFn> = {
         }))
         return {
           model: realModel,
-          max_tokens: body.max_tokens || 4096,
+          max_tokens: ((body.max_completion_tokens as number | undefined) ?? body.max_tokens) || 4096,
           messages: otherMessages,
           system: systemMessage ? systemMessage.content : undefined,
           temperature: body.temperature,
@@ -481,7 +481,7 @@ export const providerAdapters: Record<string, AdapterFn> = {
           messages: formattedMessages,
           temperature: body.temperature,
           stream: body.stream,
-          max_tokens: body.max_tokens,
+          max_tokens: (body.max_completion_tokens as number | undefined) ?? body.max_tokens,
           p: body.top_p
         }
       },

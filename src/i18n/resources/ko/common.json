@@ -4385,6 +4385,12 @@
           "initialVersion": "초기 버전",
           "versionNextversionnumber": "버전 {{nextVersionNumber}}"
         }
+      },
+      "profileStore": {
+        "notification": {
+          "profileNameCannotBeEmpty": "__MISSING__:runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
+          "maximumProfileLimitReached": "__MISSING__:runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached {{limit}}"
+        }
       }
     },
     "types": {

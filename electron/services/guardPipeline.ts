@@ -186,6 +186,9 @@ async function screenUpstreamResponse(endpoint: string, method: string, response
   if (!getRuntimeLocalFamilySafeModeEnabled()) return null;
 
   // 1. Screen binary media fields semantically if present.
+  // Note (VF-AUD-20260912-DR-002): Current Venice endpoints return objects, not bare arrays.
+  // If Venice ever introduces top-level array responses for batch generation endpoints,
+  // iterate over array items here as well.
   if (isRecord(response.body)) {
     const b = response.body;
     // Iterate over known media fields

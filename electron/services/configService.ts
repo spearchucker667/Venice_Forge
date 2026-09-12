@@ -21,10 +21,25 @@
  *      default off; mandatory child-safety enforcement is not configurable.
  */
 import { app, shell } from "electron";
+import crypto from "crypto";
 import { promises as fs, constants as fsConstants } from "fs";
 import os from "os";
 import path from "path";
 import yaml from "yaml";
+
+/** Writes a file atomically using a temporary file and rename to prevent
+ *  file truncation or corruption if interrupted mid-write. */
+async function atomicWriteFile(targetPath: string, content: string, mode: number = 0o600): Promise<void> {
+  const tempPath = `${targetPath}.${crypto.randomBytes(8).toString("hex")}.tmp`;
+  try {
+    await fs.writeFile(tempPath, content, { encoding: "utf-8", mode });
+    await fs.rename(tempPath, targetPath);
+  } catch (err) {
+    await fs.rm(tempPath, { force: true }).catch(() => undefined);
+    throw err;
+  }
+}
+
 import {
   emptyConfig,
   sanitizeConfig,
@@ -143,9 +158,16 @@ function assertPathContained(rawPath: string, label: string): string {
   const homeDir = os.homedir();
   const repoDir = getRepoLocalConfigDir();
   const allowedRoots = [userData, homeDir, repoDir].filter((r): r is string => Boolean(r));
+  // Treat `resolved === root` (path.relative returns "") as contained. The
+  // prior `relative && ...` guard rejected this edge case without any
+  // security benefit (an exact-root path is at least as safe as one nested
+  // inside it), so we explicitly accept it. (VF-AUD-20260912-N3)
   const contained = allowedRoots.some((root) => {
     const relative = path.relative(root, resolved);
-    return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+    return (
+      relative === "" ||
+      (!relative.startsWith("..") && !path.isAbsolute(relative))
+    );
   });
   if (!contained) {
     throw new Error(
@@ -693,7 +715,7 @@ export async function writeSanitizedConfig(patch: unknown): Promise<WriteSanitiz
   };
   try {
     const yamlText = yaml.stringify(finalConfig);
-    await fs.writeFile(currentStatus.configPath, yamlText, { encoding: "utf-8", mode: 0o600 });
+    await atomicWriteFile(currentStatus.configPath, yamlText, 0o600);
     currentConfig = finalConfig;
     setRuntimeLocalFamilySafeModeEnabled(finalConfig.safety.local_family_safe_mode_enabled);
     setRuntimeVeniceApiSafeMode(finalConfig.safety.venice_api_safe_mode);

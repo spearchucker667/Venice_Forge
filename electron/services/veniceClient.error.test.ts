@@ -12,7 +12,7 @@ vi.mock("electron", () => ({
   },
 }));
 
-import { readResponseError } from './veniceClient';
+import { parseBody, readResponseError } from './veniceClient';
 
 /** Tests extraction of error details from Venice API response objects. */
 describe('readResponseError', () => {
@@ -77,5 +77,31 @@ describe('readResponseError', () => {
       status: 503,
     } as any;
     expect(readResponseError(response)).toBe('Service Unavailable');
+  });
+});
+
+describe('parseBody (VF-AUD-20260912-P1-001 / TG-002)', () => {
+  it('parses valid application/json responses', () => {
+    const buf = Buffer.from(JSON.stringify({ result: "ok" }));
+    expect(parseBody(buf, "application/json; charset=utf-8")).toEqual({ result: "ok" });
+  });
+
+  it('returns text for text/* content-type', () => {
+    const buf = Buffer.from("Hello world");
+    expect(parseBody(buf, "text/plain")).toBe("Hello world");
+  });
+
+  it('skips utf-8 decoding for binary media content-types', () => {
+    const rawBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const toStringSpy = vi.spyOn(rawBytes, 'toString');
+
+    const result = parseBody(rawBytes, "image/png") as { dataBase64: string };
+    expect(result.dataBase64).toBe(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).toString("base64"));
+
+    // Verify utf-8 decode was never invoked
+    const utf8Calls = toStringSpy.mock.calls.filter(([enc]) => enc === "utf-8");
+    expect(utf8Calls.length).toBe(0);
+
+    toStringSpy.mockRestore();
   });
 });

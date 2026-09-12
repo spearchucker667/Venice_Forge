@@ -1,7 +1,7 @@
 /** @fileoverview Shared IPC handler utilities used by the domain-specific
  *  handler modules. */
 
-import { ipcMain, type IpcMainInvokeEvent, type WebContents } from "electron";
+import { ipcMain, type IpcMainInvokeEvent, type WebContents, type WebFrameMain } from "electron";
 import { rateLimitIpcHandler } from "../../utils/rateLimit";
 import { validateIpcSender } from "../../utils/validateIpcSender";
 
@@ -48,10 +48,27 @@ export function registerPrivilegedIpcChannel(
 export function clearRegisteredChannelsForTesting(): void {
   registeredChannels.clear();
 }
-/** Safely sends a payload to a renderer process, returning false if the
- *  WebContents has already been destroyed.
+
+/** Safely sends a payload to a renderer process or specific frame, returning false if the
+ *  target has already been destroyed (VF-AUD-20260912-DR-001).
  */
-export function safeSendToRenderer(sender: WebContents, channel: string, payload: unknown): boolean {
+export function safeSendToRenderer(
+  sender: WebContents,
+  channel: string,
+  payload: unknown,
+  frame?: WebFrameMain | null,
+): boolean {
+  if (frame && typeof frame.send === "function") {
+    try {
+      if (typeof frame.isDestroyed === "function" && frame.isDestroyed()) {
+        return false;
+      }
+      frame.send(channel, payload);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   if (sender.isDestroyed()) return false;
   try {
     sender.send(channel, payload);

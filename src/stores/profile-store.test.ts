@@ -54,16 +54,45 @@ describe("useProfileStore", () => {
   });
 
   it("rejects invalid profile ids when adding a profile", () => {
+    // VF-AUD-20260912-N7: addProfile now returns a Result for non-validation
+    // failures (limit-reached). Programmer-error path (invalid id) still throws.
     expect(() => useProfileStore.getState().addProfile("Work", "bad_id")).toThrow(/Invalid profile id/);
     expect(() => useProfileStore.getState().addProfile("Default", "default")).toThrow(/reserved/);
   });
 
   it("generates a valid id when adding a profile without an explicit id", () => {
-    const profile = useProfileStore.getState().addProfile("Work");
+    const result = useProfileStore.getState().addProfile("Work");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const profile = result.profile;
     expect(profile.id).toMatch(/^[a-z0-9-]+$/);
     expect(profile.id).not.toContain("_");
     expect(profile.id).not.toContain(":");
     expect(useProfileStore.getState().profiles).toContainEqual(profile);
+  });
+
+  it("enforces maximum profile limit (VF-AUD-20260912-P3-004 / VF-AUD-20260912-N7)", () => {
+    const maxProfiles = Array.from({ length: 20 }, (_, i) => ({
+      id: i === 0 ? "default" : `prof-${i}`,
+      name: `Profile ${i}`,
+      onboardingCompleted: false,
+    }));
+    useProfileStore.setState({ profiles: maxProfiles });
+
+    const result = useProfileStore.getState().addProfile("Overflow");
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("limit-reached");
+    expect(result.limit).toBe(20);
+    expect(result.message).toMatch(/Maximum profile limit \(20\) reached/);
+  });
+
+  it("returns an empty-name Result instead of throwing (VF-AUD-20260912-N7)", () => {
+    const result = useProfileStore.getState().addProfile("   ");
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("empty-name");
+    expect(result.message).toMatch(/empty/i);
   });
 
   it("switches to an unprotected profile without a password", async () => {
@@ -381,8 +410,10 @@ describe("useProfileStore hydration sanitization", () => {
     await rehydrateWithFreshStore();
     const { useProfileStore: store } = await import("./profile-store");
     expect(typeof store.getState().addProfile).toBe("function");
-    // addProfile() with an empty name should still throw the real validation error.
-    expect(() => store.getState().addProfile("")).toThrow(/empty/);
+    // VF-AUD-20260912-N7: empty name returns an empty-name Result (no throw).
+    const emptyResult = store.getState().addProfile("");
+    expect(emptyResult.ok).toBe(false);
+    if (!emptyResult.ok) expect(emptyResult.reason).toBe("empty-name");
   });
 
   it("never persists the active profile as a profile that is missing from the sanitized list", async () => {

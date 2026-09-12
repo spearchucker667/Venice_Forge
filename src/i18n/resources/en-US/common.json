@@ -4313,6 +4313,12 @@
           "systemPromptApproachingLengthLimit": "System prompt approaching length limit"
         }
       },
+      "profileStore": {
+        "notification": {
+          "profileNameCannotBeEmpty": "Profile name cannot be empty.",
+          "maximumProfileLimitReached": "Maximum profile limit ({{limit}}) reached. Delete an existing profile before adding a new one."
+        }
+      },
       "imageInspectorStore": {
         "notification": {
           "couldNotLoadSessionId": "Could not load session {{id}}",

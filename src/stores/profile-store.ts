@@ -4,6 +4,7 @@ import { createSafeStorage } from '../lib/safe-storage'
 import { DEFAULT_PROFILE_ID, broadcastActiveProfileChange, setActiveProfileId } from '../services/activeProfile'
 import { purgeProfileData } from '../services/profilePurge'
 import { isElectron, desktopMasterPassword, desktopProfilePassword } from '../services/desktopBridge'
+import { translateRuntime } from '../i18n/runtimeTranslator'
 import {
   assertUserCreatableProfileId,
   generateProfileId,
@@ -11,6 +12,15 @@ import {
   isValidProfileStorageId,
 } from '../utils/profileIdValidation'
 import { sanitizePersistedProfileState } from './profile-store-helpers/sanitizePersistedProfileState'
+
+export const MAX_PROFILES = 20;
+
+/** Result of an addProfile attempt. `ok: false` carries a localized reason so
+ *  the caller can render a user-visible message instead of catching a thrown
+ *  Error. (VF-AUD-20260912-N7) */
+export type AddProfileResult =
+  | { ok: true; profile: UserProfile }
+  | { ok: false; reason: "empty-name" | "limit-reached"; limit?: number; message: string };
 
 export interface UserProfile {
   id: string
@@ -27,7 +37,9 @@ export interface ProfileState {
   globalOnboardingCompleted: boolean
   setGlobalOnboardingCompleted: (val: boolean) => void
 
-  addProfile: (name: string, id?: string) => UserProfile
+  /** Adds a new profile. Returns a Result so the renderer can surface a
+   *  localized message rather than catching a thrown Error. */
+  addProfile: (name: string, id?: string) => AddProfileResult
   /** Gated profile switch. Password is required when the target profile is protected. */
   requestSwitchProfile: (id: string, password?: string) => Promise<{ ok: boolean; error?: string }>
   updateProfile: (id: string, data: Partial<UserProfile>) => void
@@ -58,7 +70,26 @@ export const useProfileStore = create<ProfileState>()(
       addProfile: (name, id) => {
         const safeName = name.trim()
         if (safeName.length === 0) {
-          throw new Error('Profile name cannot be empty.')
+          return {
+            ok: false,
+            reason: "empty-name",
+            message: translateRuntime(
+              "runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
+              "Profile name cannot be empty.",
+            ),
+          };
+        }
+        if (get().profiles.length >= MAX_PROFILES) {
+          return {
+            ok: false,
+            reason: "limit-reached",
+            limit: MAX_PROFILES,
+            message: translateRuntime(
+              "runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached",
+              `Maximum profile limit (${MAX_PROFILES}) reached. Delete an existing profile before adding a new one.`,
+              { limit: MAX_PROFILES },
+            ),
+          };
         }
         const newId = id ? id.trim() : generateProfileId()
         assertUserCreatableProfileId(newId)
@@ -68,7 +99,7 @@ export const useProfileStore = create<ProfileState>()(
           onboardingCompleted: false,
         }
         set((state) => ({ profiles: [...state.profiles, newProfile] }))
-        return newProfile
+        return { ok: true, profile: newProfile }
       },
 
       requestSwitchProfile: async (id, password) => {

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import {
   useState,
   useRef,
@@ -11,8 +9,9 @@ import {
 
 } from "react";
 import type { ChatMessage, ContentPart } from "../../types/venice";
+import type { ConversationMessage } from "../../types/conversation";
 import type { ChatAttachmentRef } from "../../types/chatAttachment";
-import type { ConversationCharacterMeta } from "../../types/conversationVault";
+import type { ChatMediaReference, ConversationCharacterMeta } from "../../types/conversationVault";
 import { cn } from "../../lib/utils";
 import { isImeCompositionEvent } from "../../lib/keyboard";
 import { CharacterAvatar } from "../characters/CharacterAvatar";
@@ -982,7 +981,7 @@ function MessageBubbleImpl({
 
         {isAssistant &&
           Array.isArray(message.metadata?.generatedMedia) &&
-          (message.metadata.generatedMedia as any[])
+          (message.metadata.generatedMedia as ChatMediaReference[])
             .filter((r) => !r?.deletedFromChatAt)
             .map((r) => (
               <div
@@ -1007,7 +1006,7 @@ function MessageBubbleImpl({
                   className="w-full h-auto object-cover"
                 />
                 <button
-                  onClick={() => onRemoveMedia?.((message as any).id, r.id)}
+                  onClick={() => onRemoveMedia?.((message as ConversationMessage).id ?? "", r.id)}
                   className="absolute top-2 right-2 bg-black/60 text-white rounded p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500" // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR
                   title={tRuntime(
                     "runtimeGenerated.components.chat.messageBubble.attribute.removeFromChat",

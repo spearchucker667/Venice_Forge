@@ -122,7 +122,7 @@ export function registerVeniceHandlers(): void {
           appendedMessages: chunk.appendedMessages,
           finish_reason: chunk.finish_reason,
         };
-        safeSendToRenderer(event.sender, "venice:streamDelta", envelope);
+        safeSendToRenderer(event.sender, "venice:streamDelta", envelope, event.senderFrame);
       });
       if (result.kind === "blocked") return result.block;
       return result.response;
