@@ -190,7 +190,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Audit Evidence
 
-- [audits/venice-forge-exhaustive-audit-2026-09-12/README.md](audits/venice-forge-exhaustive-audit-2026-09-12/README.md) — 2026-09-12 exhaustive multi-agent audit package (SHA `8c72a40c`). Re-verification pass confirms 19/19 prior findings (6 P0, 6 P1, 6 P2, 1 P3) fully remediated in the working tree; 0 new P0/P1/P2 confirmed defects. Release readiness CONDITIONAL on commit+push of the 32 in-progress remediation files. See `FINDINGS.md`, `VALIDATION_RESULTS.md`, and `summary_of_work.md`.
+- [audits/venice-forge-exhaustive-audit-2026-09-12/README.md](audits/venice-forge-exhaustive-audit-2026-09-12/README.md) — 2026-09-12 exhaustive multi-agent audit package (SHA `c1aa891b`). Re-verification confirms 19/19 prior findings (4 P1, 6 P2, 5 P3, 2 DR, 3 TG) and 7 re-pass findings (N1..N7) fully remediated, verified, committed, and published to `main`. See `FINDINGS.md`, `VALIDATION_RESULTS.md`, and `summary_of_work.md`.
 - [audits/venice-forge-exhaustive-audit-2026-09-11/README.md](audits/venice-forge-exhaustive-audit-2026-09-11/README.md) — 2026-09-11 current-worktree audit, six resolved follow-up findings, and local/package validation evidence for baseline SHA `c3ae21af`. External acceptance remains in `ROADMAP.md`.
 - [audits/venice-forge-exhaustive-audit-2026-09-10/README.md](audits/venice-forge-exhaustive-audit-2026-09-10/README.md) — 2026-09-10 exhaustive current-`main` audit package (SHA `c3ae21af`). Evidence only; remaining work is in `ROADMAP.md`.
 - [audits/Records/repository-hygiene-audit.md](audits/Records/repository-hygiene-audit.md) — 2026-09-01 repository hygiene inventory and keep/remove rationale.

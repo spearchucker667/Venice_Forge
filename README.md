@@ -266,7 +266,7 @@ npm run lint:eslint
 # 2. Run TypeScript compiler typechecks
 npm run typecheck
 
-# 3. Run full Vitest suite serially
+# 3. Run full Vitest test suite
 npm test
 
 # 4. Run safety, markdown links, and other local contract checks

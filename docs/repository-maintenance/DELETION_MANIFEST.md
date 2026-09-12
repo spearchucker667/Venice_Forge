@@ -1,24 +1,24 @@
 # Venice Forge — Deletion & Retirement Manifest
 
-**Baseline commit:** `c85448ce4436ca545d6da8a131f19662943e5ca5`
-**Date:** 2026-09-11
+**Current baseline commit:** `c1aa891b7b776a6d9468fce4dd99a99d24f63e3e`
+**Date:** 2026-09-12
 **Scope:** Repository Hygiene & Organization Overhaul
 
 ---
 
-## 1. Current Session Deletion Audit
+## 1. 2026-09-12 Session Deletion Audit
 
-During the 2026-09-11 repository hygiene overhaul, **zero active code or asset files were deleted**.
-Two historical files with truncated/quoted filenames were safely moved with `git mv` (recorded in [`FILE_MOVE_MANIFEST.md`](FILE_MOVE_MANIFEST.md)) preserving git blame and revision history.
+During the 2026-09-12 repository overhaul, **zero tracked files were deleted or retired**.
+All 1,914 tracked files were evaluated against the Section 45 Removal Criteria and verified to be necessary, referenced, active source, test, configuration, assets, or canonical documentation.
 
 All candidate files were evaluated against the Section 45 Removal Criteria:
-1. Duplicate of authoritative file
-2. Generated artifact accidentally committed
-3. Obsolete implementation no longer referenced
-4. Temporary / debug artifact
-5. Accidental backup
-6. Stale documentation superseded elsewhere
-7. Unused asset with no build/runtime reference
+1. Duplicate of authoritative file (none found)
+2. Generated artifact accidentally committed (none found)
+3. Obsolete implementation no longer referenced (none found)
+4. Temporary / debug artifact (none found)
+5. Accidental backup (none found)
+6. Stale documentation superseded elsewhere (none found)
+7. Unused asset with no build/runtime reference (none found)
 
 ---
 

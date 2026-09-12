@@ -4,7 +4,28 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-12 Documentation, Repository Organization, File Hygiene & Gitignore Overhaul.** Conducted a thorough repository-wide hygiene, architecture, and documentation audit against baseline `c1aa891b`. Verified root directory cleanliness (29 canonical files; zero junk, scratch, or misplaced files), tracked-file inventory (1,914 tracked files audited), `.gitignore` completeness and zero tracked-file conflicts (`git ls-files -c -i --exclude-standard` returns empty), `.gitattributes` text/binary normalization, `.editorconfig` formatting rules, and Markdown link integrity (335 files, 0 broken links). Updated `README.md` test instructions to reflect parallel Vitest execution, synchronized `docs/DOCS_INDEX.md` audit status, and refreshed `docs/repository-maintenance/` reports (`REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`).
+
 - **2026-09-12 Publication to Main (VF-AUD-20260912 & Re-pass Remediation).** Completed publication to `main` authorized by the user ("push to mAin"). Committed and pushed the full 2026-09-12 exhaustive audit remediation tranche (19 resolved findings: 4 P1, 6 P2, 5 P3, 2 DR, 3 TG) along with re-pass remediations N1..N7 (including automated IPC parity verifier, config atomicity edge cases, and bounds protections) to remote `main`. All local validation gates passed cleanly prior to push: `lint:eslint` (0/0), `typecheck` (3 tsconfigs), `npm test` (5,858 passed / 3 skipped, 516 files), `verify:contracts` (static, features, release - 104+ checks), `verify:safety-guard`, `verify:markdown-links` (335 files), `verify:ipc-parity`, `verify:dist`, and `build` (web, server, electron).
+
+## Session History
+
+### 2026-09-12 — Documentation, Repository Organization, File Hygiene & Gitignore Overhaul
+
+- **Scope:** Repository-wide hygiene, documentation hierarchy, `.gitignore`, `.gitattributes`, `.editorconfig`, file inventory, and root cleanliness audit.
+- **Baseline:** Commit `c1aa891b7b776a6d9468fce4dd99a99d24f63e3e`, version `3.0.0-beta.3`, branch `main`.
+- **Audits & Remediations:**
+  - **Root Directory:** Verified 29 canonical files. Zero scratch files, ad-hoc test scripts, or root audit files.
+  - **Tracked Inventory:** 1,914 files audited across `src/` (1,019), `docs/` (336), `electron/` (220), `scripts/` (120), `config/` (47), `tests/` (43), `assets/` (34), `public/` (32), `inactive-features/` (16), `.github/` (12), `build/` (3), `.config/` (2), `.vscode/` (1), and 29 root files.
+  - **Gitignore & Tracked Conflicts:** Verified 0 tracked files are ignored. Confirmed transient, cache, and local AI directories (`.env`, `.config/*.local.yaml`, `.agent-backups/`, `.agents/`, `.design-captures/`, `.freebuff/`, `.impeccable/`, `.playwright-cli/`, `.superpowers/`, `artifacts/`, `coverage/`, `dist/`, `dist-electron/`, `node_modules/`, `scratch/`, `venice-media-output/`) are excluded.
+  - **Documentation & Links:** `npm run verify:markdown-links` checked 335 markdown files (0 broken links). Updated `README.md` test command prose to reflect parallel Vitest execution. Updated `docs/DOCS_INDEX.md` audit citation.
+  - **Hygiene Manifests:** Refreshed `docs/repository-maintenance/` (`REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`).
+- **Validation:**
+  - `npm run verify:markdown-links` PASS (335 markdown files).
+  - `npm run verify:repo-handoff-hygiene` PASS.
+  - `npm run verify:roadmap-current` PASS.
+  - `npm run verify:agent-docs` PASS.
+  - `git diff --check` PASS (0 whitespace/conflict errors).
 
 - **2026-09-12 Audit Re-pass Findings Remediation (VF-AUD-20260912-N1..N7).** Applied 7 new fixes surfaced by the same-day audit re-pass and recorded evidence in the audit package. New IPC parity gate (`scripts/verify-ipc-parity.cjs` + test) wired into `verify:contracts:static`; `assertPathContained` exact-root case fixed; `.finally(release)` inlined for void-contract decoupling; chat-stream-manager `?.` style refactored; `MAX_CUSTOM_THEMES` truncation now warns via `console.warn`; `MAX_PROFILES` overflow now returns a localized `AddProfileResult` instead of throwing. i18n keys added in 12 locales (11 carry `__MISSING__:` placeholders pending translation). All verifications PASS locally (lint, typecheck, 5858 tests, contracts, build, i18n, hardcoded regression, safety guard, IPC parity).
   - **Audit package:** `docs/audits/venice-forge-exhaustive-audit-2026-09-12/` updated in place with FIXED status for each of N1, N3, N4, N5, N6, N7 and a fresh Session History entry. N2 (commit + push the 32-file dirty tree) resolved via explicit user publication command.

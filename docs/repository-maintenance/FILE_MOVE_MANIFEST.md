@@ -1,12 +1,19 @@
 # Venice Forge — File Move & Rename Manifest
 
-**Baseline commit:** `c85448ce4436ca545d6da8a131f19662943e5ca5`
-**Date:** 2026-09-11
+**Current baseline commit:** `c1aa891b7b776a6d9468fce4dd99a99d24f63e3e`
+**Date:** 2026-09-12
 **Scope:** Repository Hygiene & Organization Overhaul
 
 ---
 
-## 1. Moved & Renamed Files
+## 1. 2026-09-12 Session Move & Rename Audit
+
+During the 2026-09-12 repository overhaul, **zero files required relocation or renaming**.
+All 1,914 tracked files occupy their canonical locations under the established Diátaxis documentation structure, modular source directories (`electron/`, `src/`, `scripts/`, `config/`, `tests/`), and clean 29-file root governance perimeter.
+
+---
+
+## 2. Historical Move & Rename Manifest (2026-09-11)
 
 ### Entry 1
 - **OLD PATH:** `docs/audits/repo-management/Venice Forge — Exhaustive Repository A.md`
@@ -24,7 +31,7 @@
 
 ---
 
-## 2. Directory Additions & Index Placements
+## 3. Directory Additions & Index Placements
 
 ### Entry 3
 - **NEW PATH:** `docs/audits/repo-management/README.md`
