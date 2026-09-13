@@ -185,9 +185,8 @@ export async function saveRpChat(input: unknown, profileId: string = "default"):
 
   await ensureRpProfileDir(profileId, RP_CHATS_DIR);
   const target = rpChatPath(chat.id, profileId);
-  const tmp = `${target}.tmp-${crypto.randomUUID()}`;
-  await fs.writeFile(tmp, JSON.stringify(chat, null, 2), { mode: 0o600 });
-  await fs.rename(tmp, target);
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(target, JSON.stringify(chat, null, 2));
   return { ok: true };
 }
 

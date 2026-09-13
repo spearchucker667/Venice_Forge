@@ -96,9 +96,8 @@ export function createSingleFileStore<T>(
     if (!isValidId(id)) return { ok: false, error: "invalid id" };
     await ensureRpProfileDir(profileId, dirName);
     const target = fileFor(id, profileId);
-    const tmp = `${target}.tmp-${crypto.randomUUID()}`;
-    await fs.writeFile(tmp, JSON.stringify(input, null, 2), { mode: 0o600 });
-    await fs.rename(tmp, target);
+    const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+    await atomicReplaceFile(target, JSON.stringify(input, null, 2));
     return { ok: true };
   }
 

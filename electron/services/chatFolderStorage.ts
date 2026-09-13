@@ -185,7 +185,19 @@ export async function saveChatFolder(folder: ChatFolder, profileId: string = "de
     } finally {
       await handle.close();
     }
-    await fs.rename(tmp, target);
+    try {
+      await fs.rename(tmp, target);
+    } catch (err) {
+      const code = err && typeof err === "object" && "code" in err
+        ? (err as NodeJS.ErrnoException).code
+        : undefined;
+      if (process.platform === "win32" && (code === "EPERM" || code === "EEXIST" || code === "EACCES")) {
+        await fs.copyFile(tmp, target);
+        await fs.unlink(tmp).catch(() => undefined);
+      } else {
+        throw err;
+      }
+    }
     return { ok: true };
   } catch {
     await fs.unlink(tmp).catch(() => undefined);

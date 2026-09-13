@@ -350,9 +350,8 @@ export async function deleteCharacterCard(id: string, profileId: string = "defau
 
 /** Atomic write: unique temp + rename so concurrent saves cannot share a `.tmp` file. */
 async function atomicWrite(target: string, data: Buffer): Promise<void> {
-  const tmp = `${target}.tmp-${crypto.randomUUID()}`;
-  await fs.writeFile(tmp, data, { mode: 0o600 });
-  await fs.rename(tmp, target);
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(target, data);
 }
 
 export const _testing = {

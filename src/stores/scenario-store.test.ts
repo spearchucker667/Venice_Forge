@@ -16,7 +16,16 @@ vi.mock("../services/rp/scenarioService", async (importOriginal) => {
   };
 });
 
-function reset(): void {
+async function reset(): Promise<void> {
+  useScenarioStore.setState({
+    scenarios: [],
+    isLoading: false,
+    hasLoaded: false,
+    error: null,
+    activeScenarioId: null,
+    searchQuery: "",
+  });
+  await Promise.resolve();
   useScenarioStore.setState({
     scenarios: [],
     isLoading: false,
@@ -46,8 +55,8 @@ function baseScenario(overrides: Partial<ScenarioV1> = {}): ScenarioV1 {
 }
 
 describe("scenario-store", () => {
-  beforeEach(() => {
-    reset();
+  beforeEach(async () => {
+    await reset();
   });
 
   it("createBlank returns a stable id and inserts into the list", async () => {
