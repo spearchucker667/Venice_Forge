@@ -6,6 +6,7 @@ import { validateThemesFile, YamlTheme, ConfigWarning } from "../../src/config/c
 import yaml from "yaml";
 
 import { logInfo } from "./logger";
+import { atomicReplaceFile } from "../utils/atomicFileReplace";
 
 /** Minimal local ThemeFamily V2 shape used for IPC persistence. */
 export interface ThemeFamilyV2 {
@@ -209,7 +210,7 @@ export async function saveTheme(family: ThemeFamilyV2): Promise<void> {
   }
   const customDir = await ensureCustomThemesDir();
   const filePath = path.join(customDir, `${family.id}.yaml`);
-  await fs.writeFile(filePath, serializeV2Family(family), { encoding: "utf-8", mode: 0o600 });
+  await atomicReplaceFile(filePath, serializeV2Family(family), 0o600);
 }
 
 export async function deleteTheme(id: string): Promise<void> {

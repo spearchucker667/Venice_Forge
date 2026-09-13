@@ -287,5 +287,21 @@ describe('Canonical Payload Builders', () => {
         response_format: 'mp3',
       });
     });
+
+    it('defaults voice to af_sky for Kokoro models when voice is omitted', () => {
+      const tts = buildCanonicalAudioSpeechPayload({
+        model: 'kokoro-v1',
+        input: 'Speaking via Kokoro',
+      });
+      expect(tts.voice).toBe('af_sky');
+    });
+
+    it('omits voice for non-Kokoro models when voice is not specified', () => {
+      const tts = buildCanonicalAudioSpeechPayload({
+        model: 'elevenlabs-turbo-v2',
+        input: 'Speaking via ElevenLabs',
+      });
+      expect(tts.voice).toBeUndefined();
+    });
   });
 });

@@ -85,8 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "图片已下载",
     "imageSaveFailed": "图片保存失败",
-    "replicateQueued": "__MISSING__:Replicate generation queued",
-    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
+    "replicateQueued": "Replicate 生成已排队",
+    "replicateQueuedDetail": "完成后，图像将显示在任务中心和媒体工作室中。",
     "imageDownloadFailedDetail": "无法下载该图像。",
     "none": "没有任何",
     "enhancedPromptShortened": "增强提示缩短",

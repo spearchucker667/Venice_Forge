@@ -13,6 +13,7 @@ import {
   desktopRpAssets,
   desktopScenarios,
   desktopSync,
+  desktopChatFolders,
 } from "./desktopBridge";
 import type { SyncStoreName, MutationOrigin } from "../types/sync";
 import { STORE_NAMES } from "../constants/venice";
@@ -216,6 +217,9 @@ export async function deleteStoreRecord(
       case "rpScenarios":
         await desktopScenarios.delete(recordId, origin);
         return;
+      case "chat_folders":
+        await desktopChatFolders.delete({ folderId: recordId, deleteConversations: false });
+        return;
     }
   }
 
@@ -256,6 +260,10 @@ export async function fetchStoreRecords(
       case "rpScenarios": {
         const res = await desktopScenarios.list();
         return res.ok ? (res.scenarios as unknown as SyncableRecord[]) : [];
+      }
+      case "chat_folders": {
+        const res = await desktopChatFolders.list();
+        return res.ok ? (res.folders as unknown as SyncableRecord[]) : [];
       }
     }
   }
@@ -417,7 +425,8 @@ export async function importDecryptedPacket(
             sourceDeviceId: loser.deviceId,
             remoteRevisionId: loser.revisionId,
           });
-          const newId = `${id}_conflict_${conflictIdentity.slice(0, 16)}`;
+          const baseId = id.length > 102 ? id.slice(0, 102) : id;
+          const newId = `${baseId}_conflict_${conflictIdentity.slice(0, 16)}`;
           const localDeviceRef =
             typeof local.deviceId === "string" ? local.deviceId : "this-device";
           const importedDeviceRef =
@@ -539,7 +548,8 @@ export async function importDecryptedPacket(
                     ? divergence.imported.revisionId
                     : undefined,
               });
-              const newMsgId = `${divergence.id}_conflict_${conflictIdentity.slice(0, 16)}`;
+              const baseMsgId = divergence.id.length > 102 ? divergence.id.slice(0, 102) : divergence.id;
+              const newMsgId = `${baseMsgId}_conflict_${conflictIdentity.slice(0, 16)}`;
               const forkedMessage = {
                 ...divergence.imported,
                 id: newMsgId,

@@ -1566,6 +1566,19 @@ export function _debugGetDirtyConversationIds(): readonly string[] {
   return Array.from(dirtyConversations.keys());
 }
 
+/**
+ * Synchronously clears all pending dirty conversations and cancels any pending flush timer.
+ * Used during profile switches to guarantee that pending saves from the previous profile
+ * do not land under the new profile's storage partition during window unload.
+ */
+export function clearAllDirtyConversations(): void {
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  dirtyConversations.clear();
+}
+
 // Re-export the serialisation helper so other modules (sidebar undo, IPC
 // layer, tests) can build the wire-format record without depending on
 // the store's internals.

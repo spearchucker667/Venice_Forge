@@ -13,6 +13,7 @@ import {
   isValidProfileStorageId,
 } from '../utils/profileIdValidation'
 import { sanitizePersistedProfileState } from './profile-store-helpers/sanitizePersistedProfileState'
+import { flushAllPendingSaves, clearAllDirtyConversations } from './chat-store'
 
 export const MAX_PROFILES = 20;
 
@@ -49,11 +50,15 @@ export interface ProfileState {
   setMasterPasswordSet: (set: boolean) => void
 }
 
-/** Internal raw switch: updates active id, broadcasts, and reloads. */
-function performRawProfileSwitch(id: string): void {
+/** Internal raw switch: flushes pending saves, clears dirty sets, updates active id, broadcasts, and reloads. */
+async function performRawProfileSwitch(id: string): Promise<void> {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event("venice-forge:abort-in-flight"));
     try { chatTtsController.stop(); } catch { /* ignore */ }
+    try {
+      await flushAllPendingSaves();
+    } catch { /* ignore */ }
+    clearAllDirtyConversations();
     setActiveProfileId(id)
     window.location.reload()
   }
@@ -131,7 +136,7 @@ export const useProfileStore = create<ProfileState>()(
 
         if (id === activeProfileId) return { ok: true }
 
-        performRawProfileSwitch(id)
+        await performRawProfileSwitch(id)
         return { ok: true }
       },
 
@@ -151,6 +156,14 @@ export const useProfileStore = create<ProfileState>()(
         // Desktop credential/password purge is session-authoritative. Require
         // the target profile to be activated before its destructive cleanup.
         if (isElectron() && id !== get().activeProfileId) return { ok: false, error: 'Activate the profile before deleting it.' }
+
+        const isDeletingActive = get().activeProfileId === id;
+        if (isDeletingActive && typeof window !== 'undefined') {
+          window.dispatchEvent(new Event("venice-forge:abort-in-flight"));
+          try { chatTtsController.stop(); } catch { /* ignore */ }
+          try { await flushAllPendingSaves(); } catch { /* ignore */ }
+          clearAllDirtyConversations();
+        }
 
         const purge = await purgeProfileData(id)
         if (isElectron() && !purge.mainProcessPurgeOk) {

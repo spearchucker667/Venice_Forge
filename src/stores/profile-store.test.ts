@@ -128,6 +128,26 @@ describe("useProfileStore", () => {
     expect(reloadFn).not.toHaveBeenCalled();
   });
 
+  it("flushes and clears dirty conversations before switching profiles (TG-002)", async () => {
+    const chatStoreModule = await import("./chat-store");
+    const flushSpy = vi.spyOn(chatStoreModule, "flushAllPendingSaves").mockResolvedValue(undefined);
+    const clearSpy = vi.spyOn(chatStoreModule, "clearAllDirtyConversations");
+
+    useProfileStore.setState({
+      profiles: [
+        { id: "default", name: "Default", onboardingCompleted: false },
+        { id: "work", name: "Work", onboardingCompleted: false },
+      ],
+      activeProfileId: "default",
+    });
+
+    const res = await useProfileStore.getState().requestSwitchProfile("work");
+    expect(res.ok).toBe(true);
+    expect(flushSpy).toHaveBeenCalled();
+    expect(clearSpy).toHaveBeenCalled();
+    expect(reloadFn).toHaveBeenCalled();
+  });
+
   it("activates the restored profile before credential hydration can proceed", async () => {
     vi.mocked(isElectron).mockReturnValue(true);
     vi.mocked(desktopProfilePassword.activate).mockResolvedValue({ ok: true, verified: true, profileId: "work" });

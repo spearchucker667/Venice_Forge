@@ -1899,7 +1899,7 @@
         "legacyConversationsDetected": "लीगेसी वार्तालाप का पता लगाया गया",
         "encryptedConversationVault": "एन्क्रिप्टेड वार्तालाप वॉल्ट",
         "maintenanceOperations": "रखरखाव संचालन",
-        "searchVault": "__MISSING__:Search vault",
+        "searchVault": "वॉल्ट खोजें",
         "curatedFacts": "क्यूरेटेड तथ्य ("
       },
       "description": {
@@ -4393,8 +4393,8 @@
       },
       "profileStore": {
         "notification": {
-          "profileNameCannotBeEmpty": "__MISSING__:runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
-          "maximumProfileLimitReached": "__MISSING__:runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached {{limit}}"
+          "profileNameCannotBeEmpty": "प्रोफ़ाइल नाम खाली नहीं हो सकता।",
+          "maximumProfileLimitReached": "अधिकतम प्रोफ़ाइल सीमा ({{limit}}) समाप्त हो गई। नई प्रोफ़ाइल जोड़ने से पहले किसी मौजूदा प्रोफ़ाइल को हटाएं।"
         }
       }
     },

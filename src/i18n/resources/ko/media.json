@@ -85,8 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "이미지가 다운로드됨",
     "imageSaveFailed": "이미지 저장 실패",
-    "replicateQueued": "__MISSING__:Replicate generation queued",
-    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
+    "replicateQueued": "Replicate 생성 대기열에 추가됨",
+    "replicateQueuedDetail": "완료되면 작업 센터 및 미디어 스튜디오에 이미지가 표시됩니다.",
     "imageDownloadFailedDetail": "이미지를 다운로드할 수 없습니다.",
     "none": "없음",
     "enhancedPromptShortened": "향상된 프롬프트 단축",

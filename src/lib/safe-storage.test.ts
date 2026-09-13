@@ -63,6 +63,19 @@ describe('createSafeStorage', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('cleared persisted state'))
   })
 
+  it('does not remove critical stores like venice-settings on quota error', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const removeSpy = vi.spyOn(localStorageMock, 'removeItem')
+    const quotaErr = new DOMException('quota', 'QuotaExceededError')
+    vi.spyOn(localStorageMock, 'setItem').mockImplementation(() => {
+      throw quotaErr
+    })
+    const storage = createSafeStorage()
+    storage.setItem('venice-settings', JSON.stringify({ state: { theme: 'dark' }, version: 1 }))
+    expect(removeSpy).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('retaining existing state rather than wiping'))
+  })
+
   it('prunes oversized arrays and retries on quota error', () => {
     let attempts = 0
     const oversized = { state: { conversations: Array.from({ length: 100 }, (_, i) => ({ id: i })) }, version: 3 }

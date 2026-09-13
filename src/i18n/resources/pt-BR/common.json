@@ -1894,7 +1894,7 @@
         "legacyConversationsDetected": "Conversas herdadas detectadas",
         "encryptedConversationVault": "Cofre de conversa criptografado",
         "maintenanceOperations": "Operações de manutenção",
-        "searchVault": "__MISSING__:Search vault",
+        "searchVault": "Pesquisar no cofre",
         "curatedFacts": "Curadoria de fatos ("
       },
       "description": {
@@ -4393,8 +4393,8 @@
       },
       "profileStore": {
         "notification": {
-          "profileNameCannotBeEmpty": "__MISSING__:runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
-          "maximumProfileLimitReached": "__MISSING__:runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached {{limit}}"
+          "profileNameCannotBeEmpty": "O nome do perfil não pode ficar vazio.",
+          "maximumProfileLimitReached": "Limite máximo de perfis ({{limit}}) atingido. Exclua um perfil existente antes de adicionar um novo."
         }
       }
     },

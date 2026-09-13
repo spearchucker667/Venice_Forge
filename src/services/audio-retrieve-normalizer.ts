@@ -37,5 +37,13 @@ export function normalizeAudioRetrieveResponse(
       : undefined
     return { kind: 'processing', progressRatio, averageExecutionTimeMs, executionDurationMs }
   }
-  return { kind: 'failed', error: 'Audio generation returned no playable audio.' }
+  const providerError =
+    typeof data.error === 'string' && data.error.trim()
+      ? data.error.trim()
+      : typeof data.error === 'object' && data.error !== null && typeof (data.error as Record<string, unknown>).message === 'string'
+        ? ((data.error as Record<string, unknown>).message as string).trim()
+        : typeof data.message === 'string' && data.message.trim()
+          ? data.message.trim()
+          : null
+  return { kind: 'failed', error: providerError || 'Audio generation returned no playable audio.' }
 }

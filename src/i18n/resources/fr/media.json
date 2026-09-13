@@ -85,8 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "Image téléchargée",
     "imageSaveFailed": "L'enregistrement de l'image a échoué",
-    "replicateQueued": "__MISSING__:Replicate generation queued",
-    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
+    "replicateQueued": "Génération de réplique mise en file d'attente",
+    "replicateQueuedDetail": "L'image apparaîtra dans le Centre de tâches et Media Studio une fois terminée.",
     "imageDownloadFailedDetail": "L'image n'a pas pu être téléchargée.",
     "none": "Aucun",
     "enhancedPromptShortened": "Invite améliorée raccourcie",

@@ -8,6 +8,7 @@ import { getProfileSessionId } from "../../services/profileSession";
 import crypto from "node:crypto";
 import { validateBackupPayloadProfile } from "../../../src/shared/backupProfile";
 import type { EncryptedBackupManifest } from "../../services/backupCrypto";
+import type { ChatFolder } from "../../../src/shared/chatFolderContracts";
 import { getDeviceId } from "../../services/syncConfig";
 
 const BACKUP_EXPORT_LEASE_MS = 5 * 60 * 1000;
@@ -92,7 +93,7 @@ export function registerSyncHandlers(): void {
     if (!input || typeof input.storeName !== "string" || typeof input.id !== "string" || !isValidId(input.id)) {
       return { ok: false, error: "Invalid remote mutation payload." };
     }
-    if (!validateMutationAuthority("remote-sync", input.remoteApplyToken, input.storeName, input.id)) {
+    if (!validateMutationAuthority("remote-sync", input.remoteApplyToken, input.storeName, input.id, input.delete === true)) {
       return { ok: false, error: "Remote mutation authority rejected." };
     }
     try {
@@ -156,6 +157,17 @@ export function registerSyncHandlers(): void {
             : await storage.saveRpChat(record, profileId);
           if (!(result as { ok: boolean }).ok) {
             return { ok: false, error: `rp_chats(${deleting ? "delete" : "save"}): ${(result as { ok: boolean; error?: string }).error ?? "rejected"}` };
+          }
+          break;
+        }
+        case "chat_folders": {
+          const storage = await import("../../services/chatFolderStorage");
+          const profileId = getProfileSessionId(event.sender);
+          const result = deleting
+            ? await storage.deleteChatFolderFile(input.id, profileId)
+            : await storage.saveChatFolder(record as ChatFolder, profileId);
+          if (!result.ok) {
+            return { ok: false, error: `chat_folders(${deleting ? "delete" : "save"}): ${result.error ?? "rejected"}` };
           }
           break;
         }

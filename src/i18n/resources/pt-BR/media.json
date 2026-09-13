@@ -85,8 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "Imagem baixada",
     "imageSaveFailed": "Falha ao salvar imagem",
-    "replicateQueued": "__MISSING__:Replicate generation queued",
-    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
+    "replicateQueued": "Geração do Replicate na fila",
+    "replicateQueuedDetail": "A imagem aparecerá na Central de Tarefas e no Media Studio quando for concluída.",
     "imageDownloadFailedDetail": "A imagem não pôde ser baixada.",
     "none": "Nenhum",
     "enhancedPromptShortened": "Prompt aprimorado encurtado",

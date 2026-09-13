@@ -85,8 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "छवि डाउनलोड की गई",
     "imageSaveFailed": "छवि सहेजना विफल रहा",
-    "replicateQueued": "__MISSING__:Replicate generation queued",
-    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
+    "replicateQueued": "Replicate जनरेशन कतारबद्ध",
+    "replicateQueuedDetail": "पूर्ण होने पर छवि टास्क सेंटर और मीडिया स्टूडियो में दिखाई देगी।",
     "imageDownloadFailedDetail": "छवि डाउनलोड नहीं की जा सकी.",
     "none": "कोई नहीं",
     "enhancedPromptShortened": "उन्नत प्रॉम्प्ट को छोटा किया गया",

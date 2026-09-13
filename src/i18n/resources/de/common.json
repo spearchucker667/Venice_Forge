@@ -1877,7 +1877,7 @@
         "legacyConversationsDetected": "Legacy-Konversationen erkannt",
         "encryptedConversationVault": "Verschlüsselter Konversationstresor",
         "maintenanceOperations": "Wartungsvorgänge",
-        "searchVault": "__MISSING__:Search vault",
+        "searchVault": "Tresor durchsuchen",
         "curatedFacts": "Kuratierte Fakten ("
       },
       "description": {
@@ -4393,8 +4393,8 @@
       },
       "profileStore": {
         "notification": {
-          "profileNameCannotBeEmpty": "__MISSING__:runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
-          "maximumProfileLimitReached": "__MISSING__:runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached {{limit}}"
+          "profileNameCannotBeEmpty": "Profilname darf nicht leer sein.",
+          "maximumProfileLimitReached": "Maximales Profillimit ({{limit}}) erreicht. Löschen Sie ein bestehendes Profil, bevor Sie ein neues hinzufügen."
         }
       }
     },

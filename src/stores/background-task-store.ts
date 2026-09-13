@@ -172,7 +172,7 @@ function objectUrlFromDataUrl(dataUrl: string, mimeType: string): string | null 
 
 interface BackgroundTaskState {
   tasks: Record<string, BackgroundTask>
-  activePolls: Record<string, ReturnType<typeof setInterval>>
+  activePolls: Record<string, ReturnType<typeof setTimeout>>
   desktopSubscribed: boolean
   unsubscribe?: () => void
 
@@ -382,7 +382,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
     if (!isProviderPolledBackgroundTaskType(task.type, task.providerId)) return
 
     if (activePolls[taskId]) {
-      clearInterval(activePolls[taskId])
+      clearTimeout(activePolls[taskId])
     }
 
     let attempts = 0
@@ -584,7 +584,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
     set((state) => {
       const poll = state.activePolls[taskId]
       if (poll) {
-        clearInterval(poll)
+        clearTimeout(poll)
       }
       const { [taskId]: _, ...rest } = state.activePolls
       return { activePolls: rest }

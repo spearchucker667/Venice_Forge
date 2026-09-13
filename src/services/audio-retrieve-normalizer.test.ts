@@ -16,4 +16,19 @@ describe('normalizeAudioRetrieveResponse', () => {
     expect(normalizeAudioRetrieveResponse({ dataBase64: '' }, { 'content-type': 'audio/mpeg' }).kind).toBe('failed')
     expect(normalizeAudioRetrieveResponse({ dataBase64: 'AQID' }, { 'content-type': 'text/plain' }).kind).toBe('failed')
   })
+
+  it('surfaces provider error message on failure', () => {
+    expect(normalizeAudioRetrieveResponse({ error: 'Model capacity reached' })).toEqual({
+      kind: 'failed',
+      error: 'Model capacity reached',
+    })
+    expect(normalizeAudioRetrieveResponse({ error: { message: 'Audio queue timeout' } })).toEqual({
+      kind: 'failed',
+      error: 'Audio queue timeout',
+    })
+    expect(normalizeAudioRetrieveResponse({ message: 'Rate limit exceeded' })).toEqual({
+      kind: 'failed',
+      error: 'Rate limit exceeded',
+    })
+  })
 })

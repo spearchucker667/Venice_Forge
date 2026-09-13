@@ -53,6 +53,19 @@ describe("SseDecoder framing", () => {
     expect(bare[0].data).toBe(DELTA("bare"));
   });
 
+  it("preserves event integrity when CRLF is split across chunk boundaries (TG-001)", () => {
+    const decoder = new SseDecoder();
+    // Chunk 1 ends with \r
+    const chunk1Events = decoder.push(utf8('event: delta\r\ndata: {"token":"hello"}\r'));
+    expect(chunk1Events).toHaveLength(0); // Must NOT dispatch on trailing \r
+
+    // Chunk 2 begins with \n followed by next event
+    const chunk2Events = decoder.push(utf8('\n\nevent: delta\r\ndata: {"token":" world"}\r\n\r\n'));
+    expect(chunk2Events).toHaveLength(2);
+    expect(chunk2Events[0].data).toBe('{"token":"hello"}');
+    expect(chunk2Events[1].data).toBe('{"token":" world"}');
+  });
+
   it("joins multiline data payloads with newlines (SSE spec)", () => {
     const events = pushAll(new SseDecoder(), [
       utf8('data: {"choices":[{"delta":\ndata: {"content":"joined"}}]}\n\n'),

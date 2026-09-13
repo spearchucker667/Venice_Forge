@@ -55,6 +55,11 @@ export function createSafeStorage(): StateStorage {
         if (pruned) {
           try { window.localStorage.setItem(getProfileKey(name), pruned) /* localStorage-allowed: zustand persist safeStorage wrapper */; return } catch { /* fall through */ }
         }
+        const CRITICAL_STORES = new Set(['venice-settings', 'venice-profiles', 'venice-master-settings', 'theme-storage', 'venice-auth'])
+        if (CRITICAL_STORES.has(name)) {
+          logger.warn(`[storage] quota exceeded for ${name}; retaining existing state rather than wiping`)
+          return
+        }
         try { window.localStorage.removeItem(getProfileKey(name)) /* localStorage-allowed: zustand persist safeStorage wrapper */ } catch { /* noop */ }
         logger.warn(`[storage] quota exceeded for ${name}; cleared persisted state`)
       }

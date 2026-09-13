@@ -425,14 +425,18 @@ export function buildCanonicalAudioSpeechPayload(
 ): AudioSpeechWirePayload {
   const model = cleanRequiredString(req.model, 'model');
   const input = cleanRequiredString(req.input, 'input');
+  const explicitVoice = cleanString(req.voice);
+  const voice = explicitVoice || (model.toLowerCase().includes('kokoro') ? 'af_sky' : undefined);
 
   const payload: AudioSpeechWirePayload = {
     model,
     input,
-    voice: cleanString(req.voice) || 'af_sky',
     speed: typeof req.speed === 'number' && Number.isFinite(req.speed) ? clampFloat(req.speed, 0.25, 4.0, 1.0) : 1.0,
     response_format: req.responseFormat || 'mp3',
   };
+  if (voice) {
+    payload.voice = voice;
+  }
 
   return payload;
 }

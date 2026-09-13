@@ -34,4 +34,17 @@ describe("syncOutbox", () => {
     await expect(persistSyncOutboxEntry("../../packet.json", "{}"))
       .rejects.toThrow(/invalid sync outbox filename/i);
   });
+
+  it("safely cleans up and skips corrupt outbox entries during drain", async () => {
+    const corruptFile = `${"b".repeat(64)}.json`;
+    await fs.mkdir(`${userRoot}/sync/outbox`, { recursive: true });
+    await fs.writeFile(`${userRoot}/sync/outbox/${corruptFile}`, "not valid json {", "utf8");
+
+    const validManifest = JSON.stringify({ version: 2, salt: "salt", iv: "iv", ciphertext: "cipher" });
+    await persistSyncOutboxEntry(filename, validManifest);
+
+    await expect(drainSyncOutbox(blobs, objects)).resolves.toBe(1);
+    await expect(fs.readFile(`${blobs}/${filename}`, "utf8")).resolves.toBe(validManifest);
+    await expect(fs.access(`${userRoot}/sync/outbox/${corruptFile}`)).rejects.toMatchObject({ code: "ENOENT" });
+  });
 });

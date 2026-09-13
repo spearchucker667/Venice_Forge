@@ -13,6 +13,7 @@ import path from "node:path";
 import { isTrustedVeniceImageUrl } from "../../src/utils/characterImageResolver";
 import { getApiKey } from "./secureStore";
 import { logError, logWarn } from "./logger";
+import { atomicReplaceFile } from "../utils/atomicFileReplace";
 
 /** Maximum raw image bytes the cache will accept for a single entry. */
 export const MAX_CHARACTER_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -91,10 +92,6 @@ function metaPath(key: string): string {
   return path.join(getCharacterImageCacheDir(), `${key}.meta.json`);
 }
 
-function tempPath(key: string): string {
-  return path.join(getCharacterImageCacheDir(), `${key}.${process.pid}.${Date.now()}.tmp`);
-}
-
 /** Ensures the cache directory exists. */
 async function ensureCacheDir(): Promise<void> {
   await fs.mkdir(getCharacterImageCacheDir(), { recursive: true });
@@ -140,10 +137,7 @@ async function readMeta(key: string): Promise<CacheMeta | null> {
 }
 
 async function writeMeta(key: string, meta: CacheMeta): Promise<void> {
-  await fs.writeFile(metaPath(key), JSON.stringify(meta, null, 2), {
-    encoding: "utf-8",
-    mode: 0o600,
-  });
+  await atomicReplaceFile(metaPath(key), JSON.stringify(meta, null, 2), 0o600);
 }
 
 /** Lists all cache entries with their metadata and filesystem stats. */
@@ -334,16 +328,11 @@ export async function getCachedCharacterImage(url: string): Promise<CharacterIma
       const { buffer, contentType } = await fetchImage(url, controller.signal);
       await evictIfNeeded(buffer.length);
 
-      const tmp = tempPath(key);
-      await fs.writeFile(tmp, buffer, { mode: 0o600 });
-
-      // Validate containment after writing (paranoid: temp path is under root).
-      if (!isWithin(getCharacterImageCacheDir(), dp) || !isWithin(getCharacterImageCacheDir(), tmp)) {
-        try { await fs.unlink(tmp); } catch { /* ignore */ }
+      if (!isWithin(getCharacterImageCacheDir(), dp)) {
         return { ok: false, error: "Resolved cache path is outside the cache directory." };
       }
 
-      await fs.rename(tmp, dp);
+      await atomicReplaceFile(dp, buffer, 0o600);
 
       const meta: CacheMeta = {
         sourceUrl: url,

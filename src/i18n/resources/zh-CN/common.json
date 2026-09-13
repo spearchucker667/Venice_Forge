@@ -1899,7 +1899,7 @@
         "legacyConversationsDetected": "检测到旧版对话",
         "encryptedConversationVault": "加密对话库",
         "maintenanceOperations": "维护操作",
-        "searchVault": "__MISSING__:Search vault",
+        "searchVault": "搜索保险库",
         "curatedFacts": "精选事实（"
       },
       "description": {
@@ -4393,8 +4393,8 @@
       },
       "profileStore": {
         "notification": {
-          "profileNameCannotBeEmpty": "__MISSING__:runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
-          "maximumProfileLimitReached": "__MISSING__:runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached {{limit}}"
+          "profileNameCannotBeEmpty": "配置文件名称不能为空。",
+          "maximumProfileLimitReached": "已达到最大配置文件限制（{{limit}}）。添加新配置文件前请先删除现有配置文件。"
         }
       }
     },

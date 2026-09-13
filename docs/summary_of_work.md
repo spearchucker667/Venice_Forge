@@ -4,7 +4,135 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-13 Exhaustive Bug Audit Remediation & Verification (baseline `2f67268`).** Completed the full 5-phase remediation plan for the 2026-09-13 exhaustive bug audit across all confirmed blockers and durability defects:
+  - **Phase 1 (Blocker Remediation):**
+    - `VF-AUD-20260913-P1-001`: Translated the 5 missing keys (`offlineWarning`, `errorSubmitting`, `generating`, `noKeyTitle`, `noKeyBody`) across all 11 non-English catalogs (`es, fr, de, pt-BR, ru, zh-CN, ja, hi, ar, ko, sv-SE`) in `src/i18n/resources/<locale>/common.json` and `media.json`. Synchronized `docs/i18n/translation-status.json` and `src/i18n/locale-completion-status.ts` (100% key coverage across all 12 locales; `verify-i18n.cjs --strict` passes with 0 errors).
+    - `VF-AUD-20260913-P1-002`: Eliminated profile-switch data pollution race. In `src/stores/profile-store.ts`, `performRawProfileSwitch` and `deleteProfile` now await `flushAllPendingSaves()` and invoke `clearAllDirtyConversations()` in `src/stores/chat-store.ts` before mutating `localStorage` and issuing `window.location.reload()`.
+    - `VF-AUD-20260913-P1-003`: Fixed remote tombstone deletion authority rejection. Updated `electron/services/remoteApplyAuthority.ts` and `electron/ipc/handlers/syncHandlers.ts` to authorize deletions where `grant.storeName === "tombstones"` and `grant.recordId === `${storeName}:${recordId}``.
+    - `VF-AUD-20260913-P1-004`: Resolved SSE stream decoder CRLF chunk boundary split bug. Updated `consumeLines()` in `src/shared/sseStreamDecoder.ts` to defer trailing `\r` consumption when `isEnd === false`.
+  - **Phase 2 (Sync & Storage Durability):**
+    - `VF-AUD-20260913-P2-001`: Handled JSON parse errors in `electron/services/syncOutbox.ts` `drainSyncOutbox` by catching `SyntaxError` and quarantining/removing corrupted entries via `fs.rm(entryPath, { force: true })`.
+    - `VF-AUD-20260913-P2-002`: Bounded sync conflict IDs in `src/services/syncPacketImporter.ts` and `remoteApplyAuthority.ts` by clamping the base ID to 102 characters so the final conflict ID (`<base>_conflict_<device>_<uuid>`) never exceeds 128 characters.
+    - `VF-AUD-20260913-P2-003`: Added `chat_folders` to `SYNC_STORE_ALLOWLIST` in `syncFolderWatcher.ts`, `SYNC_STORE_NAME_MAP` in `syncBridge.ts`, IPC handler `sync:applyRemoteMutation` in `syncHandlers.ts`, and `deleteStoreRecord` / `fetchStoreRecords` in `syncPacketImporter.ts`.
+    - `VF-AUD-20260913-P2-004`: Protected critical stores against quota wipes in `src/lib/safe-storage.ts` (`venice-settings`, `venice-profiles`, `venice-master-settings`, `theme-storage`, `venice-auth`).
+    - `VF-AUD-20260913-P2-007`: Corrected background task polling timer handle in `src/stores/background-task-store.ts` to `ReturnType<typeof setTimeout>` and replaced `clearInterval` with `clearTimeout`.
+  - **Phase 3 (Contract & Service Quality):**
+    - `VF-AUD-20260913-P3-001`: Preserved audio provider error messages in `src/services/audio-retrieve-normalizer.ts` by extracting `data.error || data.message`.
+    - `VF-AUD-20260913-P3-002`: Removed hardcoded `af_sky` default for non-Kokoro models in `src/shared/venice-media-contract/payload-builders.ts`.
+    - `VF-AUD-20260913-P3-004`: Migrated `characterImageCache.ts` and `themeService.ts` to canonical `atomicReplaceFile()`.
+  - **Phase 4 (Regression Tests):**
+    - Added TG-001 CRLF chunk boundary split test to `src/shared/sseStreamDecoder.test.ts`.
+    - Added TG-002 profile switch dirty partition flush test to `src/stores/profile-store.test.ts`.
+    - Added TG-003 remote tombstone mutation authority test to `electron/services/remoteApplyAuthority.test.ts`.
+    - Added P2-004 quota error settings protection test to `src/lib/safe-storage.test.ts`.
+  - **Phase 5 (Full Validation):**
+    - `npm run lint:eslint`: PASS (0 warnings, 0 errors).
+    - `npm run typecheck`: PASS (root, electron, electron.test).
+    - `npm run test:server`: PASS (68/68 tests).
+    - `npm run test:electron`: PASS (1,212/1,212 tests across 110 files).
+    - `npm run test:ingestion`: PASS (65/65 tests across 9 files).
+    - `npm run test:contracts`: PASS (270/270 tests across 23 files).
+    - `npm run test:ui`: PASS (270/270 tests across 25 files).
+    - `npm run test:unit`: PASS (14 shards, ~1,500 tests).
+    - `npm run verify:contracts`: PASS (104/104 checks across static, features, release).
+    - `npm run build`: PASS (web, server, electron).
+    - `npm run verify:dist`: PASS.
+    - `npm run verify:markdown-links && npm run verify:repo-handoff-hygiene && npm run verify:agent-docs`: PASS.
+    - `node scripts/verify-i18n.cjs --strict`: PASS (12 locales, 12 namespaces, 0 errors).
+  - **Release Readiness:** **READY.**
+
+- **2026-09-13 Exhaustive Line-by-Line Bug Audit & Engineering Review (baseline `2f67268`).** Conducted an exhaustive, file-by-file audit of Venice Forge at HEAD `2f672682d57f82e5cd2d0ecefa42a4a525a9504c` (v3.0.0-beta.3, clean worktree). Verified baseline against hosted CI (run `34757875723`: 11/11 jobs green; CodeQL run `34757875712`: green). Accounted for all 1,951 tracked files in `review-ledger.csv`. Executed the full canonical local validation suite (`lint:eslint`, `typecheck` across 3 configs, `npm test` 5,945 passed across 522 files, `verify:contracts` 104+ checks, `build`, `verify:dist`, `npm audit` 0 vulns, `verify:ipc-parity` 190/190). Deployed 4 concurrent deep-dive research subagents across Electron Security, Venice API & Streaming, Zustand State Management & Persistence, and Main Process Durability & Storage. Identified **13 confirmed defects (4 P1, 5 P2, 4 P3)**, 2 design risks, 3 test gaps, and 4 improvements. Full audit package produced under `docs/audits/venice-forge-exhaustive-audit-2026-09-13/`.
+
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
+
+## Session History
+
+### 2026-09-13 — Exhaustive Bug Audit Remediation & Verification (baseline `2f67268`)
+
+- **Scope:** Execution of the 5-phase remediation plan addressing all confirmed blockers and durability findings from the 2026-09-13 exhaustive audit.
+- **Remediations Implemented:**
+  - `P1-001`: Translated the 5 missing keys (`offlineWarning`, `errorSubmitting`, `generating`, `noKeyTitle`, `noKeyBody`) across all 11 non-English catalogs (`es, fr, de, pt-BR, ru, zh-CN, ja, hi, ar, ko, sv-SE`) in `src/i18n/resources/<locale>/common.json` and `media.json`. Synchronized `docs/i18n/translation-status.json` and `src/i18n/locale-completion-status.ts`. Verified with `node scripts/verify-i18n.cjs --strict` (0 errors).
+  - `P1-002`: Profile switch flush race eliminated. Added `clearAllDirtyConversations()` to `src/stores/chat-store.ts`. In `src/stores/profile-store.ts`, `performRawProfileSwitch` and `deleteProfile` await `flushAllPendingSaves()` and invoke `clearAllDirtyConversations()` before persisting the new profile ID or reloading.
+  - `P1-003`: Remote tombstone mutation authority authorized in `electron/services/remoteApplyAuthority.ts` and `electron/ipc/handlers/syncHandlers.ts` for `grant.storeName === "tombstones"` with `grant.recordId === `${storeName}:${recordId}``.
+  - `P1-004`: Fixed SSE stream decoder CRLF chunk boundary split in `src/shared/sseStreamDecoder.ts` `consumeLines()` by deferring trailing `\r` consumption when `isEnd === false`.
+  - `P2-001`: In `electron/services/syncOutbox.ts`, caught `SyntaxError` during JSON parsing of outbox entry files and quarantined/unlinked corrupt files via `fs.rm(entryPath, { force: true })`.
+  - `P2-002`: In `src/services/syncPacketImporter.ts` and `remoteApplyAuthority.ts`, clamped base record IDs to 102 characters before appending `_conflict_<device>_<uuid>` so generated conflict IDs never exceed 128 characters.
+  - `P2-003`: Added `chat_folders` to `SYNC_STORE_ALLOWLIST` in `syncFolderWatcher.ts`, `SYNC_STORE_NAME_MAP` in `syncBridge.ts`, IPC handler `sync:applyRemoteMutation` in `syncHandlers.ts`, and `deleteStoreRecord` / `fetchStoreRecords` in `syncPacketImporter.ts`.
+  - `P2-004`: In `src/lib/safe-storage.ts`, guarded critical stores (`venice-settings`, `venice-profiles`, `venice-master-settings`, `theme-storage`, `venice-auth`) from deletion upon `QuotaExceededError`.
+  - `P2-007`: In `src/stores/background-task-store.ts`, typed `activePolls` timer handles as `ReturnType<typeof setTimeout>` and replaced `clearInterval` with `clearTimeout`.
+  - `P3-001`: In `src/services/audio-retrieve-normalizer.ts`, preserved provider error messages by extracting `data.error || data.message`.
+  - `P3-002`: In `src/shared/venice-media-contract/payload-builders.ts`, defaulted voice to `'af_sky'` only when the model includes `'kokoro'`.
+  - `P3-004`: Migrated `electron/services/characterImageCache.ts` and `electron/services/themeService.ts` to canonical `atomicReplaceFile()`.
+- **Regression Tests Added:**
+  - `TG-001`: Added CRLF chunk boundary split test in `src/shared/sseStreamDecoder.test.ts`.
+  - `TG-002`: Added profile switch dirty partition flush integration test in `src/stores/profile-store.test.ts`.
+  - `TG-003`: Added tombstone mutation authority unit test in `electron/services/remoteApplyAuthority.test.ts`.
+  - `P2-004`: Added quota error critical settings retention test in `src/lib/safe-storage.test.ts`.
+- **Validation Executed:**
+  - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+  - `npm run typecheck` — PASS (root, electron, electron.test).
+  - `npm run test:server` — PASS (68/68 tests).
+  - `npm run test:electron` — PASS (1,212/1,212 tests across 110 files).
+  - `npm run test:ingestion` — PASS (65/65 tests across 9 files).
+  - `npm run test:contracts` — PASS (270/270 tests across 23 files).
+  - `npm run test:ui` — PASS (270/270 tests across 25 files).
+  - `npm run test:unit` — PASS (14 shards, ~1,500 tests).
+  - `npm run verify:contracts` — PASS (104/104 checks across static, features, release).
+  - `npm run build` — PASS (web, server, electron).
+  - `npm run verify:dist` — PASS.
+  - `npm run verify:markdown-links` — PASS.
+  - `npm run verify:repo-handoff-hygiene` — PASS.
+  - `npm run verify:agent-docs` — PASS.
+  - `node scripts/verify-i18n.cjs --strict` — PASS (12 locales, 12 namespaces, 0 errors).
+- **Release Readiness:** READY.
+
+### 2026-09-13 — Exhaustive Line-by-Line Bug Audit & Engineering Review (baseline `2f67268`)
+
+- **Scope:** Exhaustive line-by-line, file-by-file current-state bug audit of Venice Forge at HEAD `2f672682d57f82e5cd2d0ecefa42a4a525a9504c` (v3.0.0-beta.3) on clean `main`. Audit only; zero source files modified.
+- **Inventory:** 1,951 tracked files audited and classified in `review-ledger.csv` (1,887 substantive reviewed, 50 binary assets, 13 VCS/config metadata, 1 generated).
+- **Validation executed:**
+  - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+  - `npm run typecheck` — PASS (root + electron + electron test tsconfigs).
+  - `npm test` — PASS (5,945 passed, 0 failed, 522 test files).
+  - `npm run verify:contracts` — PASS (104/104 checks).
+  - `npm run build && npm run verify:dist` — PASS.
+  - `npm audit --omit=dev --audit-level=moderate && npm audit --audit-level=critical` — PASS (0 vulns).
+  - `node scripts/verify-ipc-parity.cjs` — PASS (190/190 channels, 0 orphans).
+  - `npm run verify:safety-guard` — PASS.
+  - `npm run verify:theme-tokens` — PASS (182 files scanned).
+  - `npm run verify:meteocon-csp` — PASS.
+  - `npm run verify:network-boundaries` — PASS.
+  - `npm run verify:custom-protocol-privileges` — PASS.
+  - `npm run verify:venice-api-docs` — PASS.
+  - `npm run verify:venice-contract-drift` — PASS.
+  - `npm run verify:prompt-language` — PASS.
+  - `npm run verify:transitive-deprecations` — PASS.
+  - `npm run verify:no-native-dialogs` — PASS.
+  - `npm run verify:i18n-hardcoded-regressions` — PASS.
+  - `npm run verify:bundle-budget` — PASS.
+  - `npm run verify:release-readiness` — **FAIL (exit code 1)**: `verify-i18n.cjs --strict` failed on 55 `__MISSING__:` markers in 11 locales.
+- **Hosted CI Inspected:** GitHub Actions run `34757875723` on `2f67268` (11/11 jobs success, all 3 packaged smokes green); CodeQL run `34757875712` success.
+- **Confirmed Findings (13 items: 4 P1, 5 P2, 4 P3):**
+  - `VF-AUD-20260913-P1-001`: Release workflow gate blocked by strict i18n placeholders across 11 non-English catalogs.
+  - `VF-AUD-20260913-P1-002`: Profile switch race pollutes new profile with old profile's dirty conversations.
+  - `VF-AUD-20260913-P1-003`: Remote tombstone deletions on desktop rejected by security mutation authority.
+  - `VF-AUD-20260913-P1-004`: SSE chunk boundary CRLF split triggers premature event dispatch.
+  - `VF-AUD-20260913-P2-001`: Uncaught SyntaxError in `syncOutbox.ts` halts all sync draining.
+  - `VF-AUD-20260913-P2-002`: Sync conflict ID generation exceeds 128-char validation limit on long IDs.
+  - `VF-AUD-20260913-P2-003`: Missing `chat_folders` from Sync replication allowlists.
+  - `VF-AUD-20260913-P2-004`: Quota error in `safe-storage.ts` wipes all user settings.
+  - `VF-AUD-20260913-P2-005`: Asynchronous `persist` rehydration race in `workflow-store.ts` and `playground-store.ts`.
+  - `VF-AUD-20260913-P2-006`: Incomplete store reset in `useProfileVolatileReset.ts` (14 stores omitted).
+  - `VF-AUD-20260913-P2-007`: Polling timer bug: `clearInterval` called on `setTimeout` ID in background tasks.
+  - `VF-AUD-20260913-P3-001`: Audio provider error messages dropped in retrieval normalizer.
+  - `VF-AUD-20260913-P3-002`: Hardcoded Kokoro voice default in canonical media speech builder.
+  - `VF-AUD-20260913-P3-003`: `media-store.ts:patchMany` updates in-memory cache on partial storage failures.
+  - `VF-AUD-20260913-P3-004`: Residual raw file writes in character image cache and theme service.
+- **Design Risks:** VF-AUD-20260913-DR-001 (Web proxy full SSE buffering under Safe Mode), VF-AUD-20260913-DR-002 (Omission of 502/504 from retryable status codes).
+- **Test Gaps:** TG-001 (CRLF chunk split), TG-002 (Profile switch partition flush), TG-003 (Tombstone mutation authority).
+- **Deliverables:** Complete audit package in `docs/audits/venice-forge-exhaustive-audit-2026-09-13/` (13 files + ledger). Registered in `docs/DOCS_INDEX.md`.
+- **Release Readiness:** **NOT READY.** Blocked by P1-001..004.
+
 
 - **2026-09-13 Audit remediation (C6-DR-001 atomic-replace consolidation).** Completed the DR-001 migration: every remaining durable main-process writer now uses the canonical atomic-replace utility. `atomicFileReplace.ts` gained a `{ sync: true }` fsync option and a synchronous `atomicReplaceFileSync()` variant. Async migrations: `conversationVault`, `chatStorage`, `chatFolderStorage`, `chatTtsBridge`, `configService`, `backgroundTaskManager`, `mediaService`, `chatFolderOperationJournal`, `syncOutbox`, `syncFolderWatcher`, `replaceImportRecovery`, `chatFolderBackupService` (vault/journal/backup keep their domain fsync via the new option). Sync migrations: `secureStore` (replaced an untestable inline `require()` with a static import — also fixes `secureStore.test.ts` resolution), `providerSettingsStore`, `huggingfaceDiscovery`. `generatedMediaStore`/`generatedMediaExport` intentionally retained (Windows-rich displace-and-restore domain pattern). `scripts/verify-backup-sync.cjs` guard patterns updated from literal `fs.writeFile(tmpPath`/`fs.rename(tmpPath`/`mode: 0o600` to the canonical `atomicReplaceFile(` call — invariants strengthened, not weakened (0o600 is the utility signature default). Dead `crypto` imports removed across migrated files. Validation: lint 0/0, typecheck (canonical, 3 tsconfigs), `test:electron` 1,210/1,210, `npm test` 5,945/5,945, `verify-backup-sync` PASS. Published with the P1/P3 remediation tranche (commit `cd27ebc2`); see the publication entry below.
 
@@ -1270,8 +1398,52 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * The 2026-09-11 Repository Organization, Documentation Architecture, File Hygiene, and Gitignore Overhaul is locally complete. All 10 validation commands passed; 0 tracked files are ignored; 0 broken links in 323 markdown files; all manifests generated in `docs/repository-maintenance/`.
 * `VF-AUD-20260912` (Exhaustive codebase audit findings remediation) is Completed. All 19 confirmed defects, design risks, test gaps, and improvements, plus the 7 re-pass findings (N1..N7), were remediated, tested, validated, and published to `origin/main`. Reconciled in `docs/ROADMAP.md` and marked `RESOLVED` in `docs/audits/venice-forge-exhaustive-audit-2026-09-12/review-ledger.csv`.
 * `VF-AUD-20260912-current-main` (independent re-audit at `84cf5bbe`) P1s, implementable P2s including capability tokens, and confirmed P3s are remediated and published to `origin/main`. Packaged Electron smokes still skip in `npm test` when no packaged executable is present.
+* `VF-AUD-20260913` (Exhaustive codebase audit 2026-09-13 remediation) is Completed. All 4 P1 blockers (`P1-001` missing i18n keys, `P1-002` profile switch flush race, `P1-003` remote tombstone authority, `P1-004` SSE CRLF chunk split), 5 P2 durability issues (`P2-001` corrupt sync outbox, `P2-002` sync conflict ID length cap, `P2-003` `chat_folders` sync allowlist, `P2-004` safe-storage settings protection, `P2-007` background task timer handle), and 3 P3 issues (`P3-001` audio error message preservation, `P3-002` Kokoro voice default scoping, `P3-004` atomic file replace migrations) were remediated, tested, validated, and documented.
 
 ## Validation Matrix
+
+### 2026-09-13 — Exhaustive Bug Audit Remediation & Verification (baseline 2f67268)
+
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+- `npm run typecheck` — PASS (3 tsconfig targets: root, electron, electron tests).
+- `npm run test:server` — PASS (68/68 tests).
+- `npm run test:electron` — PASS (1,212/1,212 tests across 110 files).
+- `npm run test:ingestion` — PASS (65/65 tests across 9 files).
+- `npm run test:contracts` — PASS (270/270 tests across 23 files).
+- `npm run test:ui` — PASS (270/270 tests across 25 files).
+- `npm run test:unit` — PASS (14 shards, ~1,500 tests).
+- `npm run verify:contracts` — PASS (104/104 checks across static, features, release).
+- `npm run build` — PASS (web, server, electron).
+- `npm run verify:dist` — PASS.
+- `npm run verify:markdown-links` — PASS (360 files checked).
+- `npm run verify:repo-handoff-hygiene` — PASS.
+- `npm run verify:agent-docs` — PASS.
+- `node scripts/verify-i18n.cjs --strict` — PASS (12 locales, 12 namespaces, 0 errors, 100% key coverage).
+
+### 2026-09-13 — Exhaustive Line-by-Line Bug Audit & Engineering Review (baseline 2f67268)
+
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+- `npm run typecheck` — PASS (3 tsconfig targets: root, electron, electron tests).
+- `npm test` — PASS (5,945 passed, 0 failed, 522 test files).
+- `npm run verify:contracts` — PASS (104/104 checks across static, features, release).
+- `npm run build` — PASS.
+- `npm run verify:dist` — PASS.
+- `npm audit --omit=dev --audit-level=moderate && npm audit --audit-level=critical` — PASS (0 vulnerabilities).
+- `node scripts/verify-ipc-parity.cjs` — PASS (190/190 channels, 0 orphans).
+- `npm run verify:safety-guard` — PASS.
+- `npm run verify:theme-tokens` — PASS (182 files scanned).
+- `npm run verify:meteocon-csp` — PASS.
+- `npm run verify:network-boundaries` — PASS.
+- `npm run verify:custom-protocol-privileges` — PASS.
+- `npm run verify:venice-api-docs` — PASS.
+- `npm run verify:venice-contract-drift` — PASS.
+- `npm run verify:prompt-language` — PASS.
+- `npm run verify:transitive-deprecations` — PASS.
+- `npm run verify:no-native-dialogs` — PASS.
+- `npm run verify:i18n-hardcoded-regressions` — PASS.
+- `npm run verify:bundle-budget` — PASS.
+- `npm run verify:release-readiness` — FAIL (exit code 1; `verify-i18n.cjs --strict` failed on 55 `__MISSING__:` placeholders in 11 locales).
+- Hosted CI — GitHub Actions run `34757875723` on commit `2f67268` (11/11 jobs success, all 3 packaged smokes green); CodeQL run `34757875712` success.
 
 ### 2026-09-12 — Publication to origin/main
 

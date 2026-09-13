@@ -85,8 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "Изображение загружено",
     "imageSaveFailed": "Не удалось сохранить изображение.",
-    "replicateQueued": "__MISSING__:Replicate generation queued",
-    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
+    "replicateQueued": "Генерация Replicate добавлена в очередь",
+    "replicateQueuedDetail": "Изображение появится в Центре задач и Media Studio после завершения.",
     "imageDownloadFailedDetail": "Изображение не удалось загрузить.",
     "none": "Никто",
     "enhancedPromptShortened": "Расширенное приглашение сокращено",

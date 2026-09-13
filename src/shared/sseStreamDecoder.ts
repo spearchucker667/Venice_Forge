@@ -116,6 +116,11 @@ export class SseDecoder {
     for (;;) {
       const idx = this.findLineEnd();
       if (idx < 0) break;
+      // If a trailing \r is at the very end of the buffer and the stream
+      // has not ended, wait for the next chunk to see if it is part of \r\n.
+      if (!this.streamEnded && idx === this.lineBuffer.length - 1 && this.lineBuffer[idx] === "\r") {
+        break;
+      }
       const line = this.lineBuffer.slice(0, idx);
       const consumed =
         this.lineBuffer[idx] === "\r" && this.lineBuffer[idx + 1] === "\n"

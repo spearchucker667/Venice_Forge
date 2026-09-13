@@ -83,7 +83,13 @@ export async function drainSyncOutbox(blobsDirectory: string, objectsDirectory =
     const entryPath = path.join(outboxDirectory(), name);
     const raw = await fs.readFile(entryPath, "utf8");
     if (Buffer.byteLength(raw, "utf8") > MAX_OUTBOX_ENTRY_BYTES) continue;
-    const parsed = JSON.parse(raw) as Partial<SyncOutboxEntry>;
+    let parsed: Partial<SyncOutboxEntry>;
+    try {
+      parsed = JSON.parse(raw) as Partial<SyncOutboxEntry>;
+    } catch {
+      await fs.rm(entryPath, { force: true });
+      continue;
+    }
     if (parsed.version !== 1 || parsed.filename !== name || typeof parsed.manifestJson !== "string"
       || typeof parsed.objectFilename !== "string" || !PACKET_NAME_RE.test(parsed.objectFilename)) continue;
 

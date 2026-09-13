@@ -1894,7 +1894,7 @@
         "legacyConversationsDetected": "Äldre konversationer upptäcktes",
         "encryptedConversationVault": "Krypterad konversationsvalv",
         "maintenanceOperations": "Underhållsåtgärder",
-        "searchVault": "__MISSING__:Search vault",
+        "searchVault": "Sök i valvet",
         "curatedFacts": "Kurerade fakta ("
       },
       "description": {
@@ -4393,8 +4393,8 @@
       },
       "profileStore": {
         "notification": {
-          "profileNameCannotBeEmpty": "__MISSING__:runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
-          "maximumProfileLimitReached": "__MISSING__:runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached {{limit}}"
+          "profileNameCannotBeEmpty": "Profilnamnet får inte vara tomt.",
+          "maximumProfileLimitReached": "Maximal profilgräns ({{limit}}) har nåtts. Ta bort en befintlig profil innan du lägger till en ny."
         }
       }
     },

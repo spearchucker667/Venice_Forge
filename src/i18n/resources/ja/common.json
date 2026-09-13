@@ -1899,7 +1899,7 @@
         "legacyConversationsDetected": "従来の会話が検出されました",
         "encryptedConversationVault": "暗号化された会話ボールト",
         "maintenanceOperations": "メンテナンス操作",
-        "searchVault": "__MISSING__:Search vault",
+        "searchVault": "ボルトを検索",
         "curatedFacts": "厳選された事実 ("
       },
       "description": {
@@ -4393,8 +4393,8 @@
       },
       "profileStore": {
         "notification": {
-          "profileNameCannotBeEmpty": "__MISSING__:runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
-          "maximumProfileLimitReached": "__MISSING__:runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached {{limit}}"
+          "profileNameCannotBeEmpty": "プロファイル名は空にできません。",
+          "maximumProfileLimitReached": "プロファイルの上限（{{limit}}）に達しました。新しいプロファイルを追加する前に既存のプロファイルを削除してください。"
         }
       }
     },

@@ -179,7 +179,7 @@ let journalPath: string | null = null;
 const appliedOperationIds = new Set<string>();
 
 export const SYNC_STORE_ALLOWLIST = new Set([
-  "images", "chats", "settings", "conversations", "ai_memory", "files", "character_cards",
+  "images", "chats", "settings", "conversations", "chat_folders", "ai_memory", "files", "character_cards",
   "personas", "lorebooks", "rp_chats", "rp_assets", "projects", "promptLibrary", "scenes",
   "rpScenarios", "workflowTemplates", "researchSessions", "visualWorkflows", "playground", "tombstones",
 ]);

@@ -272,9 +272,9 @@ describe("saveTheme / deleteTheme", () => {
     expect(content).toContain("variants:");
     expect(content).toContain("tokens:");
     expect(writeSpy).toHaveBeenCalledWith(
-      filePath,
+      expect.stringContaining(`${filePath}.tmp-`),
       expect.any(String),
-      expect.objectContaining({ encoding: "utf-8", mode: 0o600 }),
+      expect.objectContaining({ mode: 0o600 }),
     );
     // Windows does not implement POSIX owner/group/other permission bits and
     // reports the file as 0666 even when writeFile receives mode 0600. Linux

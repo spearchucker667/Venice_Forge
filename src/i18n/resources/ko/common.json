@@ -1899,7 +1899,7 @@
         "legacyConversationsDetected": "레거시 대화 감지",
         "encryptedConversationVault": "암호화된 대화 저장소",
         "maintenanceOperations": "유지 관리 작업",
-        "searchVault": "__MISSING__:Search vault",
+        "searchVault": "보관함 검색",
         "curatedFacts": "큐레이트 사실("
       },
       "description": {
@@ -4393,8 +4393,8 @@
       },
       "profileStore": {
         "notification": {
-          "profileNameCannotBeEmpty": "__MISSING__:runtimeGenerated.stores.profileStore.notification.profileNameCannotBeEmpty",
-          "maximumProfileLimitReached": "__MISSING__:runtimeGenerated.stores.profileStore.notification.maximumProfileLimitReached {{limit}}"
+          "profileNameCannotBeEmpty": "프로필 이름은 비워 둘 수 없습니다.",
+          "maximumProfileLimitReached": "최대 프로필 한도({{limit}})에 도달했습니다. 새 프로필을 추가하기 전에 기존 프로필을 삭제하세요."
         }
       }
     },

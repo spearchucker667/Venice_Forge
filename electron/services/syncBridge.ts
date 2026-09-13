@@ -21,6 +21,7 @@ export const SYNC_STORE_NAME_MAP: Record<string, string> = {
   rp_chats: "rp_chats",
   rp_assets: "rp_assets",
   rpScenarios: "rpScenarios",
+  chat_folders: "chat_folders",
 };
 
 /** Records that should never produce sync packets. */
