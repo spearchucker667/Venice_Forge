@@ -1,10 +1,10 @@
 /** @fileoverview Profile-scoped, main-process authority for fallback-provider consent. */
 
-import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { app } from "electron";
 import { PROVIDER_REGISTRY, type ProviderId } from "../../src/types/provider";
+import { atomicReplaceFileSync } from "../utils/atomicFileReplace";
 
 const STORE_FILE = "provider-settings.json";
 
@@ -113,15 +113,8 @@ function readFile(): ProviderSettingsFile {
 
 function writeFile(data: ProviderSettingsFile): void {
   const target = storePath();
-  const temporary = `${target}.tmp-${crypto.randomUUID()}`;
   fs.mkdirSync(path.dirname(target), { recursive: true });
-  try {
-    fs.writeFileSync(temporary, JSON.stringify(data, null, 2), { encoding: "utf8", mode: 0o600 });
-    fs.renameSync(temporary, target);
-  } catch (error) {
-    try { fs.unlinkSync(temporary); } catch { /* best-effort temporary cleanup */ }
-    throw error;
-  }
+  atomicReplaceFileSync(target, JSON.stringify(data, null, 2));
 }
 
 export function getProviderSettings(profileId = "default"): ProviderSettingsSnapshot {

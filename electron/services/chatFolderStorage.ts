@@ -175,32 +175,11 @@ export async function saveChatFolder(folder: ChatFolder, profileId: string = "de
   const dir = getChatFoldersDir(profileId);
   await fs.mkdir(dir, { recursive: true });
   const target = fileFor(id, profileId);
-  const tmp = `${target}.tmp-${crypto.randomUUID()}`;
   try {
-    const raw = JSON.stringify(folder, null, 2);
-    const handle = await fs.open(tmp, "w", 0o600);
-    try {
-      await handle.writeFile(raw, "utf-8");
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
-    try {
-      await fs.rename(tmp, target);
-    } catch (err) {
-      const code = err && typeof err === "object" && "code" in err
-        ? (err as NodeJS.ErrnoException).code
-        : undefined;
-      if (process.platform === "win32" && (code === "EPERM" || code === "EEXIST" || code === "EACCES")) {
-        await fs.copyFile(tmp, target);
-        await fs.unlink(tmp).catch(() => undefined);
-      } else {
-        throw err;
-      }
-    }
+    const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+    await atomicReplaceFile(target, JSON.stringify(folder, null, 2), 0o600, { sync: true });
     return { ok: true };
   } catch {
-    await fs.unlink(tmp).catch(() => undefined);
     return { ok: false, error: "Failed to write chat-folders file" };
   }
 }

@@ -1,5 +1,24 @@
 # Test Shards and Feedback Bounds
 
+## Packaged Electron smokes (local gate)
+
+The `tests/smoke/` suites launch a real packaged binary and are skipped by `npm test`
+when no package exists. Before pushing changes that touch the smoke suites, the CSP
+header path, or packaging, run them locally against a freshly built package:
+
+```bash
+npm run build
+npm run dist:mac:arm64   # or dist:portable / dist:linux for other platforms
+RUN_ELECTRON_SMOKE=true npx vitest run tests/smoke/
+```
+
+`RUN_ELECTRON_SMOKE=true` forces the suites to run even without a discoverable package
+(the packaged-executable discovery test still needs one). Hosted CI runs these suites on
+every push via the `electron-smoke-*` jobs; a failure there is much cheaper to reproduce
+locally first. When probing CSP enforcement in these suites, use page-context vectors
+only — see the CSP probe guidance in `tests/smoke/packaged-launch-csp.test.ts` for why
+CDP-based eval probes are invalid (VF-AUD-20260912-C6-P1-001).
+
 `npm run test:ci` is the aggregate correctness command. It runs named server, Electron, ingestion, unit-domain, UI-domain, and contract shards and must end with a conclusive exit status. Shared IndexedDB/global-state suites remain serial; isolation-sensitive execution order must not be relaxed merely for speed.
 
 ## Historical 2026-07-16 local baseline

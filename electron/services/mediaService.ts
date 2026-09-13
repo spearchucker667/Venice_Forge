@@ -287,12 +287,12 @@ function isValidSha256(s: string): boolean {
   return typeof s === "string" && /^[0-9a-f]{64}$/i.test(s);
 }
 
-/** Atomically writes the thumb bytes to `<thumbsDir>/<sha>.png`. */
+/** Atomically writes the thumb bytes to `<thumbsDir>/<sha>.png` via the
+ *  canonical replace utility (unique temp + Windows-safe replace). */
 async function writeThumb(targetPath: string, buffer: Buffer): Promise<void> {
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
-  const tmpPath = `${targetPath}.${process.pid}.${Date.now()}.tmp`;
-  await fs.writeFile(tmpPath, buffer, { mode: 0o600 });
-  await fs.rename(tmpPath, targetPath);
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(targetPath, buffer);
 }
 
 /** Strips the data URL prefix from a base64 string. */

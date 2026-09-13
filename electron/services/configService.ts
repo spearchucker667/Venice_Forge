@@ -21,23 +21,16 @@
  *      default off; mandatory child-safety enforcement is not configurable.
  */
 import { app, shell } from "electron";
-import crypto from "crypto";
 import { promises as fs, constants as fsConstants } from "fs";
 import os from "os";
 import path from "path";
 import yaml from "yaml";
 
-/** Writes a file atomically using a temporary file and rename to prevent
- *  file truncation or corruption if interrupted mid-write. */
+/** Writes a file atomically via the canonical replace utility (unique temp +
+ *  Windows-safe replace) to prevent truncation or corruption if interrupted. */
 async function atomicWriteFile(targetPath: string, content: string, mode: number = 0o600): Promise<void> {
-  const tempPath = `${targetPath}.${crypto.randomBytes(8).toString("hex")}.tmp`;
-  try {
-    await fs.writeFile(tempPath, content, { encoding: "utf-8", mode });
-    await fs.rename(tempPath, targetPath);
-  } catch (err) {
-    await fs.rm(tempPath, { force: true }).catch(() => undefined);
-    throw err;
-  }
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(targetPath, content, mode);
 }
 
 import {
@@ -475,14 +468,8 @@ async function importKeys(config: YamlConfig, originalYaml: string | null, fileP
     try {
       const redactedYaml = redactKeysInYaml(originalYaml, redacted);
       if (redactedYaml !== originalYaml) {
-        const tempPath = `${filePath}.redact-${process.pid}-${Date.now()}.tmp`;
-        try {
-          await fs.writeFile(tempPath, redactedYaml, { encoding: "utf-8", mode: 0o600 });
-          await fs.rename(tempPath, filePath);
-        } catch (err) {
-          await fs.rm(tempPath, { force: true }).catch(() => undefined);
-          throw err;
-        }
+        const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+        await atomicReplaceFile(filePath, redactedYaml);
       }
     } catch (err) {
       logError("Failed to redact keys in config.yaml", String(err));

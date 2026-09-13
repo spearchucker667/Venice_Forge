@@ -173,6 +173,13 @@ export function buildCorsHeaders(decision: CustomProtocolAccessDecision): Record
  *  session/media element load cycle, so five minutes is generous. */
 export const DEFAULT_CAPABILITY_TOKEN_TTL_MS = 5 * 60 * 1000;
 
+/** Opportunistic reaping threshold (VF-AUD-20260912-C6-P3-001). `issue()` sweeps
+ *  expired entries once the store exceeds this size so memory stays proportional
+ *  to live tokens instead of cumulative issuance. Chosen well above realistic
+ *  concurrent live tokens (media-element loads) so the O(n) sweep amortizes to
+ *  effectively nothing while capping worst-case growth. */
+export const CAPABILITY_TOKEN_REAP_THRESHOLD = 512;
+
 /** Token entropy in bytes. 32 bytes → 256 bits, base64url-encoded as 43 chars. */
 export const CAPABILITY_TOKEN_BYTES = 32;
 
@@ -289,10 +296,24 @@ export function createCustomProtocolCapabilityManager(options: {
     };
 
     tokens.set(token, spec);
+    reapExpiredTokens();
     const base = input.resourceUrl ?? `${input.scheme}://${input.objectId}`;
     const separator = base.includes("?") ? "&" : "?";
     const url = `${base}${separator}cap=${encodeURIComponent(token)}`;
     return { token, url };
+  }
+
+  /** Deletes every expired entry once the store crosses the reap threshold.
+   *  Expiry was previously enforced only lazily inside `verify()`, so tokens
+   *  that were never presented again (navigation away, superseded media URLs)
+   *  accumulated for the app lifetime (VF-AUD-20260912-C6-P3-001). Expired
+   *  tokens already fail verification, so removing them here is pure hygiene. */
+  function reapExpiredTokens(): void {
+    if (tokens.size <= CAPABILITY_TOKEN_REAP_THRESHOLD) return;
+    const observedAt = now();
+    for (const [token, spec] of tokens) {
+      if (observedAt >= spec.expiresAt) tokens.delete(token);
+    }
   }
 
   function verify(token: string): CustomProtocolCapabilitySpec | null {

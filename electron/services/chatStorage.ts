@@ -287,14 +287,12 @@ export async function saveConversation(conversation: Conversation, profileId: st
   }
   await ensureDir(profileId);
   const filePath = conversationPath(storedConversation.id, profileId);
-  const tempPath = `${filePath}.${crypto.randomUUID()}.tmp`;
   const payload: ConversationFile = { version: FILE_VERSION, conversation: storedConversation };
   try {
-    await fs.writeFile(tempPath, JSON.stringify(payload, null, 2), { encoding: "utf-8", mode: 0o600 });
-    await fs.rename(tempPath, filePath);
+    const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+    await atomicReplaceFile(filePath, JSON.stringify(payload, null, 2));
     return { ok: true };
   } catch (err) {
-    await fs.unlink(tempPath).catch(() => undefined);
     const diagnostic = redactErrorMessage(err);
     logError("Failed to write conversation file", { path: path.basename(filePath), error: diagnostic });
     return { ok: false, error: "Failed to save conversation." };

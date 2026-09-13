@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCorsHeaders,
   authorizeCustomProtocolCapability,
+  CAPABILITY_TOKEN_REAP_THRESHOLD,
   createCustomProtocolCapabilityManager,
   DEV_RENDERER_ORIGIN,
   evaluateCustomProtocolAccess,
@@ -230,6 +231,55 @@ describe("custom protocol capability-token manager", () => {
     now += 1;
     expect(manager.verify(token)).toBeNull();
     expect(manager.verify("totally-unknown-token")).toBeNull();
+  });
+
+  it("reaps expired tokens without any verify call (VF-AUD-20260912-C6-P3-001)", () => {
+    let now = 1_000_000;
+    const manager = createCustomProtocolCapabilityManager({ now: () => now });
+
+    // Cross the reap threshold with short-TTL tokens.
+    for (let i = 0; i < CAPABILITY_TOKEN_REAP_THRESHOLD + 1; i++) {
+      manager.issue({ scheme: "venice-media", objectId, profileId: "p", sessionId: "s", ttlMs: 1 });
+    }
+    expect(manager.metrics().issuedCount).toBe(CAPABILITY_TOKEN_REAP_THRESHOLD + 1);
+
+    // Advance past expiry and issue one more token. The sweep must remove every
+    // expired entry even though none of them was ever presented to verify().
+    now += 10;
+    const survivor = manager.issue({
+      scheme: "venice-media",
+      objectId,
+      profileId: "p",
+      sessionId: "s",
+      ttlMs: 60_000,
+    });
+
+    expect(manager.metrics().issuedCount).toBe(1);
+    expect(manager.verify(survivor.token)).not.toBeNull();
+  });
+
+  it("reaping never removes unexpired tokens", () => {
+    const now = 2_000_000;
+    const manager = createCustomProtocolCapabilityManager({ now: () => now });
+
+    const kept: string[] = [];
+    for (let i = 0; i < CAPABILITY_TOKEN_REAP_THRESHOLD + 10; i++) {
+      const issued = manager.issue({
+        scheme: "venice-tts",
+        objectId,
+        profileId: "p",
+        sessionId: "s",
+        ttlMs: 60_000,
+      });
+      kept.push(issued.token);
+    }
+
+    // All tokens share the same clock tick, so none is expired; the sweep must
+    // not have dropped any of them.
+    expect(manager.metrics().issuedCount).toBe(CAPABILITY_TOKEN_REAP_THRESHOLD + 10);
+    for (const token of kept) {
+      expect(manager.verify(token)).not.toBeNull();
+    }
   });
 
   it("revokes tokens by session, profile, and all", () => {

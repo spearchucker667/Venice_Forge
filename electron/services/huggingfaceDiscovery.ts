@@ -1,7 +1,6 @@
 /** @fileoverview Hugging Face Inference Providers live model discovery with
  *  bounded disk cache and stale-while-revalidate fallback. */
 
-import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { app } from "electron";
@@ -13,6 +12,7 @@ import type {
 import { getProviderApiKey } from "./secureStore";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { assertValidProfileStorageId } from "../../src/utils/profileIdValidation";
+import { atomicReplaceFileSync } from "../utils/atomicFileReplace";
 
 const HF_MODELS_ENDPOINT = "https://router.huggingface.co/v1/models";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -53,25 +53,17 @@ function readCache(profileId: string): HuggingFaceModelsCache | null {
 
 function writeCache(profileId: string, models: ProviderModel[], fetchedAt: number): void {
   const target = cacheFilePath(profileId);
-  // Use a random temporary name so concurrent refreshes cannot race on the same
-  // .tmp file; atomic rename gives last-write-wins consistency.
-  const temporary = `${target}.${crypto.randomUUID()}.tmp`;
+  // Random temp name inside the utility prevents concurrent refreshes from
+  // racing on the same .tmp file; atomic rename gives last-write-wins.
   try {
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(
-      temporary,
+    atomicReplaceFileSync(
+      target,
       JSON.stringify({ version: CACHE_SCHEMA_VERSION, fetchedAt, models }, null, 2),
-      { encoding: "utf8", mode: 0o600 },
     );
-    fs.renameSync(temporary, target);
   } catch (error) {
     // Cache writes are best-effort; discovery still returns live data.
     console.warn("[huggingfaceDiscovery] cache write failed:", redactErrorMessage(error));
-    try {
-      fs.unlinkSync(temporary);
-    } catch {
-      // ignore cleanup failure
-    }
   }
 }
 

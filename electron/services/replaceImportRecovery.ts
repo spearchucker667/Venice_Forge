@@ -155,14 +155,8 @@ export async function persistReplaceImportRecovery(
     manifest,
   };
   const target = recoveryPath(userDataRoot, profileId, id);
-  const temporary = `${target}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
-  try {
-    await fs.writeFile(temporary, JSON.stringify(record), { encoding: "utf8", flag: "wx", mode: 0o600 });
-    await fs.rename(temporary, target);
-    await fs.chmod(target, 0o600);
-  } finally {
-    await fs.rm(temporary, { force: true });
-  }
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(target, JSON.stringify(record));
   await pruneOldRecoveries(userDataRoot, profileId);
   return { id, createdAt };
 }

@@ -1,0 +1,18 @@
+file,category,files,status,notes
+src/** (components, hooks, lib, stores, services, shared, theme, i18n, types, utils),renderer source,866,"MIXED: prioritized line-review of chat/RP/media persistence + stream + safety surfaces; full suite + contract verifiers over remainder","remainder explicitly listed in REVIEW_COVERAGE.md §4"
+electron/** (main, preload, ipc, services, utils, agent),main-process source,222,"MIXED: full line-review of security/data-integrity surfaces (capability tokens, vault, atomic writes, protocol handlers, CSP wiring, IPC validation); verifiers + tests over remainder","security review in SECURITY_REVIEW.md"
+server.ts,web proxy,1,VERIFIED-BY-EXECUTION + targeted read,"FSM screening, 451 contract, CSP headers, JSON error handling verified"
+.github/workflows/*,CI/release,4,REVIEWED,"ci.yml, release.yml, codeql.yml, dependency-review.yml — full read"
+root + build config (package.json, tsconfig*, vite/vitest/eslint configs, electron-builder.config.cjs, .nvmrc),build tooling,~20,REVIEWED,"scripts contract verified; signing/notarization config read"
+scripts/*,verifiers + tooling,120,VERIFIED-BY-EXECUTION,"all verify:* groups executed green; spot-reviewed smoke/packaged-executable support"
+src/i18n/resources/**,localization,144,VERIFIED-BY-EXECUTION,"12 locales / 12 namespaces; 55 __MISSING__ sentinels expected under contract"
+docs/**,documentation,~330,VERIFIED-BY-EXECUTION + spot-check,"verify:markdown-links 335 files 0 broken; facts spot-verified against source"
+tests/** (contracts, safety, storage, csp, theme, backup, rp, smoke, accessibility),tests,~120,"MIXED: smoke + prior-P1 regression tests read in full; suite executed green",
+package-lock.json,lockfile,1,VERIFIED-BY-EXECUTION,"verify:lockfile OK; npm audit 0 vulns"
+assets/ build/ public/ (icons, fonts, images),binary assets,~70,NOT APPLICABLE,"verify:icon + verify:dist + meteocon CSP verifier cover integrity"
+dist/ dist-electron/ release/ node_modules/ coverage/ artifacts/,generated,0 tracked,GENERATED,"gitignored; excluded from scope"
+ REVIEW STATUS SUMMARY,,,,,
+REVIEWED (full read),,,~45 files,"high-risk + changed surfaces"
+VERIFIED-BY-EXECUTION,,,~600 files,"tests, verifiers, builds"
+STATIC-SEARCH CLASSIFIED,,,1088 source files,"every hit assessed"
+REMAINDER-UNREVIEWED (line-level),,,majority of src/components/** + scripts/*.cjs,"covered by suite/verifiers only — stated per §39"

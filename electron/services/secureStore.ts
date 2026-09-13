@@ -14,6 +14,7 @@ import {
 } from "./windowsCredentialStore";
 import { requiresStructuredCredential } from "../../src/types/provider";
 import type { ApiKeyConfigurationStatus } from "../../src/types/api-connectivity";
+import { atomicReplaceFileSync } from "../utils/atomicFileReplace";
 
 /** Name of the JSON file used for secure preferences storage. */
 const STORE_FILE = "secure-prefs.json";
@@ -98,20 +99,9 @@ function readStore(prefKey: keyof typeof lastReadErrors): Record<string, string>
  */
 function writeStore(data: Record<string, string>): void {
   const storePath = getStorePath();
-  const tempPath = `${storePath}.tmp-${crypto.randomUUID()}`;
-  try {
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), {
-      encoding: "utf-8",
-      // Restrict file to owner read/write only on POSIX systems.
-      // Ignored on Windows (which uses ACLs via NTFS / DPAPI instead).
-      mode: 0o600,
-    });
-    fs.renameSync(tempPath, storePath);
-    memoryCache = { ...data };
-  } catch (err) {
-    try { fs.unlinkSync(tempPath); } catch { /* ignore cleanup errors */ }
-    throw err;
-  }
+  // Canonical replace utility: unique temp + fsync + Windows-safe replace.
+  atomicReplaceFileSync(storePath, JSON.stringify(data, null, 2), 0o600);
+  memoryCache = { ...data };
 }
 
 /** Encrypts and stores the Venice API key using OS-level encryption when possible.

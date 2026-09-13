@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { app } from "electron";
@@ -37,7 +36,6 @@ export async function persistSyncOutboxEntry(filename: string, manifestJson: str
   } catch {
     // No durable copy exists yet.
   }
-  const temporary = `${destination}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
   const entry: SyncOutboxEntry = {
     version: 1,
     filename,
@@ -45,12 +43,8 @@ export async function persistSyncOutboxEntry(filename: string, manifestJson: str
     objectFilename,
     createdAt: new Date().toISOString(),
   };
-  try {
-    await fs.writeFile(temporary, JSON.stringify(entry), { encoding: "utf8", mode: 0o600, flag: "wx" });
-    await fs.rename(temporary, destination);
-  } finally {
-    await fs.rm(temporary, { force: true });
-  }
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(destination, JSON.stringify(entry));
 }
 
 export async function removeSyncOutboxEntry(filename: string): Promise<void> {
@@ -69,14 +63,8 @@ async function publishManifest(directory: string, filename: string, manifestJson
       // Publish the missing immutable event.
     }
   }
-  const temporary = `${destination}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
-  try {
-    await fs.writeFile(temporary, manifestJson, { encoding: "utf8", flag: "wx", mode: 0o600 });
-    if (replace) await fs.rm(destination, { force: true });
-    await fs.rename(temporary, destination);
-  } finally {
-    await fs.rm(temporary, { force: true });
-  }
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(destination, manifestJson);
 }
 
 export async function drainSyncOutbox(blobsDirectory: string, objectsDirectory = blobsDirectory): Promise<number> {

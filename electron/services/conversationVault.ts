@@ -142,23 +142,8 @@ function throwVaultKeyUnavailable(message: string): never {
 }
 
 async function writeVaultKeyFileAtomic(payload: VaultKeyFileV1): Promise<void> {
-  const tempPath = `${KEY_FILE}.tmp-${crypto.randomUUID()}`;
-  try {
-    await fs.writeFile(tempPath, JSON.stringify(payload, null, 2), { encoding: "utf-8", mode: 0o600 });
-    let filehandle: fs.FileHandle | null = null;
-    try {
-      filehandle = await fs.open(tempPath, "r+");
-      await filehandle.sync();
-    } catch (err) {
-      logError("fsync failed for vault key temp file", String(err));
-    } finally {
-      await filehandle?.close();
-    }
-    await fs.rename(tempPath, KEY_FILE);
-  } catch (error) {
-    await fs.unlink(tempPath).catch(() => undefined);
-    throw error;
-  }
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(KEY_FILE, JSON.stringify(payload, null, 2), 0o600, { sync: true });
 }
 
 /**
@@ -313,27 +298,16 @@ export function decrypt(envelope: EncryptedVaultFileV1, key: Buffer, expectedFil
 }
 
 /**
- * Writes an encrypted file atomically (temp file + sync + rename).
+ * Writes an encrypted file atomically (temp file + fsync + replace via the
+ * canonical `atomicReplaceFile` utility, including the Windows fallback).
  */
 export async function writeEncryptedFile(filePath: string, text: string, fileType: string, id: string): Promise<void> {
   const key = await getOrInitVaultKey();
   const envelope = encrypt(text, key, fileType, id);
-  const tempPath = `${filePath}.tmp-${crypto.randomUUID()}`;
 
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(tempPath, JSON.stringify(envelope, null, 2), { encoding: "utf-8", mode: 0o600 });
-
-  let filehandle: fs.FileHandle | null = null;
-  try {
-    filehandle = await fs.open(tempPath, "r+");
-    await filehandle.sync();
-  } catch (err) {
-    logError("fsync failed for temp file", String(err));
-  } finally {
-    await filehandle?.close();
-  }
-
-  await fs.rename(tempPath, filePath);
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(filePath, JSON.stringify(envelope, null, 2), 0o600, { sync: true });
 }
 
 /**

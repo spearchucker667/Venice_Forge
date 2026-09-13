@@ -313,20 +313,8 @@ export async function exportBackup(
   const backupFileName = `venice-forge-folder-backup-${Date.now()}.vfbackup`;
   const backupPath = destinationPath ?? path.join(getBackupsDir(profileId), backupFileName);
   await fs.mkdir(path.dirname(backupPath), { recursive: true });
-  const temporaryPath = `${backupPath}.${crypto.randomUUID()}.tmp`;
-  try {
-    const handle = await fs.open(temporaryPath, "w", 0o600);
-    try {
-      await handle.writeFile(JSON.stringify(encrypted, null, 2), "utf-8");
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
-    await fs.rename(temporaryPath, backupPath);
-  } catch (error) {
-    await fs.unlink(temporaryPath).catch(() => undefined);
-    throw error;
-  }
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(backupPath, JSON.stringify(encrypted, null, 2), 0o600, { sync: true });
 
   logInfo("Exported chat folder backup", { folderId: folder.id, fileName: backupFileName });
   return { ok: true, fileName: path.basename(backupPath), backupPath } as ExportFolderBackupResult & { backupPath: string };

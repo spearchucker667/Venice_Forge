@@ -219,7 +219,9 @@ function runStaticChecks() {
     "export async function getLatestReplaceImportRecovery",
     "export async function loadReplaceImportRecovery",
     "validateBackupPayloadProfile",
-    "mode: 0o600",
+    // Canonical atomic-replace utility; 0o600 is its signature default for
+    // every caller (DR-001), replacing the legacy inline `mode: 0o600`.
+    "atomicReplaceFile("
   ]);
 
   mustContain(SYNC_PACKET_IMPORTER_FILE, "src/services/syncPacketImporter.ts exports", [
@@ -297,8 +299,10 @@ function runStaticChecks() {
   ]);
 
   mustContain(SYNC_WATCHER_FILE, "syncFolderWatcher atomic write semantics", [
-    "fs.writeFile(tmpPath",
-    "fs.rename(tmpPath",
+    // Canonical atomic-replace utility (unique temp + fsync + Windows-safe
+    // replace) — DR-001 consolidation; semantically stronger than the legacy
+    // fs.writeFile(tmpPath) / fs.rename(tmpPath) pattern it replaces.
+    "atomicReplaceFile("
   ]);
 
   mustContain(BACKUP_EXPORT_FILE, "backupExportService secret exclusion", [

@@ -109,18 +109,8 @@ let activePersistPromise: Promise<void> | null = null;
 async function writeTasksFile(): Promise<void> {
   await fs.mkdir(TASKS_DIR, { recursive: true, mode: 0o700 });
   const payload = serializeTasks(Object.values(state.tasks));
-  const tempFile = `${TASKS_FILE}.tmp.${crypto.randomBytes(8).toString("hex")}`;
-  try {
-    await fs.writeFile(tempFile, payload, { encoding: "utf-8", mode: 0o600 });
-    await fs.rename(tempFile, TASKS_FILE);
-  } catch (err) {
-    try {
-      await fs.unlink(tempFile);
-    } catch {
-      // ignore cleanup failure
-    }
-    throw err;
-  }
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(TASKS_FILE, payload);
 }
 
 async function flushPersist(): Promise<void> {

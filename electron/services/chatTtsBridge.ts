@@ -3,7 +3,7 @@
 import { app } from "electron";
 import path from "node:path";
 import fs from "node:fs/promises";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { performGuardedVeniceRequest } from "./guardPipeline";
 import { logError } from "./logger";
 import { DEFAULT_TTS_MODEL } from "../../src/constants/venice";
@@ -207,14 +207,8 @@ export async function synthesizeSpeech(
       };
     }
 
-    const temporaryPath = `${cachePath}.${randomUUID()}.tmp`;
-    try {
-      await fs.writeFile(temporaryPath, audioBuffer, { mode: 0o600 });
-      await fs.rename(temporaryPath, cachePath);
-    } catch (error) {
-      await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
-      throw error;
-    }
+    const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+    await atomicReplaceFile(cachePath, audioBuffer);
     return { ok: true, id: cacheKey, profileId, cacheMode: "disk" };
   } catch (error: unknown) {
     logError("synthesizeSpeech error", error);

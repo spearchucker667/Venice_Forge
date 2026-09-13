@@ -13,10 +13,12 @@ const fsMock = vi.hoisted(() => ({
   readdir: vi.fn(),
   unlink: vi.fn(),
 }));
+const atomicReplaceFileMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const guardedMock = vi.hoisted(() => vi.fn());
 
 vi.mock("electron", () => ({ app: { getPath: () => "/user-data" } }));
 vi.mock("node:fs/promises", () => ({ default: fsMock, ...fsMock }));
+vi.mock("../utils/atomicFileReplace", () => ({ atomicReplaceFile: atomicReplaceFileMock }));
 vi.mock("./guardPipeline", () => ({ performGuardedVeniceRequest: guardedMock }));
 vi.mock("./logger", () => ({ logError: vi.fn() }));
 
@@ -31,6 +33,7 @@ describe("chatTtsBridge", () => {
     fsMock.rename.mockResolvedValue(undefined);
     fsMock.rm.mockResolvedValue(undefined);
     fsMock.readdir.mockResolvedValue([]);
+    atomicReplaceFileMock.mockResolvedValue(undefined);
     guardedMock.mockResolvedValue({
       kind: "allowed",
       response: { ok: true, status: 200, body: { dataBase64: Buffer.from("audio").toString("base64") } },
@@ -59,8 +62,12 @@ describe("chatTtsBridge", () => {
 
     expect(result).toMatchObject({ ok: true, profileId: "work", cacheMode: "disk", id: expect.stringMatching(/^[a-f0-9]{64}$/) });
     expect(fsMock.mkdir).toHaveBeenCalled();
-    expect(fsMock.writeFile).toHaveBeenCalledWith(expect.stringMatching(/\.tmp$/), Buffer.from(Buffer.from("audio").toString("base64"), "base64"), { mode: 0o600 });
-    expect(fsMock.rename).toHaveBeenCalled();
+    expect(atomicReplaceFileMock).toHaveBeenCalledTimes(1);
+    const [target, bytes] = atomicReplaceFileMock.mock.calls[0];
+    expect(String(target)).toMatch(/tts-cache[\\/]profiles[\\/]work[\\/][a-f0-9]{64}\.mp3$/);
+    expect(bytes).toEqual(Buffer.from(Buffer.from("audio").toString("base64"), "base64"));
+    expect(fsMock.writeFile).not.toHaveBeenCalled();
+    expect(fsMock.rename).not.toHaveBeenCalled();
   });
 
   it("does not expose internal provider or filesystem exception text", async () => {

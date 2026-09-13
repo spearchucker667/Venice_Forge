@@ -50,6 +50,12 @@ vi.mock('fs/promises', () => ({
   },
 }));
 
+// Task persistence routes through the canonical replace utility; keep this
+// suite's no-real-filesystem contract by mocking it at the same boundary.
+vi.mock('../utils/atomicFileReplace', () => ({
+  atomicReplaceFile: vi.fn().mockResolvedValue(undefined),
+}));
+
 function clearActivePolls(state: BackgroundTaskManagerState): void {
   for (const poll of Object.values(state.activePolls)) {
     clearTimeout(poll);

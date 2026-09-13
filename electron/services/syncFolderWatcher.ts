@@ -222,14 +222,12 @@ export async function loadAppliedOperationsJournal(): Promise<AppliedOperationsJ
 
 async function saveAppliedOperationsJournal(): Promise<void> {
   const filePath = getJournalPath();
-  const tmpPath = `${filePath}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
   try {
     await fs.mkdir(getJournalDirectory(), { recursive: true });
-    await fs.writeFile(tmpPath, JSON.stringify(appliedOperationsJournal, null, 2), { encoding: "utf8", flag: "wx" });
-    await fs.rename(tmpPath, filePath);
+    const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+    await atomicReplaceFile(filePath, JSON.stringify(appliedOperationsJournal, null, 2), 0o600, { sync: true });
   } catch (err: unknown) {
     logError("syncFolderWatcher", `Failed to save applied-operations journal: ${redactErrorMessage(err)}`);
-    await fs.rm(tmpPath, { force: true });
     throw err;
   }
 }

@@ -37,20 +37,8 @@ function journalPath(journal: Pick<ChatFolderOperationJournal, "profileId" | "op
 
 async function atomicWrite(filePath: string, value: unknown): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true, mode: 0o700 });
-  const temporaryPath = `${filePath}.${crypto.randomUUID()}.tmp`;
-  let handle: Awaited<ReturnType<typeof fs.open>> | undefined;
-  try {
-    handle = await fs.open(temporaryPath, "wx", 0o600);
-    await handle.writeFile(JSON.stringify(value, null, 2), "utf-8");
-    await handle.sync();
-    await handle.close();
-    handle = undefined;
-    await fs.rename(temporaryPath, filePath);
-  } catch (error) {
-    await handle?.close().catch(() => undefined);
-    await fs.unlink(temporaryPath).catch(() => undefined);
-    throw error;
-  }
+  const { atomicReplaceFile } = await import("../utils/atomicFileReplace");
+  await atomicReplaceFile(filePath, JSON.stringify(value, null, 2), 0o600, { sync: true });
 }
 
 export async function createChatFolderOperationJournal(input: {
