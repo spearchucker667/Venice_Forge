@@ -7,19 +7,23 @@ import { ProfilePanel } from "./ProfilePanel";
 import { useProfileStore } from "../../stores/profile-store";
 import { desktopProfilePassword, isElectron } from "../../services/desktopBridge";
 
-vi.mock("../../services/desktopBridge", () => ({
-  isElectron: vi.fn(() => true),
-  desktopProfilePassword: {
-    activate: vi.fn(() => Promise.resolve({ ok: true, verified: true, profileId: "default" })),
-    set: vi.fn(),
-    verify: vi.fn(),
-    clear: vi.fn(),
-    isSet: vi.fn(),
-  },
-  desktopMasterPassword: {
-    isSet: vi.fn(() => Promise.resolve(false)),
-  },
-}));
+vi.mock("../../services/desktopBridge", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../services/desktopBridge")>();
+  return {
+    ...actual,
+    isElectron: vi.fn(() => true),
+    desktopProfilePassword: {
+      activate: vi.fn(() => Promise.resolve({ ok: true, verified: true, profileId: "default" })),
+      set: vi.fn(),
+      verify: vi.fn(),
+      clear: vi.fn(),
+      isSet: vi.fn(),
+    },
+    desktopMasterPassword: {
+      isSet: vi.fn(() => Promise.resolve(false)),
+    },
+  };
+});
 
 vi.mock("../ui/modal-requests", () => ({
   askDecision: vi.fn(async () => true),
