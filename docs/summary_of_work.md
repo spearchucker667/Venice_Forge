@@ -39,6 +39,10 @@ This is the active handoff and validation ledger. The canonical current-work led
     - `npm run verify:dist`: PASS.
     - `npm run verify:markdown-links && npm run verify:repo-handoff-hygiene && npm run verify:agent-docs`: PASS.
     - `node scripts/verify-i18n.cjs --strict`: PASS (12 locales, 12 namespaces, 0 errors).
+  - **Hosted CI & CodeQL Acceptance:**
+    - Committed `96212d8d` and pushed to `origin/main`. Follow-up mock repair `30940621` in `src/components/settings/ProfilePanel.test.tsx` (preserved `desktopBridge` exports in partial mock).
+    - Hosted CI run `34765037181`: **11/11 jobs SUCCESS**, including all three packaged smokes (`electron-smoke-macos`, `electron-smoke-windows`, `electron-smoke-linux`).
+    - Hosted CodeQL run `34765037184`: **SUCCESS** (2/2 analysis jobs green).
   - **Release Readiness:** **READY.**
 
 - **2026-09-13 Exhaustive Line-by-Line Bug Audit & Engineering Review (baseline `2f67268`).** Conducted an exhaustive, file-by-file audit of Venice Forge at HEAD `2f672682d57f82e5cd2d0ecefa42a4a525a9504c` (v3.0.0-beta.3, clean worktree). Verified baseline against hosted CI (run `34757875723`: 11/11 jobs green; CodeQL run `34757875712`: green). Accounted for all 1,951 tracked files in `review-ledger.csv`. Executed the full canonical local validation suite (`lint:eslint`, `typecheck` across 3 configs, `npm test` 5,945 passed across 522 files, `verify:contracts` 104+ checks, `build`, `verify:dist`, `npm audit` 0 vulns, `verify:ipc-parity` 190/190). Deployed 4 concurrent deep-dive research subagents across Electron Security, Venice API & Streaming, Zustand State Management & Persistence, and Main Process Durability & Storage. Identified **13 confirmed defects (4 P1, 5 P2, 4 P3)**, 2 design risks, 3 test gaps, and 4 improvements. Full audit package produced under `docs/audits/venice-forge-exhaustive-audit-2026-09-13/`.
@@ -84,6 +88,10 @@ This is the active handoff and validation ledger. The canonical current-work led
   - `npm run verify:repo-handoff-hygiene` — PASS.
   - `npm run verify:agent-docs` — PASS.
   - `node scripts/verify-i18n.cjs --strict` — PASS (12 locales, 12 namespaces, 0 errors).
+- **Hosted CI & CodeQL Acceptance:**
+  - Published to `origin/main` at `96212d8d`, follow-up test mock fix at `30940621`.
+  - GitHub Actions CI run `34765037181`: **11/11 jobs SUCCESS** (`unit-and-integration-tests`, `coverage`, `windows-sensitive-tests`, `macos-sensitive-tests`, `lint-and-typecheck`, `contracts`, `script-coverage`, `build`, `electron-smoke-linux`, `electron-smoke-windows`, `electron-smoke-macos`).
+  - GitHub Actions CodeQL run `34765037184`: **SUCCESS** (actions + javascript-typescript).
 - **Release Readiness:** READY.
 
 ### 2026-09-13 — Exhaustive Line-by-Line Bug Audit & Engineering Review (baseline `2f67268`)
@@ -1419,6 +1427,8 @@ Investigation only, then four targeted fixes based on the user-reported defects
 - `npm run verify:repo-handoff-hygiene` — PASS.
 - `npm run verify:agent-docs` — PASS.
 - `node scripts/verify-i18n.cjs --strict` — PASS (12 locales, 12 namespaces, 0 errors, 100% key coverage).
+- Hosted CI — GitHub Actions run `34765037181` on `30940621`: **11/11 jobs SUCCESS** (unit-and-integration-tests, coverage, windows-sensitive-tests, macos-sensitive-tests, lint-and-typecheck, contracts, script-coverage, build, electron-smoke-linux, electron-smoke-windows, electron-smoke-macos).
+- Hosted CodeQL — GitHub Actions run `34765037184` on `30940621`: **SUCCESS** (actions + javascript-typescript).
 
 ### 2026-09-13 — Exhaustive Line-by-Line Bug Audit & Engineering Review (baseline 2f67268)
 
