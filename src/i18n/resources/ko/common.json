@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "오류 세부정보가 클립보드에 복사되었습니다."
+            "errorDetailsCopiedToClipboard": "오류 세부정보가 클립보드에 복사되었습니다.",
+            "couldNotCopyToClipboard": "클립보드에 복사할 수 없습니다"
           }
         },
         "charactercreatorlocalpickermodal": {

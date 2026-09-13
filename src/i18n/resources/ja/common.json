@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "エラーの詳細がクリップボードにコピーされました"
+            "errorDetailsCopiedToClipboard": "エラーの詳細がクリップボードにコピーされました",
+            "couldNotCopyToClipboard": "クリップボードにコピーできませんでした"
           }
         },
         "charactercreatorlocalpickermodal": {

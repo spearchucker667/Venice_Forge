@@ -67,6 +67,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 import type { ContextMenuItem } from "../ui/ContextMenu";
 import { copyText } from "../../utils/download";
+import { ResolvedMediaImg } from "../media/ResolvedMediaImg";
 import {
   readStyleReferenceFile,
   StyleReferenceFileError,
@@ -1640,7 +1641,7 @@ export function ImageView() {
           onClick={() => setSelectedImage(null)}
         >
           <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <img
+            <ResolvedMediaImg
               src={toImageSrc(selectedImage)}
               alt={t("imageStudioRuntime.generated")}
               onContextMenu={(e) => {
@@ -1753,7 +1754,7 @@ export function ImageView() {
                 })}
                 className="block w-full rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               >
-                <img
+                <ResolvedMediaImg
                   src={toImageSrc(img)}
                   alt={t("imageStudioRuntime.generatedNumber", {
                     number: i + 1,

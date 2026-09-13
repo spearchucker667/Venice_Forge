@@ -21,6 +21,7 @@ import type {
 } from "../../types/character-creator";
 import { toast } from "../../stores/toast-store";
 import { Trans, useTranslation } from "react-i18next";
+import { copyText } from "../../utils/download";
 
 interface Props {
   events: CharacterCreatorProcessEvent[];
@@ -102,8 +103,11 @@ export function CharacterCreatorProcessPanel({
     }
 
     const textToCopy = lines.join("\n");
-    try {
-      await navigator.clipboard.writeText(textToCopy);
+    // copyText never rejects and falls back to execCommand when the
+    // async Clipboard API is denied. Treat the boolean result as success
+    // or failure for the user-visible toast.
+    const ok = await copyText(textToCopy);
+    if (ok) {
       setCopied(true);
       toast.success(
         tRuntime(
@@ -111,7 +115,7 @@ export function CharacterCreatorProcessPanel({
         ),
       );
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error(
         tRuntime(
           "runtimeGenerated.components.characterCreator.charactercreatorprocesspanel.notification.couldNotCopyToClipboard",

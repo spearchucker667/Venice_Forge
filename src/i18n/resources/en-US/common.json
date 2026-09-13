@@ -2393,7 +2393,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "Error details copied to clipboard"
+            "errorDetailsCopiedToClipboard": "Error details copied to clipboard",
+            "couldNotCopyToClipboard": "Could not copy to clipboard"
           }
         },
         "charactercreatorlocalpickermodal": {

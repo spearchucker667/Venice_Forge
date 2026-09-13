@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "错误详细信息已复制到剪贴板"
+            "errorDetailsCopiedToClipboard": "错误详细信息已复制到剪贴板",
+            "couldNotCopyToClipboard": "无法复制到剪贴板"
           }
         },
         "charactercreatorlocalpickermodal": {

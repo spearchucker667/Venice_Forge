@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "Detalhes do erro copiados para a área de transferência"
+            "errorDetailsCopiedToClipboard": "Detalhes do erro copiados para a área de transferência",
+            "couldNotCopyToClipboard": "Não foi possível copiar para a área de transferência"
           }
         },
         "charactercreatorlocalpickermodal": {

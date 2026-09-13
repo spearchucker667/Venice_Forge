@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "Подробности об ошибке скопированы в буфер обмена."
+            "errorDetailsCopiedToClipboard": "Подробности об ошибке скопированы в буфер обмена.",
+            "couldNotCopyToClipboard": "Не удалось скопировать в буфер обмена"
           }
         },
         "charactercreatorlocalpickermodal": {

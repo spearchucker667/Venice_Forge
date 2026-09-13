@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Download, Heart, Trash2 } from "lucide-react
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/shared";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
 import {
   mediaItemSource,
   formatDimensions,
@@ -17,6 +18,49 @@ import {
 import type { MediaItem } from "../../types/media";
 import { ManagedVideoPlayer } from "../media/ManagedVideoPlayer";
 import { Trans, useTranslation } from "react-i18next";
+
+/** Filmstrip thumbnail with its own capability-URL resolution — hooks cannot
+ *  run inside the parent map, and a tokenless venice-media:// src is rejected
+ *  with 403 by the main-process protocol handler. The `retry()` returned by
+ *  the hook is wired into the `<img>` `onError` handler so a stale capability
+ *  token (the 5-minute TTL) self-heals instead of leaving a broken thumbnail. */
+function FilmstripThumb({ candidate }: { candidate: MediaItem }) {
+  const { url: cs, retry } = useResolvedMediaUrl(mediaItemSource(candidate));
+  if (!cs) {
+    return (
+      <div className="grid h-full w-full place-items-center text-text-muted">
+        ?
+      </div>
+    );
+  }
+  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    if (retry()) return;
+    (e.currentTarget as HTMLImageElement).style.display = "none";
+  };
+  // Use img for filmstrip thumbnails. For videos, this shows
+  // a static frame when the browser decodes the first frame;
+  // for venice-media:// the fallback placeholder is shown.
+  if (isVideoItem(candidate)) {
+    return (
+      <div className="relative h-full w-full">
+        <img
+          src={cs}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={handleImgError}
+        />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={cs}
+      alt=""
+      className="h-full w-full object-cover"
+      onError={handleImgError}
+    />
+  );
+}
 
 interface MediaDetailDialogProps {
   item: MediaItem;
@@ -44,7 +88,10 @@ export function MediaDetailDialog({
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const isVideo = isVideoItem(item);
   const isAudio = isAudioItem(item);
-  const src = mediaItemSource(item);
+  // Resolve the durable source into a capability URL — the protocol handler
+  // rejects tokenless venice-media:// requests with 403. `retry()` is wired
+  // to the <img>/<video> onError handler for token-TTL self-healing.
+  const { url: src } = useResolvedMediaUrl(mediaItemSource(item));
   const dims = formatDimensions(item);
   const duration = formatDuration(item.duration);
 
@@ -268,7 +315,6 @@ export function MediaDetailDialog({
         </h3>
         <div className="grid grid-cols-3 gap-2 overflow-y-auto pr-1">
           {allItems.map((candidate) => {
-            const cs = mediaItemSource(candidate);
             const selected = candidate.id === item.id;
             return (
               <button
@@ -286,34 +332,7 @@ export function MediaDetailDialog({
                   { value1: candidate.prompt || "untitled" },
                 )}
               >
-                {cs ? (
-                  // Use img for filmstrip thumbnails. For videos, this shows
-                  // a static frame when the browser decodes the first frame;
-                  // for venice-media:// the fallback placeholder is shown.
-                  isVideoItem(candidate) ? (
-                    <div className="relative h-full w-full">
-                      <img
-                        src={cs}
-                        alt=""
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display =
-                            "none";
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <img
-                      src={cs}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  )
-                ) : (
-                  <div className="grid h-full w-full place-items-center text-text-muted">
-                    ?
-                  </div>
-                )}
+                <FilmstripThumb candidate={candidate} />
               </button>
             );
           })}

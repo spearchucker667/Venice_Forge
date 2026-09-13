@@ -35,6 +35,7 @@ import {
   subscribeMediaCommandHandlers,
 } from "../../stores/media-command-handlers";
 import { usePromptLibraryStore } from "../../stores/prompt-library-store";
+import { copyText } from "../../utils/download";
 import { useSceneComposerStore } from "../../stores/scene-composer-store";
 import { useCharacterCardStore } from "../../stores/character-card-store";
 import { useScenarioStore } from "../../stores/scenario-store";
@@ -562,27 +563,28 @@ export function CommandPalette({
               // Phase 2D: applying a prompt records source metadata so
               // the next save can trace lineage without us copying
               // secret-like content.
-              navigator.clipboard
-                .writeText(
-                  item.versions.find((v) => v.id === item.currentVersionId)
-                    ?.content ?? "",
-                )
-                .then(() =>
+              // copyText never rejects and falls back to execCommand when
+              // the async Clipboard API is denied.
+              copyText(
+                item.versions.find((v) => v.id === item.currentVersionId)
+                  ?.content ?? "",
+              ).then((ok) => {
+                if (ok) {
                   toast.success(
                     t(
                       "commandPalette.promptCopied",
                       "Prompt copied to clipboard",
                     ),
-                  ),
-                )
-                .catch(() =>
+                  );
+                } else {
                   toast.error(
                     t(
                       "commandPalette.couldNotCopyPrompt",
                       "Could not copy prompt",
                     ),
-                  ),
-                );
+                  );
+                }
+              });
               onClose();
               setQuery("");
             }}

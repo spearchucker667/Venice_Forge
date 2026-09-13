@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "تم نسخ تفاصيل الخطأ إلى الحافظة"
+            "errorDetailsCopiedToClipboard": "تم نسخ تفاصيل الخطأ إلى الحافظة",
+            "couldNotCopyToClipboard": "تعذَّر النسخ إلى الحافظة"
           }
         },
         "charactercreatorlocalpickermodal": {

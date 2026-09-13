@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "Detalles del error copiados al portapapeles"
+            "errorDetailsCopiedToClipboard": "Detalles del error copiados al portapapeles",
+            "couldNotCopyToClipboard": "No se pudo copiar al portapapeles"
           }
         },
         "charactercreatorlocalpickermodal": {

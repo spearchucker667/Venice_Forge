@@ -158,9 +158,38 @@ export async function downloadMedia(url: string, filename: string): Promise<void
 /**
  * Copies the provided text to the system clipboard.
  *
+ * Never rejects: clipboard writes can fail with a permission denial (unfocused
+ * window, denied permission), and most callers fire this without a `.catch`.
+ * Returns `true` when the text reached the clipboard, `false` otherwise.
+ * Falls back to a hidden textarea + `execCommand` when the async Clipboard
+ * API is unavailable or denied.
+ *
  * @param value The string to copy.
- * @returns A promise that resolves when the text has been written.
  */
-export function copyText(value: string) {
-  return navigator.clipboard.writeText(String(value || ""));
+export async function copyText(value: string): Promise<boolean> {
+  const text = String(value || "");
+  if (!text) return false;
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to the legacy path.
+    }
+  }
+  if (typeof document === "undefined") return false;
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
 }

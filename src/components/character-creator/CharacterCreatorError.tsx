@@ -5,6 +5,7 @@
 import { AlertCircle, RotateCcw, ArrowLeft, Copy } from "lucide-react";
 import { toast } from "../../stores/toast-store";
 import { Trans, useTranslation } from "react-i18next";
+import { copyText } from "../../utils/download";
 
 interface Props {
   error: string;
@@ -20,13 +21,23 @@ export function CharacterCreatorError({
   hasDraftWork = false,
 }: Props) {
   const { t: tRuntime } = useTranslation("common");
-  const handleCopyError = () => {
-    navigator.clipboard.writeText(error);
-    toast.success(
-      tRuntime(
-        "runtimeGenerated.components.characterCreator.charactercreatorerror.notification.errorDetailsCopiedToClipboard",
-      ),
-    );
+  const handleCopyError = async () => {
+    // copyText never rejects and reports success — a denied clipboard write
+    // must surface as a toast, not an unhandled rejection.
+    const ok = await copyText(error);
+    if (ok) {
+      toast.success(
+        tRuntime(
+          "runtimeGenerated.components.characterCreator.charactercreatorerror.notification.errorDetailsCopiedToClipboard",
+        ),
+      );
+    } else {
+      toast.error(
+        tRuntime(
+          "runtimeGenerated.components.characterCreator.charactercreatorerror.notification.couldNotCopyToClipboard",
+        ),
+      );
+    }
   };
 
   return (

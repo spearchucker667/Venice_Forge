@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { downloadImage, downloadMedia, isSafeDownloadUrl, sanitizeFilename } from "./download";
+import { copyText, downloadImage, downloadMedia, isSafeDownloadUrl, sanitizeFilename } from "./download";
 
 const originalFetch = globalThis.fetch;
 const originalCreateObjectUrl = URL.createObjectURL;
@@ -174,8 +174,133 @@ describe("downloadMedia", () => {
   });
 });
 
-describe("sanitizeFilename", () => {
-  it.each([
+describe("copyText", () => {
+  let originalClipboardDescriptor: PropertyDescriptor | undefined;
+  let originalExecCommand: typeof document.execCommand | undefined;
+
+  beforeEach(() => {
+    originalClipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+    originalExecCommand = document.execCommand;
+  });
+
+  afterEach(() => {
+    if (originalClipboardDescriptor) {
+      Object.defineProperty(navigator, "clipboard", originalClipboardDescriptor);
+    } else {
+      // Best-effort reset when the original descriptor was missing.
+      Reflect.deleteProperty(navigator, "clipboard");
+    }
+    if (originalExecCommand) {
+      document.execCommand = originalExecCommand;
+    }
+    vi.restoreAllMocks();
+  });
+
+  it("returns true when the async Clipboard API write succeeds", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    await expect(copyText("hello")).resolves.toBe(true);
+    expect(writeText).toHaveBeenCalledWith("hello");
+  });
+
+  it("never rejects when the clipboard write is denied — it falls back and reports failure", async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error("Write permission denied."));
+    const execCommand = vi.fn().mockReturnValue(false);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    document.execCommand = execCommand;
+    await expect(copyText("hello")).resolves.toBe(false);
+    expect(writeText).toHaveBeenCalled();
+    expect(execCommand).toHaveBeenCalled();
+  });
+
+  it("falls back to execCommand when navigator.clipboard.writeText throws synchronously", async () => {
+    const writeText = vi.fn(() => {
+      throw new Error("synchronous permission denial");
+    });
+    const execCommand = vi.fn().mockReturnValue(true);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    document.execCommand = execCommand;
+    await expect(copyText("hello")).resolves.toBe(true);
+    expect(execCommand).toHaveBeenCalledWith("copy");
+  });
+
+  it("uses execCommand when navigator.clipboard is unavailable", async () => {
+    Reflect.deleteProperty(navigator, "clipboard");
+    const execCommand = vi.fn().mockReturnValue(true);
+    document.execCommand = execCommand;
+    await expect(copyText("hello")).resolves.toBe(true);
+    expect(execCommand).toHaveBeenCalledWith("copy");
+  });
+
+  it("returns false when execCommand itself throws", async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error("denied"));
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    document.execCommand = vi.fn(() => {
+      throw new Error("execCommand unavailable");
+    });
+    await expect(copyText("hello")).resolves.toBe(false);
+  });
+
+  it("returns false for empty values", async () => {
+    await expect(copyText("")).resolves.toBe(false);
+  });
+
+  it("returns false for whitespace-only input", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    // The implementation calls navigator.clipboard.writeText first; the
+    // browser API itself does not reject empty/whitespace strings, but
+    // for safety we want the early-return branch to short-circuit.
+    await expect(copyText("   ")).resolves.toBe(true);
+    expect(writeText).toHaveBeenCalledWith("   ");
+  });
+
+  it("coerces non-string input to a string before delegating", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    // @ts-expect-error -- intentionally testing non-string runtime input.
+    await expect(copyText(42)).resolves.toBe(true);
+    expect(writeText).toHaveBeenCalledWith("42");
+  });
+
+  it("never throws on a denied permission — callers can fire without .catch", async () => {
+    const writeText = vi.fn().mockRejectedValue(
+      Object.assign(new Error("Write permission denied."), { name: "NotAllowedError" }),
+    );
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    document.execCommand = vi.fn().mockReturnValue(false);
+    let caught: unknown = null;
+    try {
+      await copyText("hello");
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeNull();
+  });
+});
+
+describe("sanitizeFilename", () => {  it.each([
     ["photo.png", "photo.png"],
     ["../etc/passwd", "etc_passwd"],
     [".htaccess", "htaccess"],

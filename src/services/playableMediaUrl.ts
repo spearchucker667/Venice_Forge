@@ -1,17 +1,24 @@
 /** Resolves stored custom-protocol media URLs into short-lived capability URLs. */
 import { desktopMedia, isElectron } from "./desktopBridge";
 
-const MEDIA_RE = /^venice-media:\/\/([a-f0-9]{64})(?:\?|$)/i;
-const CACHE_RE = /^venice-character-cache:\/\/([a-f0-9]{64})(?:\?|$)/i;
+// The id may be followed by an optional path slash: URL serialization of
+// `venice-media://<hash>` normalizes the empty path to `/`, and persisted
+// records may already carry that form.
+const MEDIA_RE = /^venice-media:\/\/([a-f0-9]{64})\/?(?:\?|$)/i;
+const CACHE_RE = /^venice-character-cache:\/\/([a-f0-9]{64})\/?(?:\?|$)/i;
 const TTS_RE = /^venice-tts:\/\/([a-z0-9]+(?:-[a-z0-9]+)*)\/([a-f0-9]{64})\.mp3(?:\?|$)/i;
 
 export async function resolvePlayableMediaUrl(url: string): Promise<string> {
   try {
     if (!isElectron() || !url || url.includes("cap=")) return url;
+    // Canonical base for the issued capability URL — strip any serialized
+    // trailing slash so the token is attached to `scheme://<id>`, not
+    // `scheme://<id>/`.
+    const base = url.split("?")[0].replace(/\/+$/, "");
     if (MEDIA_RE.test(url)) {
       const objectId = MEDIA_RE.exec(url)?.[1];
       if (!objectId) return url;
-      return await desktopMedia.resolveUrl({ scheme: "venice-media", objectId, resourceUrl: url.split("?")[0] });
+      return await desktopMedia.resolveUrl({ scheme: "venice-media", objectId, resourceUrl: base });
     }
     if (CACHE_RE.test(url)) {
       const objectId = CACHE_RE.exec(url)?.[1];
@@ -19,7 +26,7 @@ export async function resolvePlayableMediaUrl(url: string): Promise<string> {
       return await desktopMedia.resolveUrl({
         scheme: "venice-character-cache",
         objectId,
-        resourceUrl: url.split("?")[0],
+        resourceUrl: base,
       });
     }
     const tts = TTS_RE.exec(url);
@@ -27,7 +34,7 @@ export async function resolvePlayableMediaUrl(url: string): Promise<string> {
       return await desktopMedia.resolveUrl({
         scheme: "venice-tts",
         objectId: tts[2],
-        resourceUrl: url.split("?")[0],
+        resourceUrl: base,
       });
     }
     return url;

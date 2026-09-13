@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../ui/shared";
 import { useMediaThumb } from "../../hooks/useMediaThumb";
+import { useResolvedMediaUrl } from "../../hooks/useResolvedMediaUrl";
 import {
   mediaItemSource,
   formatDimensions,
@@ -95,7 +96,10 @@ function MediaCardImpl({
   const isAudio = isAudioItem(item);
   const dims = formatDimensions(item);
   const duration = formatDuration(item.duration);
-  const fallbackSrc = mediaItemSource(item);
+  // The fallback renders the durable source directly, so it must carry a
+  // capability token — a tokenless venice-media:// URL is rejected with 403
+  // by the main-process protocol handler.
+  const { url: fallbackSrc } = useResolvedMediaUrl(mediaItemSource(item));
 
   const cardMenuItems: ContextMenuItem[] = [
     {

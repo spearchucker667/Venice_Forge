@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "Felinformationen har kopierats till urklipp"
+            "errorDetailsCopiedToClipboard": "Felinformationen har kopierats till urklipp",
+            "couldNotCopyToClipboard": "Kunde inte kopiera till urklipp"
           }
         },
         "charactercreatorlocalpickermodal": {

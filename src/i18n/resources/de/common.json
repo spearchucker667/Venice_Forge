@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "Fehlerdetails in die Zwischenablage kopiert"
+            "errorDetailsCopiedToClipboard": "Fehlerdetails in die Zwischenablage kopiert",
+            "couldNotCopyToClipboard": "Konnte nicht in die Zwischenablage kopiert werden"
           }
         },
         "charactercreatorlocalpickermodal": {

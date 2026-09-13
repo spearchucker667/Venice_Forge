@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "त्रुटि विवरण क्लिपबोर्ड पर कॉपी किया गया"
+            "errorDetailsCopiedToClipboard": "त्रुटि विवरण क्लिपबोर्ड पर कॉपी किया गया",
+            "couldNotCopyToClipboard": "क्लिपबोर्ड पर कॉपी नहीं किया जा सका"
           }
         },
         "charactercreatorlocalpickermodal": {

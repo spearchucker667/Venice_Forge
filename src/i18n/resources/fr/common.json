@@ -2375,7 +2375,8 @@
         },
         "charactercreatorerror": {
           "notification": {
-            "errorDetailsCopiedToClipboard": "Détails de l'erreur copiés dans le presse-papiers"
+            "errorDetailsCopiedToClipboard": "Détails de l'erreur copiés dans le presse-papiers",
+            "couldNotCopyToClipboard": "Impossible de copier dans le presse-papiers"
           }
         },
         "charactercreatorlocalpickermodal": {
