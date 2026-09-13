@@ -4,7 +4,7 @@
   "desktopName": "venice-forge.desktop",
   "description": "Unofficial third-party desktop client for the Venice API. Not affiliated with Venice.ai, Inc.",
   "author": "fayeblade (@spearchucker667)",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "private": true,
   "version": "3.0.0-beta.3",
   "type": "module",

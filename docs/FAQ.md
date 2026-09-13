@@ -6,7 +6,7 @@
 Venice Forge is an independent, open-source desktop client for the [Venice API](https://venice.ai). It provides a unified interface for text generation, image generation, web research, batch automation, and local data management through local desktop or development-proxy transports.
 
 ### Is Venice Forge an official Venice.ai product?
-No. Venice Forge is an independent MIT-licensed project. It is not endorsed by, sponsored by, or affiliated with Venice.ai, Inc. "Venice", "Venice.ai", and related marks belong to their respective owners.
+No. Venice Forge is an independent Apache 2.0-licensed project. It is not endorsed by, sponsored by, or affiliated with Venice.ai, Inc. "Venice", "Venice.ai", and related marks belong to their respective owners.
 
 ### What platforms are supported?
 - **Windows 10/11** (x64) — NSIS installer and portable `.exe`

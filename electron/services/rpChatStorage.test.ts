@@ -192,7 +192,7 @@ describe("rpChatStorage", () => {
   });
 
   it("[P2-006] concurrent saves of the same chat use unique temps and leave valid JSON", async () => {
-    const uniqueTmpRe = /\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uniqueTmpRe = /[\\/]\.vf-replace-[^\\/]+[\\/]\.[^\\/]+\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const originalWrite = fs.writeFile;
     const writePaths: string[] = [];
     const writeSpy = vi.spyOn(fs, "writeFile").mockImplementation(async (...args: Parameters<typeof fs.writeFile>) => {
@@ -210,6 +210,7 @@ describe("rpChatStorage", () => {
       const tmpPaths = writePaths.filter((file) => uniqueTmpRe.test(file));
       expect(tmpPaths).toHaveLength(2);
       expect(tmpPaths[0]).not.toBe(tmpPaths[1]);
+      expect(path.dirname(tmpPaths[0])).not.toBe(path.dirname(tmpPaths[1]));
 
       const target = path.join(getRpChatsDir(), "chat-race.json");
       const parsed = JSON.parse(await fs.readFile(target, "utf-8")) as RpChatV1;

@@ -139,7 +139,7 @@ describe("secureStore", () => {
   });
 
   it("[P2-006] writes through unique temp names before rename", () => {
-    const uniqueTmpRe = /secure-prefs\.json\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uniqueTmpRe = /[\\/]\.vf-replace-[^\\/]+[\\/]\.secure-prefs\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const writeSpy = vi.spyOn(fs, "writeFileSync");
     const renameSpy = vi.spyOn(fs, "renameSync");
     try {
@@ -150,6 +150,7 @@ describe("secureStore", () => {
         .filter((file) => uniqueTmpRe.test(file));
       expect(tmpWrites).toHaveLength(2);
       expect(tmpWrites[0]).not.toBe(tmpWrites[1]);
+      expect(path.dirname(tmpWrites[0])).not.toBe(path.dirname(tmpWrites[1]));
       const renameSources = renameSpy.mock.calls
         .map((call) => String(call[0]))
         .filter((file) => uniqueTmpRe.test(file));

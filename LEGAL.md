@@ -6,7 +6,7 @@ Family Safe Mode is an optional local application filter, not a guarantee that g
 
 ## Project Status
 
-Venice Forge is an **independent, unofficial, third-party** MIT-licensed desktop client for the Venice API. It is **not endorsed by, sponsored by, or affiliated with** Venice.ai, Inc. "Venice", "Venice.ai", the Venice keys mark, the Venice seal, the Venice wordmark, and the Venice lockup are trademarks and/or trade dress of Venice.ai, Inc. or its affiliates. All rights reserved. Use of these marks is for identification and compatibility purposes only and does not imply any official relationship.
+Venice Forge is an **independent, unofficial, third-party** Apache 2.0-licensed desktop client for the Venice API. It is **not endorsed by, sponsored by, or affiliated with** Venice.ai, Inc. "Venice", "Venice.ai", the Venice keys mark, the Venice seal, the Venice wordmark, and the Venice lockup are trademarks and/or trade dress of Venice.ai, Inc. or its affiliates. All rights reserved. Use of these marks is for identification and compatibility purposes only and does not imply any official relationship.
 
 The Venice brand assets used in this project are sourced from the public [Venice Brand Kit](https://venice.ai/brand) and are used in accordance with the Venice Brand Guidelines (July 2025) to the extent applicable to third-party reference implementations. Any deviation from the brand guidelines (e.g., app-icon derivation, empty-state watermarks) is noted below and should be reviewed for formal approval.
 
@@ -96,7 +96,7 @@ For specific notices, licenses, disclaimers, and attributions, see the following
 
 - Local builds are unsigned unless the maintainer configures code-signing certificates.
 - Unsigned Windows installers may trigger SmartScreen or antivirus warnings.
-- The MIT license provides the software "as is" without warranty.
+- The Apache License 2.0 provides the software "as is" without warranty.
 - This app is not a compliance, legal, medical, financial, or safety-critical system.
 - Malware or a debugger running as the same OS user is outside the app's threat model.
 

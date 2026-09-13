@@ -10,7 +10,7 @@ The project ships as a packaged Electron desktop app for Windows and macOS, plus
 
 Current public readiness status:
 
-- Source is MIT licensed and suitable for public repository browsing.
+- Source is Apache 2.0 licensed and suitable for public repository browsing.
 - CI runs lint, typecheck, tests, and build on the supported Node 22 runtime.
 - Release automation builds Windows NSIS/portable `.exe` artifacts and macOS DMG/ZIP artifacts.
 - Root support, security, contribution, code of conduct, issue template, PR template, and Dependabot metadata are present.

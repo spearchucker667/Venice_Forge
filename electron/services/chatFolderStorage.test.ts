@@ -10,7 +10,7 @@ vi.mock("./logger", () => ({ logInfo: vi.fn(), logError: vi.fn() }));
 import { readChatFolder, saveChatFolder } from "./chatFolderStorage";
 import type { ChatFolder } from "../../src/shared/chatFolderContracts";
 
-const UNIQUE_TMP_RE = /\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UNIQUE_TMP_RE = /[\\/]\.vf-replace-[^\\/]+[\\/]\.[^\\/]+\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function makeFolder(overrides: Partial<ChatFolder> = {}): ChatFolder {
   return {
@@ -97,6 +97,7 @@ describe("chatFolderStorage unique temp writes [P2-006]", () => {
       const tmpPaths = openPaths.filter((file) => UNIQUE_TMP_RE.test(file));
       expect(tmpPaths).toHaveLength(2);
       expect(tmpPaths[0]).not.toBe(tmpPaths[1]);
+      expect(path.dirname(tmpPaths[0])).not.toBe(path.dirname(tmpPaths[1]));
 
       const target = path.join(userDataPath, "chat-folders", "folder-1.json");
       const parsed = JSON.parse(await fs.readFile(target, "utf-8")) as ChatFolder;

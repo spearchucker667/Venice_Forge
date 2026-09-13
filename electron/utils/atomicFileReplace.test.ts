@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs/promises";
 import fssync from "node:fs";
 import os from "node:os";
@@ -9,6 +9,7 @@ describe("atomicReplaceFile", () => {
   const dirs: string[] = [];
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     await Promise.all(dirs.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })));
   });
 
@@ -42,6 +43,58 @@ describe("atomicReplaceFile", () => {
     expect(JSON.parse(fssync.readFileSync(target, "utf8"))).toEqual({ v: 2 });
     const names = fssync.readdirSync(dir);
     expect(names).toEqual(["secure.json"]);
+  });
+
+  it.each(["async", "sync"] as const)("%s writes inside a private sibling directory and cleans it", async (variant) => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vf-atomic-"));
+    dirs.push(dir);
+    const target = path.join(dir, "private.json");
+    const tempDirs: string[] = [];
+    const inspectTemp = (file: string) => {
+      const tempDir = path.dirname(file);
+      tempDirs.push(tempDir);
+      expect(path.dirname(tempDir)).toBe(dir);
+      expect(path.basename(tempDir)).toMatch(/^\.vf-replace-/);
+      expect(file).not.toBe(target);
+      if (process.platform !== "win32") {
+        expect(fssync.statSync(tempDir).mode & 0o777).toBe(0o700);
+      }
+    };
+    const originalWrite = fs.writeFile;
+    const originalWriteSync = fssync.writeFileSync;
+    vi.spyOn(fs, "writeFile").mockImplementation(async (...args) => {
+      inspectTemp(String(args[0]));
+      return originalWrite(...args);
+    });
+    vi.spyOn(fssync, "writeFileSync").mockImplementation((...args) => {
+      inspectTemp(String(args[0]));
+      return originalWriteSync(...args);
+    });
+    for (const value of ["first", "second"]) {
+      if (variant === "async") await atomicReplaceFile(target, value);
+      else atomicReplaceFileSync(target, value);
+    }
+    expect(tempDirs).toHaveLength(2);
+    expect(new Set(tempDirs).size).toBe(2);
+    expect(await fs.readFile(target, "utf8")).toBe("second");
+    expect(await fs.readdir(dir)).toEqual(["private.json"]);
+  });
+
+  it.each(["async", "sync"] as const)("%s preserves the destination and cleans temps after rename failure", async (variant) => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vf-atomic-"));
+    dirs.push(dir);
+    const target = path.join(dir, "record.json");
+    await fs.writeFile(target, "original");
+    const error = Object.assign(new Error("injected IO failure"), { code: "EIO" });
+    if (variant === "async") {
+      vi.spyOn(fs, "rename").mockRejectedValueOnce(error);
+      await expect(atomicReplaceFile(target, "replacement")).rejects.toBe(error);
+    } else {
+      vi.spyOn(fssync, "renameSync").mockImplementationOnce(() => { throw error; });
+      expect(() => atomicReplaceFileSync(target, "replacement")).toThrow(error);
+    }
+    expect(await fs.readFile(target, "utf8")).toBe("original");
+    expect(await fs.readdir(dir)).toEqual(["record.json"]);
   });
 
   it("sync variant writes with the requested mode", async () => {

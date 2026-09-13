@@ -8,7 +8,7 @@ This project is not affiliated with, endorsed by, sponsored by, approved by, mai
 
 Official Venice brand assets, if included or displayed, remain the property of Venice.ai, Inc. They are not owned by this project and are not automatically covered by this project's open-source license.
 
-The MIT License for this project applies only to this project's original code and documentation unless otherwise noted. It does not grant rights to use Venice.ai trademarks, trade dress, logos, wordmarks, brand assets, API terms, or other third-party materials.
+The Apache License 2.0 for this project applies only to this project's original code and documentation unless otherwise noted. It does not grant rights to use Venice.ai trademarks, trade dress, logos, wordmarks, brand assets, API terms, or other third-party materials.
 
 No part of this repository should be interpreted as legal advice or as a determination of trademark, copyright, licensing, contractual, regulatory, or brand-guideline compliance.
 

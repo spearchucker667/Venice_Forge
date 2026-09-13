@@ -270,11 +270,11 @@ describe("ConversationVault core and services", () => {
         await getOrInitVaultKey();
         const keyWrites = writeSpy.mock.calls.filter((call) => String(call[0]).includes("vault-key.v1.json"));
         expect(keyWrites.length).toBeGreaterThan(0);
-        expect(String(keyWrites[0][0])).toMatch(/vault-key\.v1\.json\.tmp-/);
+        expect(String(keyWrites[0][0])).toMatch(/[\\/]\.vf-replace-[^\\/]+[\\/]\.vault-key\.v1\.json\.[0-9a-f-]+$/i);
         expect(renameSpy).toHaveBeenCalled();
         const renameArgs = renameSpy.mock.calls.find((call) => String(call[1]).endsWith("vault-key.v1.json"));
         expect(renameArgs).toBeDefined();
-        expect(String(renameArgs![0])).toMatch(/vault-key\.v1\.json\.tmp-/);
+        expect(String(renameArgs![0])).toMatch(/[\\/]\.vf-replace-[^\\/]+[\\/]\.vault-key\.v1\.json\.[0-9a-f-]+$/i);
       } finally {
         writeSpy.mockRestore();
         renameSpy.mockRestore();
@@ -290,7 +290,7 @@ describe("ConversationVault core and services", () => {
         const keyFile = path.join(CONVERSATIONS_DIR, "vault-key.v1.json");
         await expect(fs.stat(keyFile)).rejects.toMatchObject({ code: "ENOENT" });
         const leftovers = await fs.readdir(CONVERSATIONS_DIR);
-        expect(leftovers.some((name) => name.includes("vault-key.v1.json"))).toBe(false);
+        expect(leftovers.some((name) => name.includes("vault-key.v1.json") || name.startsWith(".vf-replace-"))).toBe(false);
       } finally {
         failingRename.mockRestore();
       }

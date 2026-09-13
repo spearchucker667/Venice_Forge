@@ -29,7 +29,7 @@
     <img alt="Linux" src="https://img.shields.io/badge/platform-Linux-fcc624?logo=linux&logoColor=black" />
   </a>
   <a href="LICENSE">
-    <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-green.svg" />
+    <img alt="Apache 2.0 License" src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" />
   </a>
   <a href="package.json">
     <img alt="Node.js 22.15.x" src="https://img.shields.io/badge/node.js-22.15.x-339933.svg" />
@@ -330,4 +330,4 @@ For a complete breakdown of every file, see [FILE_TREE.md](docs/DEVELOPMENT/FILE
 
 ## License
 
-Venice Forge is open-source software licensed under the [MIT License](LICENSE).
+Venice Forge is open-source software licensed under the [Apache License 2.0](LICENSE).

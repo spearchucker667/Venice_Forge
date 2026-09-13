@@ -30,7 +30,7 @@ describe("syncConfig unique temp writes [P2-006]", () => {
   });
 
   it("uses distinct tmp names for concurrent saves and leaves valid JSON", async () => {
-    const uniqueTmpRe = /sync-config\.json\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uniqueTmpRe = /[\\/]\.vf-replace-[^\\/]+[\\/]\.sync-config\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const originalWrite = fs.writeFile;
     const writePaths: string[] = [];
     const writeSpy = vi.spyOn(fs, "writeFile").mockImplementation(async (...args: Parameters<typeof fs.writeFile>) => {
@@ -46,6 +46,7 @@ describe("syncConfig unique temp writes [P2-006]", () => {
       const tmpPaths = writePaths.filter((file) => uniqueTmpRe.test(file));
       expect(tmpPaths).toHaveLength(2);
       expect(tmpPaths[0]).not.toBe(tmpPaths[1]);
+      expect(path.dirname(tmpPaths[0])).not.toBe(path.dirname(tmpPaths[1]));
 
       const target = path.join(userDataPath, "sync-config.json");
       const parsed = JSON.parse(await fs.readFile(target, "utf8")) as SyncConfig;

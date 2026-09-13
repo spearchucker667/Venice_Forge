@@ -372,7 +372,7 @@ describe("characterCardStorage", () => {
   });
 
   it("[P2-006] concurrent saves of the same card use unique temps and leave valid JSON", async () => {
-    const uniqueTmpRe = /\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uniqueTmpRe = /[\\/]\.vf-replace-[^\\/]+[\\/]\.[^\\/]+\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const originalWrite = fs.writeFile;
     const writePaths: string[] = [];
     const writeSpy = vi.spyOn(fs, "writeFile").mockImplementation(async (...args: Parameters<typeof fs.writeFile>) => {

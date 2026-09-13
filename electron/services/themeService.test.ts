@@ -272,7 +272,7 @@ describe("saveTheme / deleteTheme", () => {
     expect(content).toContain("variants:");
     expect(content).toContain("tokens:");
     expect(writeSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`${filePath}.tmp-`),
+      expect.stringMatching(/[\\/]\.vf-replace-[^\\/]+[\\/]\.custom-1\.yaml\.[0-9a-f-]+$/i),
       expect.any(String),
       expect.objectContaining({ mode: 0o600 }),
     );
