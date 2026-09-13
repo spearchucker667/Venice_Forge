@@ -68,6 +68,7 @@ describe("bridgeServer", () => {
   // regression guard inspects this buffer to assert the bearer token is
   // never written to stdout/stderr.
   const startupConsole: string[] = [];
+  const sanitizeLogArg = (value: unknown): string => String(value).replace(/[\r\n]+/g, " ").replace(/\s{2,}/g, " ").trim();
   const origLog = console.log;
   const origInfo = console.info;
   const origWarn = console.warn;
@@ -108,19 +109,19 @@ describe("bridgeServer", () => {
     // Install console capture around startBridgeServer so VERIFY-001 can
     // assert the token never reaches stdout.
     console.log = (...args: unknown[]) => {
-      startupConsole.push(args.map(String).join(" "));
+      startupConsole.push(args.map(sanitizeLogArg).join(" "));
       origLog(...args);
     };
     console.info = (...args: unknown[]) => {
-      startupConsole.push(args.map(String).join(" "));
+      startupConsole.push(args.map(sanitizeLogArg).join(" "));
       origInfo(...args);
     };
     console.warn = (...args: unknown[]) => {
-      startupConsole.push(args.map(String).join(" "));
+      startupConsole.push(args.map(sanitizeLogArg).join(" "));
       origWarn(...args);
     };
     console.error = (...args: unknown[]) => {
-      startupConsole.push(args.map(String).join(" "));
+      startupConsole.push(args.map(sanitizeLogArg).join(" "));
       origError(...args);
     };
 

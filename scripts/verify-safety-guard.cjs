@@ -128,11 +128,11 @@ function scanForViolations(root) {
   const failures = [];
 
   function walk(dir) {
-    const files = fs.readdirSync(dir);
-    for (const file of files) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const file = entry.name;
       const fullPath = path.join(dir, file);
-      const stat = fs.statSync(fullPath);
-      if (stat.isDirectory()) {
+      if (entry.isDirectory()) {
         if (!['node_modules', 'dist', 'dist-electron', 'release', '.git', 'scripts'].includes(file)) {
           walk(fullPath);
         }

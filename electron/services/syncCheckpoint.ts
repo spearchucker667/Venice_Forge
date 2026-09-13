@@ -58,7 +58,7 @@ export async function pruneStaleSyncDevices(
     const deviceId = entry.slice(0, -5);
     if (!DEVICE_ID_RE.test(deviceId)) continue;
     const filePath = path.join(devicesDir, entry);
-    let lastSeenAt = now;
+    let lastSeenAt: number;
     try {
       const raw = JSON.parse(await fs.readFile(filePath, "utf8")) as Partial<SyncDeviceRecord>;
       if (typeof raw.lastSeenAt === "number" && Number.isFinite(raw.lastSeenAt)) {

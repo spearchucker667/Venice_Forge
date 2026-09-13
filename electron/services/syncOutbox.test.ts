@@ -2,21 +2,25 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
-vi.mock("electron", () => ({ app: { getPath: vi.fn(() => "/tmp/vf-sync-outbox-user") } }));
+const tmpRoot = path.join(os.tmpdir(), `vf-sync-outbox-${Date.now()}`);
+vi.mock("electron", () => ({ app: { getPath: vi.fn(() => tmpRoot) } }));
 
 import { drainSyncOutbox, persistSyncOutboxEntry } from "./syncOutbox";
 
 const filename = `${"a".repeat(64)}.json`;
-const userRoot = "/tmp/vf-sync-outbox-user";
-const blobs = "/tmp/vf-sync-outbox-target";
-const objects = "/tmp/vf-sync-outbox-objects";
+const userRoot = tmpRoot;
+const blobs = path.join(tmpRoot, "target");
+const objects = path.join(tmpRoot, "objects");
 
 describe("syncOutbox", () => {
   beforeEach(async () => {
-    await fs.rm(userRoot, { recursive: true, force: true });
-    await fs.rm(blobs, { recursive: true, force: true });
-    await fs.rm(objects, { recursive: true, force: true });
+    await fs.rm(tmpRoot, { recursive: true, force: true });
+    await fs.mkdir(userRoot, { recursive: true });
+    await fs.mkdir(blobs, { recursive: true });
+    await fs.mkdir(objects, { recursive: true });
   });
 
   it("persists then drains an encrypted manifest atomically", async () => {

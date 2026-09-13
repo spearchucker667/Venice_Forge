@@ -2,6 +2,7 @@
 import { app, net } from 'electron'
 import crypto from 'crypto'
 import {
+  access,
   mkdir,
   open,
   readdir,
@@ -437,7 +438,7 @@ export async function reapGeneratedMediaArtifacts(now = Date.now()): Promise<{ c
         let tempExists = false
         if (temporaryPath) {
           try {
-            await fsStat(temporaryPath)
+            await access(temporaryPath)
             tempExists = true
           } catch {
             tempExists = false

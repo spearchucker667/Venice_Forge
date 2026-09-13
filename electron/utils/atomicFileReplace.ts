@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import fssync from "node:fs";
+import path from "node:path";
 
 const WINDOWS_REPLACE_CODES = new Set(["EPERM", "EEXIST", "EACCES"]);
 
@@ -42,7 +43,9 @@ export async function atomicReplaceFile(
   mode = 0o600,
   options: { sync?: boolean } = {},
 ): Promise<void> {
-  const tmp = `${target}.tmp-${crypto.randomUUID()}`;
+  const targetDir = path.dirname(target);
+  const tmpDir = await fs.mkdtemp(path.join(targetDir, ".vf-replace-"));
+  const tmp = path.join(tmpDir, `.${path.basename(target)}.${crypto.randomUUID()}`);
   try {
     await fs.writeFile(tmp, data, { mode });
     if (options.sync) await syncTempFile(tmp);
@@ -59,7 +62,7 @@ export async function atomicReplaceFile(
       throw err;
     }
   } finally {
-    await fs.unlink(tmp).catch(() => undefined);
+    await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
   }
 }
 
@@ -72,7 +75,9 @@ export function atomicReplaceFileSync(
   data: string | Buffer,
   mode = 0o600,
 ): void {
-  const tmp = `${target}.tmp-${crypto.randomUUID()}`;
+  const targetDir = path.dirname(target);
+  const tmpDir = fssync.mkdtempSync(path.join(targetDir, ".vf-replace-"));
+  const tmp = path.join(tmpDir, `.${path.basename(target)}.${crypto.randomUUID()}`);
   try {
     fssync.writeFileSync(tmp, data, { mode });
     syncTempFileSync(tmp);
@@ -89,6 +94,6 @@ export function atomicReplaceFileSync(
       throw err;
     }
   } finally {
-    try { fssync.unlinkSync(tmp); } catch { /* best-effort cleanup */ }
+    try { fssync.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
   }
 }
