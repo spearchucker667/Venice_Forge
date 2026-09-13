@@ -1530,7 +1530,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
-* **MEDIA-CAP-CLIPBOARD-2026-09-13** — venice-media 403 fix + clipboard rejection fix implemented, Mavis hardening pass (TTL self-healing, raw-writeText migration, negative-path coverage, i18n key hygiene) applied, and full `npm run ci` end-to-end PASS recorded in the validation matrix below. Manual QA in the running desktop app (reload gallery/image studio, verify thumbnails render and copy actions toast correctly, verify retry path triggers on stale-token 403) is the only remaining gap before commit; remaining project work stays in `docs/ROADMAP.md`.
+* **MEDIA-CAP-CLIPBOARD-2026-09-13** — venice-media 403 fix + clipboard rejection fix implemented, Mavis hardening pass (TTL self-healing, raw-writeText migration, negative-path coverage, i18n key hygiene) applied, full `npm run ci` end-to-end PASS recorded locally, and the change set was committed (`4cf7452e`) and pushed to origin/main. Hosted CI (run 34781219666, 11/11 jobs: lint, typecheck, contracts, unit-and-integration-tests, macos-sensitive-tests, windows-sensitive-tests, script-coverage, coverage, build, electron-smoke-windows/macos/linux) and CodeQL (run 34781219685) both PASSED against the pushed SHA. Manual QA in the running desktop app (reload gallery/image studio, verify thumbnails render and copy actions toast correctly, verify retry path triggers on stale-token 403) remains the only outstanding gap; remaining project work stays in `docs/ROADMAP.md`.
 * **CI temp-file regression repair (2026-09-13)** — Focused checks and full local `npm run ci` pass; exact-SHA hosted CI/CodeQL acceptance follows publication. Remaining project work stays in `docs/ROADMAP.md`.
 * See `docs/ROADMAP.md` for the canonical list of open tasks.
 * **SECURITY-REMEDIATION-2026-09-13** — Local code-scanning remediation is complete in the working tree on `main`: actionable temp-file and file-write race issues were fixed, the repo metadata/legal docs were aligned to Apache 2.0, and the targeted validation on this branch is green. Public release-tag retargeting and the final public publication step remain pending explicit user authorization.
@@ -1559,6 +1559,9 @@ Investigation only, then four targeted fixes based on the user-reported defects
 - `npm run typecheck` — PASS (3 tsconfig targets).
 - `npm run verify:i18n` — PASS (12 locales, 12 namespaces; new `charactercreatorerror.notification.couldNotCopyToClipboard` key added to all 12 locales).
 - `npm run ci` — PASS end to end: lint, typecheck (3/3), all test shards (server/electron/ingestion/unit/ui/contracts), audit, `verify:contracts` (104/104), `verify:release-packaging-hardening` (104/104), build, `verify:dist` (version 3.0.0-beta.3 verified).
+- Committed as `4cf7452e fix: harden venice-media 403 handling and clipboard error recovery` (27 files / +805 / -81) and pushed to origin/main; local and remote HEAD both `4cf7452ec9dc670147e4851cfd5ddadc14add0b4`.
+- Hosted CI run 34781219666 — PASS, all 11 jobs (lint, typecheck, contracts, unit-and-integration-tests, macos-sensitive-tests, windows-sensitive-tests, script-coverage, coverage, build, electron-smoke-windows, electron-smoke-macos, electron-smoke-linux) green at the pushed SHA.
+- Hosted CodeQL run 34781219685 — PASS at the pushed SHA.
 - Manual QA in the running desktop app (retry path triggered by stale-token 403; clipboard fallback via execCommand when async API denied) — NOT RUN.
 
 ### 2026-09-13 — CI temp-file regression repair
