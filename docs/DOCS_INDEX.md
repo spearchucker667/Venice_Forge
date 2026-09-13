@@ -146,6 +146,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [design/PUBLIC_PROFILE_DISCOVERY.md](design/PUBLIC_PROFILE_DISCOVERY.md) — Platform-specific site query logic.
 - [design/VENICE_UI_EXTRACTION.md](design/VENICE_UI_EXTRACTION.md) — Internal UI extraction/reference notes; implementation remains authoritative.
 - [design/pastel-theme-pack-report.md](design/pastel-theme-pack-report.md) — Pastel Aqua/Pink Theme Pack implementation report.
+- [design/CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md](design/CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md) — 2026-09-13 chat + design-system refresh: "Quietly confident" direction, type scale + container widths + surface-elevation aliases, new `IconButton` / `Pill` / `Toolbar` / `Card` / `EmptyState` primitives, and chat-surface refinement plan (system + chat + shell scope).
 - [implementation/document-agent-implementation-report.md](implementation/document-agent-implementation-report.md) — Document Agent implementation and verification report.
 
 ### Discovery & Planning

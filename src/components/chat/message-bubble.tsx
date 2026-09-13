@@ -28,6 +28,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { safeVeniceMediaUrl } from "../../utils/mediaItem";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 import type { ContextMenuItem } from "../ui/ContextMenu";
+import { IconButton } from "../ui/primitives";
 ;
 
 const ChatTtsPlayer = lazy(async () => {
@@ -202,12 +203,12 @@ function MessageBubbleImpl({
   };
 
   const injectedContextDisclosure = injectedContext ? (
-    <details className="mt-3 rounded-lg border border-border/50 bg-surface-elevated/30 text-left text-[12px] text-text-secondary">
+    <details className="mt-3 rounded-lg border border-border-soft bg-surface-elevated/30 text-left vf-meta text-text-secondary">
       <summary className="cursor-pointer select-none px-3 py-2 font-medium text-text-primary">
         {injectedContextLabel}{" "}
         <Trans i18nKey="common:surface.componentsChatMessageBubble.text.attachedToThisMessage" />
       </summary>
-      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words border-t border-border/40 px-3 py-2 font-mono text-[12px] leading-relaxed text-text-muted">
+      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words soft-separator-y px-3 py-2 font-mono vf-meta leading-relaxed text-text-muted">
         {injectedContext}
       </pre>
     </details>
@@ -215,7 +216,7 @@ function MessageBubbleImpl({
 
   const actions = (
     <div
-      className={`flex items-center gap-0.5 h-6 transition-opacity duration-150 focus-within:opacity-100 ${hovering ? "opacity-100" : "opacity-90 sm:opacity-0"}`}
+      className={`flex items-center gap-0.5 h-7 transition-opacity duration-150 focus-within:opacity-100 ${hovering ? "opacity-100" : "opacity-90 sm:opacity-0"}`}
     >
       <ActionBtn
         label={
@@ -238,7 +239,7 @@ function MessageBubbleImpl({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -253,7 +254,7 @@ function MessageBubbleImpl({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -277,7 +278,7 @@ function MessageBubbleImpl({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -301,7 +302,7 @@ function MessageBubbleImpl({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -328,7 +329,7 @@ function MessageBubbleImpl({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -355,7 +356,7 @@ function MessageBubbleImpl({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -379,7 +380,7 @@ function MessageBubbleImpl({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -407,7 +408,7 @@ function MessageBubbleImpl({
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="1.75"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -422,6 +423,7 @@ function MessageBubbleImpl({
           "runtimeGenerated.components.chat.messageBubble.attribute.delete",
         )}
         onClick={onDelete}
+        destructive
       >
         <svg
           aria-hidden="true"
@@ -431,7 +433,7 @@ function MessageBubbleImpl({
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="1.75"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
@@ -644,7 +646,7 @@ function MessageBubbleImpl({
                 {attachmentRefs.map((ref) => (
                   <div
                     key={ref.id}
-                    className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1.5 text-[12px] text-text-secondary"
+                    className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1.5 vf-meta text-text-secondary"
                     title={tRuntime(
                       "runtimeGenerated.components.chat.messageBubble.attribute.value1Value2",
                       { value1: ref.name, value2: ref.mimeType },
@@ -667,12 +669,12 @@ function MessageBubbleImpl({
                     <span className="max-w-[140px] truncate font-medium text-text-primary">
                       {ref.name}
                     </span>
-                    <span className="text-text-muted uppercase tracking-wider">
+                    <span className="vf-tag text-text-muted">
                       {ref.kind}
                     </span>
                     {ref.truncated && (
                       <span
-                        className="ml-0.5 rounded bg-amber-500/20 px-1 text-[10px] text-amber-400"
+                        className="ml-0.5 rounded bg-warning/15 px-1 vf-tag text-warning"
                         title={tRuntime(
                           "runtimeGenerated.components.chat.messageBubble.attribute.attachmentWasPartiallyOmittedDueToContextBudget",
                         )}
@@ -681,7 +683,7 @@ function MessageBubbleImpl({
                       </span>
                     )}
                     {ref.requiresVision && (
-                      <span className="ml-0.5 rounded bg-blue-500/20 px-1 text-[10px] text-blue-400">
+                      <span className="ml-0.5 rounded bg-accent/15 px-1 vf-tag text-accent">
                         <Trans i18nKey="common:surface.componentsChatMessageBubble.text.vision" />
                       </span>
                     )}
@@ -690,7 +692,7 @@ function MessageBubbleImpl({
               </div>
             )}
             {redTeamMode && localSafetyDecision && (
-              <div className="mt-2 text-[12px] font-mono p-2 bg-surface border border-border/40 rounded-md text-left text-text-secondary select-text space-y-1">
+              <div className="mt-2 vf-meta font-mono p-2 bg-surface border border-border-soft rounded-md text-left text-text-secondary select-text space-y-1">
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-text-muted">
                     <Trans i18nKey="common:surface.componentsChatMessageBubble.text.safety" />
@@ -782,7 +784,7 @@ function MessageBubbleImpl({
           <div className="mb-2">
             <button
               onClick={() => setReasoningOpen(!reasoningOpen)}
-              className="flex items-center gap-1.5 text-[14px] text-text-muted hover:text-text-secondary transition-colors mb-1 cursor-pointer"
+              className="flex items-center gap-1.5 vf-meta text-text-muted hover:text-text-secondary transition-colors mb-1 cursor-pointer"
             >
               <svg
                 aria-hidden="true"
@@ -804,7 +806,7 @@ function MessageBubbleImpl({
               <Trans i18nKey="common:surface.componentsChatMessageBubble.action.thinking" />
             </button>
             {reasoningOpen && (
-              <div className="bg-surface border border-border rounded-lg px-3 py-2 text-[15px] text-text-muted leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto">
+              <div className="bg-surface border border-border rounded-lg px-3 py-2 vf-body text-text-muted leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto">
                 {message.reasoning_content}
               </div>
             )}
@@ -849,7 +851,7 @@ function MessageBubbleImpl({
           <div className="space-y-2">
             <ChatMarkdown content={content} />
             {redTeamMode && localSafetyDecision && (
-              <div className="text-[12px] font-mono p-2 bg-surface border border-border/40 rounded-md text-text-secondary select-text space-y-1">
+              <div className="vf-meta font-mono p-2 bg-surface border border-border-soft rounded-md text-text-secondary select-text space-y-1">
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-text-muted">
                     <Trans i18nKey="common:surface.componentsChatMessageBubble.text.safety" />
@@ -910,7 +912,7 @@ function MessageBubbleImpl({
             {message.tool_calls.map((tc, idx) => (
               <div
                 key={idx}
-                className="bg-surface-elevated/40 border border-border/60 rounded-md p-2 font-mono text-[12px] text-text-secondary"
+                className="bg-surface-elevated/40 border border-border-soft rounded-md p-2 font-mono vf-meta text-text-secondary"
               >
                 <div className="flex items-center gap-1.5 text-accent mb-1">
                   <svg
@@ -919,7 +921,7 @@ function MessageBubbleImpl({
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="1.75"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
@@ -946,7 +948,7 @@ function MessageBubbleImpl({
 
         {isTool && (
           <div className="mt-2">
-            <details className="rounded-md border border-border/50 bg-surface-elevated/20 text-[12px] text-text-secondary">
+            <details className="rounded-md border border-border-soft bg-surface-elevated/20 vf-meta text-text-secondary">
               <summary className="cursor-pointer select-none px-3 py-1.5 font-medium flex items-center gap-1.5">
                 <svg
                   width="12"
@@ -954,14 +956,14 @@ function MessageBubbleImpl({
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.75"
                 >
                   <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
                 <Trans i18nKey="common:surface.componentsChatMessageBubble.text.resultFrom" />{" "}
                 {message.name || "tool"}
               </summary>
-              <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words border-t border-border/40 px-3 py-2 font-mono text-[11px] leading-relaxed text-text-muted">
+              <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words soft-separator-y px-3 py-2 font-mono vf-tag leading-relaxed text-text-muted">
                 {content}
               </pre>
             </details>
@@ -1018,7 +1020,7 @@ function MessageBubbleImpl({
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="1.75"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
@@ -1053,7 +1055,7 @@ function MessageBubbleImpl({
           )}
           {isAssistant && !!message.metadata?.usage && (
             <div
-              className="ml-auto flex items-center text-[10px] uppercase font-mono tracking-wider text-text-muted/60"
+              className="ml-auto flex items-center vf-tag font-mono text-text-muted/60"
               title={tRuntime(
                 "runtimeGenerated.components.chat.messageBubble.attribute.tokensUsedForThisMessage",
               )}
@@ -1095,21 +1097,23 @@ function ActionBtn({
   label,
   onClick,
   children,
+  destructive,
 }: {
   label: string;
   onClick: () => void;
   children: React.ReactNode;
+  destructive?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <IconButton
+      icon={children}
+      ariaLabel={label}
       onClick={onClick}
       title={label}
-      aria-label={label}
-      className="p-1.5 text-text-muted hover:text-text-primary transition-colors rounded-md hover:bg-surface-elevated cursor-pointer flex items-center justify-center"
-    >
-      {children}
-    </button>
+      size="sm"
+      tone={destructive ? "danger" : "neutral"}
+      className="p-1.5"
+    />
   );
 }
 

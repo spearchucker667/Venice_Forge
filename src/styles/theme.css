@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "MesloLGM Nerd Font", system-ui, sans-serif;
+  --font-sans: var(--app-font-family, "MesloLGM Nerd Font", system-ui, sans-serif);
   --font-mono: "MesloLGS Nerd Font Mono", monospace;
 
   /* Theme Engine dynamic variables mapped to Tailwind colors */
@@ -71,6 +71,53 @@
 
   /* Accent — Venice teal, used sparingly for status, focus rings, primary CTAs */
   --color-accent-soft: rgba(110, 231, 211, 0.16); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
+
+  /* === VF Design System 2026-09-13 =====================================
+     Type scale, container widths, and surface-elevation aliases.
+     Pure CSS-derived from existing semantic tokens so all 45+ themes
+     inherit these automatically (color-mix resolves at use time).
+     ===================================================================== */
+
+  /* Type scale (Tailwind utilities: text-display / text-h1 / text-h2 /
+     text-body / text-meta / text-tag). Slightly tighter than Tailwind
+     defaults for chat density. */
+  --text-display: 1.625rem; /* 26px */
+  --text-h1: 1.375rem; /* 22px */
+  --text-h2: 1.125rem; /* 18px */
+  --text-body: 0.9375rem; /* 15px */
+  --text-meta: 0.8125rem; /* 13px */
+  --text-tag: 0.6875rem; /* 11px */
+
+  /* Container widths (max-w-narrow / max-w-reading / max-w-comfort /
+     max-w-wide). Establishes a deliberate reading column. */
+  --width-narrow: 30rem; /* 480px */
+  --width-reading: 40rem; /* 640px */
+  --width-comfort: 47.5rem; /* 760px */
+  --width-wide: 60rem; /* 960px */
+
+  /* Surface elevations (bg-surface-elevated-2 / bg-surface-overlay). */
+  --color-surface-elevated-2: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 88%,
+    var(--color-surface-muted) 12%
+  );
+  --color-surface-overlay: color-mix(
+    in srgb,
+    var(--color-bg) 60%,
+    transparent
+  );
+
+  /* Border-soft / border-faint semantic aliases (border-border-soft /
+     border-border-faint). */
+  --color-border-soft: color-mix(in srgb, var(--color-border) 60%, transparent);
+  --color-border-faint: color-mix(in srgb, var(--color-border) 30%, transparent);
+
+  /* Muted surface for chip / pill backgrounds (bg-muted-surface). */
+  --color-muted-surface: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 50%,
+    transparent
+  );
 }
 
 :root {
@@ -79,11 +126,56 @@
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-html { color-scheme: light dark; }
+/* === VF Typography classes ===========================================
+   Bundled size + line-height + weight + tracking. Use these instead of
+   raw text-[Npx] for any meaningful typography. Tailwind's text-* size
+   scale (xs / sm / base / lg / xl) is left untouched.
+   ===================================================================== */
+.vf-display {
+  font-size: var(--text-display);
+  line-height: 1.18;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+.vf-h1 {
+  font-size: var(--text-h1);
+  line-height: 1.22;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.vf-h2 {
+  font-size: var(--text-h2);
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.006em;
+}
+.vf-body {
+  font-size: var(--text-body);
+  line-height: 1.55;
+  font-weight: 400;
+}
+.vf-meta {
+  font-size: var(--text-meta);
+  line-height: 1.45;
+  font-weight: 500;
+}
+.vf-tag {
+  font-size: var(--text-tag);
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+html {
+  color-scheme: light dark;
+  font-size: var(--app-font-size, 16px);
+}
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text-primary);
+  font-family: var(--app-font-family, var(--font-sans));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "ss01", "cv11";

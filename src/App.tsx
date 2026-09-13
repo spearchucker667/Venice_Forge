@@ -27,6 +27,7 @@ import { ModalRequestHost } from './components/ui/modal-requests'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
 import { applyTheme, resolveInitialTheme } from './theme'
+import { applyFontSettings } from './services/fontService'
 import { CANONICAL_TAB_ORDER, normaliseTab, type TabId } from './config/tabs'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
 import { useProfileVolatileReset } from './hooks/useProfileVolatileReset'
@@ -226,6 +227,13 @@ export function App() {
       // ignore write failures (e.g. disabled local storage)
     }
   }, [selectedThemeId, customTheme, appearanceMode, yamlThemes]);
+
+  // Typography and Font synchronization
+  const fontFamily = useSettingsStore((s) => s.fontFamily)
+  const fontSize = useSettingsStore((s) => s.fontSize)
+  useEffect(() => {
+    applyFontSettings(fontFamily, fontSize)
+  }, [fontFamily, fontSize])
 
   // Centralized project ensure (with safe default) at app root. Idempotent via _hydrated guard.
   // This avoids duplicate effects from sidebar (which could contribute to update depth in test trees with frequent mounts).

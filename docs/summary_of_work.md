@@ -4,6 +4,72 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-13 Venice Forge marketing site update (v0.1.1 → v0.1.2, redeployed in place).** User-requested palette swap aligned with the public Venice.ai brand tokens (`sea-dark` / `stucco-light` / `accent`) per https://venice.ai/brand. Hex values chosen SIMILAR-but-distinct to keep the unofficial site's palette from mirroring the trademark owner's exactly. New `:root` tokens in `site/src/styles.css`: `--bg #0a0a0a`, `--bg-elevated #141414`, `--bg-overlay #1c1c1c`, `--border #2a2a2a`, `--border-soft #3a3a3a`, `--fg #f6f6f6` (stucco-light analog), `--fg-muted #a8a8a8`, `--fg-dim #6e6e6e`, `--accent #d4a857` (warm gold), `--accent-strong #e8c47a`, `--accent-dim #a07f3e`, `--accent-soft rgba(212,168,87,0.12)`, `--warning #d4a857`, `--code-bg #141414`. `.meta-tag--warn` rgba border/background updated to match the new gold. Favicon `V` mark in `site/public/favicon.svg` recolored (`#0a0a0a` background, `#d4a857` gold stroke; was `#0a0e14` / `#79c0ff` blue). `<meta name="theme-color">` in `site/index.html` updated to `#0a0a0a`. JS bundle hash unchanged (`index-Vw6ta2P0.js`) — React code identical; CSS hash rolled to `style-lHCDQRui.css` (was `style-2-WvK2S6.css`); favicon hash unchanged at 274 B. Build: `tsc --noEmit` clean, `vite build` 857 ms, dist still 316 KB. Curl verification (post-deploy): `/` 200; old CSS hash URL `/assets/style-2-WvK2S6.css` returns 404 (replaced); new CSS at `/assets/style-lHCDQRui.css` confirmed to contain `#d4a857`, `#0a0a0a`, `#f6f6f6`; favicon SVG confirmed to contain `#d4a857` and `#0a0a0a` and NOT the prior `#79c0ff`/`#0a0e14`; `theme-color` meta confirmed `content="#0a0a0a"`. **Published** (with explicit user consent) via `website_deploy` passing `node_id=441416942264624` — same drive node, content replaced wholesale at https://veniceforge.space.minimax.io. The Venice.ai lockup SVG and mascot GIF are unchanged; trademark disclaimer in the footer remains.
+- **2026-09-13 Venice Forge marketing site update (v0.1.0 → v0.1.1, redeployed in place).** User-requested additions to the live site at https://veniceforge.space.minimax.io (the platform rebranded the alias; original `https://6m5gzhchdlscc.space.minimax.io/` URL now returns 404; same drive node `441416942264624`): (1) `site/public/branding/venice-logo-lockup-white.svg` (12,356 B; Venice.ai, Inc. official asset per `assets/branding/NOTICE.md`, used under the existing nominative-use policy at `docs/legal/TRADEMARKS.md`) added to a sticky top bar (header lockup at 80px width) and a footer lockup block at 100px width with a dedicated trademark notice; (2) `site/public/mascot/mio-xc3-nerdprofeta-waving.gif` (41,011 B; project-owned mascot used inside the desktop app as a loading-state animation) placed below the hero terminal at 120px max-width with caption `[ok] mascot: ready · greeting you`. New component: `site/src/components/Header.tsx`. Modified: `site/src/components/Hero.tsx` (wrapped terminal in `.hero__visual` + mascot block, added `id="top"`), `site/src/components/Footer.tsx` (added `.footer__lockup` block with trademark note), `site/src/App.tsx` (mounts `<Header />` above `<Hero />`). Styles: added `.topbar`, `.topbar__brand`, `.topbar__meta`, `.meta-tag--warn`, `.hero__visual`, `.hero__mascot`, `.hero__mascot-caption`, `.footer__lockup`, `.footer__lockup-note`, plus 600px responsive overrides. Build: `tsc --noEmit` clean, `vite build` 998 ms, dist 316 KB (was 248 KB; +68 KB is the two assets). Deployed verification (curl, 200 across the board): `/` 200, `/branding/venice-logo-lockup-white.svg` 200 (12,356 B), `/mascot/mio-xc3-nerdprofeta-waving.gif` 200 (41,011 B), `/favicon.svg` 200 (274 B); JS bundle (`assets/index-Vw6ta2P0.js`) confirmed to reference both asset paths. **Published** (with explicit user consent) via `website_deploy` passing `node_id=441416942264624` — same drive node, content replaced wholesale. The deploy platform rebranded the public hostname from the random `6m5gzhchdlscc.space.minimax.io` to the branded `veniceforge.space.minimax.io` on this redeploy.
+- **2026-09-13 Venice Forge marketing site (v0.1.0, deployed).** Authored an unofficial, dev-focused landing page under `site/` (Vite 6 + React 19 + TypeScript strict). Sections: hero with terminal boot animation, 12-card feature grid, trust-boundary architecture diagram, stack table, dual quick-start (users + developers), footer with project/legal links and Venice.ai trademark disclaimer. Bundle: `dist/index.html` 1.4 KB + `dist/assets/style-*.css` 8.1 KB + `dist/assets/index-*.js` 237 KB (gzip total ~76 KB). Local validation: `tsc --noEmit` clean, `vite build` 1.80s. **Published** (with explicit user consent) to https://6m5gzhchdlscc.space.minimax.io via `website_deploy` (drive node 441416942264624); project source uploaded to private cloud storage; no secrets present. **Not committed:** new `site/` directory untracked; user to decide on gitignore/commit policy.
+- **2026-09-13 Pre-Push Full Verification & Invariant Regression Remediation.**
+  - Ran the full baseline battery against the uncommitted worktree before push authorization: `lint:eslint` PASS, `typecheck` (3/3 tsconfigs) PASS, `verify:theme-tokens` PASS, `verify:safety-guard` PASS, `verify-i18n.cjs --strict` PASS, `verify:i18n-hardcoded-regressions` PASS, `verify:markdown-links` PASS, `verify:repo-handoff-hygiene` PASS, `verify:contracts` 104/104 PASS, `test:electron` PASS, `test:server` PASS, `test:contracts` PASS, `test:ingestion` PASS. Diff review: all changes map to the design-refresh/typography/layout sessions; secret-pattern scan of the diff found no credentials.
+  - **Full `npm test` exposed 3 failures the earlier focused runs missed — 2 were regressions from this session's changes, now fixed:**
+    - `tests/csp/inlineStyleInvariant.test.ts` (VERIFY-007): `FontSettingsPanel.tsx` used 4 JSX inline `style={{...}}` attributes (CSP violation). Fixed by replacing them with static classes in `src/styles/components.css` (`.font-preview`, `.font-preview-heading`) plus `[data-font-preview="<id>"]` selectors mirroring the fontService stacks; JSX now uses only class/data attributes.
+    - `tests/theme/meshSurfaceInvariant.test.ts` (VERIFY-MESH, UI-SEAM-002): the chat refresh introduced `border-t border-border-soft` on 3 axis-border sites, which the invariant's `border-[trbl]\s+border-border(?!\/\d+)` regex flags (it predates the `-soft` alias). Fixed per the test's own guidance with the `soft-separator-y` gradient hairline utility (`message-bubble.tsx` ×2, `chat-view.tsx` ×1). Verifier regex intentionally NOT weakened.
+    - `src/components/rp-studio/CharacterEditor.test.tsx` ("announces the saving state…"): passes 38/38 in isolation; fails only under full-suite file parallelism (real-timer `waitFor` timeout). Classified as a pre-existing parallelism flake, not a regression from these changes.
+  - Post-fix focused validation: both invariant suites + `FontSettingsPanel.test.tsx` 8/8 PASS; `src/components/chat` 113/113 PASS; eslint clean on all touched files; `verify:theme-tokens` PASS. Final full `npm test`: **523 files passed, 0 failed (5,975/5,975 tests, 2 files skipped)**; `typecheck` (3/3 tsconfigs) and `lint:eslint` re-run post-fix: PASS. Worktree is push-ready pending explicit push authorization; note a parallel session's untracked `site/` marketing directory exists in the worktree and is excluded from the app-change set.
+
+- **2026-09-13 Settings/Config Screen Full-Width Layout Fix.**
+  - **Issue:** The Settings/Config screen content panel was constrained to `max-w-3xl` (768px), leaving a wide empty gutter to the right of the settings cards that read visually as a "bar splitting the screen".
+  - **Fix:** In `src/components/settings/SettingsView.tsx:428`, replaced `max-w-3xl` with `w-full` on the content panel (the `w-52` left nav rail is unchanged). Settings cards now fill the available width on the Appearance tab (FontSettingsPanel + ThemeMaker) and all other settings sections.
+  - **Validation Executed:**
+    - `npx vitest run src/components/SettingsView.test.tsx`: PASS (7/7 tests).
+    - `npx eslint src/components/settings/SettingsView.tsx`: PASS (0 errors, 0 warnings).
+    - `npm run verify:i18n-hardcoded-regressions`: PASS (0 regressions across 533 files).
+  - **Not committed / not pushed:** remains uncommitted in the local working tree on `main` alongside the typography session changes.
+
+- **2026-09-13 Typography Customization (Font Selection & Size Scaling) and Chat Refresh Verification (baseline `d955559c`).**
+  - **Verification of Chat + Design Refresh (`d955559c`):** Verified all 12 modified files and 3 new files (`CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md`, `primitives.tsx`, `primitives.test.tsx`). Confirmed 100% adherence to design specifications, 222/222 vitest tests passing, 0 theme token violations, 0 lint warnings, and clean TypeScript compilation across all 3 tsconfigs.
+  - **Font Selection Menu & Font Size Slider:**
+    - **Font Assets & Packaging:** Enabled `@fontsource/inter`, `@fontsource/jetbrains-mono`, and `@fontsource/lora` alongside default `MesloLGM Nerd Font` and system fonts (`System Sans`, `System Serif`, `System Monospace`) via `src/index.css` imports. Validated bundle budget (`index.js` 494.97 KB <= 600 KB limit; `index.css` 160.44 KB <= 200 KB limit).
+    - **Font Service:** Created `src/services/fontService.ts` with font metadata, boundary clamping (`12px`–`24px`, default `16px`), dynamic CSS custom properties (`--app-font-family`, `--font-sans`, `--app-font-size`), and live DOM root/body styles. Tested in `src/services/fontService.test.ts` (5/5 passing).
+    - **Settings Store:** Extended `src/stores/settings-store.ts` with `fontFamily`, `fontSize`, `setFontFamily`, `setFontSize`, and `resetFontSettings`. Backed by persistent storage, migrations, and schema validation. Tested in `src/stores/settings-store.test.ts` (35/35 passing).
+    - **Root Sync:** Added reactive font synchronization in `src/App.tsx` via `useEffect` triggering `applyFontSettings`.
+    - **UI Component:** Created `src/components/settings/FontSettingsPanel.tsx` offering font family dropdown with family previews, percentage-scaled slider (75% to 150%), one-click reset to default, and real-time live preview. Tested in `src/components/settings/FontSettingsPanel.test.tsx` (6/6 passing).
+    - **Settings Integration:** Mounted `FontSettingsPanel` in `SettingsView.tsx` under the "Appearance" section (alongside ThemeMaker) and in `ConfigPanel.tsx` (Local Master Configuration).
+    - **Localization (i18n):** Added complete `font` namespace translations across all 12 locales (`en-US`, `es`, `fr`, `de`, `pt-BR`, `ru`, `zh-CN`, `ja`, `hi`, `ar`, `ko`, `sv-SE`). Zero hardcoded string regressions (`verify:i18n-hardcoded-regressions` = 0 candidates); `verify-i18n.cjs --strict` passes with 0 errors.
+  - **Validation Executed:**
+    - `npm run lint:eslint`: PASS (0 errors, 0 warnings).
+    - `npm run typecheck`: PASS (root, electron, electron.test).
+    - `npx vitest run src/components/settings src/stores/settings-store.test.ts src/services/fontService.test.ts src/components/ui/primitives.test.tsx`: PASS (11 files, 99 tests).
+    - `npm run verify:theme-tokens`: PASS (184 files scanned, 0 errors).
+    - `npm run verify:safety-guard`: PASS (all transports compliant).
+    - `node scripts/verify-i18n.cjs --strict`: PASS (12 locales, 12 namespaces).
+    - `npm run verify:i18n-hardcoded-regressions`: PASS (0 regressions).
+    - `npm run verify:markdown-links`: PASS (361 files checked).
+    - `npm run verify:repo-handoff-hygiene`: PASS.
+    - `npm run verify:contracts`: PASS (104/104 checks across static, features, release).
+  - **Not committed / not pushed:** AGENTS.md policy strictly observed. All changes remain staged in the local working directory.
+
+- **2026-09-13 Chat & Design System Refresh — System + Chat + Shell (baseline `d955559c`).** Implemented the design direction in `docs/design/CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md` ("Quietly confident — refinement over replacement"). User-confirmed scope: system layer + chat surface + sidebar/header shell only (other 18 tabs retain current styling and inherit the new utilities on future touch). User-confirmed decisions: keep `MesloLGM Nerd Font`, keep inline SVGs in chat bubble (refine consistency only).
+  - **System layer (additive, no breaking changes):**
+    - `src/styles/theme.css`: introduced canonical type scale (`--text-display/-h1/-h2/-body/-meta/-tag`), container widths (`--width-narrow/reading/comfort/wide`), and surface-elevation aliases (`--color-surface-elevated-2`, `--color-surface-overlay`, `--color-border-soft`, `--color-border-faint`, `--color-muted-surface`) — all derived from existing semantic tokens via `color-mix()` so all 45+ themes inherit automatically.
+    - `src/styles/components.css`: added `.vf-display`, `.vf-h1`, `.vf-h2`, `.vf-body`, `.vf-meta`, `.vf-tag` typography classes, plus `.surface-elevated-2`, `.surface-overlay-scrim`, `.muted-surface`, `.border-soft`, `.border-faint`, `.vf-action-bar`, `.vf-action-btn`, `.vf-empty-state`, `.vf-composer` component classes.
+  - **New primitives:** `src/components/ui/primitives.tsx` adds `IconButton`, `Pill`, `Toolbar`, `Card`, and `EmptyState` (the `EmptyState` in `shared.tsx` is preserved for trivial placeholder uses). Colocated test in `src/components/ui/primitives.test.tsx` — 12 tests pass.
+  - **Chat surface refinements (functional structure preserved):**
+    - `chat-input.tsx`: composer migrated to `.vf-composer` (soft-shadow at rest + focus-tinted border + drag-over state via `data-drag-over`); container width `max-w-[860px]` → `max-w-vf-comfort`; memory-status dots `bg-emerald-400` / `bg-amber-400` → `bg-success` / `bg-warning`; attachment card `max-w-[240px]` → `max-w-vf-narrow`; arbitrary `text-[Npx]` → `vf-meta` / `vf-body` / `vf-tag`; inline SVG stroke widths standardized to `1.75`.
+    - `message-bubble.tsx`: `ActionBtn` now delegates to `IconButton` primitive (destructive tone wired for delete); all `text-[12/14/15px]` → `vf-meta` / `vf-body`; `border-border/30..60` opacity soup → `border-border-soft`; `bg-amber-500/20 text-amber-400` and `bg-blue-500/20 text-blue-400` → semantic `bg-warning/15 text-warning` and `bg-accent/15 text-accent`; all 12+ inline SVG stroke widths standardized to `1.75`.
+    - `chat-view.tsx`: empty-state headline `text-[20px] font-semibold` → `vf-h1`; arbitrary text sizes replaced with `vf-meta`/`vf-tag`; container width `max-w-[960px]` → `max-w-vf-wide` (5 sites); `border-border/40..50` → `border-border-soft` (3 sites).
+    - `ChatMarkdown.tsx`: prose block `text-[15.5px]` → `vf-body`; code header `text-[12px]` → `vf-meta`; inline meta `text-[13px]` → `vf-meta`; `text-[11px]` → `vf-tag`.
+    - `venice-params.tsx`: arbitrary text sizes replaced with `vf-meta`/`vf-body`; `text-red-400` → `text-danger`; `text-amber-500` → `text-warning`.
+  - **Shell alignment:**
+    - `sidebar.tsx`: arbitrary text sizes replaced with `vf-meta`/`vf-body`/`vf-tag` across 22 sites; `vf-meta + uppercase + tracking` → `vf-tag` where the `vf-tag` letter-spacing override was retained.
+    - `header.tsx`: arbitrary text sizes replaced with `vf-meta`/`vf-tag` across 4 sites.
+  - **Validation executed:**
+    - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+    - `npm run typecheck` — PASS (root + electron + electron.test tsconfigs).
+    - `npx vitest run src/components/chat src/components/ui src/components/layout --no-file-parallelism` — PASS (222/222 tests across 21 files; +12 new primitive tests vs baseline).
+    - `npm run verify:theme-tokens` — PASS (183 files scanned, 0 forbidden hardcoded color classes).
+    - `npm run verify:safety-guard` — PASS (all transports, no raw logging / safety bypass).
+    - Diff: 9 modified files, 3 new files (design doc, primitives.tsx, primitives.test.tsx); +366 / -134 lines net (+232).
+  - **Scope explicitly NOT touched this session:** 18 other top-level tabs, 43 non-default theme families, i18n catalogs, Electron main/IPC, persistence, CSP, dependency list. They retain current styling; the new system utilities (type scale, container widths, surface aliases, primitives) benefit them when future sessions touch them.
+
 - **2026-09-13 Exhaustive Bug Audit Remediation & Verification (baseline `2f67268`).** Completed the full 5-phase remediation plan for the 2026-09-13 exhaustive bug audit across all confirmed blockers and durability defects:
   - **Phase 1 (Blocker Remediation):**
     - `VF-AUD-20260913-P1-001`: Translated the 5 missing keys (`offlineWarning`, `errorSubmitting`, `generating`, `noKeyTitle`, `noKeyBody`) across all 11 non-English catalogs (`es, fr, de, pt-BR, ru, zh-CN, ja, hi, ar, ko, sv-SE`) in `src/i18n/resources/<locale>/common.json` and `media.json`. Synchronized `docs/i18n/translation-status.json` and `src/i18n/locale-completion-status.ts` (100% key coverage across all 12 locales; `verify-i18n.cjs --strict` passes with 0 errors).
@@ -50,6 +116,58 @@ This is the active handoff and validation ledger. The canonical current-work led
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-13 — Typography Customization (Font Selection & Size Scaling) & Chat Refresh Verification (baseline `d955559c`)
+
+- **Scope:** Complete verification of chat + design system refresh changes, plus implementation of font selection menu and font size slider in the configuration/appearance settings tab.
+- **Font Selection & Sizing Implementation:**
+  - `src/index.css`: Imported bundled font assets (`@fontsource/inter`, `@fontsource/jetbrains-mono`, `@fontsource/lora`).
+  - `src/services/fontService.ts`: Created canonical typography service with `FONT_OPTIONS` (`meslo`, `inter`, `jetbrains`, `lora`, `system-sans`, `system-serif`, `system-mono`), `clampFontSize` (12px–24px, default 16px), and `applyFontSettings` applying dynamic CSS properties (`--app-font-family`, `--font-sans`, `--app-font-size`) and document root styling.
+  - `src/stores/settings-store.ts`: Added `fontFamily`, `fontSize`, `setFontFamily`, `setFontSize`, and `resetFontSettings` with schema validation, persistence, and migrations.
+  - `src/App.tsx`: Added reactive font settings synchronization via `useEffect` invoking `applyFontSettings`.
+  - `src/components/settings/FontSettingsPanel.tsx`: Created accessible font selection dropdown, font size slider (with % indicators and default badge), reset button, and real-time live preview.
+  - `src/components/settings/SettingsView.tsx` & `src/components/settings/ConfigPanel.tsx`: Mounted `FontSettingsPanel` in Settings appearance view and Master Config panel.
+  - `src/i18n/resources/<locale>/settings.json`: Added `font` namespace across all 12 locales (`en-US`, `es`, `fr`, `de`, `pt-BR`, `ru`, `zh-CN`, `ja`, `hi`, `ar`, `ko`, `sv-SE`).
+- **Tests Added:**
+  - `src/services/fontService.test.ts`: 5 tests covering defaults, fallbacks, bounds clamping, and DOM property application.
+  - `src/components/settings/FontSettingsPanel.test.tsx`: 6 tests covering font selection, size slider updates, reset button, and preview.
+  - `src/stores/settings-store.test.ts`: Updated to verify font state persistence and bounds.
+- **Validation Executed:**
+  - `npm run lint:eslint`: PASS (0 errors, 0 warnings).
+  - `npm run typecheck`: PASS (root, electron, electron.test).
+  - Vitest settings & UI suite: PASS (11 files, 99 tests).
+  - `npm run verify:theme-tokens`: PASS (184 files scanned, 0 errors).
+  - `npm run verify:safety-guard`: PASS (all transports compliant).
+  - `node scripts/verify-i18n.cjs --strict`: PASS (12 locales, 12 namespaces, 0 errors).
+  - `npm run verify:i18n-hardcoded-regressions`: PASS (0 regressions).
+  - `npm run verify:markdown-links`: PASS (361 files checked).
+  - `npm run verify:repo-handoff-hygiene`: PASS.
+  - `npm run verify:contracts`: PASS (104/104 checks across static, features, release).
+- **Not committed / not pushed:** Following AGENTS.md policy, changes are staged locally on `main`.
+
+### 2026-09-13 — Chat & Design System Refresh — System + Chat + Shell (baseline `d955559c`)
+
+- **Scope:** Implementation of the design direction in `docs/design/CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md` (pillar direction: "Quietly confident — refinement over replacement"). User-confirmed scope = system + chat + shell. User-confirmed decisions: keep `MesloLGM Nerd Font`; keep inline SVGs in chat bubble (refine consistency only, no library migration).
+- **System layer (purely additive CSS, no token schema changes):**
+  - `src/styles/theme.css`: type scale (`--text-display: 1.625rem`, `--text-h1: 1.375rem`, `--text-h2: 1.125rem`, `--text-body: 0.9375rem`, `--text-meta: 0.8125rem`, `--text-tag: 0.6875rem`), container widths (`--width-narrow: 30rem`, `--width-reading: 40rem`, `--width-comfort: 47.5rem`, `--width-wide: 60rem`), and surface aliases (`--color-surface-elevated-2`, `--color-surface-overlay`, `--color-border-soft`, `--color-border-faint`, `--color-muted-surface`) derived from existing semantic tokens via `color-mix()`.
+  - `src/styles/components.css`: typography classes `.vf-display`, `.vf-h1`, `.vf-h2`, `.vf-body`, `.vf-meta`, `.vf-tag`; component classes `.surface-elevated-2`, `.surface-overlay-scrim`, `.muted-surface`, `.border-soft`, `.border-faint`, `.vf-action-bar`, `.vf-action-btn` (with `data-tone="danger"`), `.vf-empty-state` (with `__eyebrow`, `__headline`, `__helper`, `__action` slots), `.vf-composer` (with `data-drag-over="true"` state).
+- **Primitives (new file):** `src/components/ui/primitives.tsx` exposes `IconButton` (sm/md/lg, neutral/accent/success/warning/danger/info, optional `asPlainButton`, optional `filled` surface), `Pill` (status badge; distinct from existing `PillGroup` filter selector), `Toolbar` (horizontal action group; optional `bare` to skip vf-action-bar surface), `Card` (flat/elevated/elevated-2 elevations; neutral/accent/success/warning/danger tones), and `EmptyState` (eyebrow + headline + helper + illustration + action slots).
+- **Chat refinements (functional structure preserved):**
+  - `chat-input.tsx`: composer migrated to `.vf-composer`; `max-w-[860px]` → `max-w-vf-comfort`; memory-status `bg-emerald-400`/`bg-amber-400` → `bg-success`/`bg-warning`; attachment card `max-w-[240px]` → `max-w-vf-narrow`; arbitrary text sizes → `vf-meta`/`vf-body`/`vf-tag`; inline SVG stroke widths standardized to `1.75`.
+  - `message-bubble.tsx`: `ActionBtn` → delegates to `IconButton` primitive with `destructive` prop; arbitrary text sizes → `vf-meta`/`vf-body`; `border-border/30..60` opacity soup → `border-border-soft`; `bg-amber-500/20 text-amber-400` → `bg-warning/15 text-warning`; `bg-blue-500/20 text-blue-400` → `bg-accent/15 text-accent`; all inline SVG stroke widths → `1.75`.
+  - `chat-view.tsx`: empty-state headline `text-[20px] font-semibold` → `vf-h1`; arbitrary text sizes → `vf-meta`/`vf-tag`; container `max-w-[960px]` → `max-w-vf-wide` (5 sites); `border-border/40..50` → `border-border-soft`.
+  - `ChatMarkdown.tsx`: `text-[15.5px]` → `vf-body`; `text-[12/13px]` → `vf-meta`; `text-[11px]` → `vf-tag`.
+  - `venice-params.tsx`: arbitrary text sizes → `vf-meta`/`vf-body`; `text-red-400` → `text-danger`; `text-amber-500` → `text-warning`.
+- **Shell alignment:** `sidebar.tsx` and `header.tsx` arbitrary text sizes replaced with `vf-meta`/`vf-body`/`vf-tag`; `vf-meta + uppercase + tracking-*` → `vf-tag` (preserving custom tracking values where they differ from `vf-tag`'s `0.04em` default).
+- **Validation executed:**
+  - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+  - `npm run typecheck` — PASS (root + electron + electron.test tsconfigs).
+  - `npx vitest run src/components/chat src/components/ui src/components/layout --no-file-parallelism` — PASS (222/222 across 21 files; includes +12 new primitive tests).
+  - `npm run verify:theme-tokens` — PASS (183 files scanned).
+  - `npm run verify:safety-guard` — PASS.
+  - Diff: 9 modified files + 3 new files (`docs/design/CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md`, `src/components/ui/primitives.tsx`, `src/components/ui/primitives.test.tsx`). +366 / -134 lines net.
+- **Out-of-scope this session (deferred):** 18 other top-level tabs; 43 non-default theme families (inherited automatically via existing semantic tokens); i18n catalogs (no new visible strings); Electron main / IPC / persistence; CSP; dependency list.
+- **Not committed / not pushed.** Worktree contains the design-system-refresh diff above. Push and hosted CI acceptance are intentionally out of scope for this session (see Open TODO Ledger).
 
 ### 2026-09-13 — Exhaustive Bug Audit Remediation & Verification (baseline `2f67268`)
 
@@ -1391,6 +1509,9 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 * See `docs/ROADMAP.md` for the canonical list of open tasks.
 * The static system-prompt policy migration is locally complete. Exact model-specific tokenization is intentionally not introduced; cross-model tokenizer variance remains a documented limitation rather than an open per-model-limit task.
+* **VF-DESIGN-SYSTEM-2026-09-13** — Chat & Design System Refresh landed locally on `d955559c` (system layer + chat surface + sidebar/header shell). Push, hosted CI, and the 18-tab rollout are deferred until a separate work order is opened.
+* **VF-PRIMITIVES-DEFER-2026-09-13** — New primitives (`IconButton`, `Pill`, `Toolbar`, `Card`, `EmptyState`) are adopted only in `message-bubble.tsx` and `chat-input.tsx`. Wider migration across the 18 untouched tabs is deferred.
+* **VF-THEME-COMPAT-CHECK-2026-09-13** — Visual cross-theme spot-check against Venice, Dracula, Catppuccin, Nord was not executed in this session. New surface aliases are CSS-derived from existing semantic tokens so degradation is expected to be graceful, but visual confirmation against non-default themes remains open.
 * The 2026-09-01 CI/CodeQL remediation is locally complete. Hosted exact-SHA CI, CodeQL analysis, alert closure, PR state transition, and remote branch deletion remain publication acceptance steps.
 * `PROV-001` and `PROV-005` are locally closed. Live credentialed provider acceptance and headed accessibility acceptance remain under `VF-VERIFY-005`.
 * `VF-DOCUMENT-AGENT-001` is regression-repaired in this session. The shared workspace contract, lazy directory tree, `ToolExecutionContext` authority, preset semantics, attachment registry/promotion, approval boundary, and supported tool matrix are documented and locally implemented. Closure awaits the headed manual acceptance suite and packaged cross-platform smoke.
@@ -1407,8 +1528,22 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * `VF-AUD-20260912` (Exhaustive codebase audit findings remediation) is Completed. All 19 confirmed defects, design risks, test gaps, and improvements, plus the 7 re-pass findings (N1..N7), were remediated, tested, validated, and published to `origin/main`. Reconciled in `docs/ROADMAP.md` and marked `RESOLVED` in `docs/audits/venice-forge-exhaustive-audit-2026-09-12/review-ledger.csv`.
 * `VF-AUD-20260912-current-main` (independent re-audit at `84cf5bbe`) P1s, implementable P2s including capability tokens, and confirmed P3s are remediated and published to `origin/main`. Packaged Electron smokes still skip in `npm test` when no packaged executable is present.
 * `VF-AUD-20260913` (Exhaustive codebase audit 2026-09-13 remediation) is Completed. All 4 P1 blockers (`P1-001` missing i18n keys, `P1-002` profile switch flush race, `P1-003` remote tombstone authority, `P1-004` SSE CRLF chunk split), 5 P2 durability issues (`P2-001` corrupt sync outbox, `P2-002` sync conflict ID length cap, `P2-003` `chat_folders` sync allowlist, `P2-004` safe-storage settings protection, `P2-007` background task timer handle), and 3 P3 issues (`P3-001` audio error message preservation, `P3-002` Kokoro voice default scoping, `P3-004` atomic file replace migrations) were remediated, tested, validated, and documented.
+* **VF-FONT-SETTINGS-2026-09-13** — Typography customization (font family selection & font size scaling) is locally implemented and verified across SettingsView Appearance section and Master ConfigPanel. Staged locally on `main`.
 
 ## Validation Matrix
+
+### 2026-09-13 — Typography Customization & Chat Refresh Verification (baseline d955559c)
+
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+- `npm run typecheck` — PASS (3 tsconfig targets: root, electron, electron tests).
+- `npx vitest run src/components/settings src/stores/settings-store.test.ts src/services/fontService.test.ts src/components/ui/primitives.test.tsx` — PASS (11 files, 99 passed).
+- `npm run verify:theme-tokens` — PASS (184 files scanned, 0 errors).
+- `npm run verify:safety-guard` — PASS (all transports compliant, no raw logs / bypass).
+- `node scripts/verify-i18n.cjs --strict` — PASS (12 locales, 12 namespaces, 0 errors, 100% complete).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+- `npm run verify:markdown-links` — PASS (361 files checked).
+- `npm run verify:repo-handoff-hygiene` — PASS.
+- `npm run verify:contracts` — PASS (104/104 checks across static, features, release).
 
 ### 2026-09-13 — Exhaustive Bug Audit Remediation & Verification (baseline 2f67268)
 

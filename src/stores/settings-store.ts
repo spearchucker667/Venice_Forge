@@ -16,6 +16,12 @@ export type Tab = TabId
 
 import type { LocaleSetting } from '../i18n/locale-types'
 import { changeLanguage } from '../i18n'
+import {
+  DEFAULT_FONT_ID,
+  DEFAULT_FONT_SIZE,
+  clampFontSize,
+  applyFontSettings,
+} from '../services/fontService'
 
 export const SIDEBAR_COLLAPSED_WIDTH = 60
 export const SIDEBAR_DEFAULT_WIDTH = 256
@@ -250,6 +256,13 @@ interface SettingsState {
   // never any raw `conversationVault` or chat-store payload.
   diagnosticsIncludePrompts: boolean
   setDiagnosticsIncludePrompts: (includePrompts: boolean) => void
+
+  // Typography and Font settings
+  fontFamily: string
+  setFontFamily: (family: string) => void
+  fontSize: number
+  setFontSize: (size: number) => void
+  resetFontSettings: () => void
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -345,6 +358,22 @@ export const useSettingsStore = create<SettingsState>()(
       }),
       appearanceMode: 'dark',
       setAppearanceMode: (mode) => set({ appearanceMode: mode }),
+      // Typography & Font settings defaults
+      fontFamily: DEFAULT_FONT_ID,
+      setFontFamily: (family) => {
+        set({ fontFamily: family });
+        applyFontSettings(family, useSettingsStore.getState().fontSize);
+      },
+      fontSize: DEFAULT_FONT_SIZE,
+      setFontSize: (size) => {
+        const clamped = clampFontSize(size);
+        set({ fontSize: clamped });
+        applyFontSettings(useSettingsStore.getState().fontFamily, clamped);
+      },
+      resetFontSettings: () => {
+        set({ fontFamily: DEFAULT_FONT_ID, fontSize: DEFAULT_FONT_SIZE });
+        applyFontSettings(DEFAULT_FONT_ID, DEFAULT_FONT_SIZE);
+      },
       imageDownloadDirectory: '',
       setImageDownloadDirectory: (dir) => set({ imageDownloadDirectory: dir }),
       redTeamMode: false,
@@ -494,21 +523,30 @@ export const useSettingsStore = create<SettingsState>()(
           // v13: ensure every persisted single-mode theme carries a code config
           // so syntax highlighting does not silently drop custom palettes.
           customTheme: state.customTheme ? ensureThemeCode(state.customTheme) : null,
+          fontFamily: typeof state.fontFamily === 'string' && state.fontFamily ? state.fontFamily : DEFAULT_FONT_ID,
+          fontSize: clampFontSize(state.fontSize),
         } as SettingsState
       },
       merge: (persisted, current) => {
         const persistedState = persisted && typeof persisted === 'object'
           ? persisted as Partial<SettingsState>
           : {}
+        const fontFamily = typeof persistedState.fontFamily === 'string' && persistedState.fontFamily
+          ? persistedState.fontFamily
+          : DEFAULT_FONT_ID;
+        const fontSize = clampFontSize(persistedState.fontSize);
         const merged = {
           ...current,
           ...persistedState,
+          fontFamily,
+          fontSize,
           sidebarOpen: typeof persistedState.sidebarOpen === 'boolean' ? persistedState.sidebarOpen : true,
           sidebarWidth: clampSidebarWidth(persistedState.sidebarWidth),
         };
         if (merged.uiLocale) {
           changeLanguage(merged.uiLocale);
         }
+        applyFontSettings(fontFamily, fontSize);
         return merged;
       },
     },

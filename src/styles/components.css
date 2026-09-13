@@ -140,3 +140,155 @@
   position: relative;
   z-index: 10;
 }
+
+/* === VF Design System 2026-09-13 =====================================
+   Refined component styles. These sit alongside the existing mesh-*
+   classes and are additive (no removals, no breaking changes).
+   ===================================================================== */
+
+/* Surface elevation — top tier. Used by message bubbles and toolbars. */
+.surface-elevated-2 {
+  background: var(--color-surface-elevated-2);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 12px;
+}
+
+/* Full-bleed scrim — used for modal backdrops. */
+.surface-overlay-scrim {
+  background: var(--color-surface-overlay);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Muted surface — chip / pill background. */
+.muted-surface {
+  background: var(--color-muted-surface);
+  border: 1px solid var(--color-border-soft);
+}
+
+/* Soft border utilities — semantic aliases for the opacity-soup
+   border-border/30, border-border/40, border-border/50 patterns. */
+.border-soft {
+  border-color: var(--color-border-soft);
+}
+.border-faint {
+  border-color: var(--color-border-faint);
+}
+
+/* Action bar — the shared horizontal action group used by message bubbles.
+   Single subtle row that surfaces on hover/focus. */
+.vf-action-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  height: 28px;
+  padding: 0 0.25rem;
+  border-radius: 8px;
+  background: var(--color-surface-overlay);
+  border: 1px solid var(--color-border-soft);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+
+/* Action button — used inside vf-action-bar and as standalone icon buttons. */
+.vf-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  transition: color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+.vf-action-btn:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: var(--color-surface-elevated);
+}
+.vf-action-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+.vf-action-btn:disabled {
+  color: var(--color-disabled-fg);
+  cursor: not-allowed;
+}
+.vf-action-btn[data-tone="danger"]:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+/* Empty state — illustration + headline + helper + optional CTA. */
+.vf-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  max-width: var(--width-comfort);
+  margin: 0 auto;
+}
+.vf-empty-state__eyebrow {
+  composes: vf-tag;
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+}
+.vf-empty-state__headline {
+  font-size: var(--text-h1);
+  line-height: 1.22;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+.vf-empty-state__helper {
+  font-size: var(--text-body);
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+  max-width: var(--width-reading);
+}
+
+/* Composer focus ring — the chat input focus state, standardized. */
+.vf-composer {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-input-bg) 92%, transparent),
+    color-mix(in srgb, var(--color-surface-elevated) 70%, transparent)
+  );
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px color-mix(in srgb, #000 8%, transparent);
+  transition: border-color var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
+}
+.vf-composer:focus-within {
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent),
+    0 1px 2px color-mix(in srgb, #000 8%, transparent);
+}
+.vf-composer[data-drag-over="true"] {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
+/* Font preview classes (typography settings panel).
+   Static classes + data attributes keep JSX free of inline styles (CSP VERIFY-007).
+   Sizes derive from --app-font-size, which applyFontSettings maintains on :root. */
+.font-preview {
+  font-size: var(--app-font-size, 16px);
+}
+.font-preview-heading {
+  font-size: calc(var(--app-font-size, 16px) * 1.125);
+}
+[data-font-preview="meslo"] { font-family: "MesloLGM Nerd Font", monospace; }
+[data-font-preview="inter"] { font-family: "Inter", system-ui, -apple-system, sans-serif; }
+[data-font-preview="jetbrains"] { font-family: "JetBrains Mono", monospace; }
+[data-font-preview="lora"] { font-family: "Lora", Georgia, serif; }
+[data-font-preview="system-sans"] { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+[data-font-preview="system-serif"] { font-family: Georgia, Cambria, "Times New Roman", Times, serif; }
+[data-font-preview="system-mono"] { font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace; }

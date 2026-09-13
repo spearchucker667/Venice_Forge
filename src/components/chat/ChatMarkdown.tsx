@@ -107,7 +107,7 @@ function PreRenderer({
   return (
     <pre className="relative group/code mb-4 mt-2 overflow-hidden rounded-md border border-code-border bg-code-bg">
       <div className="flex items-center justify-between bg-code-header-bg px-3 py-1.5 border-b border-code-border/50">
-        <div className="text-[12px] text-code-header-fg font-mono uppercase tracking-wider select-none">
+        <div className="vf-meta text-code-header-fg font-mono select-none">
           {lang || "text"}
         </div>
         <button
@@ -122,14 +122,14 @@ function PreRenderer({
               copyTimeoutRef.current = setTimeout(() => setCodeCopied(false), 1500);
             }
           }}
-          className="px-2 py-1 text-[11px] font-medium text-code-header-fg hover:opacity-80 bg-code-bg/50 hover:bg-code-bg rounded transition-colors cursor-pointer"
+          className="px-2 py-1 vf-tag text-code-header-fg hover:opacity-80 bg-code-bg/50 hover:bg-code-bg rounded transition-colors cursor-pointer"
         >
           {codeCopied
             ? tRuntime("runtimeGenerated.components.chat.messageBubble.text.copied")
             : copyLabel}
         </button>
       </div>
-      <div className="p-3 overflow-x-auto text-[13px] leading-relaxed" {...(props as ComponentPropsWithoutRef<"div">)}>
+      <div className="p-3 overflow-x-auto vf-meta leading-relaxed" {...(props as ComponentPropsWithoutRef<"div">)}>
         <code className={codeClassName}>
           {highlightCode(rawText, lang)}
         </code>
@@ -144,7 +144,7 @@ interface ChatMarkdownProps {
 
 export function ChatMarkdown({ content }: ChatMarkdownProps) {
   return (
-    <div className="prose-venice text-[15.5px] leading-relaxed text-text-primary">
+    <div className="prose-venice vf-body leading-relaxed text-text-primary">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[

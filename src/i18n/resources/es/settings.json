@@ -546,5 +546,17 @@
     "checking": "Comprobando...",
     "checkForUpdates": "Comprobar actualizaciones",
     "restartAndInstall": "Reiniciar e instalar"
+  },
+  "font": {
+    "title": "Configuración de tipografía y fuente",
+    "description": "Elija la familia de fuentes de la aplicación y ajuste la escala del texto de la interfaz.",
+    "familyLabel": "Familia de fuentes",
+    "familyDescription": "Seleccione la fuente tipográfica para el texto y el contenido de la interfaz.",
+    "sizeLabel": "Escala de tamaño de fuente",
+    "sizeDescription": "Ajuste la escala de la tipografía de la interfaz respecto al tamaño predeterminado.",
+    "preview": "Vista previa de tipografía en vivo",
+    "previewHeading": "El espacio de trabajo de IA con confianza serena",
+    "previewBody": "Venice Forge proporciona chat privado con IA, composición de escenas y generación multimodal.",
+    "reset": "Restablecer a valores predeterminados"
   }
 }

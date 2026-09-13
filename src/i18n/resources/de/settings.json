@@ -546,5 +546,17 @@
     "checking": "Wird überprüft...",
     "checkForUpdates": "Nach Updates suchen",
     "restartAndInstall": "Neu starten und installieren"
+  },
+  "font": {
+    "title": "Typografie- und Schrifteinstellungen",
+    "description": "Wählen Sie die Schriftfamilie der Anwendung und passen Sie die Textskalierung an.",
+    "familyLabel": "Schriftfamilie",
+    "familyDescription": "Wählen Sie die Schriftart für Benutzeroberflächentext und Inhalte.",
+    "sizeLabel": "Schriftgrößen-Skalierung",
+    "sizeDescription": "Passen Sie die Typografieskalierung der Benutzeroberfläche relativ zur Standardgröße an.",
+    "preview": "Live-Typografie-Vorschau",
+    "previewHeading": "Der souveräne KI-Arbeitsbereich",
+    "previewBody": "Venice Forge bietet privaten KI-Chat, Szenenkomposition und multimodale Generierung.",
+    "reset": "Auf Standard zurücksetzen"
   }
 }

@@ -546,5 +546,17 @@
     "checking": "Vérification...",
     "checkForUpdates": "Vérifier les mises à jour",
     "restartAndInstall": "Redémarrer et installer"
+  },
+  "font": {
+    "title": "Paramètres de typographie et de police",
+    "description": "Choisissez la famille de polices de l'application et ajustez l'échelle du texte de l'interface.",
+    "familyLabel": "Famille de police",
+    "familyDescription": "Sélectionnez la police pour le texte et le contenu de l'interface.",
+    "sizeLabel": "Échelle de taille de police",
+    "sizeDescription": "Ajustez l'échelle typographique de l'interface par rapport à la taille par défaut.",
+    "preview": "Aperçu typographique en direct",
+    "previewHeading": "L'espace de travail d'IA sereinement confiant",
+    "previewBody": "Venice Forge propose un chat IA privé, la composition de scènes et la génération multimodale.",
+    "reset": "Réinitialiser par défaut"
   }
 }

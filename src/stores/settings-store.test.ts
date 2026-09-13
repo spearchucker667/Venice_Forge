@@ -352,4 +352,37 @@ describe('settings-store', () => {
       expect(migrated.customThemes[0].code.tokens.keyword).not.toBe(migrated.customThemes[1].code.tokens.keyword)
     })
   })
+
+  describe('typography and font settings', () => {
+    it('initializes with default font and size', () => {
+      expect(useSettingsStore.getState().fontFamily).toBe('meslo')
+      expect(useSettingsStore.getState().fontSize).toBe(16)
+    })
+
+    it('sets fontFamily and clamps fontSize', () => {
+      useSettingsStore.getState().setFontFamily('inter')
+      expect(useSettingsStore.getState().fontFamily).toBe('inter')
+
+      useSettingsStore.getState().setFontSize(18)
+      expect(useSettingsStore.getState().fontSize).toBe(18)
+
+      // Clamping: below min (12)
+      useSettingsStore.getState().setFontSize(8)
+      expect(useSettingsStore.getState().fontSize).toBe(12)
+
+      // Clamping: above max (24)
+      useSettingsStore.getState().setFontSize(32)
+      expect(useSettingsStore.getState().fontSize).toBe(24)
+    })
+
+    it('resets font settings to defaults', () => {
+      useSettingsStore.getState().setFontFamily('lora')
+      useSettingsStore.getState().setFontSize(20)
+
+      useSettingsStore.getState().resetFontSettings()
+
+      expect(useSettingsStore.getState().fontFamily).toBe('meslo')
+      expect(useSettingsStore.getState().fontSize).toBe(16)
+    })
+  })
 })

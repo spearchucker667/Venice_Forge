@@ -26,6 +26,7 @@ import { AboutPanel } from "./AboutPanel";
 import { ProfilePanel } from "./ProfilePanel";
 import { BackupSyncPanel } from "./BackupSyncPanel";
 import { AudioSpeechPanel } from "./AudioSpeechPanel";
+import { FontSettingsPanel } from "./FontSettingsPanel";
 import type { PendingConfirm } from "./types";
 import { modelSupportsEdit } from "../../constants/venice";
 
@@ -424,7 +425,7 @@ export function SettingsView() {
         </div>
 
         {/* Content panel */}
-        <div className="flex-1 overflow-y-auto p-6 max-w-3xl">
+        <div className="flex-1 overflow-y-auto p-6 w-full">
           {activeSection === "language" && (
             <LanguageRegionPanel />
           )}
@@ -483,7 +484,8 @@ export function SettingsView() {
           {activeSection === "vault" && isElectron() && <MemoryPanel />}
 
           {activeSection === "appearance" && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              <FontSettingsPanel />
               <ThemeMaker />
             </div>
           )}

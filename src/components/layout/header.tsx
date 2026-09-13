@@ -128,10 +128,10 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
           />
         )}
         <div className="flex flex-col min-w-0">
-          <span className="text-[14px] font-semibold text-text-primary leading-none">
+          <span className="vf-meta font-semibold text-text-primary leading-none">
             {t(`navigation:tabs.${tabDesc?.id ?? activeTab}.label`)}
           </span>
-          <span className="text-[12px] text-text-muted mt-0.5 leading-none truncate hidden sm:block">
+          <span className="vf-meta text-text-muted mt-0.5 leading-none truncate hidden sm:block">
             {t(`navigation:tabs.${tabDesc?.id ?? activeTab}.subtitle`)}
           </span>
         </div>
@@ -206,11 +206,11 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
-        <span className="text-[13px] hidden xl:inline text-text-secondary">
+        <span className="vf-meta hidden xl:inline text-text-secondary">
           {t("navigation:header.tasks")}
         </span>
         {activeTaskCount > 0 && (
-          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent text-accent-fg text-[11px] font-bold">
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent text-accent-fg vf-tag font-bold">
             {activeTaskCount}
           </span>
         )}
@@ -228,7 +228,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
               ? t("navigation:header.apiKeyConnectedManage")
               : t("navigation:header.connectApiKey")
         }
-        className="flex items-center gap-2 text-[13px] px-2.5 py-1.5 rounded-md border border-transparent bg-surface-elevated hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"
+        className="flex items-center gap-2 vf-meta px-2.5 py-1.5 rounded-md border border-transparent bg-surface-elevated hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"
       >
         <StatusDot
           tone={hasVeniceKey ? "teal" : "slate"}

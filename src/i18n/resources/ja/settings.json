@@ -546,5 +546,17 @@
     "checking": "確認中...",
     "checkForUpdates": "更新を確認",
     "restartAndInstall": "再起動してインストール"
+  },
+  "font": {
+    "title": "タイポグラフィとフォント設定",
+    "description": "アプリケーションのフォントファミリーを選択し、インターフェースのテキスト拡大率を調整します。",
+    "familyLabel": "フォントファミリー",
+    "familyDescription": "UIテキストおよびコンテンツに使用するフォントを選択します。",
+    "sizeLabel": "フォントサイズスケール",
+    "sizeDescription": "デフォルトサイズに対するUIタイポグラフィのスケールを調整します。",
+    "preview": "リアルタイムタイポグラフィプレビュー",
+    "previewHeading": "静かな自信に満ちたAIワークスペース",
+    "previewBody": "Venice ForgeはプライベートAIチャット、シーン構成、マルチモーダル生成を提供します。",
+    "reset": "デフォルトに戻す"
   }
 }

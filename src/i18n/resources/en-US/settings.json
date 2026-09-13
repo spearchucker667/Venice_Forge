@@ -546,5 +546,17 @@
     "checking": "Checking...",
     "checkForUpdates": "Check for updates",
     "restartAndInstall": "Restart and Install"
+  },
+  "font": {
+    "title": "Typography & Font Settings",
+    "description": "Choose the application font family and adjust interface text scaling.",
+    "familyLabel": "Font Family",
+    "familyDescription": "Select the typeface for interface text and content.",
+    "sizeLabel": "Font Size Scale",
+    "sizeDescription": "Adjust interface typography scaling relative to the default size.",
+    "preview": "Live Typography Preview",
+    "previewHeading": "The Quietly Confident AI Workspace",
+    "previewBody": "Venice Forge provides private AI chat, scene composition, and multimodal generation.",
+    "reset": "Reset to Default"
   }
 }

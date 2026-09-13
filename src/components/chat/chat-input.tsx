@@ -235,7 +235,7 @@ export function ChatInput({
 
   return (
     <div className="px-4 sm:px-6 pb-5 pt-2">
-      <div className="w-full max-w-[860px] mx-auto">
+      <div className="w-full max-w-vf-comfort mx-auto">
         {attachments.length > 0 && (
           <div className="flex gap-2 mb-2 overflow-x-auto pb-1 pt-2 pr-2">
             {attachments.map((att, i) => {
@@ -289,14 +289,14 @@ export function ChatInput({
               return (
                 <div
                   key={att.id}
-                  className="relative group shrink-0 flex items-center gap-2 h-16 px-3 bg-surface border border-border rounded-lg max-w-[240px]"
+                  className="relative group shrink-0 flex items-center gap-2 h-16 px-3 bg-surface border border-border rounded-lg max-w-vf-narrow"
                   title={att.name}
                 >
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="text-[13px] font-medium text-text-primary truncate">
+                    <span className="vf-meta font-medium text-text-primary truncate">
                       {att.name}
                     </span>
-                    <span className="text-[12px] text-text-muted uppercase tracking-wider">
+                    <span className="vf-tag text-text-muted">
                       {att.kind}
                     </span>
                   </div>
@@ -313,8 +313,9 @@ export function ChatInput({
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
-                        strokeWidth="2"
+                        strokeWidth="1.75"
                         strokeLinecap="round"
+                        strokeLinejoin="round"
                       >
                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                         <polyline points="17 21 17 13 7 13 7 21" />
@@ -337,8 +338,9 @@ export function ChatInput({
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="1.75"
                       strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
                       <line x1="18" y1="6" x2="6" y2="18" />
                       <line x1="6" y1="6" x2="18" y2="18" />
@@ -351,11 +353,8 @@ export function ChatInput({
         )}
 
         <div
-          className={cn(
-            "mesh-input relative rounded-2xl overflow-hidden shadow-lg",
-            "focus-within:border-accent focus-within:shadow-xl",
-            dragOver ? "border-accent bg-accent/10" : "border-border",
-          )}
+          className={cn("vf-composer relative overflow-hidden")}
+          data-drag-over={dragOver ? "true" : undefined}
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -408,7 +407,7 @@ export function ChatInput({
             }
             rows={1}
             aria-label={t("composer.messageInput")}
-            className="w-full bg-transparent px-5 pt-4 pb-1 text-[16px] text-text-primary outline-none resize-none max-h-48 placeholder:text-text-muted leading-relaxed"
+            className="w-full bg-transparent px-5 pt-4 pb-1 vf-body text-text-primary outline-none resize-none max-h-48 placeholder:text-text-muted leading-relaxed"
             disabled={disabled}
           />
           <div className="flex items-center justify-between px-3 pb-2.5">
@@ -425,7 +424,7 @@ export function ChatInput({
                 onClick={() => fileRef.current?.click()}
                 disabled={attachDisabled}
                 aria-label={t("composer.attachFile")}
-                className="flex items-center gap-1.5 px-2 py-1.5 text-text-muted hover:text-text-primary text-[13px] transition-colors rounded-lg hover:bg-surface-elevated disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="flex items-center gap-1.5 px-2 py-1.5 vf-meta text-text-muted hover:text-text-primary transition-colors rounded-lg hover:bg-surface-elevated disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                 title={attachTitle}
               >
                 <svg
@@ -450,9 +449,15 @@ export function ChatInput({
               <button
                 onClick={onStop}
                 aria-label={t("composer.stopGenerating")}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-text-primary bg-surface-elevated hover:bg-surface border border-border rounded-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="flex items-center gap-1.5 px-3 py-1.5 vf-meta font-medium text-text-primary bg-surface-elevated hover:bg-surface border border-border rounded-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               >
-                <svg width="9" height="9" viewBox="0 0 8 8" fill="currentColor">
+                <svg
+                  width="9"
+                  height="9"
+                  viewBox="0 0 8 8"
+                  fill="currentColor"
+                  strokeWidth="1.75"
+                >
                   <rect width="8" height="8" rx="1" />
                 </svg>
                 <Trans i18nKey="common:surface.componentsChatChatInput.action.stop" />
@@ -477,7 +482,7 @@ export function ChatInput({
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.5"
+                  strokeWidth="1.75"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
@@ -512,19 +517,19 @@ function MemoryStatusIndicator({ status }: { status: ChatMemoryStatus }) {
     },
     injected: {
       label: t("memory.activeLabel"),
-      dot: "bg-emerald-400",
+      dot: "bg-success",
       title: t("memory.activeTitle"),
     },
     failed: {
       label: t("memory.failedLabel"),
-      dot: "bg-amber-400",
+      dot: "bg-warning",
       title: t("memory.failedTitle"),
     },
   };
   const { label, dot, title } = config[status];
   return (
     <div
-      className="flex items-center gap-1.5 text-[12px] text-text-muted"
+      className="flex items-center gap-1.5 vf-tag text-text-muted"
       title={title}
     >
       <span className={cn("w-1.5 h-1.5 rounded-full", dot)} />

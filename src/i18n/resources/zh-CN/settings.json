@@ -546,5 +546,17 @@
     "checking": "检查中...",
     "checkForUpdates": "检查更新",
     "restartAndInstall": "重启并安装"
+  },
+  "font": {
+    "title": "排版与字体设置",
+    "description": "选择应用程序字体系列并调整界面文本缩放比例。",
+    "familyLabel": "字体系列",
+    "familyDescription": "选择用于界面文本和内容的主要字体。",
+    "sizeLabel": "字体大小缩放",
+    "sizeDescription": "相对于默认大小调整界面排版缩放。",
+    "preview": "实时排版预览",
+    "previewHeading": "沉稳自信的 AI 工作空间",
+    "previewBody": "Venice Forge 提供私密 AI 对话、场景构建和多模态生成功能。",
+    "reset": "恢复默认设置"
   }
 }

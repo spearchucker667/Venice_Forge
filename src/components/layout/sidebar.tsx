@@ -473,7 +473,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
         )}
       >
         <VeniceLogo size={20} />
-        {expanded && <VeniceWordmark className="text-[15px] tracking-tight" />}
+        {expanded && <VeniceWordmark className="vf-body tracking-tight" />}
         <button
           onClick={onMobileClose}
           aria-label={tRuntime(
@@ -502,7 +502,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           Default project is ensured on load (safe for fresh/corrupt/migration). */}
       {expanded && (
         <div className="px-3 pt-1 pb-2 soft-separator-y shrink-0">
-          <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-semibold mb-1.5 px-1 flex items-center justify-between">
+          <div className="vf-tag tracking-[0.08em] text-text-muted mb-1.5 px-1 flex items-center justify-between">
             <span>{t("project.label", "Project")}</span>
             <button
               onClick={async () => {
@@ -539,7 +539,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   toast.error(msg);
                 }
               }}
-              className="text-[12px] normal-case tracking-normal border border-transparent bg-surface-elevated rounded px-1.5 py-0.5 hover:border-text-muted"
+              className="vf-meta normal-case tracking-normal border border-transparent bg-surface-elevated rounded px-1.5 py-0.5 hover:border-text-muted"
               title={t("project.new", "+ New")}
             >
               {t("project.new", "+ New")}
@@ -552,7 +552,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               const id = e.currentTarget.value || null;
               useProjectStore.getState().setActiveProject(id);
             }}
-            className="w-full text-[12.5px] rounded-md mesh-input px-2 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="w-full vf-meta rounded-md mesh-input px-2 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             aria-label={t("project.activeProject", "Active project")}
             title={t("project.label", "Switch active project")}
           >
@@ -567,14 +567,14 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           <button
             type="button"
             onClick={startNewChat}
-            className="mesh-input mt-2 flex w-full items-center justify-center rounded-lg px-3 py-2 text-[13px] font-semibold text-text-primary hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="mesh-input mt-2 flex w-full items-center justify-center rounded-lg px-3 py-2 vf-meta font-semibold text-text-primary hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             title={t("chat.newChatShortcut", "New chat (⌘N)")}
           >
             {t("chat.newChatAction", "+ New chat")}
           </button>
 
           {activeProjectId && (
-            <div className="mt-1.5 flex gap-1.5 text-[12px]">
+            <div className="mt-1.5 flex gap-1.5 vf-meta">
               <button
                 onClick={async () => {
                   const current = projects.find(
@@ -658,7 +658,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               </button>
             </div>
           )}
-          <div className="mt-1 px-1 text-[9px] text-text-muted/60">
+          <div className="mt-1 px-1 vf-tag text-text-muted/60">
             {t(
               "project.encryptionNote",
               "Projects are IDB-encrypted • generated items use the active project",
@@ -686,7 +686,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 className={cn(expanded ? "px-2" : "md:px-1.5 px-2")}
               >
                 {expanded && (
-                  <div className="px-2 pb-1.5 text-[12px] uppercase tracking-[0.1em] text-text-muted font-semibold">
+                  <div className="px-2 pb-1.5 vf-tag tracking-[0.1em] text-text-muted">
                     {groupLabel}
                   </div>
                 )}
@@ -706,7 +706,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                         aria-current={isActive ? "page" : undefined}
                         title={!expanded ? tabLabel : undefined}
                         className={cn(
-                          "relative flex items-center gap-2.5 rounded-lg text-[14px] transition-all duration-150 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 cursor-pointer",
+                          "relative flex items-center gap-2.5 rounded-lg vf-meta transition-all duration-150 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 cursor-pointer",
                           expanded
                             ? "px-2.5 py-2"
                             : "md:px-0 md:py-2 md:justify-center px-2.5 py-2",
@@ -752,7 +752,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                     ? t("chat.collapseHistory", "Collapse History")
                     : t("chat.expandHistory", "Expand History")
                 }
-                className="flex items-center gap-1.5 text-[12px] font-semibold text-text-muted uppercase tracking-[0.1em] hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded px-1 -ml-1 cursor-pointer"
+                className="flex items-center gap-1.5 vf-tag tracking-[0.1em] text-text-muted hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded px-1 -ml-1 cursor-pointer"
               >
                 {t("chat.history", "History")}
                 <svg
@@ -795,7 +795,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 <div
                   role="menu"
                   aria-label={t("chat.options", "Chat options")}
-                  className="mesh-panel absolute right-3 top-10 z-50 min-w-48 rounded-xl p-1.5 text-[12.5px] shadow-xl"
+                  className="mesh-panel absolute right-3 top-10 z-50 min-w-48 rounded-xl p-1.5 vf-meta shadow-xl"
                 >
                   <button
                     role="menuitem"
@@ -876,12 +876,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={t("chat.searchPlaceholder", "Search…")}
                     aria-label={t("chat.searchAria", "Search conversations")}
-                    className="mesh-input w-full rounded-md px-2.5 py-1 text-[13px] text-text-primary outline-none focus:border-accent placeholder:text-text-muted"
+                    className="mesh-input w-full rounded-md px-2.5 py-1 vf-meta text-text-primary outline-none focus:border-accent placeholder:text-text-muted"
                   />
                   {deferredSearch !== search && (
                     <div
                       role="status"
-                      className="pt-1 text-[12px] text-text-muted"
+                      className="pt-1 vf-meta text-text-muted"
                     >
                       {t("chat.searching", "Searching…")}
                     </div>
@@ -890,7 +890,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                     searchResult.totalMatches > filtered.length && (
                       <div
                         role="status"
-                        className="pt-1 text-[12px] text-text-muted"
+                        className="pt-1 vf-meta text-text-muted"
                       >
                         {t("chat.showingMatches", {
                           defaultValue:
@@ -906,7 +906,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   role="list"
                 >
                   {filtered.length === 0 ? (
-                    <div className="px-2 py-6 text-[13px] text-text-muted text-center">
+                    <div className="px-2 py-6 vf-meta text-text-muted text-center">
                       {deferredSearch
                         ? t("chat.noMatches", "No matches")
                         : t("chat.noConversations", "No conversations yet")}
@@ -935,10 +935,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           {/* Traffic Inspector controls */}
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-text-muted leading-none">
+              <span className="vf-tag tracking-wider text-text-muted leading-none">
                 {t("inspector.title", "Traffic Inspector")}
               </span>
-              <p className="text-[12px] leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
+              <p className="vf-meta leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
                 {t(
                   "inspector.description",
                   "Shows diagnostics and local safety decisions.",
@@ -967,10 +967,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
 
           <div className="flex items-center justify-between gap-3 pt-2">
             <div className="min-w-0">
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-text-muted leading-none">
+              <span className="vf-tag tracking-wider text-text-muted leading-none">
                 {t("familySafeMode.title", "Family Safe Mode")}
               </span>
-              <p className="text-[12px] leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
+              <p className="vf-meta leading-snug text-text-muted mt-0.5 [@media(max-height:800px)]:hidden">
                 {localFamilySafeModeEnabled
                   ? t("familySafeMode.on", "ON: local family filter runs.")
                   : t(
@@ -1013,7 +1013,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           <button
             onClick={() => setShowInspector(!showInspector)}
             className={cn(
-              "flex items-center justify-center gap-1.5 w-full py-1.5 px-2 border rounded-md text-[12px] font-semibold transition-colors cursor-pointer shrink-0",
+              "flex items-center justify-center gap-1.5 w-full py-1.5 px-2 border rounded-md vf-meta font-semibold transition-colors cursor-pointer shrink-0",
               showInspector
                 ? "bg-accent/10 border-accent text-accent"
                 : "border-border text-text-secondary hover:border-accent hover:text-accent",
@@ -1035,7 +1035,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 : t("inspector.show", "Show Inspector")}
             </span>
           </button>
-          <div className="pt-2 text-[12px] text-text-secondary flex flex-col gap-1 shrink-0 [@media(max-height:800px)]:hidden">
+          <div className="pt-2 vf-meta text-text-secondary flex flex-col gap-1 shrink-0 [@media(max-height:800px)]:hidden">
             <div className="flex justify-between items-center leading-none">
               <span>{t("chat.newChat", "New chat")}</span>
               <kbd className="font-mono text-text-muted">⌘N</kbd>
@@ -1136,7 +1136,7 @@ function ConversationRow({
     <div
       role="listitem"
       className={cn(
-        "group relative flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[13px] cursor-pointer transition-colors",
+        "group relative flex items-center gap-1 px-2.5 py-1.5 rounded-md vf-meta cursor-pointer transition-colors",
         isActive
           ? "bg-accent/15 text-accent font-semibold"
           : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/40",
@@ -1190,7 +1190,7 @@ function ConversationRow({
             aria-label={tRuntime(
               "runtimeGenerated.components.layout.sidebar.attribute.confirmDelete",
             )}
-            className="text-danger hover:underline px-1.5 text-[12px] font-semibold rounded cursor-pointer"
+            className="text-danger hover:underline px-1.5 vf-meta font-semibold rounded cursor-pointer"
           >
             {t("chat.deletePrompt", "Delete?")}
           </button>

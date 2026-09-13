@@ -5,6 +5,7 @@ import { toast } from "../../stores/toast-store";
 import { askDecision } from "../ui/modal-requests";
 import { redactErrorMessage } from "../../shared/redaction";
 import { desktopFiles, desktopConfig } from "../../services/desktopBridge";
+import { FontSettingsPanel } from "./FontSettingsPanel";
 
 /** Settings panel that surfaces the local master YAML config. */
 export function ConfigPanel(): React.ReactElement {
@@ -58,6 +59,7 @@ export function ConfigPanel(): React.ReactElement {
 
   return (
     <div className="space-y-6">
+      <FontSettingsPanel />
       <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-3">
         <h3 className="text-[15px] font-semibold text-text-primary">{t('settings:configPanel.masterConfig.title', 'Local Master Config')}</h3>
         <p className="text-[12.5px] text-text-secondary">

@@ -159,7 +159,7 @@ export function VeniceParams() {
           {activeConversationId !== null && hasMessages && (
             <button
               onClick={() => setActiveConversation(null)}
-              className="flex items-center gap-1 text-[13px] font-medium px-2.5 py-[2px] rounded-full bg-surface-elevated/40 text-text-muted/60 hover:text-text-secondary hover:bg-surface-elevated/50 transition-colors duration-100 cursor-pointer"
+              className="flex items-center gap-1 vf-meta font-medium px-2.5 py-[2px] rounded-full bg-surface-elevated/40 text-text-muted/60 hover:text-text-secondary hover:bg-surface-elevated/50 transition-colors duration-100 cursor-pointer"
               title={t("controls.newChatShortcut")}
             >
               <svg
@@ -180,7 +180,7 @@ export function VeniceParams() {
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={cn(
-              "flex items-center gap-1 text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100",
+              "flex items-center gap-1 vf-meta font-medium px-2 py-[2px] rounded-full transition-colors duration-100",
               showSettings
                 ? "bg-text-primary text-bg"
                 : "bg-surface-elevated/40 text-text-muted/40 hover:text-text-muted/60 hover:bg-surface-elevated/50 cursor-pointer",
@@ -208,13 +208,13 @@ export function VeniceParams() {
         <div className="mt-2.5 pb-1 flex flex-col gap-2.5">
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label htmlFor="venice-params-1" className="text-[13px] text-text-muted/40 font-medium block uppercase tracking-[0.08em]">
+              <label htmlFor="venice-params-1" className="vf-meta text-text-muted/40 font-medium block uppercase tracking-[0.08em]">
                 <Trans i18nKey="common:surface.componentsChatVeniceParams.label.appSystemPrompt" />
               </label>
               {!hydrated || loading ? (
                 <select
                   disabled id="venice-params-1" 
-                  className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[12px] text-text-muted outline-none max-w-[200px] cursor-not-allowed"
+                  className="bg-surface-elevated border border-border rounded px-2 py-0.5 vf-meta text-text-muted outline-none max-w-[200px] cursor-not-allowed"
                 >
                   <option>
                     <Trans i18nKey="common:surface.componentsChatVeniceParams.option.loadingLibrary" />
@@ -223,7 +223,7 @@ export function VeniceParams() {
               ) : loadError ? (
                 <select
                   disabled
-                  className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[12px] text-red-400 outline-none max-w-[200px] cursor-not-allowed"
+                  className="bg-surface-elevated border border-border rounded px-2 py-0.5 vf-meta text-danger outline-none max-w-[200px] cursor-not-allowed"
                 >
                   <option>
                     <Trans i18nKey="common:surface.componentsChatVeniceParams.option.errorLoadingLibrary" />
@@ -232,7 +232,7 @@ export function VeniceParams() {
               ) : (
                 customPrompts.length > 0 && (
                   <select
-                    className="bg-surface-elevated border border-border rounded px-2 py-0.5 text-[12px] text-text-muted outline-none hover:text-text-secondary transition-colors max-w-[200px] cursor-pointer"
+                    className="bg-surface-elevated border border-border rounded px-2 py-0.5 vf-meta text-text-muted outline-none hover:text-text-secondary transition-colors max-w-[200px] cursor-pointer"
                     onChange={(e) => {
                       const id = e.target.value;
                       if (id) {
@@ -264,10 +264,10 @@ export function VeniceParams() {
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder={t("controls.systemPromptPlaceholder")}
               rows={2}
-              className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 text-[15px] text-text-secondary outline-none resize-none placeholder:text-text-muted/30 focus:border-border-strong transition-colors"
+              className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 vf-body text-text-secondary outline-none resize-none placeholder:text-text-muted/30 focus:border-border-strong transition-colors"
             />
             {systemPromptLimitResult.isWarning && (
-              <div className="text-[12px] text-amber-500 mt-1">
+              <div className="vf-meta text-warning mt-1">
                 {t("common:surface.componentsChatVeniceParams.text.approachingSystemPromptSizeLimit", {
                   estimatedTokenCount: systemPromptLimitResult.estimatedTokenCount.toLocaleString(),
                   maximumTokens: SYSTEM_PROMPT_LIMITS.maxTokens.toLocaleString(),
@@ -355,10 +355,10 @@ function ParamSlider({
   return (
     <div>
       <div className="flex items-center justify-between mb-0.5">
-        <label htmlFor="venice-params-2" className="text-[12px] text-text-muted/40 font-medium uppercase tracking-[0.08em]">
+        <label htmlFor="venice-params-2" className="vf-meta text-text-muted/40 font-medium uppercase tracking-[0.08em]">
           {label}
         </label>
-        <span className="text-[12px] text-text-muted/50 font-mono">
+        <span className="vf-meta text-text-muted/50 font-mono">
           {display}
         </span>
       </div>
@@ -395,7 +395,7 @@ function Pill({
       title={title}
       aria-disabled={disabled === true}
       className={cn(
-        "text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100",
+        "vf-meta font-medium px-2 py-[2px] rounded-full transition-colors duration-100",
         active
           ? "bg-text-primary text-bg"
           : disabled
@@ -431,7 +431,7 @@ function SearchPill({
     <button
       onClick={next}
       className={cn(
-        "text-[13px] font-medium px-2 py-[2px] rounded-full transition-colors duration-100",
+        "vf-meta font-medium px-2 py-[2px] rounded-full transition-colors duration-100",
         active
           ? "bg-text-primary text-bg"
           : "bg-surface-elevated/40 text-text-muted/40 hover:text-text-muted/60 hover:bg-surface-elevated/50",
@@ -457,7 +457,7 @@ function Toggle({
         uiSoundController.play(!active ? "toggleOn" : "toggleOff");
         onChange(!active);
       }}
-      className="flex items-center gap-2 text-[14px] text-text-muted/60 hover:text-text-secondary transition-colors"
+      className="flex items-center gap-2 vf-meta text-text-muted/60 hover:text-text-secondary transition-colors"
     >
       <div
         className={cn(

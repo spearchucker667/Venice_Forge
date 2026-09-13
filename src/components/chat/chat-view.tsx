@@ -771,10 +771,10 @@ export function ChatView() {
           <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-6">
             <div className="flex flex-col items-center gap-3">
               <VeniceLogo size={32} className="opacity-80" />
-              <div className="text-[20px] font-semibold text-text-primary">
+              <div className="vf-h1 text-text-primary">
                 <Trans i18nKey="common:surface.componentsChatChatView.text.howCanIHelpToday" />
               </div>
-              <p className="text-[14px] text-text-secondary max-w-sm">
+              <p className="vf-meta text-text-secondary max-w-sm">
                 {hasVeniceKey
                   ? tRuntime(
                       "runtimeGenerated.components.chat.chatView.text.pickAModelInTheHeaderAboveThenStartA",
@@ -787,13 +787,13 @@ export function ChatView() {
             {hasVeniceKey && (
               <div className="w-full max-w-md flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-medium">
+                  <div className="vf-meta uppercase tracking-[0.08em] text-text-muted font-medium">
                     <Trans i18nKey="common:surface.componentsChatChatView.text.tryOneOfThese" />
                   </div>
                   <button
                     type="button"
                     onClick={() => setStarters(getBalancedPromptStarters())}
-                    className="text-[12px] text-accent hover:text-accent-hover flex items-center gap-1 cursor-pointer transition-colors"
+                    className="vf-meta text-accent hover:text-accent-hover flex items-center gap-1 cursor-pointer transition-colors"
                     title={t("surface.componentsChatChatView.action.shuffle")}
                   >
                     <RefreshCw className="w-3 h-3 animate-hover-spin" />
@@ -813,7 +813,7 @@ export function ChatView() {
                           model,
                         )
                       }
-                      className="text-left px-3 py-2.5 rounded-lg border border-border bg-surface-elevated hover:border-accent/40 text-text-secondary hover:text-text-primary hover:bg-surface transition-all text-[14px] focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent cursor-pointer"
+                      className="text-left px-3 py-2.5 rounded-lg border border-border bg-surface-elevated hover:border-accent/40 text-text-secondary hover:text-text-primary hover:bg-surface transition-all vf-meta focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent cursor-pointer"
                     >
                       {t(s.translationKey, { defaultValue: s.fallbackPrompt })}
                     </button>
@@ -827,7 +827,7 @@ export function ChatView() {
           <>
             {conversation?.metadata?.character && (
               <div className="soft-separator-y mesh-surface bg-surface-elevated/40">
-                <div className="max-w-[960px] mx-auto px-4 sm:px-5 py-2 flex items-center gap-3">
+                <div className="max-w-vf-wide mx-auto px-4 sm:px-5 py-2 flex items-center gap-3">
                   <ActiveCharacterPill
                     character={conversation.metadata.character}
                     onClear={() => {
@@ -867,9 +867,9 @@ export function ChatView() {
             <div className="soft-separator-y mesh-surface">
               <VeniceParams />
             </div>
-            <div className="w-full max-w-[960px] mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
+            <div className="w-full max-w-vf-wide mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
               {isCharacterBound && conversation.messages.length === 0 && (
-                <div className="rounded-lg border border-border bg-surface-elevated p-5 text-center text-[14px] text-text-secondary">
+                <div className="rounded-lg border border-border bg-surface-elevated p-5 text-center vf-meta text-text-secondary">
                   <Trans i18nKey="common:surface.componentsChatChatView.text.startAConversationWith" />{" "}
                   {conversation.metadata?.character?.name ||
                     tRuntime(
@@ -929,14 +929,14 @@ export function ChatView() {
       {pendingContext && (
         <div
           aria-live="polite"
-          className="border-t border-border/50 bg-surface-elevated p-4 flex flex-col gap-3 max-w-[960px] mx-auto w-full rounded-t-xl shadow-lg transition-all duration-200"
+          className="soft-separator-y bg-surface-elevated p-4 flex flex-col gap-3 max-w-vf-wide mx-auto w-full rounded-t-xl shadow-lg transition-all duration-200"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[12px] font-semibold text-accent uppercase tracking-wider">
+              <span className="vf-meta font-semibold text-accent uppercase tracking-wider">
                 <Trans i18nKey="common:surface.componentsChatChatView.text.matchedLocalMemoryContext" />
               </span>
-              <span className="text-[12px] text-text-muted">
+              <span className="vf-meta text-text-muted">
                 ({pendingContext.facts?.length || 0}{" "}
                 <Trans i18nKey="common:surface.componentsChatChatView.text.facts" />{" "}
                 {pendingContext.summaries?.length || 0}{" "}
@@ -959,13 +959,13 @@ export function ChatView() {
                     decision,
                   );
                 }}
-                className="px-2.5 py-1 text-[12px] font-semibold rounded bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+                className="px-2.5 py-1 vf-meta font-semibold rounded bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
               >
                 <Trans i18nKey="common:surface.componentsChatChatView.action.confirmSend" />
               </button>
               <button
                 onClick={() => setIsEditingContext(!isEditingContext)}
-                className="px-2.5 py-1 text-[12px] font-medium rounded border border-border bg-surface hover:bg-surface-elevated text-text-secondary transition-colors cursor-pointer"
+                className="px-2.5 py-1 vf-meta font-medium rounded border border-border bg-surface hover:bg-surface-elevated text-text-secondary transition-colors cursor-pointer"
               >
                 {isEditingContext
                   ? tRuntime(
@@ -982,7 +982,7 @@ export function ChatView() {
                     source: "preview",
                   });
                 }}
-                className="px-2.5 py-1 text-[12px] font-medium rounded border border-transparent bg-danger/10 hover:bg-danger/20 text-danger transition-colors cursor-pointer"
+                className="px-2.5 py-1 vf-meta font-medium rounded border border-transparent bg-danger/10 hover:bg-danger/20 text-danger transition-colors cursor-pointer"
               >
                 <Trans i18nKey="common:surface.componentsChatChatView.action.disableMemoryForThisMessage" />
               </button>
@@ -991,7 +991,7 @@ export function ChatView() {
                   if (conversation) resetMemoryPreview(conversation.id);
                   setPendingContext(null);
                 }}
-                className="text-[12px] text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                className="vf-meta text-text-muted hover:text-text-primary transition-colors cursor-pointer"
                 title={tRuntime(
                   "runtimeGenerated.components.chat.chatView.attribute.cancel",
                 )}
@@ -1006,7 +1006,7 @@ export function ChatView() {
               <textarea
                 value={editedText}
                 onChange={(e) => setEditedText(e.target.value)}
-                className="w-full bg-surface border border-border rounded-lg p-2.5 text-[13px] text-text-primary font-mono outline-none focus:border-accent resize-y min-h-[120px]"
+                className="w-full bg-surface border border-border rounded-lg p-2.5 vf-meta text-text-primary font-mono outline-none focus:border-accent resize-y min-h-[120px]"
               />
               <button
                 onClick={() => {
@@ -1016,7 +1016,7 @@ export function ChatView() {
                   });
                   setIsEditingContext(false);
                 }}
-                className="self-end px-3 py-1.5 rounded bg-accent text-accent-fg text-[12px] font-medium hover:bg-accent-hover transition-colors cursor-pointer"
+                className="self-end px-3 py-1.5 rounded bg-accent text-accent-fg vf-meta font-medium hover:bg-accent-hover transition-colors cursor-pointer"
               >
                 <Trans i18nKey="common:surface.componentsChatChatView.action.saveContextText" />
               </button>
@@ -1026,7 +1026,7 @@ export function ChatView() {
               {pendingContext.summaries?.map((sum: string, idx: number) => (
                 <div
                   key={`sum-${idx}`}
-                  className="flex items-center justify-between gap-3 p-2 bg-surface/40 rounded border border-border/40 text-[12.5px]"
+                  className="flex items-center justify-between gap-3 p-2 bg-surface/40 rounded border border-border-soft text-[12.5px]"
                 >
                   <div className="text-text-secondary italic">
                     <Trans i18nKey="common:surface.componentsChatChatView.text.previousThread" />{" "}
@@ -1060,7 +1060,7 @@ export function ChatView() {
                         injectedText,
                       });
                     }}
-                    className="text-[12px] text-danger hover:underline cursor-pointer"
+                    className="vf-meta text-danger hover:underline cursor-pointer"
                   >
                     <Trans i18nKey="common:surface.componentsChatChatView.action.remove" />
                   </button>
@@ -1069,19 +1069,19 @@ export function ChatView() {
               {pendingContext.facts?.map((fact: MemoryFact) => (
                 <div
                   key={fact.id}
-                  className="flex items-center justify-between gap-3 p-2 bg-surface/40 rounded border border-border/40 text-[12.5px]"
+                  className="flex items-center justify-between gap-3 p-2 bg-surface/40 rounded border border-border-soft text-[12.5px]"
                 >
                   <div className="text-text-primary">{fact.text}</div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleForgetFact(fact.id, fact.text)}
-                      className="text-[12px] text-danger hover:underline cursor-pointer"
+                      className="vf-meta text-danger hover:underline cursor-pointer"
                     >
                       <Trans i18nKey="common:surface.componentsChatChatView.action.forgetFact" />
                     </button>
                     <button
                       onClick={() => handleRemoveFact(fact.id)}
-                      className="text-[12px] text-text-muted hover:underline cursor-pointer"
+                      className="vf-meta text-text-muted hover:underline cursor-pointer"
                     >
                       <Trans i18nKey="common:surface.componentsChatChatView.action.remove" />
                     </button>
@@ -1090,7 +1090,7 @@ export function ChatView() {
               ))}
               {!pendingContext.facts?.length &&
                 !pendingContext.summaries?.length && (
-                  <div className="text-center text-[12px] text-text-muted py-2">
+                  <div className="text-center vf-meta text-text-muted py-2">
                     <Trans i18nKey="common:surface.componentsChatChatView.text.allMatchedContextHasBeenRemoved" />
                   </div>
                 )}
@@ -1229,7 +1229,7 @@ function ChatContextMeterContent({
 
   return (
     <div
-      className="flex items-center gap-2 text-[11px] text-text-muted cursor-help"
+      className="flex items-center gap-2 vf-tag text-text-muted cursor-help"
       title={tRuntime(
         "runtimeGenerated.components.chat.chatView.attribute.value1Value2Tokens",
         {
@@ -1310,7 +1310,7 @@ function PriorConversationContextSelector({
         )}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="rounded-lg px-2 py-1.5 text-[12px] text-text-muted hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        className="rounded-lg px-2 py-1.5 vf-meta text-text-muted hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       >
         <Trans i18nKey="common:surface.componentsChatChatView.action.chatContext" />{" "}
         {memoryEnabled
@@ -1334,13 +1334,13 @@ function PriorConversationContextSelector({
           )}
           className="absolute bottom-full left-0 z-30 mb-2 w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface-elevated px-3 py-3 shadow-xl"
         >
-          <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-text-muted">
+          <div className="mb-2 vf-meta font-semibold uppercase tracking-wide text-text-muted">
             <Trans i18nKey="common:surface.componentsChatChatView.text.chatContext" />
           </div>
 
           {activeConversation && (
             <div className="mb-4">
-              <label htmlFor="chat-view-1" className="text-[12px] text-text-secondary block mb-1">
+              <label htmlFor="chat-view-1" className="vf-meta text-text-secondary block mb-1">
                 <Trans i18nKey="common:surface.componentsChatChatView.label.systemPromptMode" />
               </label>
               <select
@@ -1351,7 +1351,7 @@ function PriorConversationContextSelector({
                     e.target.value as "inherit" | "override" | "disabled",
                   )
                 }
-                className="w-full bg-surface border border-border rounded px-2 py-1.5 text-[13px] text-text-primary outline-none focus:border-accent"
+                className="w-full bg-surface border border-border rounded px-2 py-1.5 vf-meta text-text-primary outline-none focus:border-accent"
               >
                 <option value="inherit">
                   <Trans i18nKey="common:surface.componentsChatChatView.option.inheritFromDefaultSettings" />
@@ -1367,7 +1367,7 @@ function PriorConversationContextSelector({
           )}
 
           {activeConversation && (
-            <label htmlFor="chat-view-2" className="mb-2 flex items-center justify-between gap-3 text-[13px] text-text-primary">
+            <label htmlFor="chat-view-2" className="mb-2 flex items-center justify-between gap-3 vf-meta text-text-primary">
               <span>
                 <Trans i18nKey="common:surface.componentsChatChatView.text.includeMemoryRetrievalForThisChat" />
               </span>
@@ -1384,7 +1384,7 @@ function PriorConversationContextSelector({
               />
             </label>
           )}
-          <label htmlFor="chat-view-3" className="flex items-center justify-between gap-3 text-[13px] text-text-primary">
+          <label htmlFor="chat-view-3" className="flex items-center justify-between gap-3 vf-meta text-text-primary">
             <span>
               <Trans i18nKey="common:surface.componentsChatChatView.text.includePriorConversationContext" />
             </span>
@@ -1403,14 +1403,14 @@ function PriorConversationContextSelector({
                   resetMemoryPreview(activeConversation.id);
                 setOpen(false);
               }}
-              className="mt-2 text-[12px] text-text-muted hover:text-text-primary underline underline-offset-2"
+              className="mt-2 vf-meta text-text-muted hover:text-text-primary underline underline-offset-2"
             >
               <Trans i18nKey="common:surface.componentsChatChatView.action.requireMemoryPreviewBeforeNextSend" />
             </button>
           )}
           {includePriorContext && (
             <div className="mt-2 space-y-2">
-              <p className="text-[12px] leading-snug text-text-muted">
+              <p className="vf-meta leading-snug text-text-muted">
                 <Trans i18nKey="common:surface.componentsChatChatView.description.onlySelectedLocalConversationsAreIncludedIn" />
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -1420,7 +1420,7 @@ function PriorConversationContextSelector({
                     type="button"
                     aria-pressed={selectedIds.includes(item.id)}
                     onClick={() => toggleId(item.id)}
-                    className={`rounded-md border px-2 py-1 text-[12px] transition-colors ${
+                    className={`rounded-md border px-2 py-1 vf-meta transition-colors ${
                       selectedIds.includes(item.id)
                         ? "border-accent bg-accent/10 text-accent"
                         : "border-border text-text-secondary hover:text-text-primary"
@@ -1440,7 +1440,7 @@ function PriorConversationContextSelector({
                   </button>
                 ))}
               </div>
-              <div className="text-[12px] text-text-muted">
+              <div className="vf-meta text-text-muted">
                 {selectedIds.length}{" "}
                 <Trans i18nKey="common:surface.componentsChatChatView.text.selected" />
               </div>
@@ -1479,7 +1479,7 @@ function ActiveCharacterPill({
           <Trans i18nKey="common:surface.componentsChatChatView.text.chattingAs" />{" "}
           <span data-testid="active-character-name">{character.name}</span>
         </span>
-        <span className="text-text-muted text-[12px] font-mono">
+        <span className="text-text-muted vf-meta font-mono">
           {character.localCharacterId
             ? tRuntime(
                 "runtimeGenerated.components.chat.chatView.text.localCharacter",
@@ -1496,7 +1496,7 @@ function ActiveCharacterPill({
       <button
         type="button"
         onClick={onClear}
-        className="ml-2 text-[12px] text-text-secondary hover:text-danger transition-colors cursor-pointer"
+        className="ml-2 vf-meta text-text-secondary hover:text-danger transition-colors cursor-pointer"
         title={tRuntime(
           "runtimeGenerated.components.chat.chatView.attribute.stopChattingAsThisCharacter",
         )}

@@ -546,5 +546,17 @@
     "checking": "Kontrollerar...",
     "checkForUpdates": "Sök efter uppdateringar",
     "restartAndInstall": "Starta om och installera"
+  },
+  "font": {
+    "title": "Typografi- och teckensnittsinställningar",
+    "description": "Välj programmets teckensnittsfamilj och justera gränssnittets textskalning.",
+    "familyLabel": "Teckensnittsfamilj",
+    "familyDescription": "Välj teckensnitt för gränssnittstext och innehåll.",
+    "sizeLabel": "Skala för teckenstorlek",
+    "sizeDescription": "Justera gränssnittets typografiskalning i förhållande till standardstorleken.",
+    "preview": "Live förhandsgranskning av typografi",
+    "previewHeading": "Den lugnt självsäkra AI-arbetsytan",
+    "previewBody": "Venice Forge erbjuder privat AI-chatt, scenkomposition och multimodal generering.",
+    "reset": "Återställ till standard"
   }
 }
