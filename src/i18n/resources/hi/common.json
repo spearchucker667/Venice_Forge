@@ -1899,6 +1899,7 @@
         "legacyConversationsDetected": "लीगेसी वार्तालाप का पता लगाया गया",
         "encryptedConversationVault": "एन्क्रिप्टेड वार्तालाप वॉल्ट",
         "maintenanceOperations": "रखरखाव संचालन",
+        "searchVault": "__MISSING__:Search vault",
         "curatedFacts": "क्यूरेटेड तथ्य ("
       },
       "description": {
@@ -4222,6 +4223,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "{{value1}} पीढ़ी"
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "जनरेट किया गया मीडिया सहेजा नहीं जा सका",
+          "generationFinishedButGallerySaveFailed": "जनरेशन पूरी हो गई, लेकिन गैलरी रिकॉर्ड सहेजा नहीं जा सका।"
         }
       },
       "workflowcompiler": {

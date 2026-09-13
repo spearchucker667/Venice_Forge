@@ -1261,7 +1261,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 {draft.avatar && (
                   <button
                     type="button"
-                    onClick={() => update("avatar", undefined)}
+                    onClick={() => update("avatar", null)}
                     className="mt-1 w-24 text-[12px] py-1 rounded-md text-text-muted hover:text-rose-300 transition-colors"
                   >
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.remove" />

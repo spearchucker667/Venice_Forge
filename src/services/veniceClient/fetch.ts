@@ -20,7 +20,7 @@ import { sleep, createTimeoutSignal } from "../../utils/timeout";
 import { VeniceAPIError, VeniceApiError, normalizeError, readDesktopErrorBody, readWebErrorBody, readVeniceErrorBody } from "./errors";
 import { extractModelName, parseDiagnosticsHeaders, safeInspectorError, summarizeDiagnostics, nowIso } from "./diagnostics";
 import { serializeFormData, dedupeKey } from "./serialization";
-import { calculateBackoff, computeRateLimitWait, deleteInFlight, getInFlight, hasInFlight, resolveTimeoutMs, setInFlight } from "./retry";
+import { calculateBackoff, computeRateLimitWait, deleteInFlight, getInFlight, hasInFlight, resolveRetryEnabled, resolveTimeoutMs, setInFlight } from "./retry";
 import { getSafetyDecisionForLog } from "./safety";
 import type { SafetyGuardDecision } from "../../shared/safety";
 import { applyVeniceApiSafeMode, endpointSupportsSafeMode } from "../../shared/veniceSafeMode";
@@ -173,7 +173,7 @@ async function veniceFetchDesktop(
     dispatch = undefined as AppDispatch | undefined,
     headers = {} as Record<string, string>,
     isFormData = false,
-    retry = true,
+    retry: retryOption = undefined as boolean | undefined,
     timeoutMs = undefined as number | undefined,
   }: {
     method?: "GET" | "POST";
@@ -191,6 +191,7 @@ async function veniceFetchDesktop(
   if (isFormData && body instanceof FormData) {
     serializedBody = await serializeFormData(body);
   }
+  const retry = resolveRetryEnabled(method, retryOption);
   const maxAttempts = retry ? 3 : 1;
   let lastError: VeniceApiError | null = null;
 
@@ -306,7 +307,7 @@ async function _veniceFetch(
     dispatch = undefined as AppDispatch | undefined,
     headers = {} as Record<string, string>,
     isFormData = false,
-    retry = true,
+    retry: retryOption = undefined as boolean | undefined,
     timeoutMs = undefined as number | undefined,
   }: {
     method?: "GET" | "POST";
@@ -319,6 +320,7 @@ async function _veniceFetch(
     timeoutMs?: number;
   } = {}
 ): Promise<{ data: unknown; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }> {
+  const retry = resolveRetryEnabled(method, retryOption);
   if (isElectron()) {
     return veniceFetchDesktop(endpoint, {
       method,
@@ -511,6 +513,10 @@ export async function veniceFetch<T = unknown>(
     dispatch?: AppDispatch;
     headers?: Record<string, string>;
     isFormData?: boolean;
+    /**
+     * When omitted, GET/HEAD/OPTIONS retry on 429/5xx/network failures and
+     * POST/PUT/PATCH/DELETE do not. Explicit `true`/`false` always wins.
+     */
     retry?: boolean;
     timeoutMs?: number;
     dedupe?: boolean;
@@ -591,7 +597,36 @@ export async function veniceFetch<T = unknown>(
 
   const key = dedupe ? dedupeKey(endpoint, method, body) : "";
   if (dedupe && hasInFlight(key)) {
-    return getInFlight(key) as Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }>;
+    const shared = getInFlight(key) as Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }>;
+    void shared.then(
+      (result) => {
+        useInspectorStore.getState().updateLog(
+          logId,
+          buildInspectorTelemetryPatch({
+            status: result.response.status,
+            durationMs: Date.now() - startedAt,
+            previewDurationMs,
+            guardOutcome,
+            responseHeaders: result.headers,
+            responseBody: { deduplicated: true },
+          }),
+        );
+      },
+      (err: unknown) => {
+        const errAny = err as { status?: number };
+        useInspectorStore.getState().updateLog(
+          logId,
+          buildInspectorTelemetryPatch({
+            status: errAny.status || 500,
+            durationMs: Date.now() - startedAt,
+            previewDurationMs,
+            guardOutcome,
+            error: safeInspectorError(err),
+          }),
+        );
+      },
+    );
+    return shared;
   }
 
   const execute = async () => {

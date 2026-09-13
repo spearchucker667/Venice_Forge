@@ -192,6 +192,83 @@ describe("characterCardStorage", () => {
       expect(buf.length).toBe(loaded!.avatar!.byteLength);
     });
 
+    it("[P1-004] preserves avatar.png when a later save omits the avatar field", async () => {
+      const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+      const card = makeCard({
+        id: "card-avatar-keep",
+        avatar: { data: png, mimeType: "image/png", byteLength: png.length },
+      });
+      expect(await saveCharacterCard(card)).toEqual({ ok: true });
+
+      const { avatar: _omitted, ...withoutAvatar } = card;
+      expect(await saveCharacterCard({ ...withoutAvatar, name: "Aria Updated" })).toEqual({ ok: true });
+
+      const avatarPath = path.join(getCharactersDir(), card.id, "avatar.png");
+      await expect(fs.stat(avatarPath)).resolves.toBeDefined();
+      const loaded = await readCharacterCard(card.id);
+      expect(loaded!.name).toBe("Aria Updated");
+      expect(loaded!.avatar).toBeDefined();
+      expect(loaded!.avatar!.data).toBe(png);
+    });
+
+    it("[P1-004] leaves the sidecar in place when avatar is present without data", async () => {
+      const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+      const card = makeCard({
+        id: "card-avatar-stub",
+        avatar: { data: png, mimeType: "image/png", byteLength: png.length },
+      });
+      expect(await saveCharacterCard(card)).toEqual({ ok: true });
+
+      const { avatar: _omitted, ...withoutAvatar } = card;
+      expect(
+        await saveCharacterCard({
+          ...withoutAvatar,
+          avatar: { mimeType: "image/png", byteLength: 0 },
+        }),
+      ).toEqual({ ok: true });
+
+      const loaded = await readCharacterCard(card.id);
+      expect(loaded!.avatar).toBeDefined();
+      expect(loaded!.avatar!.data).toBe(png);
+    });
+
+    it("[P1-004] deletes the avatar sidecar on explicit removal", async () => {
+      const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+      const card = makeCard({
+        id: "card-avatar-remove",
+        avatar: { data: png, mimeType: "image/png", byteLength: png.length },
+      });
+      expect(await saveCharacterCard(card)).toEqual({ ok: true });
+
+      const { avatar: _omitted, ...withoutAvatar } = card;
+      expect(await saveCharacterCard({ ...withoutAvatar, avatar: null })).toEqual({ ok: true });
+
+      const avatarPath = path.join(getCharactersDir(), card.id, "avatar.png");
+      await expect(fs.access(avatarPath)).rejects.toMatchObject({ code: "ENOENT" });
+      const afterNull = await readCharacterCard(card.id);
+      expect(afterNull!.avatar).toBeUndefined();
+
+      expect(await saveCharacterCard({
+        ...withoutAvatar,
+        avatar: { data: png, mimeType: "image/png", byteLength: png.length },
+      })).toEqual({ ok: true });
+      expect(await saveCharacterCard({ ...withoutAvatar, removeAvatar: true })).toEqual({ ok: true });
+      await expect(fs.access(avatarPath)).rejects.toMatchObject({ code: "ENOENT" });
+      const afterFlag = await readCharacterCard(card.id);
+      expect(afterFlag!.avatar).toBeUndefined();
+    });
+
+    it("[P1-004] does not throw when saving an avatar-less card that never had a sidecar", async () => {
+      const card = makeCard({ id: "card-no-avatar-ever" });
+      expect(await saveCharacterCard(card)).toEqual({ ok: true });
+      expect(await saveCharacterCard({ ...card, name: "Still no avatar" })).toEqual({ ok: true });
+      const loaded = await readCharacterCard(card.id);
+      expect(loaded!.name).toBe("Still no avatar");
+      expect(loaded!.avatar).toBeUndefined();
+      const avatarPath = path.join(getCharactersDir(), card.id, "avatar.png");
+      await expect(fs.access(avatarPath)).rejects.toMatchObject({ code: "ENOENT" });
+    });
+
     it("rejects an avatar that exceeds MAX_AVATAR_BYTES", async () => {
       const card = makeCard({
         id: "card-big-avatar",
@@ -292,5 +369,34 @@ describe("characterCardStorage", () => {
       await fs.rm(getCharactersDir("work"), { recursive: true, force: true });
       await fs.rm(getCharactersDir("home"), { recursive: true, force: true });
     });
+  });
+
+  it("[P2-006] concurrent saves of the same card use unique temps and leave valid JSON", async () => {
+    const uniqueTmpRe = /\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const originalWrite = fs.writeFile;
+    const writePaths: string[] = [];
+    const writeSpy = vi.spyOn(fs, "writeFile").mockImplementation(async (...args: Parameters<typeof fs.writeFile>) => {
+      writePaths.push(String(args[0]));
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      return originalWrite(...args);
+    });
+    try {
+      const first = makeCard({ id: "card-race", name: "Alpha", updatedAt: 1 });
+      const second = makeCard({ id: "card-race", name: "Beta", updatedAt: 2 });
+      const [a, b] = await Promise.all([saveCharacterCard(first), saveCharacterCard(second)]);
+      expect(a).toEqual({ ok: true });
+      expect(b).toEqual({ ok: true });
+
+      const tmpPaths = writePaths.filter((file) => uniqueTmpRe.test(file));
+      expect(tmpPaths.length).toBeGreaterThanOrEqual(2);
+      expect(new Set(tmpPaths).size).toBe(tmpPaths.length);
+
+      const target = path.join(getCharactersDir(), "card-race", "character.json");
+      const parsed = JSON.parse(await fs.readFile(target, "utf-8")) as CharacterCardV1;
+      expect(parsed.id).toBe("card-race");
+      expect(["Alpha", "Beta"]).toContain(parsed.name);
+    } finally {
+      writeSpy.mockRestore();
+    }
   });
 });

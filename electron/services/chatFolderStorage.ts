@@ -12,7 +12,6 @@ import { isValidProfileStorageId } from "../../src/utils/profileIdValidation";
 import type { ChatFolder } from "../../src/shared/chatFolderContracts";
 
 const CHAT_FOLDERS_DIR = "chat-folders";
-const TMP_SUFFIX = ".tmp";
 const MAX_SCAN_FILES = 1000;
 const MAX_LOAD_FILES = 1000;
 
@@ -176,7 +175,7 @@ export async function saveChatFolder(folder: ChatFolder, profileId: string = "de
   const dir = getChatFoldersDir(profileId);
   await fs.mkdir(dir, { recursive: true });
   const target = fileFor(id, profileId);
-  const tmp = `${target}${TMP_SUFFIX}`;
+  const tmp = `${target}.tmp-${crypto.randomUUID()}`;
   try {
     const raw = JSON.stringify(folder, null, 2);
     const handle = await fs.open(tmp, "w", 0o600);

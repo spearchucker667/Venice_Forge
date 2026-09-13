@@ -190,4 +190,33 @@ describe("rpChatStorage", () => {
       expect(r.ok).toBe(false);
     });
   });
+
+  it("[P2-006] concurrent saves of the same chat use unique temps and leave valid JSON", async () => {
+    const uniqueTmpRe = /\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const originalWrite = fs.writeFile;
+    const writePaths: string[] = [];
+    const writeSpy = vi.spyOn(fs, "writeFile").mockImplementation(async (...args: Parameters<typeof fs.writeFile>) => {
+      writePaths.push(String(args[0]));
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      return originalWrite(...args);
+    });
+    try {
+      const first = makeChat({ id: "chat-race", title: "Alpha", updatedAt: 1 });
+      const second = makeChat({ id: "chat-race", title: "Beta", updatedAt: 2 });
+      const [a, b] = await Promise.all([saveRpChat(first), saveRpChat(second)]);
+      expect(a).toEqual({ ok: true });
+      expect(b).toEqual({ ok: true });
+
+      const tmpPaths = writePaths.filter((file) => uniqueTmpRe.test(file));
+      expect(tmpPaths).toHaveLength(2);
+      expect(tmpPaths[0]).not.toBe(tmpPaths[1]);
+
+      const target = path.join(getRpChatsDir(), "chat-race.json");
+      const parsed = JSON.parse(await fs.readFile(target, "utf-8")) as RpChatV1;
+      expect(parsed.id).toBe("chat-race");
+      expect(["Alpha", "Beta"]).toContain(parsed.title);
+    } finally {
+      writeSpy.mockRestore();
+    }
+  });
 });

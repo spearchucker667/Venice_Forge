@@ -316,7 +316,7 @@ describe("prompt-library-store (VERIFY-046)", () => {
       mockStorage.getItems.mockRejectedValueOnce(raw);
       await usePromptLibraryStore.getState().ensureLoaded();
       const { loadError, hydrated } = usePromptLibraryStore.getState();
-      expect(hydrated).toBe(true);
+      expect(hydrated).toBe(false);
       expect(loadError).toBe(redactErrorMessage(raw));
       expect(loadError).toContain("IndexedDB read failed");
       expect(loadError).not.toContain("vn-aaaaaaaaaaaaaaaa");

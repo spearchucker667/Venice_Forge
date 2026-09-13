@@ -4,11 +4,129 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-12 Publication to `origin/main`.** Published the current-`main` audit remediation (P1s, implementable P2s, confirmed P3s, capability tokens, gallery persist, IPC consumers, Replicate dispatch, workflow persist-cap warning, CSP smoke auto-run). Local validation: lint, typecheck, `npm test` 5935 passed / 4 skipped, ipc-parity 190/190, safety-guard, i18n hardcoded regressions. Hosted CI/CodeQL inspected after push.
+
+- **2026-09-12 Remaining issues closeout.** Wired Replicate image generation through `desktopReplicate.generateImage` (Image Studio + workflow imageGen). Visual workflow persist cap now warns and refuses a 21st save (ZST-P3-023 was on `workflow-store`, not templates). Packaged CSP smoke auto-runs when a packaged binary exists and probes inline scripts. `npm test` 5935 passed / 4 skipped. Not committed.
+
+- **2026-09-12 Remaining deferred items.** Web gallery persist now converts `data:`/`blob:` into the IndexedDB images store (bounded; `https:` still refused). Wired `conversations:archive` (HistoryView + chat-store), `conversations:search` (Memory Panel), and `characterCreator:validateCard`. `replicate:generateImage` is a documented renderer orphan. CSP header injection is unit-tested via `applyRendererCspHeaders`. `npm test` 5929 passed / 3 skipped. Not committed. Still open: packaged CSP smoke without `RUN_ELECTRON_SMOKE`; ZST-P3-023 not reproduced.
+
+- **2026-09-12 Deferred-item closeout.** Wired custom-protocol capability tokens (issue via IPC, verify in `venice-media`/`venice-tts`/`venice-character-cache` handlers, revoke on profile switch/reload/shutdown). IPC hygiene: main-frame dialogs, boolean rate-limit returns, inspector profile filter, fallbackConfig validation, HF `force`, load-dialog cancel shape. Profile switch aborts in-flight chat/TTS. Truncated chat lists continue via `listPage`. `npm test` 5924 passed / 3 skipped. Not committed. Still open: web data-URL gallery persist, unused archive/search/replicate/validateCard surfaces, packaged CSP smoke (skip without env).
+
+- **2026-09-12 Exhaustive Line-by-Line Bug Audit & Engineering Review.** Audited the current `main` checkout (`84cf5bbe`, v3.0.0-beta.3) against `origin/main` (no divergence). Read required instructions (`AGENTS.md`, `AGENT_REINITIALIZATION.md`, `docs/DOCS_INDEX.md`, `docs/ROADMAP.md`), established the baseline, inventoried 1,914 tracked files, and ran the canonical validation suite: `lint:eslint`, `typecheck`, `npm test`, `build`, `verify:dist`, `verify:contracts:static`, `verify:contracts:features`, `verify:i18n`, `verify:i18n-hardcoded-regressions`, and `verify:theme-tokens` — all passed. Dispatched six deep-dive audit agents for the highest-risk domains (Electron security, IPC parity, guard/secrets/safety, main-process storage, Venice client/streaming, renderer stores/persistence). A second wave of six agents was interrupted by provider quota exhaustion; those surfaces were covered by targeted manual review, static search, and existing verifier scripts instead. Produced a complete audit package under `docs/audits/venice-forge-exhaustive-audit-2026-09-12-current-main/`. Identified **55 findings** (0 P0, 13 P1, 20 P2, 22 P3). **Release readiness: NOT READY** due to 13 blocking P1 defects. Working tree remained clean throughout; no source files were modified.
+
 - **2026-09-12 Documentation, Repository Organization, File Hygiene & Gitignore Overhaul.** Conducted a thorough repository-wide hygiene, architecture, and documentation audit against baseline `c1aa891b`. Verified root directory cleanliness (29 canonical files; zero junk, scratch, or misplaced files), tracked-file inventory (1,914 tracked files audited), `.gitignore` completeness and zero tracked-file conflicts (`git ls-files -c -i --exclude-standard` returns empty), `.gitattributes` text/binary normalization, `.editorconfig` formatting rules, and Markdown link integrity (335 files, 0 broken links). Updated `README.md` test instructions to reflect parallel Vitest execution, synchronized `docs/DOCS_INDEX.md` audit status, and refreshed `docs/repository-maintenance/` reports (`REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`).
 
 - **2026-09-12 Publication to Main (VF-AUD-20260912 & Re-pass Remediation).** Completed publication to `main` authorized by the user ("push to mAin"). Committed and pushed the full 2026-09-12 exhaustive audit remediation tranche (19 resolved findings: 4 P1, 6 P2, 5 P3, 2 DR, 3 TG) along with re-pass remediations N1..N7 (including automated IPC parity verifier, config atomicity edge cases, and bounds protections) to remote `main`. All local validation gates passed cleanly prior to push: `lint:eslint` (0/0), `typecheck` (3 tsconfigs), `npm test` (5,858 passed / 3 skipped, 516 files), `verify:contracts` (static, features, release - 104+ checks), `verify:safety-guard`, `verify:markdown-links` (335 files), `verify:ipc-parity`, `verify:dist`, and `build` (web, server, electron).
 
 ## Session History
+
+### 2026-09-12 — Publication to origin/main (current-main audit remediation)
+
+- **Scope:** User-authorized commit and push of the 2026-09-12 current-`main` audit remediation on `main`.
+- **Included:** P1/P2/P3 remediations, capability tokens, gallery persist, IPC consumers, Replicate dispatch, workflow persist-cap warning, CSP smoke auto-run, and the current-main audit package (gitignore allowlisted).
+- **Validation:** recorded in the Validation Matrix for this publication.
+- **Publication:** committed on local `main` and pushed to `origin/main`. Remote SHA verified after push. Hosted CI/CodeQL inspected after push.
+
+### 2026-09-12 — Remaining issues closeout (Replicate, workflow cap, CSP smoke)
+
+- **Scope:** Close the leftovers called out after the deferred-item pass.
+- **Implemented:** Replicate catalog models dispatch via `replicate:generateImage`; visual workflow persist cap warns instead of silent drop; packaged Electron smokes run when a package exists (not only `RUN_ELECTRON_SMOKE`) and assert inline-script CSP blocking.
+- **Validation:** lint PASS; typecheck PASS; `npm test` 5935 passed / 4 skipped; ipc-parity 190/190 with 0 renderer orphans; safety-guard PASS; i18n hardcoded regressions PASS.
+- **Publication:** not committed.
+
+### 2026-09-12 — Remaining deferred items (gallery persist + IPC consumers + CSP)
+
+- **Scope:** Continue leftovers after the deferred-item closeout without violating AGENTS.md §11 (no durable task-record data URLs; no persisting expiring https URLs).
+- **Implemented:** ZST-P2-019 residual web gallery persist (`data:`/`blob:` → bounded data URL in IndexedDB images store; `https:` refused); IPC-P3-004 remaining consumers (`archive`, `search`, `validateCard`); renderer-consumer coverage in `verify-ipc-parity`; SEC-P3-004 unit test of CSP header injection.
+- **Not implemented:** Replicate generation UI (`replicate:generateImage` documented renderer orphan); packaged Electron CSP smoke (still gated on `RUN_ELECTRON_SMOKE`); ZST-P3-023 (not reproduced).
+- **Validation:** lint PASS; typecheck PASS; `npm test` 5929 passed / 3 skipped; ipc-parity 190/190 with 1 documented renderer orphan; safety-guard PASS; i18n hardcoded regressions PASS.
+- **Publication:** not committed.
+
+### 2026-09-12 — Deferred-item closeout (capability tokens + IPC/P3)
+
+- **Scope:** Finish previously deferred audit items that were implementable without violating AGENTS.md.
+- **Implemented:** SEC-P2-002/STOR-P2-009 capability tokens; IPC-P3-005..009; ZST-P3-024 abort-in-flight; `chat:listPage` continuation.
+- **Not implemented:** web data-URL gallery persist (AGENTS.md §11); deleting unused archive/search/replicate/validateCard channels; SEC-P3-004 packaged CSP (smoke exists, gated on `RUN_ELECTRON_SMOKE`).
+- **Validation:** lint PASS; typecheck PASS; `npm test` 5924 passed / 3 skipped; ipc-parity 190/190; safety-guard PASS.
+- **Publication:** not committed.
+
+### 2026-09-12 — Remaining audit closeout (P2 leftovers + confirmed P3s)
+
+- **Scope:** Finish remaining confirmed defects from `docs/audits/venice-forge-exhaustive-audit-2026-09-12-current-main/` after the P1/P2 tranche and review.
+- **Implemented:** Express FSM chat SSE/JSON screening; STOR-P2-007/008/010; GSS-P3-005; STOR-P3-011..014; VCS-P3-007..009; ZST-P3-021/022.
+- **Not implemented (deferred/not reproducible):** SEC-P2-002/STOR-P2-009 capability tokens; web gallery `data:` persist (AGENTS.md §11); IPC-P3-004..009; SEC-P3-004 packaged CSP (smoke exists, skipped without package); ZST-P3-023 (no 20-template cap); ZST-P3-024 profile-switch atomicity.
+- **Validation:**
+  - `npm run lint:eslint` — PASS.
+  - `npx tsc --noEmit` + electron tsconfig — PASS.
+  - `npm test` — PASS (5,920 passed / 3 skipped, 515 files).
+  - `npm run verify:safety-guard` — PASS (includes direct `performVeniceRequest(` scan).
+  - `npm run verify:ipc-parity` — PASS (189/189).
+- **Publication:** not committed, not pushed.
+
+### 2026-09-12 — Fact-driven review of uncommitted remediations
+
+- **Scope:** Verify every claimed P1/P2 in the uncommitted working tree against source and tests; close any residual that still broke the claimed contract.
+- **Baseline:** `84cf5bbeb34ce87ab04ac6d6f8f164e549f4f399` on `main` (v3.0.0-beta.3). Dirty tree treated as user-owned remediations.
+- **Review:** Independent source verification plus a reviewer subagent (1 bug: GSS-P1-002 multimodal field-budget residual, closed in this session).
+- **Confirmed in source:** SEC-P1-001, VCS-P1-001/002/003/004, IPC-P1-001, GSS-P1-001, STOR-P1-001..004, ZST-P1-014, plus the prior follow-ups (`startStream` `{ blocked }`, RpChatView 451 persist clear, hydrate `preserveEmptyAssistantForId`, agent `tool_calls.index`, `^session$` redaction).
+- **Closed this session:** GSS-P1-002 residual — `extractChatMessages` now reserves the first/system turn before spending the remaining field budget on the newest multimodal message; content-part `type` is not counted as prompt text.
+- **Still open / residual:** Express proxy SSE live-pipe; web `taskMediaCatalog` skip of `data:`/`blob:`/`https:` result URLs; STOR-P2-007/008/010; SEC-P2-002/STOR-P2-009; remaining P3s.
+- **Validation (this session):**
+  - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+  - `npm run typecheck` — PASS (root + electron tsconfigs re-run after the extractor reservation tweak).
+  - Focused Vitest (38 files / 739 tests covering changed surfaces) — PASS.
+  - `npx vitest run src/shared/safety/promptPayloadExtractor.test.ts` — PASS (29 tests, including 16-part and 40-part last-message reservation cases).
+  - `npm test` — PASS (5,914 passed / 3 skipped, 515 files).
+  - `npm run verify:ipc-parity` — PASS (189/189, 0 orphans).
+  - `npm run verify:safety-guard` — PASS.
+  - `npm run build` — NOT RE-RUN this session (prior remediation session already passed).
+- **Publication:** not committed, not pushed.
+- **Manual QA / hosted CI:** not run.
+
+### 2026-09-12 — Current-main audit remediation (13 P1s + most P2s)
+
+- **Scope:** Finish the interrupted “begin on all tasks found” remediation of `docs/audits/venice-forge-exhaustive-audit-2026-09-12-current-main/`.
+- **Baseline:** `84cf5bbeb34ce87ab04ac6d6f8f164e549f4f399` on `main` (v3.0.0-beta.3). Pre-existing dirty files (TTS, CSP, docs) were treated as user-owned and completed rather than reverted.
+- **P1s closed:** SEC-P1-001, VCS-P1-001/002/003/004, IPC-P1-001, GSS-P1-001/002, STOR-P1-001..004, ZST-P1-014.
+- **P2s closed:** GSS-P2-003/004, VCS-P2-005/006, IPC-P2-002/003, STOR-P2-005/006, ZST-P2-015..019, ZST-P2-020.
+- **P3s closed:** SEC-P3-003 (via IPC-P2-002), GSS-P3-006, GSS-P3-007.
+- **Still open:** STOR-P2-007 journal compaction, STOR-P2-008 sync device prune, STOR-P2-010 backup integrity counts, SEC-P2-002/STOR-P2-009 capability tokens (already on `VF-CAPABILITY-PROVENANCE-2026-08-31`), remaining P3s.
+- **Validation (this session):**
+  - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+  - `npm run typecheck` — PASS (3 tsconfig targets).
+  - Focused Vitest (35 files / 632 tests covering changed surfaces) — PASS.
+  - `npm run verify:i18n -- --allow-missing-markers` — PASS (22 pre-existing missing-marker warnings).
+  - `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+  - `npm run verify:ipc-parity` — PASS (189/189, 0 orphans).
+  - `npm run verify:safety-guard` — PASS.
+  - `npm test` — PASS (5,910 passed / 3 skipped, 515 files).
+  - `npm run build` — PASS (web, server, electron).
+- **Publication:** not committed, not pushed.
+- **Manual QA / hosted CI:** not run.
+
+### 2026-09-12 — Exhaustive Line-by-Line Bug Audit & Engineering Review (current main)
+
+- **Scope:** Independent re-audit of the current `main` checkout at `84cf5bbe` (v3.0.0-beta.3) to identify every reasonably discoverable defect across correctness, security, IPC, Venice API integration, streaming, persistence, UI/UX, theme/i18n, tests, CI/CD, release, dependencies, and documentation.
+- **Baseline:** `84cf5bbeb34ce87ab04ac6d6f8f164e549f4f399` (`origin/main` matches; working tree clean).
+- **Instructions read:** `AGENTS.md`, `AGENT_REINITIALIZATION.md`, `docs/DOCS_INDEX.md`, `docs/ROADMAP.md`.
+- **Validation executed:**
+  - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+  - `npm run typecheck` — PASS (3 tsconfig targets).
+  - `npm test` — PASS (5,858 passed / 3 skipped, 516 files).
+  - `npm run build` + `verify:dist` — PASS.
+  - `npm run verify:contracts:static` — PASS.
+  - `npm run verify:contracts:features` — PASS.
+  - `npm run verify:i18n` — PASS (22 warnings under `--allow-missing-markers`).
+  - `npm run verify:i18n-hardcoded-regressions` — PASS.
+  - `npm run verify:theme-tokens` — PASS.
+- **Coverage:**
+  - Deep line-by-line agent review of: Electron security, IPC parity, guard/secrets/safety, main-process storage, Venice client/streaming, renderer stores/persistence.
+  - Targeted manual review + verifiers for: chat/media/remaining UI, theme/i18n, domain services, tests, CI/CD, release, dependencies, docs.
+  - Explicit limitation: six second-wave subagents were stopped by provider quota before completing; those domains were not line-by-line audited by an agent.
+- **Findings:** 55 total — 0 P0, 13 P1, 20 P2, 22 P3.
+- **Release readiness:** NOT READY (13 blocking P1s, including streaming safety parity, TTS failure, vault save envelope mismatch, RP chat request shape, data-loss paths).
+- **Audit package:** `docs/audits/venice-forge-exhaustive-audit-2026-09-12-current-main/`.
+- **Working tree:** Clean; no source files modified.
 
 ### 2026-09-12 — Documentation, Repository Organization, File Hygiene & Gitignore Overhaul
 
@@ -1117,15 +1235,96 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * `VF-RULES01-SYNC-2026-08-31` is Completed. Live ruleset `21229461` was updated via `scripts/enforce-github-rules.sh` and verified via GitHub API (enforces all 13 status checks including script-coverage and electron-smoke-{macos,windows,linux}). Removed from `docs/ROADMAP.md`.
 * `VF-EXTERNAL-RELEASE-ACCEPTANCE-2026-08-31` remains BETA/INCOMPLETE; signed/paid/two-device/headed release evidence still must be produced on a real publication tag.
 * `CSP-001` is closed by the Meteocon remediation recorded above; the canonical roadmap no longer lists it as unfinished work.
-* `VF-MEDIA-APPROVAL-2026-09-01` (P1 agent media tool contract/authorization/approval) is locally implemented for `media.generateImage`: capability-gated tool visibility, trusted runtime model resolution, immutable approval plans, and approved-plan execution through the durable paid-submission manager. Broader media tool surface (video/audio), custom protocol capability-token wiring, semantic classifier implementation, and release-packaging evidence remain deferred per `docs/ROADMAP.md`.
+* `VF-MEDIA-APPROVAL-2026-09-01` (P1 agent media tool contract/authorization/approval) is locally implemented for `media.generateImage`: capability-gated tool visibility, trusted runtime model resolution, immutable approval plans, and approved-plan execution through the durable paid-submission manager. Custom-protocol capability tokens are implemented in the working tree. Broader media tool surface (video/audio), semantic classifier implementation, and release-packaging evidence remain deferred per `docs/ROADMAP.md`.
 * Live paid replay of `wai-Illustrious` `/image/generate` after omitting dummy `cfg_scale: 1` is unverified. The CLI `.env` key returned `402` DIEM spend-limit; the Electron inspector session that captured the 500 used a different funded key.
 * `VF-GENERATION-CONTRACT-PARITY-2026-09-01` items 1–2 are implemented in the unpublished worktree. Item 3 is scoped: optional `upscale_factor` already exists on quote/queue builders; enhancement-only Topaz fields stay off default text/image-to-video bodies until Video Studio has an enhancement-model surface. This item does not reclassify the WAI upstream worker outage as a Forge defect.
 * `VF-AUD-20260910` and `VF-AUD-20260911` local findings are implemented and locally/package verified. Remaining project-wide work is `VF-EXTERNAL-RELEASE-ACCEPTANCE`, including exact-SHA hosted acceptance after publication, native i18n review, and signed/paid release evidence. See `docs/ROADMAP.md`.
-* Web video retrieve-as-bytes plays a session `blob:` URL and does not write a durable IDB blob store. Reload on web still cannot recover those bytes; Electron main-process retrieve remains the restart-safe path.
+* Web video retrieve-as-bytes still uses a session `blob:` URL for playback. Gallery persist now stores a bounded data URL in the IndexedDB images store; Electron main-process retrieve remains the restart-safe path.
 * The 2026-09-11 Repository Organization, Documentation Architecture, File Hygiene, and Gitignore Overhaul is locally complete. All 10 validation commands passed; 0 tracked files are ignored; 0 broken links in 323 markdown files; all manifests generated in `docs/repository-maintenance/`.
 * `VF-AUD-20260912` (Exhaustive codebase audit findings remediation) is Completed. All 19 confirmed defects, design risks, test gaps, and improvements, plus the 7 re-pass findings (N1..N7), were remediated, tested, validated, and published to `origin/main`. Reconciled in `docs/ROADMAP.md` and marked `RESOLVED` in `docs/audits/venice-forge-exhaustive-audit-2026-09-12/review-ledger.csv`.
+* `VF-AUD-20260912-current-main` (independent re-audit at `84cf5bbe`) P1s, implementable P2s including capability tokens, and confirmed P3s are remediated and published to `origin/main`. Packaged Electron smokes still skip in `npm test` when no packaged executable is present.
 
 ## Validation Matrix
+
+### 2026-09-12 — Publication to origin/main
+
+- `npm run lint:eslint` — PASS.
+- `npm run typecheck` — PASS (3 tsconfig targets).
+- `npm test` — PASS (5,935 passed / 4 skipped; re-run before this publication).
+- `npm run verify:ipc-parity` — PASS (190/190, 0 renderer orphans).
+- `npm run verify:safety-guard` — PASS.
+- Hosted CI / CodeQL — inspected after push.
+
+### 2026-09-12 — Remaining issues closeout
+
+- `npm run lint:eslint` — PASS.
+- `npm run typecheck` — PASS (3 tsconfig targets).
+- `npm test` — PASS (5,935 passed / 4 skipped, 519 files passed / 2 skipped).
+- `npm run verify:ipc-parity` — PASS (190/190, 0 handler orphans, 0 documented renderer orphans).
+- `npm run verify:safety-guard` — PASS.
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+- `npm run build` — NOT RUN.
+- Hosted CI / CodeQL / manual QA — NOT RUN.
+
+### 2026-09-12 — Remaining deferred items
+
+- `npm run lint:eslint` — PASS.
+- `npm run typecheck` — PASS (3 tsconfig targets).
+- `npm test` — PASS (5,929 passed / 3 skipped, 517 files passed / 2 skipped).
+- `npm run verify:ipc-parity` — PASS (190/190, 0 handler orphans, 1 documented renderer orphan).
+- `npm run verify:safety-guard` — PASS.
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+- `npm run build` — NOT RUN.
+- Hosted CI / CodeQL / manual QA — NOT RUN.
+
+### 2026-09-12 — Deferred-item closeout
+
+- `npm run lint:eslint` — PASS.
+- `npx tsc --noEmit` and electron tsconfig — PASS.
+- `npm test` — PASS (5,924 passed / 3 skipped).
+- `npm run verify:ipc-parity` — PASS (190/190).
+- `npm run verify:safety-guard` — PASS.
+- `npm run build` — NOT RUN.
+- Hosted CI / CodeQL / manual QA — NOT RUN.
+
+### 2026-09-12 — Remaining audit closeout
+
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+- `npx tsc --noEmit` and `tsc --noEmit --project tsconfig.electron.json` — PASS.
+- `npm test` — PASS (5,920 passed / 3 skipped, 515 files).
+- `npm run verify:ipc-parity` — PASS (189/189, 0 orphans).
+- `npm run verify:safety-guard` — PASS.
+- `npm run build` — NOT RUN this session.
+- Hosted CI / CodeQL — NOT RUN.
+- Manual QA — NOT RUN.
+
+### 2026-09-12 — Fact-driven review of uncommitted remediations
+
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+- `npm run typecheck` — PASS (root + `tsconfig.electron.json` re-run after the extractor reservation tweak; earlier full 3-target run also PASS).
+- Focused Vitest (38 changed-surface files) — PASS (739 tests).
+- `npx vitest run src/shared/safety/promptPayloadExtractor.test.ts` — PASS (29 tests).
+- `npm test` — PASS (5,914 passed / 3 skipped, 515 files).
+- `npm run verify:ipc-parity` — PASS (189 handlers, 189 preload.invoke, 10 preload.on, 0 documented orphans).
+- `npm run verify:safety-guard` — PASS.
+- `npm run build` — NOT RUN this session.
+- Hosted CI / CodeQL — NOT RUN.
+- Manual QA — NOT RUN.
+
+### 2026-09-12 — Current-main audit remediation
+
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+- `npm run typecheck` — PASS (3 tsconfig targets).
+- Focused Vitest on changed files — PASS (35 files / 632 tests).
+- `tests/safety/guardPipeline.test.ts` — PASS (41 tests, after GSS-P1-001 onDelta contract update).
+- `npm run verify:i18n -- --allow-missing-markers` — PASS (22 pre-existing missing-marker warnings).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+- `npm run verify:ipc-parity` — PASS (189 handlers, 189 preload.invoke, 10 preload.on, 0 documented orphans).
+- `npm run verify:safety-guard` — PASS.
+- `npm test` — PASS (5,910 passed / 3 skipped, 515 files).
+- `npm run build` — PASS (web, server, electron).
+- Hosted CI / CodeQL — NOT RUN.
+- Manual QA — NOT RUN.
 
 ### 2026-09-12 — Publication to Main (Exhaustive Audit Remediation & Re-pass Validation)
 

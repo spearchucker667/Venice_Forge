@@ -9,9 +9,19 @@
  * handler/emitter has no preload consumer.
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const VERIFIER = "scripts/verify-ipc-parity.cjs";
+
+const FORBIDDEN_ORPHAN_ALLOWLIST_CHANNELS = [
+  "documentAgent:workspace:proposeChangeset",
+  "documentAgent:workspace:proposeMove",
+  "documentAgent:workspace:proposeTrash",
+  "credential:set",
+  "credential:get",
+  "credential:delete",
+];
 
 describe("verify-ipc-parity (VF-AUD-20260912-N1)", () => {
   it("passes on the live repository", () => {
@@ -31,8 +41,18 @@ describe("verify-ipc-parity (VF-AUD-20260912-N1)", () => {
     expect(result.status).toBe(0);
     // Expected ranges — these can drift upward as new channels are added, but
     // a sudden drop indicates a regression in IPC surface registration.
-    expect(result.stdout).toMatch(/handler-registered channels: (19[0-9]|200)/);
-    expect(result.stdout).toMatch(/preload\.invoke channels: \s+(19[0-9]|200)/);
+    expect(result.stdout).toMatch(/handler-registered channels: (18[5-9]|19[0-9]|200)/);
+    expect(result.stdout).toMatch(/preload\.invoke channels: \s+(18[5-9]|19[0-9]|200)/);
     expect(result.stdout).toMatch(/preload\.on channels: \s+(10|1[1-9])/);
+    expect(result.stdout).toMatch(/documented orphans:\s+0/);
+    expect(result.stdout).toMatch(/documented renderer orphans:\s+0/);
+  });
+
+  it("does not allow-list removed workspace-propose or generic-credential channels", () => {
+    const src = readFileSync(VERIFIER, "utf8");
+    for (const channel of FORBIDDEN_ORPHAN_ALLOWLIST_CHANNELS) {
+      expect(src).not.toContain(`'${channel}'`);
+      expect(src).not.toContain(`"${channel}"`);
+    }
   });
 });

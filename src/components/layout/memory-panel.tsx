@@ -7,6 +7,7 @@ import { redactErrorMessage } from "../../shared/redaction";
 import type {
   ConversationRecordV1,
   MemoryFact,
+  SearchResult,
 } from "../../types/conversationVault";
 import { Trans, useTranslation } from "react-i18next";
 
@@ -30,6 +31,9 @@ export function MemoryPanel() {
     { fact: MemoryFact; record: ConversationRecordV1 }[]
   >([]);
   const [lastIndexed, setLastIndexed] = useState<string>("");
+  const [vaultQuery, setVaultQuery] = useState("");
+  const [vaultResults, setVaultResults] = useState<SearchResult[]>([]);
+  const [vaultSearching, setVaultSearching] = useState(false);
 
   useEffect(() => {
     checkLegacy();
@@ -95,6 +99,42 @@ export function MemoryPanel() {
       );
     } finally {
       setIndexing(false);
+    }
+  }
+
+  async function handleVaultSearch(query: string) {
+    setVaultQuery(query);
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setVaultResults([]);
+      return;
+    }
+    setVaultSearching(true);
+    try {
+      const res = await desktopConversations.search(trimmed, { limit: 25 });
+      if (res.ok) {
+        setVaultResults(Array.isArray(res.results) ? res.results : []);
+      } else {
+        setVaultResults([]);
+        toast.error(
+          tRuntime(
+            "runtimeGenerated.components.layout.memoryPanel.notification.searchFailedValue1",
+            "Search failed: {{value1}}",
+            { value1: res.error ?? "" },
+          ),
+        );
+      }
+    } catch (err) {
+      setVaultResults([]);
+      toast.error(
+        tRuntime(
+          "runtimeGenerated.components.layout.memoryPanel.notification.searchFailed",
+          "Conversation search failed",
+        ),
+        redactErrorMessage(err),
+      );
+    } finally {
+      setVaultSearching(false);
     }
   }
 
@@ -350,6 +390,47 @@ export function MemoryPanel() {
             <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.description.lastIndexedAt" />{" "}
             {lastIndexed}
           </p>
+        )}
+      </div>
+
+      <div className="rounded-xl soft-panel mesh-surface-elevated p-5 space-y-4">
+        <h3 className="text-[14.5px] font-medium text-text-primary">
+          <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.heading.searchVault" />
+        </h3>
+        <input
+          type="search"
+          value={vaultQuery}
+          onChange={(e) => void handleVaultSearch(e.target.value)}
+          placeholder={tRuntime(
+            "runtimeGenerated.components.layout.memoryPanel.attribute.searchConversations",
+            "Search conversations",
+          )}
+          className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+        />
+        {vaultSearching && (
+          <p className="text-[12px] text-text-muted">
+            {tRuntime(
+              "runtimeGenerated.components.layout.memoryPanel.text.searching",
+              "Searching…",
+            )}
+          </p>
+        )}
+        {vaultResults.length > 0 && (
+          <div className="space-y-2 max-h-[220px] overflow-y-auto">
+            {vaultResults.map((result) => (
+              <div
+                key={result.id}
+                className="p-3 rounded-lg border border-border bg-surface/50"
+              >
+                <div className="text-[13px] font-medium text-text-primary">
+                  {result.title}
+                </div>
+                <div className="text-[12px] text-text-muted mt-1 line-clamp-2">
+                  {result.summary}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

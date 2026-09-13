@@ -1,6 +1,7 @@
 import { translateRuntime } from "../i18n/runtimeTranslator";
 import { useSettingsStore } from "../stores/settings-store";
 import { desktopTts, isElectron } from "./desktopBridge";
+import { resolvePlayableMediaUrl } from "./playableMediaUrl";
 import { DEFAULT_TTS_MODEL } from "../constants/venice";
 import { DEFAULT_TTS_VOICE } from "../constants/tts";
 import { veniceBlob } from "../lib/venice-client";
@@ -145,7 +146,9 @@ class ChatTtsControllerImpl {
           );
           sourceUrl = this.objectUrl;
         } else if (result.id && result.profileId) {
-          sourceUrl = `venice-tts://${result.profileId}/${result.id}.mp3`;
+          sourceUrl = await resolvePlayableMediaUrl(
+            `venice-tts://${result.profileId}/${result.id}.mp3`,
+          );
         } else {
           throw new Error(
             "TTS playback target missing cache id or profile id.",

@@ -49,10 +49,20 @@ function conversationPath(id: string, profileId: string): string {
 /** Reads and validates a conversation file from disk.
  *  If the file is corrupt, it is renamed to `.backup` and `null` is returned.
  */
+function isFutureConversationFile(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.version === "number" && Number.isFinite(v.version) && v.version > FILE_VERSION;
+}
+
 async function readConversationFile(filePath: string): Promise<Conversation | null> {
   try {
     const raw = await fs.readFile(filePath, "utf-8");
     const parsed = JSON.parse(raw) as unknown;
+    if (isFutureConversationFile(parsed)) {
+      logInfo("Unsupported newer chat-history schema retained", path.basename(filePath));
+      return null;
+    }
     if (!isValidConversationFile(parsed)) {
       throw new Error("Schema validation failed");
     }
@@ -61,13 +71,13 @@ async function readConversationFile(filePath: string): Promise<Conversation | nu
     if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
     }
-    logError("Chat history file corrupt or unreadable", { path: filePath, error: String(err) });
+    logError("Chat history file corrupt or unreadable", { path: path.basename(filePath), error: String(err) });
     try {
       const timestamp = Date.now();
       const randomSuffix = crypto.randomUUID();
       const backupPath = `${filePath}.backup.${timestamp}.${randomSuffix}`;
       await fs.rename(filePath, backupPath);
-      logInfo("Corrupt chat file backed up", backupPath);
+      logInfo("Corrupt chat file backed up", path.basename(backupPath));
     } catch {
       // Best-effort backup; ignore failure.
     }
@@ -246,7 +256,7 @@ export async function listConversations(
   if (!options && !truncated) {
     return page;
   }
-  return { conversations: page, truncated, totalScanned: totalValid, offset: requestedOffset, count: page.length };
+  return { conversations: page, truncated, totalScanned, offset: requestedOffset, count: page.length };
 }
 
 /** Retrieves a single conversation by id. */

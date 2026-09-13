@@ -85,6 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "Bild nedladdad",
     "imageSaveFailed": "Det gick inte att spara bild",
+    "replicateQueued": "__MISSING__:Replicate generation queued",
+    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
     "imageDownloadFailedDetail": "Det gick inte att ladda ner bilden.",
     "none": "Ingen",
     "enhancedPromptShortened": "Förbättrad uppmaning förkortad",

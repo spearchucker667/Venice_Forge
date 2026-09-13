@@ -95,7 +95,7 @@ export function registerJinaHandlers(): void {
     } catch {
       return false;
     }
-  });
+  }, { rateLimitedResponse: () => false });
 
   registerPrivilegedIpcChannel("jinaApiKey:set", (event, payload: unknown) => {
     const { key } = typeof payload === "object" && payload !== null && "key" in payload ? payload as { key: unknown, profileId?: unknown } : { key: payload };

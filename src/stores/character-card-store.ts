@@ -127,6 +127,7 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
   setEditing: (id) => set({ editingId: id }),
 
   upsert: async (card) => {
+    const removeAvatar = card.avatar === null;
     const normalized = normalizeCard(card);
     if (!normalized) {
       const msg = "Invalid character card data.";
@@ -153,7 +154,7 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
       return null;
     }
     try {
-      const saved = await svcSave(normalized);
+      const saved = await svcSave(removeAvatar ? { ...normalized, avatar: null } : normalized);
       set((s) => {
         const idx = s.cards.findIndex((c) => c.id === saved.id);
         const next = idx >= 0 ? [...s.cards] : [saved, ...s.cards];
@@ -199,16 +200,13 @@ export const useCharacterCardStore = create<CharacterCardState>((set, get) => ({
         editingId: s.editingId === id ? null : s.editingId,
       }));
 
-      // Cascading cleanup for RP chats that reference this character
+      // Detach this character from RP chats. Never delete chats as a side
+      // effect — a solo chat becomes unassigned (`characterIds: []`).
       const rpStore = useRpChatStore.getState();
       for (const chat of rpStore.chats) {
         if (chat.characterIds.includes(id)) {
           const survivingIds = chat.characterIds.filter((cid) => cid !== id);
-          if (survivingIds.length === 0) {
-            await rpStore.remove(chat.id);
-          } else {
-            await rpStore.upsert({ ...chat, characterIds: survivingIds });
-          }
+          await rpStore.upsert({ ...chat, characterIds: survivingIds });
         }
       }
 

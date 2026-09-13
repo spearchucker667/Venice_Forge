@@ -19,6 +19,8 @@ vi.mock('../services/profilePurge', () => ({
 
 vi.mock('../services/desktopBridge', () => ({
   isElectron: vi.fn(() => true),
+  desktopConversations: { list: vi.fn(async () => ({ ok: true, records: [] })) },
+  desktopChat: { list: vi.fn(async () => ({ ok: true, conversations: [] })) },
   desktopMasterPassword: {
     isSet: vi.fn(() => Promise.resolve(false)),
   },

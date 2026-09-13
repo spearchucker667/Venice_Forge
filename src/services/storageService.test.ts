@@ -244,6 +244,50 @@ describe("storageService", () => {
   });
 });
 
+describe("storageService patchMedia atomicity", () => {
+  it("applies sequential patches onto the same record", async () => {
+    await StorageService.saveItem("images", { id: "patch-seq", prompt: "base", timestamp: 1 });
+    await StorageService.patchMedia("patch-seq", { a: 1 });
+    await StorageService.patchMedia("patch-seq", { b: 2 });
+    const stored = await StorageService.getItem<{ id: string; prompt: string; a?: number; b?: number }>("images", "patch-seq");
+    expect(stored).toMatchObject({ id: "patch-seq", prompt: "base", a: 1, b: 2 });
+  });
+
+  it("lands overlapping patches that write distinct fields", async () => {
+    await StorageService.saveItem("images", { id: "patch-race", prompt: "base", timestamp: 1 });
+    await Promise.all([
+      StorageService.patchMedia("patch-race", { a: 1 }),
+      StorageService.patchMedia("patch-race", { b: 2 }),
+    ]);
+    const stored = await StorageService.getItem<{ id: string; prompt: string; a?: number; b?: number }>("images", "patch-race");
+    expect(stored).toMatchObject({ id: "patch-race", prompt: "base", a: 1, b: 2 });
+  });
+
+  it("uses a single readwrite images transaction for get and put", async () => {
+    await StorageService.saveItem("images", { id: "patch-tx", prompt: "base", timestamp: 1 });
+    const db = StorageService.db;
+    if (!db) throw new Error("expected open IndexedDB");
+    const original = db.transaction.bind(db);
+    const imageModes: IDBTransactionMode[] = [];
+    db.transaction = ((storeNames: string | string[], mode?: IDBTransactionMode) => {
+      const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+      if (names.includes("images")) {
+        imageModes.push(mode ?? "readonly");
+      }
+      return original(storeNames, mode);
+    }) as typeof db.transaction;
+
+    await StorageService.patchMedia("patch-tx", { a: 1 });
+    expect(imageModes).toEqual(["readwrite"]);
+  });
+
+  it("throws when the media record does not exist", async () => {
+    await expect(StorageService.patchMedia("missing-media", { a: 1 })).rejects.toThrow(
+      "patchMedia: record not found: missing-media",
+    );
+  });
+});
+
 // VERIFY-066 regression guard: two distinct profiles must never see each
 // other's rows. Even though both profiles share the same IDB store name,
 // saveItem stamps profileId and getItems filters before decrypt.

@@ -5,6 +5,11 @@ import { generateId } from '../lib/utils'
 import { applyPatches, type WorkflowPatch, type PatchResult } from '../lib/workflow-mutations'
 import StorageService from '../services/storageService'
 import type { StateStorage } from 'zustand/middleware'
+import { toast } from './toast-store'
+import { translateRuntime } from '../i18n/runtimeTranslator'
+
+export const MAX_PERSISTED_WORKFLOWS = 20
+export const WORKFLOW_PERSIST_LIMIT_ERROR = 'WORKFLOW_PERSIST_LIMIT'
 
 const asyncStorageAdapter: StateStorage = {
   getItem: async (name) => {
@@ -137,6 +142,16 @@ export const useWorkflowStore = create<WorkflowState>()(
       runHistory: [],
 
       createWorkflow: (name) => {
+        if (get().workflows.length >= MAX_PERSISTED_WORKFLOWS) {
+          toast.warn(
+            translateRuntime(
+              'runtimeGenerated.stores.workflowStore.notification.workflowLimitReached',
+              'You can keep {{limit}} saved visual workflows. Delete one to save another.',
+              { limit: MAX_PERSISTED_WORKFLOWS },
+            ),
+          )
+          throw new Error(WORKFLOW_PERSIST_LIMIT_ERROR)
+        }
         const id = generateId()
         const workflow: Workflow = {
           id,
@@ -225,7 +240,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       version: 1,
       storage: createJSONStorage(() => asyncStorageAdapter),
       partialize: (state) => ({
-        workflows: state.workflows.slice(0, 20),
+        workflows: state.workflows.slice(0, MAX_PERSISTED_WORKFLOWS),
         activeWorkflowId: state.activeWorkflowId,
       }),
     },

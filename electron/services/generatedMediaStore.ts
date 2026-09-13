@@ -402,10 +402,57 @@ export async function recoverPendingGeneratedMediaWrites(): Promise<{ recovered:
       failed += 1
       const failure = classifyGeneratedMediaPersistenceError(error)
       logWarn('Pending generated media could not be recovered', { journal: name, kind: failure.kind, code: failure.code })
+      const tempMissing = failure.code === 'ENOENT' || /temporary|missing|incomplete/i.test(String(error))
+      if (tempMissing) {
+        await rm(journalPath, { force: true }).catch(() => undefined)
+      }
     }
   }
+  await reapGeneratedMediaArtifacts()
   if (recovered > 0 || failed > 0) logInfo('Generated media recovery completed', { recovered, failed })
   return { recovered, failed }
+}
+
+const CORRUPT_ARTIFACT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+
+export async function reapGeneratedMediaArtifacts(now = Date.now()): Promise<{ corruptRemoved: number; journalsRemoved: number }> {
+  const root = getGeneratedMediaRoot()
+  await mkdir(root, { recursive: true, mode: 0o700 })
+  const names = await readdir(root)
+  let corruptRemoved = 0
+  let journalsRemoved = 0
+  for (const name of names) {
+    const fullPath = path.join(root, name)
+    try {
+      const stat = await fsStat(fullPath)
+      if (/\.corrupt-\d+$/.test(name) && now - stat.mtimeMs >= CORRUPT_ARTIFACT_MAX_AGE_MS) {
+        await rm(fullPath, { force: true })
+        corruptRemoved += 1
+        continue
+      }
+      if (/^\.pending-[a-f0-9]{64}\.json$/.test(name)) {
+        const pending = JSON.parse(await readFile(fullPath, 'utf8')) as Partial<PendingGeneratedMediaWrite>
+        const temporaryName = typeof pending.temporaryName === 'string' ? pending.temporaryName : ''
+        const temporaryPath = temporaryName ? path.join(root, temporaryName) : ''
+        let tempExists = false
+        if (temporaryPath) {
+          try {
+            await fsStat(temporaryPath)
+            tempExists = true
+          } catch {
+            tempExists = false
+          }
+        }
+        if (!tempExists) {
+          await rm(fullPath, { force: true })
+          journalsRemoved += 1
+        }
+      }
+    } catch {
+      /* ignore unreadable artifacts */
+    }
+  }
+  return { corruptRemoved, journalsRemoved }
 }
 
 export async function auditGeneratedMediaIntegrity(): Promise<{ checked: number; healthy: number; failed: number }> {

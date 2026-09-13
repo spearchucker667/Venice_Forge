@@ -66,13 +66,37 @@ describe("persona-store", () => {
     expect(usePersonaStore.getState().error).toBe("Load fail");
   });
 
-  it("creates blank persona", () => {
+  it("creates blank persona", async () => {
     vi.mocked(personaService.generateId).mockReturnValue("p_blank");
+    vi.mocked(personaService.normalizePersona).mockImplementation((p) => p as UserPersonaV1);
+    vi.mocked(personaService.savePersona).mockImplementation(async (p) => p as UserPersonaV1);
     const id = usePersonaStore.getState().createBlank();
     expect(id).toBe("p_blank");
     expect(usePersonaStore.getState().personas.length).toBe(1);
     expect(usePersonaStore.getState().personas[0].id).toBe("p_blank");
     expect(usePersonaStore.getState().activePersonaId).toBe("p_blank");
+    await vi.waitFor(() => {
+      expect(personaService.savePersona).toHaveBeenCalled();
+    });
+    expect(vi.mocked(personaService.savePersona).mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ id: "p_blank" }),
+    );
+  });
+
+  it("createBlank persists the blank persona with the new id", async () => {
+    vi.mocked(personaService.generateId).mockReturnValue("p_blank_persist");
+    vi.mocked(personaService.normalizePersona).mockImplementation((p) => p as UserPersonaV1);
+    vi.mocked(personaService.savePersona).mockImplementation(async (p) => p as UserPersonaV1);
+
+    const id = usePersonaStore.getState().createBlank();
+
+    await vi.waitFor(() => {
+      expect(personaService.savePersona).toHaveBeenCalledTimes(1);
+    });
+    expect(id).toBe("p_blank_persist");
+    expect(vi.mocked(personaService.savePersona).mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ id }),
+    );
   });
 
   it("sets active persona", async () => {

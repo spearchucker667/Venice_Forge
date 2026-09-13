@@ -15,9 +15,6 @@ import {
   getProviderCredential,
   isProviderCredentialConfigured,
   isProviderConfigured,
-  setCredential,
-  getCredential,
-  deleteCredential,
   setProfilePassword,
   verifyProfilePassword,
   isProfilePasswordSet,
@@ -37,6 +34,7 @@ import type { ApiConnectivityFailureKind, ApiConnectivityStatus, ProviderConnect
 import { registerPrivilegedIpcChannel } from "./common";
 import { PROVIDER_REGISTRY, requiresStructuredCredential, type ProviderId, type AzureOpenAiConfig, type AwsBedrockConfig, type GoogleVertexConfig } from "../../../src/types/provider";
 import { getProfileSessionId, setProfileSessionId } from "../../services/profileSession";
+import { getCustomProtocolCapabilityManager } from "../../services/customProtocolCapabilities";
 import { getAgentServices, RUNTIME_SESSION_ID } from "../../agent/runtime/agent-services";
 import {
   disableProvider,
@@ -152,11 +150,12 @@ async function testVeniceConnection(profileId?: string): Promise<{ ok: boolean; 
   }
 }
 
-/** Reserved credential names that must never be read/written through the
- *  generic credential bridge. Passwords, profile secrets, unlock-secrets,
- *  and internal application namespaces must use their typed IPC channels
- *  or separate storage scopes so the main process can enforce lockout,
- *  verifier-only storage, and plaintext-fallback refusal.
+/** Reserved credential names that must never be read/written through a
+ *  generic credential IPC bridge. The renderer-facing `credential:*`
+ *  channels were removed; this policy remains so a reintroduced generic
+ *  store cannot silently accept password, unlock, or chat-folder-lock names.
+ *  Passwords, profile secrets, unlock-secrets, and internal application
+ *  namespaces must use typed IPC channels or separate storage scopes.
  *
  *  Exported for unit-test verification of the reservation policy. */
 export function isReservedCredentialName(name: unknown): boolean {
@@ -423,43 +422,7 @@ async function performProviderConnectionTest(
 
 export function registerApiKeyHandlers(): void {
 
-  registerPrivilegedIpcChannel("credential:set", (_event, payload: { key: string, value: string }) => {
-    try {
-      if (isReservedCredentialName(payload.key)) {
-        return { ok: false, error: `Credential name "${payload.key}" is reserved. Use typed password/profile APIs.` };
-      }
-      setCredential(payload.key, payload.value);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
-    }
-  });
-
-  registerPrivilegedIpcChannel("credential:get", (_event, key: string) => {
-    try {
-      if (isReservedCredentialName(key)) {
-        return { ok: true, configured: false };
-      }
-      const val = getCredential(key);
-      return { ok: true, configured: typeof val === "string" && val.length > 0 };
-    } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
-    }
-  });
-
-  registerPrivilegedIpcChannel("credential:delete", (_event, key: string) => {
-    try {
-      if (isReservedCredentialName(key)) {
-        return { ok: true };
-      }
-      deleteCredential(key);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
-    }
-  });
-
-  registerPrivilegedIpcChannel("masterPassword:isSet", () => isMasterPasswordSet());
+  registerPrivilegedIpcChannel("masterPassword:isSet", () => isMasterPasswordSet(), { rateLimitedResponse: () => false });
 
   registerPrivilegedIpcChannel("masterPassword:set", (_event, password: unknown) => {
     try {
@@ -540,7 +503,7 @@ export function registerApiKeyHandlers(): void {
     } catch {
       return false;
     }
-  });
+  }, { rateLimitedResponse: () => false });
 
   registerPrivilegedIpcChannel("profileSession:activate", (event, payload: unknown) => {
     try {
@@ -574,6 +537,14 @@ export function registerApiKeyHandlers(): void {
           );
         } catch {
           // ignore
+        }
+      }
+      if (previousProfileId !== validId) {
+        try {
+          getCustomProtocolCapabilityManager().revokeProfile(previousProfileId);
+          getCustomProtocolCapabilityManager().revokeSession(String(event.sender.id));
+        } catch {
+          /* ignore */
         }
       }
       setProfileSessionId(event.sender, validId);
@@ -660,7 +631,7 @@ export function registerApiKeyHandlers(): void {
     } catch {
       return false;
     }
-  });
+  }, { rateLimitedResponse: () => false });
 
   registerPrivilegedIpcChannel("apiKey:getStatus", (event, _profileId?: unknown) => {
     return getApiKeyConfigurationStatus(getProfileSessionId(event.sender));
@@ -711,7 +682,7 @@ export function registerApiKeyHandlers(): void {
     } catch {
       return false;
     }
-  });
+  }, { rateLimitedResponse: () => false });
 
   registerPrivilegedIpcChannel("providerApiKey:set", (event, payload: unknown) => {
     const { providerId, key } = payload as { providerId: unknown, key: unknown, profileId?: unknown };
@@ -749,7 +720,7 @@ export function registerApiKeyHandlers(): void {
     } catch {
       return false;
     }
-  });
+  }, { rateLimitedResponse: () => false });
 
   registerPrivilegedIpcChannel("providerCredential:set", (event, payload: unknown) => {
     try {

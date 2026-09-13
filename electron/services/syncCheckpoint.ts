@@ -12,11 +12,24 @@ function assertOperationId(operationId: string): void {
   if (!OPERATION_ID_RE.test(operationId)) throw new Error("Invalid sync operation ID.");
 }
 
-export async function registerSyncDevice(vfbackupDirectory: string, deviceId: string): Promise<void> {
-  assertDeviceId(deviceId);
+const STALE_DEVICE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+interface SyncDeviceRecord {
+  version: 1;
+  deviceId: string;
+  lastSeenAt: number;
+}
+
+async function writeDeviceRecord(vfbackupDirectory: string, deviceId: string, lastSeenAt: number): Promise<void> {
   const directory = path.join(vfbackupDirectory, "devices");
   await fs.mkdir(directory, { recursive: true });
-  await fs.writeFile(path.join(directory, `${deviceId}.json`), JSON.stringify({ version: 1, deviceId }), { flag: "w", mode: 0o600 });
+  const record: SyncDeviceRecord = { version: 1, deviceId, lastSeenAt };
+  await fs.writeFile(path.join(directory, `${deviceId}.json`), JSON.stringify(record), { flag: "w", mode: 0o600 });
+}
+
+export async function registerSyncDevice(vfbackupDirectory: string, deviceId: string): Promise<void> {
+  assertDeviceId(deviceId);
+  await writeDeviceRecord(vfbackupDirectory, deviceId, Date.now());
 }
 
 export async function acknowledgeSyncOperation(vfbackupDirectory: string, deviceId: string, operationId: string): Promise<void> {
@@ -25,6 +38,44 @@ export async function acknowledgeSyncOperation(vfbackupDirectory: string, device
   const directory = path.join(vfbackupDirectory, "acks", deviceId);
   await fs.mkdir(directory, { recursive: true });
   await fs.writeFile(path.join(directory, `${operationId}.ack`), "1", { flag: "w", mode: 0o600 });
+  await writeDeviceRecord(vfbackupDirectory, deviceId, Date.now());
+}
+
+export async function pruneStaleSyncDevices(
+  vfbackupDirectory: string,
+  now = Date.now(),
+  maxAgeMs = STALE_DEVICE_MAX_AGE_MS,
+): Promise<string[]> {
+  const devicesDir = path.join(vfbackupDirectory, "devices");
+  let entries: string[] = [];
+  try {
+    entries = await fs.readdir(devicesDir);
+  } catch {
+    return [];
+  }
+  const pruned: string[] = [];
+  for (const entry of entries.filter((name) => name.endsWith(".json"))) {
+    const deviceId = entry.slice(0, -5);
+    if (!DEVICE_ID_RE.test(deviceId)) continue;
+    const filePath = path.join(devicesDir, entry);
+    let lastSeenAt = now;
+    try {
+      const raw = JSON.parse(await fs.readFile(filePath, "utf8")) as Partial<SyncDeviceRecord>;
+      if (typeof raw.lastSeenAt === "number" && Number.isFinite(raw.lastSeenAt)) {
+        lastSeenAt = raw.lastSeenAt;
+      } else {
+        await writeDeviceRecord(vfbackupDirectory, deviceId, now);
+        continue;
+      }
+    } catch {
+      continue;
+    }
+    if (now - lastSeenAt < maxAgeMs) continue;
+    await fs.rm(filePath, { force: true });
+    await fs.rm(path.join(vfbackupDirectory, "acks", deviceId), { recursive: true, force: true });
+    pruned.push(deviceId);
+  }
+  return pruned;
 }
 
 export async function collectAcknowledgedEvent(
@@ -34,6 +85,7 @@ export async function collectAcknowledgedEvent(
   checkpointFilePath: string,
 ): Promise<boolean> {
   assertOperationId(operationId);
+  await pruneStaleSyncDevices(vfbackupDirectory);
   try {
     await fs.access(checkpointFilePath);
   } catch {

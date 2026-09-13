@@ -571,6 +571,19 @@ async function performSingleVeniceRequest(
     }
 
     const isSseStream = Boolean(options.onDelta);
+    let absoluteDeadlineTimer: ReturnType<typeof setTimeout> | undefined;
+    let onAbortListener: (() => void) | undefined;
+    const cleanup = () => {
+      if (absoluteDeadlineTimer !== undefined) {
+        clearTimeout(absoluteDeadlineTimer);
+        absoluteDeadlineTimer = undefined;
+      }
+      if (signal && onAbortListener) {
+        signal.removeEventListener("abort", onAbortListener);
+        onAbortListener = undefined;
+      }
+    };
+
     const req = https.request(
       {
         hostname,
@@ -646,6 +659,7 @@ async function performSingleVeniceRequest(
         });
 
         res.on("end", () => {
+          cleanup();
           if (sseDecoder) {
             let events: SseEvent[] = [];
             try {
@@ -698,19 +712,13 @@ async function performSingleVeniceRequest(
         });
 
         res.on("error", (err) => {
+          cleanup();
           setLastApiError("Venice response stream error.");
           logError("Venice response stream error", err);
           reject(new Error("Venice response stream error."));
         });
       }
     );
-
-    let onAbortListener: (() => void) | undefined;
-    const cleanup = () => {
-      if (signal && onAbortListener) {
-        signal.removeEventListener("abort", onAbortListener);
-      }
-    };
 
     if (signal) {
       if (signal.aborted) {
@@ -725,6 +733,19 @@ async function performSingleVeniceRequest(
       });
     }
 
+    // Node `timeout` is socket inactivity. A healthy SSE trickle never trips
+    // it, so streams also get a single absolute lifetime matching the web
+    // AbortController deadline (VENICE_API_STREAM_TIMEOUT_MS).
+    if (isSseStream && !signal?.aborted) {
+      absoluteDeadlineTimer = setTimeout(() => {
+        req.destroy(
+          new Error(
+            "Stream timed out after 5 minutes. The server may be overloaded — please try again.",
+          ),
+        );
+      }, VENICE_API_STREAM_TIMEOUT_MS);
+    }
+
     req.on("error", (err) => {
       cleanup();
       const message =
@@ -732,6 +753,8 @@ async function performSingleVeniceRequest(
           ? "Request aborted"
           : err.message === "Response too large"
           ? "Venice response exceeded the local safety limit."
+          : err.message.startsWith("Stream timed out after 5 minutes")
+          ? err.message
           : "Failed to reach Venice API.";
       if (message !== "Request aborted") {
         setLastApiError(message);

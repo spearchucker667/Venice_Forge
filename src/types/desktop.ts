@@ -191,7 +191,12 @@ export interface VeniceForgeFiles {
     succeeded: Array<{ itemId: string; filename: string; bytes: number }>;
     failed: Array<{ itemId: string; error: string }>;
   }>;
-  saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }>;
+  saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean; filePath?: string }>;
+  issueCapabilityUrl(input: {
+    scheme: "venice-media" | "venice-tts" | "venice-character-cache";
+    objectId: string;
+    resourceUrl?: string;
+  }): Promise<{ ok: boolean; url?: string; error?: string }>;
   loadJsonFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }>;
   saveYamlFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }>;
   loadYamlFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }>;
@@ -465,6 +470,22 @@ export interface VeniceForgeDocumentAgent {
   };
 }
 
+/** Character Creator desktop operations. */
+export interface VeniceForgeCharacterCreator {
+  exportCard(payload: {
+    card: unknown;
+    format: "json" | "png";
+    avatarDataUrl?: string;
+  }): Promise<{ ok: boolean; canceled?: boolean; filename?: string; error?: string }>;
+  validateCard(payload: { card: unknown }): Promise<{
+    ok: boolean;
+    valid?: boolean;
+    errors?: string[];
+    warnings?: string[];
+    error?: string;
+  }>;
+}
+
 /** Replicate async media-generation bridge. */
 export interface VeniceForgeReplicate {
   generateImage(input: { model: string; input: Record<string, unknown> }): Promise<{
@@ -476,16 +497,10 @@ export interface VeniceForgeReplicate {
 
 /** Hugging Face Inference Providers live model-discovery bridge. */
 export interface VeniceForgeHuggingFace {
-  getModelCatalog(profileId?: string): Promise<import("./provider").ProviderModelCatalogResult>;
+  getModelCatalog(force?: boolean): Promise<import("./provider").ProviderModelCatalogResult>;
 }
 
 /** Root interface for the Venice Forge preload bridge exposed on the window object. */
-
-export interface VeniceForgeCredentials {
-  set(key: string, value: string): Promise<{ ok: boolean; error?: string }>;
-  get(key: string): Promise<{ ok: boolean; configured?: boolean; error?: string }>;
-  delete(key: string): Promise<{ ok: boolean; error?: string }>;
-}
 
 export interface VeniceForgeMasterPassword {
   isSet(): Promise<boolean>;
@@ -573,7 +588,6 @@ export interface VeniceForgeImageInspector {
 }
 
 export interface VeniceForge {
-  credentials: VeniceForgeCredentials;
   masterPassword: VeniceForgeMasterPassword;
   safety: VeniceForgeSafety;
   profilePassword: VeniceForgeProfilePassword;
@@ -605,6 +619,7 @@ export interface VeniceForge {
   backgroundTask: VeniceForgeBackgroundTask;
   inspector: VeniceForgeInspector;
   documentAgent: VeniceForgeDocumentAgent;
+  characterCreator: VeniceForgeCharacterCreator;
   replicate: VeniceForgeReplicate;
   huggingFace: VeniceForgeHuggingFace;
 }

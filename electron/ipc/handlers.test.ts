@@ -404,48 +404,23 @@ describe("registerIpcHandlers", () => {
       .toEqual({ ok: false, error: "Both current and new passwords must be provided. New password min 4 characters." });
   });
 
-  describe("generic credential bridge denylist", () => {
+  describe("generic credential IPC removed (VF-AUD-20260912-IPC-P2-003)", () => {
     it.each([
-      "password",
-      "master_password",
-      "profile_password",
-      "profile_password:user-a",
-      "profile_password_user-a",
-      "account_password",
-      "my_unlock_secret",
-      "secret-unlock-token",
-    ])("credential:set rejects reserved name '%s'", async (key) => {
-      const result = await invoke<IpcActionResult>("credential:set", null, { key, value: "secret" });
-      expect(result).toMatchObject({ ok: false });
-      expectErrorResult(result);
-      expect(result.error).toMatch(/reserved/i);
+      "credential:set",
+      "credential:get",
+      "credential:delete",
+    ])("does not register %s", (channel) => {
+      expect(capturedHandlers.has(channel)).toBe(false);
     });
+  });
 
+  describe("dead workspace-propose IPC removed (VF-AUD-20260912-IPC-P2-002)", () => {
     it.each([
-      "master_password",
-      "profile_password",
-      "profile_password:user-a",
-      "account_password",
-    ])("credential:get returns null for reserved name '%s'", async (key) => {
-      const handler = capturedHandlers.get("credential:get");
-      const result = await handler!(null, key);
-      expect(result).toEqual({ ok: true, configured: false });
-    });
-
-    it.each([
-      "master_password",
-      "profile_password",
-      "account_password",
-    ])("credential:delete no-ops for reserved name '%s'", async (key) => {
-      const handler = capturedHandlers.get("credential:delete");
-      const result = await handler!(null, key);
-      expect(result).toEqual({ ok: true });
-    });
-
-    it("credential:set still allows non-reserved api-key-like keys", async () => {
-      const handler = capturedHandlers.get("credential:set");
-      const result = await handler!(null, { key: "openrouter_api_key", value: "sk-or-xxx" });
-      expect(result).toEqual({ ok: true });
+      "documentAgent:workspace:proposeChangeset",
+      "documentAgent:workspace:proposeMove",
+      "documentAgent:workspace:proposeTrash",
+    ])("does not register %s", (channel) => {
+      expect(capturedHandlers.has(channel)).toBe(false);
     });
   });
 
@@ -675,7 +650,7 @@ describe("registerIpcHandlers", () => {
 
       await capturedHandlers.get("conversations:list")!(event, {});
       await capturedHandlers.get("conversations:get")!(event, "conv-1");
-      await capturedHandlers.get("conversations:save")!(event, { ...record, origin: "remote-sync" });
+      await capturedHandlers.get("conversations:save")!(event, { record, origin: "remote-sync" });
       await capturedHandlers.get("conversations:delete")!(event, { id: "conv-1", origin: "remote-sync" });
       await capturedHandlers.get("conversations:archive")!(event, { id: "conv-1", origin: "remote-sync" });
       await capturedHandlers.get("conversations:search")!(event, "work", {});
@@ -822,14 +797,14 @@ describe("registerIpcHandlers", () => {
     it("conversations:save does not call syncBridge for remote-sync origin", async () => {
       const handler = capturedHandlers.get("conversations:save");
       const record = { version: 1, id: "conv-1", title: "t", createdAt: 1, updatedAt: 1, model: "m", messages: [], metadata: { tags: [], pinned: false, archived: false, source: "user", messageCount: 0 }, memory: { summary: "", topics: [], entities: [], projectRefs: [] } };
-      await handler!(ctx(), { ...record, origin: "remote-sync" });
+      await handler!(ctx(), { record, origin: "remote-sync" });
       expect(syncBridge.emitSyncPacket).not.toHaveBeenCalled();
     });
 
     it("conversations:save emits a sync packet once for local-user origin without leaking origin", async () => {
       const handler = capturedHandlers.get("conversations:save");
       const record = { version: 1, id: "conv-1", title: "t", createdAt: 1, updatedAt: 1, model: "m", messages: [], metadata: { tags: [], pinned: false, archived: false, source: "user", messageCount: 0 }, memory: { summary: "", topics: [], entities: [], projectRefs: [] } };
-      await handler!(ctx(), { ...record, origin: "local-user" });
+      await handler!(ctx(), { record, origin: "local-user" });
       expect(syncBridge.emitSyncPacket).toHaveBeenCalledTimes(1);
       expect(syncBridge.emitSyncPacket).toHaveBeenCalledWith(
         "conversations",
@@ -847,7 +822,7 @@ describe("registerIpcHandlers", () => {
 
     it("conversations:save rejects an invalid mutation origin", async () => {
       const record = { version: 1, id: "conv-1", title: "t", createdAt: 1, updatedAt: 1, model: "m", messages: [], metadata: { tags: [], pinned: false, archived: false, source: "user", messageCount: 0 }, memory: { summary: "", topics: [], entities: [], projectRefs: [] } };
-      const result = await invoke<IpcActionResult>("conversations:save", ctx(), { ...record, origin: "bad-origin" });
+      const result = await invoke<IpcActionResult>("conversations:save", ctx(), { record, origin: "bad-origin" });
       expectErrorResult(result);
       expect(result.error).toMatch(/invalid mutation origin/i);
       expect(syncBridge.emitSyncPacket).not.toHaveBeenCalled();
@@ -1575,8 +1550,8 @@ describe("registerIpcHandlers", () => {
     }
 
     it.each([
-      ["credential:get", ["some-key"]],
       ["apiKey:isConfigured", ["default"]],
+      ["apiKey:getStatus", ["default"]],
     ])("rejects secret API access from an untrusted frame on %s", async (channel, args) => {
       const handler = capturedHandlers.get(channel);
       await expect(handler!(untrustedEvent(), ...args)).rejects.toThrow(/untrusted/i);

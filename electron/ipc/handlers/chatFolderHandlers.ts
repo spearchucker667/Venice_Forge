@@ -276,7 +276,7 @@ export function registerChatFolderHandlers(): void {
       return { ok: result.ok, fileName: result.fileName, error: result.error };
     }
     catch (error) { return { ok: false, error: safeError(error, "Failed to export backup") }; }
-  });
+  }, { requireMainFrame: true });
 
   registerPrivilegedIpcChannel("chat-folders:pick-import-file", async (event) => {
     // verify-no-native-dialogs: allow — explicit user-mediated encrypted folder-backup import

@@ -148,6 +148,163 @@ async function findWritablePhysicalId(db: IDBDatabase, store: StoreName, activeP
   return toPhysicalId(activeProfile, logicalId);
 }
 
+type StoredRecord<T extends Record<string, unknown>> = T & {
+  id: string;
+  timestamp?: number;
+  revisionId?: string;
+  baseRevisionId?: string;
+};
+
+async function buildStoreWrite<T extends Record<string, unknown>>(
+  store: StoreName,
+  item: T,
+  physicalId: string,
+  activeProfile: string,
+  options?: StorageMutationOptions,
+): Promise<{ payload: Record<string, unknown>; finalRecord: StoredRecord<T>; logicalId: string }> {
+  const logicalId = typeof item.id === "string" ? item.id : crypto.randomUUID();
+  let payload: Record<string, unknown>;
+  let finalRecord: StoredRecord<T>;
+
+  if (options?.bypassSyncEcho) {
+    finalRecord = { ...item, id: logicalId } as StoredRecord<T>;
+    payload = { ...item, id: logicalId };
+    if (ENCRYPTED_STORES.includes(store)) {
+      const encryptedData = await encryptData(payload);
+      payload = {
+        id: physicalId,
+        [LOGICAL_ID_FIELD]: logicalId,
+        [PROFILE_ID_FIELD]: activeProfile,
+        data: encryptedData,
+        _isEncryptedWrapper: true,
+      };
+    } else {
+      payload = {
+        ...payload,
+        id: physicalId,
+        [LOGICAL_ID_FIELD]: logicalId,
+        [PROFILE_ID_FIELD]: activeProfile,
+      };
+    }
+  } else {
+    const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
+    const oldRevisionId = typeof item.revisionId === "string" ? item.revisionId : undefined;
+    const newRevisionId = crypto.randomUUID();
+
+    payload = {
+      ...item,
+      id: logicalId,
+      timestamp,
+      revisionId: newRevisionId,
+      baseRevisionId: oldRevisionId,
+      [PROFILE_ID_FIELD]: activeProfile,
+    };
+    finalRecord = {
+      ...item,
+      id: logicalId,
+      timestamp,
+      revisionId: newRevisionId,
+      baseRevisionId: oldRevisionId,
+    } as StoredRecord<T>;
+    if (ENCRYPTED_STORES.includes(store)) {
+      const encryptedData = await encryptData(payload);
+      payload = {
+        id: physicalId,
+        [LOGICAL_ID_FIELD]: logicalId,
+        timestamp,
+        [PROFILE_ID_FIELD]: activeProfile,
+        data: encryptedData,
+        _isEncryptedWrapper: true,
+      };
+    } else {
+      payload = {
+        ...payload,
+        id: physicalId,
+        [LOGICAL_ID_FIELD]: logicalId,
+      };
+    }
+  }
+
+  return { payload, finalRecord, logicalId };
+}
+
+function waitForTransaction(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB transaction failed"));
+    tx.onabort = () => reject(tx.error ?? new Error("IndexedDB transaction aborted"));
+  });
+}
+
+function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function readProfileRow(
+  objectStore: IDBObjectStore,
+  logicalId: string,
+  activeProfile: string,
+): Promise<Record<string, unknown> | null> {
+  const candidates = candidatePhysicalIds(activeProfile, logicalId);
+  return new Promise((resolve, reject) => {
+    let index = 0;
+    const readNext = () => {
+      if (index >= candidates.length) {
+        resolve(null);
+        return;
+      }
+      const request = objectStore.get(candidates[index]);
+      index += 1;
+      request.onsuccess = () => {
+        const row = request.result as Record<string, unknown> | undefined;
+        if (row && rowBelongsToActiveProfile(row, activeProfile)) {
+          resolve(row);
+          return;
+        }
+        readNext();
+      };
+      request.onerror = () => reject(request.error);
+    };
+    readNext();
+  });
+}
+
+/** IndexedDB commits once no requests are outstanding; keep the tx open across async crypto. */
+const IDB_TX_HOLD_KEY = "__venice_idb_tx_hold__";
+
+function holdIndexedDbTransaction(objectStore: IDBObjectStore): () => void {
+  let released = false;
+  const ping = (): void => {
+    if (released) return;
+    let request: IDBRequest;
+    try {
+      request = objectStore.get(IDB_TX_HOLD_KEY);
+    } catch {
+      return;
+    }
+    request.onsuccess = ping;
+    request.onerror = () => {
+      released = true;
+    };
+  };
+  ping();
+  return () => {
+    released = true;
+  };
+}
+
+const mediaPatchChains = new Map<string, Promise<unknown>>();
+
+function enqueueMediaPatch<T>(id: string, work: () => Promise<T>): Promise<T> {
+  const previous = mediaPatchChains.get(id) ?? Promise.resolve();
+  const next = previous.then(work, work);
+  mediaPatchChains.set(id, next.then(() => undefined, () => undefined));
+  return next;
+}
+
 async function decodeRows<T>(
   store: StoreName,
   rows: Record<string, unknown>[],
@@ -243,81 +400,21 @@ const StorageService = {
     assertValidId(id, "saveItem");
     const activeProfile = getActiveProfileId();
     const physicalId = await findWritablePhysicalId(db, store, activeProfile, id);
-
-    let payload: Record<string, unknown>;
-    let finalRecord: T & { id: string; timestamp?: number; revisionId?: string; baseRevisionId?: string };
-
-    if (options?.bypassSyncEcho) {
-      // Sync-internal writes (e.g., tombstones) must preserve the exact record
-      // shape supplied by the caller. We only ensure the logical id is present
-      // and keep the usual profile-isolation wrapper for encrypted stores.
-      finalRecord = { ...item, id } as T & { id: string };
-      payload = { ...item, id };
-      if (ENCRYPTED_STORES.includes(store)) {
-        const encryptedData = await encryptData(payload);
-        payload = {
-          id: physicalId,
-          [LOGICAL_ID_FIELD]: id,
-          [PROFILE_ID_FIELD]: activeProfile,
-          data: encryptedData,
-          _isEncryptedWrapper: true,
-        };
-      } else {
-        payload = {
-          ...payload,
-          id: physicalId,
-          [LOGICAL_ID_FIELD]: id,
-          [PROFILE_ID_FIELD]: activeProfile,
-        };
-      }
-    } else {
-      const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
-      // For syncable objects, automatically bump revision tracking
-      const oldRevisionId = typeof item.revisionId === "string" ? item.revisionId : undefined;
-      const newRevisionId = crypto.randomUUID();
-
-      payload = {
-        ...item,
-        id,
-        timestamp,
-        revisionId: newRevisionId,
-        baseRevisionId: oldRevisionId,
-        [PROFILE_ID_FIELD]: activeProfile,
-      };
-      finalRecord = { ...item, id, timestamp, revisionId: newRevisionId, baseRevisionId: oldRevisionId } as T & {
-        id: string;
-        timestamp: number;
-        revisionId?: string;
-        baseRevisionId?: string;
-      };
-      if (ENCRYPTED_STORES.includes(store)) {
-        const encryptedData = await encryptData(payload);
-        payload = {
-          id: physicalId,
-          [LOGICAL_ID_FIELD]: id,
-          timestamp,
-          [PROFILE_ID_FIELD]: activeProfile,
-          data: encryptedData,
-          _isEncryptedWrapper: true,
-        };
-      } else {
-        payload = {
-          ...payload,
-          id: physicalId,
-          [LOGICAL_ID_FIELD]: id,
-        };
-      }
-    }
-
+    const { payload, finalRecord, logicalId } = await buildStoreWrite(
+      store,
+      { ...item, id },
+      physicalId,
+      activeProfile,
+      options,
+    );
     const origin = options?.origin ?? "local-user";
 
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
       tx.objectStore(store).put(payload);
       tx.oncomplete = () => {
-        // Dispatch event for Sync Engine
         if (typeof window !== "undefined" && !options?.bypassSyncEcho) {
-          window.dispatchEvent(new CustomEvent("venice:storage-saved", { detail: { store, record: finalRecord, id, origin } }));
+          window.dispatchEvent(new CustomEvent("venice:storage-saved", { detail: { store, record: finalRecord, id: logicalId, origin } }));
         }
         resolve(finalRecord);
       };
@@ -654,16 +751,64 @@ const StorageService = {
   /**
    * Patch a single media record. The patch is shallow-merged into the
    * existing record. Throws if the record does not exist.
-   * Supports a function-based patch for atomic read-modify-write (AUDIT-007).
+   * Get and put run in one `images` readwrite transaction so concurrent
+   * patches cannot lose updates. Function patches still read-modify-write
+   * against the latest row in that transaction.
    */
   async patchMedia<T extends object>(id: string, patch: Record<string, unknown> | ((existing: T) => Record<string, unknown>)): Promise<T> {
     assertValidId(id, "patchMedia");
-    const existing = (await this.getItem("images", id)) as T | null;
-    if (!existing) throw new Error(`patchMedia: record not found: ${id}`);
-    const patchRecord = typeof patch === "function" ? patch(existing) : patch;
-    const next = { ...(existing as object), ...patchRecord, id, timestamp: (existing as { timestamp?: number }).timestamp ?? Date.now() };
-    await this.saveItem("images", next);
-    return next as T;
+    return enqueueMediaPatch(id, async () => {
+      const db = await this.openDB();
+      const activeProfile = getActiveProfileId();
+      const tx = db.transaction("images", "readwrite");
+      const objectStore = tx.objectStore("images");
+      const txDone = waitForTransaction(tx);
+      const releaseHold = holdIndexedDbTransaction(objectStore);
+      let finalRecord: StoredRecord<Record<string, unknown>> | null = null;
+      let failure: unknown;
+
+      try {
+        const row = await readProfileRow(objectStore, id, activeProfile);
+        if (!row) {
+          throw new Error(`patchMedia: record not found: ${id}`);
+        }
+        const [existing] = await decodeRow<T>("images", row);
+        if (!existing) {
+          throw new Error(`patchMedia: record not found: ${id}`);
+        }
+        const patchRecord = typeof patch === "function" ? patch(existing) : patch;
+        const timestamp = (existing as { timestamp?: number }).timestamp ?? Date.now();
+        const next = {
+          ...(existing as object),
+          ...patchRecord,
+          id,
+          timestamp,
+        } as Record<string, unknown> & { id: string; timestamp: number };
+        const physicalId = typeof row.id === "string" ? row.id : toPhysicalId(activeProfile, id);
+        const written = await buildStoreWrite("images", next, physicalId, activeProfile);
+        await requestToPromise(objectStore.put(written.payload));
+        finalRecord = written.finalRecord;
+      } catch (err) {
+        failure = err;
+      } finally {
+        releaseHold();
+      }
+
+      try {
+        await txDone;
+      } catch (txErr) {
+        throw failure ?? txErr;
+      }
+      if (failure) throw failure;
+      if (!finalRecord) throw new Error(`patchMedia: record not found: ${id}`);
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("venice:storage-saved", {
+          detail: { store: "images", record: finalRecord, id, origin: "local-user" },
+        }));
+      }
+      return finalRecord as T;
+    });
   },
 
   /**

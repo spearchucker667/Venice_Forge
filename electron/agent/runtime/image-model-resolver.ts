@@ -12,7 +12,7 @@
 
 import type { VeniceModel } from "../../../src/types/venice";
 import { getTextToImageModelCapabilities } from "../../../src/config/image-model-capabilities";
-import { performVeniceRequest } from "../../services/veniceClient";
+import { performGuardedVeniceRequest } from "../../services/guardPipeline";
 
 /** Safe fallback when no live catalog or preference is available. */
 export const CONFIGURED_DEFAULT_IMAGE_MODEL = "flux-dev";
@@ -47,13 +47,13 @@ function isLiveTextToImageModel(model: VeniceModel): boolean {
 
 async function fetchLiveImageModels(profileId: string): Promise<VeniceModel[]> {
   try {
-    const response = await performVeniceRequest({
+    const guarded = await performGuardedVeniceRequest({
       endpoint: "/models?type=image",
       method: "GET",
       profileId,
     });
-    if (!response.ok) return [];
-    const body = (response.body ?? {}) as { data?: VeniceModel[] };
+    if (guarded.kind === "blocked" || !guarded.response.ok) return [];
+    const body = (guarded.response.body ?? {}) as { data?: VeniceModel[] };
     return Array.isArray(body.data) ? body.data : [];
   } catch {
     return [];

@@ -1899,6 +1899,7 @@
         "legacyConversationsDetected": "Обнаружены устаревшие разговоры",
         "encryptedConversationVault": "Зашифрованное хранилище диалогов",
         "maintenanceOperations": "Операции по техническому обслуживанию",
+        "searchVault": "__MISSING__:Search vault",
         "curatedFacts": "Кураторские факты ("
       },
       "description": {
@@ -4222,6 +4223,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "{{value1}} поколение"
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "Не удалось сохранить созданный медиафайл",
+          "generationFinishedButGallerySaveFailed": "Генерация завершена, но запись галереи не удалось сохранить."
         }
       },
       "workflowcompiler": {

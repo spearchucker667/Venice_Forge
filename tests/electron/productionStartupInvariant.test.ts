@@ -12,6 +12,7 @@ describe("production renderer startup invariant (VERIFY-036)", () => {
     const viteSource = fs.readFileSync(path.join(root, "vite.config.ts"), "utf8");
 
     expect(mainSource).toContain('win.loadFile(prodHtmlPath)');
+    expect(mainSource).toContain('applyRendererCspHeaders(details, isDev)');
     expect(mainSource).not.toContain('app.getPath("temp")');
     expect(mainSource).not.toContain("strict-dynamic");
     expect(mainSource).not.toContain("generateNonce");

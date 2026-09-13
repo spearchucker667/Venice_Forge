@@ -41,7 +41,8 @@ vi.mock("./chatStorage", () => ({
 
 import { readChatFolder, saveChatFolder } from "./chatFolderStorage";
 import { listConversations, saveConversation, deleteConversation } from "./chatStorage";
-import { exportBackup, previewImport, importBackup } from "./chatFolderBackupService";
+import { exportBackup, previewImport, importBackup, getActiveKdfParameters, getBackupPreview } from "./chatFolderBackupService";
+import _sodium from "libsodium-wrappers-sumo";
 import type { ChatFolder } from "../../src/shared/chatFolderContracts";
 
 const mockedReadChatFolder = vi.mocked(readChatFolder);
@@ -158,6 +159,61 @@ describe("exportBackup — Phase 2.6 envelope", () => {
     ).rejects.toThrow(/not confirmed/i);
   });
 
+  it("records real attachment/media counts and never claims includesMedia without blobs", async () => {
+    mockedListConversations.mockResolvedValue([
+      {
+        id: "chat-source-1",
+        title: "Imported Chat",
+        createdAt: 1700000000000,
+        updatedAt: 1700000005000,
+        model: "llama-3.3-70b",
+        folderId: "folder-1",
+        messages: [
+          {
+            id: "m1",
+            role: "user",
+            content: "hello",
+            timestamp: 1700000000000,
+            metadata: {
+              attachments: ["/Users/example/secret.png"],
+              generatedMedia: [
+                {
+                  id: "media-1",
+                  mediaId: "abc",
+                  mediaType: "image",
+                  operation: "generate",
+                  displayUrl: "https://cdn.example/file?X-Amz-Signature=deadbeef",
+                  createdAt: 1700000000000,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ] as never);
+
+    const preview = await getBackupPreview({ folderId: "folder-1" }, "default");
+    expect(preview.attachmentReferencesCount).toBe(1);
+    expect(preview.mediaBlobsCount).toBe(1);
+    expect(preview.includesMedia).toBe(false);
+
+    const result = await exportBackup(
+      { folderId: "folder-1", includeMedia: true, passphrase: "correct-horse-battery-staple", passphraseConfirmed: true },
+      "default",
+    );
+    expect(result.ok).toBe(true);
+    const imported = await importBackup(
+      { backupFilePath: result.backupPath!, mode: "new-folder", passphrase: "correct-horse-battery-staple" },
+      "default",
+    );
+    expect(imported.ok).toBe(true);
+    const saved = mockedSaveConversation.mock.calls.at(-1)?.[0] as {
+      messages?: Array<{ metadata?: { attachments?: string[]; generatedMedia?: Array<{ displayUrl?: string }> } }>;
+    };
+    expect(JSON.stringify(saved)).not.toContain("/Users/example/secret.png");
+    expect(JSON.stringify(saved)).not.toContain("X-Amz-Signature");
+  });
+
   it("rejects exporting a locked folder regardless of passphrase validity", async () => {
     mockedReadChatFolder.mockResolvedValue(makeFolder({ lockState: "locked" }));
 
@@ -240,6 +296,56 @@ describe("importBackup — passphrase-protected envelope", () => {
     await expect(previewImport({ backupFilePath: v1Path }, "default")).rejects.toThrow(
       /missing the encrypted public header/i,
     );
+  });
+
+  it("[P1-001] rejects inflated Argon2id opslimit/memlimit without invoking crypto_pwhash", async () => {
+    const backupPath = await exportWith("correct-horse-battery-staple");
+    const raw = JSON.parse(await fs.readFile(backupPath, "utf-8"));
+    const canonical = await getActiveKdfParameters();
+    expect(raw.kdf).toEqual(canonical);
+
+    raw.kdf.opslimit = Number.MAX_SAFE_INTEGER;
+    raw.kdf.memlimit = Number.MAX_SAFE_INTEGER;
+    const inflatedPath = path.join(path.dirname(backupPath), "inflated-kdf.vfbackup");
+    await fs.writeFile(inflatedPath, JSON.stringify(raw), "utf-8");
+
+    await _sodium.ready;
+    const pwhashSpy = vi.spyOn(_sodium, "crypto_pwhash");
+    try {
+      const result = await importBackup(
+        { backupFilePath: inflatedPath, mode: "new-folder", passphrase: "correct-horse-battery-staple" },
+        "default",
+      );
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/kdf|opslimit|memlimit/i);
+      expect(result.error).not.toBe("Wrong passphrase or corrupt backup file");
+      expect(pwhashSpy).not.toHaveBeenCalled();
+    } finally {
+      pwhashSpy.mockRestore();
+    }
+  });
+
+  it("[P1-001] rejects missing or non-numeric KDF parameters without invoking crypto_pwhash", async () => {
+    const backupPath = await exportWith("correct-horse-battery-staple");
+    const raw = JSON.parse(await fs.readFile(backupPath, "utf-8"));
+    raw.kdf.opslimit = "2";
+    delete raw.kdf.memlimit;
+    const malformedPath = path.join(path.dirname(backupPath), "malformed-kdf.vfbackup");
+    await fs.writeFile(malformedPath, JSON.stringify(raw), "utf-8");
+
+    await _sodium.ready;
+    const pwhashSpy = vi.spyOn(_sodium, "crypto_pwhash");
+    try {
+      const result = await importBackup(
+        { backupFilePath: malformedPath, mode: "new-folder", passphrase: "correct-horse-battery-staple" },
+        "default",
+      );
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/kdf|opslimit|memlimit/i);
+      expect(pwhashSpy).not.toHaveBeenCalled();
+    } finally {
+      pwhashSpy.mockRestore();
+    }
   });
 });
 

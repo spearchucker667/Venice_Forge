@@ -113,8 +113,8 @@ export interface CharacterCardV1 {
   adult: boolean;
   /** Optional example dialogue exchanges (few-shot). */
   exampleDialogues: CharacterExampleDialogue[];
-  /** Optional avatar. */
-  avatar?: CharacterCardAvatar;
+  /** Optional avatar. `null` means an explicit sidecar removal on desktop save. */
+  avatar?: CharacterCardAvatar | null;
 
   // Special Character Settings
   contextFiles?: CharacterContextFile[];

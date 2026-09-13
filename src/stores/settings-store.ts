@@ -423,6 +423,10 @@ export const useSettingsStore = create<SettingsState>()(
       name: 'venice-settings',
       version: 16,
       storage: createJSONStorage(() => createSafeStorage()),
+      partialize: (state) => {
+        const { pendingSettingsSection: _pendingSettingsSection, ...persisted } = state;
+        return persisted;
+      },
       migrate: (persisted) => {
         const state = persisted && typeof persisted === 'object'
           ? persisted as Partial<SettingsState>

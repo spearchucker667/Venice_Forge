@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildCorsHeaders,
+  authorizeCustomProtocolCapability,
   createCustomProtocolCapabilityManager,
   DEV_RENDERER_ORIGIN,
   evaluateCustomProtocolAccess,
@@ -288,5 +289,36 @@ describe("custom protocol capability-token manager", () => {
       objectId: "abc",
       token: null,
     });
+  });
+
+  it("rejects originless custom-protocol requests without a valid cap token", () => {
+    const manager = createCustomProtocolCapabilityManager();
+    const { url } = manager.issue({
+      scheme: "venice-media",
+      objectId,
+      profileId: "p1",
+      sessionId: "s1",
+    });
+    expect(
+      authorizeCustomProtocolCapability({
+        requestUrl: `venice-media://${objectId}`,
+        objectId,
+        manager,
+      }).allowed,
+    ).toBe(false);
+    expect(
+      authorizeCustomProtocolCapability({
+        requestUrl: url,
+        objectId,
+        manager,
+      }).allowed,
+    ).toBe(true);
+    expect(
+      authorizeCustomProtocolCapability({
+        requestUrl: url,
+        objectId: objectId2,
+        manager,
+      }).allowed,
+    ).toBe(false);
   });
 });

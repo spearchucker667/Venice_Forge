@@ -223,6 +223,13 @@ pnpm-debug.log*
 !/docs/audits/venice-forge-exhaustive-audit-2026-09-12/*.json
 !/docs/audits/venice-forge-exhaustive-audit-2026-09-12/*.csv
 
+# Approved current-main re-audit — 2026-09-12
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-12-current-main/
+/docs/audits/venice-forge-exhaustive-audit-2026-09-12-current-main/*
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-12-current-main/*.md
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-12-current-main/*.json
+!/docs/audits/venice-forge-exhaustive-audit-2026-09-12-current-main/*.csv
+
 
 # Approved visual regression snapshots
 !/docs/audits/visual-snapshots/

@@ -97,10 +97,11 @@ describe("Lorebook Store", () => {
   });
 
   describe("createBlank()", () => {
-    it("creates a new blank lorebook, sets editingId, and prepends to lorebooks", () => {
+    it("creates a new blank lorebook, sets editingId, and prepends to lorebooks", async () => {
       useLorebookStore.setState({
         lorebooks: [baseBook({ id: "lb-existing" })]
       });
+      mocks.saveLorebook.mockImplementation(async (book: LorebookV1) => book);
 
       const newId = useLorebookStore.getState().createBlank();
 
@@ -110,6 +111,23 @@ describe("Lorebook Store", () => {
       expect(state.lorebooks).toHaveLength(2);
       expect(state.lorebooks[0].id).toBe("lb-new");
       expect(state.lorebooks[0].name).toBe("New Lorebook");
+      await vi.waitFor(() => {
+        expect(mocks.saveLorebook).toHaveBeenCalled();
+      });
+    });
+
+    it("persists the blank lorebook with the new id", async () => {
+      mocks.saveLorebook.mockImplementation(async (book: LorebookV1) => book);
+
+      const newId = useLorebookStore.getState().createBlank();
+
+      await vi.waitFor(() => {
+        expect(mocks.saveLorebook).toHaveBeenCalledTimes(1);
+      });
+      expect(newId).toBe("lb-new");
+      expect(mocks.saveLorebook.mock.calls[0]![0]).toEqual(
+        expect.objectContaining({ id: newId }),
+      );
     });
   });
 

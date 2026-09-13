@@ -55,4 +55,30 @@ describe("providerSettingsStore", () => {
       expect(isProviderAvailableForFallback(providerId)).toBe(false);
     }
   });
+
+  it("[P2-006] writes through unique temp names before rename", () => {
+    const uniqueTmpRe = /provider-settings\.json\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const writeSpy = vi.spyOn(fs, "writeFileSync");
+    const renameSpy = vi.spyOn(fs, "renameSync");
+    try {
+      updateProviderSettings("work", { enabledProviders: { anthropic: true } });
+      updateProviderSettings("work", { enabledProviders: { together: true } });
+      const tmpWrites = writeSpy.mock.calls
+        .map((call) => String(call[0]))
+        .filter((file) => uniqueTmpRe.test(file));
+      expect(tmpWrites).toHaveLength(2);
+      expect(tmpWrites[0]).not.toBe(tmpWrites[1]);
+      const renameSources = renameSpy.mock.calls
+        .map((call) => String(call[0]))
+        .filter((file) => uniqueTmpRe.test(file));
+      expect(renameSources).toEqual(tmpWrites);
+      const parsed = JSON.parse(fs.readFileSync(path.join(userDataPath, "provider-settings.json"), "utf8")) as {
+        profiles: Record<string, { enabledProviders: Record<string, boolean> }>;
+      };
+      expect(parsed.profiles.work.enabledProviders).toEqual({ together: true });
+    } finally {
+      writeSpy.mockRestore();
+      renameSpy.mockRestore();
+    }
+  });
 });

@@ -41,6 +41,7 @@ vi.mock("../../stores/toast-store", () => ({
     error: vi.fn(),
     success: vi.fn(),
     info: vi.fn(),
+    fromError: vi.fn(),
   },
 }));
 
@@ -262,6 +263,23 @@ describe("HistoryView Component", () => {
     }
     expect(restoreSpy).toHaveBeenCalledWith(conv);
     expect(mockToastSuccess).toHaveBeenCalledWith("Conversation restored");
+  });
+
+  it("archives a conversation from the history card", async () => {
+    const conv = createMockConversation("c1", "Archive target", "Hello");
+    const archiveSpy = vi.fn().mockResolvedValue(undefined);
+    useChatStore.setState({
+      conversations: [conv],
+      toggleConversationArchived: archiveSpy,
+    });
+
+    render(<HistoryView />);
+    fireEvent.click(screen.getByTitle("Archive conversation"));
+
+    await waitFor(() => {
+      expect(archiveSpy).toHaveBeenCalledWith("c1");
+    });
+    expect(mockToastSuccess).toHaveBeenCalledWith("Conversation archived");
   });
 
   it("batch delete asks through the app modal and does not call window.confirm", async () => {

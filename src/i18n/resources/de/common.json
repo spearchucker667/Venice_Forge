@@ -1877,6 +1877,7 @@
         "legacyConversationsDetected": "Legacy-Konversationen erkannt",
         "encryptedConversationVault": "Verschlüsselter Konversationstresor",
         "maintenanceOperations": "Wartungsvorgänge",
+        "searchVault": "__MISSING__:Search vault",
         "curatedFacts": "Kuratierte Fakten ("
       },
       "description": {
@@ -4222,6 +4223,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "{{value1}} Generation"
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "Generierte Medien konnten nicht gespeichert werden",
+          "generationFinishedButGallerySaveFailed": "Die Generierung ist abgeschlossen, aber der Galerieeintrag konnte nicht gespeichert werden."
         }
       },
       "workflowcompiler": {

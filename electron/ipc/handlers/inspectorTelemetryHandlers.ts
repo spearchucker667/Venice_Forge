@@ -12,6 +12,7 @@ import type { InspectorTelemetryEvent } from "../../../src/shared/inspectorTelem
 import { INSPECTOR_TELEMETRY_CHANNEL } from "../../../src/shared/inspectorTelemetryContracts";
 import { subscribeInspectorTelemetry } from "../../services/inspectorTelemetry";
 import { registerPrivilegedIpcChannel, safeSendToRenderer } from "./common";
+import { getProfileSessionId } from "../../services/profileSession";
 
 const subscribers = new Set<WebContents>();
 let busAttached = false;
@@ -45,6 +46,7 @@ function broadcast(event: InspectorTelemetryEvent): void {
       subscribers.delete(webContents);
       continue;
     }
+    if (event.profileId && getProfileSessionId(webContents) !== event.profileId) continue;
     safeSendToRenderer(webContents, INSPECTOR_TELEMETRY_CHANNEL, event);
   }
 }

@@ -344,8 +344,8 @@ export function useChat() {
       }
 
       if (executedAny) {
-        const { aborted } = await startStream(convId, model);
-        return !aborted;
+        const { aborted, blocked } = await startStream(convId, model);
+        return !aborted && !blocked;
       }
       return false;
     },
@@ -682,8 +682,8 @@ export function useChat() {
 
       stopRequestedRef.current = false;
       try {
-        const { aborted } = await startStream(convId, streamModel);
-        if (!aborted && !stopRequestedRef.current) {
+        const { aborted, blocked } = await startStream(convId, streamModel);
+        if (!aborted && !blocked && !stopRequestedRef.current) {
           await executeMediaTools(convId, streamModel);
           await maybeAutoGenerateScene(convId);
 
@@ -724,8 +724,8 @@ export function useChat() {
 
       stopRequestedRef.current = false;
       try {
-        const { aborted } = await startStream(convId, model);
-        if (!aborted && !stopRequestedRef.current) {
+        const { aborted, blocked } = await startStream(convId, model);
+        if (!aborted && !blocked && !stopRequestedRef.current) {
           await executeMediaTools(convId, model);
           await maybeAutoGenerateScene(convId);
 

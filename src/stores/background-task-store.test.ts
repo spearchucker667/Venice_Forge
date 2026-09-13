@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { veniceFetch } from '../services/veniceClient/fetch'
 import { persistCompletedTaskMedia } from '../services/taskMediaCatalog'
 import { useBackgroundTaskStore } from './background-task-store'
+import { useToastStore } from './toast-store'
+import type { BackgroundTask } from '../types/background-task'
 
 // VERIFY-095 regression guard: browser media result custody and blob URL cleanup.
 vi.mock('../services/veniceClient/fetch', () => ({ veniceFetch: vi.fn() }))
@@ -11,6 +13,22 @@ function resetStore(): void {
   const state = useBackgroundTaskStore.getState()
   for (const poll of Object.values(state.activePolls)) clearTimeout(poll)
   useBackgroundTaskStore.setState({ tasks: {}, activePolls: {} })
+  useToastStore.setState({ toasts: [] })
+}
+
+function completedDesktopTask(overrides: Partial<BackgroundTask> = {}): BackgroundTask {
+  return {
+    id: 'video-persist',
+    type: 'video',
+    status: 'completed',
+    queueId: 'queue-persist',
+    resultUrl: `venice-media://${'a'.repeat(64)}`,
+    progress: 1,
+    createdAt: 1,
+    updatedAt: 2,
+    profileId: 'default',
+    ...overrides,
+  }
 }
 
 describe('background task polling', () => {
@@ -197,6 +215,11 @@ describe('background task polling', () => {
         retry: false,
       }),
     )
+    expect(persistCompletedTaskMedia).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'video-vps',
+      status: 'completed',
+      resultUrl: 'data:video/mp4;base64,AAAA',
+    }))
     expect(useBackgroundTaskStore.getState().tasks['video-vps']).toMatchObject({
       status: 'completed',
       progress: 1,
@@ -222,6 +245,9 @@ describe('background task polling', () => {
     expect(task.status).toBe('completed')
     expect(task.resultUrl).toBe('blob:browser-audio')
     expect(task.resultUrl).not.toMatch(/^https:/)
+    expect(persistCompletedTaskMedia).toHaveBeenCalledWith(expect.objectContaining({
+      resultUrl: 'data:video/mp4;base64,BBBB',
+    }))
   })
 
   it('journals synchronous tasks without polling or offering a false retry', async () => {
@@ -239,5 +265,89 @@ describe('background task polling', () => {
       error: 'request failed',
     })
     expect(useBackgroundTaskStore.getState().activePolls['image-one']).toBeUndefined()
+  })
+
+  it('awaits gallery persist before treating a desktop task as complete', async () => {
+    let resolvePersist: (value: { id: string } | null) => void = () => undefined
+    vi.mocked(persistCompletedTaskMedia).mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolvePersist = (value) => resolve(value as never)
+      }),
+    )
+    const pending = useBackgroundTaskStore.getState().applyEnvelope({
+      kind: 'updated',
+      tasks: [completedDesktopTask()],
+    })
+
+    await Promise.resolve()
+    expect(useBackgroundTaskStore.getState().tasks['video-persist']).toMatchObject({
+      status: 'processing',
+      stage: 'saving',
+    })
+
+    resolvePersist({ id: 'gallery-1' })
+    await pending
+
+    expect(persistCompletedTaskMedia).toHaveBeenCalledTimes(1)
+    expect(useBackgroundTaskStore.getState().tasks['video-persist']).toMatchObject({
+      status: 'completed',
+      resultMediaId: 'gallery-1',
+    })
+  })
+
+  it('surfaces a persist failure without an unhandled rejection', async () => {
+    const rejections: unknown[] = []
+    const onUnhandled = (reason: unknown) => {
+      rejections.push(reason)
+    }
+    process.on('unhandledRejection', onUnhandled)
+    vi.mocked(persistCompletedTaskMedia).mockRejectedValueOnce(new Error('idb failed'))
+
+    try {
+      await expect(useBackgroundTaskStore.getState().applyEnvelope({
+        kind: 'updated',
+        tasks: [completedDesktopTask({ id: 'video-persist-fail' })],
+      })).resolves.toBeUndefined()
+
+      expect(rejections).toEqual([])
+      expect(useBackgroundTaskStore.getState().tasks['video-persist-fail']).toMatchObject({
+        status: 'failed',
+        error: 'Could not save generated media',
+      })
+      expect(useToastStore.getState().toasts.some((entry) => entry.variant === 'error')).toBe(true)
+    } finally {
+      process.off('unhandledRejection', onUnhandled)
+    }
+  })
+
+  it('marks browser music persist failure as failed without an unhandled rejection', async () => {
+    const rejections: unknown[] = []
+    const onUnhandled = (reason: unknown) => {
+      rejections.push(reason)
+    }
+    process.on('unhandledRejection', onUnhandled)
+    vi.mocked(veniceFetch).mockResolvedValueOnce({
+      data: { dataBase64: 'SUQzAA==' },
+      headers: { 'content-type': 'audio/mpeg' },
+    } as never)
+    vi.mocked(persistCompletedTaskMedia).mockRejectedValueOnce(new Error('catalog failed'))
+
+    try {
+      useBackgroundTaskStore.getState().registerQueueTask('music-persist-fail', 'music', 'queue-music-fail', {
+        model: 'music-model',
+        request: { model: 'music-model', prompt: 'test' },
+      })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(rejections).toEqual([])
+      expect(useBackgroundTaskStore.getState().tasks['music-persist-fail']).toMatchObject({
+        status: 'failed',
+        error: 'Could not save generated media',
+        resultUrl: 'blob:browser-audio',
+      })
+      expect(useToastStore.getState().toasts.some((entry) => entry.variant === 'error')).toBe(true)
+    } finally {
+      process.off('unhandledRejection', onUnhandled)
+    }
   })
 })

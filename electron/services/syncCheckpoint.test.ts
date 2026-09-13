@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it } from "vitest";
 import { promises as fs } from "node:fs";
-import { acknowledgeSyncOperation, collectAcknowledgedEvent, registerSyncDevice } from "./syncCheckpoint";
+import { acknowledgeSyncOperation, collectAcknowledgedEvent, pruneStaleSyncDevices, registerSyncDevice } from "./syncCheckpoint";
 
 import os from "node:os";
 import path from "node:path";
@@ -28,6 +28,22 @@ describe("syncCheckpoint", () => {
     await acknowledgeSyncOperation(root, "11111111-1111-4111-8111-111111111111", operationId);
     await expect(collectAcknowledgedEvent(root, operationId, eventPath, checkpointPath)).resolves.toBe(false);
     await acknowledgeSyncOperation(root, "22222222-2222-4222-8222-222222222222", operationId);
+    await expect(collectAcknowledgedEvent(root, operationId, eventPath, checkpointPath)).resolves.toBe(true);
+  });
+
+  it("prunes stale devices so remaining acks can collect events", async () => {
+    const live = "11111111-1111-4111-8111-111111111111";
+    const stale = "22222222-2222-4222-8222-222222222222";
+    await registerSyncDevice(root, live);
+    await registerSyncDevice(root, stale);
+    const stalePath = path.join(root, "devices", `${stale}.json`);
+    await fs.writeFile(
+      stalePath,
+      JSON.stringify({ version: 1, deviceId: stale, lastSeenAt: Date.now() - 40 * 24 * 60 * 60 * 1000 }),
+    );
+    await acknowledgeSyncOperation(root, live, operationId);
+    const pruned = await pruneStaleSyncDevices(root);
+    expect(pruned).toContain(stale);
     await expect(collectAcknowledgedEvent(root, operationId, eventPath, checkpointPath)).resolves.toBe(true);
   });
 

@@ -190,7 +190,7 @@ export const usePromptLibraryStore = create<PromptLibraryState>((set, get) => ({
       set({
         loading: false,
         loadError: redactErrorMessage(err),
-        hydrated: true,
+        hydrated: false,
       });
     }
   },

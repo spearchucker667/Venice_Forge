@@ -180,6 +180,34 @@ describe("chatStorage", () => {
     expect(result).toBeNull();
   });
 
+  it("leaves future-version conversation files in place (STOR-P2-005)", async () => {
+    const dir = getChatHistoryDir();
+    await fs.mkdir(dir, { recursive: true });
+    const id = "futurever1";
+    const filePath = path.join(dir, `${id}.json`);
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({
+        version: 2,
+        conversation: {
+          id,
+          title: "Future",
+          createdAt: 1,
+          updatedAt: 1,
+          model: "m",
+          messages: [],
+        },
+      }),
+      "utf-8",
+    );
+
+    const result = await getConversation(id);
+    expect(result).toBeNull();
+    const files = await fs.readdir(dir);
+    expect(files).toContain(`${id}.json`);
+    expect(files.some((f) => f.includes(".backup."))).toBe(false);
+  });
+
   it("backs up corrupt files with a timestamp and returns null (M-025)", async () => {
     const dir = getChatHistoryDir();
     await fs.mkdir(dir, { recursive: true });

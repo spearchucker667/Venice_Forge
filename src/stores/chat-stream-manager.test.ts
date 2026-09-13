@@ -281,6 +281,41 @@ describe("chat-stream-manager", () => {
     ]);
   });
 
+  it("merges fragmented tool_calls by index across stream chunks (ZST-P2-015)", async () => {
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "assistant", content: "" });
+
+    mockedVeniceStreamChat.mockImplementationOnce((_payload, opts) => {
+      opts.onDelta?.({
+        content: "",
+        reasoning: "",
+        tool_calls: [{ index: 0, id: "call_1", type: "function", function: { name: "media_generate_image" } }],
+      });
+      opts.onDelta?.({
+        content: "",
+        reasoning: "",
+        tool_calls: [{ index: 0, function: { arguments: '{"prompt":' } }],
+      });
+      opts.onDelta?.({
+        content: "",
+        reasoning: "",
+        tool_calls: [{ index: 0, function: { arguments: '"a cat"}' } }],
+      });
+      return Promise.resolve(undefined);
+    });
+
+    await startStream(convId, "llama-3.3-70b");
+
+    const last = useChatStore.getState().conversations[0].messages.at(-1)!;
+    expect(last.tool_calls).toEqual([
+      {
+        id: "call_1",
+        type: "function",
+        function: { name: "media_generate_image", arguments: '{"prompt":"a cat"}' },
+      },
+    ]);
+  });
+
   it("batches 1,000 raw deltas into one conversation mutation and preserves final output", async () => {
     // VERIFY-138 regression guard
     const convId = useChatStore.getState().createConversation("llama-3.3-70b");
@@ -402,6 +437,51 @@ describe("chat-stream-manager", () => {
     expect(last?.content).not.toContain(sensitive);
     expect(last?.content).not.toContain("/Users/super_user");
     expect(useChatStore.getState().isStreaming).toBe(false);
+  });
+
+  it("discards partial deltas and removes the assistant turn on a 451 block (VCS-P1-004)", async () => {
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+    useChatStore.getState().addMessage(convId, { role: "assistant", content: "" });
+
+    mockedVeniceStreamChat.mockImplementationOnce(async (_payload, opts) => {
+      opts.onDelta?.({ content: "blocked-partial-text", reasoning: "" });
+      const err = Object.assign(new Error("Blocked by Family Safe Mode"), { status: 451 });
+      throw err;
+    });
+
+    const result = await startStream(convId, "llama-3.3-70b");
+    expect(result.aborted).toBe(false);
+    expect(result.blocked).toBe(true);
+    const conv = useChatStore.getState().conversations.find((c) => c.id === convId)!;
+    expect(
+      conv.messages.some(
+        (m) => typeof m.content === "string" && m.content.includes("blocked-partial-text"),
+      ),
+    ).toBe(false);
+    const last = conv.messages.at(-1);
+    expect(last?.role).toBe("assistant");
+    expect(typeof last?.content === "string" && last.content.includes("Sorry, something went wrong")).toBe(true);
+  });
+
+  it("discards partial deltas on a hard stream failure and keeps only the safe error marker", async () => {
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+    useChatStore.getState().addMessage(convId, { role: "assistant", content: "" });
+
+    mockedVeniceStreamChat.mockImplementationOnce(async (_payload, opts) => {
+      opts.onDelta?.({ content: "partial-then-fail", reasoning: "" });
+      const err = Object.assign(new Error("bad request"), { status: 400 });
+      throw err;
+    });
+
+    const result = await startStream(convId, "llama-3.3-70b");
+    expect(result.aborted).toBe(false);
+    const conv = useChatStore.getState().conversations.find((c) => c.id === convId)!;
+    const last = conv.messages.at(-1);
+    expect(last?.role).toBe("assistant");
+    expect(typeof last?.content === "string" && last.content.includes("Sorry, something went wrong")).toBe(true);
+    expect(typeof last?.content === "string" && last.content.includes("partial-then-fail")).toBe(false);
   });
 
   it("notifies stream-state listeners on start and stop", async () => {

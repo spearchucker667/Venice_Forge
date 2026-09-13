@@ -6,6 +6,7 @@ export interface ShutdownDependencies {
   stopSyncWatcher: () => Promise<unknown>;
   flushBackgroundTasks: () => Promise<void>;
   flushLogs: () => Promise<void>;
+  compactVaultJournals?: () => Promise<void>;
 }
 
 export interface ShutdownResult {
@@ -60,6 +61,7 @@ export function createShutdownCoordinator(
           runStep("bridge", dependencies.stopBridgeServer, failures),
           runStep("sync", dependencies.stopSyncWatcher, failures),
           runStep("background tasks", dependencies.flushBackgroundTasks, failures),
+          runStep("vault journals", dependencies.compactVaultJournals ?? (async () => undefined), failures),
         ]);
 
         // Phase 2: flush logs as the FINAL ordered phase so any diagnostics

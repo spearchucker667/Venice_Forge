@@ -3,9 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { type ElectronApplication } from 'playwright';
-import { findPackagedExecutable, launchPackagedApp, bootstrapFailures, closeTrackedApplication } from './smoke-utils';
+import { findPackagedExecutable, launchPackagedApp, bootstrapFailures, closeTrackedApplication, shouldRunElectronSmoke } from './smoke-utils';
 
-const smokeTest = process.env.RUN_ELECTRON_SMOKE === 'true' ? test : test.skip;
+const smokeTest = shouldRunElectronSmoke() ? test : test.skip;
 const temporaryDirectories: string[] = [];
 const electronApplications: ElectronApplication[] = [];
 

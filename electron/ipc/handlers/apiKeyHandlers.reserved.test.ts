@@ -1,9 +1,10 @@
 // @vitest-environment node
-/** @fileoverview Regression tests for the generic credential name reservation
- *  policy in `apiKeyHandlers.ts`.
+/** @fileoverview Regression tests for the credential name reservation policy
+ *  in `apiKeyHandlers.ts`.
  *
- *  Internal application namespaces (e.g. chat-folder lock metadata) must not
- *  be reachable through the renderer-writable generic credential bridge.
+ *  The renderer-writable generic `credential:*` IPC bridge was removed.
+ *  Internal application namespaces (e.g. chat-folder lock metadata) and
+ *  password names must remain reserved if a generic store is reintroduced.
  */
 
 import { describe, it, expect } from "vitest";

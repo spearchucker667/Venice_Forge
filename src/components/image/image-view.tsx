@@ -829,6 +829,13 @@ export function ImageView() {
 
     mutation.mutate(req as unknown as Parameters<typeof mutation.mutate>[0], {
       onSuccess: async (data) => {
+        if (data.queued) {
+          toast.info(
+            t("imageStudioRuntime.replicateQueued"),
+            t("imageStudioRuntime.replicateQueuedDetail"),
+          );
+          return;
+        }
         const rawImages = data.images.map((img) =>
           typeof img === "string" ? img : img.b64_json,
         );

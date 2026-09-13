@@ -138,6 +138,7 @@ export async function generateScene(
       method: "POST",
       body: payload,
       timeoutMs: 120_000,
+      retry: false,
     });
     response = data;
   } catch (err) {

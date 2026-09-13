@@ -8,6 +8,7 @@ import { Server as HttpServer } from "http";
 import { startBridgeServer, stopBridgeServer, getBridgeToken, validateHeadlessBridgeToken } from "./bridgeServer";
 import { performVeniceRequest } from "./veniceClient";
 import { assessChildExploitationSafety } from "../../src/shared/safety";
+import { setRuntimeLocalFamilySafeModeEnabled } from "./runtimeSafetySettings";
 
 vi.mock("./veniceClient", () => ({
   performVeniceRequest: vi.fn(),
@@ -73,6 +74,9 @@ describe("bridgeServer", () => {
   const origError = console.error;
 
   beforeAll(async () => {
+    // Live SSE tests need deltas during the request. Family Safe Mode withholds
+    // them until screening (GSS-P1-001); keep it off for this suite.
+    setRuntimeLocalFamilySafeModeEnabled(false);
     vi.mocked(assessChildExploitationSafety).mockReturnValue({
       allow: true,
       action: "allow",

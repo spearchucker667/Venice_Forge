@@ -70,7 +70,7 @@ describe("workflow-template-store", () => {
       await store.ensureWorkflowTemplatesLoaded();
       
       const updatedStore = useWorkflowTemplateStore.getState();
-      expect(updatedStore.hydrated).toBe(true);
+      expect(updatedStore.hydrated).toBe(false);
       expect(updatedStore.workflows).toHaveLength(0);
       expect(updatedStore.loadError).toBe("Load fail");
     });

@@ -1099,6 +1099,7 @@
         "legacyConversationsDetected": "Legacy Conversations Detected",
         "encryptedConversationVault": "Encrypted Conversation Vault",
         "maintenanceOperations": "Maintenance Operations",
+        "searchVault": "Search vault",
         "curatedFacts": "Curated Facts ("
       },
       "description": {
@@ -4240,6 +4241,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "{{value1}} generation"
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "Could not save generated media",
+          "generationFinishedButGallerySaveFailed": "Generation finished, but the gallery record could not be saved."
         }
       },
       "workflowcompiler": {

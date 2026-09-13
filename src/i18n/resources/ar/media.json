@@ -85,6 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "تم تنزيل الصورة",
     "imageSaveFailed": "فشل حفظ الصورة",
+    "replicateQueued": "__MISSING__:Replicate generation queued",
+    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
     "imageDownloadFailedDetail": "لا يمكن تحميل الصورة.",
     "none": "لا أحد",
     "enhancedPromptShortened": "تم اختصار المطالبة المحسنة",

@@ -133,7 +133,7 @@ const SAFE_AVATAR_DATA_URI =
 const RAW_BASE64_RE = /^[A-Za-z0-9+/=\s]+$/;
 
 export function avatarDataUri(
-  avatar: { data: string; mimeType: string } | undefined,
+  avatar: { data: string; mimeType: string } | null | undefined,
 ): string | undefined {
   if (!avatar) return undefined;
   if (SAFE_AVATAR_DATA_URI.test(avatar.data)) return avatar.data;

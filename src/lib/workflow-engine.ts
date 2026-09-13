@@ -11,7 +11,11 @@ import type { VeniceNodeData, NodeResult } from '../stores/workflow-store'
 import { NODE_SCHEMAS, type IOKind } from './workflow-schema'
 import { validateWorkflow } from './workflow-validator'
 import { venice, veniceBlob } from './venice-client'
-import type { ChatCompletionResponse, ImageConstraints, ImageGenerateResponse, MusicQueueResponse, VideoQueueResponse } from '../types/venice'
+import type { ChatCompletionResponse, ImageConstraints, ImageGenerateRequest, ImageGenerateResponse, MusicQueueResponse, VideoQueueResponse } from '../types/venice'
+import {
+  generateReplicateImage,
+  replicateModelIdFromCatalog,
+} from '../services/replicateImageClient'
 import { veniceFetch } from '../services/veniceClient/fetch'
 import {
   getCanonicalModelById,
@@ -101,6 +105,15 @@ function resolveWorkflowImageGeneratePayload(
   prompt: string,
 ): ReturnType<typeof buildCanonicalImageGeneratePayload> {
   const modelId = data.model || DEFAULT_IMAGE_MODEL
+  if (replicateModelIdFromCatalog(modelId)) {
+    return buildCanonicalImageGeneratePayload({
+      model: modelId,
+      prompt,
+      negativePrompt: data.negativePrompt || undefined,
+      width: data.width,
+      height: data.height,
+    })
+  }
   const live = getCanonicalModelById(modelId)
   if (live?.model_spec?.offline) {
     throw new WorkflowExecutionError(`Image model '${modelId}' is offline.`)
@@ -168,6 +181,38 @@ async function executeNode(
     case 'imageGen': {
       const prompt = resolvePrompt(data.prompt, input)
       const wirePayload = resolveWorkflowImageGeneratePayload(data, prompt)
+      if (replicateModelIdFromCatalog(wirePayload.model)) {
+        const queued = await generateReplicateImage(wirePayload as ImageGenerateRequest)
+        const taskId = queued.taskId
+        if (!taskId) throw new WorkflowExecutionError('Replicate generation did not return a task.')
+        const { useBackgroundTaskStore } = await import('../stores/background-task-store')
+        const resultUrl = await new Promise<string>((resolve, reject) => {
+          let settled = false
+          const finish = (cb: () => void) => {
+            if (settled) return
+            settled = true
+            unsubscribe()
+            signal?.removeEventListener('abort', onAbort)
+            cb()
+          }
+          const inspect = () => {
+            const task = useBackgroundTaskStore.getState().tasks[taskId]
+            if (!task || ['completed', 'failed', 'aborted', 'timeout'].includes(task.status)) {
+              if (task?.status === 'completed' && task.resultUrl) {
+                finish(() => resolve(task.resultUrl!))
+              } else {
+                const err = task?.error || 'Replicate image generation failed.'
+                finish(() => reject(new WorkflowExecutionError(err)))
+              }
+            }
+          }
+          const onAbort = () => finish(() => reject(new DOMException('Aborted', 'AbortError')))
+          const unsubscribe = useBackgroundTaskStore.subscribe(inspect)
+          signal?.addEventListener('abort', onAbort, { once: true })
+          inspect()
+        })
+        return `[image:${resultUrl}]`
+      }
       const resp = await venice<ImageGenerateResponse>('/image/generate', {
         method: 'POST',
         body: JSON.stringify(wirePayload),

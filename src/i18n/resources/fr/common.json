@@ -1899,6 +1899,7 @@
         "legacyConversationsDetected": "Conversations héritées détectées",
         "encryptedConversationVault": "Coffre-fort de conversations chiffré",
         "maintenanceOperations": "Opérations de maintenance",
+        "searchVault": "__MISSING__:Search vault",
         "curatedFacts": "Faits organisés ("
       },
       "description": {
@@ -4222,6 +4223,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "Génération {{value1}}"
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "Impossible d’enregistrer le média généré",
+          "generationFinishedButGallerySaveFailed": "La génération est terminée, mais l’enregistrement de la galerie a échoué."
         }
       },
       "workflowcompiler": {

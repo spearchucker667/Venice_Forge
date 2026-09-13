@@ -352,7 +352,7 @@ describe("scene-composer-store", () => {
       );
       await useSceneComposerStore.getState().ensureLoaded();
       const { loadError, hydrated } = useSceneComposerStore.getState();
-      expect(hydrated).toBe(true);
+      expect(hydrated).toBe(false);
       expect(loadError).toContain("IndexedDB failed");
       expect(loadError).not.toContain("vn-aaaaaaaaaaaaaaaa");
       expect(loadError).toContain("[REDACTED]");

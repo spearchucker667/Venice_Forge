@@ -312,6 +312,7 @@ export async function readCharacterCard(id: string): Promise<CharacterCardV1 | n
 export async function saveCharacterCard(card: CharacterCardV1): Promise<CharacterCardV1> {
   const now = Date.now();
   const id = card.id && ID_RE(card.id) ? card.id : generateId();
+  const removeAvatar = card.avatar === null;
   const next: CharacterCardV1 = {
     ...card,
     id,
@@ -328,7 +329,8 @@ export async function saveCharacterCard(card: CharacterCardV1): Promise<Characte
     throw new SafetyGuardBlockedError(safety);
   }
   if (isElectron()) {
-    const res = await desktopCharacterCards.save(normalized);
+    const payload = removeAvatar ? { ...normalized, avatar: null } : normalized;
+    const res = await desktopCharacterCards.save(payload);
     if (!res.ok) throw new Error(res.error ?? "Failed to save character card.");
     return res.card ? normalizeCard(res.card) ?? normalized : normalized;
   }

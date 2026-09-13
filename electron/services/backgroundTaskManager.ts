@@ -21,7 +21,7 @@ import {
 } from "../../src/types/background-task";
 import { sanitizeErrorText } from "../../src/shared/redaction";
 import { MUSIC_SAFE_ERROR_MESSAGES, toUserFacingMusicError, toUserFacingVideoError } from "../../src/services/task-errors";
-import { performVeniceRequest, readResponseError } from "./veniceClient";
+import { readResponseError } from "./veniceClient";
 import { performGuardedVeniceRequest } from "./guardPipeline";
 import { computePayloadHash } from "../../src/shared/venice-media-contract/payload-hash";
 import { identifyAndValidateGeneratedMedia } from "../../src/shared/safety/mediaScreener";
@@ -652,13 +652,31 @@ async function runPoll(taskId: string): Promise<void> {
         endpoint: "/audio/retrieve",
         method: "POST",
         summaries: { taskId, model: taskModel || undefined },
+        profileId: task.profileId,
       });
-      const response = await performVeniceRequest({
+      const guarded = await performGuardedVeniceRequest({
         endpoint: "/audio/retrieve",
         method: "POST",
         body: buildAudioRetrieveRequest(taskModel, task.queueId),
         profileId: task.profileId,
       });
+      if (guarded.kind === "blocked") {
+        const fsmError = guarded.block.body.error || "Audio retrieve blocked by Family Safe Mode.";
+        await applyUpdate(taskId, { status: "failed", error: fsmError, pollAttempts: (state.tasks[taskId]?.pollAttempts ?? 0) + 1, consecutiveFailures: 0 });
+        stopPolling(taskId);
+        publishInspectorCompletion({
+          source: "main-background",
+          transport: "venice",
+          endpoint: "/audio/retrieve",
+          method: "POST",
+          summaries: { taskId, model: taskModel || undefined },
+          eventId: musicTelemetryId,
+          status: 451,
+          error: fsmError,
+        });
+        return;
+      }
+      const response = guarded.response;
 
       const latestTask = state.tasks[taskId];
       if (!latestTask || isTerminalStatus(latestTask.status)) {

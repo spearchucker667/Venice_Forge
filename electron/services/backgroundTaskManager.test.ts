@@ -275,10 +275,13 @@ describe("backgroundTaskManager", () => {
     const updated = listBackgroundTasks()[0];
     expect(updated?.status).toBe("completed");
     expect(updated?.resultUrl).toBe(`venice-media://${'a'.repeat(64)}`);
-    expect(performVeniceRequest).toHaveBeenCalledWith(expect.objectContaining({
-      body: { model: 'stable-audio', queue_id: 'q1', delete_media_on_completion: false },
-      profileId: "p1",
-    }));
+    expect(performVeniceRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: { model: 'stable-audio', queue_id: 'q1', delete_media_on_completion: false },
+        profileId: "p1",
+      }),
+      expect.anything(),
+    );
     vi.useRealTimers();
   });
 

@@ -1,5 +1,6 @@
 /** @fileoverview Profile-scoped, main-process authority for fallback-provider consent. */
 
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { app } from "electron";
@@ -112,7 +113,7 @@ function readFile(): ProviderSettingsFile {
 
 function writeFile(data: ProviderSettingsFile): void {
   const target = storePath();
-  const temporary = `${target}.tmp`;
+  const temporary = `${target}.tmp-${crypto.randomUUID()}`;
   fs.mkdirSync(path.dirname(target), { recursive: true });
   try {
     fs.writeFileSync(temporary, JSON.stringify(data, null, 2), { encoding: "utf8", mode: 0o600 });

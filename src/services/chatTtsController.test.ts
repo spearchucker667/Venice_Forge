@@ -6,6 +6,11 @@ const synthesize = vi.hoisted(() => vi.fn());
 vi.mock("./desktopBridge", () => ({
   isElectron: () => true,
   desktopTts: { synthesize, clearCache: vi.fn() },
+  desktopMedia: {
+    resolveUrl: vi.fn(async (input: { resourceUrl?: string; scheme: string; objectId: string }) =>
+      input.resourceUrl ?? `${input.scheme}://${input.objectId}`,
+    ),
+  },
 }));
 
 import { chatTtsController } from "./chatTtsController";

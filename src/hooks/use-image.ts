@@ -2,10 +2,18 @@ import { useMutation } from '@tanstack/react-query'
 import { venice } from '../lib/venice-client'
 import type { ImageGenerateRequest, ImageGenerateResponse } from '../types/venice'
 import { useBackgroundTaskStore } from '../stores/background-task-store'
+import {
+  generateReplicateImage,
+  replicateModelIdFromCatalog,
+} from '../services/replicateImageClient'
 
 export function useImageGenerate() {
   return useMutation({
     mutationFn: async (req: ImageGenerateRequest) => {
+      if (replicateModelIdFromCatalog(req.model)) {
+        return generateReplicateImage(req)
+      }
+
       const taskId = `image-${Date.now()}`
       // Note: Image does not use a queue_id, so we pass empty string or unique id
       useBackgroundTaskStore.getState().registerQueueTask(taskId, 'image', 'sync-request', { request: req })

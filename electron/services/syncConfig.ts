@@ -42,13 +42,15 @@ export async function saveSyncConfig(config: SyncConfig): Promise<void> {
   cachedConfig = { ...config };
   const configPath = getConfigPath();
   try {
-    // Atomic write
-    const tmpPath = `${configPath}.tmp`;
+    await fs.mkdir(path.dirname(configPath), { recursive: true });
+    // Atomic write with a unique temp so concurrent saves cannot share a `.tmp` file.
+    const tmpPath = `${configPath}.tmp-${crypto.randomUUID()}`;
     await fs.writeFile(tmpPath, JSON.stringify(cachedConfig, null, 2), "utf8");
     await fs.rename(tmpPath, configPath);
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Unknown error";
     logError("syncConfig", `Failed to save sync config: ${errorMsg}`);
+    throw err;
   }
 }
 

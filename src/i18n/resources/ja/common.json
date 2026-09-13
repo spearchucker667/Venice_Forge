@@ -1899,6 +1899,7 @@
         "legacyConversationsDetected": "従来の会話が検出されました",
         "encryptedConversationVault": "暗号化された会話ボールト",
         "maintenanceOperations": "メンテナンス操作",
+        "searchVault": "__MISSING__:Search vault",
         "curatedFacts": "厳選された事実 ("
       },
       "description": {
@@ -4222,6 +4223,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "{{value1}}世代"
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "生成したメディアを保存できませんでした",
+          "generationFinishedButGallerySaveFailed": "生成は完了しましたが、ギャラリー記録を保存できませんでした。"
         }
       },
       "workflowcompiler": {

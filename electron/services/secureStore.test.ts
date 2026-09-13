@@ -73,6 +73,15 @@ function cleanStore() {
   if (STORE_PATH) {
     try { fs.unlinkSync(STORE_PATH); } catch { /* ignore */ }
     try { fs.unlinkSync(`${STORE_PATH}.tmp`); } catch { /* ignore */ }
+    try {
+      const dir = path.dirname(STORE_PATH);
+      const base = path.basename(STORE_PATH);
+      for (const name of fs.readdirSync(dir)) {
+        if (name.startsWith(`${base}.tmp`)) {
+          try { fs.unlinkSync(path.join(dir, name)); } catch { /* ignore */ }
+        }
+      }
+    } catch { /* ignore */ }
   }
 }
 
@@ -127,6 +136,31 @@ describe("secureStore", () => {
     expect(getApiKey()).toBe("vn-secret-key");
     expect(isApiKeyConfigured()).toBe(true);
     expect(getApiKeyConfigurationStatus()).toEqual({ configured: true, state: "configured", storageMode: "encrypted" });
+  });
+
+  it("[P2-006] writes through unique temp names before rename", () => {
+    const uniqueTmpRe = /secure-prefs\.json\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const writeSpy = vi.spyOn(fs, "writeFileSync");
+    const renameSpy = vi.spyOn(fs, "renameSync");
+    try {
+      setApiKey("vn-key-one");
+      setApiKey("vn-key-two");
+      const tmpWrites = writeSpy.mock.calls
+        .map((call) => String(call[0]))
+        .filter((file) => uniqueTmpRe.test(file));
+      expect(tmpWrites).toHaveLength(2);
+      expect(tmpWrites[0]).not.toBe(tmpWrites[1]);
+      const renameSources = renameSpy.mock.calls
+        .map((call) => String(call[0]))
+        .filter((file) => uniqueTmpRe.test(file));
+      expect(renameSources).toEqual(tmpWrites);
+      const parsed = JSON.parse(fs.readFileSync(STORE_PATH, "utf-8")) as Record<string, unknown>;
+      expect(parsed).toEqual(expect.any(Object));
+      expect(getApiKey()).toBe("vn-key-two");
+    } finally {
+      writeSpy.mockRestore();
+      renameSpy.mockRestore();
+    }
   });
 
   it("distinguishes a stored credential decrypt failure from no configured credential", () => {

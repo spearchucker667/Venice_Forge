@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for veniceClient utility functions. */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { summarizeDiagnostics, normalizeError, readWebErrorBody, extractModelName, dedupeKey, serializeFormData, resolveTimeoutMs, veniceFetch } from "./veniceClient";
+import { summarizeDiagnostics, normalizeError, readWebErrorBody, extractModelName, dedupeKey, serializeFormData, resolveTimeoutMs, resolveRetryEnabled, veniceFetch } from "./veniceClient";
 import { sleep } from "../utils/timeout";
 import { useSettingsStore } from "../stores/settings-store";
 import { useInspectorStore } from "../stores/inspector-store";
@@ -59,6 +59,26 @@ describe("veniceClient utilities", () => {
       expect(key).not.toContain("venice_nested_secret");
       expect(key).toContain("hello");
       expect(key).toContain("visible");
+    });
+  });
+
+  describe("resolveRetryEnabled", () => {
+    it("defaults idempotent methods to retry", () => {
+      expect(resolveRetryEnabled("GET")).toBe(true);
+      expect(resolveRetryEnabled("HEAD")).toBe(true);
+      expect(resolveRetryEnabled("OPTIONS")).toBe(true);
+    });
+
+    it("defaults POST and other non-idempotent methods to no retry", () => {
+      expect(resolveRetryEnabled("POST")).toBe(false);
+      expect(resolveRetryEnabled("PUT")).toBe(false);
+      expect(resolveRetryEnabled("PATCH")).toBe(false);
+      expect(resolveRetryEnabled("DELETE")).toBe(false);
+    });
+
+    it("honors an explicit retry flag over the method default", () => {
+      expect(resolveRetryEnabled("POST", true)).toBe(true);
+      expect(resolveRetryEnabled("GET", false)).toBe(false);
     });
   });
 

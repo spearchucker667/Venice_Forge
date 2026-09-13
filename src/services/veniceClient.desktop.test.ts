@@ -28,6 +28,28 @@ describe("veniceClient desktop regressions", () => {
     vi.clearAllMocks();
   });
 
+  it("does not retry POST /image/generate on 503 by default (VCS-P2-006)", async () => {
+    const dispatch = vi.fn() as unknown as AppDispatch;
+    vi.mocked(desktopVenice.request).mockResolvedValue({
+      ok: false,
+      status: 503,
+      statusText: "Service Unavailable",
+      headers: {},
+      body: { error: "unavailable" },
+      contentType: "application/json",
+    });
+
+    await expect(
+      veniceFetch("/image/generate", {
+        method: "POST",
+        body: { model: "test-model", prompt: "a tree in a meadow" },
+        dispatch,
+      }),
+    ).rejects.toThrow(/503/);
+
+    expect(desktopVenice.request).toHaveBeenCalledTimes(1);
+  });
+
   it("includes desktop response headers in diagnostics", async () => {
     const dispatch = vi.fn() as unknown as AppDispatch;
     vi.mocked(desktopVenice.request).mockResolvedValue({

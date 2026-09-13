@@ -95,6 +95,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "Image downloaded",
     "imageSaveFailed": "Image save failed",
+    "replicateQueued": "Replicate generation queued",
+    "replicateQueuedDetail": "The image will appear in Task Center and Media Studio when it finishes.",
     "imageDownloadFailedDetail": "The image could not be downloaded.",
     "none": "None",
     "enhancedPromptShortened": "Enhanced prompt shortened",

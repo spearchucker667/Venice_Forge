@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, it, expect } from "vitest";
-import { rendererCsp } from "./rendererCsp";
+import { applyRendererCspHeaders, rendererCsp } from "./rendererCsp";
 
 describe("rendererCsp", () => {
   // VERIFY-062: production CSP must not allow arbitrary https: images.
@@ -11,7 +11,7 @@ describe("rendererCsp", () => {
   it("production CSP permits internal image schemes but no arbitrary https: image sources", () => {
     const csp = rendererCsp(false);
     expect(csp).toContain("img-src 'self' data: blob: venice-character-cache: venice-media:");
-    expect(csp).toContain("media-src 'self' blob: venice-media:");
+    expect(csp).toContain("media-src 'self' blob: venice-media: venice-tts:");
     expect(csp).toContain("worker-src 'self' blob:");
     expect(csp).not.toMatch(/img-src[^;]*\shttps:/);
     expect(csp).not.toMatch(/img-src[^;]*\shttp:/);
@@ -31,5 +31,22 @@ describe("rendererCsp", () => {
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("form-action 'none'");
+  });
+
+  it("injects production CSP onto file:// responses without dropping existing headers", () => {
+    const result = applyRendererCspHeaders(
+      {
+        responseHeaders: {
+          "Content-Type": ["text/html"],
+        },
+      },
+      false,
+    );
+    const csp = result.responseHeaders["Content-Security-Policy"];
+    expect(Array.isArray(csp) ? csp[0] : csp).toBe(rendererCsp(false));
+    expect(result.responseHeaders["Content-Type"]).toEqual(["text/html"]);
+    expect(String(csp)).toContain("media-src 'self' blob: venice-media: venice-tts:");
+    expect(String(csp)).not.toContain("unsafe-inline");
+    expect(String(csp)).not.toContain("unsafe-eval");
   });
 });

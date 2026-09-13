@@ -351,6 +351,24 @@ describe("configService initialize", () => {
     expect(status.parseError).toBeTruthy();
     expect(status.loaded).toBe(false);
   });
+
+  it("does not force Family Safe Mode off when config.yaml is unreadable (GSS-P3-006)", async () => {
+    const { setRuntimeLocalFamilySafeModeEnabled, getRuntimeLocalFamilySafeModeEnabled } = await import(
+      "./runtimeSafetySettings"
+    );
+    setRuntimeLocalFamilySafeModeEnabled(true);
+
+    const envConfig = path.join(tmpRoot, "config.yaml");
+    const envThemes = path.join(tmpRoot, "themes.yaml");
+    await writeYaml(envConfig, "version: 1\nsecrets:\n  venice_api_key: \"unterminated\n");
+    await writeYaml(envThemes, "version: 1\nthemes: {}\n");
+    process.env.VENICE_FORGE_CONFIG_FILE = envConfig;
+    process.env.VENICE_FORGE_THEMES_FILE = envThemes;
+
+    const status = await initializeConfig();
+    expect(status.parseError).toBeTruthy();
+    expect(getRuntimeLocalFamilySafeModeEnabled()).toBe(true);
+  });
 });
 
 describe("configService sanitized payloads", () => {

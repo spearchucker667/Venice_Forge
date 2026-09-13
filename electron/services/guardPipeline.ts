@@ -262,15 +262,31 @@ async function screenUpstreamResponse(endpoint: string, method: string, response
   };
 }
 
+type StreamDeltaChunk = {
+  content: string;
+  reasoning: string;
+  providerRequestId?: string;
+  usage?: Record<string, unknown>;
+  tool_calls?: Array<{
+    index: number;
+    id?: string;
+    type?: "function";
+    function?: { name?: string; arguments?: string };
+  }>;
+  finish_reason?: string | null;
+};
+
 /** Run the local family-safe guard then forward to `performVeniceRequest`.
  *  This is the single entry point that every Venice-touching IPC handler
  *  must use, so that the guard always evaluates against the runtime
  *  snapshot and produces a consistent 451 shape.
  *
- *  The `onDelta` callback is forwarded as-is for streaming. */
+ *  When Family Safe Mode is on, streaming `onDelta` chunks are withheld until
+ *  `screenUpstreamResponse` allows the aggregated body (VF-AUD-20260912-GSS-P1-001).
+ *  A 451 therefore never follows live delivery of blocked assistant text. */
 export async function performGuardedVeniceRequest(
   rawRequest: unknown,
-  options: { onDelta?: (chunk: { content: string; reasoning: string; providerRequestId?: string; usage?: Record<string, unknown>; tool_calls?: Array<{ index: number; id?: string; type?: 'function'; function?: { name?: string; arguments?: string } }>; finish_reason?: string | null }) => void } = {},
+  options: { onDelta?: (chunk: StreamDeltaChunk) => void } = {},
 ): Promise<GuardedVeniceResult> {
   // The IPC request has already been validated by the time we get here,
   // but the guard needs a typed shape. We re-read endpoint/method/payload
@@ -288,7 +304,20 @@ export async function performGuardedVeniceRequest(
     if (block) return { kind: "blocked", block };
     let requestForDispatch = withFamilySafeProviderOverride(rawRequest, endpoint);
     requestForDispatch = composeTrustedRequest(requestForDispatch);
-    const response = await performVeniceRequest(requestForDispatch, options);
+
+    const callerOnDelta = options.onDelta;
+    const withholdDeltas = Boolean(callerOnDelta) && getRuntimeLocalFamilySafeModeEnabled();
+    const withheldDeltas: StreamDeltaChunk[] = [];
+    const requestOptions = withholdDeltas
+      ? {
+          ...options,
+          onDelta: (chunk: StreamDeltaChunk) => {
+            withheldDeltas.push(chunk);
+          },
+        }
+      : options;
+
+    const response = await performVeniceRequest(requestForDispatch, requestOptions);
     const responseBlock = await screenUpstreamResponse(endpoint, method, response);
     if (responseBlock) {
       try {
@@ -308,6 +337,9 @@ export async function performGuardedVeniceRequest(
         // Telemetry failures must not affect guard evaluation.
       }
       return { kind: "blocked", block: responseBlock };
+    }
+    if (withholdDeltas && callerOnDelta) {
+      for (const chunk of withheldDeltas) callerOnDelta(chunk);
     }
     return { kind: "response", response };
   } catch (err) {

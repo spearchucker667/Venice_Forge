@@ -34,9 +34,6 @@ import { ensureRpProfileDir, getRpProfileDir } from "./rpProfilePaths";
 /** Sub-directory under userData where character cards live. */
 const CHARACTERS_DIR = "characters";
 
-/** Atomic write: temp file then rename. */
-const TMP_SUFFIX = ".tmp";
-
 /** Max files scanned on a single `listCharacterCards` call. */
 const MAX_LIST_CARDS = 2000;
 const MAX_SCAN_FILES = MAX_LIST_CARDS * 2;
@@ -161,11 +158,11 @@ export async function readCharacterCard(id: string, profileId: string = "default
     }
     return parsed;
   } catch (err) {
-    logError("Character card file corrupt or unreadable", { path: file, error: String(err) });
+    logError("Character card file corrupt or unreadable", { path: path.basename(file), error: String(err) });
     try {
       const backupPath = `${file}.backup.${Date.now()}.${crypto.randomUUID()}`;
       await fs.rename(file, backupPath);
-      logInfo("Corrupt character card backed up", backupPath);
+      logInfo("Corrupt character card backed up", path.basename(backupPath));
     } catch {
       // best effort
     }
@@ -240,9 +237,10 @@ export async function saveCharacterCard(input: unknown, profileId: string = "def
         })
         .filter((d): d is { speaker: string; text: string } => Boolean(d && d.speaker && d.text))
     : [];
-  const avatarRaw = c.avatar as CharacterCardAvatar | undefined;
+  const removeAvatar = c.avatar === null || c.removeAvatar === true;
+  const avatarRaw = c.avatar !== null && typeof c.avatar === "object" ? (c.avatar as CharacterCardAvatar) : undefined;
   let avatar: CharacterCardAvatar | undefined;
-  if (avatarRaw && typeof avatarRaw === "object" && typeof avatarRaw.data === "string") {
+  if (avatarRaw && typeof avatarRaw.data === "string") {
     if (avatarRaw.byteLength > MAX_AVATAR_BYTES) {
       return { ok: false, error: `avatar exceeds ${MAX_AVATAR_BYTES} bytes` };
     }
@@ -318,7 +316,7 @@ export async function saveCharacterCard(input: unknown, profileId: string = "def
 
   await ensureCardDir(id, profileId);
 
-  // Persist avatar separately.
+  // Persist avatar separately. Omitting avatar data must not delete an existing sidecar.
   if (avatar) {
     const cleanData = avatar.data.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(cleanData, "base64");
@@ -326,12 +324,11 @@ export async function saveCharacterCard(input: unknown, profileId: string = "def
       return { ok: false, error: `avatar exceeds ${MAX_AVATAR_BYTES} bytes` };
     }
     await atomicWrite(characterAvatarPath(id, profileId), buffer);
-  } else {
-    // No avatar provided: leave any prior file in place? No — drop it for hygiene.
+  } else if (removeAvatar) {
     try {
       await fs.unlink(characterAvatarPath(id, profileId));
     } catch {
-      // ignore
+      // ignore missing sidecar
     }
   }
 
@@ -351,9 +348,9 @@ export async function deleteCharacterCard(id: string, profileId: string = "defau
   }
 }
 
-/** Atomic write: temp + rename. */
+/** Atomic write: unique temp + rename so concurrent saves cannot share a `.tmp` file. */
 async function atomicWrite(target: string, data: Buffer): Promise<void> {
-  const tmp = `${target}${TMP_SUFFIX}`;
+  const tmp = `${target}.tmp-${crypto.randomUUID()}`;
   await fs.writeFile(tmp, data, { mode: 0o600 });
   await fs.rename(tmp, target);
 }

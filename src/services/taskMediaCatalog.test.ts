@@ -84,16 +84,63 @@ describe('persistCompletedTaskMedia', () => {
     }), { attachActiveProject: true, source: 'generated' })
   })
 
-  it('refuses https, data, and blob URLs as gallery records', async () => {
+  it('refuses expiring https URLs as gallery records', async () => {
     vi.mocked(useMediaStore.getState).mockReturnValue({ items: [], loadById, upsert } as never)
-    for (const resultUrl of [
-      'https://signed.example/video.mp4',
-      'data:video/mp4;base64,AAAA',
-      'blob:http://localhost/abc',
-    ]) {
-      const saved = await persistCompletedTaskMedia({ ...task, id: `skip-${resultUrl.slice(0, 8)}`, resultUrl })
-      expect(saved).toBeNull()
-    }
+    const saved = await persistCompletedTaskMedia({
+      ...task,
+      id: 'skip-https',
+      resultUrl: 'https://signed.example/video.mp4',
+    })
+    expect(saved).toBeNull()
     expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('persists a bounded web data URL into the gallery store', async () => {
+    loadById.mockResolvedValue(null)
+    upsert.mockImplementation(async (item: MediaItem) => item)
+    vi.mocked(useMediaStore.getState).mockReturnValue({ items: [], loadById, upsert } as never)
+    const resultUrl = 'data:audio/mpeg;base64,SUQzAA=='
+    const saved = await persistCompletedTaskMedia({ ...task, id: 'music-data', resultUrl })
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'task-result-music-data',
+        image: resultUrl,
+        downloadUrl: resultUrl,
+        mediaType: 'audio',
+      }),
+      { attachActiveProject: true, source: 'generated' },
+    )
+    expect(saved).toMatchObject({ id: 'task-result-music-data' })
+  })
+
+  it('converts a blob URL to a data URL before gallery persist', async () => {
+    loadById.mockResolvedValue(null)
+    upsert.mockImplementation(async (item: MediaItem) => item)
+    vi.mocked(useMediaStore.getState).mockReturnValue({ items: [], loadById, upsert } as never)
+    const bytes = Uint8Array.from([1, 2, 3, 4])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        blob: async () => new Blob([bytes], { type: 'audio/mpeg' }),
+      })),
+    )
+    try {
+      const saved = await persistCompletedTaskMedia({
+        ...task,
+        id: 'music-blob',
+        resultUrl: 'blob:http://localhost/abc',
+      })
+      expect(saved).toMatchObject({ id: 'task-result-music-blob' })
+      expect(upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          image: expect.stringMatching(/^data:audio\/mpeg;base64,/),
+          downloadUrl: expect.stringMatching(/^data:audio\/mpeg;base64,/),
+        }),
+        { attachActiveProject: true, source: 'generated' },
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

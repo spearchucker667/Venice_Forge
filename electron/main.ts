@@ -14,7 +14,7 @@ import { flushLogs, logError, logInfo } from "./services/logger";
 import { redactErrorMessage } from "../src/shared/redaction";
 import { checkPathContained } from "./utils/navigation";
 import { isTrustedExternalUrl } from "./utils/urlSecurity";
-import { rendererCsp } from "./utils/rendererCsp";
+import { applyRendererCspHeaders } from "./utils/rendererCsp";
 import {
   buildCorsHeaders,
   evaluateCustomProtocolAccess,
@@ -30,11 +30,10 @@ import {
   recoverPendingGeneratedMediaWrites,
   startGeneratedMediaIntegrityMonitor,
 } from './services/generatedMediaStore';
-// Future VF-CAPABILITY-PROVENANCE: import { createCustomProtocolCapabilityManager }
-// from './utils/customProtocolAccess' and instantiate one manager per app lifetime.
-// The manager issues short-lived `venice-media://<id>?cap=<token>` URLs to the
-// renderer and verifies them in the protocol handler below; tokens are scoped to
-// profile/session, expire quickly, and are revoked on profile switch/reload/shutdown.
+import {
+  authorizeCustomProtocolCapability,
+} from "./utils/customProtocolAccess";
+import { getCustomProtocolCapabilityManager } from "./services/customProtocolCapabilities";
 import { readRegularFileNoFollow } from "./utils/secureFile";
 import { createShutdownCoordinator } from "./services/appShutdownCoordinator";
 import { migrateLegacyFolders } from "./services/chatFolderService";
@@ -46,6 +45,11 @@ export { isValidBridgeHost };
 /** Best-effort revocation of attachment records for a renderer that is
  *  closing, crashing, or reloading. Safe to call multiple times. */
 function cleanupRendererAttachments(contents: Electron.WebContents): void {
+  try {
+    getCustomProtocolCapabilityManager().revokeSession(String(contents.id));
+  } catch {
+    // Cleanup must never break window lifecycle.
+  }
   try {
     const profileId = getProfileSessionId(contents);
     getAgentServices().attachmentRegistry.revokeRendererSession(
@@ -87,7 +91,16 @@ if (allowProdDevTools) {
 // Electron does not consistently translate POSIX termination signals into an
 // app quit on macOS, and a renderer can delay `app.quit()`. Perform bounded
 // main-process cleanup and then force the requested process exit.
-const shutdown = createShutdownCoordinator({ stopBridgeServer, stopSyncWatcher, flushBackgroundTasks, flushLogs });
+const shutdown = createShutdownCoordinator({
+  stopBridgeServer,
+  stopSyncWatcher,
+  flushBackgroundTasks,
+  flushLogs,
+  compactVaultJournals: async () => {
+    const { compactAllManifestJournals } = await import("./services/conversationVault");
+    await compactAllManifestJournals();
+  },
+});
 let finalExitStarted = false;
 
 function reportShutdownResult(result: Awaited<ReturnType<typeof shutdown>>): void {
@@ -98,6 +111,11 @@ function reportShutdownResult(result: Awaited<ReturnType<typeof shutdown>>): voi
 async function exitForSignal(): Promise<void> {
   if (finalExitStarted) return;
   finalExitStarted = true;
+  try {
+    getCustomProtocolCapabilityManager().revokeAll();
+  } catch {
+    /* ignore */
+  }
   reportShutdownResult(await shutdown());
   app.exit(0);
 }
@@ -286,10 +304,7 @@ async function bootstrap(): Promise<void> {
   //
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        "Content-Security-Policy": [rendererCsp(isDev)],
-      },
+      responseHeaders: applyRendererCspHeaders(details, isDev).responseHeaders,
     });
   });
   logInfo("Venice Forge startup", {
@@ -389,11 +404,12 @@ if (!gotLock) {
     protocol.handle(GENERATED_MEDIA_SCHEME, async (request) => {
       const parsedUrl = new URL(request.url);
       const id = parsedUrl.hostname || parsedUrl.pathname.replace(/^\/+/, '');
-      // Future VF-CAPABILITY-PROVENANCE: extract `?cap=<token>` via
-      // `parseCustomProtocolCapabilityUrl(request.url)` and verify it through the
-      // app-scoped capability manager before falling back to the origin/referer
-      // defense-in-depth check inside `createGeneratedMediaResponse`. Tokens are
-      // never logged; only object/profile/session metadata may be logged.
+      const cap = authorizeCustomProtocolCapability({
+        requestUrl: request.url,
+        objectId: id,
+        manager: getCustomProtocolCapabilityManager(),
+      });
+      if (!cap.allowed) return new Response("Forbidden", { status: 403 });
       return createGeneratedMediaResponse(id, request, {
         isDev,
         origin: request.headers.get("origin"),
@@ -407,6 +423,13 @@ if (!gotLock) {
       const id = parsedUrl.pathname.replace(/^\/+/, '').replace(/\.mp3$/, '');
       if (!profileId || !/^[a-f0-9]{64}$/.test(id)) return new Response('Not found', { status: 404 });
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(profileId)) return new Response('Not found', { status: 404 });
+      const ttsCap = authorizeCustomProtocolCapability({
+        requestUrl: request.url,
+        objectId: id,
+        manager: getCustomProtocolCapabilityManager(),
+        expectedProfileId: profileId,
+      });
+      if (!ttsCap.allowed) return new Response("Forbidden", { status: 403 });
       const ttsPath = path.join(app.getPath('userData'), 'tts-cache', 'profiles', profileId, `${id}.mp3`);
       const cacheRoot = path.join(app.getPath('userData'), 'tts-cache', 'profiles', profileId);
       if (!checkPathContained(ttsPath, cacheRoot)) {
@@ -449,6 +472,12 @@ if (!gotLock) {
       if (!/^[a-f0-9]{64}$/.test(key)) {
         return new Response("Invalid image key", { status: 400 });
       }
+      const imageCap = authorizeCustomProtocolCapability({
+        requestUrl: request.url,
+        objectId: key,
+        manager: getCustomProtocolCapabilityManager(),
+      });
+      if (!imageCap.allowed) return new Response("Forbidden", { status: 403 });
 
       const cacheDir = getCharacterImageCacheDir();
       const dp = path.join(cacheDir, `${key}.bin`);
@@ -524,6 +553,11 @@ if (!gotLock) {
     if (finalExitStarted) return;
     event.preventDefault();
     finalExitStarted = true;
+    try {
+      getCustomProtocolCapabilityManager().revokeAll();
+    } catch {
+      /* ignore */
+    }
     void shutdown().then((result) => {
       reportShutdownResult(result);
       // Resume Electron's normal quit path so renderer beforeunload/unload

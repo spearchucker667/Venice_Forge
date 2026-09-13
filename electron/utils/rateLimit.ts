@@ -32,10 +32,14 @@ export function checkIpcRateLimit(channel: string, webContentsId: number | undef
   return true;
 }
 
-export function rateLimitIpcHandler<T extends (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown>(channel: string, handler: T): T {
+export function rateLimitIpcHandler<T extends (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown>(
+  channel: string,
+  handler: T,
+  rateLimitedResponse?: () => unknown,
+): T {
   return (async (event: IpcMainInvokeEvent, ...args: unknown[]) => {
     if (!checkIpcRateLimit(channel, event?.sender?.id)) {
-      return { ok: false, status: 429, error: "Rate limit exceeded" };
+      return rateLimitedResponse ? rateLimitedResponse() : { ok: false, status: 429, error: "Rate limit exceeded" };
     }
     return handler(event, ...args);
   }) as T;

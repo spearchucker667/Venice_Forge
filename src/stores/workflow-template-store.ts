@@ -126,7 +126,7 @@ export const useWorkflowTemplateStore = create<WorkflowTemplateState>(
         logger.warn("[workflow-template-store] Failed to load workflows", err);
         set({
           workflows: [],
-          hydrated: true,
+          hydrated: false,
           loadError: redactErrorMessage(err),
         });
       }

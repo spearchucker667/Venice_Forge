@@ -130,7 +130,7 @@ describe("extractPromptLikeFields", () => {
   });
 
   // M-005 regression guard
-  it("extracts all string properties from vision content array parts", () => {
+  it("extracts text-bearing vision part properties and skips part type discriminators", () => {
     const payload = {
       messages: [
         {
@@ -146,6 +146,7 @@ describe("extractPromptLikeFields", () => {
 
     expect(fields).toContainEqual({ path: "messages[0].content[0].text", value: "describe this image" });
     expect(fields).toContainEqual({ path: "messages[0].content[1].image_url", value: "https://example.com/img.png" });
+    expect(fields.some((f) => f.value === "text" || f.value === "image_url")).toBe(false);
   });
 
   // M-006 regression guard
@@ -235,7 +236,16 @@ describe("extractPromptLikeFields", () => {
   it("handles excessively long plain strings", () => {
     const longString = "x".repeat(11 * 1024 * 1024); // 11MB
     const fields = extractPromptLikeFields(longString, "/chat/completions");
-    expect(fields).toContainEqual({ path: "body", value: longString.slice(0, 8000) }); // MAX_FIELD_CHARS
+    // Head + tail + middle scan windows (VF-AUD-20260912-GSS-P2-003).
+    const maxFieldChars = 16_384 + 8_000 + 8_000;
+    expect(fields).toContainEqual({ path: "body", value: longString.slice(0, maxFieldChars) });
+  });
+
+  it("keeps a tail marker past the old 8_000-char extractor cap (GSS-P2-003)", () => {
+    const marker = "TAIL-SIGNAL-MARKER";
+    const body = `${"x".repeat(20_000)}${marker}${"y".repeat(100)}`;
+    const fields = extractPromptLikeFields(body, "/chat/completions");
+    expect(fields[0]?.value).toContain(marker);
   });
 
   it("handles unknown endpoints by scanning common prompt fields", () => {
@@ -282,6 +292,88 @@ describe("extractPromptLikeFields", () => {
     formData.append("text", "valid text");
     const fields = extractPromptLikeFields(formData, "/augment/text-parser");
     expect(fields).toEqual([{ path: "formData.text", value: "valid text" }]);
+  });
+
+  it("extracts the newest and first messages from a 40-message chat payload (GSS-P1-002)", () => {
+    const messages = Array.from({ length: 40 }, (_, i) => ({
+      role: i === 0 ? "system" : i % 2 === 1 ? "user" : "assistant",
+      content: `msg-${i}`,
+    }));
+    messages[0] = { role: "system", content: "system-first" };
+    messages[39] = { role: "user", content: "newest-user-turn" };
+
+    const fields = extractPromptLikeFields({ messages }, "/chat/completions");
+    const values = fields.map((f) => f.value);
+
+    expect(values).toContain("newest-user-turn");
+    expect(values).toContain("system-first");
+    expect(fields.some((f) => f.path === "messages[39].content")).toBe(true);
+    expect(fields.some((f) => f.path === "messages[0].content")).toBe(true);
+  });
+
+  it("extracts a blocking signal in the first and last of 40 messages", () => {
+    const withLast = Array.from({ length: 40 }, (_, i) => ({
+      role: "user",
+      content: i === 39 ? "signal-in-last" : `pad-${i}`,
+    }));
+    const lastFields = extractPromptLikeFields({ messages: withLast }, "/chat/completions");
+    expect(lastFields.map((f) => f.value)).toContain("signal-in-last");
+
+    const withFirst = Array.from({ length: 40 }, (_, i) => ({
+      role: "user",
+      content: i === 0 ? "signal-in-first" : `pad-${i}`,
+    }));
+    const firstFields = extractPromptLikeFields({ messages: withFirst }, "/chat/completions");
+    expect(firstFields.map((f) => f.value)).toContain("signal-in-first");
+  });
+
+  it("still extracts the first/system turn when the last message has 16 multimodal parts (GSS-P1-002 residual)", () => {
+    const lastContent = Array.from({ length: 16 }, (_, i) => ({
+      type: "text",
+      text: `vision-part-${i}`,
+    }));
+    const messages: Array<{ role: string; content: unknown }> = Array.from(
+      { length: 40 },
+      (_, i) => ({
+        role: i === 0 ? "system" : "user",
+        content: `pad-${i}`,
+      }),
+    );
+    messages[0] = { role: "system", content: "system-must-remain-screened" };
+    messages[39] = { role: "user", content: lastContent };
+
+    const fields = extractPromptLikeFields({ messages }, "/chat/completions");
+    const values = fields.map((f) => f.value);
+
+    expect(values).toContain("system-must-remain-screened");
+    expect(fields.some((f) => f.path === "messages[0].content")).toBe(true);
+    expect(values).toContain("vision-part-0");
+    expect(values).toContain("vision-part-15");
+    expect(values).not.toContain("text");
+  });
+
+  it("still extracts the first/system turn when the last message has 40 multimodal parts", () => {
+    const lastContent = Array.from({ length: 40 }, (_, i) => ({
+      type: "text",
+      text: `overflow-part-${i}`,
+    }));
+    const messages: Array<{ role: string; content: unknown }> = Array.from(
+      { length: 8 },
+      (_, i) => ({
+        role: i === 0 ? "system" : "user",
+        content: `pad-${i}`,
+      }),
+    );
+    messages[0] = { role: "system", content: "system-survives-overflow" };
+    messages[7] = { role: "user", content: lastContent };
+
+    const fields = extractPromptLikeFields({ messages }, "/chat/completions");
+    const values = fields.map((f) => f.value);
+
+    expect(values).toContain("system-survives-overflow");
+    expect(fields.some((f) => f.path === "messages[0].content")).toBe(true);
+    expect(values).toContain("overflow-part-0");
+    expect(values.length).toBeLessThanOrEqual(32);
   });
 
 });

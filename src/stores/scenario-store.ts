@@ -150,6 +150,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       scenarios: [scenario, ...s.scenarios],
       activeScenarioId: id,
     }));
+    void get().upsert(scenario);
     return id;
   },
 

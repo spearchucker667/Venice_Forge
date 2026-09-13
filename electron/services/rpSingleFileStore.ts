@@ -12,7 +12,6 @@ import { redactErrorMessage } from "../../src/shared/redaction";
 import { isValidId as isCanonicalValidId } from "../../src/utils/idValidation";
 import { ensureRpProfileDir, getRpProfileDir } from "./rpProfilePaths";
 
-const TMP_SUFFIX = ".tmp";
 const MAX_SCAN_FILES = 4000;
 const MAX_LOAD_FILES = 2000;
 
@@ -79,11 +78,11 @@ export function createSingleFileStore<T>(
       return parsed;
     } catch (err) {
       if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") return null;
-      logError(`${dirName} file corrupt or unreadable`, { path: file, error: String(err) });
+      logError(`${dirName} file corrupt or unreadable`, { path: path.basename(file), error: String(err) });
       try {
         const backupPath = `${file}.backup.${Date.now()}.${crypto.randomUUID()}`;
         await fs.rename(file, backupPath);
-        logInfo(`Corrupt ${dirName} file backed up`, backupPath);
+        logInfo(`Corrupt ${dirName} file backed up`, path.basename(backupPath));
       } catch {
         // best effort
       }
@@ -97,7 +96,7 @@ export function createSingleFileStore<T>(
     if (!isValidId(id)) return { ok: false, error: "invalid id" };
     await ensureRpProfileDir(profileId, dirName);
     const target = fileFor(id, profileId);
-    const tmp = `${target}${TMP_SUFFIX}`;
+    const tmp = `${target}.tmp-${crypto.randomUUID()}`;
     await fs.writeFile(tmp, JSON.stringify(input, null, 2), { mode: 0o600 });
     await fs.rename(tmp, target);
     return { ok: true };

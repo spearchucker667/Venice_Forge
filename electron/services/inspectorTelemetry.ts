@@ -56,6 +56,7 @@ export function emitInspectorTelemetry(
     guardOutcome: partial.guardOutcome,
     error: partial.error,
     status: partial.status,
+    profileId: partial.profileId,
   };
   for (const listener of Array.from(listeners)) {
     try {
@@ -78,6 +79,7 @@ export function publishInspectorRequest(args: {
   method: string;
   summaries?: InspectorTelemetryEvent["summaries"];
   guardOutcome?: InspectorTelemetryEvent["guardOutcome"];
+  profileId?: string;
 }): string {
   return emitInspectorTelemetry({
     phase: "updated",
@@ -87,6 +89,7 @@ export function publishInspectorRequest(args: {
     source: args.source,
     summaries: args.summaries,
     guardOutcome: args.guardOutcome,
+    profileId: args.profileId,
   });
 }
 
@@ -101,6 +104,7 @@ export function publishInspectorCompletion(args: {
   status?: number;
   error?: string;
   eventId?: string;
+  profileId?: string;
 }): string {
   return emitInspectorTelemetry({
     eventId: args.eventId,
@@ -113,5 +117,6 @@ export function publishInspectorCompletion(args: {
     guardOutcome: args.guardOutcome,
     status: args.status,
     error: args.error,
+    profileId: args.profileId,
   });
 }

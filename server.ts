@@ -701,6 +701,146 @@ export function createServerApp() {
     },
   });
 
+  const extractChatCompletionText = (raw: string, contentType: string): string => {
+    if (contentType.includes("text/event-stream")) {
+      let acc = "";
+      for (const block of raw.split(/\r?\n\r?\n/)) {
+        const data = block
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart())
+          .join("");
+        if (!data || data === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(data) as {
+            choices?: Array<{
+              delta?: { content?: unknown; reasoning_content?: unknown };
+              message?: { content?: unknown; reasoning_content?: unknown };
+            }>;
+          };
+          const choice = parsed.choices?.[0];
+          const content = choice?.delta?.content ?? choice?.message?.content;
+          const reasoning = choice?.delta?.reasoning_content ?? choice?.message?.reasoning_content;
+          if (typeof content === "string") acc += content;
+          if (typeof reasoning === "string") acc += reasoning;
+        } catch {
+          /* ignore malformed SSE JSON */
+        }
+      }
+      return acc;
+    }
+    try {
+      const parsed = JSON.parse(raw) as {
+        choices?: Array<{ message?: { content?: unknown; reasoning_content?: unknown } }>;
+      };
+      const message = parsed.choices?.[0]?.message;
+      const content = typeof message?.content === "string" ? message.content : "";
+      const reasoning = typeof message?.reasoning_content === "string" ? message.reasoning_content : "";
+      return `${content}${reasoning}`;
+    } catch {
+      return raw.slice(0, 32_768);
+    }
+  };
+
+  const fsmChatStreamProxyRes = (
+    proxyRes: http.IncomingMessage,
+    req: express.Request,
+    res: express.Response,
+  ): void => {
+    applyRetryAfterHeaders(proxyRes, res);
+
+    if (typeof proxyRes.on !== "function") {
+      applyCircuitFromStatus(proxyRes.statusCode);
+      return;
+    }
+
+    const contentLength = proxyRes.headers["content-length"];
+    if (contentLength) {
+      const declared = Number(contentLength);
+      if (Number.isFinite(declared) && declared > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
+        proxyRes.destroy();
+        applyCircuitFromStatus(proxyRes.statusCode);
+        if (!res.headersSent) {
+          res.statusCode = 413;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Response too large to screen under Family Safe Mode." }));
+        }
+        return;
+      }
+    }
+
+    const chunks: Buffer[] = [];
+    let length = 0;
+    let exceeded = false;
+
+    proxyRes.on("data", (chunk: Buffer | string) => {
+      if (exceeded) return;
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      length += buf.length;
+      if (length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
+        exceeded = true;
+        chunks.length = 0;
+        proxyRes.destroy();
+        if (!res.headersSent) {
+          res.statusCode = 413;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Response too large to screen under Family Safe Mode." }));
+        }
+      } else {
+        chunks.push(buf);
+      }
+    });
+
+    proxyRes.on("end", () => {
+      if (exceeded || res.headersSent) {
+        applyCircuitFromStatus(proxyRes.statusCode);
+        return;
+      }
+      applyCircuitFromStatus(proxyRes.statusCode);
+      const buffer = Buffer.concat(chunks, length);
+      const contentType = String(proxyRes.headers["content-type"] || "");
+      const text = extractChatCompletionText(buffer.toString("utf8"), contentType);
+      if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300 && text.trim()) {
+        const screen = screenResponseBody(
+          JSON.stringify({
+            choices: [{ message: { role: "assistant", content: text } }],
+          }),
+          { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
+          isLocalFamilySafeModeEnabled(req),
+        );
+        if (!screen.allowed) {
+          res.statusCode = 451;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(safetyBlockBodyFromResponseScreen(screen)));
+          return;
+        }
+      }
+      copyProxyResponseHeaders(proxyRes, res);
+      res.setHeader("content-length", Buffer.byteLength(buffer));
+      res.end(buffer);
+    });
+
+    proxyRes.on("error", () => {
+      if (exceeded) return;
+      if (!res.headersSent) {
+        res.statusCode = 502;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: "Proxy error" }));
+      }
+    });
+  };
+
+  const fsmChatStreamProxy = createProxyMiddleware({
+    ...veniceProxyBase,
+    headers: { "Accept-Encoding": "identity" },
+    selfHandleResponse: true,
+    on: {
+      proxyReq: applyVeniceProxyReq,
+      proxyRes: fsmChatStreamProxyRes,
+      error: writeGenericProxyError,
+    },
+  });
+
   app.use("/api/venice", (req, res, next) => {
     const now = Date.now();
     if (circuitOpenUntil > 0) {
@@ -866,6 +1006,9 @@ export function createServerApp() {
       const isLocalFamilySafe = isLocalFamilySafeModeEnabled(req);
       if (isMedia && isLocalFamilySafe) {
         return fsmMediaVeniceProxy(req, res, next);
+      }
+      if (req.path === "/chat/completions" && isLocalFamilySafe) {
+        return fsmChatStreamProxy(req, res, next);
       }
       return standardVeniceProxy(req, res, next);
     },
@@ -1202,6 +1345,25 @@ export function createServerApp() {
       error("Scrape proxy error:", err);
       return res.status(502).json({ error: "Scrape failed" });
     }
+  });
+
+  app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (res.headersSent) {
+      next(err);
+      return;
+    }
+    const rec = err && typeof err === "object"
+      ? (err as { type?: string; status?: number; statusCode?: number })
+      : {};
+    if (rec.type === "entity.too.large" || rec.status === 413 || rec.statusCode === 413) {
+      res.status(413).json({ error: "Payload too large" });
+      return;
+    }
+    if (err instanceof SyntaxError) {
+      res.status(400).json({ error: "Malformed JSON" });
+      return;
+    }
+    next(err);
   });
 
   (app as express.Application & { cleanupIntervals?: () => void; staticRateLimiterCleanup?: ReturnType<typeof setInterval> }).cleanupIntervals = () => {

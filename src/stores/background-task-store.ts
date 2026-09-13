@@ -14,10 +14,139 @@ import { getActiveProfileId } from '../services/activeProfile'
 import { buildAudioRetrieveRequest, buildVideoRetrieveRequest } from '../services/media-request-adapter'
 import { normalizeAudioRetrieveResponse } from '../services/audio-retrieve-normalizer'
 import { persistCompletedTaskMedia } from '../services/taskMediaCatalog'
+import { translateRuntime } from '../i18n/runtimeTranslator'
+import { error as logError } from '../shared/logger'
+import { toast } from './toast-store'
 
 const POLL_INTERVAL_MS = 3000
 const MAX_ATTEMPTS = 200
 const MAX_GENERATION_MS = 180000 // 3 minutes — above documented video P80 (145s)
+
+function galleryPersistFailureTitle(): string {
+  return translateRuntime(
+    'runtimeGenerated.services.taskmediacatalog.notification.couldNotSaveGeneratedMedia',
+    'Could not save generated media',
+  )
+}
+
+function galleryPersistFailureDescription(): string {
+  return translateRuntime(
+    'runtimeGenerated.services.taskmediacatalog.notification.generationFinishedButGallerySaveFailed',
+    'Generation finished, but the gallery record could not be saved.',
+  )
+}
+
+function notifyGalleryPersistFailure(taskId: string): string {
+  const title = galleryPersistFailureTitle()
+  toast.upsertToast(`task:${taskId}`, {
+    variant: 'error',
+    title,
+    description: galleryPersistFailureDescription(),
+    persistent: true,
+  })
+  return title
+}
+
+function asAwaitingGalleryPersist(task: BackgroundTask): BackgroundTask {
+  return {
+    ...task,
+    status: 'processing',
+    stage: task.type === 'video' ? 'saving' : task.stage,
+    progress: task.progress ?? 1,
+  }
+}
+
+async function persistCompletedTaskOrFail(task: BackgroundTask): Promise<BackgroundTask> {
+  try {
+    const media = await persistCompletedTaskMedia(task)
+    return media?.id ? { ...task, resultMediaId: media.id } : task
+  } catch {
+    logError('[background-task-store] persistCompletedTaskMedia failed', {
+      taskId: task.id,
+      type: task.type,
+    })
+    const title = notifyGalleryPersistFailure(task.id)
+    return {
+      ...task,
+      status: 'failed',
+      error: title,
+      updatedAt: Date.now(),
+    }
+  }
+}
+
+async function persistWebCompletedMedia(
+  task: BackgroundTask,
+  dataUrl: string,
+  objectUrl: string,
+  mimeType: string,
+  updateTask: (taskId: string, updates: Partial<BackgroundTask>) => void,
+  stopPolling: (taskId: string) => void,
+): Promise<void> {
+  const metadata = { ...task.metadata, mimeType }
+  let media: Awaited<ReturnType<typeof persistCompletedTaskMedia>> = null
+  try {
+    media = await persistCompletedTaskMedia({
+      ...task,
+      metadata,
+      status: 'completed',
+      progress: 1,
+      resultUrl: dataUrl,
+      updatedAt: Date.now(),
+    })
+  } catch {
+    logError('[background-task-store] persistCompletedTaskMedia failed', {
+      taskId: task.id,
+      type: task.type,
+    })
+    const title = notifyGalleryPersistFailure(task.id)
+    updateTask(task.id, {
+      status: 'failed',
+      error: title,
+      resultUrl: objectUrl,
+      metadata,
+    })
+    stopPolling(task.id)
+    return
+  }
+  updateTask(task.id, {
+    status: 'completed',
+    progress: 1,
+    resultUrl: objectUrl,
+    resultMediaId: media?.id,
+    metadata,
+  })
+  stopPolling(task.id)
+}
+
+function mergeEnvelopeTasks(
+  state: Pick<BackgroundTaskState, 'tasks'>,
+  envelope: BackgroundTaskIpcEnvelope,
+  tasks: BackgroundTask[] | undefined,
+): Pick<BackgroundTaskState, 'tasks'> | typeof state {
+  const currentProfileId = getActiveProfileId()
+  if (envelope.kind === 'snapshot') {
+    return {
+      tasks: Object.fromEntries(
+        (tasks ?? [])
+          .filter((task) => task.profileId === currentProfileId)
+          .map((task) => [task.id, task]),
+      ),
+    }
+  }
+  if (envelope.kind === 'created' || envelope.kind === 'updated') {
+    const updates: Record<string, BackgroundTask> = { ...state.tasks }
+    for (const task of tasks ?? []) {
+      if (task.profileId === currentProfileId || Boolean(state.tasks[task.id])) {
+        updates[task.id] = task
+      }
+    }
+    return { tasks: updates }
+  }
+  return state
+}
+
+let applyEnvelopeChain: Promise<void> = Promise.resolve()
 
 function revokeObjectUrl(url: string | undefined): void {
   if (!url?.startsWith('blob:')) return
@@ -59,7 +188,7 @@ interface BackgroundTaskState {
   stopPolling: (taskId: string) => void
 
   // Desktop sync
-  applyEnvelope: (envelope: BackgroundTaskIpcEnvelope) => void
+  applyEnvelope: (envelope: BackgroundTaskIpcEnvelope) => Promise<void>
   ensureDesktopSubscription: () => Promise<void>
 }
 
@@ -75,34 +204,40 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
   desktopSubscribed: false,
 
   applyEnvelope: (envelope) => {
-    for (const task of envelope.tasks ?? []) {
-      if (task.status === 'completed') void persistCompletedTaskMedia(task)
-    }
-    set((state) => {
-      const currentProfileId = getActiveProfileId()
-      if (envelope.kind === 'snapshot' && envelope.tasks) {
-        const tasks = Object.fromEntries(
-          envelope.tasks
-            .filter((t) => t.profileId === currentProfileId)
-            .map((t) => [t.id, t])
-        )
-        return { tasks }
-      }
-      if (envelope.kind === 'created' || envelope.kind === 'updated') {
-        const updates: Record<string, BackgroundTask> = { ...state.tasks }
-        for (const task of envelope.tasks ?? []) {
-          if (task.profileId === currentProfileId || Boolean(state.tasks[task.id])) {
-            updates[task.id] = task
-          }
+    const run = async () => {
+      try {
+        if (envelope.kind === 'removed' && envelope.taskId) {
+          set((state) => {
+            const { [envelope.taskId as string]: _, ...rest } = state.tasks
+            return { tasks: rest }
+          })
+          return
         }
-        return { tasks: updates }
+
+        if (envelope.kind === 'snapshot' && !envelope.tasks) return
+
+        const incoming = envelope.tasks ?? []
+        const completed = incoming.filter((task) => task.status === 'completed')
+        const others = incoming.filter((task) => task.status !== 'completed')
+        const placeholders = completed.map(asAwaitingGalleryPersist)
+        set((state) => mergeEnvelopeTasks(state, envelope, [...others, ...placeholders]))
+
+        if (completed.length === 0) return
+
+        const finalized = await Promise.all(completed.map((task) => persistCompletedTaskOrFail(task)))
+        const followUpKind = envelope.kind === 'snapshot' ? 'snapshot' : 'updated'
+        set((state) => mergeEnvelopeTasks(
+          state,
+          { ...envelope, kind: followUpKind },
+          followUpKind === 'snapshot' ? [...others, ...finalized] : finalized,
+        ))
+      } catch (error) {
+        logError('[background-task-store] applyEnvelope failed', error)
       }
-      if (envelope.kind === 'removed' && envelope.taskId) {
-        const { [envelope.taskId]: _, ...rest } = state.tasks
-        return { tasks: rest }
-      }
-      return state
-    })
+    }
+    const queued = applyEnvelopeChain.then(run, run)
+    applyEnvelopeChain = queued.then(() => undefined, () => undefined)
+    return queued
   },
 
   ensureDesktopSubscription: async () => {
@@ -110,7 +245,7 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
     set({ desktopSubscribed: true })
     try {
       const unsubscribe = desktopBackgroundTask.onUpdate((envelope) => {
-        get().applyEnvelope(envelope)
+        void get().applyEnvelope(envelope)
       })
       const result = await desktopBackgroundTask.subscribe()
       if (!result.ok) {
@@ -351,14 +486,15 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
               binaryNormalized.kind === 'completed'
                 ? objectUrlFromDataUrl(binaryNormalized.mediaUrl, binaryNormalized.mimeType)
                 : null
-            if (objectUrl) {
-              updateTask(taskId, {
-                status: 'completed',
-                progress: 1,
-                resultUrl: objectUrl,
-                metadata: { ...latestAfterBinary.metadata, mimeType: 'video/mp4' },
-              })
-              stopPolling(taskId)
+            if (objectUrl && binaryNormalized.kind === 'completed') {
+              await persistWebCompletedMedia(
+                latestAfterBinary,
+                binaryNormalized.mediaUrl,
+                objectUrl,
+                binaryNormalized.mimeType || 'video/mp4',
+                updateTask,
+                stopPolling,
+              )
               return
             }
             updateTask(taskId, {
@@ -369,9 +505,22 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
             return
           }
           if (normalized.kind === 'completed') {
+            const latestCompletedVideo = get().tasks[taskId]
+            if (!latestCompletedVideo || ['completed', 'failed', 'aborted', 'timeout'].includes(latestCompletedVideo.status)) return
             const objectUrl = objectUrlFromDataUrl(normalized.mediaUrl, normalized.mimeType)
-            updateTask(taskId, { status: 'completed', progress: 1, resultUrl: objectUrl ?? normalized.mediaUrl })
-            stopPolling(taskId)
+            if (objectUrl) {
+              await persistWebCompletedMedia(
+                latestCompletedVideo,
+                normalized.mediaUrl,
+                objectUrl,
+                normalized.mimeType,
+                updateTask,
+                stopPolling,
+              )
+            } else {
+              updateTask(taskId, { status: 'completed', progress: 1, resultUrl: normalized.mediaUrl })
+              stopPolling(taskId)
+            }
           } else if (normalized.kind === 'failed') {
             updateTask(taskId, { status: 'failed', error: toUserFacingVideoError(normalized.error, 'Video generation failed') })
             stopPolling(taskId)
@@ -391,23 +540,15 @@ export const useBackgroundTaskStore = create<BackgroundTaskState>((set, get) => 
             const dataUrl = `data:${normalized.mimeType};base64,${normalized.dataBase64}`
             const latestMusicTask = get().tasks[taskId]
             if (!latestMusicTask || ['completed', 'failed', 'aborted', 'timeout'].includes(latestMusicTask.status)) return
-            const media = await persistCompletedTaskMedia({
-              ...latestMusicTask,
-              metadata: { ...latestMusicTask.metadata, mimeType: normalized.mimeType },
-              status: 'completed',
-              progress: 1,
-              resultUrl: dataUrl,
-              updatedAt: Date.now(),
-            })
             const objectUrl = createMediaObjectUrl(normalized.dataBase64, normalized.mimeType)
-            updateTask(taskId, {
-              status: 'completed',
-              progress: 1,
-              resultUrl: objectUrl,
-              resultMediaId: media?.id,
-              metadata: { ...latestMusicTask.metadata, mimeType: normalized.mimeType },
-            })
-            stopPolling(taskId)
+            await persistWebCompletedMedia(
+              latestMusicTask,
+              dataUrl,
+              objectUrl,
+              normalized.mimeType,
+              updateTask,
+              stopPolling,
+            )
           } else if (normalized.kind === 'failed') {
             updateTask(taskId, { status: 'failed', error: toUserFacingMusicError(normalized.error, MUSIC_SAFE_ERROR_MESSAGES.generation) })
             stopPolling(taskId)

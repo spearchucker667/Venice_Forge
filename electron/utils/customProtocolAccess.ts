@@ -216,6 +216,7 @@ export interface CustomProtocolCapabilityManager {
     profileId: string;
     sessionId: string;
     ttlMs?: number;
+    resourceUrl?: string;
   }): { token: string; url: string };
 
   /** Verify a token. Returns the spec if valid and not expired; otherwise
@@ -257,6 +258,7 @@ export function createCustomProtocolCapabilityManager(options: {
     profileId: string;
     sessionId: string;
     ttlMs?: number;
+    resourceUrl?: string;
   }): { token: string; url: string } {
     if (!isValidObjectId(input.objectId)) {
       throw new Error("Invalid capability object id.");
@@ -287,7 +289,9 @@ export function createCustomProtocolCapabilityManager(options: {
     };
 
     tokens.set(token, spec);
-    const url = `${input.scheme}://${input.objectId}?cap=${encodeURIComponent(token)}`;
+    const base = input.resourceUrl ?? `${input.scheme}://${input.objectId}`;
+    const separator = base.includes("?") ? "&" : "?";
+    const url = `${base}${separator}cap=${encodeURIComponent(token)}`;
     return { token, url };
   }
 
@@ -352,4 +356,20 @@ export function parseCustomProtocolCapabilityUrl(url: string): { objectId: strin
   } catch {
     return { objectId: "", token: null };
   }
+}
+
+/** Primary capability-token gate for custom-protocol requests. */
+export function authorizeCustomProtocolCapability(input: {
+  requestUrl: string;
+  objectId: string;
+  manager: CustomProtocolCapabilityManager;
+  expectedProfileId?: string;
+}): { allowed: true; spec: CustomProtocolCapabilitySpec } | { allowed: false } {
+  const parsed = parseCustomProtocolCapabilityUrl(input.requestUrl);
+  if (!parsed.token) return { allowed: false };
+  const spec = input.manager.verify(parsed.token);
+  if (!spec) return { allowed: false };
+  if (spec.objectId !== input.objectId) return { allowed: false };
+  if (input.expectedProfileId && spec.profileId !== input.expectedProfileId) return { allowed: false };
+  return { allowed: true, spec };
 }

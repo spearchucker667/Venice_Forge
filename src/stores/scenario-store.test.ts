@@ -50,15 +50,18 @@ describe("scenario-store", () => {
     reset();
   });
 
-  it("createBlank returns a stable id and inserts into the list", () => {
+  it("createBlank returns a stable id and inserts into the list", async () => {
     const id = useScenarioStore.getState().createBlank();
     expect(id).toMatch(/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/);
     expect(useScenarioStore.getState().scenarios).toHaveLength(1);
     expect(useScenarioStore.getState().scenarios[0]!.name).toBe("New scenario");
     expect(useScenarioStore.getState().activeScenarioId).toBe(id);
+    await vi.waitFor(() => {
+      expect(scenarioService.saveScenario).toHaveBeenCalled();
+    });
   });
 
-  it("createBlank applies overrides except id/schema/updatedAt", () => {
+  it("createBlank applies overrides except id/schema/updatedAt", async () => {
     const id = useScenarioStore.getState().createBlank({
       name: "Custom",
       scope: "project",
@@ -74,6 +77,21 @@ describe("scenario-store", () => {
     expect(item?.characterId).toBe("c-1");
     expect(item?.sceneId).toBe("scene-1");
     expect(item?.firstUserMessage).toBe("hello");
+    await vi.waitFor(() => {
+      expect(scenarioService.saveScenario).toHaveBeenCalled();
+    });
+  });
+
+  it("createBlank persists the blank scenario with the new id", async () => {
+    const saveSpy = vi.mocked(scenarioService.saveScenario);
+    const id = useScenarioStore.getState().createBlank();
+
+    await vi.waitFor(() => {
+      expect(saveSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(saveSpy.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({ id }),
+    );
   });
 
   it("upsert inserts a new scenario and assigns it to the list head", async () => {

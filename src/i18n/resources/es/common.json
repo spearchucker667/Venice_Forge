@@ -1899,6 +1899,7 @@
         "legacyConversationsDetected": "Conversaciones heredadas detectadas",
         "encryptedConversationVault": "Bóveda de conversaciones cifradas",
         "maintenanceOperations": "Operaciones de mantenimiento",
+        "searchVault": "__MISSING__:Search vault",
         "curatedFacts": "Datos seleccionados ("
       },
       "description": {
@@ -4222,6 +4223,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "{{value1}} generación"
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "No se pudo guardar el medio generado",
+          "generationFinishedButGallerySaveFailed": "La generación terminó, pero no se pudo guardar el registro de la galería."
         }
       },
       "workflowcompiler": {

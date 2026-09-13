@@ -37,6 +37,7 @@ import type {
   UserPersonaV1,
 } from "../../types/rp";
 import { veniceStreamChat } from "../../services/veniceClient";
+import { SafetyGuardBlockedError } from "../../shared/safety";
 import { selectTriggeredEntries } from "../../services/rp/lorebookService";
 import { Trans, useTranslation } from "react-i18next";
 import { SYSTEM_PROMPT_MAX_CODE_POINTS } from "../../shared/promptLimits";
@@ -273,9 +274,9 @@ export function RpChatView({
       ];
       await veniceStreamChat(
         {
-          endpoint: "/chat/completions",
           model: chat.modelId,
           messages,
+          stream: true,
         },
         {
           signal: ctrl.signal,
@@ -297,6 +298,16 @@ export function RpChatView({
         // message is enough; detailed diagnostics live in the Inspector log.
         streamError =
           "The character response could not be generated. Please try again.";
+        const blocked =
+          err instanceof SafetyGuardBlockedError ||
+          (typeof err === "object" &&
+            err !== null &&
+            "status" in err &&
+            (err as { status?: unknown }).status === 451);
+        if (blocked) {
+          acc = "";
+          reasoningAcc = "";
+        }
       }
     } finally {
       if (abortRef.current === ctrl) abortRef.current = null;

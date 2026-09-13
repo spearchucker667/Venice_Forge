@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { usePlaygroundStore } from "../../stores/playground-store";
-import { useWorkflowStore } from "../../stores/workflow-store";
+import { useWorkflowStore, WORKFLOW_PERSIST_LIMIT_ERROR } from "../../stores/workflow-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { validateWorkflow } from "../../lib/workflow-validator";
 import { executeWorkflow } from "../../lib/workflow-engine";
@@ -102,11 +102,18 @@ export function PlaygroundView() {
     }
   };
 
-  const promoteToWorkflow = (name?: string): string => {
+  const promoteToWorkflow = (name?: string): string | null => {
     const wfName = name ?? `Playground — ${new Date().toLocaleString()}`;
-    const id = createWorkflow(wfName);
-    updateWorkflow(id, { nodes: draft.nodes, edges: draft.edges });
-    return id;
+    try {
+      const id = createWorkflow(wfName);
+      updateWorkflow(id, { nodes: draft.nodes, edges: draft.edges });
+      return id;
+    } catch (err) {
+      if (err instanceof Error && err.message === WORKFLOW_PERSIST_LIMIT_ERROR) {
+        return null;
+      }
+      throw err;
+    }
   };
 
   const handleSave = () => {
@@ -118,7 +125,7 @@ export function PlaygroundView() {
       });
       showSaveToast(`Updated "${linkedWorkflow.name}"`);
     } else {
-      promoteToWorkflow();
+      if (!promoteToWorkflow()) return;
       showSaveToast("Saved to Workflows");
     }
   };
@@ -126,6 +133,7 @@ export function PlaygroundView() {
   const handleSaveAsNew = () => {
     if (!canExport) return;
     const id = promoteToWorkflow();
+    if (!id) return;
     showSaveToast("Saved as new workflow");
     // keep editing the new copy
     loadWorkflow(id, draft.nodes, draft.edges);
@@ -133,14 +141,16 @@ export function PlaygroundView() {
 
   const handleOpenInWorkflows = () => {
     if (!canExport) return;
-    let id = linkedWorkflow?.id;
+    let id: string | undefined = linkedWorkflow?.id;
     if (linkedWorkflow) {
       updateWorkflow(linkedWorkflow.id, {
         nodes: draft.nodes,
         edges: draft.edges,
       });
     } else {
-      id = promoteToWorkflow();
+      const created = promoteToWorkflow();
+      if (!created) return;
+      id = created;
     }
     if (id) setActiveWorkflow(id);
     setActiveTab("workflows");

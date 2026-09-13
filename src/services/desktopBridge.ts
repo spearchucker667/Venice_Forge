@@ -1027,13 +1027,21 @@ export const desktopSync = {
  *  defined on the preload bridge; in web mode, falls back to a browser
  *  download anchor (export) or to a "desktop-only" error (reveal / meta /
  *  thumb — those are explicit desktop affordances).
- *
- *  Future VF-CAPABILITY-PROVENANCE: `desktopMedia.resolveUrl({ objectId, scheme })`
- *  will request a main-process capability token and return a URL such as
- *  `venice-media://<objectId>?cap=<token>`. The renderer must not assemble
- *  custom-protocol URLs itself; tokens are scoped to profile/session and
- *  revoked on profile switch/renderer reload. */
+ */
 export const desktopMedia = {
+  async resolveUrl(input: {
+    scheme: "venice-media" | "venice-tts" | "venice-character-cache";
+    objectId: string;
+    resourceUrl?: string;
+  }): Promise<string> {
+    if (!isElectron()) {
+      return input.resourceUrl ?? `${input.scheme}://${input.objectId}`;
+    }
+    const result = await window.veniceForge!.files.issueCapabilityUrl(input);
+    if (result.ok && result.url) return result.url;
+    return input.resourceUrl ?? `${input.scheme}://${input.objectId}`;
+  },
+
   /** Persists generated image bytes in the main-owned content-addressed blob
    * store. Renderer code receives only the stable media identifier and URL. */
   async persistGeneratedImage(dataUrl: string): Promise<{
@@ -1481,6 +1489,33 @@ export const desktopConversations = {
         error: "Conversation vault is only available in desktop mode.",
       };
     return window.veniceForge!.conversations.delete(id, origin);
+  },
+  async archive(
+    id: string,
+    origin: MutationOrigin = "local-user",
+  ): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron())
+      return {
+        ok: false,
+        error: "Conversation vault is only available in desktop mode.",
+      };
+    return window.veniceForge!.conversations.archive(id, origin);
+  },
+  async search(
+    query: string,
+    options?: { limit?: number; includeArchived?: boolean },
+  ): Promise<{
+    ok: boolean;
+    results: import("../types/conversationVault").SearchResult[];
+    error?: string;
+  }> {
+    if (!isElectron())
+      return {
+        ok: false,
+        results: [],
+        error: "Conversation vault is only available in desktop mode.",
+      };
+    return window.veniceForge!.conversations.search(query, options);
   },
   async pullContext(input: {
     message: string;
@@ -2372,27 +2407,6 @@ export const desktopConfig = {
   },
 };
 
-export const desktopCredentials = {
-  async set(
-    key: string,
-    value: string,
-  ): Promise<{ ok: boolean; error?: string }> {
-    if (!isElectron()) return { ok: false, error: "Not available in web" };
-    return window.veniceForge!.credentials.set(key, value);
-  },
-  async get(
-    key: string,
-  ): Promise<{ ok: boolean; configured?: boolean; error?: string }> {
-    if (!isElectron())
-      return { ok: false, error: "Not available in web" };
-    return window.veniceForge!.credentials.get(key);
-  },
-  async delete(key: string): Promise<{ ok: boolean; error?: string }> {
-    if (!isElectron()) return { ok: false, error: "Not available in web" };
-    return window.veniceForge!.credentials.delete(key);
-  },
-};
-
 export const desktopMasterPassword = {
   async isSet(): Promise<boolean> {
     if (!isElectron()) return false;
@@ -2663,20 +2677,18 @@ export const desktopCharacterCreator = {
   }> {
     if (!isElectron())
       return { ok: false, error: "Desktop export only available in Electron" };
-    return (
-      window as unknown as {
-        veniceForge: {
-          characterCreator: {
-            exportCard: (p: unknown) => Promise<{
-              ok: boolean;
-              canceled?: boolean;
-              filename?: string;
-              error?: string;
-            }>;
-          };
-        };
-      }
-    ).veniceForge.characterCreator.exportCard(payload);
+    return window.veniceForge!.characterCreator.exportCard(payload);
+  },
+  async validateCard(payload: { card: unknown }): Promise<{
+    ok: boolean;
+    valid?: boolean;
+    errors?: string[];
+    warnings?: string[];
+    error?: string;
+  }> {
+    if (!isElectron())
+      return { ok: false, error: "Desktop validation only available in Electron" };
+    return window.veniceForge!.characterCreator.validateCard(payload);
   },
 };
 
@@ -2710,6 +2722,6 @@ export const desktopHuggingFace = {
         error: "Hugging Face model discovery is only available in the desktop app.",
       };
     }
-    return window.veniceForge!.huggingFace.getModelCatalog(getActiveProfileId());
+    return window.veniceForge!.huggingFace.getModelCatalog();
   },
 };

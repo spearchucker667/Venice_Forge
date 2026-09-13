@@ -1899,6 +1899,7 @@
         "legacyConversationsDetected": "레거시 대화 감지",
         "encryptedConversationVault": "암호화된 대화 저장소",
         "maintenanceOperations": "유지 관리 작업",
+        "searchVault": "__MISSING__:Search vault",
         "curatedFacts": "큐레이트 사실("
       },
       "description": {
@@ -4222,6 +4223,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "{{value1}} 세대"
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "생성된 미디어를 저장할 수 없습니다",
+          "generationFinishedButGallerySaveFailed": "생성은 완료되었지만 갤러리 기록을 저장하지 못했습니다."
         }
       },
       "workflowcompiler": {

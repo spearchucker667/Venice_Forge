@@ -6,6 +6,12 @@
  * Never logs or returns the original payload contents.
  */
 
+import {
+  MAX_SCAN_CHARS,
+  MIDDLE_SCAN_CHARS,
+  TAIL_SCAN_CHARS,
+} from "./normalization";
+
 export interface ExtractedField {
   path: string;
   value: string;
@@ -38,14 +44,22 @@ const DENY_FIELD_NAMES = new Set<string>([
   "functions", "function_call", "tools", "tool_choice",
 ]);
 
-/** Max characters per extracted field value to prevent excessive processing. */
-const MAX_FIELD_CHARS = 8_000;
+/** Max characters per extracted field. Must cover the normalizer's head +
+ *  middle + tail windows so a pre-slice cannot hide a tail/middle signal
+ *  (VF-AUD-20260912-GSS-P2-003). */
+const MAX_FIELD_CHARS = MAX_SCAN_CHARS + TAIL_SCAN_CHARS + MIDDLE_SCAN_CHARS;
 
 /** Matches the maximum request-body size enforced at the proxy boundaries. */
 const MAX_JSON_BODY_CHARS = 10 * 1024 * 1024;
 
 /** Max number of fields to extract per payload. */
 const MAX_FIELDS = 32;
+
+/** Cap fields taken from one middle/history chat message, and the reserved
+ *  budget for the first/system turn. The newest turn is not capped by this:
+ *  it receives the remaining global budget after that reservation so a
+ *  multimodal last message cannot skip first/system screening. */
+const MAX_FIELDS_PER_MESSAGE = 8;
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -55,6 +69,71 @@ function safeStringify(v: unknown): string | null {
   if (typeof v === "string") return v.slice(0, MAX_FIELD_CHARS);
   if (typeof v === "number" || typeof v === "boolean") return String(v);
   return null;
+}
+
+function appendFieldsWithBudget(target: ExtractedField[], incoming: ExtractedField[]): void {
+  for (const field of incoming) {
+    if (target.length >= MAX_FIELDS) return;
+    target.push(field);
+  }
+}
+
+/** Extracts prompt-like fields from a single chat message without applying the
+ *  global field budget. Callers concatenate under MAX_FIELDS. */
+function extractMessageFields(msg: unknown, index: number, path: string): ExtractedField[] {
+  const results: ExtractedField[] = [];
+  if (!isRecord(msg)) return results;
+  if (typeof msg["content"] === "string") {
+    const content = msg["content"].slice(0, MAX_FIELD_CHARS);
+    if (content.trim()) results.push({ path: `${path}[${index}].content`, value: content });
+  } else if (Array.isArray(msg["content"])) {
+    for (let j = 0; j < msg["content"].length; j++) {
+      const part = msg["content"][j];
+      if (!isRecord(part)) continue;
+      for (const [partKey, partVal] of Object.entries(part)) {
+        // `type` is a part discriminator ("text" / "image_url"), not prompt
+        // text. Counting it doubles the field budget on vision turns.
+        if (partKey === "type") continue;
+        if (typeof partVal === "string") {
+          const t = partVal.slice(0, MAX_FIELD_CHARS);
+          if (t.trim()) results.push({ path: `${path}[${index}].content[${j}].${partKey}`, value: t });
+        }
+      }
+    }
+  }
+  if (typeof msg["name"] === "string" && msg["name"].trim()) {
+    results.push({ path: `${path}[${index}].name`, value: msg["name"].slice(0, 200) });
+  }
+  return results;
+}
+
+/**
+ * Chat histories commonly exceed MAX_FIELDS. Walking from index 0 dropped the
+ * newest user turn (VF-AUD-20260912-GSS-P1-002). Always keep the last message
+ * and the first message (typically system), then fill remaining budget from
+ * the tail.
+ */
+function extractChatMessages(messages: unknown[], path: string): ExtractedField[] {
+  const results: ExtractedField[] = [];
+  const n = messages.length;
+  if (n === 0) return results;
+  const perMessage = messages.map((msg, i) => extractMessageFields(msg, i, path));
+  const pushSlice = (incoming: ExtractedField[], limit: number): void => {
+    const cap = Math.min(incoming.length, Math.max(0, limit), MAX_FIELDS - results.length);
+    for (let k = 0; k < cap; k++) results.push(incoming[k]);
+  };
+
+  const lastIncoming = perMessage[n - 1] ?? [];
+  const firstIncoming = n > 1 ? (perMessage[0] ?? []) : [];
+  // Keep the first/system turn even when the newest multimodal message is huge.
+  const firstReserve = Math.min(firstIncoming.length, MAX_FIELDS_PER_MESSAGE, MAX_FIELDS);
+  pushSlice(lastIncoming, MAX_FIELDS - firstReserve);
+  pushSlice(firstIncoming, firstReserve);
+  for (let i = n - 2; i >= 1; i--) {
+    if (results.length >= MAX_FIELDS) break;
+    pushSlice(perMessage[i] ?? [], MAX_FIELDS_PER_MESSAGE);
+  }
+  return results;
 }
 
 /** Parses a serialized FormData structure `{ _isSerializedFormData: true, entries: [...] }`.
@@ -116,32 +195,10 @@ function extractFromObject(
     if (DENY_FIELD_NAMES.has(key)) continue;
     const path = pathPrefix ? `${pathPrefix}.${key}` : key;
 
-    // Chat messages array: messages[].content / messages[].role
+    // Chat messages array: newest + first messages are always extracted
+    // (VF-AUD-20260912-GSS-P1-002) so long histories cannot skip the latest turn.
     if (key === "messages" && Array.isArray(val)) {
-      for (let i = 0; i < val.length && results.length < MAX_FIELDS; i++) {
-        const msg = val[i];
-        if (!isRecord(msg)) continue;
-        if (typeof msg["content"] === "string") {
-          const content = msg["content"].slice(0, MAX_FIELD_CHARS);
-          if (content.trim()) results.push({ path: `${path}[${i}].content`, value: content });
-        } else if (Array.isArray(msg["content"])) {
-          // vision/multi-modal: content is array of {type, text|image_url}
-          for (let j = 0; j < msg["content"].length && results.length < MAX_FIELDS; j++) {
-            const part = msg["content"][j];
-            if (!isRecord(part)) continue;
-            for (const [partKey, partVal] of Object.entries(part)) {
-              if (results.length >= MAX_FIELDS) break;
-              if (typeof partVal === "string") {
-                const t = partVal.slice(0, MAX_FIELD_CHARS);
-                if (t.trim()) results.push({ path: `${path}[${i}].content[${j}].${partKey}`, value: t });
-              }
-            }
-          }
-        }
-        if (typeof msg["name"] === "string" && msg["name"].trim()) {
-          results.push({ path: `${path}[${i}].name`, value: msg["name"].slice(0, 200) });
-        }
-      }
+      appendFieldsWithBudget(results, extractChatMessages(val, path));
       continue;
     }
 
@@ -266,7 +323,20 @@ export function extractPromptLikeFields(
   // Array of message objects (some callers pass this directly)
   if (Array.isArray(payload)) {
     const results: ExtractedField[] = [];
-    for (let i = 0; i < payload.length && results.length < MAX_FIELDS; i++) {
+    const n = payload.length;
+    const indices: number[] = [];
+    const seen = new Set<number>();
+    const pushIdx = (i: number): void => {
+      if (i >= 0 && i < n && !seen.has(i)) {
+        seen.add(i);
+        indices.push(i);
+      }
+    };
+    if (n > 0) pushIdx(n - 1);
+    if (n > 1) pushIdx(0);
+    for (let i = n - 2; i >= 1; i--) pushIdx(i);
+    for (const i of indices) {
+      if (results.length >= MAX_FIELDS) break;
       const item = payload[i];
       if (!isRecord(item)) continue;
       for (const key of Object.keys(item)) {

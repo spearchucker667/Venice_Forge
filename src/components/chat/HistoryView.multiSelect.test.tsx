@@ -39,6 +39,7 @@ vi.mock("../../stores/toast-store", () => ({
     error: vi.fn(),
     success: vi.fn(),
     info: vi.fn(),
+    fromError: vi.fn(),
   },
 }));
 
@@ -134,8 +135,11 @@ describe("HistoryView Multi-Select & Batch Folder Handoff", () => {
 
     render(<HistoryView />);
 
-    const folderCheckbox = screen.getAllByRole("checkbox")[0];
-    await user.click(folderCheckbox);
+    const folderCheckbox = screen
+      .getAllByRole("checkbox")
+      .find((el) => el.getAttribute("id") !== "history-show-archived");
+    expect(folderCheckbox).toBeTruthy();
+    await user.click(folderCheckbox!);
 
     expect(screen.getByText("2 selected")).toBeInTheDocument();
   });

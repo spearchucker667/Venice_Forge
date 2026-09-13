@@ -1899,6 +1899,7 @@
         "legacyConversationsDetected": "تم اكتشاف محادثات قديمة",
         "encryptedConversationVault": "مخزن المحادثات المشفرة",
         "maintenanceOperations": "عمليات الصيانة",
+        "searchVault": "__MISSING__:Search vault",
         "curatedFacts": "حقائق منسقة ("
       },
       "description": {
@@ -4222,6 +4223,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "توليد {{value1}} ."
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "تعذر حفظ الوسائط المُنشأة",
+          "generationFinishedButGallerySaveFailed": "اكتمل الإنشاء، لكن تعذر حفظ سجل المعرض."
         }
       },
       "workflowcompiler": {

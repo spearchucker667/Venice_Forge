@@ -152,7 +152,7 @@ export const useSceneComposerStore = create<SceneComposerState>((set, get) => ({
       set({
         loading: false,
         loadError: redactErrorMessage(err),
-        hydrated: true,
+        hydrated: false,
       });
     }
   },

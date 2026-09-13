@@ -129,6 +129,38 @@ interface ManifestJournalLineV1 {
 
 const cachedManifests = new Map<string, ManifestV1>();
 
+/** Systemic vault-key failure. Callers must not quarantine conversation files. */
+export class VaultKeyUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "VaultKeyUnavailableError";
+  }
+}
+
+function throwVaultKeyUnavailable(message: string): never {
+  throw new VaultKeyUnavailableError(message);
+}
+
+async function writeVaultKeyFileAtomic(payload: VaultKeyFileV1): Promise<void> {
+  const tempPath = `${KEY_FILE}.tmp-${crypto.randomUUID()}`;
+  try {
+    await fs.writeFile(tempPath, JSON.stringify(payload, null, 2), { encoding: "utf-8", mode: 0o600 });
+    let filehandle: fs.FileHandle | null = null;
+    try {
+      filehandle = await fs.open(tempPath, "r+");
+      await filehandle.sync();
+    } catch (err) {
+      logError("fsync failed for vault key temp file", String(err));
+    } finally {
+      await filehandle?.close();
+    }
+    await fs.rename(tempPath, KEY_FILE);
+  } catch (error) {
+    await fs.unlink(tempPath).catch(() => undefined);
+    throw error;
+  }
+}
+
 /**
  * Gets or initializes the cryptographically secure 256-bit vault key.
  * On Windows/macOS, fails closed if safeStorage is unavailable.
@@ -148,36 +180,50 @@ export async function getOrInitVaultKey(): Promise<Buffer> {
   }
 
   if (keyFileExists) {
-    const raw = await fs.readFile(KEY_FILE, "utf-8");
-    const envelope = JSON.parse(raw) as VaultKeyFileV1;
-    keyId = envelope.keyId;
+    try {
+      const raw = await fs.readFile(KEY_FILE, "utf-8");
+      const envelope = JSON.parse(raw) as VaultKeyFileV1;
+      keyId = envelope.keyId;
 
-    if (envelope.wrappedWith === "electron.safeStorage") {
-      if (!safeStorage.isEncryptionAvailable()) {
+      if (envelope.wrappedWith === "electron.safeStorage") {
+        if (!safeStorage.isEncryptionAvailable()) {
+          if (process.platform === "win32" || process.platform === "darwin") {
+            throwVaultKeyUnavailable("safeStorage is unavailable on Windows/macOS. Fail closed.");
+          }
+          const allowPlaintext = process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE === "true";
+          if (!allowPlaintext) {
+            throwVaultKeyUnavailable("safeStorage is unavailable on Linux and plaintext fallback is disabled.");
+          }
+          throwVaultKeyUnavailable("safeStorage is unavailable. Cannot decrypt key wrapped with safeStorage.");
+        }
+        let decryptedBase64: string;
+        try {
+          decryptedBase64 = safeStorage.decryptString(Buffer.from(envelope.wrappedKey, "base64"));
+        } catch (err) {
+          throwVaultKeyUnavailable(
+            err instanceof Error ? err.message : "Failed to unwrap the vault key with safeStorage.",
+          );
+        }
+        cachedVaultKey = Buffer.from(decryptedBase64, "base64");
+        return cachedVaultKey;
+      } else if (envelope.wrappedWith as string === "plaintext") {
         if (process.platform === "win32" || process.platform === "darwin") {
-          throw new Error("safeStorage is unavailable on Windows/macOS. Fail closed.");
+          throwVaultKeyUnavailable("Plaintext key wrapping is prohibited on Windows/macOS.");
         }
         const allowPlaintext = process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE === "true";
         if (!allowPlaintext) {
-          throw new Error("safeStorage is unavailable on Linux and plaintext fallback is disabled.");
+          throwVaultKeyUnavailable("Plaintext fallback is disabled.");
         }
-        throw new Error("safeStorage is unavailable. Cannot decrypt key wrapped with safeStorage.");
+        cachedVaultKey = Buffer.from(envelope.wrappedKey, "base64");
+        return cachedVaultKey;
+      } else {
+        throwVaultKeyUnavailable(`Unsupported key wrapper: ${envelope.wrappedWith}`);
       }
-      const decryptedBase64 = safeStorage.decryptString(Buffer.from(envelope.wrappedKey, "base64"));
-      cachedVaultKey = Buffer.from(decryptedBase64, "base64");
-      return cachedVaultKey;
-    } else if (envelope.wrappedWith as string === "plaintext") {
-      if (process.platform === "win32" || process.platform === "darwin") {
-        throw new Error("Plaintext key wrapping is prohibited on Windows/macOS.");
-      }
-      const allowPlaintext = process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE === "true";
-      if (!allowPlaintext) {
-        throw new Error("Plaintext fallback is disabled.");
-      }
-      cachedVaultKey = Buffer.from(envelope.wrappedKey, "base64");
-      return cachedVaultKey;
-    } else {
-      throw new Error(`Unsupported key wrapper: ${envelope.wrappedWith}`);
+    } catch (err) {
+      if (err instanceof VaultKeyUnavailableError) throw err;
+      throw new VaultKeyUnavailableError(
+        err instanceof Error ? err.message : "Failed to load the vault key.",
+      );
     }
   } else {
     const newKey = crypto.randomBytes(32);
@@ -196,11 +242,11 @@ export async function getOrInitVaultKey(): Promise<Buffer> {
       };
     } else {
       if (process.platform === "win32" || process.platform === "darwin") {
-        throw new Error("safeStorage is unavailable on Windows/macOS. Fail closed.");
+        throwVaultKeyUnavailable("safeStorage is unavailable on Windows/macOS. Fail closed.");
       }
       const allowPlaintext = process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE === "true";
       if (!allowPlaintext) {
-        throw new Error("safeStorage is unavailable on Linux and plaintext fallback is disabled.");
+        throwVaultKeyUnavailable("safeStorage is unavailable on Linux and plaintext fallback is disabled.");
       }
       payload = {
         version: 1,
@@ -212,7 +258,7 @@ export async function getOrInitVaultKey(): Promise<Buffer> {
       };
     }
 
-    await fs.writeFile(KEY_FILE, JSON.stringify(payload, null, 2), { encoding: "utf-8", mode: 0o600 });
+    await writeVaultKeyFileAtomic(payload);
     cachedVaultKey = newKey;
     return cachedVaultKey;
   }
@@ -292,6 +338,7 @@ export async function writeEncryptedFile(filePath: string, text: string, fileTyp
 
 /**
  * Reads and decrypts an encrypted file, supporting corruption backup.
+ * Systemic key failures must propagate without quarantining records.
  */
 export async function readEncryptedFile(
   filePath: string,
@@ -299,24 +346,31 @@ export async function readEncryptedFile(
   id: string,
   corruptRoot = CONVERSATIONS_DIR,
 ): Promise<string | null> {
+  let raw: string;
   try {
-    const raw = await fs.readFile(filePath, "utf-8");
-    const envelope = JSON.parse(raw) as EncryptedVaultFileV1;
-    const key = await getOrInitVaultKey();
-    return decrypt(envelope, key, fileType, id);
+    raw = await fs.readFile(filePath, "utf-8");
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
     }
-    logError(`Decryption failed or file missing: ${filePath}`, String(err));
-    // Corruption backup
+    throw err;
+  }
+
+  const key = await getOrInitVaultKey();
+
+  try {
+    const envelope = JSON.parse(raw) as EncryptedVaultFileV1;
+    return decrypt(envelope, key, fileType, id);
+  } catch (err) {
+    if (err instanceof VaultKeyUnavailableError) throw err;
+    logError(`Decryption failed or file missing: ${path.basename(filePath)}`, String(err));
     try {
       const corruptDir = path.join(corruptRoot, "corrupt");
       await fs.mkdir(corruptDir, { recursive: true });
       const filename = path.basename(filePath);
       const backupPath = path.join(corruptDir, `conv_corrupted_${Date.now()}_${filename}`);
       await fs.rename(filePath, backupPath);
-      logInfo("Corrupt file backed up to corrupt/", backupPath);
+      logInfo("Corrupt file backed up to corrupt/", path.basename(backupPath));
     } catch (renameErr) {
       logError("Failed to rename corrupt file", String(renameErr));
     }
@@ -441,6 +495,45 @@ async function appendManifestOperation(operation: ManifestJournalOperationV1, pr
       mode: 0o600,
     });
   });
+}
+
+/** Journal size that triggers a snapshot rewrite so replay stays bounded. */
+export const MANIFEST_JOURNAL_CHECKPOINT_BYTES = 64 * 1024;
+
+export async function compactManifestJournal(profileId = "default"): Promise<void> {
+  if (!isValidProfileStorageId(profileId)) throw new Error("Invalid profile id.");
+  try {
+    await fs.access(getManifestJournalFile(profileId));
+  } catch {
+    return;
+  }
+  const manifest = await getOrLoadManifest(profileId);
+  await saveManifest(manifest, profileId);
+}
+
+export async function compactAllManifestJournals(): Promise<void> {
+  await compactManifestJournal("default");
+  const profilesRoot = path.join(CONVERSATIONS_DIR, "profiles");
+  let names: string[] = [];
+  try {
+    names = await fs.readdir(profilesRoot);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!isValidProfileStorageId(name)) continue;
+    await compactManifestJournal(name);
+  }
+}
+
+async function maybeCheckpointManifest(profileId: string): Promise<void> {
+  try {
+    const st = await fs.stat(getManifestJournalFile(profileId));
+    if (st.size < MANIFEST_JOURNAL_CHECKPOINT_BYTES) return;
+  } catch {
+    return;
+  }
+  await compactManifestJournal(profileId);
 }
 
 /**
@@ -635,6 +728,7 @@ export async function saveConversation(
         updatedAt: manifestUpdatedAt,
         entry: manifestEntry,
       }, profileId);
+      await maybeCheckpointManifest(profileId);
 
       // Trigger index update in memoryPuller
       const { updateIndexForRecord } = await import("./memoryPuller");
@@ -679,6 +773,7 @@ export async function deleteConversation(id: string, profileId = "default"): Pro
         updatedAt: manifestUpdatedAt,
         id,
       }, profileId);
+      await maybeCheckpointManifest(profileId);
 
       // Remove from index
       const { removeRecordFromIndex } = await import("./memoryPuller");

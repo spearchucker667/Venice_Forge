@@ -60,6 +60,8 @@ export interface InspectorTelemetryEvent {
   error?: string;
   /** Optional opaque status (HTTP status, queue id, etc.). */
   status?: number;
+  /** Profile that owns this event. Used to scope renderer delivery. */
+  profileId?: string;
 }
 
 export type InspectorTelemetryListener = (event: InspectorTelemetryEvent) => void;

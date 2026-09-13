@@ -19,6 +19,7 @@ import {
 } from "../../services/characterImageCache";
 import { registerPrivilegedIpcChannel } from "./common";
 import { getProfileSessionId } from "../../services/profileSession";
+import { getCustomProtocolCapabilityManager } from "../../services/customProtocolCapabilities";
 import {
   exportMediaBatchAs,
   saveDataUrlAs,
@@ -83,6 +84,39 @@ function sniffRoutedImageContentType(buffer: Buffer): string | null {
 }
 
 export function registerFileHandlers(): void {
+  registerPrivilegedIpcChannel(
+    "app:media:issueCapabilityUrl",
+    async (event, input: unknown) => {
+      try {
+        if (!input || typeof input !== "object") {
+          return { ok: false, error: "Invalid capability request." };
+        }
+        const rec = input as Record<string, unknown>;
+        const scheme = rec.scheme;
+        const objectId = rec.objectId;
+        const resourceUrl = rec.resourceUrl;
+        if (scheme !== "venice-media" && scheme !== "venice-tts" && scheme !== "venice-character-cache") {
+          return { ok: false, error: "Unsupported capability scheme." };
+        }
+        if (typeof objectId !== "string" || !/^[a-f0-9]{64}$/.test(objectId)) {
+          return { ok: false, error: "Invalid capability object id." };
+        }
+        const profileId = getProfileSessionId(event.sender);
+        const issued = getCustomProtocolCapabilityManager().issue({
+          scheme,
+          objectId,
+          profileId,
+          sessionId: String(event.sender.id),
+          resourceUrl: typeof resourceUrl === "string" ? resourceUrl : undefined,
+        });
+        return { ok: true, url: issued.url };
+      } catch (err) {
+        return { ok: false, error: redactErrorMessage(err) };
+      }
+    },
+    { requireMainFrame: true },
+  );
+
   registerPrivilegedIpcChannel("app:media:persist-generated-image", async (event, input: unknown) => {
     let validatedBytes: Buffer | undefined;
     let validatedMime: string | undefined;
@@ -240,7 +274,9 @@ export function registerFileHandlers(): void {
     }
   });
 
-  registerPrivilegedIpcChannel("app:saveJsonFile", async (_event, data: unknown, defaultPath: unknown) => {
+  registerPrivilegedIpcChannel(
+    "app:saveJsonFile",
+    async (_event, data: unknown, defaultPath: unknown) => {
     try {
       if (typeof data !== "string") throw new Error("Export data must be a string.");
       if (Buffer.byteLength(data, "utf-8") > MAX_JSON_FILE_BYTES) {
@@ -271,7 +307,9 @@ export function registerFileHandlers(): void {
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
-  });
+    },
+    { requireMainFrame: true },
+  );
 
   registerPrivilegedIpcChannel("app:saveYamlFile", async (_event, data: unknown, defaultPath: unknown) => {
     try {
@@ -294,7 +332,7 @@ export function registerFileHandlers(): void {
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
-  });
+  }, { requireMainFrame: true });
 
   registerPrivilegedIpcChannel("app:loadYamlFile", async () => {
     try {
@@ -304,7 +342,7 @@ export function registerFileHandlers(): void {
         filters: [{ name: "YAML", extensions: ["yaml", "yml"] }],
         properties: ["openFile"],
       });
-      if (result.canceled || !result.filePaths[0]) return { ok: true, canceled: true };
+      if (result.canceled || !result.filePaths[0]) return { ok: false, canceled: true };
       const fd = await fs.open(result.filePaths[0], "r");
       try {
         const fstat = await fd.stat();
@@ -319,7 +357,7 @@ export function registerFileHandlers(): void {
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }
-  });
+  }, { requireMainFrame: true });
 
   registerPrivilegedIpcChannel("app:loadJsonFile", async () => {
     try {
@@ -331,7 +369,7 @@ export function registerFileHandlers(): void {
         ],
         properties: ["openFile"],
       });
-      if (result.canceled || !result.filePaths[0]) return { ok: true, canceled: true };
+      if (result.canceled || !result.filePaths[0]) return { ok: false, canceled: true };
       const fd = await fs.open(result.filePaths[0], "r");
       try {
         const fstat = await fd.stat();
@@ -346,7 +384,7 @@ export function registerFileHandlers(): void {
     } catch (err) {
       return { ok: false, canceled: false, error: redactErrorMessage(err) };
     }
-  });
+  }, { requireMainFrame: true });
 
 
   // Media Studio: read a file from an allowlisted directory (Downloads,
@@ -443,7 +481,7 @@ export function registerFileHandlers(): void {
 
   // Character avatar image cache: fetch and cache a Venice character photo
   // and return a file:// URL. The renderer never loads remote URLs directly.
-  registerPrivilegedIpcChannel("app:characterImage:get", async (_event, input: unknown) => {
+  registerPrivilegedIpcChannel("app:characterImage:get", async (event, input: unknown) => {
     try {
       let url = "";
       if (typeof input === "string") {
@@ -457,7 +495,22 @@ export function registerFileHandlers(): void {
       if (!url) return { ok: false, error: "Missing image URL." };
       const result = await getCachedCharacterImage(url);
       if (!result.ok) return { ok: false, error: redactErrorMessage(result.error) };
-      return { ok: true, url: result.url, contentType: result.contentType, bytes: result.bytes };
+      let playableUrl = result.url;
+      const cacheMatch = typeof playableUrl === "string" ? /^venice-character-cache:\/\/([a-f0-9]{64})$/i.exec(playableUrl) : null;
+      if (cacheMatch) {
+        try {
+          playableUrl = getCustomProtocolCapabilityManager().issue({
+            scheme: "venice-character-cache",
+            objectId: cacheMatch[1],
+            profileId: getProfileSessionId(event.sender),
+            sessionId: String(event.sender.id),
+            resourceUrl: playableUrl,
+          }).url;
+        } catch {
+          /* keep stable URL if issue fails; protocol will 403 originless */
+        }
+      }
+      return { ok: true, url: playableUrl, contentType: result.contentType, bytes: result.bytes };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }

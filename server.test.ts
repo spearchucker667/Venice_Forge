@@ -154,6 +154,29 @@ describe("server.ts development session key", () => {
     expect((await request(app).post("/api/session-key").send({ key: "x".repeat(513) })).status).toBe(400);
   });
 
+  it("returns JSON 400 for malformed session-key JSON", async () => {
+    const app = createServerApp();
+    const res = await request(app)
+      .post("/api/session-key")
+      .set("content-type", "application/json")
+      .send("{not-json");
+    expect(res.status).toBe(400);
+    expect(res.headers["content-type"]).toMatch(/json/);
+    expect(res.body).toEqual({ error: "Malformed JSON" });
+  });
+
+  it("returns JSON 413 when the Venice proxy body exceeds the configured limit", async () => {
+    vi.spyOn(AppConfig, "MAX_PROXY_BODY_BYTES", "get").mockReturnValue(1024);
+    const app = createServerApp();
+    const res = await request(app)
+      .post("/api/venice/chat/completions")
+      .set("content-type", "application/json")
+      .send({ model: "x", messages: [{ role: "user", content: "x".repeat(2000) }] });
+    expect(res.status).toBe(413);
+    expect(res.headers["content-type"]).toMatch(/json/);
+    expect(res.body).toEqual({ error: "Payload too large" });
+  });
+
   it("stores and clears a Jina key only in the server process", async () => {
     const app = createServerApp();
     const save = await request(app).post("/api/session-jina-key").send({ key: "jina-session-fixture" });

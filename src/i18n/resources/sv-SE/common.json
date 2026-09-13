@@ -1894,6 +1894,7 @@
         "legacyConversationsDetected": "Äldre konversationer upptäcktes",
         "encryptedConversationVault": "Krypterad konversationsvalv",
         "maintenanceOperations": "Underhållsåtgärder",
+        "searchVault": "__MISSING__:Search vault",
         "curatedFacts": "Kurerade fakta ("
       },
       "description": {
@@ -4222,6 +4223,10 @@
       "taskmediacatalog": {
         "metadata": {
           "value1Generation": "{{value1}}-generering"
+        },
+        "notification": {
+          "couldNotSaveGeneratedMedia": "Kunde inte spara genererat media",
+          "generationFinishedButGallerySaveFailed": "Genereringen är klar, men galleriposten kunde inte sparas."
         }
       },
       "workflowcompiler": {

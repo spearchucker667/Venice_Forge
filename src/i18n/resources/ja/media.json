@@ -85,6 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "ダウンロードされた画像",
     "imageSaveFailed": "画像の保存に失敗しました",
+    "replicateQueued": "__MISSING__:Replicate generation queued",
+    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
     "imageDownloadFailedDetail": "画像をダウンロードできませんでした。",
     "none": "なし",
     "enhancedPromptShortened": "強化されたプロンプトの短縮",

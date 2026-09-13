@@ -180,11 +180,19 @@ export async function synthesizeSpeech(
       return { ok: false, error: `Speech provider request failed (HTTP ${result.status}).` };
     }
 
-    const audioBuffer = Buffer.isBuffer(result.body)
-      ? result.body
-      : result.body instanceof ArrayBuffer || result.body instanceof Uint8Array
-        ? Buffer.from(result.body)
-        : null;
+    let audioBuffer: Buffer | null = null;
+    if (Buffer.isBuffer(result.body)) {
+      audioBuffer = result.body;
+    } else if (result.body instanceof ArrayBuffer || result.body instanceof Uint8Array) {
+      audioBuffer = Buffer.from(result.body);
+    } else if (
+      result.body &&
+      typeof result.body === "object" &&
+      "dataBase64" in result.body &&
+      typeof (result.body as { dataBase64?: unknown }).dataBase64 === "string"
+    ) {
+      audioBuffer = Buffer.from((result.body as { dataBase64: string }).dataBase64, "base64");
+    }
     if (!audioBuffer || audioBuffer.length === 0 || audioBuffer.length > MAX_AUDIO_BYTES) {
       logError("Unexpected response for audio/speech", { type: typeof result.body, bytes: audioBuffer?.length });
       return { ok: false, error: "Speech provider returned invalid audio." };

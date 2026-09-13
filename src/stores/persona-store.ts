@@ -82,6 +82,7 @@ export const usePersonaStore = create<PersonaState>((set, get) => ({
       updatedAt: now,
     };
     set((s) => ({ personas: [persona, ...s.personas], activePersonaId: id }));
+    void get().upsert(persona);
     return id;
   },
 

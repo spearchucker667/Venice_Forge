@@ -40,6 +40,7 @@ import {
   CONVERSATIONS_DIR,
   INDEX_FILE,
   MANIFEST_FILE,
+  VaultKeyUnavailableError,
   getOrInitVaultKey,
   encrypt,
   decrypt,
@@ -52,6 +53,8 @@ import {
   isValidConversationId,
   getRecordPath,
   purgeProfileConversationVault,
+  compactManifestJournal,
+  MANIFEST_JOURNAL_FILE,
   _resetVaultCache_TEST_ONLY,
 } from "./conversationVault";
 
@@ -126,6 +129,8 @@ async function cleanVaultDirs() {
 describe("ConversationVault core and services", () => {
   beforeEach(async () => {
     mockSafeStorage.encryptionAvailable = true;
+    mockSafeStorage.encryptString = (str: string) => Buffer.from("enc:" + str);
+    mockSafeStorage.decryptString = (buf: Buffer) => buf.toString().replace("enc:", "");
     process.env.VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE = "false";
     _resetVaultCache_TEST_ONLY();
     _resetIndexCache_TEST_ONLY();
@@ -208,6 +213,87 @@ describe("ConversationVault core and services", () => {
       const corruptDir = path.join(CONVERSATIONS_DIR, "corrupt");
       const files = await fs.readdir(corruptDir);
       expect(files.some((f) => f.includes("corrupt-test.json.enc"))).toBe(true);
+    });
+
+    it("[P1-002] does not quarantine vault files when safeStorage cannot unwrap the key", async () => {
+      const filePath = path.join(CONVERSATIONS_DIR, "keep-me.json.enc");
+      await writeEncryptedFile(filePath, "payload-must-remain", "test-type", "test-id");
+      const sibling = path.join(CONVERSATIONS_DIR, "sibling.json.enc");
+      await writeEncryptedFile(sibling, "sibling-payload", "test-type", "sibling-id");
+      _resetVaultCache_TEST_ONLY();
+
+      mockSafeStorage.decryptString = () => {
+        throw new Error("OS keyring failed");
+      };
+
+      await expect(readEncryptedFile(filePath, "test-type", "test-id")).rejects.toBeInstanceOf(
+        VaultKeyUnavailableError,
+      );
+
+      const corruptDir = path.join(CONVERSATIONS_DIR, "corrupt");
+      await expect(fs.access(corruptDir)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(fs.readFile(filePath, "utf-8")).resolves.toMatch(/ciphertext/);
+      await expect(fs.readFile(sibling, "utf-8")).resolves.toMatch(/ciphertext/);
+    });
+
+    it("[P1-002] getOrLoadManifest does not reset to empty when the vault key is unavailable", async () => {
+      const record = makeRecord({ title: "Must not be wiped" });
+      expect((await saveConversation(record)).ok).toBe(true);
+      const recordPath = getRecordPath(record.id, record.createdAt);
+      _resetVaultCache_TEST_ONLY();
+
+      mockSafeStorage.decryptString = () => {
+        throw new Error("OS keyring failed");
+      };
+
+      await expect(listConversations()).rejects.toBeInstanceOf(VaultKeyUnavailableError);
+      await expect(getConversation(record.id)).rejects.toBeInstanceOf(VaultKeyUnavailableError);
+
+      const corruptDir = path.join(CONVERSATIONS_DIR, "corrupt");
+      await expect(fs.access(corruptDir)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(fs.access(recordPath)).resolves.toBeUndefined();
+    });
+
+    it("[P1-003] truncated vault key file throws VaultKeyUnavailableError", async () => {
+      await getOrInitVaultKey();
+      _resetVaultCache_TEST_ONLY();
+      const keyFile = path.join(CONVERSATIONS_DIR, "vault-key.v1.json");
+      await fs.writeFile(keyFile, "{", { encoding: "utf-8", mode: 0o600 });
+
+      await expect(getOrInitVaultKey()).rejects.toBeInstanceOf(VaultKeyUnavailableError);
+    });
+
+    it("[P1-003] writes the vault key via tmp + rename and leaves no partial key on rename failure", async () => {
+      const writeSpy = vi.spyOn(fs, "writeFile");
+      const renameSpy = vi.spyOn(fs, "rename");
+      try {
+        await getOrInitVaultKey();
+        const keyWrites = writeSpy.mock.calls.filter((call) => String(call[0]).includes("vault-key.v1.json"));
+        expect(keyWrites.length).toBeGreaterThan(0);
+        expect(String(keyWrites[0][0])).toMatch(/vault-key\.v1\.json\.tmp-/);
+        expect(renameSpy).toHaveBeenCalled();
+        const renameArgs = renameSpy.mock.calls.find((call) => String(call[1]).endsWith("vault-key.v1.json"));
+        expect(renameArgs).toBeDefined();
+        expect(String(renameArgs![0])).toMatch(/vault-key\.v1\.json\.tmp-/);
+      } finally {
+        writeSpy.mockRestore();
+        renameSpy.mockRestore();
+      }
+
+      _resetVaultCache_TEST_ONLY();
+      await cleanVaultDirs();
+      await fs.mkdir(CONVERSATIONS_DIR, { recursive: true });
+
+      const failingRename = vi.spyOn(fs, "rename").mockRejectedValueOnce(new Error("injected rename failure"));
+      try {
+        await expect(getOrInitVaultKey()).rejects.toThrow(/injected rename failure/);
+        const keyFile = path.join(CONVERSATIONS_DIR, "vault-key.v1.json");
+        await expect(fs.stat(keyFile)).rejects.toMatchObject({ code: "ENOENT" });
+        const leftovers = await fs.readdir(CONVERSATIONS_DIR);
+        expect(leftovers.some((name) => name.includes("vault-key.v1.json"))).toBe(false);
+      } finally {
+        failingRename.mockRestore();
+      }
     });
 
     it("7. Key Rotation/IV collision check: Writing multiple files uses unique IVs", async () => {
@@ -757,6 +843,19 @@ describe("ConversationVault core and services", () => {
       await expect(fs.stat(journalPath)).resolves.toBeDefined();
       await expect(fs.stat(MANIFEST_FILE)).rejects.toMatchObject({ code: "ENOENT" });
 
+      _resetVaultCache_TEST_ONLY();
+      const loaded = await listConversations();
+      expect(loaded.map((record) => record.id).sort()).toEqual([first.id, second.id].sort());
+    });
+
+    it("30. compactManifestJournal checkpoints the snapshot and truncates the journal", async () => {
+      const first = makeRecord({ title: "Compact first" });
+      const second = makeRecord({ title: "Compact second" });
+      await expect(saveConversation(first)).resolves.toMatchObject({ ok: true });
+      await expect(saveConversation(second)).resolves.toMatchObject({ ok: true });
+      await compactManifestJournal();
+      await expect(fs.stat(MANIFEST_JOURNAL_FILE)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(fs.stat(MANIFEST_FILE)).resolves.toBeDefined();
       _resetVaultCache_TEST_ONLY();
       const loaded = await listConversations();
       expect(loaded.map((record) => record.id).sort()).toEqual([first.id, second.id].sort());

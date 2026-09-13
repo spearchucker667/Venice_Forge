@@ -270,6 +270,9 @@ export interface ImageGenerateResponse {
   images: Array<string | { b64_json: string }>
   id: string
   model: string
+  /** True when generation was accepted as a durable background task (Replicate). */
+  queued?: boolean
+  taskId?: string
 }
 
 export interface ImageEditRequest {

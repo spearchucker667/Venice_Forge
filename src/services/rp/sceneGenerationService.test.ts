@@ -168,6 +168,7 @@ describe("generateScene", () => {
           format: "png",
         }),
         timeoutMs: 120_000,
+        retry: false,
       })
     );
     const request = (veniceFetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1];

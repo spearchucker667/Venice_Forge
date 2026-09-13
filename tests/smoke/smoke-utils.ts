@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import fs from 'node:fs';
 import { _electron as electron, type ElectronApplication, type Page } from 'playwright';
 
 const require = createRequire(import.meta.url);
@@ -11,6 +12,13 @@ const packagedExecutable = require('../../scripts/packaged-executable.cjs') as {
 };
 
 export const findPackagedExecutable = packagedExecutable.findPackagedExecutable;
+
+/** Run packaged Electron smokes when CI sets the env, or when a local package exists. */
+export function shouldRunElectronSmoke(root = process.cwd()): boolean {
+  if (process.env.RUN_ELECTRON_SMOKE === 'true') return true;
+  const exePath = findPackagedExecutable(root);
+  return Boolean(exePath && fs.existsSync(exePath));
+}
 
 export async function launchPackagedApp(executablePath: string, userDataDir: string, electronApplications: ElectronApplication[]): Promise<{
   electronApplication: ElectronApplication;

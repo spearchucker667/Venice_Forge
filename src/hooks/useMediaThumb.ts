@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import type { MediaItem } from "../types/media";
 import { mediaItemSource } from "../utils/mediaItem";
+import { resolvePlayableMediaUrl } from "../services/playableMediaUrl";
 
 const MAX_THUMBS = 256;
 const MAX_THUMB_DIM = 256;
@@ -157,7 +158,7 @@ export function useMediaThumb(item: MediaItem | null | undefined): { url: string
     setError(null);
 
     (async () => {
-      const source = mediaItemSource(item);
+      const source = await resolvePlayableMediaUrl(mediaItemSource(item) ?? "");
       if (!source) {
         if (!cancelled) {
           setUrl(makeBlankThumb(MAX_THUMB_DIM, MAX_THUMB_DIM));

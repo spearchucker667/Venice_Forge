@@ -4,6 +4,7 @@ import { createSafeStorage } from '../lib/safe-storage'
 import { DEFAULT_PROFILE_ID, broadcastActiveProfileChange, setActiveProfileId } from '../services/activeProfile'
 import { purgeProfileData } from '../services/profilePurge'
 import { isElectron, desktopMasterPassword, desktopProfilePassword } from '../services/desktopBridge'
+import { chatTtsController } from '../services/chatTtsController'
 import { translateRuntime } from '../i18n/runtimeTranslator'
 import {
   assertUserCreatableProfileId,
@@ -51,6 +52,8 @@ export interface ProfileState {
 /** Internal raw switch: updates active id, broadcasts, and reloads. */
 function performRawProfileSwitch(id: string): void {
   if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event("venice-forge:abort-in-flight"));
+    try { chatTtsController.stop(); } catch { /* ignore */ }
     setActiveProfileId(id)
     window.location.reload()
   }

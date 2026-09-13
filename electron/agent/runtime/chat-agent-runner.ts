@@ -188,6 +188,7 @@ async function streamAndExecuteTurn(
         }
         if (chunk.tool_calls) {
           const formattedToolCalls = chunk.tool_calls.map(tc => ({
+             index: tc.index,
              id: tc.id || "",
              type: "function" as const,
              function: {

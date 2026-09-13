@@ -33,7 +33,7 @@ describe("chatTtsBridge", () => {
     fsMock.readdir.mockResolvedValue([]);
     guardedMock.mockResolvedValue({
       kind: "allowed",
-      response: { ok: true, status: 200, body: Buffer.from("audio") },
+      response: { ok: true, status: 200, body: { dataBase64: Buffer.from("audio").toString("base64") } },
     });
   });
 
@@ -59,7 +59,7 @@ describe("chatTtsBridge", () => {
 
     expect(result).toMatchObject({ ok: true, profileId: "work", cacheMode: "disk", id: expect.stringMatching(/^[a-f0-9]{64}$/) });
     expect(fsMock.mkdir).toHaveBeenCalled();
-    expect(fsMock.writeFile).toHaveBeenCalledWith(expect.stringMatching(/\.tmp$/), Buffer.from("audio"), { mode: 0o600 });
+    expect(fsMock.writeFile).toHaveBeenCalledWith(expect.stringMatching(/\.tmp$/), Buffer.from(Buffer.from("audio").toString("base64"), "base64"), { mode: 0o600 });
     expect(fsMock.rename).toHaveBeenCalled();
   });
 

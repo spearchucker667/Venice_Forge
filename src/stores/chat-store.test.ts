@@ -37,6 +37,7 @@ const chatSaveMock = vi.fn().mockResolvedValue({ ok: true })
 const chatDeleteMock = vi.fn().mockResolvedValue({ ok: true })
 const conversationSaveMock = vi.fn().mockResolvedValue({ ok: true })
 const conversationDeleteMock = vi.fn().mockResolvedValue({ ok: true })
+const conversationArchiveMock = vi.fn().mockResolvedValue({ ok: true })
 
 vi.mock('../services/desktopBridge', async () => {
   const actual = await vi.importActual<typeof import('../services/desktopBridge')>('../services/desktopBridge')
@@ -48,6 +49,8 @@ vi.mock('../services/desktopBridge', async () => {
       get: vi.fn().mockResolvedValue({ ok: true, record: null }),
       save: conversationSaveMock,
       delete: conversationDeleteMock,
+      archive: conversationArchiveMock,
+      search: vi.fn().mockResolvedValue({ ok: true, results: [] }),
       pullContext: vi.fn().mockResolvedValue({ ok: true }),
       detectLegacyHistory: vi.fn().mockResolvedValue(false),
       rebuildIndex: vi.fn().mockResolvedValue({ ok: true }),
@@ -185,6 +188,28 @@ describe('chat-store desktopBridge routing', () => {
     expect(state.conversations.some((c) => c.id === 'legacy-1')).toBe(true)
   })
 
+  it('keeps a trailing empty assistant when preserveEmptyAssistantForId matches', async () => {
+    const { normalizeConversationList } = await import('./chat-store')
+    const id = useChatStore.getState().createConversation('llama-3')
+    useChatStore.getState().addMessage(id, { role: 'user', content: 'hi' })
+    useChatStore.getState().addMessage(id, { role: 'assistant', content: '' })
+    const conv = useChatStore.getState().conversations[0]
+    const preserved = normalizeConversationList([conv], { preserveEmptyAssistantForId: id })
+    expect(preserved[0].messages.at(-1)?.role).toBe('assistant')
+    const stripped = normalizeConversationList([conv])
+    expect(stripped[0].messages.at(-1)?.role).toBe('user')
+  })
+
+  it('strips trailing empty assistant messages when setting conversations (ZST-P2-016)', () => {
+    const id = useChatStore.getState().createConversation('llama-3')
+    useChatStore.getState().addMessage(id, { role: 'user', content: 'hi' })
+    useChatStore.getState().addMessage(id, { role: 'assistant', content: '' })
+    const conv = useChatStore.getState().conversations[0]
+    expect(conv.messages.at(-1)?.content).toBe('')
+    useChatStore.getState().setConversations([conv])
+    expect(useChatStore.getState().conversations[0].messages.at(-1)?.role).toBe('user')
+  })
+
   it('creates conversation properly', async () => {
     const id = useChatStore.getState().createConversation('llama-3')
     const state = useChatStore.getState()
@@ -316,6 +341,16 @@ describe('chat-store desktopBridge routing', () => {
 
     await expect(useChatStore.getState().restoreConversation(conv)).rejects.toThrow(/Invalid id.*markDirtyConversation/)
     expect(conversationSaveMock).not.toHaveBeenCalled()
+  })
+
+  it('toggles archive through the dedicated vault channel then persists metadata', async () => {
+    const id = useChatStore.getState().createConversation('llama-3')
+    conversationArchiveMock.mockClear()
+    conversationSaveMock.mockClear()
+    await useChatStore.getState().toggleConversationArchived(id)
+    expect(conversationArchiveMock).toHaveBeenCalledWith(id)
+    expect(useChatStore.getState().conversations[0]?.metadata?.archived).toBe(true)
+    expect(conversationSaveMock).toHaveBeenCalled()
   })
 
   it('adds message and sets title on first user message', async () => {

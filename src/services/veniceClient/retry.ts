@@ -14,6 +14,18 @@ export interface InFlightResult {
 /** In-flight request deduplication map (API-004). */
 const inFlight = new Map<string, Promise<InFlightResult>>();
 
+const IDEMPOTENT_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * Resolves whether veniceFetch should retry. Explicit `retry: true`/`false`
+ * always wins. When omitted, only idempotent methods (GET/HEAD/OPTIONS) retry;
+ * POST/PUT/PATCH/DELETE do not, so billable generations are not replayed.
+ */
+export function resolveRetryEnabled(method: string, retry?: boolean): boolean {
+  if (typeof retry === "boolean") return retry;
+  return IDEMPOTENT_METHODS.has(method.trim().toUpperCase());
+}
+
 // Clear in-flight map on navigation to prevent promise leaks (BUG-013).
 const cleanupInFlightUnloadListener = (() => {
   const handler = () => inFlight.clear();

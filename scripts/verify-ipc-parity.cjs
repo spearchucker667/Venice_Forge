@@ -5,9 +5,11 @@
  * Asserts that every IPC channel exposed to the renderer via `ipcRenderer.invoke`
  * / `ipcRenderer.on` in `electron/preload.ts` is backed by a `registerPrivileged
  * IpcChannel` / `rateLimitIpcHandler` / `handleIpc` / `ipcMain.handle` /
- * template-literal registration in the main process, and vice versa, with a
- * documented orphan allow-list for channels reachable only via the agent-tool
- * executor framework.
+ * template-literal registration in the main process, and vice versa. A
+ * documented orphan allow-list exists for genuine exceptions; it must stay
+ * empty unless a channel is reachable only through a non-preload path that
+ * is independently authorized. Dead privileged handlers must be removed,
+ * not allow-listed.
  *
  * Exit code 0 on success; non-zero on any parity break.
  */
@@ -200,27 +202,30 @@ function collectEmitterChannels(files) {
   return emitters;
 }
 
-// --- 4) Documented orphans (channels reachable via the agent-tool framework
-// or via the desktop updater emitter, not via preload invoke/on).
+// --- 4) Documented orphans.
 //
-// Update this list with care — any entry should be either:
-//   - a channel reachable only via `electron/agent/runtime/agent-tool-executor.ts`
-//     (i.e. it must appear in `toolNameMap` / `internalToolNameForProvider`); OR
-//   - a channel emitted by main and consumed via the renderer event subscription
-//     pattern that does not use `ipcRenderer.on`.
-//
-// The verifier does not enforce the second category — it only checks that
-// handler-registered channels are consumed by SOME preload path (invoke OR on).
+// Handler-registered channels that have no preload invoke/on consumer must
+// either be removed or, only when independently authorized, listed here.
+// Workspace mutations (`workspace.proposeChangeset` / `workspace.move` /
+// `workspace.trash`) run through the agent-tool executor, not IPC — do not
+// re-add `documentAgent:workspace:propose*` handlers or allow-list them.
+// Generic `credential:set|get|delete` is also forbidden: typed apiKey /
+// masterPassword / profilePassword / providerCredential channels remain.
 
-const DOCUMENTED_ORPHAN_HANDLERS = new Set([
-  // Workspace propose-* tools reachable only via the agent-tool executor
-  'documentAgent:workspace:proposeChangeset',
-  'documentAgent:workspace:proposeMove',
-  'documentAgent:workspace:proposeTrash',
-  // Update events use a dedicated emit/subscribe pattern that doesn't surface
-  // via `ipcRenderer.on` in preload (handled by electron-updater auto-updater
-  // wiring at app boot). They are emitted via `webContents.send` directly.
-]);
+const DOCUMENTED_ORPHAN_HANDLERS = new Set();
+
+// Preload methods that must have a non-test renderer consumer outside
+// desktopBridge.ts. Channels listed here are kept as paid-provider or
+// deferred-feature surfaces and must not be silently re-used as a dump
+// for dead privileged handlers.
+const RENDERER_CONSUMER_NEEDLES = {
+  'conversations:archive': ['desktopConversations.archive('],
+  'conversations:search': ['desktopConversations.search('],
+  'characterCreator:validateCard': ['desktopCharacterCreator.validateCard('],
+  'chat:listPage': ['desktopChat.listPage('],
+  'replicate:generateImage': ['desktopReplicate.generateImage('],
+};
+const DOCUMENTED_RENDERER_ORPHANS = new Set();
 
 // --- 5) Run.
 
@@ -306,8 +311,38 @@ if (orphanHandlers.length > 0) {
   console.error('');
 }
 
+function collectRendererSrcFiles(dir, list = []) {
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return list;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) collectRendererSrcFiles(p, list);
+    else if (/\.(ts|tsx)$/.test(e.name) && !/\.test\./.test(e.name)) list.push(p);
+  }
+  return list;
+}
+
+const rendererConsumerFiles = collectRendererSrcFiles(path.join(root, 'src'))
+  .filter((p) => !p.endsWith(`${path.sep}desktopBridge.ts`));
+const rendererConsumerSrc = rendererConsumerFiles.map((p) => readSafe(p)).join('\n');
+const missingRendererConsumers = Object.entries(RENDERER_CONSUMER_NEEDLES)
+  .filter(([channel, needles]) => {
+    if (DOCUMENTED_RENDERER_ORPHANS.has(channel)) return false;
+    return !needles.some((needle) => rendererConsumerSrc.includes(needle));
+  })
+  .map(([channel]) => channel);
+
+log('📊', `documented renderer orphans: ${DOCUMENTED_RENDERER_ORPHANS.size}`);
+
+if (missingRendererConsumers.length > 0) {
+  failed = true;
+  console.error(`❌ preload channels WITHOUT a non-test src consumer (${missingRendererConsumers.length}):`);
+  for (const c of missingRendererConsumers.sort()) console.error(`   - ${c}`);
+  console.error('   Wire a renderer caller outside desktopBridge.ts, or add the channel to');
+  console.error('   DOCUMENTED_RENDERER_ORPHANS with an independent justification.');
+  console.error('');
+}
+
 if (failed) process.exit(1);
 
 console.log('✅ IPC parity: every preload surface is backed by a main-process handler,');
-console.log('   and every handler is reachable from the renderer (via invoke, on, or');
-console.log('   the documented orphan allow-list for agent-tool and updater paths).');
+console.log('   and every handler is reachable from the renderer (via invoke or on).');

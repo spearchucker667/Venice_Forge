@@ -183,7 +183,12 @@ export async function generateCharacterScene(
 
     const payload = deps.buildImagePayload(model, draft, prompt, undefined);
 
-    const { data } = await deps.veniceFetch('/image/generate', { method: 'POST', body: payload, signal: options.signal });
+    const { data } = await deps.veniceFetch('/image/generate', {
+      method: 'POST',
+      body: payload,
+      signal: options.signal,
+      retry: false,
+    });
     if (!deps.isValidImageResponse(data)) {
       throw new Error('Venice returned an unexpected image response');
     }

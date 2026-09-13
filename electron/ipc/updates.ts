@@ -91,7 +91,7 @@ export function registerUpdateHandlers(): void {
 
   // autoUpdater Events -> IPC Broadcasts
   autoUpdater.on("checking-for-update", () => {
-    broadcast("updates:checking");
+    /* no renderer listener for checking */
   });
 
   autoUpdater.on("update-available", (info) => {

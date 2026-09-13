@@ -16,7 +16,6 @@ import { logError, logInfo } from "./logger";
 import { ensureRpProfileDir, getRpProfileDir } from "./rpProfilePaths";
 
 const RP_CHATS_DIR = "rp-chats";
-const TMP_SUFFIX = ".tmp";
 const MAX_LIST_RP_CHATS = 2000;
 const MAX_SCAN_FILES = MAX_LIST_RP_CHATS * 2;
 
@@ -186,7 +185,7 @@ export async function saveRpChat(input: unknown, profileId: string = "default"):
 
   await ensureRpProfileDir(profileId, RP_CHATS_DIR);
   const target = rpChatPath(chat.id, profileId);
-  const tmp = `${target}${TMP_SUFFIX}`;
+  const tmp = `${target}.tmp-${crypto.randomUUID()}`;
   await fs.writeFile(tmp, JSON.stringify(chat, null, 2), { mode: 0o600 });
   await fs.rename(tmp, target);
   return { ok: true };

@@ -3,6 +3,7 @@
 
 // Code Owner: fayeblade (@spearchucker667)
 import { app, safeStorage } from "electron";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import {
@@ -97,7 +98,7 @@ function readStore(prefKey: keyof typeof lastReadErrors): Record<string, string>
  */
 function writeStore(data: Record<string, string>): void {
   const storePath = getStorePath();
-  const tempPath = `${storePath}.tmp`;
+  const tempPath = `${storePath}.tmp-${crypto.randomUUID()}`;
   try {
     fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), {
       encoding: "utf-8",
@@ -723,8 +724,6 @@ export function deleteCredential(key: string): void {
 // Renderer callers should NOT use `setCredential("profile_password", …)`
 // directly. Use `setProfilePassword`, `verifyProfilePassword`,
 // `isProfilePasswordSet`, `clearProfilePassword` via the IPC bridge.
-
-import crypto from "crypto";
 
 // ── Shared verifier primitives ──
 // Both master and profile passwords use the same PBKDF2-SHA256 verifier

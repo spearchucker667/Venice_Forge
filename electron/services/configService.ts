@@ -623,8 +623,10 @@ export async function initializeConfig(): Promise<ConfigStatus> {
       warnings: warnings.length,
     });
 
-    setRuntimeLocalFamilySafeModeEnabled(currentConfig.safety.local_family_safe_mode_enabled);
-    setRuntimeVeniceApiSafeMode(currentConfig.safety.venice_api_safe_mode);
+    if (parseError === null) {
+      setRuntimeLocalFamilySafeModeEnabled(currentConfig.safety.local_family_safe_mode_enabled);
+      setRuntimeVeniceApiSafeMode(currentConfig.safety.venice_api_safe_mode);
+    }
     
     const { startThemeWatcher } = await import("./themeService");
     await startThemeWatcher();
@@ -632,10 +634,10 @@ export async function initializeConfig(): Promise<ConfigStatus> {
     return currentStatus;
   } catch (err) {
     logError("Config initialization failed", String(err));
-    // Fall back to defaults so the app still boots.
+    // Fall back to defaults so the app still boots. Do not force Family Safe
+    // Mode off: keep the last-known (or fail-closed initial) snapshot
+    // (VF-AUD-20260912-GSS-P3-006).
     currentConfig = emptyConfig();
-    setRuntimeLocalFamilySafeModeEnabled(false);
-    setRuntimeVeniceApiSafeMode(false);
     currentStatus = buildDefaultStatus();
     currentStatus.parseError = err instanceof Error ? err.message : "Unknown config error";
     return currentStatus;

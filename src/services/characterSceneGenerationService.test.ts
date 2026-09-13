@@ -98,7 +98,10 @@ describe('generateCharacterScene', () => {
     const result = await generateCharacterScene({ conversation: makeConversation(), source: 'on_demand' }, deps);
     expect(result.status).toBe('complete');
     expect(result.galleryItemId).toBe('media-1');
-    expect(deps.veniceFetch).toHaveBeenCalledWith('/image/generate', expect.objectContaining({ method: 'POST' }));
+    expect(deps.veniceFetch).toHaveBeenCalledWith(
+      '/image/generate',
+      expect.objectContaining({ method: 'POST', retry: false }),
+    );
     expect(deps.upsertMedia).toHaveBeenCalled();
   });
 

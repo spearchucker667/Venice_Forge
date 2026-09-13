@@ -272,4 +272,64 @@ describe("RpChatView — T-076 stream error handling", () => {
     expect(assistantMessages.some((m) => m.content.includes("[character]"))).toBe(true);
     expect(assistantMessages.some((m) => m.content.includes("[narrator]"))).toBe(true);
   });
+
+  it("does not persist Family Safe Mode blocked stream text (VCS-P1-004)", async () => {
+    mocks.veniceStreamChatMock.mockImplementation(async (_payload, { onDelta }) => {
+      onDelta({ content: "blocked-partial-text", reasoning: "" });
+      const err = Object.assign(new Error("Blocked by Family Safe Mode"), { status: 451 });
+      throw err;
+    });
+
+    render(
+      <RpChatView
+        chatId={fixtures.chat.id}
+        onBack={() => {}}
+        onOpenScene={() => {}}
+        onOpenDebug={() => {}}
+      />,
+    );
+
+    const textarea = screen.getByLabelText("RP message");
+    fireEvent.change(textarea, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "The character response could not be generated. Please try again.",
+      );
+    });
+    expect(mocks.appendCharacterMessageMock).not.toHaveBeenCalled();
+    expect(mocks.appendNarratorMessageMock).not.toHaveBeenCalled();
+  });
+
+  it("sends a streaming chat body without an invented endpoint field (VCS-P1-003 regression)", async () => {
+    mocks.veniceStreamChatMock.mockImplementation(async (_payload, { onDelta }) => {
+      onDelta({ content: "Fine, thanks.", reasoning: "" });
+      return undefined;
+    });
+
+    render(
+      <RpChatView
+        chatId={fixtures.chat.id}
+        onBack={() => {}}
+        onOpenScene={() => {}}
+        onOpenDebug={() => {}}
+      />,
+    );
+
+    const textarea = screen.getByLabelText("RP message");
+    fireEvent.change(textarea, { target: { value: "Hello" } });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    await waitFor(() => {
+      expect(mocks.veniceStreamChatMock).toHaveBeenCalled();
+    });
+
+    const payload = mocks.veniceStreamChatMock.mock.calls[0][0] as {
+      endpoint?: unknown;
+      stream?: unknown;
+    };
+    expect(payload.stream).toBe(true);
+    expect(payload.endpoint).toBeUndefined();
+  });
 });

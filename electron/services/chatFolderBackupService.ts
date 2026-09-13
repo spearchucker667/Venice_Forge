@@ -106,6 +106,67 @@ function getBackupsDir(profileId: string = "default"): string {
   return profileId === "default" ? root : path.join(root, "profiles", profileId);
 }
 
+const ABSOLUTE_PATH_RE = /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:Users|home|var|tmp|private|opt)\b)/;
+const SIGNED_URL_RE = /^https?:\/\//i;
+
+function isUnsafePortableValue(value: string): boolean {
+  if (ABSOLUTE_PATH_RE.test(value)) return true;
+  if (!SIGNED_URL_RE.test(value)) return false;
+  return /[?&](?:sig|signature|token|expires|X-Amz-|Expires=)/i.test(value) || /localhost|127\.0\.0\.1/i.test(value);
+}
+
+function sanitizeConversationForBackup(conversation: Conversation): Conversation {
+  const clone = structuredClone(conversation);
+  for (const message of clone.messages ?? []) {
+    if (!message.metadata) continue;
+    if (Array.isArray(message.metadata.attachments)) {
+      message.metadata.attachments = message.metadata.attachments.filter(
+        (item) => typeof item === "string" && !isUnsafePortableValue(item),
+      );
+    }
+    if (typeof message.metadata.injectedContext === "string" && isUnsafePortableValue(message.metadata.injectedContext)) {
+      delete message.metadata.injectedContext;
+    }
+    if (Array.isArray(message.metadata.generatedMedia)) {
+      for (const ref of message.metadata.generatedMedia) {
+        if (typeof ref.displayUrl === "string" && isUnsafePortableValue(ref.displayUrl)) {
+          ref.displayUrl = `venice-media://${ref.mediaId}`;
+        }
+        if (typeof ref.thumbnailUrl === "string" && isUnsafePortableValue(ref.thumbnailUrl)) {
+          delete ref.thumbnailUrl;
+        }
+      }
+    }
+  }
+  return clone;
+}
+
+function scanFolderBackupContents(conversations: Conversation[]): {
+  messageCount: number;
+  attachmentRefs: number;
+  mediaBlobs: number;
+} {
+  let messageCount = 0;
+  let attachmentRefs = 0;
+  let mediaBlobs = 0;
+  for (const conversation of conversations) {
+    const messages = conversation.messages || [];
+    messageCount += messages.length;
+    for (const message of messages) {
+      if (message.metadata?.attachments) {
+        attachmentRefs += message.metadata.attachments.length;
+      }
+      if (message.metadata?.generatedMedia) {
+        const refs = Array.isArray(message.metadata.generatedMedia)
+          ? message.metadata.generatedMedia
+          : [message.metadata.generatedMedia];
+        mediaBlobs += refs.length;
+      }
+    }
+  }
+  return { messageCount, attachmentRefs, mediaBlobs };
+}
+
 function requirePassphrase(passphrase: unknown, confirm: boolean | undefined): string {
   if (typeof passphrase !== "string" || passphrase.length < 8) {
     throw new Error("Folder backup passphrase must be present and at least 8 characters long");
@@ -124,34 +185,17 @@ export async function getBackupPreview(input: FolderBackupPreviewInput, profileI
   const conversations = Array.isArray(listRes) ? listRes : listRes.conversations;
   const targetChats = conversations.filter(c => c.folderId === input.folderId);
 
-  let messageCount = 0;
-  let attachmentRefs = 0;
-  let mediaBlobs = 0;
-  const mediaBytes = 0;
-
-  for (const c of targetChats) {
-    const messages = c.messages || [];
-    messageCount += messages.length;
-    for (const m of messages) {
-      if (m.metadata?.attachments) {
-        attachmentRefs += m.metadata.attachments.length;
-      }
-      if (m.metadata?.generatedMedia) {
-        const refs = Array.isArray(m.metadata.generatedMedia) ? m.metadata.generatedMedia : [m.metadata.generatedMedia];
-        mediaBlobs += refs.length;
-      }
-    }
-  }
+  const scanned = scanFolderBackupContents(targetChats);
 
   return {
     folderName: folder.name,
     kind: folder.kind,
     chatCount: targetChats.length,
-    messageCount,
-    attachmentReferencesCount: attachmentRefs,
-    mediaBlobsCount: mediaBlobs,
-    mediaBlobsTotalBytes: mediaBytes,
-    includesMedia: false, // Set by caller based on user selection
+    messageCount: scanned.messageCount,
+    attachmentReferencesCount: scanned.attachmentRefs,
+    mediaBlobsCount: scanned.mediaBlobs,
+    mediaBlobsTotalBytes: 0,
+    includesMedia: false,
     excludedSecrets: ["api-keys", "diagnostics", "session-caches", "absolute-paths", "signed-media-urls", "temp-files", "unlock-secrets"],
   };
 }
@@ -169,11 +213,13 @@ export async function exportBackup(
 
   const listRes = await listConversations(undefined, profileId);
   const conversations = Array.isArray(listRes) ? listRes : listRes.conversations;
-  const targetChats = conversations.filter(c => c.folderId === input.folderId);
+  const targetChats = conversations
+    .filter(c => c.folderId === input.folderId)
+    .map(sanitizeConversationForBackup);
+  const scanned = scanFolderBackupContents(targetChats);
 
-  // Build the folder-scoped backup manifest. Conversations carry only the
-  // items the user explicitly asked to retain (no absolute paths, no API
-  // keys, no session cache).
+  // Folder backups do not embed media blobs. The flag must stay false until
+  // a real media payload is written into the archive.
   const manifest: FolderBackupManifest = {
     format: "venice-forge-backup",
     formatVersion: 1,
@@ -186,11 +232,11 @@ export async function exportBackup(
     contents: {
       folders: 1,
       conversations: targetChats.length,
-      messages: targetChats.reduce((sum, c) => sum + (c.messages?.length || 0), 0),
-      attachmentReferences: 0,
-      mediaBlobs: 0,
+      messages: scanned.messageCount,
+      attachmentReferences: scanned.attachmentRefs,
+      mediaBlobs: scanned.mediaBlobs,
     },
-    includesMedia: input.includeMedia,
+    includesMedia: false,
     excludes: ["api-keys", "diagnostics", "session-caches", "absolute-paths", "signed-media-urls", "temp-files", "unlock-secrets"],
     folder: folder,
     conversations: targetChats,
@@ -366,6 +412,16 @@ export async function importBackup(input: ImportFolderBackupFileInput, profileId
       return { ok: false, error: `Unsupported backup version or kdf: ${backup.version}/${backup.kdf?.algorithm ?? "unknown"}` };
     }
 
+    // Pin KDF cost to the INTERACTIVE constants used at export. Attacker-controlled
+    // opslimit/memlimit must never reach crypto_pwhash on the main process.
+    const { OPSLIMIT, MEMLIMIT } = await getArgonConstants();
+    if (backup.kdf.opslimit !== OPSLIMIT || backup.kdf.memlimit !== MEMLIMIT) {
+      return {
+        ok: false,
+        error: "Backup KDF parameters must exactly match Argon2id interactive opslimit and memlimit",
+      };
+    }
+
     const passphrase = requirePassphrase(input.passphrase, undefined);
 
     await _sodiumReadyPromise;
@@ -380,8 +436,8 @@ export async function importBackup(input: ImportFolderBackupFileInput, profileId
       _sodium.crypto_aead_xchacha20poly1305_ietf_KEYBYTES,
       passphrase,
       salt,
-      backup.kdf.opslimit,
-      backup.kdf.memlimit,
+      OPSLIMIT,
+      MEMLIMIT,
       _sodium.crypto_pwhash_ALG_ARGON2ID13,
     );
 

@@ -19,6 +19,7 @@ import { useDocumentAgentStore } from "./document-agent-store";
 import * as logger from "../shared/logger";
 import { getModelById } from "../services/modelService";
 import { translateRuntime } from "../i18n/runtimeTranslator";
+import { SafetyGuardBlockedError } from "../shared/safety";
 
 /** Safe, non-disclosing error text appended to assistant messages when a
  *  chat stream fails. Never include raw exception text, paths, or secrets. */
@@ -161,6 +162,54 @@ function flushStreamDelta(convId: string): void {
   useChatStore.getState().appendAssistantStreamDelta(convId, delta);
 }
 
+function mergeToolCallFragments(
+  existing: AssistantToolCall[] | undefined,
+  incoming: NonNullable<StreamChunk["tool_calls"]>,
+): AssistantToolCall[] {
+  const merged = existing ? [...existing] : [];
+  for (const fragment of incoming) {
+    const idx = typeof fragment.index === "number" ? fragment.index : merged.length;
+    const current = merged[idx] ?? {
+      id: "",
+      type: "function" as const,
+      function: { name: "", arguments: "" },
+    };
+    merged[idx] = {
+      id: fragment.id || current.id,
+      type: "function",
+      function: {
+        name: fragment.function?.name || current.function.name,
+        arguments: `${current.function.arguments}${fragment.function?.arguments ?? ""}`,
+      },
+    };
+  }
+  return merged;
+}
+
+function discardStreamDelta(convId: string): void {
+  const timer = streamFlushTimers.get(convId);
+  if (timer) clearTimeout(timer);
+  streamFlushTimers.delete(convId);
+  pendingStreamDeltas.delete(convId);
+}
+
+function isSafetyBlockError(err: unknown): boolean {
+  if (err instanceof SafetyGuardBlockedError) return true;
+  if (typeof err === "object" && err !== null && "status" in err) {
+    return (err as { status?: unknown }).status === 451;
+  }
+  return false;
+}
+
+function removeLastAssistantTurn(convId: string): void {
+  const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+  if (!conv) return;
+  const lastIdx = conv.messages.length - 1;
+  if (lastIdx >= 0 && conv.messages[lastIdx]?.role === "assistant") {
+    useChatStore.getState().deleteMessage(convId, lastIdx);
+  }
+}
+
 function bufferStreamDelta(
   convId: string,
   chunk: StreamChunk,
@@ -177,7 +226,14 @@ function bufferStreamDelta(
     };
   }
   if (chunk.tool_calls) {
-    pending.tool_calls = chunk.tool_calls as AssistantToolCall[];
+    const seed =
+      pending.tool_calls ??
+      (() => {
+        const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+        const last = conv?.messages.at(-1);
+        return last?.role === "assistant" ? last.tool_calls : undefined;
+      })();
+    pending.tool_calls = mergeToolCallFragments(seed, chunk.tool_calls);
   }
   if (chunk.appendedMessages) {
     pending.appendedMessages = chunk.appendedMessages as ChatMessage[];
@@ -234,6 +290,16 @@ export function stopStream(): void {
   activeController?.abort();
 }
 
+if (typeof window !== "undefined") {
+  window.addEventListener("venice-forge:abort-in-flight", () => {
+    try {
+      stopStream();
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
 /** Start a chat stream for the given conversation and model.
  *
  *  Builds the request body from the current conversation state, owns the
@@ -243,7 +309,7 @@ export function stopStream(): void {
 export async function startStream(
   convId: string,
   model: string,
-): Promise<{ aborted: boolean }> {
+): Promise<{ aborted: boolean; blocked?: boolean }> {
   const generation = ++activeGeneration;
 
   // Abort any previous stream before starting a new one. The previous
@@ -282,9 +348,22 @@ export async function startStream(
         flushStreamDelta(convId);
         return { aborted: false };
       } catch (err) {
-        flushStreamDelta(convId);
         if (isAbortError(err)) {
+          flushStreamDelta(convId);
           return { aborted: true };
+        }
+
+        // VF-AUD-20260912-VCS-P1-004: do not commit buffered deltas on block
+        // or hard failure. User abort still keeps the partial turn above.
+        discardStreamDelta(convId);
+
+        if (isSafetyBlockError(err)) {
+          removeLastAssistantTurn(convId);
+          useChatStore.getState().addMessage(convId, {
+            role: "assistant",
+            content: `[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`,
+          });
+          return { aborted: false, blocked: true };
         }
         
         const retryable = isRetryableError(err);
@@ -310,7 +389,11 @@ export async function startStream(
         }
         
         logger.error("chat stream manager failed", err);
-        useChatStore.getState().appendAssistantStreamDelta(convId, { content: `\n\n[Error: ${SAFE_STREAM_ERROR_MESSAGE}]` });
+        removeLastAssistantTurn(convId);
+        useChatStore.getState().addMessage(convId, {
+          role: "assistant",
+          content: `[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`,
+        });
         return { aborted: false };
       }
     }

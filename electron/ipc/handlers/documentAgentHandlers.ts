@@ -16,9 +16,6 @@ import {
   buildDocumentEditPlan,
   buildDocumentExportPlan,
   buildDocumentRestorePlan,
-  buildWorkspaceChangesetPlan,
-  buildWorkspaceMovePlan,
-  buildWorkspaceTrashPlan,
   isDocumentEditPlan,
   isDocumentExportPlan,
   isDocumentRestorePlan,
@@ -400,89 +397,6 @@ export function registerDocumentAgentHandlers(): void {
       const value = record(input);
       const grant = await workspaceGrants.issue({ sessionId: rendererSession(event.sender.id, stringField(value, "agentSessionId", 128)), rootPath: selected.filePaths[0] });
       return { ok: true, grant: publicGrant(grant) };
-    } catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
-  });
-
-  
-  registerPrivilegedIpcChannel("documentAgent:workspace:proposeChangeset", async (event, input: unknown) => {
-    try {
-      const value = record(input);
-      const agentSessionId = optionalString(value, "agentSessionId") ?? undefined;
-      const session = rendererSession(event.sender.id, agentSessionId);
-      const grantId = stringField(value, "grantId", 128);
-      const grant = workspaceGrants.get(grantId, session);
-      if (!grant) throw new Error("CAPABILITY_DENIED");
-      
-      const changes = value.changes as import("../../../src/agent/contracts/workspace").WorkspaceChange[];
-      if (!Array.isArray(changes) || changes.length === 0) throw new Error("Invalid changes.");
-      const summary = stringField(value, "summary");
-      
-      const preview = await workspaceMutations.prepareChangeset({ grant, sessionId: session, changes });
-      const pending = await approvals.prepare({
-        grantId,
-        proposalType: "workspace_changeset",
-        canonicalToolName: "workspace.proposeChangeset",
-        validatedArguments: { summary, changes },
-        baseRevisionIds: [],
-        affectedResources: preview.affectedPaths,
-        publicSummary: { summary, affectedPaths: preview.affectedPaths, totalBytes: preview.totalBytes },
-        privateExecutionPlan: buildWorkspaceChangesetPlan({ profileId: getProfileSessionId(event.sender), grantId, agentSessionId, workspaceId: grant.workspaceId, summary, changes }),
-      });
-      await audit.record({ sessionId: session, toolName: "workspace.proposeChangeset", outcome: "proposal", resourceIds: preview.affectedPaths });
-      return { ok: true, pendingApproval: pending, preview: { affectedPaths: preview.affectedPaths, totalBytes: preview.totalBytes } };
-    } catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
-  });
-
-  registerPrivilegedIpcChannel("documentAgent:workspace:proposeMove", async (event, input: unknown) => {
-    try {
-      const value = record(input);
-      const agentSessionId = optionalString(value, "agentSessionId") ?? undefined;
-      const session = rendererSession(event.sender.id, agentSessionId);
-      const grantId = stringField(value, "grantId", 128);
-      const grant = workspaceGrants.get(grantId, session);
-      if (!grant) throw new Error("CAPABILITY_DENIED");
-      
-      const sourcePath = stringField(value, "sourcePath");
-      const destinationPath = stringField(value, "destinationPath");
-      
-      const pending = await approvals.prepare({
-        grantId,
-        proposalType: "workspace_move",
-        canonicalToolName: "workspace.move",
-        validatedArguments: { sourcePath, destinationPath },
-        baseRevisionIds: [],
-        affectedResources: [sourcePath, destinationPath],
-        publicSummary: { sourcePath, destinationPath },
-        privateExecutionPlan: buildWorkspaceMovePlan({ profileId: getProfileSessionId(event.sender), grantId, agentSessionId, workspaceId: grant.workspaceId, sourcePath, destinationPath }),
-      });
-      await audit.record({ sessionId: session, toolName: "workspace.move", outcome: "proposal", resourceIds: [sourcePath, destinationPath] });
-      return { ok: true, pendingApproval: pending };
-    } catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
-  });
-
-  registerPrivilegedIpcChannel("documentAgent:workspace:proposeTrash", async (event, input: unknown) => {
-    try {
-      const value = record(input);
-      const agentSessionId = optionalString(value, "agentSessionId") ?? undefined;
-      const session = rendererSession(event.sender.id, agentSessionId);
-      const grantId = stringField(value, "grantId", 128);
-      const grant = workspaceGrants.get(grantId, session);
-      if (!grant) throw new Error("CAPABILITY_DENIED");
-      
-      const relativePath = stringField(value, "relativePath");
-      
-      const pending = await approvals.prepare({
-        grantId,
-        proposalType: "workspace_trash",
-        canonicalToolName: "workspace.trash",
-        validatedArguments: { relativePath },
-        baseRevisionIds: [],
-        affectedResources: [relativePath],
-        publicSummary: { relativePath },
-        privateExecutionPlan: buildWorkspaceTrashPlan({ profileId: getProfileSessionId(event.sender), grantId, agentSessionId, workspaceId: grant.workspaceId, relativePath }),
-      });
-      await audit.record({ sessionId: session, toolName: "workspace.trash", outcome: "proposal", resourceIds: [relativePath] });
-      return { ok: true, pendingApproval: pending };
     } catch (error) { return { ok: false, error: redactErrorMessage(error) }; }
   });
 

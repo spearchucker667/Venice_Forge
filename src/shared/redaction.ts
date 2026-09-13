@@ -1,14 +1,22 @@
 /** @fileoverview Redacts secrets, API keys, and bearer tokens from strings and objects. */
 
 /** Pattern matching secret-related key names. */
-export const SECRET_KEY_PATTERN = /(authorization|api[-_ ]?key|token|secret|password)/i;
+export const SECRET_KEY_PATTERN =
+  /(authorization|api[-_ ]?key|token|secret|password|credential|private[_-]?key|passphrase|^session$)/i;
 
 /** Pattern matching Bearer token strings. */
 const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9._~+/=-]+/gi;
 
 /** Pattern matching secret assignment expressions like apiKey="value". */
 const ASSIGNMENT_PATTERN =
-  /\b(api[-_ ]?key|token|secret|password)\s*[:=]\s*["']?[^"',\s}]+["']?/gi;
+  /\b(api[-_ ]?key|token|secret|password|credential|private[_-]?key|passphrase)\s*[:=]\s*["']?[^"',\s}]+["']?/gi;
+
+/**
+ * Matches `session=` assignments only. The English word "session" in ordinary
+ * prose is not a secret; object keys named session are covered by SECRET_KEY_PATTERN.
+ */
+const SESSION_ASSIGNMENT_PATTERN =
+  /\b(session)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi;
 
 /** Pattern matching Venice API keys (vn-...). */
 const VENICE_KEY_PATTERN = /\bvn-[A-Za-z0-9._~+/=-]{8,}\b/gi;
@@ -19,13 +27,33 @@ const VENICE_UNDERSCORE_PATTERN = /\bvenice_[A-Za-z0-9._~+/=-]{8,}\b/gi;
 /** Pattern matching common OpenAI-compatible API keys (sk-...). */
 const SK_KEY_PATTERN = /\bsk-[A-Za-z0-9._~+/=-]{8,}\b/gi;
 
-/** Pattern matching named environment-variable secret assignments. */
-const ENV_ASSIGNMENT_PATTERN =
-  /\b([A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD))\s*=\s*["']?[^"'\s,;}]+["']?/g;
+/** Pattern matching Hugging Face access tokens (hf_ + 20+ alphanumerics). */
+const HF_TOKEN_PATTERN = /\bhf_[A-Za-z0-9]{20,}\b/g;
 
-/** Pattern matching local source URLs and absolute file paths that can leak machine/user info. */
-const LOCAL_PATH_PATTERN =
-  /(?:https?:\/\/|file:\/\/)[^\s"')]+|(?:\/[A-Za-z0-9._ -]+){2,}(?:\.[A-Za-z0-9]+(?::\d+:\d+)?)?|[A-Za-z]:[\\/][^\s"')]+/gi;
+/** Pattern matching GitHub personal access tokens (ghp_ + 20+ alphanumerics). */
+const GITHUB_PAT_PATTERN = /\bghp_[A-Za-z0-9]{20,}\b/g;
+
+/** Pattern matching AWS access key IDs (AKIA + 16 A-Z/0-9). */
+const AWS_ACCESS_KEY_PATTERN = /\bAKIA[0-9A-Z]{16}\b/g;
+
+/** Pattern matching Slack API tokens (xoxb-/xoxp-/xoxa-/xoxr-/xoxs-). */
+const SLACK_TOKEN_PATTERN = /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g;
+
+/** Pattern matching named environment-variable secret assignments, including quoted values. */
+const ENV_ASSIGNMENT_PATTERN =
+  /\b([A-Z][A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|PASSWORD))\s*=\s*(?:"[^"]*"|'[^']*'|[^"'\s,;}]+)/g;
+
+/** Absolute Unix paths that identify a machine/user. Relative API paths and
+ *  ISO dates (`2026/09/12`) must not match (VF-AUD-20260912-GSS-P3-007). */
+const UNIX_ABS_PATH_PATTERN =
+  /(?:\/(?:Users|home|tmp|var|etc|opt|usr|private|Volumes|root|mnt)\/[^\s"')]+)/g;
+
+/** Drive-letter paths. Negative lookahead avoids matching URL schemes (`https://`). */
+const WINDOWS_ABS_PATH_PATTERN = /[A-Za-z]:(?:\\[^\s"')]+|\/(?!\/)[^\s"')]+)/g;
+
+const FILE_URL_PATTERN = /file:\/\/[^\s"')]+/gi;
+
+const HTTP_URL_PATTERN = /https?:\/\/[^\s"')]+/gi;
 
 /**
  * Redacts sensitive patterns from a single string.
@@ -36,9 +64,14 @@ function redactString(value: string): string {
   return value
     .replace(BEARER_PATTERN, "Bearer [REDACTED]")
     .replace(ASSIGNMENT_PATTERN, "$1=[REDACTED]")
+    .replace(SESSION_ASSIGNMENT_PATTERN, "$1=[REDACTED]")
     .replace(VENICE_KEY_PATTERN, "[REDACTED]")
     .replace(VENICE_UNDERSCORE_PATTERN, "[REDACTED]")
     .replace(SK_KEY_PATTERN, "[REDACTED]")
+    .replace(HF_TOKEN_PATTERN, "[REDACTED]")
+    .replace(GITHUB_PAT_PATTERN, "[REDACTED]")
+    .replace(AWS_ACCESS_KEY_PATTERN, "[REDACTED]")
+    .replace(SLACK_TOKEN_PATTERN, "[REDACTED]")
     .replace(ENV_ASSIGNMENT_PATTERN, "$1=[REDACTED]");
 }
 
@@ -47,8 +80,35 @@ function redactString(value: string): string {
  * @param value The raw string to sanitize.
  * @returns The redacted string.
  */
+function isLoopbackOrPrivateHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]") {
+      return true;
+    }
+    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 function redactPaths(value: string): string {
-  return value.replace(LOCAL_PATH_PATTERN, "[REDACTED-PATH]");
+  return value
+    .replace(HTTP_URL_PATTERN, (url) => {
+      if (isLoopbackOrPrivateHttpUrl(url)) return "[REDACTED-PATH]";
+      try {
+        return redactUrl(url);
+      } catch {
+        return "[REDACTED-PATH]";
+      }
+    })
+    .replace(FILE_URL_PATTERN, "[REDACTED-PATH]")
+    .replace(UNIX_ABS_PATH_PATTERN, "[REDACTED-PATH]")
+    .replace(WINDOWS_ABS_PATH_PATTERN, "[REDACTED-PATH]");
 }
 
 /**

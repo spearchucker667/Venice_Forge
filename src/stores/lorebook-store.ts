@@ -76,6 +76,7 @@ export const useLorebookStore = create<LorebookState>((set, get) => ({
       updatedAt: now,
     };
     set((s) => ({ lorebooks: [book, ...s.lorebooks], editingId: id }));
+    void get().upsert(book);
     return id;
   },
 

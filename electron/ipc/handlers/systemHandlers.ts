@@ -239,7 +239,7 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerPrivilegedIpcChannel("app:getVersion", () => app.getVersion());
+  registerPrivilegedIpcChannel("app:getVersion", () => app.getVersion(), { rateLimitedResponse: () => "" });
 
   registerPrivilegedIpcChannel("app:isEncryptionAvailable", () => getSecureStoreStatus().encryptionAvailable);
 
@@ -428,18 +428,21 @@ export function registerSystemHandlers(): void {
     }
   });
 
-  registerPrivilegedIpcChannel("conversations:save", async (event, record: unknown) => {
+  registerPrivilegedIpcChannel("conversations:save", async (event, payload: unknown) => {
     try {
-      const [originError, origin] = parseSaveOrigin(record);
+      if (!payload || typeof payload !== "object") {
+        return { ok: false, error: "Invalid payload" };
+      }
+      const p = payload as Record<string, unknown>;
+      const [originError, origin] = parseSaveOrigin(payload);
       if (originError) {
         return { ok: false, error: originError };
       }
+      const record = p.record;
       if (!record || typeof record !== "object") {
         return { ok: false, error: "Invalid record structure" };
       }
-      const rawRecord = record as Record<string, unknown>;
-      const { origin: _ignoredOrigin, ...recRest } = rawRecord;
-      const rec = recRest as unknown as ConversationRecordV1;
+      const rec = record as unknown as ConversationRecordV1;
       if (rec.version !== 1 || typeof rec.id !== "string") {
         return { ok: false, error: "Invalid record structure" };
       }
@@ -624,5 +627,5 @@ export function registerSystemHandlers(): void {
     } catch {
       return false;
     }
-  });
+  }, { rateLimitedResponse: () => false });
 }

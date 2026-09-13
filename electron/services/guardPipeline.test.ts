@@ -263,3 +263,96 @@ describe("Venice API Safe Mode independence from Family Safe Mode", () => {
     expect(dispatched.body).not.toHaveProperty("safe_mode");
   });
 });
+
+describe("streaming response screening withholds deltas (GSS-P1-001)", () => {
+  async function setFamilySafe(enabled: boolean) {
+    const runtime = await import("./runtimeSafetySettings");
+    vi.mocked(runtime.getRuntimeLocalFamilySafeModeEnabled as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
+      enabled,
+    );
+  }
+
+  async function allowRequestGuard() {
+    const maybeRunGuard = (await import("../../src/shared/safety")).maybeRunLocalFamilyGuard;
+    vi.mocked(maybeRunGuard as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      allowed: true,
+      skipped: false,
+    });
+  }
+
+  it("does not forward onDelta when the aggregated stream is later blocked", async () => {
+    await setFamilySafe(true);
+    await allowRequestGuard();
+    const onDelta = vi.fn();
+    const performVeniceRequest = (await import("./veniceClient")).performVeniceRequest;
+    vi.mocked(performVeniceRequest as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      async (_req: unknown, opts?: { onDelta?: (chunk: { content: string; reasoning: string }) => void }) => {
+        opts?.onDelta?.({ content: "blocked-stream-body", reasoning: "" });
+        return { ok: true, status: 200, body: { text: "blocked-stream-body" }, headers: {}, contentType: "text/event-stream" };
+      },
+    );
+    const { screenResponseBody } = await import("../../src/shared/safety");
+    vi.mocked(screenResponseBody as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      allowed: false,
+      reason: "blocked",
+      reasonCode: "RESPONSE_BLOCKED",
+      category: "adult_sexual_content",
+      uiCategory: "adult-content-blocked",
+      severity: "high",
+      userMessage: "blocked",
+    });
+
+    const out = await performGuardedVeniceRequest(
+      { endpoint: "/chat/completions", method: "POST", body: { messages: [] } },
+      { onDelta },
+    );
+    expect(out.kind).toBe("blocked");
+    expect(onDelta).not.toHaveBeenCalled();
+  });
+
+  it("replays withheld deltas after the aggregated stream is allowed", async () => {
+    await setFamilySafe(true);
+    await allowRequestGuard();
+    const onDelta = vi.fn();
+    const performVeniceRequest = (await import("./veniceClient")).performVeniceRequest;
+    vi.mocked(performVeniceRequest as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      async (_req: unknown, opts?: { onDelta?: (chunk: { content: string; reasoning: string }) => void }) => {
+        opts?.onDelta?.({ content: "hello", reasoning: "" });
+        return { ok: true, status: 200, body: { text: "hello" }, headers: {}, contentType: "text/event-stream" };
+      },
+    );
+    const { screenResponseBody } = await import("../../src/shared/safety");
+    vi.mocked(screenResponseBody as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ allowed: true });
+
+    const out = await performGuardedVeniceRequest(
+      { endpoint: "/chat/completions", method: "POST", body: { messages: [] } },
+      { onDelta },
+    );
+    expect(out.kind).toBe("response");
+    expect(onDelta).toHaveBeenCalledTimes(1);
+    expect(onDelta).toHaveBeenCalledWith({ content: "hello", reasoning: "" });
+  });
+
+  it("forwards deltas live when Family Safe Mode is off", async () => {
+    await setFamilySafe(false);
+    await allowRequestGuard();
+    const seen: string[] = [];
+    const performVeniceRequest = (await import("./veniceClient")).performVeniceRequest;
+    vi.mocked(performVeniceRequest as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      async (_req: unknown, opts?: { onDelta?: (chunk: { content: string; reasoning: string }) => void }) => {
+        opts?.onDelta?.({ content: "live", reasoning: "" });
+        seen.push("after-upstream-delta");
+        return { ok: true, status: 200, body: { text: "live" }, headers: {}, contentType: "text/event-stream" };
+      },
+    );
+
+    const onDelta = vi.fn(() => {
+      seen.push("caller-delta");
+    });
+    await performGuardedVeniceRequest(
+      { endpoint: "/chat/completions", method: "POST", body: { messages: [] } },
+      { onDelta },
+    );
+    expect(seen).toEqual(["caller-delta", "after-upstream-delta"]);
+  });
+});

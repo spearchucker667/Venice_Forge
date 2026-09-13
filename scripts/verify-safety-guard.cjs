@@ -234,8 +234,39 @@ function containsSafetyBypassCode(source) {
  * @param root The repository root path.
  * @returns An object with enforcement and violation results.
  */
+function scanDirectPerformVeniceRequest(root) {
+  const failures = [];
+  const electronRoot = path.join(root, "electron");
+  const allowed = new Set([
+    path.join("electron", "services", "guardPipeline.ts"),
+    path.join("electron", "services", "veniceClient.ts"),
+  ]);
+
+  function walk(dir) {
+    for (const file of fs.readdirSync(dir)) {
+      const fullPath = path.join(dir, file);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        if (["node_modules", "dist", "dist-electron"].includes(file)) continue;
+        walk(fullPath);
+        continue;
+      }
+      if (!file.endsWith(".ts") || file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue;
+      const rel = path.relative(root, fullPath);
+      if (allowed.has(rel)) continue;
+      const content = fs.readFileSync(fullPath, "utf8");
+      if (/performVeniceRequest\s*\(/.test(content)) {
+        failures.push(`[Direct Venice dispatch] ${rel} calls performVeniceRequest(); use performGuardedVeniceRequest()`);
+      }
+    }
+  }
+
+  if (fs.existsSync(electronRoot)) walk(electronRoot);
+  return failures;
+}
+
 function verifySafetyGuard(root) {
-  const enforcementFailures = runEnforcementChecks(root);
+  const enforcementFailures = runEnforcementChecks(root).concat(scanDirectPerformVeniceRequest(root));
   const violations = scanForViolations(root);
   return {
     ok: enforcementFailures.length === 0 && violations.length === 0,

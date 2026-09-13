@@ -41,6 +41,7 @@ import {
   desktopCharacterCards,
 } from "../../services/desktopBridge";
 import { toast } from "../../stores/toast-store";
+import { redactErrorMessage } from "../../shared/redaction";
 import { AlertTriangle } from "lucide-react";
 import {
   SafetyGuardBlockedError,
@@ -678,10 +679,27 @@ export function CharacterCreatorView() {
     }
     if (!activeDraft) return;
     const localVal = validateCardForApproval(activeDraft.card);
+    const errors = [...localVal.errors];
+    const warnings = [...localVal.warnings];
+    if (isElectron()) {
+      try {
+        const remote = await desktopCharacterCreator.validateCard({
+          card: activeDraft.card,
+        });
+        if (!remote.ok && remote.error) {
+          errors.push(remote.error);
+        } else if (remote.ok && remote.valid === false) {
+          errors.push(...(remote.errors ?? []));
+          warnings.push(...(remote.warnings ?? []));
+        }
+      } catch (err) {
+        errors.push(redactErrorMessage(err));
+      }
+    }
     setValidationResults({
-      valid: localVal.valid,
-      errors: localVal.errors,
-      warnings: localVal.warnings,
+      valid: errors.length === 0 && localVal.valid,
+      errors,
+      warnings,
       recommendations: [],
     });
     setViewState("ready");

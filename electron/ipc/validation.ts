@@ -38,7 +38,6 @@ export interface VeniceIpcRequest {
   signalId?: string;
   profileId?: string;
   agentSessionId?: string;
-  agentPermissionPreset?: import("../../src/agent/contracts/capabilities").AgentPermissionPreset;
   fallbackConfig?: { enabled: boolean; ordering: string[] };
 }
 
@@ -307,6 +306,21 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
     profileId,
     agentSessionId,
     
-    fallbackConfig: typeof request.fallbackConfig === "object" ? (request.fallbackConfig as { enabled: boolean; ordering: string[] }) : undefined,
+    fallbackConfig: parseFallbackConfig(request.fallbackConfig),
   };
+}
+
+function parseFallbackConfig(value: unknown): { enabled: boolean; ordering: string[] } | undefined {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Venice fallbackConfig must be an object.");
+  }
+  const rec = value as Record<string, unknown>;
+  if (typeof rec.enabled !== "boolean") {
+    throw new Error("Venice fallbackConfig.enabled must be a boolean.");
+  }
+  if (!Array.isArray(rec.ordering) || rec.ordering.length > 32 || rec.ordering.some((item) => typeof item !== "string" || item.length > 64)) {
+    throw new Error("Venice fallbackConfig.ordering must be a string array of at most 32 ids.");
+  }
+  return { enabled: rec.enabled, ordering: rec.ordering as string[] };
 }

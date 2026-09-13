@@ -3,9 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { type ElectronApplication } from 'playwright';
-import { findPackagedExecutable, launchPackagedApp, bootstrapFailures } from './smoke-utils';
+import { findPackagedExecutable, launchPackagedApp, bootstrapFailures, shouldRunElectronSmoke } from './smoke-utils';
 
-const smokeTest = process.env.RUN_ELECTRON_SMOKE === 'true' ? test : test.skip;
+const smokeTest = shouldRunElectronSmoke() ? test : test.skip;
 const temporaryDirectories: string[] = [];
 const electronApplications: ElectronApplication[] = [];
 
@@ -60,4 +60,34 @@ smokeTest('negative control: deliberately violating CSP style-src fails the asse
 
   expect(cspViolations.length).toBeGreaterThan(0);
   expect(cspViolations.some(v => v.includes('style-src') || v.includes('inline') || v.includes('securitypolicyviolation'))).toBe(true);
+});
+
+smokeTest('packaged renderer CSP blocks inline scripts', async () => {
+  const root = process.cwd();
+  const exePath = findPackagedExecutable(root);
+
+  if (!exePath || !fs.existsSync(exePath)) {
+    throw new Error(`Packaged app not found for ${os.platform()}/${os.arch()}.`);
+  }
+
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'venice-forge-electron-csp-script-'));
+  temporaryDirectories.push(userDataDir);
+
+  const { page, cspViolations } = await launchPackagedApp(exePath, userDataDir, electronApplications);
+
+  const inlineScriptAllowed = await page.evaluate(() => {
+    try {
+      // eslint-disable-next-line no-new-func -- CSP probe
+      new Function('return 1')();
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+  expect(inlineScriptAllowed).toBe(false);
+  expect(
+    cspViolations.some((v) => /script-src|eval|unsafe-eval|securitypolicyviolation/i.test(v)) ||
+      inlineScriptAllowed === false,
+  ).toBe(true);
 });

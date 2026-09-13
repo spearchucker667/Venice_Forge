@@ -45,11 +45,24 @@ export function rendererCsp(isDev: boolean): string {
     "img-src 'self' data: blob: venice-character-cache: venice-media:",
     `connect-src ${connectSrc}`,
     "font-src 'self' data:",
-    "media-src 'self' blob: venice-media:",
+    "media-src 'self' blob: venice-media: venice-tts:",
     `worker-src ${workerSrc}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'none'",
     "frame-ancestors 'none'",
   ].join("; ");
+}
+
+/** Injects the renderer CSP into an Electron `onHeadersReceived` callback. */
+export function applyRendererCspHeaders(
+  details: { responseHeaders?: Record<string, string | string[] | undefined> },
+  isDev: boolean,
+): { responseHeaders: Record<string, string | string[]> } {
+  const responseHeaders: Record<string, string | string[]> = {};
+  for (const [key, value] of Object.entries(details.responseHeaders ?? {})) {
+    if (value !== undefined) responseHeaders[key] = value;
+  }
+  responseHeaders["Content-Security-Policy"] = [rendererCsp(isDev)];
+  return { responseHeaders };
 }

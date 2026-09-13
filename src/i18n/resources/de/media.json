@@ -85,6 +85,8 @@
   "imageStudioRuntime": {
     "imageDownloaded": "Bild heruntergeladen",
     "imageSaveFailed": "Das Speichern des Bildes ist fehlgeschlagen",
+    "replicateQueued": "__MISSING__:Replicate generation queued",
+    "replicateQueuedDetail": "__MISSING__:The image will appear in Task Center and Media Studio when it finishes.",
     "imageDownloadFailedDetail": "Das Bild konnte nicht heruntergeladen werden.",
     "none": "Keiner",
     "enhancedPromptShortened": "Erweiterte Eingabeaufforderung gekürzt",

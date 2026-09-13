@@ -84,19 +84,6 @@ const veniceForge = {
     },
   },
 
-  
-  credentials: {
-    set(key: string, value: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("credential:set", { key, value });
-    },
-    get(key: string): Promise<{ ok: boolean; configured?: boolean; error?: string }> {
-      return ipcRenderer.invoke("credential:get", key);
-    },
-    delete(key: string): Promise<{ ok: boolean; error?: string }> {
-      return ipcRenderer.invoke("credential:delete", key);
-    },
-  },
-
   masterPassword: {
     isSet(): Promise<boolean> {
       return ipcRenderer.invoke("masterPassword:isSet");
@@ -314,8 +301,15 @@ const veniceForge = {
      *  @param defaultPath Optional default filename for the dialog.
      *  @returns A promise resolving with the save result.
      */
-    saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }> {
+    saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean; filePath?: string }> {
       return ipcRenderer.invoke("app:saveJsonFile", data, defaultPath);
+    },
+    issueCapabilityUrl(input: {
+      scheme: "venice-media" | "venice-tts" | "venice-character-cache";
+      objectId: string;
+      resourceUrl?: string;
+    }): Promise<{ ok: boolean; url?: string; error?: string }> {
+      return ipcRenderer.invoke("app:media:issueCapabilityUrl", input);
     },
     loadJsonFile(): Promise<{ ok: boolean; canceled: boolean; data?: string; error?: string }> {
       return ipcRenderer.invoke("app:loadJsonFile");
@@ -898,8 +892,8 @@ const veniceForge = {
   },
 
   huggingFace: {
-    getModelCatalog(profileId?: string): Promise<import("../src/types/provider").ProviderModelCatalogResult> {
-      return ipcRenderer.invoke("huggingface:getModelCatalog", { profileId });
+    getModelCatalog(force?: boolean): Promise<import("../src/types/provider").ProviderModelCatalogResult> {
+      return ipcRenderer.invoke("huggingface:getModelCatalog", { force: force === true });
     },
   },
 };

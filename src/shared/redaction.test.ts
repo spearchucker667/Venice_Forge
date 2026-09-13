@@ -28,6 +28,57 @@ describe("redactSecrets", () => {
     expect(value).toBe("OPENAI_API_KEY=[REDACTED] JINA_TOKEN=[REDACTED]");
   });
 
+  it("redacts Hugging Face, GitHub, AWS, and Slack token families", () => {
+    const hf = "hf_" + "a".repeat(24);
+    const ghp = "ghp_" + "a".repeat(24);
+    const aws = "AKIA" + "0".repeat(16);
+    const slack = "xoxb-" + "0".repeat(12);
+
+    const value = redactSecrets(`providers ${hf} ${ghp} ${aws} ${slack}`);
+
+    expect(value).not.toContain(hf);
+    expect(value).not.toContain(ghp);
+    expect(value).not.toContain(aws);
+    expect(value).not.toContain(slack);
+    expect(value).toBe("providers [REDACTED] [REDACTED] [REDACTED] [REDACTED]");
+  });
+
+  it("redacts credential-bearing object keys", () => {
+    const value = redactSecrets({
+      credential: "raw-provider-key-value",
+      private_key: "pk-material",
+      passphrase: "correct-horse-battery",
+      session: "session-secret",
+      name: "diagnostics",
+    });
+
+    expect(value).toEqual({
+      credential: "[REDACTED]",
+      private_key: "[REDACTED]",
+      passphrase: "[REDACTED]",
+      session: "[REDACTED]",
+      name: "diagnostics",
+    });
+    expect(redactSecrets({ sessionId: "sess-public-id", name: "ok" })).toEqual({
+      sessionId: "sess-public-id",
+      name: "ok",
+    });
+  });
+
+  it("redacts quoted multi-word environment secret assignments", () => {
+    const value = redactSecrets('OPENAI_API_KEY="token with space"');
+
+    expect(value).toBe("OPENAI_API_KEY=[REDACTED]");
+    expect(value).not.toContain("token with space");
+  });
+
+  it("does not redact ordinary session prose or short hf_ voice ids", () => {
+    const prose = "Continue this session after lunch; voice hf_alpha is fine.";
+
+    expect(redactSecrets(prose)).toBe(prose);
+    expect(redactSecrets("session=super-secret-value")).toBe("session=[REDACTED]");
+  });
+
   // BUG-011 regression guard: redaction must not recurse forever on cyclic objects.
   it("replaces cyclic references with a placeholder", () => {
     const value: { name: string; self?: unknown } = { name: "diagnostics" };
@@ -52,6 +103,16 @@ describe("redactErrorMessage", () => {
     expect(sanitizeErrorText("/mnt/data/vf/repo/src/file.ts:1:2")).not.toContain("/mnt/data");
     expect(sanitizeErrorText("/tmp/build/repo/src/file.ts")).not.toContain("/tmp");
     expect(sanitizeErrorText("/Volumes/External/repo/src/file.ts")).not.toContain("/Volumes");
+  });
+
+  it("preserves API paths and dates while redacting machine paths (GSS-P3-007)", () => {
+    const text = sanitizeErrorText("GET https://api.venice.ai/v1/models failed 2026/09/12");
+    expect(text).toContain("api.venice.ai");
+    expect(text).toContain("/v1/models");
+    expect(text).toContain("2026/09/12");
+    expect(sanitizeErrorText("endpoint /image/generate returned 400")).toContain("/image/generate");
+    expect(sanitizeErrorText("at Thrower (http://localhost:5173/src/thrower.tsx:5:10)")).toContain("[REDACTED-PATH]");
+    expect(sanitizeErrorText("at Thrower (http://localhost:5173/src/thrower.tsx:5:10)")).not.toContain("localhost");
   });
 
   it("redacts venice_ tokens", () => {

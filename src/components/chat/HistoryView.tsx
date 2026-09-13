@@ -7,6 +7,8 @@ import { useChatFolderStore } from "../../stores/chat-folder-store";
 import { isImeCompositionEvent } from "../../lib/keyboard";
 import {
   Search,
+  Archive,
+  ArchiveRestore,
   Trash2,
   MessageSquare,
   Plus,
@@ -63,9 +65,13 @@ export default function HistoryView() {
   const restoreConversation = useChatStore(
     (state) => state.restoreConversation,
   );
+  const toggleConversationArchived = useChatStore(
+    (state) => state.toggleConversationArchived,
+  );
 
   const setActiveTab = useSettingsStore((state) => state.setActiveTab);
   const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [filterType, setFilterType] = useState<
     "all" | "character" | "standard"
   >("all");
@@ -173,6 +179,9 @@ export default function HistoryView() {
     } else if (filterType === "standard") {
       result = result.filter((c) => getConversationKind(c) === "standard");
     }
+    if (!showArchived) {
+      result = result.filter((c) => !c.metadata?.archived);
+    }
 
     const s = search.toLowerCase().trim();
     if (!s) return result;
@@ -183,7 +192,7 @@ export default function HistoryView() {
           contentToSearchText(m.content).toLowerCase().includes(s),
         ),
     );
-  }, [conversations, search, filterType]);
+  }, [conversations, search, filterType, showArchived]);
 
   const groupedConversations = useMemo(() => {
     const unfiled: Conversation[] = [];
@@ -252,6 +261,35 @@ export default function HistoryView() {
         },
       },
     );
+  };
+
+  const handleArchive = async (
+    conv: Conversation,
+    e: React.MouseEvent,
+  ) => {
+    e.stopPropagation();
+    try {
+      await toggleConversationArchived(conv.id);
+      toast.success(
+        conv.metadata?.archived
+          ? tRuntime(
+              "runtimeGenerated.components.chat.historyview.notification.conversationUnarchived",
+              "Conversation restored from archive",
+            )
+          : tRuntime(
+              "runtimeGenerated.components.chat.historyview.notification.conversationArchived",
+              "Conversation archived",
+            ),
+      );
+    } catch (err) {
+      toast.fromError(
+        err,
+        tRuntime(
+          "runtimeGenerated.components.chat.historyview.notification.failedToArchive",
+          "Failed to archive conversation",
+        ),
+      );
+    }
   };
 
   const toggleSelection = (id: string) => {
@@ -498,6 +536,22 @@ export default function HistoryView() {
                 <Trans i18nKey="common:surface.componentsChatHistoryview.option.standardChats" />
               </option>
             </select>
+            <label
+              htmlFor="history-show-archived"
+              className="flex items-center gap-2 px-3 py-2.5 bg-surface-elevated border border-border rounded-lg text-[13px] text-text-secondary cursor-pointer"
+            >
+              <input
+                id="history-show-archived"
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+              />
+              {tRuntime(
+                "runtimeGenerated.components.chat.historyview.text.showArchived",
+                "Show archived",
+              )}
+            </label>
           </div>
 
           {/* Multi-Selection Control Bar */}
@@ -868,6 +922,27 @@ export default function HistoryView() {
                                     <Zap size={15} />
                                   </button>
                                   <button
+                                    onClick={(e) => void handleArchive(conv, e)}
+                                    className="p-1.5 text-text-muted hover:text-accent hover:bg-accent/10 rounded-md transition-all cursor-pointer"
+                                    title={
+                                      conv.metadata?.archived
+                                        ? tRuntime(
+                                            "runtimeGenerated.components.chat.historyview.attribute.unarchiveConversation",
+                                            "Unarchive conversation",
+                                          )
+                                        : tRuntime(
+                                            "runtimeGenerated.components.chat.historyview.attribute.archiveConversation",
+                                            "Archive conversation",
+                                          )
+                                    }
+                                  >
+                                    {conv.metadata?.archived ? (
+                                      <ArchiveRestore size={15} />
+                                    ) : (
+                                      <Archive size={15} />
+                                    )}
+                                  </button>
+                                  <button
                                     onClick={(e) => handleDelete(conv, e)}
                                     className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-md transition-all cursor-pointer"
                                     title={tRuntime(
@@ -1076,6 +1151,27 @@ export default function HistoryView() {
                                     )}
                                   >
                                     <Zap size={15} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => void handleArchive(conv, e)}
+                                    className="p-1.5 text-text-muted hover:text-accent hover:bg-accent/10 rounded-md transition-all cursor-pointer"
+                                    title={
+                                      conv.metadata?.archived
+                                        ? tRuntime(
+                                            "runtimeGenerated.components.chat.historyview.attribute.unarchiveConversation",
+                                            "Unarchive conversation",
+                                          )
+                                        : tRuntime(
+                                            "runtimeGenerated.components.chat.historyview.attribute.archiveConversation",
+                                            "Archive conversation",
+                                          )
+                                    }
+                                  >
+                                    {conv.metadata?.archived ? (
+                                      <ArchiveRestore size={15} />
+                                    ) : (
+                                      <Archive size={15} />
+                                    )}
                                   </button>
                                   <button
                                     onClick={(e) => handleDelete(conv, e)}

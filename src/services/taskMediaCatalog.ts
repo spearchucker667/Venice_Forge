@@ -2,9 +2,48 @@ import { translateRuntime } from "../i18n/runtimeTranslator";
 import type { BackgroundTask } from "../types/background-task";
 import type { MediaItem } from "../types/media";
 import { useMediaStore } from "../stores/media-store";
+import { blobToDataUrl } from "../utils/image";
+import { VALID_VENICE_MEDIA_RE } from "../utils/mediaItem";
+import {
+  VENICE_MAX_RAW_UPLOAD_BYTES,
+  VENICE_MAX_SERIALIZED_UPLOAD_BYTES,
+} from "../shared/limits";
 
 const inFlight = new Set<string>();
 
+/**
+ * Resolve a task result into a durable gallery source.
+ * Task records keep session blob URLs for playback; the gallery record
+ * stores either a `venice-media://` id (desktop) or a bounded data URL
+ * (web IndexedDB images store, matching Image Studio). Expiring https
+ * URLs are never persisted.
+ */
+export async function resolveDurableGallerySource(
+  resultUrl: string,
+): Promise<string | null> {
+  if (VALID_VENICE_MEDIA_RE.test(resultUrl)) return resultUrl;
+  if (/^https?:\/\//i.test(resultUrl)) return null;
+  if (resultUrl.startsWith("data:")) {
+    if (resultUrl.length > VENICE_MAX_SERIALIZED_UPLOAD_BYTES) return null;
+    return resultUrl;
+  }
+  if (resultUrl.startsWith("blob:") && typeof fetch === "function") {
+    try {
+      const response = await fetch(resultUrl);
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      if (blob.size > VENICE_MAX_RAW_UPLOAD_BYTES) return null;
+      const dataUrl = await blobToDataUrl(blob);
+      if (dataUrl.length > VENICE_MAX_SERIALIZED_UPLOAD_BYTES) return null;
+      return dataUrl;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Callers must await this and handle rejection; do not fire-and-forget. */
 export async function persistCompletedTaskMedia(
   task: BackgroundTask,
 ): Promise<MediaItem | null> {
@@ -12,14 +51,8 @@ export async function persistCompletedTaskMedia(
     return null;
   if (task.type !== "video" && task.type !== "music" && task.type !== "image")
     return null;
-  // Do not persist expiring provider URLs, inlined media data URLs, or
-  // session-only blob URLs as gallery state.
-  if (
-    /^https?:\/\//i.test(task.resultUrl) ||
-    task.resultUrl.startsWith("data:") ||
-    task.resultUrl.startsWith("blob:")
-  )
-    return null;
+  const durableUrl = await resolveDurableGallerySource(task.resultUrl);
+  if (!durableUrl) return null;
   const id = `task-result-${task.id}`;
   if (inFlight.has(id)) return null;
   inFlight.add(id);
@@ -42,10 +75,10 @@ export async function persistCompletedTaskMedia(
     const mimeType =
       typeof task.metadata?.mimeType === "string"
         ? task.metadata.mimeType
-        : task.resultUrl.match(/^data:([^;,]+)[;,]/i)?.[1];
+        : durableUrl.match(/^data:([^;,]+)[;,]/i)?.[1];
     const item: MediaItem = {
       id,
-      image: task.resultUrl,
+      image: durableUrl,
       prompt:
         typeof request.prompt === "string"
           ? request.prompt
@@ -77,7 +110,7 @@ export async function persistCompletedTaskMedia(
       note: "",
       favorite: false,
       queueId: task.queueId,
-      downloadUrl: task.resultUrl,
+      downloadUrl: durableUrl,
       ...(task.resultMediaId ? { generatedMediaId: task.resultMediaId } : {}),
       ...(mimeType ? { mimeType } : {}),
       ...(typeof request.duration === "string" ||

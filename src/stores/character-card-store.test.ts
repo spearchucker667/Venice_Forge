@@ -13,11 +13,16 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import "fake-indexeddb/auto";
 import { renderHook, act } from "@testing-library/react";
 import { useCharacterCardStore, useFilteredCharacterCards } from "./character-card-store";
+import { useRpChatStore } from "./rp-chat-store";
 import { useToastStore } from "./toast-store";
 import * as characterCardService from "../services/rp/characterCardService";
-import type { CharacterCardV1 } from "../types/rp";
+import type { CharacterCardV1, RpChatV1 } from "../types/rp";
+
+const originalRpChatUpsert = useRpChatStore.getState().upsert;
+const originalRpChatRemove = useRpChatStore.getState().remove;
 
 function reset(): void {
+  vi.restoreAllMocks();
   useCharacterCardStore.setState({
     cards: [],
     isLoading: false,
@@ -27,8 +32,17 @@ function reset(): void {
     includeAdult: false,
     editingId: null,
   });
+  useRpChatStore.setState({
+    chats: [],
+    isLoading: false,
+    hasLoaded: false,
+    error: null,
+    activeChatId: null,
+    isStreaming: false,
+    upsert: originalRpChatUpsert,
+    remove: originalRpChatRemove,
+  });
   useToastStore.setState({ toasts: [] });
-  vi.restoreAllMocks();
 }
 
 function baseCard(overrides: Partial<CharacterCardV1> = {}): CharacterCardV1 {
@@ -47,6 +61,40 @@ function baseCard(overrides: Partial<CharacterCardV1> = {}): CharacterCardV1 {
     updatedAt: now,
     ...overrides,
   };
+}
+
+function baseRpChat(overrides: Partial<RpChatV1> = {}): RpChatV1 {
+  const now = Date.now();
+  return {
+    schema: "RpChatV1",
+    id: "rp_chat_test_001",
+    title: "Test RP",
+    characterIds: ["c_test_001"],
+    lorebookIds: [],
+    modelId: "test-model",
+    messages: [],
+    adult: false,
+    metadata: { pinned: false, archived: false, tags: [] },
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+function spyRpChatMutations() {
+  const upsertSpy = vi.fn(async (next: RpChatV1) => {
+    const chats = useRpChatStore
+      .getState()
+      .chats.map((c) => (c.id === next.id ? next : c));
+    useRpChatStore.setState({ chats });
+    return next;
+  });
+  const removeSpy = vi.fn(originalRpChatRemove);
+  useRpChatStore.setState({
+    upsert: upsertSpy,
+    remove: removeSpy,
+  });
+  return { upsertSpy, removeSpy };
 }
 
 describe("character-card-store", () => {
@@ -108,6 +156,55 @@ describe("character-card-store", () => {
     expect(ok).toBe(true);
     expect(useCharacterCardStore.getState().cards).toHaveLength(0);
     expect(useCharacterCardStore.getState().editingId).toBeNull();
+  });
+
+  it("deleting a card used by a solo RP chat detaches the chat instead of removing it", async () => {
+    const saved = await useCharacterCardStore.getState().upsert(baseCard());
+    expect(saved).not.toBeNull();
+    const chat = baseRpChat({
+      messages: [
+        {
+          id: "m_test_001",
+          role: "user",
+          content: "hello",
+          createdAt: Date.now(),
+        },
+      ],
+    });
+    useRpChatStore.setState({ chats: [chat] });
+    const { upsertSpy, removeSpy } = spyRpChatMutations();
+
+    const ok = await useCharacterCardStore.getState().remove("c_test_001");
+    expect(ok).toBe(true);
+    expect(removeSpy).not.toHaveBeenCalled();
+    expect(upsertSpy).toHaveBeenCalledTimes(1);
+
+    const remaining = useRpChatStore.getState().chats;
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]!.id).toBe(chat.id);
+    expect(remaining[0]!.characterIds).toEqual([]);
+    expect(remaining[0]!.messages).toEqual(chat.messages);
+  });
+
+  it("deleting a card used by a multi-character RP chat removes only that id", async () => {
+    const saved = await useCharacterCardStore.getState().upsert(baseCard());
+    expect(saved).not.toBeNull();
+    const chat = baseRpChat({
+      id: "rp_chat_multi_001",
+      characterIds: ["c_test_001", "c_test_002"],
+    });
+    useRpChatStore.setState({ chats: [chat] });
+    const { upsertSpy, removeSpy } = spyRpChatMutations();
+
+    const ok = await useCharacterCardStore.getState().remove("c_test_001");
+    expect(ok).toBe(true);
+    expect(removeSpy).not.toHaveBeenCalled();
+    expect(upsertSpy).toHaveBeenCalledTimes(1);
+
+    const remaining = useRpChatStore.getState().chats;
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]!.id).toBe(chat.id);
+    expect(remaining[0]!.characterIds).toEqual(["c_test_002"]);
   });
 
   it("getById returns the matching card", async () => {

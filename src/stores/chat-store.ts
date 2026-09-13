@@ -291,6 +291,7 @@ interface ChatState {
     conversationId: string,
     metadataPatch: Record<string, unknown>,
   ) => void;
+  toggleConversationArchived: (conversationId: string) => Promise<void>;
   setStreaming: (streaming: boolean) => void;
   setVeniceParams: (params: Partial<VeniceParameters>) => void;
   setSystemPrompt: (prompt: string) => void;
@@ -398,6 +399,36 @@ export function ensureStableMessageIds(
     : conversation;
 }
 
+/** Shared by `setConversations` and history bootstrap so loaded records cannot
+ *  skip trailing-empty-assistant cleanup (VF-AUD-20260912-ZST-P2-016).
+ *  Pass `preserveEmptyAssistantForId` for the live streaming conversation so
+ *  hydrate cannot delete the in-flight assistant placeholder. */
+export function normalizeConversationList(
+  conversations: Conversation[],
+  options?: { preserveEmptyAssistantForId?: string | null },
+): Conversation[] {
+  const preserveId = options?.preserveEmptyAssistantForId ?? null;
+  return conversations.map(ensureStableMessageIds).map((conv) => {
+    if (preserveId && conv.id === preserveId) return conv;
+    const messages = [...(conv.messages ?? [])];
+    while (messages.length > 0) {
+      const last = messages[messages.length - 1];
+      if (
+        last.role === "assistant" &&
+        (last.content === "" ||
+          (typeof last.content === "string" && last.content.trim() === ""))
+      ) {
+        messages.pop();
+      } else {
+        break;
+      }
+    }
+    return messages.length !== (conv.messages?.length ?? 0)
+      ? { ...conv, messages }
+      : conv;
+  });
+}
+
 export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
@@ -420,29 +451,7 @@ export const useChatStore = create<ChatState>()(
       tombstonedMediaRefs: [],
 
       setConversations: (conversations) => {
-        const stable = conversations.map(ensureStableMessageIds);
-        // Remove trailing empty assistant messages left by aborted streams.
-        // If persisted in this state they can trigger a spurious re-stream on
-        // the next startup when the conversation is restored as active.
-        const cleaned = stable.map((conv) => {
-          const messages = [...(conv.messages ?? [])];
-          while (messages.length > 0) {
-            const last = messages[messages.length - 1];
-            if (
-              last.role === "assistant" &&
-              (last.content === "" ||
-                (typeof last.content === "string" &&
-                  last.content.trim() === ""))
-            ) {
-              messages.pop();
-            } else {
-              break;
-            }
-          }
-          return messages.length !== (conv.messages?.length ?? 0)
-            ? { ...conv, messages }
-            : conv;
-        });
+        const cleaned = normalizeConversationList(conversations);
         set({
           conversations: cleaned,
           conversationSummaries: cleaned.map(toConversationSummary),
@@ -1200,6 +1209,39 @@ export const useChatStore = create<ChatState>()(
         );
       },
 
+      toggleConversationArchived: async (conversationId) => {
+        const conv = get().conversations.find((c) => c.id === conversationId);
+        if (!conv) return;
+        const nextArchived = !(conv.metadata?.archived ?? false);
+        if (isElectron()) {
+          try {
+            const res = await desktopConversations.archive(conversationId);
+            if (!res.ok) {
+              toast.error(
+                translateRuntime(
+                  "runtimeGenerated.stores.chatStore.notification.failedToArchiveConversation",
+                  "Failed to archive conversation",
+                ),
+                redactErrorMessage(res.error),
+              );
+              return;
+            }
+          } catch (err) {
+            toast.error(
+              translateRuntime(
+                "runtimeGenerated.stores.chatStore.notification.failedToArchiveConversation",
+                "Failed to archive conversation",
+              ),
+              redactErrorMessage(err),
+            );
+            return;
+          }
+        }
+        get().updateConversationMetadata(conversationId, {
+          archived: nextArchived,
+        });
+      },
+
       setConversationSystemPromptMode: (conversationId, mode) => {
         commitConversationMutation(
           set,
@@ -1576,7 +1618,12 @@ if (typeof window !== "undefined") {
       // for a matching id and must not be replaced by the stale read snapshot.
       byId.set(local.id, local);
     }
-    const merged = Array.from(byId.values());
+    const streamingId = useChatStore.getState().isStreaming
+      ? useChatStore.getState().activeConversationId
+      : null;
+    const merged = normalizeConversationList(Array.from(byId.values()), {
+      preserveEmptyAssistantForId: streamingId,
+    });
     useChatStore.setState({
       conversations: merged,
       conversationSummaries: merged.map(toConversationSummary),
@@ -1630,6 +1677,20 @@ if (typeof window !== "undefined") {
             `[chat] conversation list truncated — ${result.totalScanned ?? 0} files on disk, ` +
               `showing ${(result.conversations ?? []).length}. Consider archiving old chats.`,
           );
+          if (namespace === "legacy" && typeof desktopChat.listPage === "function") {
+            void (async () => {
+              let offset = (result.conversations ?? result.records ?? []).length;
+              for (let pageNum = 0; pageNum < 20 && offset < 5_000; pageNum += 1) {
+                const page = await desktopChat.listPage({ offset, limit: 200 });
+                if (!page.ok || !Array.isArray(page.conversations) || page.conversations.length === 0) break;
+                applyLoadedHistory(page.conversations);
+                offset += page.conversations.length;
+                if (!page.truncated) break;
+              }
+            })().catch((err) => {
+              logger.error("[chat] listPage continuation failed", err instanceof Error ? err.message : err);
+            });
+          }
         }
       },
       (err) => {

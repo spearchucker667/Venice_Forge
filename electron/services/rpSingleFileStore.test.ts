@@ -139,4 +139,33 @@ describe("rpSingleFileStore", () => {
     expect(JSON.stringify(result)).not.toContain("/Users/private");
     expect(JSON.stringify(result)).not.toContain("Bearer fixture");
   });
+
+  it("[P2-006] concurrent saves of the same record use unique temps and leave valid JSON", async () => {
+    const uniqueTmpRe = /\.tmp-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const originalWrite = fs.writeFile;
+    const writePaths: string[] = [];
+    const writeSpy = vi.spyOn(fs, "writeFile").mockImplementation(async (...args: Parameters<typeof fs.writeFile>) => {
+      writePaths.push(String(args[0]));
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      return originalWrite(...args);
+    });
+    try {
+      const first = make({ id: "demo-race", name: "alpha", tags: ["a"] });
+      const second = make({ id: "demo-race", name: "beta", tags: ["b"] });
+      const [a, b] = await Promise.all([store.save(first), store.save(second)]);
+      expect(a).toEqual({ ok: true });
+      expect(b).toEqual({ ok: true });
+
+      const tmpPaths = writePaths.filter((file) => uniqueTmpRe.test(file));
+      expect(tmpPaths).toHaveLength(2);
+      expect(tmpPaths[0]).not.toBe(tmpPaths[1]);
+
+      const target = path.join(store.getDir(), "demo-race.json");
+      const parsed = JSON.parse(await fs.readFile(target, "utf-8")) as DemoRecord;
+      expect(parsed.id).toBe("demo-race");
+      expect(["alpha", "beta"]).toContain(parsed.name);
+    } finally {
+      writeSpy.mockRestore();
+    }
+  });
 });

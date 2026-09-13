@@ -320,7 +320,20 @@ describe("VERIFY-015 guard pipeline — performGuardedVeniceRequest", () => {
     expect(mockedPerformVeniceRequest).not.toHaveBeenCalled();
   });
 
-  it("forwards onDelta callback verbatim to performVeniceRequest", async () => {
+  it("withholds the caller onDelta while Family Safe Mode is on (GSS-P1-001)", async () => {
+    const onDelta = vi.fn();
+    mockedPerformVeniceRequest.mockResolvedValue({ ok: true, status: 200, statusText: "OK", headers: {}, body: {}, contentType: "application/json" });
+    await performGuardedVeniceRequest(
+      { endpoint: "/chat/completions", method: "POST", body: { model: "m", messages: [] } },
+      { onDelta },
+    );
+    const forwarded = mockedPerformVeniceRequest.mock.calls[0]?.[1] as { onDelta?: typeof onDelta };
+    expect(forwarded.onDelta).toBeTypeOf("function");
+    expect(forwarded.onDelta).not.toBe(onDelta);
+  });
+
+  it("forwards onDelta callback verbatim when Family Safe Mode is off", async () => {
+    setRuntimeLocalFamilySafeModeEnabled(false);
     const onDelta = vi.fn();
     mockedPerformVeniceRequest.mockResolvedValue({ ok: true, status: 200, statusText: "OK", headers: {}, body: {}, contentType: "application/json" });
     await performGuardedVeniceRequest(
