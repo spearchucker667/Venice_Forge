@@ -25,7 +25,16 @@ async function reset(): Promise<void> {
     activeScenarioId: null,
     searchQuery: "",
   });
-  await Promise.resolve();
+  // Drain pending macrotasks so fire-and-forget persistence from earlier
+  // tests (createBlank's `void upsert(...)` → real saveScenario on
+  // fake-indexeddb) fully settles — including the store `set()` that runs
+  // after the save resolves — before the second clear below wipes it.
+  // Microtask-only flushing is insufficient: fake-indexeddb completes on
+  // the macrotask queue, so a stale set() could otherwise land inside a
+  // later test and pollute its list (CI contracts/coverage job failures).
+  for (let i = 0; i < 3; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
   useScenarioStore.setState({
     scenarios: [],
     isLoading: false,
