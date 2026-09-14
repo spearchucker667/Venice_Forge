@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { BUILTIN_VENICE } from './venice'
-import { isAAPass } from '../contrast'
+import { BUILTIN_VENICE } from '../../src/theme/builtins/venice'
+import { isAAPass } from '../../src/theme/contrast'
 
 const dark = BUILTIN_VENICE.variants.dark.tokens
 const light = BUILTIN_VENICE.variants.light.tokens

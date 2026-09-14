@@ -4,6 +4,15 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-14 Reference-Driven UI Redesign — Phase 1 material foundation complete (baseline `b5760db2`).** Implemented the derived `--color-vf-*` material layer, Venice palette retune, static grain ambient layer, reference material classes, and shell primitives across five commits on `main`:
+  - `db05cd50` — derived `--color-vf-*` material tokens from semantic theme tokens in `src/styles/theme.css`.
+  - `e3a6fd25` — default Venice family retuned to the graphite/crimson reference palette (`src/theme/builtins/venice.ts`).
+  - `2b77f28c` — accent mesh blobs replaced by a static grain ambient layer in `src/styles/components.css`.
+  - `79b231c4` — reference material classes added; panel/dialog radii contracted (panel 10px, dialog 14px).
+  - `f5c8b69b` — six reference shell primitives added in `src/components/ui/primitives.tsx` (existing exports untouched).
+  - **Validation (all executed, all PASS):** `npm run lint:eslint` PASS (0 errors, 0 warnings); `npm run typecheck` PASS (3/3 tsconfigs); `npm run verify:theme-tokens` PASS (185 files scanned); `npm run verify:i18n-hardcoded-regressions` PASS (0 regressions, 537 scanned); `npx vitest run tests/theme tests/csp src/components/ui src/theme` PASS (24 files, 366/366 tests); `npm run build:web` PASS.
+  - **Ruling notes:** dark `textMuted` raised to `#7f7a86` for WCAG AA per design doc §7; `AccentProgress` uses the `--vf-progress-pct` ref-effect pattern for CSP compliance (no JSX inline styles); `.vf-grain` kept to single-line formatting rulings; Phase 1 retune test relocated from `src/theme/builtins/venice.test.ts` to `tests/theme/venice-builtin.test.ts` because `verify:theme-tokens`' `verifyBuiltinFamilies()` scans every non-index `.ts` in `src/theme/builtins/` for theme-family shape (verifier untouched — file moved, not rules weakened).
+  - Migration ledger rows updated in `docs/design/VENICE_FORGE_REFERENCE_UI_REDESIGN_MATRIX.md` (theme.css, components.css, builtins/venice.ts, ui/primitives.tsx REDESIGNED — Phase 1; AppMeshOverlay.tsx INHERITS_GLOBAL_SYSTEM). Phases 2–10 remain open under ROADMAP item `VF-REFERENCE-UI-REDAIGN-2026-09-14`.
 - **2026-09-14 Reference-Driven UI Redesign — Phase 0 complete, direction APPROVED (baseline `b5760db2`, clean worktree).** Executed Phase 0 (inventory + Superdesign baseline + reference direction + approval gate) of the work order "Complete Reference-Driven UI Redesign":
   - **Baseline verified:** `main` @ `b5760db2dad215385fbdf27659bc8395222b3ddc` (matches work-order baseline exactly), clean worktree, Node 22.23.2 / npm 10.9.8.
   - **Blockers resolved:** (1) reference image `Screenshot_20260914-132444.png` located on Desktop, verified authentic (1536×1291, SHA-256 `971b87b9…8e24` matches work order); staged at repo root and excluded from Git via `.git/info/exclude` (not committed, per work order §6.3). (2) Superdesign CLI v0.14.0 authenticated via browser login.

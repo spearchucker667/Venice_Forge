@@ -180,7 +180,7 @@
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `AppMeshOverlay.tsx` | PENDING | |
+| `AppMeshOverlay.tsx` | INHERITS_GLOBAL_SYSTEM | visual now provided by .app-mesh-overlay grain layer (component unchanged) |
 | `api-key-dialog.test.tsx` | NOT_APPLICABLE (test file) | |
 | `api-key-dialog.tsx` | PENDING | |
 | `header.test.tsx` | NOT_APPLICABLE (test file) | |
@@ -361,7 +361,7 @@
 | `modal-requests.test.tsx` | NOT_APPLICABLE (test file) | |
 | `modal-requests.tsx` | PENDING | |
 | `primitives.test.tsx` | NOT_APPLICABLE (test file) | |
-| `primitives.tsx` | PENDING | |
+| `primitives.tsx` | REDESIGNED — Phase 1: six shell primitives added (existing exports untouched) | |
 | `select.test.tsx` | NOT_APPLICABLE (test file) | |
 | `select.tsx` | PENDING | |
 | `shared.i18n.test.tsx` | NOT_APPLICABLE (test file) | |
@@ -389,8 +389,8 @@
 | File | Status | Phase/Notes |
 |---|---|---|
 | `accessibility.css` | PENDING — global material foundation (Phase 1) | |
-| `components.css` | PENDING — global material foundation (Phase 1) | |
-| `theme.css` | PENDING — global material foundation (Phase 1) | |
+| `components.css` | REDESIGNED — Phase 1: static grain ambient layer + reference material classes | |
+| `theme.css` | REDESIGNED — Phase 1: derived --color-vf-* material layer; radii contracted (panel 10px, dialog 14px) | |
 
 ## `src/theme/` (23 files)
 
@@ -467,7 +467,7 @@
 | `tokyoNight.ts` | PENDING — theme engine (token values only, architecture preserved) | |
 | `toxicLimewire.ts` | PENDING — theme engine (token values only, architecture preserved) | |
 | `ultravioletRain.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `venice.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `venice.ts` | REDESIGNED — Phase 1: default family retuned to graphite/crimson reference palette | |
 
 ## `src/theme/yaml/` (10 files)
 
@@ -483,3 +483,9 @@
 | `serialize.ts` | PENDING — theme engine (token values only, architecture preserved) | |
 | `validate.test.ts` | NOT_APPLICABLE (test file) | |
 | `validate.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+
+## `tests/theme/` (1 files)
+
+| File | Status | Phase/Notes |
+|---|---|---|
+| `venice-builtin.test.ts` | NOT_APPLICABLE (test file) | relocated from src/theme/builtins/ in Phase 1 (verify:theme-tokens family-shape scope) |
