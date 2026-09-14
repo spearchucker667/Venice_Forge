@@ -43,17 +43,44 @@
 .btn-icon { width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: var(--radius-control); }
 .btn-icon-sm { width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 6px; }
 
-/* App-wide ambient mesh overlay — subtle, theme-aware, non-interactive */
+/* App-wide ambient layer — reference material system (2026-09-14).
+   Static micro-grid grain + soft edge vignette. No radial accent blobs,
+   no animation, no repaint-hostile filters. Theme-aware via the
+   semantic text token (inverted automatically in light themes). */
 .app-mesh-overlay {
   pointer-events: none;
   position: fixed;
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 32rem),
-    radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--color-surface-elevated) 22%, transparent), transparent 34rem),
-    radial-gradient(circle at 42% 92%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 36rem);
-  opacity: var(--app-mesh-opacity, 0.12);
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--color-text-primary) 2%, transparent) 0 1px,
+      transparent 1px 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-text-primary) 2%, transparent) 0 1px,
+      transparent 1px 3px
+    );
+  opacity: calc(var(--app-mesh-opacity, 0.12) * var(--vf-noise-opacity, 0.4));
+}
+
+/* Optional grain wash for inset canvases (Image Studio preview, workflow
+   graph, data surfaces). Same static pattern; pair with vf-inset-canvas. */
+.vf-grain { pointer-events: none; position: relative; }
+.vf-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: repeating-linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--color-text-primary) 2%, transparent) 0 1px,
+    transparent 1px 3px
+  );
+  opacity: calc(var(--app-mesh-opacity, 0.12) * var(--vf-noise-opacity, 0.4));
 }
 
 /* Shell UI System */
