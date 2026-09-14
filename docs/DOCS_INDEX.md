@@ -79,6 +79,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [architecture/data-export-format.md](architecture/data-export-format.md) — Authenticated `.vfbackup` envelope, portability, and compatibility contract.
 - [design/LOADING_AND_SURFACE_CONTRACT.md](design/LOADING_AND_SURFACE_CONTRACT.md) — Semantic loading, reduced-motion, mesh structure, and interactive-border rules.
 - [design/THEME_SYSTEM.md](design/THEME_SYSTEM.md) — CSS custom property tokens, contrast checking, and YAML palette integration.
+- [design/VENICE_FORGE_REFERENCE_UI_REDESIGN.md](design/VENICE_FORGE_REFERENCE_UI_REDESIGN.md) — APPROVED 2026-09-14 reference-driven UI redesign: derived `--vf-*` shell material layer, graphite/crimson visual contract, rollout phases; authoritative for visual/material redesign atop Theme Engine V2.
+- [design/VENICE_FORGE_REFERENCE_UI_REDESIGN_MATRIX.md](design/VENICE_FORGE_REFERENCE_UI_REDESIGN_MATRIX.md) — UI migration ledger: per-file redesign status across all renderer surfaces (completeness proof).
 - [ui-modernization/THEME_SCHEMA.md](ui-modernization/THEME_SCHEMA.md) — Theme Engine V2 token definitions, schema specification, and palette constraints.
 - [ui-modernization/THEME_IMPORT_EXPORT.md](ui-modernization/THEME_IMPORT_EXPORT.md) — Theme import, export, migration, duplication, and cross-platform compatibility specifications.
 
