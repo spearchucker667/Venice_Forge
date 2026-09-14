@@ -378,3 +378,97 @@
 .vf-control-motion:active:not(:disabled) { scale: 0.99; }
 .vf-input-control { min-width: 0; }
 .vf-input-control:focus-visible { outline: none; }
+
+/* === Reference material classes (2026-09-14) =========================
+   Shared shell grammar for the reference-driven redesign. All values
+   derive from --color-vf-* / semantic tokens; never hardcode colors.
+   ===================================================================== */
+
+/* Framed working panel: raised graphite, 1px border, hairline top light. */
+.vf-shell-panel {
+  position: relative;
+  background: var(--color-vf-panel-bg);
+  border: 1px solid var(--color-vf-panel-border);
+  border-radius: var(--radius-panel);
+  box-shadow: inset 0 1px 0 var(--color-vf-panel-highlight);
+}
+
+/* Compact panel title row. */
+.vf-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-vf-panel-border);
+  color: var(--color-text-secondary);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.vf-panel-header__actions {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Darker inset surface: editors, previews, canvases, code/data areas. */
+.vf-inset-canvas {
+  background: var(--color-vf-panel-bg-inset);
+  border: 1px solid var(--color-vf-panel-border);
+  border-radius: var(--radius-control);
+}
+
+/* Right-rail stacked card (Inspector, Task Center, Diagnostics). */
+.vf-utility-rail-section {
+  background: var(--color-vf-panel-bg);
+  border: 1px solid var(--color-vf-panel-border);
+  border-radius: var(--radius-control);
+  padding: 0.625rem;
+}
+
+/* Dense interactive list row with accent selection rail. */
+.vf-dense-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-control);
+  color: var(--color-text-secondary);
+  transition: color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
+}
+.vf-dense-row:hover:not(:disabled) {
+  background: var(--color-vf-control-hover);
+  color: var(--color-text-primary);
+}
+.vf-dense-row[data-selected="true"] {
+  background: var(--color-vf-control-active);
+  box-shadow: inset 2px 0 0 var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+/* Accent progress bar with restrained bloom (allowed-glow target). */
+.vf-accent-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-surface-overlay);
+  overflow: hidden;
+}
+.vf-accent-progress__bar {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-vf-accent-glow-strong);
+  transition: width var(--motion-medium) var(--motion-ease);
+}
+
+/* Faint data-grid wash for chart/graph canvases. */
+.vf-data-grid {
+  background-image:
+    linear-gradient(var(--color-vf-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-vf-grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

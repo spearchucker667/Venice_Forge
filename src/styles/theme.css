@@ -168,8 +168,8 @@
   --space-control-y: 0.5rem;
   --space-panel: 1.25rem;
   --radius-control: 0.5rem;
-  --radius-panel: 0.75rem;
-  --radius-dialog: 1rem;
+  --radius-panel: 0.625rem; /* 10px */
+  --radius-dialog: 0.875rem; /* 14px */
   --blur-overlay: 4px;
   --motion-instant: 75ms;
   --motion-fast: 140ms;
