@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { IconButton, Pill, Toolbar, Card, EmptyState, Input } from './primitives'
+import { IconButton, Pill, Toolbar, Card, EmptyState, Input, ShellPanel, PanelHeader, UtilityRailSection, DenseListRow, AccentProgress } from './primitives'
 
 describe('IconButton', () => {
   it('renders an accessible button with the provided label', () => {
@@ -244,5 +244,41 @@ describe('Input accessibility and interaction', () => {
     expect(screen.getByRole('button', { name: 'Clear' })).toHaveFocus()
     await user.keyboard('{Enter}')
     expect(clear).toHaveBeenCalledOnce()
+  })
+})
+
+describe('Reference shell primitives', () => {
+  it('ShellPanel renders a framed panel and supports inset variant', () => {
+    const { container: a } = render(<ShellPanel>content</ShellPanel>)
+    expect(a.firstChild).toHaveClass('vf-shell-panel')
+    const { container: b } = render(<ShellPanel inset>content</ShellPanel>)
+    expect(b.firstChild).toHaveClass('vf-inset-canvas')
+  })
+
+  it('PanelHeader renders title and trailing actions', () => {
+    render(
+      <PanelHeader title="Metrics" actions={<button>act</button>} />,
+    )
+    expect(screen.getByText('Metrics')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'act' })).toBeInTheDocument()
+  })
+
+  it('UtilityRailSection renders its section label', () => {
+    render(<UtilityRailSection title="Tasks">body</UtilityRailSection>)
+    expect(screen.getByText('Tasks')).toBeInTheDocument()
+    expect(screen.getByText('body')).toBeInTheDocument()
+  })
+
+  it('DenseListRow exposes selected state via data attribute', () => {
+    render(<DenseListRow selected label="row" />)
+    expect(screen.getByText('row').closest('[data-selected="true"]')).not.toBeNull()
+  })
+
+  it('AccentProgress renders an accessible progressbar', () => {
+    render(<AccentProgress value={0.4} label="Generating" />)
+    const bar = screen.getByRole('progressbar', { name: 'Generating' })
+    expect(bar).toHaveAttribute('aria-valuemin', '0')
+    expect(bar).toHaveAttribute('aria-valuemax', '100')
+    expect(bar).toHaveAttribute('aria-valuenow', '40')
   })
 })

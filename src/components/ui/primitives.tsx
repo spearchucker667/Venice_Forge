@@ -426,3 +426,130 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     )
   },
 )
+
+/* ---------------------------------------------------------------------------
+ * Reference shell primitives (2026-09-14). These compose the material
+ * classes from components.css and are the shared grammar for framed
+ * panels, utility rails, dense lists, and accent progress across all
+ * workspaces. They intentionally add no new colors.
+ * ------------------------------------------------------------------------- */
+export interface ShellPanelProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Render as a darker inset canvas (editors, previews) instead of a
+   *  raised framed panel. */
+  inset?: boolean
+}
+
+export function ShellPanel({ inset = false, className, children, ...rest }: ShellPanelProps) {
+  return (
+    <div className={cn(inset ? 'vf-inset-canvas' : 'vf-shell-panel', className)} {...rest}>
+      {children}
+    </div>
+  )
+}
+
+export interface PanelHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+  /** Panel title; rendered as the compact micro-label. */
+  title: React.ReactNode
+  /** Optional trailing action cluster. */
+  actions?: React.ReactNode
+}
+
+export function PanelHeader({ title, actions, className, children, ...rest }: PanelHeaderProps) {
+  return (
+    <div className={cn('vf-panel-header', className)} {...rest}>
+      <span className="truncate">{title}</span>
+      {children}
+      {actions && <div className="vf-panel-header__actions">{actions}</div>}
+    </div>
+  )
+}
+
+export interface InsetCanvasProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Overlay the static grain wash. */
+  grain?: boolean
+}
+
+export function InsetCanvas({ grain = false, className, children, ...rest }: InsetCanvasProps) {
+  return (
+    <div className={cn('vf-inset-canvas', grain && 'vf-grain', className)} {...rest}>
+      {children}
+    </div>
+  )
+}
+
+export interface UtilityRailSectionProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+  /** Section label rendered as a micro-label header. */
+  title?: React.ReactNode
+  /** Optional trailing actions aligned to the header. */
+  actions?: React.ReactNode
+}
+
+export function UtilityRailSection({ title, actions, className, children, ...rest }: UtilityRailSectionProps) {
+  return (
+    <section className={cn('vf-utility-rail-section', className)} {...rest}>
+      {(title || actions) && (
+        <PanelHeader title={title} actions={actions} className="border-b-0 px-0 pt-0" />
+      )}
+      {children}
+    </section>
+  )
+}
+
+export interface DenseListRowProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+  selected?: boolean
+  /** Leading icon/avatar node. */
+  leading?: React.ReactNode
+  /** Primary label. */
+  label: React.ReactNode
+  /** Trailing metadata node. */
+  trailing?: React.ReactNode
+}
+
+export function DenseListRow({ selected = false, leading, label, trailing, className, type, ...rest }: DenseListRowProps) {
+  return (
+    <button
+      type={type ?? 'button'}
+      data-selected={selected || undefined}
+      aria-current={selected || undefined}
+      className={cn('vf-dense-row vf-meta text-left', className)}
+      {...rest}
+    >
+      {leading && <span className="inline-flex shrink-0 items-center">{leading}</span>}
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {trailing && <span className="inline-flex shrink-0 items-center text-text-muted">{trailing}</span>}
+    </button>
+  )
+}
+
+export interface AccentProgressProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** 0..1 completion fraction. */
+  value: number
+  /** Accessible label (required — the bar has no text content). */
+  label: string
+}
+
+export function AccentProgress({ value, label, className, ...rest }: AccentProgressProps) {
+  const pct = Math.round(Math.min(1, Math.max(0, value)) * 100)
+  const rootRef = React.useRef<HTMLDivElement>(null)
+  // CSP (VERIFY-007): no JSX inline style attribute. The dynamic bar width
+  // is delivered as a CSS custom property set programmatically; the
+  // stylesheet consumes it via `width: var(--vf-progress-pct, 0%)`.
+  React.useEffect(() => {
+    rootRef.current?.style.setProperty('--vf-progress-pct', `${pct}%`)
+  }, [pct])
+  return (
+    <div
+      ref={rootRef}
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={pct}
+      className={cn('vf-accent-progress', className)}
+      {...rest}
+    >
+      <div className="vf-accent-progress__bar" />
+    </div>
+  )
+}
