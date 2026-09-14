@@ -22,7 +22,7 @@ const RECOMMENDED_DEFAULTS = new Set([
   'mistral-small-3-2-24b-instruct',  // fast, clean
 ])
 
-function tierFor(model: VeniceModel): number {
+function tierFor(model: Pick<VeniceModel, "id" | "model_spec">): number {
   const traits = model.model_spec?.traits ?? []
   if (traits.some((t) => TOP_TRAITS.includes(t))) return 0
   if (RECOMMENDED_DEFAULTS.has(model.id)) return 0

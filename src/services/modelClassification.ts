@@ -60,6 +60,63 @@ export function classifyModel(model: ModelInfo): "text" | "image" | "audio" | "v
   return "unknown";
 }
 
+/** Canonical one-record normalizer. Every path that ingests Venice model
+ *  records (live `/models` responses, fallback catalogs, cache merges) must
+ *  route through this so `ModelInfo.contextLength` / `maxOutputTokens` are
+ *  always populated from any of the provider's equivalent fields
+ *  (`model_spec.availableContextTokens`, `context_length`, camelCase
+ *  variants). Without this, consumers like the chat context budget fall back
+ *  to a fixed 8,192-token window regardless of the selected model. */
+export function normalizeModelInfo(raw: unknown): ModelInfo {
+  const m = (raw ?? {}) as Record<string, unknown>;
+  const modelSpec = m.model_spec as Record<string, unknown> | undefined;
+  const rawTraits = m.traits || m.capabilities || m.features || [];
+  const traitsArr = Array.isArray(rawTraits) ? rawTraits : [];
+
+  const specPrivacy = modelSpec?.privacy as string | undefined;
+  const isPrivate = specPrivacy === 'private' || traitsArr.includes('private') || !!m.is_private || !!m.privateInference;
+  const isAnonymous = specPrivacy === 'anonymized' || traitsArr.includes('anonymous') || !!m.anonymousInference;
+  const privacyMode = isPrivate ? 'private' : isAnonymous ? 'anonymous' : 'standard';
+
+  let fidelity: 'high' | 'standard' | undefined = undefined;
+  if (traitsArr.includes('high_fidelity') || traitsArr.includes('high-fidelity')) fidelity = 'high';
+  else if (traitsArr.includes('standard_fidelity') || traitsArr.includes('standard-fidelity') || traitsArr.includes('fast')) fidelity = 'standard';
+  else if (String(m.id || '').toLowerCase().includes('-fast-')) fidelity = 'standard';
+  else if (String(m.id || '').toLowerCase().includes('seedance')) fidelity = 'high';
+
+  const resolvedType = classifyModel(m as unknown as ModelInfo);
+
+  const num = (v: unknown): number | null =>
+    typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
+
+  return {
+    ...(m as Record<string, unknown>),
+    id: String(m.id || m.model || m.name || "unknown-model"),
+    name: String(m.name || m.display_name || m.id || m.model || "unknown model"),
+    // Preserve the provider's explicit type when present; only fall back to
+    // the classified category. isFallback/source are preserved so fallback
+    // catalogs stay truthfully labeled.
+    type: (m.type as ModelInfo["type"]) || resolvedType,
+    isFallback: typeof m.isFallback === "boolean" ? m.isFallback : false,
+    source: (m.source as ModelInfo["source"]) || "live",
+    contextLength:
+      num(modelSpec?.availableContextTokens) ??
+      num(m.context_length) ??
+      num(m.contextLength),
+    maxOutputTokens:
+      num(modelSpec?.maxCompletionTokens) ??
+      num(m.max_output_tokens) ??
+      num(m.maxOutputTokens),
+    privacy: {
+      mode: privacyMode,
+      privateInference: isPrivate,
+      anonymousInference: isAnonymous,
+      source: 'derived'
+    },
+    fidelity
+  } as ModelInfo;
+}
+
 /** Normalizes a raw model list into grouped categories. */
 export function flattenModels(payload: unknown): Record<string, ModelInfo[]> {
   let list: unknown[] = [];
@@ -77,44 +134,8 @@ export function flattenModels(payload: unknown): Record<string, ModelInfo[]> {
     unknown: [],
   };
   list.forEach((raw) => {
-    const m = raw as Record<string, unknown>;
-    const rawTraits = m.traits || m.capabilities || m.features || [];
-    const traitsArr = Array.isArray(rawTraits) ? rawTraits : [];
-
-    const modelSpec = m.model_spec as Record<string, unknown> | undefined;
-    const specPrivacy = modelSpec?.privacy as string | undefined;
-
-    // Determine privacy from model_spec, traits/flags, or default
-    const isPrivate = specPrivacy === 'private' || traitsArr.includes('private') || !!m.is_private || !!m.privateInference;
-    const isAnonymous = specPrivacy === 'anonymized' || traitsArr.includes('anonymous') || !!m.anonymousInference;
-
-    const privacyMode = isPrivate ? 'private' : isAnonymous ? 'anonymous' : 'standard';
-
-    let fidelity: 'high' | 'standard' | undefined = undefined;
-    if (traitsArr.includes('high_fidelity') || traitsArr.includes('high-fidelity')) fidelity = 'high';
-    else if (traitsArr.includes('standard_fidelity') || traitsArr.includes('standard-fidelity') || traitsArr.includes('fast')) fidelity = 'standard';
-    else if (String(m.id || '').toLowerCase().includes('-fast-')) fidelity = 'standard';
-    else if (String(m.id || '').toLowerCase().includes('seedance')) fidelity = 'high';
-
-    const resolvedType = classifyModel(m as unknown as ModelInfo);
-
-    const normalized: ModelInfo = {
-      ...(m as Record<string, unknown>),
-      id: String(m.id || m.model || m.name || "unknown-model"),
-      name: String(m.name || m.display_name || m.id || m.model || "unknown model"),
-      type: resolvedType,
-      isFallback: false,
-      source: "live",
-      contextLength: (modelSpec?.availableContextTokens as number) ?? (m.contextLength as number) ?? null,
-      maxOutputTokens: (modelSpec?.maxCompletionTokens as number) ?? (m.maxOutputTokens as number) ?? null,
-      privacy: {
-        mode: privacyMode,
-        privateInference: isPrivate,
-        anonymousInference: isAnonymous,
-        source: 'derived'
-      },
-      fidelity
-    };
+    const normalized = normalizeModelInfo(raw);
+    const resolvedType = classifyModel(normalized);
     groups[resolvedType].push(normalized);
   });
   return groups;

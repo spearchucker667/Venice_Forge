@@ -28,7 +28,7 @@ export interface CharacterConceptInput {
 export interface CharacterImageAnalysisInput {
   assetId: string;
   modelId: string;
-  model?: VeniceModel;
+  model?: Pick<VeniceModel, "model_spec">;
   language?: string;
   requestedFields?: string[];
   signal?: AbortSignal;
@@ -95,7 +95,9 @@ export function validateCharacterAnalysis(value: unknown): CharacterAnalysisDraf
   };
 }
 
-export function getVisionCapableCharacterModels(models: readonly VeniceModel[]): VeniceModel[] {
+export function getVisionCapableCharacterModels(
+  models: ReadonlyArray<Pick<VeniceModel, "id" | "model_spec">>,
+): Array<Pick<VeniceModel, "id" | "model_spec">> {
   return models.filter((model) => modelSupportsVision(model.id, model.model_spec?.capabilities ?? null) && (model.model_spec?.availableContextTokens ?? 0) >= 8_000);
 }
 

@@ -39,7 +39,7 @@ function finitePositiveInteger(value: unknown): number | undefined {
  * inference occurs here. */
 export function derivePromptEnhancerModelFacts(input: {
   modelId: string;
-  runtimeModel?: VeniceModel | null;
+  runtimeModel?: Pick<VeniceModel, "model_spec"> | null;
   capabilities: ImageModelCapabilities;
   dimensionMode?: ImageDimensionMode;
   referenceCapabilities?: StyleReferenceCapabilities;

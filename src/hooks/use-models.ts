@@ -7,7 +7,7 @@ import { getEnabledProviderModels } from '../config/provider-models'
 import { useSettingsStore } from '../stores/settings-store'
 import { useModelCatalogRuntimeStore } from '../stores/model-catalog-runtime-store'
 import { mergeCanonicalModels, replaceCanonicalModels } from '../services/modelCatalogCache'
-import { flattenModels } from '../services/modelClassification'
+import { flattenModels, normalizeModelInfo } from '../services/modelClassification'
 import { desktopHuggingFace } from '../services/desktopBridge'
 
 interface UseModelsOptions {
@@ -101,10 +101,15 @@ export function useModels(type?: string, options: UseModelsOptions = {}) {
     },
     staleTime: 5 * 60 * 1000,
     select: (data) => {
+      // normalizeModelInfo is spread-first: every original VeniceModel field is
+      // preserved, so the normalized records remain VeniceModel-compatible at
+      // runtime while gaining canonical contextLength/maxOutputTokens.
       const liveModels = data.data
         .filter((m) => !m.model_spec?.offline)
+        .map((m) => normalizeModelInfo(m) as VeniceModel)
 
       let fallbackModels = getEnabledProviderModels(normalizedType)
+        .map((m) => normalizeModelInfo(m) as VeniceModel)
 
       // Replace the static Hugging Face catalog with live-discovered models when
       // available. Existing chats and other providers keep their fallback entries.
@@ -139,7 +144,10 @@ export function useVideoModels() {
   const groups: VideoModelGroup[] = []
   if (query.data) {
     const map = new Map<string, VideoModelGroup>()
-    for (const m of query.data) {
+    for (const raw of query.data) {
+      // Normalization preserves every original field (spread-first), so the
+      // runtime shape remains VeniceModel-compatible.
+      const m = raw as VeniceModel
       const c = (m.model_spec?.constraints as VideoConstraints | undefined) || {
         model_type: 'text-to-video' as const,
         aspect_ratios: ['16:9'],

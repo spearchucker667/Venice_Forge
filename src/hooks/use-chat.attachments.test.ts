@@ -6,6 +6,7 @@ import { useChat } from "./use-chat";
 import { useChatStore } from "../stores/chat-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { veniceStreamChat } from "../services/veniceClient";
+import { getModelById } from "../services/modelService";
 import { desktopConversations } from "../services/desktopBridge";
 import { stopStream } from "../stores/chat-stream-manager";
 import { MAX_TOTAL_CONTEXT_BYTES } from "../services/ingestion/ingestionLimits";
@@ -17,12 +18,17 @@ vi.mock("../services/veniceClient", () => ({
 }));
 
 vi.mock("../services/modelService", () => ({
-  getModelById: vi.fn().mockReturnValue({ contextLength: 2000000, maxOutputTokens: 4096 }),
+  getModelById: vi.fn(),
 }));
+const mockedGetModelById = vi.mocked(getModelById);
 
-vi.mock("../stores/toast-store", () => ({
-  toast: { warn: vi.fn(), error: vi.fn(), success: vi.fn(), info: vi.fn() },
-}));
+vi.mock("../stores/toast-store", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../stores/toast-store")>();
+  return {
+    ...actual,
+    toast: { warn: vi.fn(), error: vi.fn(), success: vi.fn(), info: vi.fn() },
+  };
+});
 
 vi.mock("../services/desktopBridge", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../services/desktopBridge")>();
@@ -111,13 +117,17 @@ describe("use-chat attachment context budget", () => {
     return call[0] as Record<string, unknown>;
   }
 
-  // VERIFY-063: total attachment context bytes must be bounded.
-  it("truncates attachments that would exceed MAX_TOTAL_CONTEXT_BYTES", async () => {
+  // VERIFY-063: attachment context admission is bounded by the selected
+  // model's remaining token budget (not a fixed byte ceiling).
+  it("omits attachments that exceed the selected model's remaining token budget", async () => {
+    mockedGetModelById.mockReturnValue({
+      contextLength: 8192,
+      maxOutputTokens: 4096,
+    } as never);
     const { result } = renderHook(() => useChat());
 
-    const bigText = "A".repeat(Math.floor(MAX_TOTAL_CONTEXT_BYTES / 2));
-    const att1 = makeTextAttachment(bigText, "att1");
-    const att2 = makeTextAttachment(bigText, "att2");
+    const att1 = makeTextAttachment("A".repeat(4000), "att1");
+    const att2 = makeTextAttachment("B".repeat(100_000), "att2");
 
     await act(async () => {
       await result.current.send("Hello", "llama-3.3-70b", [att1, att2]);
@@ -135,6 +145,69 @@ describe("use-chat attachment context budget", () => {
     expect(mockedToastWarn).toHaveBeenCalledWith(
       "Attachment context truncated",
       expect.stringContaining("Some attachments were omitted"),
+    );
+  });
+
+  it("admits attachment text on a large-context model that a small model omits", async () => {
+    // Same payloads: 8,192-token model omits, 1M-token model admits both.
+    const makePayloads = () => [
+      makeTextAttachment("C".repeat(50_000), "att1"),
+      makeTextAttachment("D".repeat(50_000), "att2"),
+    ];
+
+    mockedGetModelById.mockReturnValue({
+      contextLength: 8192,
+      maxOutputTokens: 4096,
+    } as never);
+    const small = renderHook(() => useChat());
+    await act(async () => {
+      await small.result.current.send("Hello", "llama-3.3-70b", makePayloads());
+    });
+    const smallContent = (
+      extractPayloadFromCall()!.messages as Array<{ role: string; content: string }>
+    ).filter((m) => m.role === "user").at(-1)!.content as string;
+    expect(smallContent).not.toContain("att2");
+    mockedVeniceStreamChat.mockClear();
+    mockedToastWarn.mockClear();
+
+    mockedGetModelById.mockReturnValue({
+      contextLength: 1_000_000,
+      maxOutputTokens: 4096,
+    } as never);
+    const large = renderHook(() => useChat());
+    await act(async () => {
+      await large.result.current.send("Hello", "llama-3.3-70b", makePayloads());
+    });
+    const largeContent = (
+      extractPayloadFromCall()!.messages as Array<{ role: string; content: string }>
+    ).filter((m) => m.role === "user").at(-1)!.content as string;
+    expect(largeContent).toContain("att1");
+    expect(largeContent).toContain("att2");
+    expect(mockedToastWarn).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the legacy byte ceiling when model context is unknown", async () => {
+    mockedGetModelById.mockReturnValue(undefined as never);
+    const { result } = renderHook(() => useChat());
+
+    const bigText = "A".repeat(Math.floor(MAX_TOTAL_CONTEXT_BYTES / 2));
+    const att1 = makeTextAttachment(bigText, "att1");
+    const att2 = makeTextAttachment(bigText, "att2");
+
+    await act(async () => {
+      await result.current.send("Hello", "llama-3.3-70b", [att1, att2]);
+    });
+
+    const body = extractPayloadFromCall();
+    expect(body).not.toBeNull();
+    // Admission used the legacy byte ceiling: the warning reports the KB
+    // ceiling (token-mode reports remaining tokens instead). The admitted
+    // attachment may still be shortened by the compiler against the unknown
+    // model's conservative 8,192-token fallback — that is request-layer
+    // budgeting, not admission.
+    expect(mockedToastWarn).toHaveBeenCalledWith(
+      "Attachment context truncated",
+      expect.stringContaining("KB"),
     );
   });
 

@@ -33,9 +33,8 @@ describe("prompt enhancer model context", () => {
     const facts = derivePromptEnhancerModelFacts({
       modelId: "flux-dev",
       runtimeModel: {
-        id: "flux-dev",
         model_spec: { prompt_character_limit: 99_999 },
-      } as VeniceModel,
+      },
       capabilities: getImageModelCapabilities("flux-dev"),
     });
     expect(facts.promptCharacterLimit).toBe(7500);

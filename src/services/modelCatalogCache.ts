@@ -1,4 +1,5 @@
 import type { ModelInfo } from "../types/venice";
+import { normalizeModelInfo } from "./modelClassification";
 
 const canonicalModels = new Map<string, ModelInfo>();
 const canonicalModelTypes = new Map<string, Set<string>>();
@@ -19,12 +20,16 @@ export function replaceCanonicalModels(
 ): void {
   canonicalModels.clear();
   canonicalModelTypes.clear();
-  for (const model of models) canonicalModels.set(model.id, model);
+  for (const model of models) {
+    const normalized = normalizeModelInfo(model);
+    canonicalModels.set(normalized.id, normalized);
+  }
   for (const [type, typedModels] of Object.entries(modelsByType)) {
     for (const model of typedModels) {
-      const types = canonicalModelTypes.get(model.id) ?? new Set<string>();
+      const normalized = normalizeModelInfo(model);
+      const types = canonicalModelTypes.get(normalized.id) ?? new Set<string>();
       types.add(type);
-      canonicalModelTypes.set(model.id, types);
+      canonicalModelTypes.set(normalized.id, types);
     }
   }
 }
@@ -33,10 +38,11 @@ export function replaceCanonicalModels(
 export function mergeCanonicalModels(type: string, models: readonly ModelInfo[]): void {
   removeTypeOwnership(type);
   for (const model of models) {
-    canonicalModels.set(model.id, model);
-    const types = canonicalModelTypes.get(model.id) ?? new Set<string>();
+    const normalized = normalizeModelInfo(model);
+    canonicalModels.set(normalized.id, normalized);
+    const types = canonicalModelTypes.get(normalized.id) ?? new Set<string>();
     types.add(type);
-    canonicalModelTypes.set(model.id, types);
+    canonicalModelTypes.set(normalized.id, types);
   }
 }
 
