@@ -441,13 +441,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
     const start = dragStartRef.current;
     if (!start) return;
     const next = clampSidebarWidth(start.width + event.clientX - start.x);
-    setSidebarWidth(next);
     sidebarRef.current?.style.setProperty("--sidebar-width", `${next}px`);
   };
 
   const finishResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     const start = dragStartRef.current;
-    if (start) setSidebarWidth(start.width + event.clientX - start.x);
+    if (start) setSidebarWidth(clampSidebarWidth(start.width + event.clientX - start.x));
     dragStartRef.current = null;
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);

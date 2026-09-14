@@ -1,0 +1,77 @@
+{
+  "title": "Remediation Plan: Venice Forge",
+  "findings": [
+    "HQE-DOC-001",
+    "HQE-DEBT-001"
+  ],
+  "phases": [
+    {
+      "phase": "Containment / Safety",
+      "objective": "Stop exploitation paths and prevent regression.",
+      "actions": [
+        "Address all CRITICAL findings",
+        "Add regression tests for HIGH findings"
+      ],
+      "exit_criteria": [
+        "No CRITICAL findings remain OPEN",
+        "CI passes"
+      ]
+    },
+    {
+      "phase": "Minimal Fixes",
+      "objective": "Resolve HIGH/MEDIUM findings with smallest safe change.",
+      "actions": [
+        "Apply patch actions"
+      ],
+      "exit_criteria": [
+        "All HIGH findings transition to VERIFIED or DEFERRED"
+      ]
+    },
+    {
+      "phase": "Verification",
+      "objective": "Prove fixes work and no regressions introduced.",
+      "actions": [
+        "Run validation commands from each finding"
+      ],
+      "exit_criteria": [
+        "All validation commands pass"
+      ]
+    }
+  ],
+  "patches": [
+    {
+      "finding_id": "HQE-DEBT-001",
+      "files": [
+        "src/components/OnboardingSplash.test.tsx"
+      ],
+      "exact_intended_change": "Wrap state transitions in await act(async () => ...) or use waitFor.",
+      "patch": "",
+      "validation": [
+        "npx vitest run src/components/OnboardingSplash.test.tsx"
+      ],
+      "expected_result": "Finding transitions to VERIFIED; no regressions.",
+      "rollback": [
+        "Revert changes for HQE-DEBT-001 and re-run validation."
+      ]
+    },
+    {
+      "finding_id": "HQE-DOC-001",
+      "files": [
+        "src/i18n/resources/*/common.json"
+      ],
+      "exact_intended_change": "Translate missing theme strings or run node scripts/translate-missing.cjs --write and synchronize docs/i18n/translation-status.json.",
+      "patch": "",
+      "validation": [
+        "npm run verify:release-readiness"
+      ],
+      "expected_result": "Finding transitions to VERIFIED; no regressions.",
+      "rollback": [
+        "Revert changes for HQE-DOC-001 and re-run validation."
+      ]
+    }
+  ],
+  "verification": [
+    "npx vitest run src/components/OnboardingSplash.test.tsx",
+    "npm run verify:release-readiness"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "patch_actions": [
+    {
+      "finding_id": "HQE-DEBT-001",
+      "files": [
+        "src/components/OnboardingSplash.test.tsx"
+      ],
+      "exact_intended_change": "Wrap state transitions in await act(async () => ...) or use waitFor.",
+      "patch": "",
+      "validation": [
+        "npx vitest run src/components/OnboardingSplash.test.tsx"
+      ],
+      "expected_result": "Finding transitions to VERIFIED; no regressions.",
+      "rollback": [
+        "Revert changes for HQE-DEBT-001 and re-run validation."
+      ]
+    },
+    {
+      "finding_id": "HQE-DOC-001",
+      "files": [
+        "src/i18n/resources/*/common.json"
+      ],
+      "exact_intended_change": "Translate missing theme strings or run node scripts/translate-missing.cjs --write and synchronize docs/i18n/translation-status.json.",
+      "patch": "",
+      "validation": [
+        "npm run verify:release-readiness"
+      ],
+      "expected_result": "Finding transitions to VERIFIED; no regressions.",
+      "rollback": [
+        "Revert changes for HQE-DOC-001 and re-run validation."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "run_id": "hqe-run-20260914-124740",
+  "timestamp": "2026-09-14T12:47:40.657358+00:00",
+  "timestamps": {
+    "start": "2026-09-14T12:47:40.657358+00:00",
+    "end": "2026-09-14T12:47:40.657362+00:00"
+  },
+  "repository_path": "/Users/super_user/Projects/Venice_Forge",
+  "repository_details": {
+    "commit": "c2279276e0a4f7e43d3c0edc8de3b501fa49bd3f",
+    "path": "/Users/super_user/Projects/Venice_Forge"
+  },
+  "protocol_details": {
+    "name": "HQE Engineer Protocol",
+    "version": "5.0.0"
+  },
+  "environment": {
+    "python_version": "3.12.11",
+    "platform": "darwin"
+  },
+  "commands": [],
+  "command_records": [],
+  "limits": {
+    "max_files": 1000
+  },
+  "mode": "full",
+  "coverage": [
+    {
+      "subsystem": "root",
+      "files": 0,
+      "reviewed": false,
+      "depth": "unknown",
+      "findings_count": 3
+    }
+  ],
+  "unreviewed_surfaces": [
+    "Coverage not established; surfaces may be unreviewed"
+  ],
+  "summary": {
+    "total_files_scanned": 0,
+    "total_findings": 3,
+    "critical_findings": 0,
+    "high_findings": 1,
+    "medium_findings": 1,
+    "low_findings": 1,
+    "info_findings": 0
+  },
+  "health_score": {
+    "band": "Solid",
+    "omitted": false,
+    "reasons": [
+      "User-supplied health score (8/10)"
+    ],
+    "score": 8
+  }
+}

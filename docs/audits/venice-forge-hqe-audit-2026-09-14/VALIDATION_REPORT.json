@@ -1,0 +1,43 @@
+{
+  "title": "Validation Report: Venice Forge",
+  "findings_validated": [
+    {
+      "finding_id": "HQE-BUG-001",
+      "status": "NOT_VERIFIED",
+      "validation_commands": [
+        "npx vitest run src/components/layout/sidebar.test.tsx",
+        "npm run test:ui:layout"
+      ],
+      "expected_results": [
+        "Fix verified"
+      ],
+      "actual_results": [],
+      "notes": "FACT"
+    },
+    {
+      "finding_id": "HQE-DEBT-001",
+      "status": "NOT_VERIFIED",
+      "validation_commands": [
+        "npx vitest run src/components/OnboardingSplash.test.tsx"
+      ],
+      "expected_results": [
+        "Fix verified"
+      ],
+      "actual_results": [],
+      "notes": "FACT"
+    },
+    {
+      "finding_id": "HQE-DOC-001",
+      "status": "NOT_VERIFIED",
+      "validation_commands": [
+        "npm run verify:release-readiness"
+      ],
+      "expected_results": [
+        "Fix verified"
+      ],
+      "actual_results": [],
+      "notes": "FACT"
+    }
+  ],
+  "summary": "Validation results for findings with explicit verification commands."
+}
