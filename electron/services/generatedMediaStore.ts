@@ -424,15 +424,21 @@ export async function reapGeneratedMediaArtifacts(now = Date.now()): Promise<{ c
   let journalsRemoved = 0
   for (const name of names) {
     const fullPath = path.join(root, name)
+    // Open a handle first so stat and read observe the same file instance —
+    // no TOCTOU window between checking and reading (CodeQL js/file-system-race).
+    let handle: Awaited<ReturnType<typeof open>> | null = null
     try {
-      const stat = await fsStat(fullPath)
+      handle = await open(fullPath, 'r')
+      const stat = await handle.stat()
       if (/\.corrupt-\d+$/.test(name) && now - stat.mtimeMs >= CORRUPT_ARTIFACT_MAX_AGE_MS) {
+        await handle.close()
+        handle = null
         await rm(fullPath, { force: true })
         corruptRemoved += 1
         continue
       }
       if (/^\.pending-[a-f0-9]{64}\.json$/.test(name)) {
-        const pending = JSON.parse(await readFile(fullPath, 'utf8')) as Partial<PendingGeneratedMediaWrite>
+        const pending = JSON.parse(await handle.readFile('utf8')) as Partial<PendingGeneratedMediaWrite>
         const temporaryName = typeof pending.temporaryName === 'string' ? pending.temporaryName : ''
         const temporaryPath = temporaryName ? path.join(root, temporaryName) : ''
         let tempExists = false
@@ -445,12 +451,18 @@ export async function reapGeneratedMediaArtifacts(now = Date.now()): Promise<{ c
           }
         }
         if (!tempExists) {
+          await handle.close()
+          handle = null
           await rm(fullPath, { force: true })
           journalsRemoved += 1
         }
       }
     } catch {
       /* ignore unreadable artifacts */
+    } finally {
+      if (handle) {
+        await handle.close().catch(() => {})
+      }
     }
   }
   return { corruptRemoved, journalsRemoved }

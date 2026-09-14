@@ -243,18 +243,26 @@ function scanDirectPerformVeniceRequest(root) {
   ]);
 
   function walk(dir) {
-    for (const file of fs.readdirSync(dir)) {
-      const fullPath = path.join(dir, file);
-      const stat = fs.statSync(fullPath);
-      if (stat.isDirectory()) {
-        if (["node_modules", "dist", "dist-electron"].includes(file)) continue;
+    // Use Dirent types from readdirSync and tolerate read races instead of
+    // stat-then-read on a path string (CodeQL js/file-system-race): the entry
+    // can change between the check and the read, and a swallowed read error
+    // is safe for this best-effort scanner.
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (["node_modules", "dist", "dist-electron"].includes(entry.name)) continue;
         walk(fullPath);
         continue;
       }
-      if (!file.endsWith(".ts") || file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue;
+      if (!entry.name.endsWith(".ts") || entry.name.endsWith(".test.ts") || entry.name.endsWith(".test.tsx")) continue;
       const rel = path.relative(root, fullPath);
       if (allowed.has(rel)) continue;
-      const content = fs.readFileSync(fullPath, "utf8");
+      let content;
+      try {
+        content = fs.readFileSync(fullPath, "utf8");
+      } catch {
+        continue;
+      }
       if (/performVeniceRequest\s*\(/.test(content)) {
         failures.push(`[Direct Venice dispatch] ${rel} calls performVeniceRequest(); use performGuardedVeniceRequest()`);
       }
