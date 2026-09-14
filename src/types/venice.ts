@@ -24,7 +24,7 @@ export interface ImageConstraints {
 }
 
 export interface VideoConstraints {
-  model_type: 'text-to-video' | 'image-to-video'
+  model_type: 'text-to-video' | 'image-to-video' | 'video'
   aspect_ratios: string[]
   resolutions: string[]
   durations: string[]

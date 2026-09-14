@@ -83,7 +83,7 @@ export function AgentModelPicker({ value, onChange }: Props) {
         <span className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className="truncate text-text-secondary">{label}</span>
           {current?.recommended && (
-            <span className="shrink-0 text-[12px] px-1 py-px rounded bg-emerald-400/15 text-emerald-300 font-medium uppercase tracking-wider">
+            <span className="shrink-0 text-[12px] px-1 py-px rounded bg-success/15 text-success font-medium uppercase tracking-wider">
               <Trans i18nKey="common:surface.playgroundAgentModelPicker.text.rec" />
             </span>
           )}
@@ -182,7 +182,7 @@ export function AgentModelPicker({ value, onChange }: Props) {
                           strokeWidth="3"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          className="text-emerald-400 shrink-0"
+                          className="text-success shrink-0"
                         >
                           <path d="M20 6L9 17l-5-5" />
                         </svg>
@@ -244,13 +244,18 @@ export function AgentModelPicker({ value, onChange }: Props) {
 }
 
 const TONE: Record<string, string> = {
-  emerald: "bg-emerald-400/15 text-emerald-300",
-  sky: "bg-sky-400/15 text-sky-300",
-  violet: "bg-violet-400/15 text-violet-300",
-  amber: "bg-amber-400/15 text-amber-300",
-  pink: "bg-pink-400/15 text-pink-300",
+  emerald: "bg-success/15 text-success",
+  success: "bg-success/15 text-success",
+  sky: "bg-accent/15 text-accent",
+  accent: "bg-accent/15 text-accent",
+  violet: "bg-accent/15 text-accent",
+  amber: "bg-warning/15 text-warning",
+  warning: "bg-warning/15 text-warning",
+  pink: "bg-danger/15 text-danger",
   slate: "bg-surface-elevated text-text-secondary",
-  rose: "bg-rose-400/15 text-rose-300",
+  neutral: "bg-surface-elevated text-text-secondary",
+  rose: "bg-danger/15 text-danger",
+  danger: "bg-danger/15 text-danger",
 };
 
 function Badge({

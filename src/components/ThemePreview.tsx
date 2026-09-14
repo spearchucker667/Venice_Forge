@@ -2,33 +2,72 @@ import React, { useEffect, useRef } from "react";
 import { completeThemeTokens, type Theme } from "../theme/themeTypes";
 import { contrastRatio } from "../theme/contrast";
 import { highlightCode } from "./chat/codeHighlighting";
-import { Trans } from 'react-i18next';
+import { Trans, useTranslation } from "react-i18next";
 
 export function ThemePreview({ theme }: { theme: Theme }) {
+  const { t: translate } = useTranslation("common");
   const t = completeThemeTokens(theme.mode, theme.tokens);
   const containerRef = useRef<HTMLDivElement>(null);
   const warnings: string[] = [];
   const ratios = [
     { name: "Foreground / Background", fg: t.foreground, bg: t.background },
-    { name: "Muted foreground / Surface", fg: t.foregroundMuted, bg: t.surface },
-    { name: "Accent foreground / Accent", fg: t.accentForeground, bg: t.accent },
-    { name: "Input foreground / Input background", fg: t.inputForeground, bg: t.inputBackground },
-    { name: "Danger foreground / Danger", fg: t.dangerForeground, bg: t.danger },
-    { name: "Warning foreground / Warning", fg: t.warningForeground, bg: t.warning },
-    { name: "Success foreground / Success", fg: t.successForeground, bg: t.success },
+    {
+      name: "Muted foreground / Surface",
+      fg: t.foregroundMuted,
+      bg: t.surface,
+    },
+    {
+      name: "Accent foreground / Accent",
+      fg: t.accentForeground,
+      bg: t.accent,
+    },
+    {
+      name: "Input foreground / Input background",
+      fg: t.inputForeground,
+      bg: t.inputBackground,
+    },
+    {
+      name: "Danger foreground / Danger",
+      fg: t.dangerForeground,
+      bg: t.danger,
+    },
+    {
+      name: "Warning foreground / Warning",
+      fg: t.warningForeground,
+      bg: t.warning,
+    },
+    {
+      name: "Success foreground / Success",
+      fg: t.successForeground,
+      bg: t.success,
+    },
   ];
   ratios.forEach((r) => {
     const ratio = contrastRatio(r.fg, r.bg);
     if (ratio < 4.5) {
-      warnings.push(`${r.name}: ${ratio.toFixed(2)}:1 (AA: 4.5:1)`);
+      warnings.push(
+        `${translate(`themeEditor.contrast.${r.name}`)}: ${ratio.toFixed(2)}:1 (AA: 4.5:1)`,
+      );
     }
   });
 
   const c = theme.code.tokens;
   const codeRatios = [
-    { name: "Code foreground / background", fg: c.foreground, bg: c.background },
-    { name: "Inline code foreground / background", fg: c.inlineForeground, bg: c.inlineBackground },
-    { name: "Code header foreground / background", fg: c.headerForeground, bg: c.headerBackground },
+    {
+      name: "Code foreground / background",
+      fg: c.foreground,
+      bg: c.background,
+    },
+    {
+      name: "Inline code foreground / background",
+      fg: c.inlineForeground,
+      bg: c.inlineBackground,
+    },
+    {
+      name: "Code header foreground / background",
+      fg: c.headerForeground,
+      bg: c.headerBackground,
+    },
     { name: "Code string / background", fg: c.string, bg: c.background },
     { name: "Code keyword / background", fg: c.keyword, bg: c.background },
     { name: "Code function / background", fg: c.function, bg: c.background },
@@ -37,7 +76,9 @@ export function ThemePreview({ theme }: { theme: Theme }) {
   codeRatios.forEach((r) => {
     const ratio = contrastRatio(r.fg, r.bg);
     if (ratio < 4.5) {
-      warnings.push(`${r.name}: ${ratio.toFixed(2)}:1 (AA: 4.5:1)`);
+      warnings.push(
+        `${translate(`themeEditor.contrast.${r.name}`)}: ${ratio.toFixed(2)}:1 (AA: 4.5:1)`,
+      );
     }
   });
 
@@ -62,8 +103,14 @@ export function ThemePreview({ theme }: { theme: Theme }) {
     el.style.setProperty("--preview-selection-bg", t.selectionBackground);
     el.style.setProperty("--preview-selection-fg", t.selectionForeground);
     el.style.setProperty("--preview-danger", t.dangerForeground);
-    el.style.setProperty("--preview-danger-bg", `${t.danger}20`);
-    el.style.setProperty("--preview-danger-border", `${t.danger}40`);
+    el.style.setProperty(
+      "--preview-danger-bg",
+      `color-mix(in srgb, ${t.danger} 12%, transparent)`,
+    );
+    el.style.setProperty(
+      "--preview-danger-border",
+      `color-mix(in srgb, ${t.danger} 25%, transparent)`,
+    );
 
     const c = theme.code.tokens;
     el.style.setProperty("--preview-code-bg", c.background);
@@ -108,62 +155,56 @@ export function ThemePreview({ theme }: { theme: Theme }) {
         className="rounded-xl border p-4 space-y-3 bg-[var(--preview-bg)] border-[var(--preview-border)]"
       >
         {/* Header mock */}
-        <div
-          className="flex items-center justify-between rounded-lg px-3 py-2 bg-[var(--preview-surface)] border border-[var(--preview-border)]"
-        >
-          <span className="text-[var(--preview-text-primary)] font-semibold"><Trans i18nKey="common:surface.componentsThemepreview.text.forge" /></span>
-          <span className="text-[var(--preview-text-muted)] text-[12px]"><Trans i18nKey="common:surface.componentsThemepreview.text.status" /></span>
+        <div className="flex items-center justify-between rounded-lg px-3 py-2 bg-[var(--preview-surface)] border border-[var(--preview-border)]">
+          <span className="text-[var(--preview-text-primary)] font-semibold">
+            <Trans i18nKey="common:surface.componentsThemepreview.text.forge" />
+          </span>
+          <span className="text-[var(--preview-text-muted)] text-[12px]">
+            <Trans i18nKey="common:surface.componentsThemepreview.text.status" />
+          </span>
         </div>
         {/* Sidebar + Content mock */}
         <div className="flex gap-2">
-          <div
-            className="w-1/3 rounded-lg p-2 space-y-1 bg-[var(--preview-surface)] border border-[var(--preview-border)]"
-          >
+          <div className="w-1/3 rounded-lg p-2 space-y-1 bg-[var(--preview-surface)] border border-[var(--preview-border)]">
             <div className="rounded px-2 py-1 text-xs bg-[var(--preview-accent)] text-[var(--preview-accent-fg)] font-medium">
-              <Trans i18nKey="common:surface.componentsThemepreview.text.activeItem" /></div>
+              <Trans i18nKey="common:surface.componentsThemepreview.text.activeItem" />
+            </div>
             <div className="rounded px-2 py-1 text-xs text-[var(--preview-text-secondary)]">
-              <Trans i18nKey="common:surface.componentsThemepreview.text.inactiveItem" /></div>
+              <Trans i18nKey="common:surface.componentsThemepreview.text.inactiveItem" />
+            </div>
             <div className="rounded px-2 py-1 text-xs bg-[var(--preview-selection-bg)] text-[var(--preview-selection-fg)]">
-              <Trans i18nKey="common:surface.componentsThemepreview.text.selectedItem" /></div>
+              <Trans i18nKey="common:surface.componentsThemepreview.text.selectedItem" />
+            </div>
           </div>
-          <div
-            className="flex-1 rounded-lg p-3 space-y-2 bg-[var(--preview-surface-elevated)] border border-[var(--preview-border-strong)]"
-          >
+          <div className="flex-1 rounded-lg p-3 space-y-2 bg-[var(--preview-surface-elevated)] border border-[var(--preview-border-strong)]">
             <div className="h-2 rounded w-3/4 bg-[var(--preview-text-muted)]" />
             <div className="h-2 rounded w-1/2 bg-[var(--preview-text-muted)]" />
             <div className="pt-2 flex flex-wrap gap-2">
-              <div
-                className="rounded px-3 py-1 text-xs font-medium bg-[var(--preview-accent)] text-[var(--preview-accent-fg)]"
-              >
-                <Trans i18nKey="common:surface.componentsThemepreview.text.primaryButton" /></div>
-              <div
-                className="rounded px-3 py-1 text-xs font-medium border border-[var(--preview-border)] bg-[var(--preview-btn-sec-bg)] text-[var(--preview-btn-sec-fg)]"
-              >
-                <Trans i18nKey="common:surface.componentsThemepreview.text.secondary" /></div>
+              <div className="rounded px-3 py-1 text-xs font-medium bg-[var(--preview-accent)] text-[var(--preview-accent-fg)]">
+                <Trans i18nKey="common:surface.componentsThemepreview.text.primaryButton" />
+              </div>
+              <div className="rounded px-3 py-1 text-xs font-medium border border-[var(--preview-border)] bg-[var(--preview-btn-sec-bg)] text-[var(--preview-btn-sec-fg)]">
+                <Trans i18nKey="common:surface.componentsThemepreview.text.secondary" />
+              </div>
             </div>
           </div>
         </div>
         {/* Input & Focus ring mock */}
         <div className="grid grid-cols-2 gap-2">
-          <div
-            className="rounded-lg px-3 py-2 text-sm bg-[var(--preview-input-bg)] border border-[var(--preview-border)] text-[var(--preview-input-fg)]"
-          >
-            <Trans i18nKey="common:surface.componentsThemepreview.text.inputField" /></div>
-          <div
-            className="rounded-lg px-3 py-2 text-sm bg-[var(--preview-input-bg)] border border-[var(--preview-border-strong)] text-[var(--preview-input-fg)] outline outline-2 outline-[var(--preview-focus-ring)] outline-offset-1"
-          >
-            <Trans i18nKey="common:surface.componentsThemepreview.text.focusedControl" /></div>
+          <div className="rounded-lg px-3 py-2 text-sm bg-[var(--preview-input-bg)] border border-[var(--preview-border)] text-[var(--preview-input-fg)]">
+            <Trans i18nKey="common:surface.componentsThemepreview.text.inputField" />
+          </div>
+          <div className="rounded-lg px-3 py-2 text-sm bg-[var(--preview-input-bg)] border border-[var(--preview-border-strong)] text-[var(--preview-input-fg)] outline outline-2 outline-[var(--preview-focus-ring)] outline-offset-1">
+            <Trans i18nKey="common:surface.componentsThemepreview.text.focusedControl" />
+          </div>
         </div>
         {/* Alert mock */}
-        <div
-          className="rounded-lg px-3 py-2 text-xs bg-[var(--preview-danger-bg)] border border-[var(--preview-danger-border)] text-[var(--preview-danger)]"
-        >
-          <Trans i18nKey="common:surface.componentsThemepreview.text.alertMessageBoundary" /></div>
+        <div className="rounded-lg px-3 py-2 text-xs bg-[var(--preview-danger-bg)] border border-[var(--preview-danger-border)] text-[var(--preview-danger)]">
+          <Trans i18nKey="common:surface.componentsThemepreview.text.alertMessageBoundary" />
+        </div>
 
         {/* Code preview */}
-        <div
-          className="rounded-lg border overflow-hidden bg-[var(--preview-code-bg)] border-[var(--preview-code-border)]"
-        >
+        <div className="rounded-lg border overflow-hidden bg-[var(--preview-code-bg)] border-[var(--preview-code-border)]">
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--preview-code-border)] bg-[var(--preview-code-header-bg)]">
             <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--preview-code-header-fg)] select-none">
               <Trans i18nKey="common:surface.componentsThemepreview.text.syntaxPreview" />
@@ -188,8 +229,13 @@ export function resolveTheme(name: string, enabled = true) {
         </div>
       </div>
       {warnings.length > 0 && (
-        <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning" aria-live="polite">
-          <strong><Trans i18nKey="common:surface.componentsThemepreview.text.contrastWarnings" /></strong>
+        <div
+          className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning"
+          aria-live="polite"
+        >
+          <strong>
+            <Trans i18nKey="common:surface.componentsThemepreview.text.contrastWarnings" />
+          </strong>
           <ul className="mt-1 list-disc pl-4 space-y-0.5">
             {warnings.map((w, i) => (
               <li key={`${i}-${w}`}>{w}</li>

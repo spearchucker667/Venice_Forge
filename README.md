@@ -201,8 +201,8 @@ The user interface uses a token-based styling model matching dynamic glassmorphi
 - **Theme Maker:** Create, customize, and preview themes in real time, including a dedicated Code & Syntax palette editor.
 - **Built-in Catalog (43 Themes):**
   - *Pastel Aqua/Pink Theme Pack:* cotton-candy-console, sweet-nightmare, dual-persona, polaroid-board.
-  - *Dracula & Dark Palettes:* basalt-noir, catppuccin, dracula, gruvbox_dark, midnight-cobalt, midnight-velvet, monokai, nord, obsidian-bloom, obsidian-ember, one_dark, rosepine, solarized_dark, synthwave-harbor, terminal-forest, tokyo_night, venice.
-  - *Light & High Contrast:* amber-archive, arctic-glass, aurora-boreal, circuit-mint, copper, cyber-orchid, dark, desert-copperfield, ember-monastery, github_light, glacial-ink, harbor-fog, light, moss-circuit, neon-dusk, polaroid-board, porcelain-daybreak, porcelain-sky, sakura-terminal, sandstone, solar-ash, solarized_light, toxic-limewire, ultraviolet-rain.
+  - *Dracula & Dark Palettes:* basalt-noir, catppuccin, dracula, gruvbox-dark, midnight-cobalt, midnight-velvet, monokai, nord, obsidian-bloom, obsidian-ember, one-dark, rosepine, synthwave-harbor, terminal-forest, tokyo-night, venice.
+  - *Light & High Contrast:* amber-archive, arctic-glass, aurora-boreal, circuit-mint, copper, cyber-orchid, dark, desert-copperfield, ember-monastery, github-light, glacial-ink, harbor-fog, light, moss-circuit, neon-dusk, porcelain-daybreak, porcelain-sky, sakura-terminal, sandstone, solar-ash, solarized, toxic-limewire, ultraviolet-rain.
 
 ---
 

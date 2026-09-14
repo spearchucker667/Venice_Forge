@@ -314,3 +314,81 @@ export function EmptyState({
     </div>
   )
 }
+
+/* ---------------------------------------------------------------------------
+ * Input — accessible, theme-styled form input primitive.
+ * ------------------------------------------------------------------------- */
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
+  /** Visual tone for validation feedback. */
+  tone?: 'neutral' | 'accent' | 'danger' | 'success'
+  /** Optional leading icon or adornment. */
+  leading?: React.ReactNode
+  /** Optional trailing icon, clear button, or adornment. */
+  trailing?: React.ReactNode
+  /** Size scale. */
+  inputSize?: Size
+}
+
+const INPUT_SIZE: Record<Size, string> = {
+  sm: 'h-8 px-2.5 text-[13px]',
+  md: 'h-10 px-3 text-[14px]',
+  lg: 'h-12 px-4 text-[15px]',
+}
+
+const INPUT_TONE: Record<NonNullable<InputProps['tone']>, string> = {
+  neutral: 'border-border focus-within:border-border-strong',
+  accent: 'border-accent/40 focus-within:border-accent',
+  danger: 'border-danger/60 focus-within:border-danger text-danger',
+  success: 'border-success/60 focus-within:border-success',
+}
+
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  function Input(
+    {
+      tone = 'neutral',
+      inputSize = 'md',
+      leading,
+      trailing,
+      className,
+      disabled,
+      ...rest
+    },
+    ref,
+  ) {
+    return (
+      <div
+        className={cn(
+          'relative flex items-center min-w-0 w-full rounded-lg border bg-input-bg transition-colors duration-100',
+          'focus-within:outline focus-within:outline-2 focus-within:outline-focus-ring focus-within:outline-offset-1',
+          INPUT_TONE[tone],
+          disabled && 'opacity-60 cursor-not-allowed bg-surface-muted',
+        )}
+      >
+        {leading && (
+          <span aria-hidden="true" className="flex shrink-0 items-center pl-3 text-text-muted pointer-events-none select-none">
+            {leading}
+          </span>
+        )}
+        <input
+          ref={ref}
+          disabled={disabled}
+          aria-invalid={tone === 'danger' || undefined}
+          className={cn(
+            'vf-input-control w-full bg-transparent text-input-fg placeholder:text-placeholder outline-none',
+            INPUT_SIZE[inputSize],
+            Boolean(leading) && 'pl-2',
+            Boolean(trailing) && 'pr-2',
+            className,
+          )}
+          {...rest}
+        />
+        {trailing && (
+          <span className="flex items-center pr-3 text-text-muted">
+            {trailing}
+          </span>
+        )}
+      </div>
+    )
+  },
+)

@@ -233,7 +233,7 @@ export function InspectorPane() {
 
   return (
     <aside
-      className="relative soft-separator-x mesh-surface flex flex-col h-full shrink-0 min-w-0 shell-region"
+      className="relative soft-separator-x mesh-surface flex flex-col h-full shrink-0 min-w-0 shell-region max-w-full"
       aria-label={tRuntime(
         "runtimeGenerated.components.layout.inspectorPane.attribute.developerTrafficInspector",
       )}

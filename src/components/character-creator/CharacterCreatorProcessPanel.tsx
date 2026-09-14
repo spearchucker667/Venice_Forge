@@ -157,7 +157,7 @@ export function CharacterCreatorProcessPanel({
               className="px-3 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors shrink-0"
             >
               {copied ? (
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <Check className="w-3.5 h-3.5 text-success" />
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}
@@ -233,13 +233,13 @@ export function CharacterCreatorProcessPanel({
 
             if (ev.status === "complete") {
               IconComponent = CheckCircle2;
-              iconClass = "text-emerald-400";
+              iconClass = "text-success";
             } else if (ev.status === "warning") {
               IconComponent = AlertTriangle;
-              iconClass = "text-amber-400";
+              iconClass = "text-warning";
             } else if (ev.status === "failed") {
               IconComponent = XCircle;
-              iconClass = "text-rose-400";
+              iconClass = "text-danger";
             }
 
             return (
@@ -249,9 +249,9 @@ export function CharacterCreatorProcessPanel({
                   ev.status === "active"
                     ? "bg-accent/5 border-accent/30"
                     : ev.status === "warning"
-                      ? "bg-amber-500/5 border-amber-500/30"
+                      ? "bg-warning/5 border-warning/30"
                       : ev.status === "failed"
-                        ? "bg-rose-500/5 border-rose-500/30"
+                        ? "bg-danger/5 border-danger/30"
                         : "bg-surface/40 border-border/50"
                 }`}
               >
@@ -309,7 +309,7 @@ export function CharacterCreatorProcessPanel({
           <button
             type="button"
             onClick={onCancel}
-            className="px-3.5 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-rose-400 hover:text-rose-300 flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-danger hover:opacity-80 flex items-center gap-1.5 transition-colors"
           >
             <XCircle className="w-3.5 h-3.5" />
             <span>

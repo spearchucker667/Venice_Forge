@@ -1,6 +1,6 @@
 import { parse as parseYaml } from 'yaml';
 import type { ThemeFamily } from '../themeTypes';
-import { validateRawThemeYaml } from './validate';
+import { collectDangerousKeys, validateRawThemeYaml, validateThemeId } from './validate';
 import { normalizeThemeFamilyYaml } from './normalize';
 import { parseFlatTheme, parseV1ThemesBlock } from './legacy';
 
@@ -28,9 +28,12 @@ export function parseThemeYaml(
   yamlString: string,
   options: ParseThemeYamlOptions = {},
 ): ThemeFamily {
+  if (typeof yamlString !== 'string' || yamlString.length > 1024 * 1024) {
+    throw new Error('Theme file exceeds the 1 MiB text size limit.');
+  }
   let raw: unknown;
   try {
-    raw = parseYaml(yamlString);
+    raw = parseYaml(yamlString, { maxAliasCount: 100 });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(`Invalid theme yaml: ${message}`);
@@ -38,6 +41,12 @@ export function parseThemeYaml(
 
   if (!isRecord(raw)) {
     throw new Error('Invalid theme yaml: root must be a mapping.');
+  }
+
+  const unsafe = collectDangerousKeys(raw);
+  if (unsafe.length) throw new Error(`Invalid theme yaml: unsafe, cyclic or excessively nested keys: ${unsafe.join(', ')}`);
+  if ('schemaVersion' in raw && raw.schemaVersion !== 2) {
+    throw new Error(`Unsupported theme schemaVersion: ${String(raw.schemaVersion)}. Expected 2.`);
   }
 
   if (raw.schemaVersion === 2) {
@@ -48,9 +57,8 @@ export function parseThemeYaml(
     return normalizeThemeFamilyYaml(raw);
   }
 
-  if ('themes' in raw) {
-    return parseV1ThemesBlock(raw);
-  }
-
-  return parseFlatTheme(raw);
+  const family = 'themes' in raw ? parseV1ThemesBlock(raw) : parseFlatTheme(raw);
+  const idErrors = validateThemeId(family.id, 'id', options.protectedIds);
+  if (idErrors.length) throw new Error(`Invalid theme yaml: ${idErrors.join(' ')}`);
+  return family;
 }

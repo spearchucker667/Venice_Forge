@@ -6,13 +6,21 @@ import { validateThemesFile, YamlTheme, ConfigWarning } from "../../src/config/c
 import yaml from "yaml";
 
 import { logInfo } from "./logger";
+import { validateRawThemeYaml, validateThemeId } from "../../src/theme/yaml/validate";
+import { normalizeThemeFamilyYaml } from "../../src/theme/yaml/normalize";
+import { serializeThemeFamilyYaml } from "../../src/theme/yaml/serialize";
+import { parseThemeYaml } from "../../src/theme/yaml/parse";
 import { atomicReplaceFile } from "../utils/atomicFileReplace";
+import { ThemeFamily } from "../../src/theme/themeTypes";
 
 /** Minimal local ThemeFamily V2 shape used for IPC persistence. */
 export interface ThemeFamilyV2 {
   schemaVersion: 2;
   id: string;
   name: string;
+  author?: string;
+  description?: string;
+  aliases?: string[];
   variants: {
     light: { tokens: Record<string, string>; code?: { preset: string; tokens: Record<string, string> } };
     dark: { tokens: Record<string, string>; code?: { preset: string; tokens: Record<string, string> } };
@@ -49,11 +57,12 @@ export function isThemeFamilyV2(value: unknown): value is ThemeFamilyV2 {
     return false;
   }
   const variants = rec.variants as Record<string, unknown>;
-  return isVariant(variants.light) && isVariant(variants.dark);
+  return isVariant(variants.light) && isVariant(variants.dark) &&
+    validateRawThemeYaml(value, { requireV2: true }).length === 0;
 }
 
 /** Theme records returned by loaders: legacy V1 single-mode themes or V2 families. */
-export type LoadedThemeRecord = YamlTheme | ThemeFamilyV2;
+export type LoadedThemeRecord = YamlTheme | ThemeFamily | ThemeFamilyV2;
 
 let watcher: FSWatcher | null = null;
 
@@ -77,7 +86,7 @@ export async function ensureCustomThemesDir(): Promise<string> {
 export async function readThemeFile(filePath: string): Promise<{ themes: Record<string, LoadedThemeRecord>; warnings: ConfigWarning[] }> {
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    const raw = yaml.parse(content);
+    const raw = yaml.parse(content, { maxAliasCount: 100 });
     if (!raw) return { themes: {}, warnings: [] };
     if (typeof raw !== "object" || Array.isArray(raw)) {
       return { themes: {}, warnings: [] };
@@ -87,7 +96,11 @@ export async function readThemeFile(filePath: string): Promise<{ themes: Record<
       if (!isThemeFamilyV2(raw)) {
         return { themes: {}, warnings: [{ field: filePath, message: "Invalid theme family V2 document", severity: "error" }] };
       }
-      return { themes: { [raw.id]: raw }, warnings: [] };
+      const family = parseThemeYaml(content);
+      return { themes: { [family.id]: family }, warnings: [] };
+    }
+    if ('schemaVersion' in raw) {
+      return { themes: {}, warnings: [{ field: filePath, message: "Unsupported theme schemaVersion", severity: "error" }] };
     }
     // Legacy V1 `themes:` block.
     if ("themes" in raw) {
@@ -185,24 +198,6 @@ export async function startThemeWatcher() {
   watcher.on("unlink", notify);
 }
 
-function serializeV2Family(family: ThemeFamilyV2): string {
-  const doc = {
-    schemaVersion: 2,
-    id: family.id,
-    name: family.name,
-    variants: {
-      light: {
-        tokens: family.variants.light.tokens,
-        code: family.variants.light.code,
-      },
-      dark: {
-        tokens: family.variants.dark.tokens,
-        code: family.variants.dark.code,
-      },
-    },
-  };
-  return yaml.stringify(doc);
-}
 
 export async function saveTheme(family: ThemeFamilyV2): Promise<void> {
   if (!isThemeFamilyV2(family)) {
@@ -210,10 +205,12 @@ export async function saveTheme(family: ThemeFamilyV2): Promise<void> {
   }
   const customDir = await ensureCustomThemesDir();
   const filePath = path.join(customDir, `${family.id}.yaml`);
-  await atomicReplaceFile(filePath, serializeV2Family(family), 0o600);
+  await atomicReplaceFile(filePath, serializeThemeFamilyYaml(normalizeThemeFamilyYaml(family)), 0o600);
 }
 
 export async function deleteTheme(id: string): Promise<void> {
+  const errors = validateThemeId(id, 'id');
+  if (errors.length) throw new Error(errors.join(' '));
   const customDir = await ensureCustomThemesDir();
   const filePath = path.join(customDir, `${id}.yaml`);
   try {

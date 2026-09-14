@@ -38,6 +38,9 @@ export function serializeThemeFamilyYaml(family: ThemeFamily): string {
     schemaVersion: 2,
     id: family.id,
     name: family.name,
+    ...(family.author !== undefined ? { author: family.author } : {}),
+    ...(family.description !== undefined ? { description: family.description } : {}),
+    ...(family.aliases?.length ? { aliases: [...family.aliases] } : {}),
     variants: {
       light: {
         tokens: serializeTokens(family.variants.light.tokens),

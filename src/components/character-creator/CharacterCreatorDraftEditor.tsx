@@ -164,7 +164,7 @@ export function CharacterCreatorDraftEditor({
             onClick={onValidateDraft}
             className="px-3 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors"
           >
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-success" />
             <span>
               <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.validate" />
             </span>
@@ -501,7 +501,7 @@ export function CharacterCreatorDraftEditor({
                           );
                           updateCardField("alternate_greetings", next);
                         }}
-                        className="p-1 text-rose-400 hover:bg-surface-elevated rounded"
+                        className="p-1 text-danger hover:bg-surface-elevated rounded"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -781,7 +781,7 @@ export function CharacterCreatorDraftEditor({
                                 entries,
                               });
                             }}
-                            className="p-1 text-text-muted hover:text-rose-400 rounded transition-colors"
+                            className="p-1 text-text-muted hover:text-danger rounded transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

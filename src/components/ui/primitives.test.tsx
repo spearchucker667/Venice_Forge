@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { IconButton, Pill, Toolbar, Card, EmptyState } from './primitives'
+import { IconButton, Pill, Toolbar, Card, EmptyState, Input } from './primitives'
 
 describe('IconButton', () => {
   it('renders an accessible button with the provided label', () => {
@@ -141,5 +141,60 @@ describe('EmptyState', () => {
     expect(screen.getByText('Start a new chat')).toBeInTheDocument()
     expect(screen.getByText('Pick a model and send a message.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'New chat' })).toBeInTheDocument()
+  })
+})
+
+describe('Input', () => {
+  it('renders an accessible input', () => {
+    render(<Input aria-label="Search" placeholder="Filter..." />)
+    const input = screen.getByRole('textbox', { name: 'Search' })
+    expect(input).toBeInTheDocument()
+    expect(input).toHaveAttribute('placeholder', 'Filter...')
+  })
+
+  it('renders leading and trailing adornments', () => {
+    render(
+      <Input
+        aria-label="Filter"
+        leading={<span data-testid="leading-icon">Icon</span>}
+        trailing={<span data-testid="trailing-icon">Clear</span>}
+      />,
+    )
+    expect(screen.getByTestId('leading-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('trailing-icon')).toBeInTheDocument()
+  })
+
+  it('handles input events and disabled state', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<Input aria-label="Name" onChange={onChange} />)
+    const input = screen.getByRole('textbox', { name: 'Name' })
+    await user.type(input, 'Venice')
+    expect(onChange).toHaveBeenCalled()
+  })
+})
+
+
+describe('Input accessibility and interaction', () => {
+  it('exposes validation and described help while preserving caller overrides', () => {
+    const { rerender } = render(<><Input aria-label="Name" tone="danger" aria-describedby="name-help" /><span id="name-help">Use a unique name</span></>)
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('textbox')).toHaveAccessibleDescription('Use a unique name')
+    rerender(<Input aria-label="Name" tone="danger" aria-invalid={false} />)
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'false')
+  })
+
+  it('keeps a trailing action keyboard accessible and blocks disabled input edits', async () => {
+    const user = userEvent.setup()
+    const clear = vi.fn()
+    const change = vi.fn()
+    render(<Input aria-label="Filter" disabled onChange={change} trailing={<button type="button" onClick={clear}>Clear</button>} />)
+    expect(screen.getByRole('textbox')).toBeDisabled()
+    await user.type(screen.getByRole('textbox'), 'ignored')
+    expect(change).not.toHaveBeenCalled()
+    await user.tab()
+    expect(screen.getByRole('button', { name: 'Clear' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(clear).toHaveBeenCalledOnce()
   })
 })

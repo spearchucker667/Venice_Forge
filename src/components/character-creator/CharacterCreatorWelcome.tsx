@@ -335,7 +335,7 @@ export function CharacterCreatorWelcome({
                     <button
                       type="button"
                       onClick={() => onDeleteDraft(d.id)}
-                      className="text-[11px] text-text-muted hover:text-rose-400 flex items-center gap-1"
+                      className="text-[11px] text-text-muted hover:text-danger flex items-center gap-1 transition-colors"
                       title={tRuntime(
                         "runtimeGenerated.components.characterCreator.charactercreatorwelcome.attribute.deleteDraft",
                       )}

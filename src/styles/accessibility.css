@@ -1,20 +1,67 @@
 @media (prefers-reduced-motion: reduce) {
-  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  /* Duration overrides alone do not stop active/hover scale changes. */
+  .btn:active:not(:disabled),
+  .vf-control-motion:active:not(:disabled),
+  button[class*="scale-"],
+  [role="button"][class*="scale-"] {
+    scale: none !important;
+    transform: none !important;
+  }
+  input[type="range"]::-webkit-slider-thumb { transform: none !important; }
+  input[type="range"]::-moz-range-thumb { transform: none !important; }
 }
 
-/* High contrast mode: stronger borders, reduced transparency, no blur */
+/* Restore opaque surfaces for users who cannot comfortably read through glass. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  *, *::before, *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .app-mesh-overlay { display: none; }
+  .mesh-surface, .mesh-surface-elevated, .mesh-card, .mesh-panel,
+  .glass-subtle, .glass-panel, .glass-modal, .vf-action-bar {
+    background: var(--surface-elevated);
+  }
+  .mesh-input, .vf-composer { background: var(--input-bg); }
+  .surface-overlay-scrim, .modal-backdrop-blur { background: var(--bg); }
+}
+
 @media (prefers-contrast: more) {
   :root {
     --border: color-mix(in srgb, var(--foreground) 50%, var(--bg));
     --border-strong: color-mix(in srgb, var(--foreground) 75%, var(--bg));
   }
-  .btn, input, select, textarea {
-    border-width: 2px !important;
-  }
-  * { backdrop-filter: none !important; }
+  .btn, input, select, textarea { border-width: 2px !important; }
 }
 
-/* Reduced contrast / transparent mode preference: less glassmorphism */
-@media (prefers-contrast: less) {
-  * { backdrop-filter: none !important; }
+@media (forced-colors: active) {
+  *, *::before, *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  .app-mesh-overlay, .soft-separator-x::after, .soft-separator-y::after { display: none; }
+  .mesh-surface, .mesh-surface-elevated, .mesh-card, .mesh-panel,
+  .glass-subtle, .glass-panel, .glass-modal, .modal-surface-container,
+  .vf-action-bar, .vf-composer {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+  }
+  button, [role="button"], input, select, textarea { border: 1px solid ButtonText; }
+  :disabled, [aria-disabled="true"] { color: GrayText; border-color: GrayText; }
+  :focus-visible { outline: 2px solid Highlight !important; }
+  a { text-decoration: underline; }
+}
+
+/* Compact desktop controls retain usable targets on touch input. */
+@media (pointer: coarse) {
+  button, [role="button"] { min-width: 44px; min-height: 44px; }
+  .vf-action-bar { height: auto; min-height: 44px; }
 }

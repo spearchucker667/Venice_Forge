@@ -27,15 +27,19 @@ function normalizeTokenKey(key: string): string {
   return key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
 
-function collectDangerousKeys(obj: Record<string, unknown>, prefix = ''): string[] {
+/** Bound nesting and reject recursive YAML aliases before walking token maps. */
+export function collectDangerousKeys(
+  obj: Record<string, unknown>, prefix = '', ancestors = new Set<object>(), depth = 0,
+): string[] {
+  if (depth > 16) return [`${prefix}: excessively nested document`];
+  if (ancestors.has(obj)) return [`${prefix}: cyclic alias`];
   const out: string[] = [];
+  const nextAncestors = new Set(ancestors).add(obj);
   for (const [key, value] of Object.entries(obj)) {
     const path = prefix ? `${prefix}.${key}` : key;
-    if (DANGEROUS_YAML_KEYS.has(key)) {
-      out.push(path);
-    }
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      out.push(...collectDangerousKeys(value as Record<string, unknown>, path));
+    if (DANGEROUS_YAML_KEYS.has(key)) out.push(path);
+    if (value && typeof value === 'object') {
+      out.push(...collectDangerousKeys(value as Record<string, unknown>, path, nextAncestors, depth + 1));
     }
   }
   return out;
@@ -182,16 +186,16 @@ function validateBase(base: unknown, path: string): string[] {
   return validateTokens(b.tokens, `${path}.tokens`, false);
 }
 
-function validateId(value: unknown, path: string, protectedIds?: Set<string>): string[] {
+export function validateThemeId(value: unknown, path: string, protectedIds?: Set<string>): string[] {
   const errors: string[] = [];
-  if (typeof value !== 'string' || value.length === 0) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
     errors.push(`${path} must be a non-empty string.`);
     return errors;
   }
   if (value.length > MAX_ID_LEN) {
     errors.push(`${path} must be <= ${MAX_ID_LEN} characters.`);
   }
-  if (!ID_RE.test(value)) {
+  if (!ID_RE.test(value) || DANGEROUS_YAML_KEYS.has(value)) {
     errors.push(`${path} must contain only letters, numbers, hyphens, and underscores.`);
   }
   if (protectedIds?.has(value)) {
@@ -202,7 +206,7 @@ function validateId(value: unknown, path: string, protectedIds?: Set<string>): s
 
 function validateName(value: unknown, path: string): string[] {
   const errors: string[] = [];
-  if (typeof value !== 'string' || value.length === 0) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
     errors.push(`${path} must be a non-empty string.`);
     return errors;
   }
@@ -270,9 +274,14 @@ export function validateRawThemeYaml(
       }
     }
 
-    errors.push(...validateId(doc.id, 'id', options.protectedIds));
+    errors.push(...validateThemeId(doc.id, 'id', options.protectedIds));
     errors.push(...validateName(doc.name, 'name'));
     errors.push(...validateAliases(doc.aliases, 'aliases'));
+    for (const key of ['author', 'description'] as const) {
+      if (doc[key] !== undefined && (typeof doc[key] !== 'string' || doc[key].length > 2048)) {
+        errors.push(`${key} must be a string of at most 2048 characters.`);
+      }
+    }
 
     if (!doc.variants || typeof doc.variants !== 'object' || Array.isArray(doc.variants)) {
       errors.push('variants must be an object with light and dark entries.');

@@ -548,7 +548,7 @@ export function MediaInspector({
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] transition-colors",
               item.favorite
-                ? "border-rose-400/40 bg-rose-500/[0.08] text-rose-300"
+                ? "border-danger/40 bg-danger/10 text-danger"
                 : "border-border text-text-secondary hover:border-accent hover:text-accent",
             )}
           >
@@ -1148,7 +1148,7 @@ export function MediaInspector({
                 title={tRuntime(
                   "runtimeGenerated.components.gallery.mediaInspector.attribute.removeTag",
                 )}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 text-[12px] text-text-secondary hover:border-rose-400/40 hover:text-rose-300"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 text-[12px] text-text-secondary hover:border-danger/40 hover:text-danger hover:bg-danger/10"
               >
                 #{tag}
                 <span aria-hidden="true">×</span>

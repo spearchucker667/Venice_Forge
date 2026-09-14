@@ -71,7 +71,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   const getModelLabel = useCallback(
     (m: ModelInfo) => {
       return modelType === "image" || modelType === "video"
-        ? formatModelLabelWithCost(m)
+        ? formatModelLabelWithCost(m, { minimal: true })
         : m.name || m.display_name || m.id;
     },
     [modelType],

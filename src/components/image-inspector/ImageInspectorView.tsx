@@ -162,9 +162,9 @@ export function ImageInspectorView() {
   const analysis = activeSession?.analysis;
 
   return (
-    <div className="flex h-full overflow-hidden bg-background">
+    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-background">
       {/* Left Pane: Sessions & Input */}
-      <div className="w-[340px] flex-shrink-0 border-r border-border/50 flex flex-col bg-surface overflow-hidden">
+      <div className="w-full md:w-[320px] lg:w-[340px] flex-shrink-0 border-b md:border-b-0 md:border-r border-border/50 flex flex-col bg-surface overflow-hidden max-h-[35vh] md:max-h-none">
         <div className="p-4 border-b border-border/50">
           <h2 className="text-[14px] font-semibold text-text mb-4 flex items-center gap-2">
             <ScanSearch className="w-4 h-4" />

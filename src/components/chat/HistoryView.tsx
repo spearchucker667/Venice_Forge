@@ -113,18 +113,45 @@ export default function HistoryView() {
   useEffect(() => {
     if (!folderContextMenu) return;
     const handleClick = () => setFolderContextMenu(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setFolderContextMenu(null);
+      }
+    };
     window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("click", handleClick);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [folderContextMenu]);
 
   const folderMenuRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = folderMenuRef.current;
     if (!el || !folderContextMenu) return;
+    const rect = el.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const menuWidth = rect.width || 180;
+    const menuHeight = rect.height || 220;
+
+    const clampedX = Math.max(
+      8,
+      Math.min(folderContextMenu.x, viewportWidth - menuWidth - 8),
+    );
+    const clampedY = Math.max(
+      8,
+      Math.min(folderContextMenu.y, viewportHeight - menuHeight - 8),
+    );
+
     el.style.setProperty("position", "fixed");
-    el.style.setProperty("top", `${folderContextMenu.y}px`);
-    el.style.setProperty("left", `${folderContextMenu.x}px`);
+    el.style.setProperty("top", `${clampedY}px`);
+    el.style.setProperty("left", `${clampedX}px`);
     el.style.setProperty("z-index", "9999");
+
+    const firstBtn = el.querySelector<HTMLButtonElement>("button");
+    firstBtn?.focus();
   }, [folderContextMenu]);
 
   const handleImportFolder = async () => {
@@ -1301,8 +1328,16 @@ export default function HistoryView() {
         createPortal(
           <div
             ref={folderMenuRef}
-            className="bg-surface-elevated border border-border rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in-0 zoom-in-95"
+            role="menu"
+            aria-orientation="vertical"
+            tabIndex={-1}
+            className="bg-surface-elevated border border-border rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in-0 zoom-in-95 outline-none"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setFolderContextMenu(null);
+              }
+            }}
           >
             {(() => {
               // Note: lock-state is resolved lazily below in the onClick handlers.
@@ -1315,6 +1350,7 @@ export default function HistoryView() {
               return (
                 <>
                   <button
+                    role="menuitem"
                     onClick={async (e) => {
                       e.stopPropagation();
                       const fid = folderContextMenu.folderId;
@@ -1394,6 +1430,7 @@ export default function HistoryView() {
                     )}
                   </button>
                   <button
+                    role="menuitem"
                     onClick={(e) => {
                       e.stopPropagation();
                       const f = folders.find(
@@ -1411,6 +1448,7 @@ export default function HistoryView() {
                     <Trans i18nKey="common:surface.componentsChatHistoryview.action.rename" />
                   </button>
                   <button
+                    role="menuitem"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteFolder(folderContextMenu.folderId, false);
@@ -1423,6 +1461,7 @@ export default function HistoryView() {
                   </button>
                   <div className="h-px bg-border/50 my-1" />
                   <button
+                    role="menuitem"
                     onClick={async (e) => {
                       e.stopPropagation();
                       const fid = folderContextMenu.folderId;
@@ -1452,6 +1491,7 @@ export default function HistoryView() {
                     <Trans i18nKey="common:surface.componentsChatHistoryview.action.export" />
                   </button>
                   <button
+                    role="menuitem"
                     onClick={async (e) => {
                       e.stopPropagation();
                       setFolderContextMenu(null);

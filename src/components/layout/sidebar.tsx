@@ -407,6 +407,19 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
     };
   }, [chatOptionsOpen]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onMobileClose?.();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileOpen, onMobileClose]);
+
   const expanded = sidebarOpen || mobileOpen;
 
   useEffect(() => {
@@ -417,7 +430,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   }, [sidebarOpen, sidebarWidth]);
 
   const handleResizePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    dragStartRef.current = { x: event.clientX, width: clampSidebarWidth(sidebarWidth) };
+    if (!sidebarOpen) return;
+    dragStartRef.current = { x: event.clientX, width: sidebarWidth };
     event.currentTarget.setPointerCapture?.(event.pointerId);
     document.body.classList.add("select-none");
     setDragging(true);
@@ -427,6 +441,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
     const start = dragStartRef.current;
     if (!start) return;
     const next = clampSidebarWidth(start.width + event.clientX - start.x);
+    setSidebarWidth(next);
     sidebarRef.current?.style.setProperty("--sidebar-width", `${next}px`);
   };
 
@@ -462,8 +477,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
         )}
         className={cn(
           "flex flex-col h-full min-h-0 mesh-surface mesh-sidebar soft-separator-x shell-region",
-          "relative fixed top-0 left-0 z-40 w-72 h-[100dvh] md:static md:h-full md:w-[var(--sidebar-width,256px)] md:shrink-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          "fixed top-0 left-0 z-40 w-72 h-[100dvh] md:static md:h-full md:w-[var(--sidebar-width,256px)] md:shrink-0",
+          mobileOpen
+            ? "translate-x-0 visible pointer-events-auto"
+            : "-translate-x-full invisible pointer-events-none md:translate-x-0 md:visible md:pointer-events-auto",
         )}
       >
       <div

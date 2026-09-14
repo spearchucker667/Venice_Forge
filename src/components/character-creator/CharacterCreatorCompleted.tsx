@@ -28,7 +28,7 @@ export function CharacterCreatorCompleted({
     <div className="flex flex-col items-center justify-center min-h-[450px] h-full p-6 text-center max-w-md mx-auto">
       <div className="relative mb-4">
         <CharacterCreatorMascot size="lg" />
-        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-surface flex items-center justify-center border-2 border-surface">
+        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-success text-button-primary-fg flex items-center justify-center border-2 border-surface">
           <CheckCircle2 className="w-4 h-4" />
         </div>
       </div>

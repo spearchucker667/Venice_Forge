@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AccessibleDialog } from "../ui/AccessibleDialog";
 import type { AgentPermissionPreset } from "../../agent/contracts/capabilities";
 import type {
   DocumentBlock,
@@ -228,9 +229,11 @@ export function DocumentAgentView() {
   const [newDocName, setNewDocName] = useState("notes.md");
   const [newDocFormat, setNewDocFormat] = useState<DocumentFormat>("md");
   const [newDocContent, setNewDocContent] = useState("");
+  const newDocPanelRef = useRef<HTMLDivElement>(null);
 
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const newGroupPanelRef = useRef<HTMLDivElement>(null);
 
   const [editText, setEditText] = useState("");
   const [proposal, setProposal] = useState<ProposalView | null>(null);
@@ -1075,11 +1078,15 @@ export function DocumentAgentView() {
 
       {/* New Document Modal */}
       {showNewDocModal && (
-        <div className="fixed inset-0 bg-overlay/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-elevated border border-border rounded-xl p-5 w-full max-w-md space-y-4 shadow-xl">
-            <h3 className="text-[16px] font-semibold text-foreground">
-              <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.heading.createManagedDocument" />
-            </h3>
+        <AccessibleDialog
+          title={
+            <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.heading.createManagedDocument" />
+          }
+          panelRef={newDocPanelRef}
+          panelClassName="max-w-md"
+          onClose={() => setShowNewDocModal(false)}
+        >
+          <div className="p-5 space-y-4">
             <div className="space-y-3">
               <div>
                 <label htmlFor="doc-agent-1" className="block text-[12px] text-foreground-muted mb-1">
@@ -1140,7 +1147,7 @@ export function DocumentAgentView() {
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
               <GhostButton onClick={() => setShowNewDocModal(false)}>
                 <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.text.cancel" />
               </GhostButton>
@@ -1153,16 +1160,20 @@ export function DocumentAgentView() {
               </PrimaryButton>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* New Working Group Modal */}
       {showNewGroupModal && (
-        <div className="fixed inset-0 bg-overlay/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-elevated border border-border rounded-xl p-5 w-full max-w-sm space-y-4 shadow-xl">
-            <h3 className="text-[16px] font-semibold text-foreground">
-              <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.heading.createWorkingGroup" />
-            </h3>
+        <AccessibleDialog
+          title={
+            <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.heading.createWorkingGroup" />
+          }
+          panelRef={newGroupPanelRef}
+          panelClassName="max-w-sm"
+          onClose={() => setShowNewGroupModal(false)}
+        >
+          <div className="p-5 space-y-4">
             <div>
               <label htmlFor="doc-agent-4" className="block text-[12px] text-foreground-muted mb-1">
                 <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.label.workingGroupName" />
@@ -1176,7 +1187,7 @@ export function DocumentAgentView() {
                 className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-[13px] text-input-fg"
               />
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
               <GhostButton onClick={() => setShowNewGroupModal(false)}>
                 <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.text.cancel" />
               </GhostButton>
@@ -1189,7 +1200,7 @@ export function DocumentAgentView() {
               </PrimaryButton>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
     </div>
   );

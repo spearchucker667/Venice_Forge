@@ -129,10 +129,10 @@ export function CharacterChatsView() {
 
   return (
     <div
-      className="flex h-full min-h-0 mesh-surface shell-region"
+      className="flex flex-col md:flex-row h-full min-h-0 mesh-surface shell-region"
       data-testid="character-chats-workspace"
     >
-      <aside className="flex w-[clamp(260px,28%,360px)] shrink-0 flex-col soft-separator-x mesh-surface-elevated">
+      <aside className="flex w-full md:w-[clamp(260px,28%,360px)] shrink-0 flex-col border-b md:border-b-0 soft-separator-x mesh-surface-elevated max-h-[35vh] md:max-h-none">
         <header className="space-y-3 px-4 py-4 soft-separator-y mesh-header">
           <div className="flex items-start justify-between gap-3">
             <div>

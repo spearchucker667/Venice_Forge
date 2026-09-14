@@ -27,6 +27,14 @@ vi.mock('../../hooks/use-video', () => ({
 
 vi.mock('../../services/desktopBridge', () => ({ desktopMedia: { saveMediaAs } }))
 
+const mockUseVideoQuote = vi.fn<(...args: any[]) => { data?: { costUsd: number } | null; isLoading: boolean }>(() => ({
+  data: undefined,
+  isLoading: false,
+}))
+vi.mock('../../hooks/use-video-quote', () => ({
+  useVideoQuote: (...args: any[]) => mockUseVideoQuote(...args),
+}))
+
 vi.mock('../../hooks/use-models', () => ({
   useVideoModels: () => ({
     groups: [
@@ -138,8 +146,9 @@ describe('VideoView accessibility', () => {
     resetMock.mockReset()
     cancelMock.mockReset()
     saveMediaAs.mockReset()
+    mockUseVideoQuote.mockReturnValue({ data: undefined, isLoading: false })
     videoState = { videoUrl: null, resultMediaId: null }
-    useSettingsStore.setState({ selectedVideoMode: 'text' })
+    useSettingsStore.setState({ selectedVideoMode: 'text', selectedVideoModelGroup: undefined, selectedVideoModelId: undefined })
     mockIsSupportedImageFile.mockImplementation(
       (file: File) => file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp',
     )
@@ -288,22 +297,48 @@ describe('VideoView accessibility', () => {
     expect(JSON.stringify(mockToastError.mock.calls)).not.toContain('/Users/private')
   })
 
-  it('shows schema-qualified pricing in the model selector for text-to-video mode', () => {
+  it('shows schema-qualified pricing in the model selector for text-to-video mode and suppresses Price unavailable', () => {
     render(<VideoView />)
     const modelButton = screen.getByRole('button', { name: 'Model' })
     fireEvent.click(modelButton)
     expect(screen.getAllByText('Priced Text-to-Video (from $0.12/generation (4s))').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Fallback Text-to-Video (Price unavailable)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Fallback Text-to-Video').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('No Text Model').length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText(/Price unavailable/)).toBeNull()
   })
 
-  it('switches cost label to the image-to-video model when mode changes', () => {
+  it('switches cost label to the image-to-video model when mode changes and suppresses Price unavailable', () => {
     render(<VideoView />)
     fireEvent.click(screen.getByRole('button', { name: 'Image to Video' }))
     const modelButton = screen.getByRole('button', { name: 'Model' })
     fireEvent.click(modelButton)
     expect(screen.getAllByText('Priced Image-to-Video (from $0.23/generation (4s))').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Image-Only Video (Price unavailable)').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Image-Only Video').length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText(/Price unavailable/)).toBeNull()
+  })
+
+  it('renders dynamic video quote estimate badge when quote is available', () => {
+    mockUseVideoQuote.mockReturnValue({ data: { costUsd: 0.15 }, isLoading: false })
+    render(<VideoView />)
+    const quoteBadge = screen.getByTestId('video-estimated-cost')
+    expect(quoteBadge).toBeInTheDocument()
+    expect(quoteBadge).toHaveTextContent('$0.15')
+  })
+
+  it('auto-switches to image mode when an image-only model group is selected', async () => {
+    render(<VideoView />)
+    expect(screen.getByRole('button', { name: 'Text to Video' })).toHaveAttribute('aria-pressed', 'true')
+
+    const modelButton = screen.getByRole('button', { name: 'Model' })
+    fireEvent.click(modelButton)
+    const options = screen.getAllByRole('option')
+    const noTextOption = options.find((o) => o.textContent?.includes('No Text Model'))
+    expect(noTextOption).toBeDefined()
+    if (noTextOption) fireEvent.click(noTextOption)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Image to Video' })).toHaveAttribute('aria-pressed', 'true')
+    })
   })
 
   it('falls back to the group name when the active-mode model is missing', () => {

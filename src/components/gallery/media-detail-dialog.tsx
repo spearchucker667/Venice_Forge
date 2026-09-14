@@ -159,7 +159,7 @@ export function MediaDetailDialog({
               className={cn(
                 "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[12px] transition-colors",
                 item.favorite
-                  ? "border-rose-400/40 bg-rose-500/10 text-rose-300"
+                  ? "border-danger/40 bg-danger/10 text-danger"
                   : "border-border text-text-secondary hover:border-accent hover:text-accent",
               )}
             >

@@ -105,11 +105,11 @@ export function PrimaryButton({
       aria-label={ariaLabel}
       aria-busy={loading || undefined}
       className={cn(
-        "rounded-lg font-medium transition-all duration-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2",
+        "rounded-lg font-medium vf-control-motion focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2",
         fullWidth && "w-full",
         sizing,
         !disabled && !loading
-          ? "bg-button-primary-bg text-button-primary-fg hover:bg-accent-hover active:scale-[0.99] shadow-sm"
+          ? "bg-button-primary-bg text-button-primary-fg hover:bg-accent-hover shadow-sm"
           : "bg-surface-muted text-disabled-fg cursor-not-allowed",
         className,
       )}
@@ -155,6 +155,94 @@ export function GhostButton({
   );
 }
 
+export function SecondaryButton({
+  onClick,
+  disabled,
+  children,
+  ariaLabel,
+  size = "md",
+  className,
+  fullWidth = false,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  ariaLabel?: string;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  const sizing =
+    size === "sm"
+      ? "px-3 py-1.5 text-[13px] min-w-[72px]"
+      : size === "lg"
+        ? "px-5 py-2.5 text-[15px] min-w-[96px]"
+        : "px-4 py-2 text-[14px] min-w-[80px]";
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        uiSoundController.play("secondaryClick");
+        onClick();
+      }}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      className={cn(
+        "rounded-lg font-medium border border-border bg-button-secondary-bg text-button-secondary-fg hover:border-border-strong hover:bg-surface-muted vf-control-motion disabled:text-disabled-fg disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2",
+        fullWidth && "w-full",
+        sizing,
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function DangerButton({
+  onClick,
+  disabled,
+  children,
+  ariaLabel,
+  size = "md",
+  className,
+  fullWidth = false,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  ariaLabel?: string;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  const sizing =
+    size === "sm"
+      ? "px-3 py-1.5 text-[13px] min-w-[72px]"
+      : size === "lg"
+        ? "px-5 py-2.5 text-[15px] min-w-[96px]"
+        : "px-4 py-2 text-[14px] min-w-[80px]";
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        uiSoundController.play("secondaryClick");
+        onClick();
+      }}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      className={cn(
+        "rounded-lg font-medium border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20 hover:border-danger vf-control-motion disabled:text-disabled-fg disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2",
+        fullWidth && "w-full",
+        sizing,
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function PillGroup({
   options,
   value,
@@ -186,7 +274,7 @@ export function PillGroup({
             onChange(o.value);
           }}
           className={cn(
-            "text-[13px] font-medium px-2.5 py-1 rounded-md border transition-all duration-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-focus-ring",
+            "text-[13px] font-medium px-2.5 py-1 rounded-md border vf-control-motion focus-visible:outline focus-visible:outline-1 focus-visible:outline-focus-ring",
             o.value === value
               ? "border-border-strong bg-surface-muted text-foreground shadow-sm"
               : "border-border text-foreground-muted hover:text-foreground hover:border-border-strong hover:bg-surface-muted",
@@ -203,7 +291,7 @@ export function ErrorText({ children }: { children: React.ReactNode }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2 text-[13px] text-red-300/95 bg-red-500/[0.06] border border-red-500/20 rounded-lg px-3 py-2"
+      className="flex items-start gap-2 text-[13px] text-danger bg-danger/10 border border-danger/25 rounded-lg px-3 py-2"
     >
       <svg
         width="14"
@@ -280,7 +368,7 @@ export function ExamplePrompts({
                 uiSoundController.play("secondaryClick");
                 onPick(text);
               }}
-              className="group text-left px-3.5 py-3 rounded-xl border border-border/60 bg-surface-muted hover:border-border-strong hover:bg-surface-elevated transition-all text-[13.5px] text-text-secondary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+              className="group text-left px-3.5 py-3 rounded-xl border border-border/60 bg-surface-muted hover:border-border-strong hover:bg-surface-elevated vf-control-motion text-[13.5px] text-text-secondary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
             >
               <span className="flex items-start gap-2">
                 <span className="text-text-muted/50 group-hover:text-[var(--color-accent)] transition-colors mt-px">
@@ -326,14 +414,19 @@ export function SectionHeading({
 }
 
 const TONE: Record<string, string> = {
-  emerald: "bg-emerald-400/15 text-emerald-300 border-emerald-400/20",
-  sky: "bg-sky-400/15 text-sky-300 border-sky-400/20",
-  violet: "bg-violet-400/15 text-violet-300 border-violet-400/20",
-  amber: "bg-amber-400/15 text-amber-300 border-amber-400/20",
-  pink: "bg-pink-400/15 text-pink-300 border-pink-400/20",
+  emerald: "bg-success/15 text-success border-success/30",
+  success: "bg-success/15 text-success border-success/30",
+  sky: "bg-accent/15 text-accent border-accent/30",
+  accent: "bg-accent/15 text-accent border-accent/30",
+  violet: "bg-accent/15 text-accent border-accent/30",
+  amber: "bg-warning/15 text-warning border-warning/30",
+  warning: "bg-warning/15 text-warning border-warning/30",
+  pink: "bg-danger/15 text-danger border-danger/30",
+  rose: "bg-danger/15 text-danger border-danger/30",
+  danger: "bg-danger/15 text-danger border-danger/30",
   slate: "bg-surface-muted text-text-secondary border-border",
-  rose: "bg-rose-400/15 text-rose-300 border-rose-400/20",
-  teal: "bg-[var(--color-accent-soft)] text-[var(--color-accent)] border-[var(--color-accent)]/30",
+  neutral: "bg-surface-muted text-text-secondary border-border",
+  teal: "bg-accent/15 text-accent border-accent/30",
 };
 
 export function Badge({
@@ -359,18 +452,27 @@ export function StatusDot({
   tone = "slate",
   pulsing,
 }: {
-  tone?: "emerald" | "amber" | "rose" | "slate" | "teal";
+  tone?:
+    | "emerald"
+    | "amber"
+    | "rose"
+    | "slate"
+    | "teal"
+    | "success"
+    | "warning"
+    | "danger"
+    | "accent";
   pulsing?: boolean;
 }) {
   const color =
-    tone === "emerald"
-      ? "bg-emerald-400"
-      : tone === "amber"
-        ? "bg-amber-400"
-        : tone === "rose"
-          ? "bg-rose-400"
-          : tone === "teal"
-            ? "bg-[var(--color-accent)]"
+    tone === "emerald" || tone === "success"
+      ? "bg-success"
+      : tone === "amber" || tone === "warning"
+        ? "bg-warning"
+        : tone === "rose" || tone === "danger"
+          ? "bg-danger"
+          : tone === "teal" || tone === "accent"
+            ? "bg-accent"
             : "bg-text-muted/40";
   return (
     <span

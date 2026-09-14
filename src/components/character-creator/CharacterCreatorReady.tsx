@@ -43,7 +43,7 @@ export function CharacterCreatorReady({
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-border/50 pb-4">
           <div
-            className={`p-3 rounded-xl ${validationResults.valid ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}
+            className={`p-3 rounded-xl ${validationResults.valid ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}
           >
             {validationResults.valid ? (
               <CheckCircle2 className="w-6 h-6" />
@@ -94,12 +94,12 @@ export function CharacterCreatorReady({
         {/* Validation Output */}
         <div className="flex flex-col gap-3">
           {validationResults.errors.length > 0 && (
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs flex flex-col gap-1.5">
-              <span className="font-bold text-rose-400 flex items-center gap-1.5">
+            <div className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-xs flex flex-col gap-1.5">
+              <span className="font-bold text-danger flex items-center gap-1.5">
                 <XCircle className="w-4 h-4" />{" "}
                 <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorready.text.errorsMustResolve" />
               </span>
-              <ul className="list-disc list-inside text-rose-300 gap-1 flex flex-col pl-1">
+              <ul className="list-disc list-inside text-danger/90 gap-1 flex flex-col pl-1">
                 {validationResults.errors.map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}

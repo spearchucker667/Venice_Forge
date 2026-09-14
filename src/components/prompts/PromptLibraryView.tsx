@@ -258,9 +258,9 @@ export function PromptLibraryView() {
   }, [activePromptId, filtered, setActivePrompt]);
 
   return (
-    <div className="flex h-full w-full min-h-0 text-text-primary">
+    <div className="flex flex-col md:flex-row h-full w-full min-h-0 text-text-primary">
       <aside
-        className="w-[clamp(280px,30%,400px)] shrink-0 soft-separator-x mesh-surface flex flex-col min-h-0"
+        className="w-full md:w-[clamp(280px,30%,400px)] shrink-0 border-b md:border-b-0 soft-separator-x mesh-surface flex flex-col min-h-0 max-h-[35vh] md:max-h-none"
         data-testid="prompt-library-list-pane"
       >
         <div className="px-3 py-2 soft-separator-y mesh-header mesh-surface space-y-2">

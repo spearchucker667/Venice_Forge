@@ -5,7 +5,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ThemeMaker } from "./ThemeMaker";
 import { useSettingsStore } from "../stores/settings-store";
 import { useConfigStore } from "../stores/config-store";
-import { completeCodeThemeConfig, type ThemeVariant } from "../theme";
+import { completeCodeThemeConfig, type ThemeVariant, BUILTIN_THEME_FAMILIES } from "../theme";
 
 vi.mock("../services/desktopBridge", async () => {
   const actual = await vi.importActual<typeof import("../services/desktopBridge")>(
@@ -207,6 +207,34 @@ describe("ThemeMaker built-in theme selection", () => {
     // Family identity is preserved; the canonical mode is inferred from the
     // light variant background.
     expect(useSettingsStore.getState().appearanceMode).toBe("light");
+  });
+
+  it("deduplicates themes when YAML registry contains themes sharing built-in names or IDs", () => {
+    useConfigStore.setState({
+      yamlThemes: {
+        "amber-archive": BUILTIN_THEME_FAMILIES.find((f) => f.id === "amber-archive")!,
+        nord: BUILTIN_THEME_FAMILIES.find((f) => f.id === "nord")!,
+        "custom-unique": {
+          schemaVersion: 2,
+          id: "custom-unique",
+          name: "Unique Custom YAML",
+          variants: BUILTIN_THEME_FAMILIES[0].variants,
+        },
+      },
+    });
+
+    render(<ThemeMaker />);
+    expect(screen.getAllByRole("button", { name: "Amber Archive" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Forge Nord" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Unique Custom YAML" })).toHaveLength(1);
+  });
+
+  it("renders the theme selection container with extended vertical height", () => {
+    const { container } = render(<ThemeMaker />);
+    const grid = container.querySelector(".overflow-y-auto");
+    expect(grid).toBeInTheDocument();
+    expect(grid).toHaveClass("min-h-[16rem]");
+    expect(grid).toHaveClass("max-h-[36rem]");
   });
 });
 

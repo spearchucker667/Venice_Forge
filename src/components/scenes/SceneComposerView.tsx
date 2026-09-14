@@ -208,9 +208,9 @@ export function SceneComposerView() {
   );
 
   return (
-    <div className="flex h-full w-full min-h-0 text-text-primary">
+    <div className="flex flex-col md:flex-row h-full w-full min-h-0 text-text-primary">
       <aside
-        className="w-[340px] shrink-0 border-r border-border/50 flex flex-col min-h-0"
+        className="w-full md:w-[320px] lg:w-[340px] shrink-0 border-b md:border-b-0 md:border-r border-border/50 flex flex-col min-h-0 max-h-[35vh] md:max-h-none"
         data-testid="scene-composer-list-pane"
       >
         <div className="px-3 py-2 border-b border-border/50 space-y-2">
@@ -287,7 +287,7 @@ export function SceneComposerView() {
               aria-pressed={favoritesOnly}
               className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 favoritesOnly
-                  ? "border-amber-500/40 text-amber-300"
+                  ? "border-warning/40 text-warning"
                   : "border-border text-text-secondary hover:border-accent hover:text-accent"
               }`}
               data-testid="scene-composer-favorites-filter"

@@ -13,25 +13,35 @@
   border: 1px solid var(--border);
   color: var(--button-secondary-fg);
   background: var(--button-secondary-bg);
-  border-radius: 8px;
-  padding: 10px 24px;
+  border-radius: var(--radius-control);
+  padding: var(--space-control-y) var(--space-control-x);
   font-size: 14px;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  transition: all 0.2s ease;
+  min-height: 40px;
+  transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
 .btn:hover:not(:disabled) { background: var(--surface-muted); border-color: var(--border-strong); }
-.btn:disabled { color: var(--disabled-fg); cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn:disabled { color: var(--disabled-fg); cursor: not-allowed; opacity: 0.6; }
 .btn.primary { background: var(--button-primary-bg); color: var(--button-primary-fg); border: 1px solid var(--button-primary-bg); box-shadow: none; }
 .btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); box-shadow: none; }
-.btn.danger { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 5%, transparent); }
-.btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 15%, transparent); }
-.btn.ghost { border-color: transparent; background: transparent; }
-.btn.ghost:hover:not(:disabled) { background: var(--surface); }
+.btn.secondary { background: var(--button-secondary-bg); color: var(--button-secondary-fg); border: 1px solid var(--border); }
+.btn.secondary:hover:not(:disabled) { background: var(--surface-muted); border-color: var(--border-strong); }
+.btn.danger { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+.btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 18%, transparent); border-color: var(--danger); }
+.btn.danger-solid { border-color: var(--danger); color: var(--danger-fg); background: var(--danger); }
+.btn.danger-solid:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 85%, transparent); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--text-secondary); }
+.btn.ghost:hover:not(:disabled) { background: var(--surface-elevated); color: var(--text-primary); }
+.btn-sm { min-height: 32px; padding: 6px 14px; font-size: 12px; border-radius: 6px; gap: 6px; }
+.btn-md { min-height: 40px; padding: 9px 20px; font-size: 14px; border-radius: var(--radius-control); gap: 8px; }
+.btn-lg { min-height: 46px; padding: 12px 26px; font-size: 15px; border-radius: 10px; gap: 10px; }
+.btn-icon { width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: var(--radius-control); }
+.btn-icon-sm { width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 6px; }
 
 /* App-wide ambient mesh overlay — subtle, theme-aware, non-interactive */
 .app-mesh-overlay {
@@ -51,16 +61,14 @@
   background:
     radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 24rem),
     linear-gradient(145deg, color-mix(in srgb, var(--color-surface) 82%, transparent), color-mix(in srgb, var(--color-surface-elevated) 52%, transparent));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+
 }
 
 .mesh-surface-elevated {
   background:
     radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 18rem),
     linear-gradient(155deg, color-mix(in srgb, var(--color-surface-elevated) 78%, transparent), color-mix(in srgb, var(--color-surface) 66%, transparent));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+
 }
 
 .soft-separator-x,
@@ -108,8 +116,7 @@
     radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 16rem),
     linear-gradient(145deg, color-mix(in srgb, var(--color-surface-elevated) 82%, transparent), color-mix(in srgb, var(--color-surface) 68%, transparent));
   border: 1px solid var(--color-border);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+
 }
 
 .mesh-input {
@@ -150,20 +157,58 @@
 .surface-elevated-2 {
   background: var(--color-surface-elevated-2);
   border: 1px solid var(--color-border-soft);
-  border-radius: 12px;
+  border-radius: var(--radius-panel);
 }
 
 /* Full-bleed scrim — used for modal backdrops. */
 .surface-overlay-scrim {
   background: var(--color-surface-overlay);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(var(--blur-overlay));
+  -webkit-backdrop-filter: blur(var(--blur-overlay));
 }
 
 /* Muted surface — chip / pill background. */
 .muted-surface {
   background: var(--color-muted-surface);
   border: 1px solid var(--color-border-soft);
+}
+
+/* Glass & Elevation utilities */
+.glass-subtle {
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  backdrop-filter: blur(var(--blur-overlay));
+  -webkit-backdrop-filter: blur(var(--blur-overlay));
+  border: 1px solid var(--color-border-soft);
+}
+
+.glass-panel {
+  background: color-mix(in srgb, var(--color-surface-elevated) 82%, transparent);
+
+  border: 1px solid var(--color-border-soft);
+  box-shadow: var(--shadow-medium);
+}
+
+.glass-modal {
+  background: color-mix(in srgb, var(--color-surface-elevated-2) 92%, transparent);
+  backdrop-filter: blur(var(--blur-overlay));
+  -webkit-backdrop-filter: blur(var(--blur-overlay));
+  border: 1px solid var(--color-border-soft);
+  box-shadow: var(--shadow-overlay);
+}
+
+/* Scrim & Modal Container */
+.modal-backdrop-blur {
+  background: color-mix(in srgb, var(--color-bg) 65%, transparent);
+  backdrop-filter: blur(var(--blur-overlay));
+  -webkit-backdrop-filter: blur(var(--blur-overlay));
+}
+
+.modal-surface-container {
+  background: var(--color-surface-elevated-2);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-overlay);
+  animation: scale-in var(--motion-fast) var(--motion-ease);
 }
 
 /* Soft border utilities — semantic aliases for the opacity-soup
@@ -183,11 +228,11 @@
   gap: 0.125rem;
   height: 28px;
   padding: 0 0.25rem;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--color-surface-overlay);
   border: 1px solid var(--color-border-soft);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--blur-overlay));
+  -webkit-backdrop-filter: blur(var(--blur-overlay));
   transition: opacity var(--motion-fast) var(--motion-ease),
     background-color var(--motion-fast) var(--motion-ease);
 }
@@ -232,7 +277,10 @@
   margin: 0 auto;
 }
 .vf-empty-state__eyebrow {
-  composes: vf-tag;
+  font-size: var(--text-tag);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--color-text-muted);
   margin-bottom: 0.75rem;
 }
@@ -260,7 +308,7 @@
     color-mix(in srgb, var(--color-surface-elevated) 70%, transparent)
   );
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius-dialog);
   box-shadow: 0 1px 2px color-mix(in srgb, #000 8%, transparent);
   transition: border-color var(--motion-fast) var(--motion-ease),
     box-shadow var(--motion-fast) var(--motion-ease);
@@ -292,3 +340,14 @@
 [data-font-preview="system-sans"] { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
 [data-font-preview="system-serif"] { font-family: Georgia, Cambria, "Times New Roman", Times, serif; }
 [data-font-preview="system-mono"] { font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace; }
+
+/* Shared actions animate only paint and a bounded press response. */
+.vf-control-motion {
+  transition: color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    scale var(--motion-fast) var(--motion-ease);
+}
+.vf-control-motion:active:not(:disabled) { scale: 0.99; }
+.vf-input-control { min-width: 0; }
+.vf-input-control:focus-visible { outline: none; }

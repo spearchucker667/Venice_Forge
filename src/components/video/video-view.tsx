@@ -9,6 +9,7 @@ import {
 import { selectHasVeniceKey, useAuthStore } from "../../stores/auth-store";
 import { useVideoModels, type VideoModelGroup } from "../../hooks/use-models";
 import { useVideo } from "../../hooks/use-video";
+import { useVideoQuote } from "../../hooks/use-video-quote";
 
 import { useSettingsStore } from "../../stores/settings-store";
 import { Select } from "../ui/select";
@@ -28,7 +29,7 @@ import {
   isSupportedImageFile,
   readImageAttachment,
 } from "../../services/attachmentService";
-import { formatModelLabelWithCost } from "../../utils/pricing";
+import { formatModelLabelWithCost, formatUsd } from "../../utils/pricing";
 import { desktopMedia } from "../../services/desktopBridge";
 import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
 import { ManagedVideoPlayer } from "../media/ManagedVideoPlayer";
@@ -84,7 +85,20 @@ export function VideoView() {
     return groups.find((g) => g.name === selectedGroup);
   }, [groups, selectedGroup]);
 
-  const activeModel = mode === "image" ? group?.imageModel : group?.textModel;
+  // Auto-switch mode if current mode isn't supported by the selected group
+  useEffect(() => {
+    if (!group) return;
+    if (mode === "text" && !group.textModel && group.imageModel) {
+      setSelectedMode("image");
+    } else if (mode === "image" && !group.imageModel && group.textModel) {
+      setSelectedMode("text");
+    }
+  }, [group, mode, setSelectedMode]);
+
+  const activeModel =
+    mode === "image"
+      ? group?.imageModel || group?.textModel
+      : group?.textModel || group?.imageModel;
   const constraints = activeModel?.model_spec?.constraints as
     VideoConstraints | undefined;
 
@@ -126,6 +140,16 @@ export function VideoView() {
     ? aspect
     : aspectOpts[0]?.value || "";
 
+  // Fetch dynamic video quote based on selected configuration
+  const { data: quote } = useVideoQuote({
+    model: activeModel?.id,
+    duration: effectiveDuration,
+    resolution: effectiveResolution,
+    aspectRatio: effectiveAspect,
+    audio: constraints?.audio ? audioEnabled : undefined,
+    enabled: hasVeniceKey && !!activeModel?.id && !!effectiveDuration,
+  });
+
   // P0: pre-select defaults from the model constraints so the request
   // ALWAYS carries a `duration` (required by the swagger `QueueVideoRequest`)
   // and so the pickers show what is actually being sent. The previous
@@ -163,7 +187,7 @@ export function VideoView() {
       const model = mode === "image" ? g.imageModel : g.textModel;
       if (!model) return g.name;
       try {
-        return formatModelLabelWithCost(model);
+        return formatModelLabelWithCost(model, { minimal: true });
       } catch {
         return g.name;
       }
@@ -517,9 +541,9 @@ export function VideoView() {
         </div>
       )}
 
-      {/* Capability tags */}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+      {/* Capability tags & dynamic quote */}
+      {(tags.length > 0 || quote?.costUsd !== undefined) && (
+        <div className="flex flex-wrap items-center gap-1.5">
           {tags.map((t) => (
             <span
               key={t}
@@ -528,6 +552,14 @@ export function VideoView() {
               {t}
             </span>
           ))}
+          {quote?.costUsd !== undefined && (
+            <span
+              className="text-xs text-accent font-medium bg-accent/10 border border-accent/20 rounded px-2 py-0.5 font-mono"
+              data-testid="video-estimated-cost"
+            >
+              {formatUsd(quote.costUsd)}
+            </span>
+          )}
         </div>
       )}
 

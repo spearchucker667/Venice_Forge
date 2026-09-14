@@ -174,3 +174,11 @@ describe("resolveInitialTheme", () => {
     expect(result.mode).toBe("dark");
   });
 });
+
+
+it('prefers both persisted family variants over the legacy single-mode projection', () => {
+  const family = { ...BUILTIN_VENICE, id: 'authored-pair' };
+  const legacy = { ...resolveTheme(family, 'dark') };
+  const restored = resolveInitialTheme({ selectedThemeId: family.id, appearanceMode: 'light', customThemes: [legacy] }, { [family.id]: family });
+  expect(restored.tokens).toEqual(resolveTheme(family, 'light').tokens);
+});

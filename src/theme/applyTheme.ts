@@ -189,6 +189,13 @@ export function resolveInitialTheme(
   const selectedId = bootstrap?.selectedThemeId || '';
   const appearanceMode = migrateAppearanceMode(bootstrap?.appearanceMode);
 
+  // Canonical families retain both authored variants. Legacy settings only
+  // contain a single-mode projection and must not shadow the durable family.
+  const yamlTheme = yamlThemes?.[selectedId];
+  if (yamlTheme) {
+    return resolveTheme(yamlTheme, appearanceMode);
+  }
+
   if (selectedId === 'custom' && isValidPersistedTheme(bootstrap?.customTheme)) {
     return resolveTheme(legacyThemeToFamily(bootstrap.customTheme), appearanceMode);
   }
@@ -202,10 +209,6 @@ export function resolveInitialTheme(
     return resolveTheme(legacyThemeToFamily(bootstrap.customTheme), appearanceMode);
   }
 
-  const yamlTheme = yamlThemes?.[selectedId];
-  if (yamlTheme) {
-    return resolveTheme(yamlTheme, appearanceMode);
-  }
 
   const migrated = migrateLegacyThemeId(selectedId);
   const family = themeRegistry.get(migrated.themeId) ?? findBuiltinThemeFamily(migrated.themeId);

@@ -140,16 +140,24 @@ export function useVideoModels() {
   if (query.data) {
     const map = new Map<string, VideoModelGroup>()
     for (const m of query.data) {
-      const c = m.model_spec?.constraints as VideoConstraints | undefined
-      if (!c) continue
+      const c = (m.model_spec?.constraints as VideoConstraints | undefined) || {
+        model_type: 'text-to-video' as const,
+        aspect_ratios: ['16:9'],
+        resolutions: ['720p'],
+        durations: ['5s'],
+        audio: false,
+        audio_configurable: false,
+        audio_input: false,
+        video_input: false,
+      }
       const name = m.model_spec?.name || m.id
       const key = name.toLowerCase()
       if (!map.has(key)) {
         map.set(key, { name, sets: m.model_spec?.model_sets || [] })
       }
       const group = map.get(key)!
-      if (c.model_type === 'text-to-video') group.textModel = m
-      else if (c.model_type === 'image-to-video') group.imageModel = m
+      if (c.model_type === 'text-to-video' || c.model_type === 'video') group.textModel = m
+      if (c.model_type === 'image-to-video' || c.model_type === 'video') group.imageModel = m
       // Merge sets
       const newSets = m.model_spec?.model_sets || []
       for (const s of newSets) {

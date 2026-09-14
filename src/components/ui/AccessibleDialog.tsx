@@ -41,7 +41,7 @@ export function AccessibleDialog({
 
   return (
     <div
-      className={`fixed inset-0 ${zIndexClassName} grid place-items-center bg-overlay/70 p-4 backdrop-blur-sm`}
+      className={`fixed inset-0 ${zIndexClassName} grid place-items-center bg-overlay/75 p-4 modal-backdrop-blur animate-fade-in`}
       role="presentation"
       onMouseDown={(event) => {
         if (closeOnBackdrop && onClose && event.target === event.currentTarget) onClose()
@@ -54,7 +54,7 @@ export function AccessibleDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className={`flex max-h-[min(90vh,900px)] w-full flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-2xl focus:outline-none ${panelClassName}`}
+        className={`flex max-h-[min(90vh,900px)] w-full flex-col overflow-hidden modal-surface-container focus:outline-none ${panelClassName}`}
       >
         <header className="flex items-start justify-between gap-4 border-b border-border/50 px-5 py-4">
           <div className="min-w-0">

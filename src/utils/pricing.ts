@@ -50,7 +50,7 @@ function finiteUsd(amount: VenicePricingAmount | undefined): number | undefined 
     : undefined;
 }
 
-function formatUsd(value: number): string {
+export function formatUsd(value: number): string {
   const abs = Math.abs(value);
   if (abs === 0) return "$0";
   if (abs < 0.0001) return `$${value.toExponential(2)}`;
@@ -138,7 +138,7 @@ function formatTimedPricing(pricing: VeniceModelPricing): string | null {
   return null;
 }
 
-function formatPricing(type: string, pricing: VeniceModelPricing): string | null {
+export function formatPricing(type: string, pricing: VeniceModelPricing): string | null {
   if (type === "text" || type === "embedding" || type === "embeddings") {
     return formatTextPricing(pricing);
   }

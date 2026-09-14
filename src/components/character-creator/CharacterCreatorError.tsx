@@ -42,7 +42,7 @@ export function CharacterCreatorError({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] h-full p-6 text-center max-w-lg mx-auto">
-      <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-4">
+      <div className="w-16 h-16 rounded-full bg-danger/10 border border-danger/30 flex items-center justify-center text-danger mb-4">
         <AlertCircle className="w-8 h-8" />
       </div>
 
@@ -54,8 +54,8 @@ export function CharacterCreatorError({
       </p>
 
       {/* Error Details Box */}
-      <div className="w-full bg-surface/60 rounded-xl border border-rose-500/20 p-4 mb-6 text-left">
-        <div className="flex items-center justify-between text-xs text-rose-400 font-bold mb-1">
+      <div className="w-full bg-surface/60 rounded-xl border border-danger/20 p-4 mb-6 text-left">
+        <div className="flex items-center justify-between text-xs text-danger font-bold mb-1">
           <span>
             <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorerror.text.diagnosticMessage" />
           </span>

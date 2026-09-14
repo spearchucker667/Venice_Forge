@@ -261,3 +261,23 @@ variants:
     expect(() => parseThemeYaml(yaml, { protectedIds: new Set(['venice']) })).toThrow('protected built-in theme id');
   });
 });
+
+
+describe('theme import boundary regressions', () => {
+  it.each([0, 1, 3, 99, '2'])('rejects explicit unsupported schema version %s before legacy dispatch', (version) => {
+    const text = JSON.stringify({ schemaVersion: version, background: '#000', foreground: '#fff', accent: '#abc' });
+    expect(() => parseThemeYaml(text)).toThrow(/schemaVersion/);
+  });
+
+  it('rejects cyclic YAML without overflowing the stack', () => {
+    expect(() => parseThemeYaml('schemaVersion: 2\nid: loop\nname: Loop\nvariants: &loop\n  dark: *loop')).toThrow(/cyclic|nested|alias/i);
+  });
+
+  it('rejects oversized input before parsing', () => {
+    expect(() => parseThemeYaml(' '.repeat(1024 * 1024 + 1))).toThrow(/size|large|limit/i);
+  });
+
+  it('protects legacy IDs as well as V2 IDs', () => {
+    expect(() => parseThemeYaml('themes:\n  venice:\n    tokens: {background: "#000"}', { protectedIds: new Set(['venice']) })).toThrow(/protected/);
+  });
+});

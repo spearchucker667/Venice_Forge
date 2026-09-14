@@ -470,7 +470,7 @@ export function MediaToolbar({
               onClick={onBatchFavorite}
               disabled={!hasSelection}
               data-testid="bulk-favorite"
-              className="rounded-md border border-rose-400/30 px-2 py-1 text-[12px] text-rose-300 hover:bg-rose-500/10 disabled:opacity-30"
+              className="rounded-md border border-danger/30 px-2 py-1 text-[12px] text-danger hover:bg-danger/10 disabled:opacity-30"
             >
               {allFavorited
                 ? tRuntime(

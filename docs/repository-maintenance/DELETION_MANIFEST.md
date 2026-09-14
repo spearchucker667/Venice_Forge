@@ -1,21 +1,27 @@
 # Venice Forge — Deletion & Retirement Manifest
 
-**Current baseline commit:** `c1aa891b7b776a6d9468fce4dd99a99d24f63e3e`
-**Date:** 2026-09-12
-**Scope:** Repository Hygiene & Organization Overhaul
+**Current baseline commit:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`  
+**Date:** 2026-09-14  
+**Scope:** Repository Hygiene & Organization Overhaul  
 
 ---
 
-## 1. 2026-09-12 Session Deletion Audit
+## 1. 2026-09-14 Session Deletion Audit
 
-During the 2026-09-12 repository overhaul, **zero tracked files were deleted or retired**.
-All 1,914 tracked files were evaluated against the Section 45 Removal Criteria and verified to be necessary, referenced, active source, test, configuration, assets, or canonical documentation.
+During the 2026-09-14 repository overhaul, **zero tracked files were deleted or retired**.
+All 1,974 tracked files were evaluated against the Section 45 Removal Criteria and verified to be necessary, referenced, active source, test, configuration, assets, or canonical documentation.
+
+### Untracked Scratch Files Removed
+- **Path:** `docs/ROADMAP.md.clean` (37 KB)
+- **Classification:** Stale untracked scratch backup
+- **Reason for removal:** Accidental scratch backup from prior roadmap maintenance pass left in the worktree. Removed per Section 27 after confirming that Git tracks canonical `docs/ROADMAP.md`.
+- **Reference search performed:** Yes (`docs/summary_of_work.md:1173` confirmed it was an untracked scratch file).
 
 All candidate files were evaluated against the Section 45 Removal Criteria:
 1. Duplicate of authoritative file (none found)
 2. Generated artifact accidentally committed (none found)
 3. Obsolete implementation no longer referenced (none found)
-4. Temporary / debug artifact (none found)
+4. Temporary / debug artifact (1 untracked scratch file removed: `docs/ROADMAP.md.clean`)
 5. Accidental backup (none found)
 6. Stale documentation superseded elsewhere (none found)
 7. Unused asset with no build/runtime reference (none found)

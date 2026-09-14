@@ -79,6 +79,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [architecture/data-export-format.md](architecture/data-export-format.md) — Authenticated `.vfbackup` envelope, portability, and compatibility contract.
 - [design/LOADING_AND_SURFACE_CONTRACT.md](design/LOADING_AND_SURFACE_CONTRACT.md) — Semantic loading, reduced-motion, mesh structure, and interactive-border rules.
 - [design/THEME_SYSTEM.md](design/THEME_SYSTEM.md) — CSS custom property tokens, contrast checking, and YAML palette integration.
+- [ui-modernization/THEME_SCHEMA.md](ui-modernization/THEME_SCHEMA.md) — Theme Engine V2 token definitions, schema specification, and palette constraints.
+- [ui-modernization/THEME_IMPORT_EXPORT.md](ui-modernization/THEME_IMPORT_EXPORT.md) — Theme import, export, migration, duplication, and cross-platform compatibility specifications.
 
 ### Architecture Specifications
 
@@ -147,6 +149,13 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [design/VENICE_UI_EXTRACTION.md](design/VENICE_UI_EXTRACTION.md) — Internal UI extraction/reference notes; implementation remains authoritative.
 - [design/pastel-theme-pack-report.md](design/pastel-theme-pack-report.md) — Pastel Aqua/Pink Theme Pack implementation report.
 - [design/CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md](design/CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md) — 2026-09-13 chat + design-system refresh: "Quietly confident" direction, type scale + container widths + surface-elevation aliases, new `IconButton` / `Pill` / `Toolbar` / `Card` / `EmptyState` primitives, and chat-surface refinement plan (system + chat + shell scope).
+- [ui-modernization/UI_MODERNIZATION_REPORT.md](ui-modernization/UI_MODERNIZATION_REPORT.md) — Full UI modernization report, visual systems overhaul, and implementation summary.
+- [ui-modernization/DESIGN_SYSTEM.md](ui-modernization/DESIGN_SYSTEM.md) — Comprehensive Venice Forge design system: visual foundations, component primitives, surface hierarchy, motion, and spacing.
+- [ui-modernization/THEME_MIGRATION.md](ui-modernization/THEME_MIGRATION.md) — Theme engine architecture, migration path from V1 to V2, and backwards compatibility guarantees.
+- [ui-modernization/VISUAL_QA.md](ui-modernization/VISUAL_QA.md) — Visual QA verification matrix across 44+ built-in themes, light/dark variants, and workspaces.
+- [ui-modernization/ACCESSIBILITY_REVIEW.md](ui-modernization/ACCESSIBILITY_REVIEW.md) — WCAG 2.1 AA audit, contrast ratios, keyboard navigation, focus management, and reduced motion testing.
+- [ui-modernization/PERFORMANCE_REVIEW.md](ui-modernization/PERFORMANCE_REVIEW.md) — Rendering performance, paint metrics, bundle impact, CSS efficiency, and virtualization review.
+- [ui-modernization/IMPLEMENTATION_PLAN.md](ui-modernization/IMPLEMENTATION_PLAN.md) — Implementation plan and task tracking for incremental UI modernization and theme refresh.
 - [implementation/document-agent-implementation-report.md](implementation/document-agent-implementation-report.md) — Document Agent implementation and verification report.
 
 ### Discovery & Planning
@@ -178,6 +187,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [AGENTS.md](../AGENTS.md) — Instructions for AI coding agents and session handoffs.
 - [.cursorrules](../.cursorrules) — Thin pointer to AGENTS.md for Cursor-compatible agents.
 - [AGENT_REINITIALIZATION.md](../AGENT_REINITIALIZATION.md) — Agent re-initialization protocol. Supplementary agent notes under `docs/AGENTS/` are local-only and gitignored.
+- [DEVELOPMENT/BUG_HUNTING_AGENT_PROMPT.md](DEVELOPMENT/BUG_HUNTING_AGENT_PROMPT.md) — Reusable bug-hunt and exhaustive security audit agent system prompt template.
 - [../scripts/dev-tools/README.md](../scripts/dev-tools/README.md) — Internal development-tool inventory.
 
 ---

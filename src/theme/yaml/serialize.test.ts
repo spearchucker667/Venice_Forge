@@ -126,3 +126,9 @@ describe('serializeThemeFamilyYaml', () => {
     expect(yaml).toContain('background: "#0a0e1a"');
   });
 });
+
+
+it('preserves metadata and aliases through canonical export and import', () => {
+  const family = { ...parseThemeYaml(validV2Yaml()), author: 'Theme author', description: 'An authored pair', aliases: ['older-name'] };
+  expect(parseThemeYaml(serializeThemeFamilyYaml(family))).toMatchObject({ author: family.author, description: family.description, aliases: family.aliases });
+});

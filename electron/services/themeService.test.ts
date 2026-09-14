@@ -366,3 +366,24 @@ describe("startThemeWatcher", () => {
     expect(mocks.watchClose).toHaveBeenCalled();
   });
 });
+
+
+describe('trusted theme validation', () => {
+  it.each(['../escaped', '/absolute', 'a/b', 'a\\b', '__proto__', 'constructor', ''])('rejects unsafe file IDs: %s', async (id) => {
+    await expect(saveTheme(v2FamilyDocument(id, 'Unsafe'))).rejects.toThrow();
+    await expect(deleteTheme(id)).rejects.toThrow();
+  });
+
+  it('rejects unsafe colors before persistence', async () => {
+    const family = v2FamilyDocument('unsafe-color', 'Unsafe');
+    family.variants.dark.tokens.background = 'url(https://example.invalid/image)';
+    await expect(saveTheme(family)).rejects.toThrow();
+  });
+
+  it('preserves metadata through save and reload', async () => {
+    const family = { ...v2FamilyDocument('metadata', 'Metadata'), author: 'Author', description: 'Authored pair', aliases: ['old-metadata'] };
+    await saveTheme(family);
+    const result = await readThemeFile(path.join(TEST_ROOT, 'userData', 'themes', 'metadata.yaml'));
+    expect(result.themes.metadata).toMatchObject({ author: 'Author', description: 'Authored pair', aliases: ['old-metadata'] });
+  });
+});

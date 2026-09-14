@@ -245,7 +245,7 @@ function MediaCardImpl({
         )}
 
         {item.favorite && (
-          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-overlay px-1.5 py-0.5 text-[12px] text-rose-200 backdrop-blur">
+          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-overlay px-1.5 py-0.5 text-[12px] text-danger backdrop-blur">
             <Heart className="h-3 w-3 fill-current" />
             <span>
               <Trans i18nKey="common:surface.componentsGalleryMediaCard.text.favorite" />
@@ -336,7 +336,7 @@ function MediaCardImpl({
             className={cn(
               "rounded-md border px-2 py-1 text-[12px] transition-colors",
               item.favorite
-                ? "border-rose-400/40 bg-rose-500/[0.08] text-rose-300"
+                ? "border-danger/40 bg-danger/10 text-danger"
                 : "border-border text-text-secondary hover:border-accent hover:text-accent",
             )}
           >

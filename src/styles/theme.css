@@ -118,12 +118,40 @@
     var(--color-surface-elevated) 50%,
     transparent
   );
+
+  /* Layered surface elevation tokens for modern multi-pane layouts */
+  --color-surface-layer-0: var(--bg);
+  --color-surface-layer-1: var(--surface);
+  --color-surface-layer-2: var(--surface-elevated);
+  --color-surface-layer-3: var(--color-surface-elevated-2);
+  --color-surface-layer-overlay: var(--color-surface-overlay);
 }
 
 :root {
+  /* Shared geometry; semantic colors continue to come from ThemeFamily v2. */
+  --space-control-x: 1rem;
+  --space-control-y: 0.5rem;
+  --space-panel: 1.25rem;
+  --radius-control: 0.5rem;
+  --radius-panel: 0.75rem;
+  --radius-dialog: 1rem;
+  --blur-overlay: 4px;
+  --motion-instant: 75ms;
   --motion-fast: 140ms;
   --motion-medium: 220ms;
+  --motion-slow: 350ms;
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --easing-enter: cubic-bezier(0, 0, 0.2, 1);
+  --easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --easing-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Elevation shadow tokens */
+  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
+  --shadow-low: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
+  --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
+  --shadow-high: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
+  --shadow-overlay: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
 }
 
 /* === VF Typography classes ===========================================

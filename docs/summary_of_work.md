@@ -4,6 +4,40 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-14 Repository Hygiene, Documentation, Organization & Gitignore Overhaul.** Executed an exhaustive repository hygiene, documentation architecture, file organization, and git configuration overhaul across all 1,974 tracked files:
+  - **Root Cleanliness & POSIX Hygiene:** Verified exactly 29 canonical configuration and governance files in repository root. Zero files contain non-ASCII characters, em-dashes, or quote-escaped characters in Git or POSIX tooling (`git ls-files | grep -E '[^a-zA-Z0-9._/-]'` returns 0).
+  - **.gitignore Hardening & Conflict Elimination:** Resolved a pattern gap where 13 tracked files in `docs/audits/venice-forge-exhaustive-audit-2026-09-13/` were ignored by a blanket audit pattern. Added explicit unignore rules; verified that exactly 0 tracked files are ignored (`git ls-files -c -i --exclude-standard` is empty). All local/generated/private artifacts reliably ignored.
+  - **Untracked Scratch File Cleanup:** Removed accidental untracked scratch backup `docs/ROADMAP.md.clean` (37 KB) per Section 27.
+  - **Canonical Theme Documentation Alignment:** Fixed `README.md` theme catalog list to eliminate duplicate `polaroid-board` and align all 43 theme family IDs to canonical kebab-case names matching `src/theme/builtins.ts`.
+  - **Documentation Hierarchy & Link Integrity:** Registered `docs/DEVELOPMENT/BUG_HUNTING_AGENT_PROMPT.md` in `docs/DOCS_INDEX.md`. Validated all 382 Markdown files across the repository with zero broken internal links (`npm run verify:markdown-links` PASS).
+  - **Hygiene Reports & Manifests:** Updated `docs/repository-maintenance/REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, and `DELETION_MANIFEST.md` for baseline `db028726`.
+  - **Validation Executed:** `npm run verify:contracts:static` PASS; `npm run verify:contracts` PASS (104/104 checks); `npm run test:contracts` PASS (23 files, 270/270 tests); `npm run verify:markdown-links` PASS (382 markdown files checked); `npm run verify:theme-tokens` PASS (185 files scanned); `npm run verify:safety-guard` PASS; `npm run verify:i18n` PASS; `npm run verify:i18n-hardcoded-regressions` PASS; `npm run verify:ci-contract` PASS; `npm run verify:agent-docs` PASS; `npm run verify:repository-identity` & `release-metadata` PASS; `npm run typecheck` PASS (3/3 tsconfigs); `npm run lint:eslint` PASS; `npm run build:web` PASS; `git ls-files -c -i --exclude-standard` PASS (0 files); `git diff --check` PASS (0 errors); tracked secret scan PASS. Uncommitted on `main`, not pushed.
+
+- **2026-09-14 Theme Selection Deduplication & Window Extension.** Resolved duplicate theme entries appearing in the theme selection window and extended the theme palette vertically:
+  - **Root Cause Analysis:** `config/themes/` contained 25 legacy YAML files representing built-in themes (`amber-archive`, `circuit-mint`, `harbor-fog`, etc.). When Electron's `loadAllThemes` populated `config-store.ts` (`yamlThemes`), `ThemeMaker.tsx` added both the TypeScript built-in theme (`builtin-${family.id}`) and the YAML theme (`${id}`) to `themeOptions`, which was keyed by ID rather than theme identity. Because both entries shared identical display labels, 25 themes appeared twice in the selection grid.
+  - **Deduplication Implementation (`src/components/ThemeMaker.tsx`):**
+    - Updated `themeOptions` to build a `builtinLookup` index by normalized name, canonical ID, and prefixed ID (`builtin-${id}`). When iterating through `yamlThemes` and `customThemes`, matching built-in themes update the canonical `builtin-${id}` option in place.
+    - Added final case-insensitive label deduplication ensuring no duplicate labels appear in the theme palette grid.
+    - Updated `allFamiliesMap` to map both `builtin-${id}` and `${id}` to YAML overrides so both legacy selectors and file IDs resolve correctly.
+  - **Window Extension (`src/components/ThemeMaker.tsx`):** Extended the theme selection palette container from `max-h-64` (256px) to `min-h-[16rem] max-h-[36rem] overflow-y-auto`, displaying ~35 theme cards simultaneously on standard desktop viewports and significantly reducing vertical scrolling.
+  - **Test Coverage (`src/components/ThemeMaker.ui.test.tsx`):** Added tests verifying that YAML themes sharing built-in names or IDs are deduplicated to a single card and asserting the extended vertical height classes. All 61 tests across 3 ThemeMaker suites pass (`ThemeMaker.test.ts`, `ThemeMaker.custom.test.tsx`, `ThemeMaker.ui.test.tsx`).
+  - **Validation Executed:** `npx vitest run src/components/ThemeMaker.test.ts src/components/ThemeMaker.custom.test.tsx src/components/ThemeMaker.ui.test.tsx` PASS (3 suites, 61 tests); `npx vitest run tests/csp/inlineStyleInvariant.test.ts tests/theme/meshSurfaceInvariant.test.ts` PASS (2 suites, 2 tests); `npm run verify:theme-tokens` PASS (185 files scanned, 0 violations); `npm run verify:i18n` PASS (12 locales, 12 namespaces); `npm run verify:i18n-hardcoded-regressions` PASS (0 regressions across 536 files); `npm run verify:contracts:static` PASS; `npm run verify:safety-guard` PASS; `npm run typecheck` PASS (3/3 targets: root, electron, electron.test); `npm run lint:eslint` PASS (0 errors, 0 warnings); `npm run build:web` PASS (clean production build in 1.18s). Uncommitted on `main`, not pushed.
+
+- **2026-09-14 Full UI Modernization, Theme Engine Refresh & Visual Systems Overhaul.** Completed a comprehensive visual systems modernization, theme engine refresh, and workspace ergonomic overhaul across Venice Forge while preserving 100% functionality and backwards compatibility across all 44+ built-in themes, custom themes, and light/dark modes.
+  - **Theme Contracts & Persistence Hardening (Task 1):** `src/theme/yaml/parse.ts` and `validate.ts` explicitly reject unsupported schema versions before legacy fallback. Added cyclic alias rejection and 1 MiB text size bounds. Hardened `validateThemeId` against directory traversal and dangerous prototype properties. Preserved `author`, `description`, and `aliases` through deterministic export and trusted persistence. Canonical dual-variant families now take precedence over lossy single-mode legacy custom projections during bootstrap (`src/theme/applyTheme.ts`). Serial test suite (101/101 tests across 7 files) passes.
+  - **Foundations & Shared Components (Task 2):** Codified 6-tier surface elevation layer variables (`--color-surface-layer-0` through `--color-surface-layer-overlay`), expanded motion system (`--motion-instant`, `--motion-slow`, 4 standardized cubic-bezier easing curves), and elevation shadow scale (`--shadow-subtle` through `--shadow-overlay`). Removed heavy 12–16px blur from standard mesh panels; capped glass/modal overlay blur at 4px (`--overlay-blur: 4px;`) with total fallback on `prefers-reduced-transparency`. Added property-specific transitions and forced-colors support (`src/styles/accessibility.css`). Modernized `.btn` system (added `.btn.secondary`, `.btn.danger`, `.btn.danger-solid`, size modifiers, active press-down feedback). Added `SecondaryButton`, `DangerButton`, and `Input` primitive with validation tones and focus rings (15/15 tests pass).
+  - **Theme Engine Tooling (Task 3):** Added "Duplicate Theme" action (`handleDuplicateTheme`) cloning the active theme with unique identifier `user-theme-${Date.now()}` and `(Copy)` suffix, saving directly via `desktopConfig.saveTheme()`. Added "Reset Token" and "Reset Section" capability (`resetToken`, `resetCategory`, `resetCodeCategory`) allowing one-click rollback of individual token overrides or whole categories back to base theme defaults. Real-time contrast ratio auditing in `ThemePreview.tsx` warns on pairs below 4.5:1 WCAG AA. All 59 tests across `ThemeMaker.test.ts` (27), `ThemeMaker.custom.test.tsx` (13), and `ThemeMaker.ui.test.tsx` (19) pass.
+  - **Workspace Ergonomics & Accessibility (Task 4):**
+    - Refactored New Document and New Working Group raw div modals in `DocumentAgentView.tsx` to `AccessibleDialog` with keyboard focus trap, `aria-modal="true"`, and Escape dismissal.
+    - Hardened `HistoryView.tsx` folder context menu with Escape dismissal, viewport boundary clamping, initial button focus, and ARIA `menu`/`menuitem` semantics.
+    - Isolated mobile navigation drawer in `sidebar.tsx`: added `invisible pointer-events-none` when collapsed on `< md` to prevent offscreen keyboard tab traversal, and wired Escape key dismissal.
+    - Added responsive vertical stacking (`flex-col md:flex-row` / `lg:flex-row`) and list scroll containment on narrow screens across `SceneComposerView.tsx`, `ImageInspectorView.tsx`, `PromptLibraryView.tsx`, `CharacterChatsView.tsx`, and `playground-view.tsx`.
+    - Eliminated hardcoded palette classes (`rose-*`, `emerald-*`, `amber-*`) across Gallery, Character Creator, Playground, and RP Studio hydration banner.
+  - **Deliverable Reports (`docs/ui-modernization/`):** Authored/reconciled all 8 required reports plus implementation plan and registered them in `docs/DOCS_INDEX.md`: `UI_MODERNIZATION_REPORT.md`, `DESIGN_SYSTEM.md`, `THEME_SCHEMA.md`, `THEME_MIGRATION.md`, `THEME_IMPORT_EXPORT.md`, `VISUAL_QA.md`, `ACCESSIBILITY_REVIEW.md`, `PERFORMANCE_REVIEW.md`, and `IMPLEMENTATION_PLAN.md`.
+  - **Validation Executed:** `npm run verify:theme-tokens` PASS (185 files scanned, 0 violations); `tests/csp/inlineStyleInvariant.test.ts` & `tests/theme/meshSurfaceInvariant.test.ts` PASS; `npm run verify:i18n` PASS (12 locales, 12 namespaces); `npm run verify:i18n-hardcoded-regressions` PASS (0 regressions across 536 files); `npm run verify:markdown-links` PASS (370 files checked, 0 broken links); `npm run verify:contracts:static` PASS; `npm run verify:safety-guard` PASS; `npm run typecheck` PASS (3/3 tsconfigs: root, electron, electron.test); `npm run lint:eslint` PASS (0 errors, 0 warnings); `npm run test:i18n` PASS (53/53 tests across 5 files); ThemeMaker suites PASS (59/59 tests across 3 files); invariant & YAML & persistence suites PASS (120/120 tests across 10 files); `npm run build:web` PASS (clean production build in 1.50s). Uncommitted on `main`, not pushed.
+
+- **2026-09-14 Video Model Selection & Dynamic Pricing Fix.** Resolved "(Price unavailable)" and model selection failure issues under Video Generation (`VideoView`). Root causes addressed: (1) video models in Venice API have dynamic duration/resolution pricing rather than static rates in `model_spec.pricing`, yet `formatModelLabelWithCost` was called without `{ minimal: true }`, appending `(Price unavailable)` to every video model; (2) `useVideoModels` in `src/hooks/use-models.ts` dropped models lacking explicit constraints or having Swagger-defined `model_type: 'video'`; (3) selecting an image-only model in text mode left `activeModel` undefined, disabling duration/resolution pickers and preventing generation; (4) video pricing was not integrated with the Venice quote endpoint. Remediated by: (a) adding `useVideoQuote` hook (`src/hooks/use-video-quote.ts`) querying `POST /video/quote` with `veniceFetch` and `normalizeVideoQuoteResponse`; (b) wiring dynamic quote cost badge (`$0.15`) in `VideoView` next to capability tags; (c) passing `{ minimal: true }` in `VideoView` and `Header` to display clean model names when static catalog rates are absent; (d) updating `useVideoModels` with fallback constraints and supporting `model_type: 'video'`; (e) adding mode auto-switching when selecting a model group supporting only the opposite mode with safe fallback on `activeModel`. Focused tests pass (37/37 tests across 4 suites); `npm run test:unit:hooks` PASS (18 files, 114/114 tests); `npm run lint:eslint` PASS; `npm run typecheck` PASS; `npm run verify:safety-guard` PASS; `npm run verify:i18n-hardcoded-regressions` PASS; `npm run build:web` PASS. Uncommitted on `main`, not pushed.
+
 - **2026-09-13 Runtime log triage: venice-media 403s + unhandled clipboard rejections (Mavis hardening pass).** Diagnosed two independent defects from `~/Library/Application Support/Venice Forge/logs/venice-forge.log`: (1) `<img>` elements in Media Studio (`media-card.tsx` fallback, `media-detail-dialog.tsx` preview + filmstrip, `image-view.tsx` grid + lightbox) requested tokenless `venice-media://` URLs and the main-process capability gate (`electron/main.ts` + `electron/utils/customProtocolAccess.ts`) correctly rejected them with 403 — added `useResolvedMediaUrl` hook (`src/hooks/useResolvedMediaUrl.ts`) + `ResolvedMediaImg` component (`src/components/media/ResolvedMediaImg.tsx`), wired them into the four surfaces, and hardened `ManagedVideoPlayer` (covers `video-view`/`preview-node` too); also relaxed `resolvePlayableMediaUrl` regexes to accept URL-serialized trailing-slash forms and normalize the issued capability base. (2) `navigator.clipboard.writeText` permission denials surfaced as unhandled rejections via `main.tsx:29` — `copyText` (`src/utils/download.ts`) now never rejects (catches + execCommand fallback + boolean result) and `CharacterCreatorError.tsx` uses it with success/failure toasts. **Mavis hardening pass** added (a) capability-token-TTL self-healing: the hook now exposes `{ url, retry }`; `ResolvedMediaImg` and `ManagedVideoPlayer` wire `retry()` into their `onError` handlers so a long-lived media element outliving its 5-minute token issues one fresh token instead of leaving a broken image / video; retry budget re-arms only on `src` change to prevent loops. (b) Migrated the two remaining raw `navigator.clipboard.writeText` sites (`CommandPalette.tsx`, `CharacterCreatorProcessPanel.tsx`) onto `copyText` for consistent `execCommand` fallback. (c) Added proper `charactercreatorerror.notification.couldNotCopyToClipboard` i18n key to all 12 locales (was borrowing from `charactercreatorprocesspanel`'s namespace — works but cross-component). (d) Negative-path test coverage: 18 cases for `useResolvedMediaUrl` (null/undefined/empty src, rapid src changes, mid-flight cancellation, unmount during pending, retry one-shot + re-arm on src change, failure-fallback propagation), 11 cases for `playableMediaUrl` (query preservation, non-electron path, empty/nullish, unknown schemes, malformed ids), 8 cases for `copyText` (sync throw, execCommand throw, unavailable clipboard API, non-string coercion, never-throws contract). Focused validation green (190 tests across 9 files, 73 unit tests across the three core files), full `npm run ci` end-to-end PASS (eslint clean, typecheck 3/3, all test shards, contracts 104/104, build, `verify:dist` success). Uncommitted on `main`, not pushed.
 
 - **2026-09-13 CI temp-file regression repair (baseline `fea0af6b`).** Diagnosed CI run `34774792357`: nine storage tests retained the old sibling `.tmp-UUID` layout after the private-directory hardening. Reproduced the provider-settings assertion failure on Node 22.15.0/npm 10.9.2. Updated nine suites to require private `.vf-replace-*` paths while retaining unique-write, rename, permissions, persistence, and failure assertions. Added async/sync private-directory isolation and failed-rename cleanup coverage in `electron/utils/atomicFileReplace.test.ts`. No production security control, workflow gate, or coverage threshold was relaxed. Included the user-authorized existing Apache 2.0 metadata/document changes; replaced the incomplete license draft with the official Apache text, preserving project attribution, and corrected the remaining MIT warranty reference in `LEGAL.md`. Focused validation passed (10 files / 159 tests before four additional helper cases; helper suite 8/8 afterward). Full `npm run ci` passed; exact-SHA hosted acceptance follows publication. Release tags remain outside this task.
@@ -118,6 +152,83 @@ This is the active handoff and validation ledger. The canonical current-work led
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-14 — Full UI Modernization, Theme Engine Refresh & Visual Systems Overhaul
+
+- **Scope:** Full-system visual systems modernization, theme engine refresh, shared component primitive enhancements, theme persistence hardening, and cross-platform workspace ergonomics across all 22 canonical workspaces, dialogs, overlays, code surfaces, and 44+ built-in themes.
+- **Architectural & Design Upgrades:**
+  1. **Theme Contracts & Persistence Hardening (Task 1):**
+     - Schema version guard: `src/theme/yaml/parse.ts` and `validate.ts` explicitly reject unsupported schema versions (e.g. `schemaVersion: 99`) before legacy fallback.
+     - Dangerous keys & cycle protection: added depth-bounded dangerous key traversal (`depth > 16`), cycle detection, and 1 MiB text size bounds.
+     - Path traversal & safe IDs: hardened `validateThemeId` in `validate.ts` and `electron/services/themeService.ts` against directory traversal (`../`, absolute paths, `__proto__`).
+     - Metadata round-trip: preserved `author`, `description`, and `aliases` through deterministic export and trusted persistence.
+     - Canonical family priority: in `src/theme/applyTheme.ts`, canonical dual-variant families now take precedence during bootstrap over lossy legacy single-mode projections.
+  2. **Foundations (`src/styles/theme.css`, `components.css`, `accessibility.css`) (Task 2):**
+     - Surface elevation: introduced 6 semantic elevation variables (`--color-surface-layer-0` through `--color-surface-layer-overlay`) and 4 elevation shadow scales (`--shadow-subtle`, `--shadow-layer-1`, `--shadow-floating`, `--shadow-overlay`).
+     - Motion system: established standardized durations (`--motion-instant`, `--motion-fast`, `--motion-normal`, `--motion-slow`) and 4 cubic-bezier easing tokens (`--ease-standard`, `--ease-decelerate`, `--ease-accelerate`, `--ease-bounce`).
+     - Bounded blur budget: removed 12–16px mesh panel blurs; capped glass/modal overlay blur at 4px (`--overlay-blur: 4px;`) with total fallback on `prefers-reduced-transparency`.
+     - Modernized Button System: added `.btn.secondary`, `.btn.danger`, `.btn.danger-solid`, size modifiers (`.btn-sm`, `.btn-md`, `.btn-lg`, `.btn-icon`), and interactive active press-down feedback.
+     - Accessibility & High Contrast: added `@media (forced-colors: active)` overrides in `accessibility.css`.
+  3. **Component Primitives (`src/components/ui/`) (Task 2):**
+     - `src/components/ui/shared.tsx`: Added `SecondaryButton` and `DangerButton`. Refactored `ErrorText` to semantic tokens (`text-danger bg-danger/10 border-danger/25`). Updated `TONE` and `StatusDot` to use semantic colors.
+     - `src/components/ui/primitives.tsx`: Added `Input` primitive supporting leading/trailing adornments, validation tones, size scales, `aria-invalid`, and accessible focus rings (15/15 tests pass).
+     - `src/components/ui/AccessibleDialog.tsx`: Standardized entrance animations and clean modal surface styling.
+     - `src/components/ui/generation-view.tsx`: Modernized generation views with subtle card surfaces and soft separator hairlines.
+  4. **Theme Engine Tooling (`ThemeMaker.tsx` & `ThemePreview.tsx`) (Task 3):**
+     - Added "Duplicate Theme" (`handleDuplicateTheme`): clones active theme with unique ID and `(Copy)` name suffix, persisting through `desktopConfig.saveTheme()`.
+     - Added "Reset Token" & "Reset Section" (`resetToken`, `resetCategory`, `resetCodeCategory`): enables granular one-click restoration of customized tokens back to base theme defaults.
+     - Contrast checking: real-time WCAG AA audit in `ThemePreview.tsx` warns on token pairs below 4.5:1.
+     - All 54 tests across `ThemeMaker.test.ts`, `ThemeMaker.custom.test.tsx`, and `ThemeMaker.ui.test.tsx` pass.
+  5. **Workspace Ergonomics & Accessibility Remediations (Task 4):**
+     - Document Agent modals: refactored raw div modals to `AccessibleDialog` with keyboard focus trap, `aria-modal="true"`, and Escape dismissal in `DocumentAgentView.tsx`.
+     - History folder context menu: added Escape dismissal, viewport boundary clamping, initial button focus, and ARIA `menu`/`menuitem` semantics in `HistoryView.tsx`.
+     - Mobile sidebar isolation: added `invisible pointer-events-none` when collapsed on mobile (`< md`) to prevent offscreen keyboard tab traversal, and wired Escape key dismissal in `sidebar.tsx`.
+     - Compact workspace layouts: added responsive vertical stacking (`flex-col md:flex-row` / `lg:flex-row`) and list scroll containment on narrow screens across `SceneComposerView.tsx`, `ImageInspectorView.tsx`, `PromptLibraryView.tsx`, `CharacterChatsView.tsx`, and `playground-view.tsx`.
+     - Palette de-hardcoding: eliminated hardcoded `rose-*`, `emerald-*`, and `amber-*` classes across Gallery, Character Creator, Playground, and RP Studio hydration banner.
+  6. **Documentation & Deliverable Reports (`docs/ui-modernization/`) (Task 5):**
+     - Produced/reconciled 8 comprehensive reports plus implementation plan: `UI_MODERNIZATION_REPORT.md`, `DESIGN_SYSTEM.md`, `THEME_SCHEMA.md`, `THEME_MIGRATION.md`, `THEME_IMPORT_EXPORT.md`, `VISUAL_QA.md`, `ACCESSIBILITY_REVIEW.md`, `PERFORMANCE_REVIEW.md`, and `IMPLEMENTATION_PLAN.md`. Registered all in `docs/DOCS_INDEX.md`.
+- **Validation Executed:**
+  - `npx vitest run src/theme/yaml src/theme/applyTheme.test.ts electron/services/themeService.test.ts --no-file-parallelism` — PASS (7 files / 101 tests).
+  - `npx vitest run tests/theme/meshSurfaceInvariant.test.ts tests/csp/inlineStyleInvariant.test.ts` — PASS (2 files / 2 tests).
+  - `npx vitest run src/components/ui/primitives.test.tsx src/components/ui/shared.test.tsx src/components/ui/shared.i18n.test.tsx src/components/ui/AccessibleDialog.test.tsx` — PASS (4 files / 39 tests).
+  - `npx vitest run src/components/ThemeMaker.test.ts src/components/ThemeMaker.custom.test.tsx src/components/ThemeMaker.ui.test.tsx` — PASS (3 files / 59 tests).
+  - `npm run verify:theme-tokens` — PASS (185 files scanned, 0 violations).
+  - `npm run verify:i18n` — PASS (12 locales, 12 namespaces; missing markers and fallbacks aware).
+  - `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions across 536 files).
+  - `npm run verify:markdown-links` — PASS (370 Markdown files checked, 0 broken links).
+  - `npm run verify:contracts:static` — PASS (all static contract guards).
+  - `npm run verify:safety-guard` — PASS (all 8 transport/runtime enforcement points pass).
+  - `npm run typecheck` — PASS (root, electron, electron.test).
+  - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+  - `npm run test:i18n` — PASS (5 files / 53 tests).
+  - `npm run build:web` — PASS (clean production Vite build in 1.50s).
+- **Publication status:** Uncommitted on local `main`.
+
+### 2026-09-14 — Video Model Selection & Dynamic Pricing Quote Fix
+
+- **Scope:** Resolve user-reported bug under Video Generation (`VideoView`) where selecting any model displays `(Price unavailable)` or returns an error / broken UI.
+- **Root causes:**
+  1. Venice API video models do not contain static per-token or per-unit pricing in `model_spec.pricing`; costs are dynamically computed based on duration and resolution via `POST /video/quote`.
+  2. `VideoView` and `Header` invoked `formatModelLabelWithCost(model)` without `{ minimal: true }`, which appends `(Price unavailable)` whenever static pricing is absent.
+  3. `useVideoModels` in `src/hooks/use-models.ts` dropped models lacking explicit constraints and only checked for `text-to-video` and `image-to-video`, omitting Swagger-documented `model_type: 'video'`.
+  4. Selecting an image-only model in text mode left `activeModel` undefined, disabling duration/resolution pickers and preventing video generation.
+- **Fixes applied:**
+  1. Updated `VideoConstraints` in `src/types/venice.ts` to include `'video'`.
+  2. Updated `useVideoModels` in `src/hooks/use-models.ts` with safe fallback constraints and support for `c.model_type === 'video'`.
+  3. Exported `formatPricing` and `formatUsd` from `src/utils/pricing.ts`.
+  4. Created `useVideoQuote` hook in `src/hooks/use-video-quote.ts` calling `/video/quote` with `veniceFetch` and `normalizeVideoQuoteResponse`.
+  5. In `src/components/video/video-view.tsx`, formatted group labels with `{ minimal: true }`, added automatic mode switching when selecting a group supporting only the opposite mode, ensured fallback for `activeModel`, and wired `useVideoQuote` to display dynamic estimated costs (`$0.15`) in the UI badge.
+  6. In `src/components/layout/header.tsx`, passed `{ minimal: true }` to `formatModelLabelWithCost`.
+- **Files changed:** `src/types/venice.ts`, `src/hooks/use-models.ts`, `src/utils/pricing.ts`, `src/hooks/use-video-quote.ts` (new), `src/hooks/use-video-quote.test.tsx` (new), `src/components/video/video-view.tsx`, `src/components/video/video-view.test.tsx`, `src/components/layout/header.tsx`.
+- **Validation executed:**
+  - `npx vitest run src/components/video/video-view.test.tsx src/hooks/use-video-quote.test.tsx src/hooks/use-models.test.tsx src/utils/pricing.test.ts` — PASS (4 suites, 37/37 tests).
+  - `npm run test:unit:hooks` — PASS (18 test files, 114/114 tests).
+  - `npm run typecheck` — PASS across all 3 TypeScript projects (root, electron, electron.test).
+  - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+  - `npm run verify:safety-guard` — PASS (all endpoints compliant).
+  - `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+  - `npm run build:web` — PASS.
+- **Publication status:** Uncommitted / unpublished on local `main`.
 
 ### 2026-09-13 — Runtime log triage: venice-media 403s + unhandled clipboard rejections
 
@@ -1530,6 +1641,9 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
+* **REPO-HYGIENE-OVERHAUL-2026-09-14** — Exhaustive repository hygiene, documentation architecture, file organization, and git configuration overhaul complete. Exactly 29 root files verified; POSIX hygiene confirmed across all 1,974 tracked files; `.gitignore` unignore added for 2026-09-13 audit package (0 tracked files ignored); accidental untracked `docs/ROADMAP.md.clean` removed; `README.md` theme catalog aligned to 43 canonical themes; `docs/DEVELOPMENT/BUG_HUNTING_AGENT_PROMPT.md` indexed in `docs/DOCS_INDEX.md`; all 382 Markdown files pass link verification; `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, and `DELETION_MANIFEST.md` refreshed. Uncommitted on `main`, not pushed.
+* **THEME-SELECTION-DEDUP-2026-09-14** — Theme selection window deduplication and vertical extension complete. Merged duplicate built-in vs YAML registry theme cards into a single canonical entry, prevented double-rendering of built-in themes, and extended the palette container height (`min-h-[16rem] max-h-[36rem] overflow-y-auto`). All 61 ThemeMaker tests pass, typecheck passes, static contracts pass, build:web passes. Uncommitted on `main`, not pushed.
+* **UI-MODERNIZATION-2026-09-14** — Full UI modernization, theme engine refresh, and workspace ergonomic overhaul complete in working tree on `main`. Surface elevations, motion system, component primitives (`SecondaryButton`, `DangerButton`, `Input`), palette de-hardcoding across workspaces, Theme Maker duplicate/reset actions, theme contract hardening (101/101 tests pass), accessibility repairs (Document Agent modals, HistoryView context menu, mobile sidebar keyboard isolation), and 8 comprehensive documentation reports plus implementation plan (`docs/ui-modernization/`) completed and registered in `docs/DOCS_INDEX.md`. All local validation (`verify:theme-tokens`, `inlineStyleInvariant`, `meshSurfaceInvariant`, `verify:i18n-hardcoded-regressions`, `verify:markdown-links`, `typecheck`, `lint:eslint`, `build:web`) green. Uncommitted/unpublished pending user authorization.
 * **MEDIA-CAP-CLIPBOARD-2026-09-13** — venice-media 403 fix + clipboard rejection fix implemented, Mavis hardening pass (TTL self-healing, raw-writeText migration, negative-path coverage, i18n key hygiene) applied, full `npm run ci` end-to-end PASS recorded locally, and the change set was committed (`4cf7452e`) and pushed to origin/main. Hosted CI (run 34781219666, 11/11 jobs: lint, typecheck, contracts, unit-and-integration-tests, macos-sensitive-tests, windows-sensitive-tests, script-coverage, coverage, build, electron-smoke-windows/macos/linux) and CodeQL (run 34781219685) both PASSED against the pushed SHA. Manual QA in the running desktop app (reload gallery/image studio, verify thumbnails render and copy actions toast correctly, verify retry path triggers on stale-token 403) remains the only outstanding gap; remaining project work stays in `docs/ROADMAP.md`.
 * **CI temp-file regression repair (2026-09-13)** — Focused checks and full local `npm run ci` pass; exact-SHA hosted CI/CodeQL acceptance follows publication. Remaining project work stays in `docs/ROADMAP.md`.
 * See `docs/ROADMAP.md` for the canonical list of open tasks.
@@ -1538,6 +1652,70 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-14 — Repository Hygiene, Documentation, Organization & Gitignore Overhaul
+
+- `npm run verify:contracts:static` — PASS (lockfile, identity, roadmap, release metadata, bundle budget, safety, theme, CSP, boundaries, IPC parity).
+- `npm run verify:contracts` — PASS (104/104 contract invariant checks passing).
+- `npm run test:contracts` — PASS (23 files / 270 tests).
+- `npm run verify:markdown-links` — PASS (382 markdown files checked, 0 broken links or anchors).
+- `npm run verify:theme-tokens` — PASS (185 files scanned, 0 hardcoded palette color class violations).
+- `npm run verify:safety-guard` — PASS (all 8 transport/runtime enforcement points pass).
+- `npm run verify:i18n` — PASS (12 locales, 12 namespaces; missing markers and fallbacks aware).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions across 536 files scanned).
+- `npm run verify:ci-contract` — PASS (workflow pins, test surfaces, smoke dependencies verified).
+- `npm run verify:agent-docs` — PASS (canonical root, validation regex, Copilot/Cursor consistency).
+- `npm run verify:repository-identity` & `release-metadata` — PASS (stack facts Electron 43, Vite 8, Express 5).
+- `npm run typecheck` — PASS (3/3 targets: root, electron, electron.test).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run build:web` — PASS (clean production build in 1.18s).
+- `git ls-files -c -i --exclude-standard` — PASS (0 tracked files ignored by .gitignore).
+- `git diff --check` — PASS (0 whitespace or conflict markers).
+- Tracked secret scan — PASS (0 plaintext credentials or live tokens).
+- Manual QA in running desktop app — NOT RUN.
+
+### 2026-09-14 — Theme Selection Deduplication & Window Extension
+
+- `npx vitest run src/components/ThemeMaker.test.ts src/components/ThemeMaker.custom.test.tsx src/components/ThemeMaker.ui.test.tsx` — PASS (3 suites, 61 tests).
+- `npx vitest run tests/csp/inlineStyleInvariant.test.ts tests/theme/meshSurfaceInvariant.test.ts` — PASS (2 suites, 2 tests).
+- `npm run verify:theme-tokens` — PASS (185 files scanned, 0 hardcoded palette color class violations).
+- `npm run verify:i18n` — PASS (12 locales, 12 namespaces; missing markers and fallbacks aware).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions across 536 files scanned).
+- `npm run verify:contracts:static` — PASS (all static contract guards).
+- `npm run verify:safety-guard` — PASS (all 8 transport/runtime enforcement points pass).
+- `npm run typecheck` — PASS (3/3 targets: root, electron, electron.test).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run build:web` — PASS (clean production build in 1.18s).
+- Manual QA in running desktop app — NOT RUN.
+
+### 2026-09-14 — Full UI Modernization, Theme Engine Refresh & Visual Systems Overhaul
+
+- `npx vitest run src/theme/yaml src/theme/applyTheme.test.ts electron/services/themeService.test.ts --no-file-parallelism` — PASS (7 files / 101 tests).
+- `npx vitest run tests/csp/inlineStyleInvariant.test.ts tests/theme/meshSurfaceInvariant.test.ts` — PASS (2 suites, 2 tests).
+- `npx vitest run src/components/ui/primitives.test.tsx src/components/ui/shared.test.tsx src/components/ui/shared.i18n.test.tsx src/components/ui/AccessibleDialog.test.tsx` — PASS (4 suites, 39 tests).
+- `npx vitest run src/components/ThemeMaker.test.ts src/components/ThemeMaker.custom.test.tsx src/components/ThemeMaker.ui.test.tsx` — PASS (3 suites, 59 tests).
+- `npm run verify:theme-tokens` — PASS (185 files scanned, 0 hardcoded palette color class violations).
+- `npm run verify:i18n` — PASS (12 locales, 12 namespaces; missing markers and fallbacks aware).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions across 536 files scanned).
+- `npm run verify:markdown-links` — PASS (370 Markdown files checked, 0 broken links).
+- `npm run verify:contracts:static` — PASS (all static contract guards).
+- `npm run verify:safety-guard` — PASS (all 8 transport/runtime enforcement points pass).
+- `npm run typecheck` — PASS (3/3 targets: root, electron, electron.test).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run test:i18n` — PASS (5 files / 53 tests).
+- `npm run build:web` — PASS (clean production Vite build in 1.50s).
+- Manual QA in running desktop app — NOT RUN.
+
+### 2026-09-14 — Video Model Selection & Dynamic Pricing Quote Fix
+
+- `npx vitest run src/components/video/video-view.test.tsx src/hooks/use-video-quote.test.tsx src/hooks/use-models.test.tsx src/utils/pricing.test.ts` — PASS (4 files / 37 tests).
+- `npm run test:unit:hooks` — PASS (18 files / 114 tests).
+- `npm run typecheck` — PASS (3/3 targets: root, electron, electron.test).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run verify:safety-guard` — PASS (all transports compliant, 0 violations).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions, 536 files scanned).
+- `npm run build:web` — PASS (clean production build in 1.65s).
+- Manual QA in running desktop app — NOT RUN (unit & component tests verify clean labels, badge rendering, and auto-switching).
 
 ### 2026-09-13 — Runtime log triage: venice-media 403s + clipboard rejections
 

@@ -136,7 +136,7 @@ export function RpStudioView() {
         <div
           role="status"
           aria-live="polite"
-          className="px-3 py-2 border-b border-amber-500/20 bg-amber-500/10 text-amber-100 text-[12.5px] flex items-center gap-2"
+          className="px-3 py-2 border-b border-warning/25 bg-warning/10 text-warning text-[12.5px] flex items-center gap-2"
         >
           <span aria-hidden="true">⏳</span>
           <span>
