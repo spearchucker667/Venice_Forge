@@ -35,7 +35,9 @@ export function toConversationRecord(conv: Conversation): ConversationRecordV1 {
   const now = Date.now()
   const createdAt = conv.createdAt || now
   const updatedAt = Math.max(conv.updatedAt || createdAt, createdAt)
-  const messages = conv.messages ?? []
+  const messages = (conv.messages ?? []).filter(
+    (m) => m.metadata?.safetyPending !== true,
+  )
   return {
     version: 1,
     id: conv.id,

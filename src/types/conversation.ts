@@ -42,6 +42,8 @@ export interface ConversationMessage {
     providerRequestId?: string;
     sceneGeneration?: CharacterSceneGenerationResult;
     generatedMedia?: ChatMediaReference[];
+    /** When true, message is UI-only until main-process safety accepts the turn. */
+    safetyPending?: boolean;
     usage?: {
       promptTokens?: number;
       completionTokens?: number;

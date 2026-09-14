@@ -439,10 +439,27 @@ describe("chat-stream-manager", () => {
     expect(useChatStore.getState().isStreaming).toBe(false);
   });
 
-  it("discards partial deltas and removes the assistant turn on a 451 block (VCS-P1-004)", async () => {
+  it("discards the safety-pending user+assistant turn on a 451 block (VF-CUR-P1-001)", async () => {
+    const { toConversationRecord } = await import("./chat-store-helpers");
     const convId = useChatStore.getState().createConversation("llama-3.3-70b");
-    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
-    useChatStore.getState().addMessage(convId, { role: "assistant", content: "" });
+    useChatStore.getState().addMessage(convId, { role: "user", content: "prior safe turn" });
+    useChatStore.getState().addMessage(convId, { role: "assistant", content: "prior reply" });
+
+    const blockedText = "blocked-unsafe-user-turn";
+    useChatStore.getState().addMessage(convId, {
+      role: "user",
+      content: blockedText,
+      metadata: { safetyPending: true },
+    });
+    useChatStore.getState().addMessage(convId, {
+      role: "assistant",
+      content: "",
+      metadata: { safetyPending: true },
+    });
+
+    // While pending, durable serialization must already omit the blocked turn.
+    const pendingConv = useChatStore.getState().conversations.find((c) => c.id === convId)!;
+    expect(JSON.stringify(toConversationRecord(pendingConv))).not.toContain(blockedText);
 
     mockedVeniceStreamChat.mockImplementationOnce(async (_payload, opts) => {
       opts.onDelta?.({ content: "blocked-partial-text", reasoning: "" });
@@ -453,15 +470,39 @@ describe("chat-stream-manager", () => {
     const result = await startStream(convId, "llama-3.3-70b");
     expect(result.aborted).toBe(false);
     expect(result.blocked).toBe(true);
+    expect(mockedVeniceStreamChat).toHaveBeenCalledTimes(1);
+
     const conv = useChatStore.getState().conversations.find((c) => c.id === convId)!;
+    expect(conv.messages.some((m) => String(m.content).includes(blockedText))).toBe(false);
     expect(
       conv.messages.some(
         (m) => typeof m.content === "string" && m.content.includes("blocked-partial-text"),
       ),
     ).toBe(false);
-    const last = conv.messages.at(-1);
-    expect(last?.role).toBe("assistant");
-    expect(typeof last?.content === "string" && last.content.includes("Sorry, something went wrong")).toBe(true);
+    expect(conv.messages.some((m) => m.metadata?.safetyPending === true)).toBe(false);
+    expect(conv.messages.map((m) => m.content)).toEqual(["prior safe turn", "prior reply"]);
+    expect(JSON.stringify(toConversationRecord(conv))).not.toContain(blockedText);
+
+    // A valid following turn still streams normally.
+    useChatStore.getState().addMessage(convId, {
+      role: "user",
+      content: "hello again",
+      metadata: { safetyPending: true },
+    });
+    useChatStore.getState().addMessage(convId, {
+      role: "assistant",
+      content: "",
+      metadata: { safetyPending: true },
+    });
+    mockedVeniceStreamChat.mockImplementationOnce(async (_payload, opts) => {
+      opts.onDelta?.({ content: "ok-reply", reasoning: "" });
+    });
+    const follow = await startStream(convId, "llama-3.3-70b");
+    expect(follow.aborted).toBe(false);
+    expect(follow.blocked).toBeFalsy();
+    const after = useChatStore.getState().conversations.find((c) => c.id === convId)!;
+    expect(after.messages.some((m) => m.metadata?.safetyPending === true)).toBe(false);
+    expect(after.messages.some((m) => String(m.content).includes("ok-reply"))).toBe(true);
   });
 
   it("discards partial deltas on a hard stream failure and keeps only the safe error marker", async () => {

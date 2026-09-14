@@ -264,6 +264,10 @@ interface ChatState {
     enabled: boolean,
   ) => void;
   deleteMessage: (conversationId: string, index: number) => void;
+  /** Promote safety-pending turns to durable after the stream is accepted. */
+  clearSafetyPendingMessages: (conversationId: string) => void;
+  /** Drop the trailing safety-pending user+assistant pair (and any pending-only error). */
+  discardSafetyPendingTurn: (conversationId: string) => void;
   setMessageMetadata: (
     conversationId: string,
     messageIndex: number,
@@ -1006,6 +1010,39 @@ export const useChatStore = create<ChatState>()(
           (conversation) =>
             touchConversation({ ...conversation, model: normalized }),
           "structural",
+        );
+      },
+
+      clearSafetyPendingMessages: (conversationId) => {
+        commitConversationMutation(
+          set,
+          conversationId,
+          (c) => {
+            const msgs = (c.messages ?? []).map((m) => {
+              if (m.metadata?.safetyPending !== true) return m;
+              const { safetyPending: _drop, ...restMeta } = m.metadata ?? {};
+              void _drop;
+              const metadata = Object.keys(restMeta).length > 0 ? restMeta : undefined;
+              return { ...m, metadata };
+            });
+            return touchConversation({ ...c, messages: msgs });
+          },
+          "message-boundary",
+        );
+      },
+
+      discardSafetyPendingTurn: (conversationId) => {
+        commitConversationMutation(
+          set,
+          conversationId,
+          (c) => {
+            const msgs = [...(c.messages ?? [])];
+            while (msgs.length > 0 && msgs[msgs.length - 1]?.metadata?.safetyPending === true) {
+              msgs.pop();
+            }
+            return touchConversation({ ...c, messages: msgs });
+          },
+          "message-boundary",
         );
       },
 

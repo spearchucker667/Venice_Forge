@@ -346,10 +346,12 @@ export async function startStream(
           },
         });
         flushStreamDelta(convId);
+        useChatStore.getState().clearSafetyPendingMessages(convId);
         return { aborted: false };
       } catch (err) {
         if (isAbortError(err)) {
           flushStreamDelta(convId);
+          useChatStore.getState().clearSafetyPendingMessages(convId);
           return { aborted: true };
         }
 
@@ -358,11 +360,19 @@ export async function startStream(
         discardStreamDelta(convId);
 
         if (isSafetyBlockError(err)) {
-          removeLastAssistantTurn(convId);
-          useChatStore.getState().addMessage(convId, {
-            role: "assistant",
-            content: `[Error: ${SAFE_STREAM_ERROR_MESSAGE}]`,
-          });
+          // VF-CUR-P1-001: discard the entire safety-pending turn so blocked
+          // user content never becomes durable (in-memory or on disk).
+          useChatStore.getState().discardSafetyPendingTurn(convId);
+          // If the turn was already durable (e.g. regenerate), fall back to
+          // removing only the assistant placeholder without re-adding an
+          // error that would keep a blocked request visible in history.
+          const conv = useChatStore
+            .getState()
+            .conversations.find((c) => c.id === convId);
+          const last = conv?.messages.at(-1);
+          if (last?.role === "assistant" && !(last.content && String(last.content).length > 0)) {
+            removeLastAssistantTurn(convId);
+          }
           return { aborted: false, blocked: true };
         }
         
@@ -389,6 +399,7 @@ export async function startStream(
         }
         
         logger.error("chat stream manager failed", err);
+        useChatStore.getState().clearSafetyPendingMessages(convId);
         removeLastAssistantTurn(convId);
         useChatStore.getState().addMessage(convId, {
           role: "assistant",
