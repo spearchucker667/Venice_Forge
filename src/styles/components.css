@@ -44,7 +44,7 @@
 .btn-icon-sm { width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 6px; }
 
 /* App-wide ambient layer — reference material system (2026-09-14).
-   Static micro-grid grain + soft edge vignette. No radial accent blobs,
+   Static micro-grid grain wash. No radial accent blobs,
    no animation, no repaint-hostile filters. Theme-aware via the
    semantic text token (inverted automatically in light themes). */
 .app-mesh-overlay {
@@ -405,6 +405,10 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+.vf-panel-header--flush {
+  border-bottom: 0;
+  padding: 0;
 }
 .vf-panel-header__actions {
   margin-inline-start: auto;

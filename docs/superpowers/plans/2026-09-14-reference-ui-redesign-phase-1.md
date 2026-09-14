@@ -822,7 +822,7 @@ In `docs/design/VENICE_FORGE_REFERENCE_UI_REDESIGN_MATRIX.md` set:
 
 - [ ] **Step 3: Update summary_of_work.md**
 
-Add a Latest Session Summary entry recording: baseline SHA, the six commits from Tasks 1–5, every validation command with pass/fail, and that Phases 2–10 remain open under `VF-REFERENCE-UI-REDAIGN-2026-09-14`.
+Add a Latest Session Summary entry recording: baseline SHA, the six commits from Tasks 1–5, every validation command with pass/fail, and that Phases 2–10 remain open under `VF-REFERENCE-UI-REDESIGN-2026-09-14`.
 
 - [ ] **Step 4: Final commit**
 

@@ -488,7 +488,7 @@ export function UtilityRailSection({ title, actions, className, children, ...res
   return (
     <section className={cn('vf-utility-rail-section', className)} {...rest}>
       {(title || actions) && (
-        <PanelHeader title={title} actions={actions} className="border-b-0 px-0 pt-0" />
+        <PanelHeader title={title} actions={actions} className="vf-panel-header--flush" />
       )}
       {children}
     </section>

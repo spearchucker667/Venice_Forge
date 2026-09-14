@@ -388,7 +388,7 @@
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `accessibility.css` | PENDING — global material foundation (Phase 1) | |
+| `accessibility.css` | DEFERRED_WITH_REASON — dedicated accessibility/RTL pass (Phase 8); unchanged in Phase 1 | |
 | `components.css` | REDESIGNED — Phase 1: static grain ambient layer + reference material classes | |
 | `theme.css` | REDESIGNED — Phase 1: derived --color-vf-* material layer; radii contracted (panel 10px, dialog 14px) | |
 
