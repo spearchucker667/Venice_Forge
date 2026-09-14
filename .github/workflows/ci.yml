@@ -302,7 +302,24 @@ jobs:
       - name: Install Linux dependencies
         run: sudo apt-get update && sudo apt-get install -y xvfb libgbm-dev rpm
       - name: Package Linux app
-        run: npm run dist:linux
+        # electron-builder downloads AppImage tooling (appimage-*.7z, 7zip)
+        # from an upstream endpoint that intermittently returns 504. Retrying
+        # the canonical packaging script is safe because dist:linux starts
+        # with `npm run clean`, which wipes partial release/ output.
+        run: |
+          set -e
+          for attempt in 1 2 3; do
+            echo "Linux packaging attempt ${attempt}/3"
+            if npm run dist:linux; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Linux packaging failed on final attempt"
+              exit 1
+            fi
+            echo "Linux packaging failed; retrying in 30s..."
+            sleep 30
+          done
       - name: Run packaged Electron smoke test
         run: xvfb-run --auto-servernum npx vitest run tests/smoke/
         env:

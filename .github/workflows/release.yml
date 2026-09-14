@@ -372,7 +372,23 @@ jobs:
 
 
       - name: Package Linux artifacts
-        run: npm run dist:linux
+        # Retry transient upstream 504s while electron-builder downloads
+        # AppImage tooling. dist:linux starts with `npm run clean`, so a
+        # retry never publishes partial release/ output.
+        run: |
+          set -e
+          for attempt in 1 2 3; do
+            echo "Linux packaging attempt ${attempt}/3"
+            if npm run dist:linux; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Linux packaging failed on final attempt"
+              exit 1
+            fi
+            echo "Linux packaging failed; retrying in 30s..."
+            sleep 30
+          done
 
       - name: Generate SHA-256 checksums
         run: npm run checksum:release
