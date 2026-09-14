@@ -11,7 +11,7 @@ export interface FontOption {
   summary: string;
 }
 
-export const FONT_OPTIONS: readonly FontOption[] = [
+export const FONT_OPTIONS = [
   {
     id: 'meslo',
     name: 'MesloLGM Nerd Font',
@@ -68,6 +68,21 @@ export const DEFAULT_FONT_SIZE = 16;
 export const MIN_FONT_SIZE = 12;
 export const MAX_FONT_SIZE = 24;
 
+const FONT_OPTION_IDS = FONT_OPTIONS.map((f) => f.id) as string[];
+
+/** Canonical set of persisted font identifiers. */
+export type FontId = (typeof FONT_OPTIONS)[number]['id'];
+
+/** Type guard for persisted/externally supplied font identifiers. */
+export function isFontId(value: unknown): value is FontId {
+  return typeof value === 'string' && FONT_OPTION_IDS.includes(value);
+}
+
+/** Coerce any persisted value to a known font id, falling back to the default. */
+export function normalizeFontId(value: unknown): FontId {
+  return isFontId(value) ? value : DEFAULT_FONT_ID;
+}
+
 export function getFontOption(id: string): FontOption {
   return FONT_OPTIONS.find((f) => f.id === id) ?? FONT_OPTIONS[0];
 }
@@ -78,7 +93,13 @@ export function clampFontSize(size: unknown): number {
 }
 
 /**
- * Apply font family and font size settings dynamically to the DOM root and body.
+ * Apply font family and typography scale to the DOM.
+ *
+ * The root font-size basis stays fixed at 16px so rem-derived layout
+ * primitives (container widths, spacing, radii) remain invariant. The
+ * requested size is expressed as `--app-font-scale` (size / 16), which the
+ * type tokens in theme.css multiply into their computed values, plus a
+ * derived `--app-font-size` px value for font previews.
  */
 export function applyFontSettings(fontId: string, fontSize: number): void {
   if (typeof document === 'undefined') return;
@@ -88,8 +109,8 @@ export function applyFontSettings(fontId: string, fontSize: number): void {
 
   root.style.setProperty('--app-font-family', font.family);
   root.style.setProperty('--font-sans', font.family);
+  root.style.setProperty('--app-font-scale', String(clampedSize / DEFAULT_FONT_SIZE));
   root.style.setProperty('--app-font-size', `${clampedSize}px`);
-  root.style.fontSize = `${clampedSize}px`;
 
   if (document.body) {
     document.body.style.fontFamily = font.family;

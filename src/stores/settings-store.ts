@@ -20,7 +20,8 @@ import {
   DEFAULT_FONT_ID,
   DEFAULT_FONT_SIZE,
   clampFontSize,
-  applyFontSettings,
+  normalizeFontId,
+  type FontId,
 } from '../services/fontService'
 
 export const SIDEBAR_COLLAPSED_WIDTH = 60
@@ -258,7 +259,7 @@ interface SettingsState {
   setDiagnosticsIncludePrompts: (includePrompts: boolean) => void
 
   // Typography and Font settings
-  fontFamily: string
+  fontFamily: FontId
   setFontFamily: (family: string) => void
   fontSize: number
   setFontSize: (size: number) => void
@@ -358,21 +359,15 @@ export const useSettingsStore = create<SettingsState>()(
       }),
       appearanceMode: 'dark',
       setAppearanceMode: (mode) => set({ appearanceMode: mode }),
-      // Typography & Font settings defaults
+      // Typography & Font settings defaults. The store only persists state;
+      // DOM synchronization is owned solely by the reactive effect in
+      // App.tsx (single application boundary).
       fontFamily: DEFAULT_FONT_ID,
-      setFontFamily: (family) => {
-        set({ fontFamily: family });
-        applyFontSettings(family, useSettingsStore.getState().fontSize);
-      },
+      setFontFamily: (family) => set({ fontFamily: normalizeFontId(family) }),
       fontSize: DEFAULT_FONT_SIZE,
-      setFontSize: (size) => {
-        const clamped = clampFontSize(size);
-        set({ fontSize: clamped });
-        applyFontSettings(useSettingsStore.getState().fontFamily, clamped);
-      },
+      setFontSize: (size) => set({ fontSize: clampFontSize(size) }),
       resetFontSettings: () => {
         set({ fontFamily: DEFAULT_FONT_ID, fontSize: DEFAULT_FONT_SIZE });
-        applyFontSettings(DEFAULT_FONT_ID, DEFAULT_FONT_SIZE);
       },
       imageDownloadDirectory: '',
       setImageDownloadDirectory: (dir) => set({ imageDownloadDirectory: dir }),
@@ -523,7 +518,7 @@ export const useSettingsStore = create<SettingsState>()(
           // v13: ensure every persisted single-mode theme carries a code config
           // so syntax highlighting does not silently drop custom palettes.
           customTheme: state.customTheme ? ensureThemeCode(state.customTheme) : null,
-          fontFamily: typeof state.fontFamily === 'string' && state.fontFamily ? state.fontFamily : DEFAULT_FONT_ID,
+          fontFamily: normalizeFontId(state.fontFamily),
           fontSize: clampFontSize(state.fontSize),
         } as SettingsState
       },
@@ -531,9 +526,7 @@ export const useSettingsStore = create<SettingsState>()(
         const persistedState = persisted && typeof persisted === 'object'
           ? persisted as Partial<SettingsState>
           : {}
-        const fontFamily = typeof persistedState.fontFamily === 'string' && persistedState.fontFamily
-          ? persistedState.fontFamily
-          : DEFAULT_FONT_ID;
+        const fontFamily = normalizeFontId(persistedState.fontFamily);
         const fontSize = clampFontSize(persistedState.fontSize);
         const merged = {
           ...current,
@@ -546,7 +539,6 @@ export const useSettingsStore = create<SettingsState>()(
         if (merged.uiLocale) {
           changeLanguage(merged.uiLocale);
         }
-        applyFontSettings(fontFamily, fontSize);
         return merged;
       },
     },

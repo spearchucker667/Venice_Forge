@@ -135,6 +135,9 @@ export function applyTheme(theme: ResolvedTheme): void {
   };
   Object.entries(map).forEach(([k, v]) => root.style.setProperty(k, v));
   root.dataset.themeMode = theme.mode;
+  // Pin native control chrome (form controls, scrollbars) to the resolved
+  // theme mode instead of letting the browser pick from the OS preference.
+  root.style.colorScheme = theme.mode;
   // Notify subscribers that active theme tokens have been reapplied.
   // Guarded for non-DOM test environments.
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {

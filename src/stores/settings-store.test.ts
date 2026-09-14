@@ -384,5 +384,35 @@ describe('settings-store', () => {
       expect(useSettingsStore.getState().fontFamily).toBe('meslo')
       expect(useSettingsStore.getState().fontSize).toBe(16)
     })
+
+    it('normalizes unknown font ids passed to setFontFamily', () => {
+      useSettingsStore.getState().setFontFamily('not-a-real-font')
+      expect(useSettingsStore.getState().fontFamily).toBe('meslo')
+
+      useSettingsStore.getState().setFontFamily('jetbrains')
+      expect(useSettingsStore.getState().fontFamily).toBe('jetbrains')
+    })
+
+    it('normalizes corrupted persisted font ids during migration', () => {
+      const migrate = useSettingsStore.persist.getOptions().migrate as (persistedState: unknown, version: number) => any
+
+      expect(migrate({ fontFamily: '' }, 16).fontFamily).toBe('meslo')
+      expect(migrate({ fontFamily: 'not-a-real-font' }, 16).fontFamily).toBe('meslo')
+      expect(migrate({ fontFamily: 42 }, 16).fontFamily).toBe('meslo')
+      expect(migrate({ fontFamily: null }, 16).fontFamily).toBe('meslo')
+      expect(migrate({ fontFamily: 'lora' }, 16).fontFamily).toBe('lora')
+    })
+
+    it('normalizes corrupted persisted font ids during merge', () => {
+      const merge = useSettingsStore.persist.getOptions().merge as (persistedState: unknown, currentState: unknown) => any
+
+      const merged = merge({ fontFamily: 'not-a-real-font', fontSize: 999 }, useSettingsStore.getState())
+      expect(merged.fontFamily).toBe('meslo')
+      expect(merged.fontSize).toBe(24)
+
+      const valid = merge({ fontFamily: 'inter', fontSize: 14 }, useSettingsStore.getState())
+      expect(valid.fontFamily).toBe('inter')
+      expect(valid.fontSize).toBe(14)
+    })
   })
 })

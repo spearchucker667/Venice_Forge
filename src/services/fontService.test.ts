@@ -8,6 +8,8 @@ import {
   MAX_FONT_SIZE,
   getFontOption,
   clampFontSize,
+  isFontId,
+  normalizeFontId,
   applyFontSettings,
 } from './fontService';
 
@@ -39,10 +41,27 @@ describe('fontService', () => {
     expect(clampFontSize(NaN)).toBe(DEFAULT_FONT_SIZE);
   });
 
-  it('applies font-family and font-size to documentElement and body', () => {
+  it('validates and normalizes font ids', () => {
+    expect(isFontId('meslo')).toBe(true);
+    expect(isFontId('system-sans')).toBe(true);
+    expect(isFontId('')).toBe(false);
+    expect(isFontId('non-existent-font')).toBe(false);
+    expect(isFontId(42)).toBe(false);
+    expect(isFontId(null)).toBe(false);
+
+    expect(normalizeFontId('lora')).toBe('lora');
+    expect(normalizeFontId('non-existent-font')).toBe(DEFAULT_FONT_ID);
+    expect(normalizeFontId('')).toBe(DEFAULT_FONT_ID);
+    expect(normalizeFontId(undefined)).toBe(DEFAULT_FONT_ID);
+  });
+
+  it('applies font family and typography scale without mutating the root font-size basis', () => {
     applyFontSettings('inter', 18);
 
-    expect(document.documentElement.style.fontSize).toBe('18px');
+    // The root rem basis must stay fixed so rem-derived layout geometry
+    // (container widths, spacing, radii) is invariant under the setting.
+    expect(document.documentElement.style.fontSize).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--app-font-scale')).toBe('1.125');
     expect(document.documentElement.style.getPropertyValue('--app-font-family')).toContain('Inter');
     expect(document.documentElement.style.getPropertyValue('--font-sans')).toContain('Inter');
     expect(document.documentElement.style.getPropertyValue('--app-font-size')).toBe('18px');
@@ -53,7 +72,8 @@ describe('fontService', () => {
     applyFontSettings('lora', 20);
     applyFontSettings(DEFAULT_FONT_ID, DEFAULT_FONT_SIZE);
 
-    expect(document.documentElement.style.fontSize).toBe('16px');
+    expect(document.documentElement.style.fontSize).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--app-font-scale')).toBe('1');
     expect(document.documentElement.style.getPropertyValue('--app-font-family')).toContain('MesloLGM');
     expect(document.body.style.fontFamily).toContain('MesloLGM');
   });

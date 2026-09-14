@@ -135,9 +135,9 @@ const PILL_TONE: Record<Tone, string> = {
 const PILL_TONE_SOLID: Record<Tone, string> = {
   neutral: 'bg-surface-elevated text-text-primary border-border',
   accent: 'bg-accent text-button-primary-fg border-accent',
-  success: 'bg-success text-button-primary-fg border-success',
-  warning: 'bg-warning text-button-primary-fg border-warning',
-  danger: 'bg-danger text-button-primary-fg border-danger',
+  success: 'bg-success text-success-fg border-success',
+  warning: 'bg-warning text-warning-fg border-warning',
+  danger: 'bg-danger text-danger-fg border-danger',
   info: 'bg-accent text-button-primary-fg border-accent',
 }
 
