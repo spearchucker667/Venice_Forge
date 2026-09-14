@@ -140,6 +140,26 @@
   --color-surface-layer-2: var(--surface-elevated);
   --color-surface-layer-3: var(--color-surface-elevated-2);
   --color-surface-layer-overlay: var(--color-surface-overlay);
+
+  /* === Reference shell material layer (2026-09-14) =====================
+     Derived from the semantic theme tokens via color-mix so every
+     ThemeFamily v2 variant (incl. custom + YAML themes) inherits the
+     graphite shell geometry with its own hue. NEVER assign raw colors
+     here — extend the derivation chain from --color-* tokens only. */
+  --color-vf-shell-bg: var(--color-bg);
+  --color-vf-shell-bg-deep: color-mix(in srgb, var(--color-bg) 92%, var(--color-surface-muted) 8%);
+  --color-vf-panel-bg: var(--color-surface);
+  --color-vf-panel-bg-raised: var(--color-surface-elevated);
+  --color-vf-panel-bg-inset: var(--color-surface-muted);
+  --color-vf-panel-border: var(--color-border);
+  --color-vf-panel-border-hot: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  --color-vf-panel-highlight: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  --color-vf-grid-line: color-mix(in srgb, var(--color-border) 55%, transparent);
+  --color-vf-accent-glow: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  --color-vf-accent-glow-strong: color-mix(in srgb, var(--color-accent) 42%, transparent);
+  --color-vf-control-hover: color-mix(in srgb, var(--color-surface-elevated) 72%, transparent);
+  --color-vf-control-active: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --vf-noise-opacity: 0.4;
 }
 
 :root {

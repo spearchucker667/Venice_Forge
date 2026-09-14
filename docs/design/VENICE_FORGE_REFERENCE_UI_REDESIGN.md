@@ -60,6 +60,8 @@ Rules:
 - **Light variants are first-class**: same hierarchy inverted (near-white shell, slightly darker insets, restrained borders, accent-derived focus, very subtle grain). No fake dark overlay.
 - The `THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR` marker contract and `verify:theme-tokens` remain in force; the audit in work order §28 (pre-baseline: 39 raw colors / 1272 arbitrary values / 168 large radii-shadows / 449 mesh-glass usages) must not grow.
 
+Implementation note: tokens live in the Tailwind v4 `--color-vf-*` namespace so utility classes (bg-vf-panel-bg, border-vf-panel-border, …) generate automatically; the design names map 1:1.
+
 ## 4. Shell contract
 
 Existing structure retuned, not rebuilt (`src/App.tsx` keeps its three-zone composition):
