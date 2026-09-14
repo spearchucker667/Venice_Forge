@@ -212,6 +212,11 @@ function createWindow(): BrowserWindow {
     event.preventDefault();
     if (isTrustedExternalUrl(url)) promptExternalLink(win, url);
   });
+  win.webContents.on("will-redirect", (event, url) => {
+    if (isAllowedAppNavigation(url)) return;
+    event.preventDefault();
+    if (isTrustedExternalUrl(url)) promptExternalLink(win, url);
+  });
   win.webContents.on("did-fail-load", (_event, errorCode, errorDescription) => {
     logError("did-fail-load", { errorCode, errorDescription });
   });
@@ -533,6 +538,7 @@ if (!gotLock) {
     });
 
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    session.defaultSession.setPermissionCheckHandler(() => false);
 
     return bootstrap();
   }).catch((err) => {
@@ -575,6 +581,14 @@ if (!gotLock) {
         const win = BrowserWindow.fromWebContents(contents);
         if (win) promptExternalLink(win, url);
         // Intentionally do nothing for windowless contents — block navigation.
+      }
+    });
+    contents.on("will-redirect", (event, url) => {
+      if (isAllowedAppNavigation(url)) return;
+      event.preventDefault();
+      if (isTrustedExternalUrl(url)) {
+        const win = BrowserWindow.fromWebContents(contents);
+        if (win) promptExternalLink(win, url);
       }
     });
     contents.setWindowOpenHandler(({ url }) => {

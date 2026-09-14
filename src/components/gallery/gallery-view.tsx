@@ -67,6 +67,7 @@ import {
   isElectron,
 } from "../../services/desktopBridge";
 import { Trans, useTranslation } from "react-i18next";
+import { EmptyState } from "../ui/primitives";
 
 export function MediaStudioView() {
   const { t: tRuntime } = useTranslation("common");
@@ -1241,26 +1242,26 @@ export function MediaStudioView() {
               <Trans i18nKey="common:surface.componentsGalleryGalleryView.text.loadingMediaStudio" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="grid h-full place-items-center text-center">
-              <div>
-                <p className="text-[15px] font-medium text-text-primary">
-                  <Trans i18nKey="common:surface.componentsGalleryGalleryView.description.noMatchingMedia" />
-                </p>
-                <p className="mt-1 text-[12.5px] text-text-muted">
-                  {items.length === 0
+            <EmptyState
+              data-testid="media-studio-empty"
+              className="h-full"
+              headline={
+                <Trans i18nKey="common:surface.componentsGalleryGalleryView.description.noMatchingMedia" />
+              }
+              helper={
+                items.length === 0
+                  ? tRuntime(
+                      "runtimeGenerated.components.gallery.galleryView.text.imagesAndVideosGeneratedInImageStudioAndVideoStudio",
+                    )
+                  : hasMore
                     ? tRuntime(
-                        "runtimeGenerated.components.gallery.galleryView.text.imagesAndVideosGeneratedInImageStudioAndVideoStudio",
+                        "runtimeGenerated.components.gallery.galleryView.text.tryADifferentSearchOrFilterOrLoadOlderItems",
                       )
-                    : hasMore
-                      ? tRuntime(
-                          "runtimeGenerated.components.gallery.galleryView.text.tryADifferentSearchOrFilterOrLoadOlderItems",
-                        )
-                      : tRuntime(
-                          "runtimeGenerated.components.gallery.galleryView.text.tryADifferentSearchFilterOrSort",
-                        )}
-                </p>
-              </div>
-            </div>
+                    : tRuntime(
+                        "runtimeGenerated.components.gallery.galleryView.text.tryADifferentSearchFilterOrSort",
+                      )
+              }
+            />
           ) : (
             <div
               className={cn(

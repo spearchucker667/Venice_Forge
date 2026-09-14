@@ -6,6 +6,7 @@ import { translateRuntime } from "../../i18n/runtimeTranslator";
 import { Search, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { PillGroup, GhostButton } from "../ui/shared";
+import { IconButton, Pill, Toolbar } from "../ui/primitives";
 import type { MediaFilter, MediaSort } from "../../stores/media-store";
 import { formatBytesApprox, estimateItemBytes } from "../../utils/mediaItem";
 import type { MediaItem } from "../../types/media";
@@ -262,7 +263,13 @@ export function MediaToolbar({
 
   return (
     <div className="flex flex-col gap-3 soft-separator-y mesh-surface px-5 py-3">
-      <div className="flex flex-wrap items-center gap-2">
+      <Toolbar
+        bare
+        aria-label={tRuntime(
+          "runtimeGenerated.components.gallery.mediaToolbar.attribute.searchMedia",
+        )}
+        className="w-full flex-wrap"
+      >
         <div className="relative min-w-[220px] flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
           <input
@@ -275,19 +282,18 @@ export function MediaToolbar({
             aria-label={tRuntime(
               "runtimeGenerated.components.gallery.mediaToolbar.attribute.searchMedia",
             )}
-            className="w-full rounded-lg border border-border bg-surface-elevated py-1.5 pl-8 pr-7 text-[13px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
+            className="w-full rounded-lg border border-border bg-surface-elevated py-1.5 pl-8 pr-9 text-[13px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
           />
           {query && (
-            <button
-              type="button"
+            <IconButton
               onClick={() => onQueryChange("")}
-              aria-label={tRuntime(
+              ariaLabel={tRuntime(
                 "runtimeGenerated.components.gallery.mediaToolbar.attribute.clearSearch",
               )}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+              icon={<X />}
+              size="sm"
+              className="absolute right-1 top-1/2 -translate-y-1/2"
+            />
           )}
         </div>
 
@@ -344,7 +350,7 @@ export function MediaToolbar({
                 "runtimeGenerated.components.gallery.mediaToolbar.text.select",
               )}
         </button>
-      </div>
+      </Toolbar>
 
       <div className="flex flex-wrap items-center gap-2">
         <PillGroup
@@ -353,19 +359,23 @@ export function MediaToolbar({
           onChange={(v) => onFilterChange(v as MediaFilter)}
           ariaLabel="Filter media"
         />
-        <span className="ml-auto text-[12px] text-text-muted">
+        <Pill className="ml-auto">
           {totalCount}{" "}
           <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.text.item" />
           {totalCount === 1 ? "" : "s"}
-        </span>
+        </Pill>
       </div>
 
       {multiSelectMode && (
-        <div
-          className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-elevated px-3 py-2"
+        <Toolbar
+          bare
+          aria-label={tRuntime(
+            "surface.componentsGalleryMediaToolbar.text.selected",
+          )}
+          className="w-full flex-wrap rounded-lg border border-border bg-surface-elevated px-3 py-2"
           data-testid="bulk-action-toolbar"
         >
-          <span className="text-[12px] text-text-secondary">
+          <Pill>
             {selectedIds.size}{" "}
             <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.text.selected" />
             {selectedItems.length > 0 && (
@@ -382,7 +392,7 @@ export function MediaToolbar({
                 </span>
               </>
             )}
-          </span>
+          </Pill>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
             <button
               type="button"
@@ -498,7 +508,7 @@ export function MediaToolbar({
               <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.delete" />
             </button>
           </div>
-        </div>
+        </Toolbar>
       )}
     </div>
   );

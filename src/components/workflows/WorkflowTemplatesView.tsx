@@ -15,6 +15,7 @@ import type {
   WorkflowStepTarget,
 } from "../../types/workflow";
 import { Trans, useTranslation } from "react-i18next";
+import { Card, EmptyState, Pill, Toolbar } from "../ui/primitives";
 
 const WORKFLOW_STEP_KINDS: WorkflowStepKind[] = [
   "prompt",
@@ -279,7 +280,12 @@ export function WorkflowTemplatesView() {
             <h2 className="text-sm font-semibold text-text-secondary">
               <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.heading.workflows" />
             </h2>
-            <div className="flex gap-2">
+            <Toolbar
+              bare
+              aria-label={tRuntime(
+                "surface.componentsWorkflowsWorkflowtemplatesview.heading.workflows",
+              )}
+            >
               <label htmlFor="workflow-templates-1" className="text-xs bg-surface-hover hover:bg-surface-hover text-text-primary px-2 py-1 rounded cursor-pointer">
                 <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.label.import" />
                 <input
@@ -296,7 +302,7 @@ export function WorkflowTemplatesView() {
               >
                 <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.new" />
               </button>
-            </div>
+            </Toolbar>
           </div>
           <input
             type="text"
@@ -319,9 +325,13 @@ export function WorkflowTemplatesView() {
             )}
           >
             {filteredWorkflows.length === 0 ? (
-              <div className="text-xs text-text-secondary p-2">
-                <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.text.noWorkflowsFound" />
-              </div>
+              <EmptyState
+                className="py-6"
+                data-testid="workflow-list-empty"
+                headline={
+                  <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.text.noWorkflowsFound" />
+                }
+              />
             ) : (
               filteredWorkflows.map((w) => (
                 <button
@@ -334,14 +344,15 @@ export function WorkflowTemplatesView() {
                   <div className="overflow-hidden">
                     <div className="text-sm text-text-primary truncate flex items-center gap-2">
                       {w.favorite && (
-                        <span
-                          className="text-yellow-400"
+                        <Pill
+                          tone="warning"
+                          className="px-1"
                           aria-label={tRuntime(
                             "runtimeGenerated.components.workflows.workflowtemplatesview.attribute.favorite",
                           )}
                         >
                           ★
-                        </span>
+                        </Pill>
                       )}
                       {w.title}
                     </div>
@@ -363,12 +374,13 @@ export function WorkflowTemplatesView() {
 
         {/* Detail View */}
         {!activeWorkflow || !activeVersion ? (
-          <div
-            className="flex-1 flex items-center justify-center text-sm text-text-secondary"
+          <EmptyState
+            className="flex-1"
             data-testid="empty-state"
-          >
-            <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.text.selectOrCreateAWorkflowToBegin" />
-          </div>
+            headline={
+              <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.text.selectOrCreateAWorkflowToBegin" />
+            }
+          />
         ) : (
           <div
             className="flex-1 flex flex-col h-full bg-surface overflow-y-auto p-4 md:p-6 min-w-0"
@@ -402,19 +414,25 @@ export function WorkflowTemplatesView() {
                   data-testid="workflow-tags-input"
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
+              <Toolbar
+                bare
+                aria-label={activeWorkflow.title}
+                className="flex-wrap gap-2"
+              >
                 <button
                   onClick={() => toggleWorkflowFavorite(activeWorkflow.id)}
-                  className={`text-xs px-3 py-1.5 rounded ${activeWorkflow.favorite ? "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30" : "bg-surface-hover hover:bg-surface-hover text-text-secondary"}`}
+                  className="rounded"
                   data-testid="favorite-workflow-btn"
                 >
-                  {activeWorkflow.favorite
-                    ? tRuntime(
-                        "runtimeGenerated.components.workflows.workflowtemplatesview.text.unfavorite",
-                      )
-                    : tRuntime(
-                        "runtimeGenerated.components.workflows.workflowtemplatesview.text.favorite",
-                      )}
+                  <Pill tone={activeWorkflow.favorite ? "warning" : "neutral"}>
+                    {activeWorkflow.favorite
+                      ? tRuntime(
+                          "runtimeGenerated.components.workflows.workflowtemplatesview.text.unfavorite",
+                        )
+                      : tRuntime(
+                          "runtimeGenerated.components.workflows.workflowtemplatesview.text.favorite",
+                        )}
+                  </Pill>
                 </button>
                 <button
                   onClick={handleExport}
@@ -434,12 +452,12 @@ export function WorkflowTemplatesView() {
                   onClick={() => {
                     setWorkflowToDelete(activeWorkflow.id);
                   }}
-                  className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded"
+                  className="text-xs bg-danger/10 hover:bg-danger/20 text-danger px-3 py-1.5 rounded"
                   data-testid="delete-workflow-btn"
                 >
                   <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.delete" />
                 </button>
-              </div>
+              </Toolbar>
             </div>
 
             {/* Versions Control */}
@@ -507,9 +525,11 @@ export function WorkflowTemplatesView() {
               </div>
               <div className="space-y-2">
                 {activeVersion.steps.map((step) => (
-                  <div
+                  <Card
                     key={step.id}
-                    className="p-3 bg-surface-hover rounded border border-border flex flex-col gap-3"
+                    elevation="flat"
+                    padded={false}
+                    className="p-3 bg-surface-hover flex flex-col gap-3"
                     data-testid="workflow-step-item"
                   >
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_11rem_11rem_auto] gap-2 items-center">
@@ -564,7 +584,7 @@ export function WorkflowTemplatesView() {
                       </select>
                       <button
                         onClick={() => removeStep(activeWorkflow.id, step.id)}
-                        className="text-xs text-text-secondary hover:text-red-400 px-2 py-1"
+                        className="text-xs text-text-secondary hover:text-danger px-2 py-1"
                         data-testid="remove-step-btn"
                       >
                         <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.remove" />
@@ -606,26 +626,27 @@ export function WorkflowTemplatesView() {
                         className="w-full resize-y rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary"
                       />
                     )}
-                  </div>
+                  </Card>
                 ))}
               </div>
             </div>
 
             {/* Compile Preview & Run Plan */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-auto">
-              <div
-                className="p-4 bg-surface rounded border border-border flex flex-col"
+              <Card
+                elevation="flat"
+                className="flex flex-col"
                 data-testid="compile-preview"
               >
                 <h4 className="text-xs uppercase tracking-wider font-medium text-text-secondary mb-2">
                   <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.heading.compilePreview" />
                 </h4>
                 {compiled?.canRun ? (
-                  <div className="text-xs text-green-400/80">
+                  <div className="text-xs text-success">
                     <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.text.workflowIsValid" />
                   </div>
                 ) : (
-                  <div className="text-xs text-red-400/80">
+                  <div className="text-xs text-danger">
                     <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.text.workflowHasErrors" />
                   </div>
                 )}
@@ -633,16 +654,17 @@ export function WorkflowTemplatesView() {
                   {compiled?.warnings.map((w) => (
                     <div
                       key={w.id}
-                      className={`text-xs ${w.severity === "error" ? "text-red-400" : "text-yellow-400"}`}
+                      className={`text-xs ${w.severity === "error" ? "text-danger" : "text-warning"}`}
                     >
                       {w.message}
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
 
-              <div
-                className="p-4 bg-surface rounded border border-border flex flex-col"
+              <Card
+                elevation="flat"
+                className="flex flex-col"
                 data-testid="run-plan-preview"
               >
                 <h4 className="text-xs uppercase tracking-wider font-medium text-text-secondary mb-2">
@@ -664,7 +686,7 @@ export function WorkflowTemplatesView() {
                         </span>
                         <button
                           onClick={() => handleRunStep(action)}
-                          className="text-xs bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 px-2 py-1 rounded whitespace-nowrap"
+                          className="text-xs bg-accent/20 text-accent hover:bg-accent/30 px-2 py-1 rounded whitespace-nowrap"
                           data-testid="run-step-btn"
                         >
                           {action.tabId
@@ -680,7 +702,7 @@ export function WorkflowTemplatesView() {
                     ))}
                   </div>
                 )}
-              </div>
+              </Card>
             </div>
           </div>
         )}

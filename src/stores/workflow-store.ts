@@ -116,6 +116,9 @@ interface WorkflowState {
   currentRunId: string | null
   currentRunStartedAt: number | null
   runHistory: RunRecord[]
+  /** True once the async IndexedDB hydration resolves. Mutations that need
+   *  persisted state should wait for this to be true. */
+  isHydrated: boolean
 
   createWorkflow: (name: string) => string
   updateWorkflow: (id: string, updates: Partial<Pick<Workflow, 'name' | 'nodes' | 'edges'>>) => void
@@ -128,6 +131,8 @@ interface WorkflowState {
   endRun: () => void
   clearResults: () => void
   applyPatches: (workflowId: string, patches: readonly WorkflowPatch[]) => PatchResult
+  /** @internal Called by onRehydrateStorage once IndexedDB resolves. */
+  _markHydrated: () => void
 }
 
 export const useWorkflowStore = create<WorkflowState>()(
@@ -140,8 +145,12 @@ export const useWorkflowStore = create<WorkflowState>()(
       currentRunId: null,
       currentRunStartedAt: null,
       runHistory: [],
+      isHydrated: false,
+
+      _markHydrated: () => set({ isHydrated: true }),
 
       createWorkflow: (name) => {
+
         if (get().workflows.length >= MAX_PERSISTED_WORKFLOWS) {
           toast.warn(
             translateRuntime(
@@ -243,6 +252,14 @@ export const useWorkflowStore = create<WorkflowState>()(
         workflows: state.workflows.slice(0, MAX_PERSISTED_WORKFLOWS),
         activeWorkflowId: state.activeWorkflowId,
       }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn('[workflow-store] rehydration error', error)
+        }
+        // Mark hydrated regardless of error so the store does not stay
+        // permanently blocked if IDB read fails.
+        state?._markHydrated()
+      },
     },
   ),
 )

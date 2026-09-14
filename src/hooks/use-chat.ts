@@ -22,6 +22,7 @@ import {
   computeAttachmentTextAllowance,
   estimateTokenCount,
 } from "../services/chatContextBudget";
+import { resolveEffectiveChatPromptContext } from "../services/effectiveChatPrompt";
 import { getModelById } from "../services/modelService";
 import { buildExternalAttachmentEnvelope } from "../services/ingestion/xmlEscape";
 import * as logger from "../shared/logger";
@@ -576,10 +577,14 @@ export function useChat() {
       // Model-aware admission: extracted attachment text competes for the
       // SELECTED MODEL's remaining context window, not a fixed 1 MiB ceiling.
       const chatStoreNow = useChatStore.getState();
+      const { effectiveSystemPrompt } = resolveEffectiveChatPromptContext(
+        conv ?? { systemPrompt: undefined, metadata: undefined },
+        chatStoreNow.systemPrompt,
+      );
       const attachmentAllowance = computeAttachmentTextAllowance({
         modelInfo: getModelById(streamModel),
         maxTokens: chatStoreNow.maxTokens,
-        systemPrompt: chatStoreNow.systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         messages: conv?.messages ?? [],
         userMessage,
         injectedContext: contextToInject,
@@ -589,6 +594,7 @@ export function useChat() {
 
       if (attachments && attachments.length > 0) {
         for (const att of attachments) {
+          let omittedByContext = false;
           if (att.kind === "image" && att.dataUrl) {
             // Image content parts go into the provider payload as vision input.
             imageParts.push({
@@ -599,12 +605,12 @@ export function useChat() {
             const attUnits = useTokenBudget
               ? estimateTokenCount(att.text).count
               : new TextEncoder().encode(att.text).length;
-            const omitted =
+            omittedByContext =
               contextUnitsUsed + attUnits >
               (useTokenBudget
                 ? attachmentAllowance.allowanceTokens
                 : attachmentAllowance.allowanceBytes);
-            if (!omitted) {
+            if (!omittedByContext) {
               // Provider-only context: wrapped in an untrusted-data envelope.
               // This text is NOT stored in the visible persisted message content.
               // The guard (childExploitationGuard.ts) splits on this exact tag to
@@ -621,6 +627,7 @@ export function useChat() {
             }
           }
           // Build structured attachment ref (no raw extracted content).
+          const extractionTruncated = att.extraction.truncated === true;
           attachmentRefs.push({
             id: att.id,
             name: att.name,
@@ -630,7 +637,7 @@ export function useChat() {
             sizeBytes: att.sizeBytes,
             createdAt: att.createdAt,
             extractionRoute: att.extraction.route,
-            truncated: contextTruncated,
+            truncated: extractionTruncated || omittedByContext,
             requiresVision: att.modelRequirements.requiresVision,
           });
         }

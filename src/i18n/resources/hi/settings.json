@@ -556,6 +556,9 @@
     "preview": "लाइव टाइपोग्राफी पूर्वावलोकन",
     "previewHeading": "शांत विश्वास से युक्त एआई कार्यक्षेत्र",
     "previewBody": "Venice Forge निजी एआई चैट, दृश्य निर्माण और मल्टीमॉडल जनरेशन प्रदान करता है।",
-    "reset": "डिफ़ॉल्ट पर रीसेट करें"
+    "reset": "डिफ़ॉल्ट पर रीसेट करें",
+    "default": "__MISSING__:font.default",
+    "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
+    "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
   }
 }

@@ -34,7 +34,9 @@ describe("PromptLibraryView (VERIFY-046)", () => {
 
   it("renders the empty state when there are no prompts", () => {
     render(<PromptLibraryView />);
+    expect(screen.getByRole("toolbar", { name: "Prompt Library" })).toBeInTheDocument();
     expect(screen.getByTestId("prompt-library-empty")).toHaveTextContent(/No saved prompts yet/i);
+    expect(screen.getByTestId("prompt-library-empty-detail")).toHaveTextContent(/No prompt selected/i);
   });
 
   it("creates a prompt from the New button", async () => {
@@ -86,6 +88,7 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     // Only the chat item should remain.
     expect(items).toHaveLength(1);
     expect(items[0]?.textContent).toMatch(/chat/i);
+    expect(within(items[0]!).getByText("chat").closest("[data-tone]")).toHaveAttribute("data-tone", "neutral");
   });
 
   it("filters by favorites", async () => {

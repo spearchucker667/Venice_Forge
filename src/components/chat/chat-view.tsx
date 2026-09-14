@@ -2,6 +2,7 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -42,6 +43,7 @@ import type {
   ConversationRecordV1,
 } from "../../types/conversationVault";
 import { calculateChatContextBudget } from "../../services/chatContextBudget";
+import { resolveEffectiveChatPromptContext } from "../../services/effectiveChatPrompt";
 import type { Conversation } from "../../types/conversation";
 import type { ChatMemoryDecision } from "../../hooks/use-chat";
 import {
@@ -1150,28 +1152,10 @@ function ChatContextMeterContent({
     });
   }
 
-  const mode = conversation.metadata?.systemPromptMode ?? "inherit";
-  const characterSystemPrompt = conversation.metadata?.character?.systemPrompt;
-  const systemSegments: string[] = [];
-
-  if (mode === "override") {
-    if (conversation.systemPrompt)
-      systemSegments.push(conversation.systemPrompt.trim());
-  } else if (mode === "inherit") {
-    if (conversation.metadata?.character) {
-      if (conversation.systemPrompt)
-        systemSegments.push(conversation.systemPrompt.trim());
-      else if (characterSystemPrompt)
-        systemSegments.push(characterSystemPrompt.trim());
-    } else {
-      if (conversation.systemPrompt)
-        systemSegments.push(conversation.systemPrompt.trim());
-      else if (globalSystemPrompt)
-        systemSegments.push(globalSystemPrompt.trim());
-    }
-  }
-
-  const effectiveSystemPrompt = systemSegments.filter(Boolean).join("\n\n");
+  const { effectiveSystemPrompt } = resolveEffectiveChatPromptContext(
+    conversation,
+    globalSystemPrompt,
+  );
   const budget = calculateChatContextBudget(
     tempMessages,
     effectiveSystemPrompt,
@@ -1249,6 +1233,7 @@ function PriorConversationContextSelector({
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const popoverDialogId = useId();
 
   // The composer clips overflow, so the popover is portaled to <body> and
   // positioned programmatically (CSP-safe: no JSX inline styles — same
@@ -1281,10 +1266,29 @@ function PriorConversationContextSelector({
     position();
     const frame = requestAnimationFrame(position);
     window.addEventListener("resize", position);
+    window.addEventListener("scroll", position, true);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", position);
+      window.removeEventListener("scroll", position, true);
     };
+  }, [open]);
+
+  // Focus management: move focus into dialog when opened, restore focus to trigger button when closed.
+  const prevOpenRef = useRef(open);
+  useEffect(() => {
+    if (open) {
+      const popover = popoverRef.current;
+      if (popover) {
+        const firstFocusable = popover.querySelector<HTMLElement>(
+          'select, button, input, [tabindex]:not([tabindex="-1"])',
+        );
+        firstFocusable?.focus();
+      }
+    } else if (prevOpenRef.current) {
+      buttonRef.current?.focus();
+    }
+    prevOpenRef.current = open;
   }, [open]);
 
   useEffect(() => {
@@ -1296,7 +1300,10 @@ function PriorConversationContextSelector({
       setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -1322,6 +1329,8 @@ function PriorConversationContextSelector({
           "runtimeGenerated.components.chat.chatView.attribute.chatContextSettings",
         )}
         aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-controls={open ? popoverDialogId : undefined}
         onClick={() => setOpen((value) => !value)}
         className="rounded-lg px-2 py-1.5 vf-meta text-text-muted hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       >
@@ -1342,8 +1351,10 @@ function PriorConversationContextSelector({
       {open &&
         createPortal(
           <div
+            id={popoverDialogId}
             ref={popoverRef}
             role="dialog"
+            aria-modal="true"
             aria-label={tRuntime(
               "runtimeGenerated.components.chat.chatView.attribute.chatContext",
             )}

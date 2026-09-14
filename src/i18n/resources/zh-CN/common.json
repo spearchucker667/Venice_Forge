@@ -547,7 +547,14 @@
         "code": "代码：",
         "signals": "信号：",
         "toolUsed": "使用的工具：",
-        "resultFrom": "结果"
+        "resultFrom": "结果",
+        "injectedContextMemory": "__MISSING__:surface.componentsChatMessageBubble.text.injectedContextMemory",
+        "injectedContextPrior": "__MISSING__:surface.componentsChatMessageBubble.text.injectedContextPrior",
+        "injectedContextApproved": "__MISSING__:surface.componentsChatMessageBubble.text.injectedContextApproved",
+        "injectedContextMixed": "__MISSING__:surface.componentsChatMessageBubble.text.injectedContextMixed",
+        "injectedContextDefault": "__MISSING__:surface.componentsChatMessageBubble.text.injectedContextDefault",
+        "reasoningRegionLabel": "__MISSING__:surface.componentsChatMessageBubble.text.reasoningRegionLabel",
+        "messageActions": "__MISSING__:surface.componentsChatMessageBubble.text.messageActions"
       }
     },
     "componentsChatVeniceParams": {

@@ -33,6 +33,7 @@ import { buildSceneReferenceEntities } from "../../services/sceneReferenceResolv
 import { useCharacterCardStore } from "../../stores/character-card-store";
 import { usePersonaStore } from "../../stores/persona-store";
 import { Trans, useTranslation } from "react-i18next";
+import { Card, EmptyState, Pill, Toolbar } from "../ui/primitives";
 
 const COMPONENT_KIND_OPTIONS: Array<{
   value: SceneComponentKind;
@@ -243,7 +244,13 @@ export function SceneComposerView() {
             className="w-full rounded-md border border-border bg-background px-2 py-1 text-[12.5px] focus:outline-none focus:border-accent"
             data-testid="scene-composer-search"
           />
-          <div className="flex flex-wrap gap-1.5">
+          <Toolbar
+            bare
+            aria-label={tRuntime(
+              "surface.componentsScenesScenecomposerview.heading.sceneComposer",
+            )}
+            className="w-full flex-wrap gap-1.5"
+          >
             <select
               value={scopeFilter}
               onChange={(e) =>
@@ -307,7 +314,7 @@ export function SceneComposerView() {
             >
               <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.archive" />
             </button>
-          </div>
+          </Toolbar>
         </div>
         <div
           className="flex-1 overflow-y-auto"
@@ -318,18 +325,19 @@ export function SceneComposerView() {
               <Trans i18nKey="common:surface.componentsScenesScenecomposerview.description.loading" />
             </p>
           ) : filtered.length === 0 ? (
-            <div
-              className="p-3 text-text-muted text-[12px]"
+            <EmptyState
+              className="m-3"
               data-testid="scene-composer-empty"
-            >
-              {scenes.length === 0
-                ? tRuntime(
-                    "runtimeGenerated.components.scenes.scenecomposerview.text.noSavedScenesYetClickNewToCreateOne",
-                  )
-                : tRuntime(
-                    "runtimeGenerated.components.scenes.scenecomposerview.text.noScenesMatchTheCurrentFilters",
-                  )}
-            </div>
+              headline={
+                scenes.length === 0
+                  ? tRuntime(
+                      "runtimeGenerated.components.scenes.scenecomposerview.text.noSavedScenesYetClickNewToCreateOne",
+                    )
+                  : tRuntime(
+                      "runtimeGenerated.components.scenes.scenecomposerview.text.noScenesMatchTheCurrentFilters",
+                    )
+              }
+            />
           ) : (
             <ul className="divide-y divide-border">
               {filtered.map((s) => (
@@ -347,18 +355,18 @@ export function SceneComposerView() {
                         {s.favorite ? "★ " : ""}
                         {s.title}
                       </span>
-                      <span className="ml-auto text-[12px] text-text-muted">
-                        {s.outputMediaIds.length > 0
-                          ? tRuntime(
+                      {s.outputMediaIds.length > 0 && (
+                        <Pill tone="accent" className="ml-auto">
+                          {tRuntime(
                               "runtimeGenerated.components.scenes.scenecomposerview.text.value1OutputValue2",
                               {
                                 value1: s.outputMediaIds.length,
                                 value2:
                                   s.outputMediaIds.length === 1 ? "" : "s",
                               },
-                            )
-                          : ""}
-                      </span>
+                            )}
+                        </Pill>
+                      )}
                     </div>
                     <div className="text-[12px] text-text-muted mt-0.5 truncate">
                       {s.scope === "project"
@@ -452,18 +460,19 @@ export function SceneComposerView() {
             }}
           />
         ) : (
-          <div
-            className="flex-1 flex items-center justify-center text-text-muted text-[12.5px]"
+          <EmptyState
+            className="flex-1"
             data-testid="scene-composer-empty-detail"
-          >
-            {hydrated && scenes.length > 0
-              ? tRuntime(
-                  "runtimeGenerated.components.scenes.scenecomposerview.text.selectASceneToCompose",
-                )
-              : tRuntime(
-                  "runtimeGenerated.components.scenes.scenecomposerview.text.noSceneSelectedCreateANewOneToGetStarted",
-                )}
-          </div>
+            headline={
+              hydrated && scenes.length > 0
+                ? tRuntime(
+                    "runtimeGenerated.components.scenes.scenecomposerview.text.selectASceneToCompose",
+                  )
+                : tRuntime(
+                    "runtimeGenerated.components.scenes.scenecomposerview.text.noSceneSelectedCreateANewOneToGetStarted",
+                  )
+            }
+          />
         )}
       </section>
     </div>
@@ -504,8 +513,9 @@ function SceneReferencePanel({
   }
 
   return (
-    <div
-      className="rounded-md border border-border p-3 space-y-2"
+    <Card
+      elevation="flat"
+      className="rounded-md p-3 space-y-2"
       data-testid="scene-reference-panel"
     >
       <div className="flex items-center gap-2">
@@ -550,7 +560,7 @@ function SceneReferencePanel({
                       Array.from(new Set([...prev, ref.entityId])),
                     )
                   }
-                  className="ml-auto rounded border border-border px-1.5 py-0.5 text-[12px] hover:border-red-400 hover:text-red-300"
+                  className="ml-auto rounded border border-border px-1.5 py-0.5 text-[12px] hover:border-danger/60 hover:text-danger"
                   data-testid={`scene-reference-remove-${ref.entityId}`}
                 >
                   <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.remove" />
@@ -610,7 +620,7 @@ function SceneReferencePanel({
           })}
         </ul>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1200,14 +1210,14 @@ function SceneDetail(props: SceneDetailProps) {
                   "runtimeGenerated.components.scenes.scenecomposerview.attribute.typeValue1ToConfirm",
                   { value1: item.title },
                 )}
-                className="rounded-md border border-red-500/40 bg-background px-2 py-1 text-[12px]"
+                className="rounded-md border border-danger/40 bg-background px-2 py-1 text-[12px]"
                 data-testid="scene-composer-delete-confirm"
               />
               <button
                 type="button"
                 disabled={confirmDeleteText.trim() !== item.title}
                 onClick={onDelete}
-                className="rounded-md border border-red-500/60 text-red-300 px-2 py-1 text-[12px] disabled:opacity-50"
+                className="rounded-md border border-danger/60 text-danger px-2 py-1 text-[12px] disabled:opacity-50"
                 data-testid="scene-composer-delete"
               >
                 <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.delete" />
@@ -1227,7 +1237,7 @@ function SceneDetail(props: SceneDetailProps) {
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="rounded-md border border-red-500/40 text-red-300 px-2 py-1 text-[12px]"
+              className="rounded-md border border-danger/40 text-danger px-2 py-1 text-[12px]"
               data-testid="scene-composer-delete-arm"
             >
               <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.delete" />
@@ -1241,14 +1251,16 @@ function SceneDetail(props: SceneDetailProps) {
             {[...item.versions]
               .sort((a, b) => b.version - a.version)
               .map((v) => (
-                <li
-                  key={v.id}
-                  className={`rounded-md border px-2 py-1.5 ${
-                    v.id === item.currentVersionId
-                      ? "border-accent/60"
-                      : "border-border"
-                  }`}
-                >
+                <li key={v.id}>
+                  <Card
+                    elevation="flat"
+                    padded={false}
+                    className={`rounded-md border px-2 py-1.5 ${
+                      v.id === item.currentVersionId
+                        ? "border-accent/60"
+                        : "border-border"
+                    }`}
+                  >
                   <div className="flex items-center gap-2 text-[12px]">
                     <span className="font-medium">{v.title}</span>
                     <span className="text-text-muted">
@@ -1295,6 +1307,7 @@ function SceneDetail(props: SceneDetailProps) {
                       {v.notes}
                     </p>
                   )}
+                  </Card>
                 </li>
               ))}
           </ul>

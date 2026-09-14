@@ -2,6 +2,7 @@ import {
   useState,
   useRef,
   useEffect,
+  useId,
   memo,
   useMemo,
   lazy,
@@ -28,8 +29,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { safeVeniceMediaUrl } from "../../utils/mediaItem";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 import type { ContextMenuItem } from "../ui/ContextMenu";
-import { IconButton } from "../ui/primitives";
-;
+import { IconButton, Toolbar } from "../ui/primitives";
 
 const ChatTtsPlayer = lazy(async () => {
   const module = await import("./ChatTtsPlayer");
@@ -45,22 +45,20 @@ type InjectedContextSource = NonNullable<
   ChatMessage["metadata"]
 >["injectedContextSource"];
 
-function formatInjectedContextSource(
-  source: InjectedContextSource | undefined,
-): string {
-  switch (source) {
-    case "memory":
-      return "Memory";
-    case "prior_context":
-      return "Prior context";
-    case "approved_context":
-      return "Approved context";
-    case "mixed":
-      return "Mixed context";
-    default:
-      return "Injected context";
-  }
-}
+/** i18n key map for injected context source labels. The full key path is
+ *  `common:surface.componentsChatMessageBubble.text.<value>`. */
+const INJECTED_CONTEXT_SOURCE_KEY: Record<
+  NonNullable<InjectedContextSource>,
+  string
+> = {
+  memory: "common:surface.componentsChatMessageBubble.text.injectedContextMemory",
+  prior_context: "common:surface.componentsChatMessageBubble.text.injectedContextPrior",
+  approved_context: "common:surface.componentsChatMessageBubble.text.injectedContextApproved",
+  mixed: "common:surface.componentsChatMessageBubble.text.injectedContextMixed",
+};
+
+const INJECTED_CONTEXT_FALLBACK_KEY =
+  "common:surface.componentsChatMessageBubble.text.injectedContextDefault";
 
 // Extract text and images from multimodal content
 function extractContent(content: string | ContentPart[]): {
@@ -114,13 +112,14 @@ function MessageBubbleImpl({
   assistantCharacter,
   assistantCharacterCacheKey,
 }: MessageBubbleProps) {
-  const { t: tRuntime } = useTranslation("common");
+  const { t, t: tRuntime } = useTranslation("common");
   const bubbleMenu = useContextMenu();
   useKatexCss();
 
   const [hovering, setHovering] = useState(false);
   const [copied, setCopied] = useState(false);
   const [reasoningOpen, setReasoningOpen] = useState(false);
+  const reasoningPanelId = useId();
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState("");
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -144,8 +143,11 @@ function MessageBubbleImpl({
     typeof message.metadata?.injectedContext === "string"
       ? message.metadata.injectedContext.trim()
       : "";
-  const injectedContextLabel = formatInjectedContextSource(
-    message.metadata?.injectedContextSource,
+  const _contextSourceRaw = message.metadata?.injectedContextSource;
+  const injectedContextLabel = t(
+    _contextSourceRaw != null
+      ? (INJECTED_CONTEXT_SOURCE_KEY[_contextSourceRaw] ?? INJECTED_CONTEXT_FALLBACK_KEY)
+      : INJECTED_CONTEXT_FALLBACK_KEY,
   );
 
   const localSafetyDecision = useMemo(() => {
@@ -215,8 +217,10 @@ function MessageBubbleImpl({
   ) : null;
 
   const actions = (
-    <div
-      className={`flex items-center gap-0.5 h-7 transition-opacity duration-150 focus-within:opacity-100 ${hovering ? "opacity-100" : "opacity-90 sm:opacity-0"}`}
+    <Toolbar
+      size="sm"
+      bare
+      className={`h-7 transition-opacity duration-150 focus-within:opacity-100 ${hovering ? "opacity-100" : "opacity-90 sm:opacity-0"}`}
     >
       <ActionBtn
         label={
@@ -440,7 +444,7 @@ function MessageBubbleImpl({
           <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
         </svg>
       </ActionBtn>
-    </div>
+    </Toolbar>
   );
 
   const bubbleMenuItems: ContextMenuItem[] = [
@@ -565,7 +569,7 @@ function MessageBubbleImpl({
           onMouseEnter={() => setHovering(true)}
           onMouseLeave={() => setHovering(false)}
         >
-        <div className="flex items-end gap-1.5 max-w-[78%]">
+        <div className="flex items-end gap-1.5 max-w-chat-bubble">
           {actions}
           <div className="bg-surface-elevated border border-border rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
             {images.length > 0 && (
@@ -742,7 +746,7 @@ function MessageBubbleImpl({
           position={bubbleMenu.menu}
           items={bubbleMenuItems}
           onClose={bubbleMenu.close}
-          ariaLabel="Message actions"
+          ariaLabel={t("common:surface.componentsChatMessageBubble.text.messageActions")}
         />
       </>
     );
@@ -784,6 +788,8 @@ function MessageBubbleImpl({
           <div className="mb-2">
             <button
               onClick={() => setReasoningOpen(!reasoningOpen)}
+              aria-expanded={reasoningOpen}
+              aria-controls={reasoningPanelId}
               className="flex items-center gap-1.5 vf-meta text-text-muted hover:text-text-secondary transition-colors mb-1 cursor-pointer"
             >
               <svg
@@ -806,7 +812,12 @@ function MessageBubbleImpl({
               <Trans i18nKey="common:surface.componentsChatMessageBubble.action.thinking" />
             </button>
             {reasoningOpen && (
-              <div className="bg-surface border border-border rounded-lg px-3 py-2 vf-body text-text-muted leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto">
+              <div
+                id={reasoningPanelId}
+                role="region"
+                aria-label={t("common:surface.componentsChatMessageBubble.text.reasoningRegionLabel")}
+                className="bg-surface border border-border rounded-lg px-3 py-2 vf-body text-text-muted leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto"
+              >
                 {message.reasoning_content}
               </div>
             )}
@@ -1087,7 +1098,7 @@ function MessageBubbleImpl({
         position={bubbleMenu.menu}
         items={bubbleMenuItems}
         onClose={bubbleMenu.close}
-        ariaLabel="Message actions"
+        ariaLabel={t("common:surface.componentsChatMessageBubble.text.messageActions")}
       />
     </>
   );

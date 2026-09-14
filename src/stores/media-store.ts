@@ -37,8 +37,13 @@ interface MediaState {
   upsertDerivative: (item: MediaItem, parentId: string) => Promise<MediaItem>;
   /** Patch a single record by id. Returns the updated record, or null if missing. */
   patch: (id: string, patch: MediaItemPatch) => Promise<MediaItem | null>;
-  /** Patch many records at once. Returns the number of records updated. */
-  patchMany: (ids: readonly string[], patch: MediaItemPatch) => Promise<number>;
+  /** Patch many records at once. Returns the per-ID outcome so callers can
+   *  reconcile in-memory state with only records actually written to IDB. */
+  patchMany: (ids: readonly string[], patch: MediaItemPatch) => Promise<{
+    updatedIds: string[];
+    missingIds: string[];
+    failedIds: string[];
+  }>;
   /** Delete a single record. */
   remove: (id: string) => Promise<boolean>;
   /** Delete many records. Returns the number actually removed. */
@@ -315,9 +320,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   },
 
   patchMany: async (ids, patch) => {
-    const count = await StorageService.bulkPatchMedia(ids, patch);
-    if (count > 0) {
-      const updatedSet = new Set(ids);
+    const result = await StorageService.bulkPatchMedia(ids, patch);
+    if (result.updatedIds.length > 0) {
+      const updatedSet = new Set(result.updatedIds);
       set((state) => ({
         items: state.items.map((item) =>
           updatedSet.has(item.id)
@@ -326,7 +331,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
         ),
       }));
     }
-    return count;
+    return result;
   },
 
   remove: async (id) => {

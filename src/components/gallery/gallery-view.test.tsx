@@ -69,7 +69,7 @@ describe('MediaStudioView (GalleryView)', () => {
       ...patch,
       id,
     }))
-    vi.mocked(StorageService.bulkPatchMedia).mockResolvedValue(1)
+    vi.mocked(StorageService.bulkPatchMedia).mockResolvedValue({ updatedIds: ['1'], missingIds: [], failedIds: [] })
     vi.mocked(StorageService.putMedia).mockImplementation(async (item) => ({ ...(item as object), id: (item as { id: string }).id, timestamp: 1 }))
   })
 
@@ -77,6 +77,23 @@ describe('MediaStudioView (GalleryView)', () => {
     render(<GalleryView />)
     expect(await screen.findByText('Copper city at dusk')).toBeInTheDocument()
     expect(StorageService.getItemsPageWithMeta).toHaveBeenCalledWith('images', { offset: 0, limit: 60 })
+  })
+
+  it('exposes labelled media toolbars and an accessible empty state', async () => {
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
+      items: [], decryptFailures: 0, total: 0, offset: 0, limit: 60, hasMore: false,
+    })
+    render(<GalleryView />)
+
+    expect(await screen.findByRole('toolbar', { name: 'Search media' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }))
+    expect(screen.getByRole('toolbar', { name: 'selected' })).toBeInTheDocument()
+    expect(await screen.findByTestId('media-studio-empty')).toHaveTextContent('No matching media')
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search media' }), {
+      target: { value: 'missing' },
+    })
+    expect(screen.getByRole('button', { name: 'Clear search' })).toBeInTheDocument()
   })
 
   // VERIFY-042: All Projects includes scoped and legacy media; project views are exact-match only.

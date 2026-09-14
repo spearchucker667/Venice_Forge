@@ -40,14 +40,18 @@ vi.mock('../services/storageService', () => {
         return next
       }),
       bulkPatchMedia: vi.fn(async (ids: string[], patch: Partial<MediaItem>) => {
-        let n = 0
+        const updatedIds: string[] = []
+        const missingIds: string[] = []
         for (const id of ids) {
           const existing = store.get(id)
-          if (!existing) continue
+          if (!existing) {
+            missingIds.push(id)
+            continue
+          }
           store.set(id, { ...existing, ...patch, id, timestamp: existing.timestamp })
-          n += 1
+          updatedIds.push(id)
         }
-        return n
+        return { updatedIds, missingIds, failedIds: [] }
       }),
       deleteMedia: vi.fn(async (id: string) => {
         return store.delete(id)
@@ -468,8 +472,10 @@ describe('mediaStore', () => {
     mockService.__seed(b)
     await useMediaStore.getState().refresh()
 
-    const count = await useMediaStore.getState().patchMany(['a', 'b'], { favorite: true })
-    expect(count).toBe(2)
+    const result = await useMediaStore.getState().patchMany(['a', 'b'], { favorite: true })
+    expect(result.updatedIds).toEqual(['a', 'b'])
+    expect(result.missingIds).toEqual([])
+    expect(result.failedIds).toEqual([])
     const items = useMediaStore.getState().items
     expect(items.find((i) => i.id === 'a')?.favorite).toBe(true)
     expect(items.find((i) => i.id === 'b')?.favorite).toBe(true)
@@ -477,8 +483,9 @@ describe('mediaStore', () => {
 
   it('patchMany() does not update state if no records matched', async () => {
     await useMediaStore.getState().refresh()
-    const count = await useMediaStore.getState().patchMany(['missing'], { favorite: true })
-    expect(count).toBe(0)
+    const result = await useMediaStore.getState().patchMany(['missing'], { favorite: true })
+    expect(result.updatedIds).toEqual([])
+    expect(result.missingIds).toEqual(['missing'])
   })
 
   it('setFavoriteMany() updates favorite on multiple records', async () => {

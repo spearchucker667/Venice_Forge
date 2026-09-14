@@ -68,6 +68,8 @@ interface PlaygroundState {
   isThinking: boolean
   runResults: Record<string, NodeResult>
   isRunning: boolean
+  /** True once the async IndexedDB hydration resolves. */
+  isHydrated: boolean
 
   addMessage: (msg: PlaygroundMessage) => void
   updateMessage: (id: string, updates: Partial<PlaygroundMessage>) => void
@@ -81,6 +83,8 @@ interface PlaygroundState {
   clearResults: () => void
   loadWorkflow: (workflowId: string, nodes: Node<VeniceNodeData>[], edges: Edge[]) => void
   unlinkWorkflow: () => void
+  /** @internal Called by onRehydrateStorage once IndexedDB resolves. */
+  _markHydrated: () => void
 }
 
 export const usePlaygroundStore = create<PlaygroundState>()(
@@ -92,6 +96,9 @@ export const usePlaygroundStore = create<PlaygroundState>()(
       isThinking: false,
       runResults: {},
       isRunning: false,
+      isHydrated: false,
+
+      _markHydrated: () => set({ isHydrated: true }),
 
       addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
       updateMessage: (id, updates) =>
@@ -127,6 +134,12 @@ export const usePlaygroundStore = create<PlaygroundState>()(
       version: 1,
       storage: createJSONStorage(() => asyncStorageAdapter),
       partialize: (s) => ({ messages: s.messages.slice(-40), draft: s.draft, linkedWorkflowId: s.linkedWorkflowId }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn('[playground-store] rehydration error', error)
+        }
+        state?._markHydrated()
+      },
     },
   ),
 )

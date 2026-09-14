@@ -556,6 +556,9 @@
     "preview": "Live-Typografie-Vorschau",
     "previewHeading": "Der souveräne KI-Arbeitsbereich",
     "previewBody": "Venice Forge bietet privaten KI-Chat, Szenenkomposition und multimodale Generierung.",
-    "reset": "Auf Standard zurücksetzen"
+    "reset": "Auf Standard zurücksetzen",
+    "default": "__MISSING__:font.default",
+    "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
+    "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
   }
 }

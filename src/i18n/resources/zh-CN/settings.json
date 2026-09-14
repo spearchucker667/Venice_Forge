@@ -556,6 +556,9 @@
     "preview": "实时排版预览",
     "previewHeading": "沉稳自信的 AI 工作空间",
     "previewBody": "Venice Forge 提供私密 AI 对话、场景构建和多模态生成功能。",
-    "reset": "恢复默认设置"
+    "reset": "恢复默认设置",
+    "default": "__MISSING__:font.default",
+    "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
+    "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
   }
 }

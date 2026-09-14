@@ -125,3 +125,14 @@ export function computeRateLimitWait(headers: unknown, attempt: number) {
   }
   return calculateBackoff(attempt, 2000, 16000);
 }
+
+/**
+ * Transient HTTP status codes eligible for retry on retry-enabled requests.
+ * Reconciled across streaming chat and normal fetch (VF-CUR-P2-014).
+ */
+export const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504] as const;
+
+export function isRetryableStatusCode(status: number | null | undefined): boolean {
+  if (typeof status !== "number") return false;
+  return (RETRYABLE_STATUS_CODES as readonly number[]).includes(status);
+}

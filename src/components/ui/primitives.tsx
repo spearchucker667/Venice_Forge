@@ -85,13 +85,33 @@ export function IconButton({
   )
 
   if (asPlainButton) {
+    const { disabled, onClick, onKeyDown, ...plainRest } = rest
+    const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (event) => {
+      const handleCallerKeyDown = onKeyDown as unknown as
+        | React.KeyboardEventHandler<HTMLDivElement>
+        | undefined
+      handleCallerKeyDown?.(event)
+      if (event.defaultPrevented || disabled) return
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        event.currentTarget.click()
+      }
+    }
+
     return (
       <div
         role="button"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
         aria-label={ariaLabel}
+        aria-disabled={disabled || undefined}
         className={cls}
-        {...(rest as unknown as React.HTMLAttributes<HTMLDivElement>)}
+        onClick={
+          disabled
+            ? undefined
+            : (onClick as unknown as React.MouseEventHandler<HTMLDivElement>)
+        }
+        onKeyDown={handleKeyDown}
+        {...(plainRest as unknown as React.HTMLAttributes<HTMLDivElement>)}
       >
         {icon}
       </div>
@@ -178,6 +198,8 @@ export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
   bare?: boolean
   /** Alignment of items when they overflow. */
   align?: 'start' | 'center' | 'end'
+  /** Explicitly opt in to role="toolbar". When false and unlabelled, Toolbar is a visual action group without role="toolbar". */
+  asToolbar?: boolean
 }
 
 const TOOLBAR_GAP: Record<Size, string> = {
@@ -196,13 +218,25 @@ export function Toolbar({
   size = 'md',
   bare = false,
   align = 'start',
+  asToolbar = false,
+  role,
   className,
   children,
   ...rest
 }: ToolbarProps) {
+  // Option A (VF-CUR-P3-010): Do not emit role="toolbar" by default for generic action groups.
+  // Emit role="toolbar" only when explicitly requested (asToolbar / role="toolbar") or when an
+  // accessible label is supplied.
+  const resolvedRole =
+    role !== undefined
+      ? role
+      : asToolbar || rest['aria-label'] || rest['aria-labelledby']
+        ? 'toolbar'
+        : undefined
+
   return (
     <div
-      role="toolbar"
+      role={resolvedRole}
       data-toolbar-size={size}
       className={cn(
         'inline-flex items-center',
@@ -331,9 +365,9 @@ export interface InputProps
 }
 
 const INPUT_SIZE: Record<Size, string> = {
-  sm: 'h-8 px-2.5 text-[13px]',
-  md: 'h-10 px-3 text-[14px]',
-  lg: 'h-12 px-4 text-[15px]',
+  sm: 'h-8 px-2.5 vf-meta',
+  md: 'h-10 px-3 vf-body',
+  lg: 'h-12 px-4 text-base',
 }
 
 const INPUT_TONE: Record<NonNullable<InputProps['tone']>, string> = {

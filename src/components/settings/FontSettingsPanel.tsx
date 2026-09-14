@@ -33,10 +33,10 @@ export function FontSettingsPanel(): React.ReactElement {
         <div className="flex items-center gap-2.5">
           <Type className="w-4 h-4 text-accent" />
           <div>
-            <h3 className="text-[14.5px] font-medium text-text-primary">
+            <h3 className="vf-body font-medium text-text-primary">
               {t('settings:font.title', 'Typography & Font Settings')}
             </h3>
-            <p className="text-[12px] text-text-muted mt-0.5">
+            <p className="vf-meta text-text-muted mt-0.5">
               {t('settings:font.description', 'Choose the application font family and adjust interface text scaling.')}
             </p>
           </div>
@@ -45,7 +45,7 @@ export function FontSettingsPanel(): React.ReactElement {
           <button
             type="button"
             onClick={resetFontSettings}
-            className="px-2.5 py-1 rounded-md text-[12px] font-medium border border-border hover:bg-surface-muted text-text-secondary hover:text-text-primary transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+            className="px-2.5 py-1 rounded-md vf-meta font-medium border border-border hover:bg-surface-muted text-text-secondary hover:text-text-primary transition-colors inline-flex items-center gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3 h-3 opacity-75" />
             {t('settings:font.reset', 'Reset to Default')}
@@ -57,10 +57,10 @@ export function FontSettingsPanel(): React.ReactElement {
         {/* Font Family Selection */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label htmlFor={selectId} className="text-[12.5px] font-medium text-text-primary">
+            <label htmlFor={selectId} className="vf-meta font-medium text-text-primary">
               {t('settings:font.familyLabel', 'Font Family')}
             </label>
-            <span className="text-[11px] px-1.5 py-0.5 rounded bg-surface-muted text-text-muted border border-border/50 uppercase tracking-wider font-mono">
+            <span className="vf-tag px-1.5 py-0.5 rounded bg-surface-muted text-text-muted border border-border/50 uppercase tracking-wider font-mono">
               {activeFont.category}
             </span>
           </div>
@@ -69,7 +69,7 @@ export function FontSettingsPanel(): React.ReactElement {
             aria-label={t('settings:font.familyLabel', 'Font Family')}
             value={fontFamily}
             onChange={(e) => setFontFamily(e.target.value)}
-            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[13.5px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+            className="w-full bg-surface border border-border rounded-lg px-3 py-2 vf-body text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
           >
             {FONT_OPTIONS.map((opt) => (
               <option key={opt.id} value={opt.id} data-font-preview={opt.id}>
@@ -77,7 +77,7 @@ export function FontSettingsPanel(): React.ReactElement {
               </option>
             ))}
           </select>
-          <p className="text-[11.5px] text-text-muted">
+          <p className="vf-meta text-text-muted">
             {t('settings:font.familyDescription', 'Select the typeface for interface text and content.')}
           </p>
         </div>
@@ -85,13 +85,13 @@ export function FontSettingsPanel(): React.ReactElement {
         {/* Font Size Slider */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label htmlFor={sliderId} className="text-[12.5px] font-medium text-text-primary">
+            <label htmlFor={sliderId} className="vf-meta font-medium text-text-primary">
               {t('settings:font.sizeLabel', 'Font Size Scale')}
             </label>
-            <span className="text-[11.5px] font-mono font-medium text-accent px-1.5 py-0.5 rounded bg-accent/10 border border-accent/20">
+            <span className="vf-tag font-mono font-medium text-accent px-1.5 py-0.5 rounded bg-accent/10 border border-accent/20">
               {
                 // i18n-allow-next-line: typography percentage scale indicator
-                `${fontSize}px (${percent}%${fontSize === DEFAULT_FONT_SIZE ? ' · Default' : ''})`
+                `${fontSize}px (${percent}%${fontSize === DEFAULT_FONT_SIZE ? ` · ${t('settings:font.default', 'Default')}` : ''})`
               }
             </span>
           </div>
@@ -105,9 +105,14 @@ export function FontSettingsPanel(): React.ReactElement {
               value={fontSize}
               onChange={(e) => setFontSize(Number(e.target.value))}
               aria-label={t('settings:font.sizeLabel', 'Font Size Scale')}
+              aria-valuetext={
+                fontSize === DEFAULT_FONT_SIZE
+                  ? t('settings:font.rangeValuetextDefault', '{{pixels}} pixels, {{percent}} percent, default', { pixels: fontSize, percent })
+                  : t('settings:font.rangeValuetext', '{{pixels}} pixels, {{percent}} percent', { pixels: fontSize, percent })
+              }
               className="w-full accent-accent cursor-pointer"
             />
-            <div className="flex justify-between text-[10.5px] text-text-muted mt-1 font-mono">
+            <div className="flex justify-between vf-tag text-text-muted mt-1 font-mono">
               <span>
                 {
                   // i18n-allow-next-line: typography percentage scale indicator
@@ -128,7 +133,7 @@ export function FontSettingsPanel(): React.ReactElement {
               </span>
             </div>
           </div>
-          <p className="text-[11.5px] text-text-muted">
+          <p className="vf-meta text-text-muted">
             {t('settings:font.sizeDescription', 'Adjust interface typography scaling relative to the default size.')}
           </p>
         </div>
@@ -137,10 +142,10 @@ export function FontSettingsPanel(): React.ReactElement {
       {/* Live Typography Preview */}
       <div className="rounded-lg border border-border/60 bg-surface p-4 space-y-2">
         <div className="flex items-center justify-between border-b border-border/40 pb-2">
-          <span className="text-[11.5px] font-medium text-text-muted uppercase tracking-wider">
+          <span className="vf-tag font-medium text-text-muted uppercase tracking-wider">
             {t('settings:font.preview', 'Live Typography Preview')}
           </span>
-          <span className="text-[11px] text-text-muted font-mono">
+          <span className="vf-tag text-text-muted font-mono">
             {activeFont.name} · {fontSize}px
           </span>
         </div>
@@ -151,7 +156,7 @@ export function FontSettingsPanel(): React.ReactElement {
           <p className="font-preview text-text-secondary leading-relaxed">
             {t('settings:font.previewBody', 'Venice Forge provides private AI chat, scene composition, and multimodal generation.')}
           </p>
-          <div className="p-2 rounded bg-surface-elevated border border-border/50 text-text-muted font-mono text-[12px]">
+          <div className="p-2 rounded bg-surface-elevated border border-border/50 text-text-muted font-mono vf-meta">
             <code>
               {
                 // i18n-allow-next-line: technical typography preview code snippet

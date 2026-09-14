@@ -56,4 +56,10 @@ describe('workflow-store persist cap', () => {
     expect(useWorkflowStore.getState().workflows).toHaveLength(MAX_PERSISTED_WORKFLOWS)
     expect(toast.warn).toHaveBeenCalled()
   })
+
+  it('exposes hydration arbitration state (VF-CUR-P2-008)', () => {
+    expect(typeof useWorkflowStore.getState().isHydrated).toBe('boolean')
+    useWorkflowStore.getState()._markHydrated()
+    expect(useWorkflowStore.getState().isHydrated).toBe(true)
+  })
 })

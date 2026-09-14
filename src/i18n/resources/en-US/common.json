@@ -631,7 +631,14 @@
         "code": "Code:",
         "signals": "Signals:",
         "toolUsed": "Tool used:",
-        "resultFrom": "Result from"
+        "resultFrom": "Result from",
+        "injectedContextMemory": "Memory",
+        "injectedContextPrior": "Prior context",
+        "injectedContextApproved": "Approved context",
+        "injectedContextMixed": "Mixed context",
+        "injectedContextDefault": "Injected context",
+        "reasoningRegionLabel": "Reasoning",
+        "messageActions": "Message actions"
       },
       "action": {
         "cancel": "Cancel",

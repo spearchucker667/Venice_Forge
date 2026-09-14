@@ -1,0 +1,21 @@
+{
+  "tracked": 1834,
+  "substantive": 1535,
+  "nonSubstantive": 299,
+  "byStatus": {
+    "REVIEWED": 1535,
+    "BINARY": 50,
+    "NOT APPLICABLE": 103,
+    "GENERATED": 146
+  },
+  "byKind": {
+    "support": 32,
+    "configuration": 62,
+    "documentation": 192,
+    "binary": 50,
+    "not applicable": 103,
+    "generated": 146,
+    "test": 521,
+    "source": 728
+  }
+}

@@ -54,6 +54,45 @@ describe('IconButton', () => {
     )
     expect(screen.getByRole('button', { name: 'Compose' })).toBeInTheDocument()
   })
+
+  it('keyboard-activates asPlainButton with Enter and Space', async () => {
+    const user = userEvent.setup()
+    const onClick = vi.fn()
+    render(
+      <IconButton
+        ariaLabel="Compose"
+        icon={<span data-testid="icon" />}
+        asPlainButton
+        onClick={onClick}
+      />,
+    )
+    const button = screen.getByRole('button', { name: 'Compose' })
+    button.focus()
+    await user.keyboard('{Enter}')
+    await user.keyboard(' ')
+    expect(onClick).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not activate a disabled asPlainButton', async () => {
+    const user = userEvent.setup()
+    const onClick = vi.fn()
+    render(
+      <IconButton
+        ariaLabel="Compose"
+        icon={<span data-testid="icon" />}
+        asPlainButton
+        disabled
+        onClick={onClick}
+      />,
+    )
+    const button = screen.getByRole('button', { name: 'Compose' })
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    button.focus()
+    await user.keyboard('{Enter}')
+    await user.keyboard(' ')
+    await user.click(button)
+    expect(onClick).not.toHaveBeenCalled()
+  })
 })
 
 describe('Pill', () => {
@@ -80,21 +119,30 @@ describe('Pill', () => {
 })
 
 describe('Toolbar', () => {
-  it('renders children inside an inline-flex container with role=toolbar', () => {
+  it('renders children inside an inline-flex container, omitting role=toolbar by default', () => {
     render(
       <Toolbar>
         <button type="button">A</button>
         <button type="button">B</button>
       </Toolbar>,
     )
-    expect(screen.getByRole('toolbar')).toBeInTheDocument()
+    expect(screen.queryByRole('toolbar')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'A' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'B' })).toBeInTheDocument()
   })
 
+  it('emits role=toolbar when asToolbar or an accessible label is provided', () => {
+    render(
+      <Toolbar asToolbar aria-label="Action strip">
+        <button type="button">A</button>
+      </Toolbar>,
+    )
+    expect(screen.getByRole('toolbar', { name: 'Action strip' })).toBeInTheDocument()
+  })
+
   it('omits the action-bar surface when bare', () => {
     render(
-      <Toolbar bare>
+      <Toolbar bare asToolbar>
         <button type="button">A</button>
       </Toolbar>,
     )

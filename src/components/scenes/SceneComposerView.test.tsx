@@ -1,6 +1,7 @@
 /** @fileoverview Phase 2E — Scene Composer view tests. */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import "@testing-library/jest-dom/vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SceneComposerView } from "./SceneComposerView";
@@ -95,6 +96,9 @@ describe("SceneComposerView", () => {
   it("renders the list pane and empty state", async () => {
     render(<SceneComposerView />);
     expect(screen.getByTestId("scene-composer-list-pane")).toBeDefined();
+    expect(screen.getByRole("toolbar", { name: "Scene Composer" })).toBeInTheDocument();
+    expect(screen.getByTestId("scene-composer-favorites-filter")).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByTestId("scene-composer-archive-filter")).toHaveAttribute("aria-pressed", "false");
     await waitFor(() => {
       expect(screen.getByTestId("scene-composer-empty")).toBeDefined();
     });
@@ -105,6 +109,7 @@ describe("SceneComposerView", () => {
     await waitFor(() => {
       expect(screen.getByTestId("scene-composer-empty-detail")).toBeDefined();
     });
+    expect(screen.getByTestId("scene-composer-empty-detail")).toHaveTextContent(/No scene selected/i);
   });
 
   it("creates a new scene and selects it", async () => {

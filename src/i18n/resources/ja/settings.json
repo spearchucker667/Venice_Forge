@@ -556,6 +556,9 @@
     "preview": "リアルタイムタイポグラフィプレビュー",
     "previewHeading": "静かな自信に満ちたAIワークスペース",
     "previewBody": "Venice ForgeはプライベートAIチャット、シーン構成、マルチモーダル生成を提供します。",
-    "reset": "デフォルトに戻す"
+    "reset": "デフォルトに戻す",
+    "default": "__MISSING__:font.default",
+    "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
+    "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
   }
 }

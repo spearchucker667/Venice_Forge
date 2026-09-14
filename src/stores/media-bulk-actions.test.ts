@@ -21,7 +21,11 @@ vi.mock("../services/storageService", () => {
         store.set(id, next)
         return next
       }),
-      bulkPatchMedia: vi.fn(async (ids: string[], _patch: Record<string, unknown>) => ids.length),
+      bulkPatchMedia: vi.fn(async (ids: string[], _patch: Record<string, unknown>) => ({
+        updatedIds: ids.filter((id) => store.has(id)),
+        missingIds: ids.filter((id) => !store.has(id)),
+        failedIds: [],
+      })),
       deleteMedia: vi.fn(async (id: string) => {
         const had = store.delete(id)
         return had

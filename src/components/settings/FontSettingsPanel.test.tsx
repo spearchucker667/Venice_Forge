@@ -43,6 +43,7 @@ describe("FontSettingsPanel", () => {
     const slider = screen.getByRole("slider", { name: /font size/i });
     expect(slider).toBeInTheDocument();
     expect(slider).toHaveValue(String(DEFAULT_FONT_SIZE));
+    expect(slider).toHaveAttribute("aria-valuetext", "16 pixels, 100 percent, default");
     expect(screen.getByText(/16px \(100% · Default\)/)).toBeInTheDocument();
   });
 
@@ -53,6 +54,7 @@ describe("FontSettingsPanel", () => {
     fireEvent.change(slider, { target: { value: "18" } });
 
     expect(useSettingsStore.getState().fontSize).toBe(18);
+    expect(slider).toHaveAttribute("aria-valuetext", "18 pixels, 113 percent");
     expect(screen.getByText(/18px \(113%\)/)).toBeInTheDocument();
   });
 

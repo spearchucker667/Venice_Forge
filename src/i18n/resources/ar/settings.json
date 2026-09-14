@@ -556,6 +556,9 @@
     "preview": "معاينة حية للخط",
     "previewHeading": "مساحة عمل الذكاء الاصطناعي الواثقة والهادئة",
     "previewBody": "يوفر Venice Forge محادثة ذكاء اصطناعي خاصة وتأليف المشاهد والتوليد متعدد الوسائط.",
-    "reset": "إعادة التعيين إلى الافتراضي"
+    "reset": "إعادة التعيين إلى الافتراضي",
+    "default": "__MISSING__:font.default",
+    "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
+    "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
   }
 }

@@ -17,6 +17,7 @@ import { desktopDocumentAgent } from "../../services/desktopBridge";
 import { useProjectStore } from "../../stores/project-store";
 import type { ChatMemoryStatus } from "../../hooks/use-chat";
 import { Trans, useTranslation } from "react-i18next";
+import { IconButton } from "../ui/primitives";
 
 interface ChatInputProps {
   onSend: (message: string, attachments?: IngestedAttachment[]) => void;
@@ -260,28 +261,31 @@ export function ChatInput({
                       alt={t("composer.attachmentAlt", { number: i + 1 })}
                       className="h-16 w-16 object-cover rounded-lg border border-border"
                     />
-                    <button
+                    <IconButton
+                      size="sm"
+                      tone="danger"
                       onClick={() =>
                         setAttachments((prev) => prev.filter((_, j) => j !== i))
                       }
-                      aria-label={t("composer.removeAttachment", {
+                      ariaLabel={t("composer.removeAttachment", {
                         name: att.name,
                       })}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-danger hover:bg-danger/90 text-danger-fg border border-danger rounded-full flex items-center justify-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                    >
-                      <svg
-                        width="9"
-                        height="9"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
+                      className="absolute -top-2 -right-2 rounded-full shadow-sm bg-danger hover:bg-danger/90 text-danger-fg border border-danger p-0"
+                      icon={
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        >
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      }
+                    />
                   </div>
                 );
               }
@@ -301,12 +305,42 @@ export function ChatInput({
                     </span>
                   </div>
                   {att.attachmentId && (
-                    <button
+                    <IconButton
+                      size="sm"
+                      tone="accent"
                       onClick={() => handlePromoteAttachment(att)}
-                      aria-label={t("composer.saveToDocuments", { name: att.name })}
-                      className="shrink-0 p-1 text-text-muted hover:text-accent transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                      ariaLabel={t("composer.saveToDocuments", { name: att.name })}
                       title={t("composer.saveToDocuments", { name: att.name })}
-                    >
+                      className="shrink-0"
+                      icon={
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.75"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                          <polyline points="17 21 17 13 7 13 7 21" />
+                          <polyline points="7 3 7 8 15 8" />
+                        </svg>
+                      }
+                    />
+                  )}
+                  <IconButton
+                    size="sm"
+                    tone="danger"
+                    onClick={() =>
+                      setAttachments((prev) => prev.filter((_, j) => j !== i))
+                    }
+                    ariaLabel={t("composer.removeAttachment", {
+                      name: att.name,
+                    })}
+                    className="shrink-0 -mr-1"
+                    icon={
                       <svg
                         width="14"
                         height="14"
@@ -317,35 +351,11 @@ export function ChatInput({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       >
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                        <polyline points="17 21 17 13 7 13 7 21" />
-                        <polyline points="7 3 7 8 15 8" />
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
-                    </button>
-                  )}
-                  <button
-                    onClick={() =>
-                      setAttachments((prev) => prev.filter((_, j) => j !== i))
                     }
-                    aria-label={t("composer.removeAttachment", {
-                      name: att.name,
-                    })}
-                    className="shrink-0 -mr-1 p-1 text-text-muted hover:text-danger transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.75"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
+                  />
                 </div>
               );
             })}

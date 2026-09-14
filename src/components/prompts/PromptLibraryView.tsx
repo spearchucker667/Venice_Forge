@@ -38,6 +38,7 @@ import { PromptCreateModal } from "./PromptCreateModal";
 import { Select } from "../ui/select";
 import { ConfirmModal } from "../ConfirmModal";
 import { Trans, useTranslation } from "react-i18next";
+import { Card, EmptyState, Pill, Toolbar } from "../ui/primitives";
 
 const KIND_OPTIONS: Array<{ value: PromptKind; label: string }> = [
   {
@@ -292,7 +293,13 @@ export function PromptLibraryView() {
             className="w-full rounded-md border border-border bg-background px-2 py-1 text-[12.5px] focus:outline-none focus:border-accent"
             data-testid="prompt-library-search"
           />
-          <div className="flex flex-wrap gap-1.5">
+          <Toolbar
+            bare
+            aria-label={tRuntime(
+              "surface.componentsPromptsPromptlibraryview.heading.promptLibrary",
+            )}
+            className="w-full flex-wrap gap-1.5"
+          >
             <Select
               value={kindFilter}
               onChange={(v) => setKindFilter(v as PromptKind | "all")}
@@ -401,7 +408,7 @@ export function PromptLibraryView() {
               aria-pressed={favoritesOnly}
               className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 favoritesOnly
-                  ? "border-amber-500/40 text-amber-300"
+                  ? "border-warning/40 text-warning"
                   : "border-border text-text-secondary hover:border-accent hover:text-accent"
               }`}
               data-testid="prompt-library-favorites-filter"
@@ -421,7 +428,7 @@ export function PromptLibraryView() {
             >
               <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.archive" />
             </button>
-          </div>
+          </Toolbar>
         </div>
         <div
           className="flex-1 overflow-y-auto"
@@ -432,29 +439,30 @@ export function PromptLibraryView() {
               <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.description.loading" />
             </p>
           ) : filtered.length === 0 ? (
-            <div
-              className="p-3 text-text-muted text-[12px]"
+            <EmptyState
+              className="m-3"
               data-testid="prompt-library-empty"
-            >
-              {prompts.length === 0 ? (
-                <>
-                  <p>
-                    <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.description.noSavedPromptsYet" />
-                  </p>
-                  <p className="mt-1">
+              headline={
+                prompts.length === 0 ? (
+                  <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.description.noSavedPromptsYet" />
+                ) : (
+                  tRuntime(
+                    "runtimeGenerated.components.prompts.promptlibraryview.text.noPromptsMatchTheCurrentFilters",
+                  )
+                )
+              }
+              helper={
+                prompts.length === 0 ? (
+                  <>
                     <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.description.clickThe" />{" "}
                     <strong className="text-text-primary">
                       <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.text.new" />
                     </strong>{" "}
                     <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.description.buttonAboveToCreateYourFirstPrompt" />
-                  </p>
-                </>
-              ) : (
-                tRuntime(
-                  "runtimeGenerated.components.prompts.promptlibraryview.text.noPromptsMatchTheCurrentFilters",
-                )
-              )}
-            </div>
+                  </>
+                ) : undefined
+              }
+            />
           ) : (
             <ul className="divide-y divide-border">
               {filtered.map((p) => (
@@ -472,9 +480,9 @@ export function PromptLibraryView() {
                         {p.favorite ? "★ " : ""}
                         {p.title}
                       </span>
-                      <span className="ml-auto text-[12px] uppercase tracking-wider text-text-muted bg-surface-elevated px-1.5 py-0.5 rounded border border-border">
+                      <Pill className="ml-auto uppercase tracking-wider">
                         {p.kind}
-                      </span>
+                      </Pill>
                     </div>
                     <div className="text-[12px] text-text-muted mt-0.5 truncate">
                       {p.scope === "project"
@@ -491,12 +499,9 @@ export function PromptLibraryView() {
                     {p.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {p.tags.map((t) => (
-                          <span
-                            key={t}
-                            className="text-[12px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-full border border-accent/20"
-                          >
+                          <Pill key={t} tone="accent">
                             #{t}
-                          </span>
+                          </Pill>
                         ))}
                       </div>
                     )}
@@ -579,18 +584,19 @@ export function PromptLibraryView() {
             }}
           />
         ) : (
-          <div
-            className="flex-1 flex items-center justify-center text-text-muted text-[12.5px]"
+          <EmptyState
+            className="flex-1"
             data-testid="prompt-library-empty-detail"
-          >
-            {hydrated && prompts.length > 0
-              ? tRuntime(
-                  "runtimeGenerated.components.prompts.promptlibraryview.text.selectAPromptToViewItsDetails",
-                )
-              : tRuntime(
-                  "runtimeGenerated.components.prompts.promptlibraryview.text.noPromptSelectedCreateANewOneToGetStarted",
-                )}
-          </div>
+            headline={
+              hydrated && prompts.length > 0
+                ? tRuntime(
+                    "runtimeGenerated.components.prompts.promptlibraryview.text.selectAPromptToViewItsDetails",
+                  )
+                : tRuntime(
+                    "runtimeGenerated.components.prompts.promptlibraryview.text.noPromptSelectedCreateANewOneToGetStarted",
+                  )
+            }
+          />
         )}
       </section>
       {isCreateModalOpen && (
@@ -1049,14 +1055,14 @@ function PromptDetail(props: PromptDetailProps) {
                   "runtimeGenerated.components.prompts.promptlibraryview.attribute.typeValue1ToConfirm",
                   { value1: item.title },
                 )}
-                className="rounded-md border border-red-500/40 bg-background px-2 py-1 text-[12px]"
+                className="rounded-md border border-danger/40 bg-background px-2 py-1 text-[12px]"
                 data-testid="prompt-library-delete-confirm"
               />
               <button
                 type="button"
                 disabled={confirmDeleteText.trim() !== item.title}
                 onClick={onDelete}
-                className="rounded-md border border-red-500/60 text-red-300 px-2 py-1 text-[12px] disabled:opacity-50"
+                className="rounded-md border border-danger/60 text-danger px-2 py-1 text-[12px] disabled:opacity-50"
                 data-testid="prompt-library-delete"
               >
                 <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.delete" />
@@ -1076,7 +1082,7 @@ function PromptDetail(props: PromptDetailProps) {
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="rounded-md border border-red-500/40 text-red-300 px-2 py-1 text-[12px]"
+              className="rounded-md border border-danger/40 text-danger px-2 py-1 text-[12px]"
               data-testid="prompt-library-delete-arm"
             >
               <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.delete" />
@@ -1088,8 +1094,10 @@ function PromptDetail(props: PromptDetailProps) {
             {[...item.versions]
               .sort((a, b) => b.version - a.version)
               .map((v) => (
-                <li
-                  key={v.id}
+                <li key={v.id}>
+                  <Card
+                  elevation="flat"
+                  padded={false}
                   className={`rounded-md border px-2 py-1.5 ${
                     v.id === item.currentVersionId
                       ? "border-accent/60"
@@ -1124,6 +1132,7 @@ function PromptDetail(props: PromptDetailProps) {
                   <pre className="text-[12px] text-text-secondary whitespace-pre-wrap mt-1 line-clamp-3">
                     {v.content}
                   </pre>
+                  </Card>
                 </li>
               ))}
           </ul>

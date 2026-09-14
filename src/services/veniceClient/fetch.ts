@@ -20,7 +20,7 @@ import { sleep, createTimeoutSignal } from "../../utils/timeout";
 import { VeniceAPIError, VeniceApiError, normalizeError, readDesktopErrorBody, readWebErrorBody, readVeniceErrorBody } from "./errors";
 import { extractModelName, parseDiagnosticsHeaders, safeInspectorError, summarizeDiagnostics, nowIso } from "./diagnostics";
 import { serializeFormData, dedupeKey } from "./serialization";
-import { calculateBackoff, computeRateLimitWait, deleteInFlight, getInFlight, hasInFlight, resolveRetryEnabled, resolveTimeoutMs, setInFlight } from "./retry";
+import { calculateBackoff, computeRateLimitWait, deleteInFlight, getInFlight, hasInFlight, isRetryableStatusCode, resolveRetryEnabled, resolveTimeoutMs, setInFlight } from "./retry";
 import { getSafetyDecisionForLog } from "./safety";
 import type { SafetyGuardDecision } from "../../shared/safety";
 import { applyVeniceApiSafeMode, endpointSupportsSafeMode } from "../../shared/veniceSafeMode";
@@ -232,7 +232,7 @@ async function veniceFetchDesktop(
       dispatch?.({ type: "SET_DIAGNOSTICS", diagnostics: diag });
 
       if (!response.ok) {
-        const retryable = [429, 500, 503].includes(response.status);
+        const retryable = isRetryableStatusCode(response.status);
         if (retryable && attempt < maxAttempts - 1) {
           await sleep(
             response.status === 429
@@ -274,8 +274,7 @@ async function veniceFetchDesktop(
       }
 
       const isNetworkFailure = lastError.status == null || lastError.status === 0;
-      const isRetryableStatus =
-        typeof lastError.status === "number" && [429, 500, 503].includes(lastError.status);
+      const isRetryableStatus = isRetryableStatusCode(lastError.status);
       if (
         (isNetworkFailure || isRetryableStatus) &&
         attempt < maxAttempts - 1
@@ -428,7 +427,7 @@ async function _veniceFetch(
 
       if (!response.ok) {
         const normalized = diag.error || normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText));
-        const retryable = [429, 500, 503].includes(response.status);
+        const retryable = isRetryableStatusCode(response.status);
 
         if (retryable && attempt < maxAttempts - 1) {
           await sleep(
@@ -479,10 +478,7 @@ async function _veniceFetch(
         });
       }
 
-      const retryableStatus =
-        lastError.status !== undefined &&
-        lastError.status !== null &&
-        [429, 500, 503].includes(lastError.status);
+      const retryableStatus = isRetryableStatusCode(lastError.status);
 
       if ((isFetchFailure || retryableStatus) && attempt < maxAttempts - 1) {
         await sleep(calculateBackoff(attempt + 1, 1200, 9000), signal);

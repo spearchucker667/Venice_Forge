@@ -103,11 +103,12 @@
   --text-3xl: calc(1.875rem * var(--app-font-scale, 1));
 
   /* Container widths (max-w-narrow / max-w-reading / max-w-comfort /
-     max-w-wide). Establishes a deliberate reading column. */
+     max-w-wide / max-w-chat-bubble). Establishes a deliberate reading column. */
   --width-narrow: 30rem; /* 480px */
   --width-reading: 40rem; /* 640px */
   --width-comfort: 47.5rem; /* 760px */
   --width-wide: 60rem; /* 960px */
+  --width-chat-bubble: 78%;
 
   /* Surface elevations (bg-surface-elevated-2 / bg-surface-overlay). */
   --color-surface-elevated-2: color-mix(
@@ -483,7 +484,7 @@ select:focus:not(:focus-visible) { outline: none; }
 .prose-venice a {
   color: var(--color-accent);
   text-decoration: underline;
-  text-decoration-color: rgba(110, 231, 211, 0.4); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
+  text-decoration-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
   text-underline-offset: 2px;
   transition: text-decoration-color 0.1s;
 }

@@ -99,7 +99,7 @@ describe("windowsCredentialStore", () => {
       const call = vi.mocked(spawnSync).mock.calls[0];
       if (!call) throw new Error("Expected spawnSync call");
       const [executable, args, options] = call;
-      expect(executable).toBe("powershell.exe");
+      expect(executable).toMatch(/powershell\.exe$/i);
       if (!args) throw new Error("Expected args");
       expect(args).toContain("-Command");
       const script = String(args[args.length - 1]);
@@ -188,9 +188,14 @@ describe("windowsCredentialStore", () => {
       const call = vi.mocked(spawnSync).mock.calls[0];
       if (!call) throw new Error("Expected spawnSync call");
       const [executable, args] = call;
-      expect(executable).toBe("powershell.exe");
+      expect(executable).toMatch(/powershell\.exe$/i);
       if (!args) throw new Error("Expected args");
       expect(args[args.length - 1]).toContain("CredDeleteW");
+    });
+
+    it("resolves the canonical System32 PowerShell path on Windows (IMP-004)", async () => {
+      const mod = await loadModule("win32");
+      expect(mod.getPowerShellExecutable()).toMatch(/System32[\\/]WindowsPowerShell[\\/]v1\.0[\\/]powershell\.exe$/i);
     });
 
     it("does not throw when the credential is already absent", async () => {

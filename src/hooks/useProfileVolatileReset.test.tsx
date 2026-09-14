@@ -14,6 +14,10 @@ import { useImageWorkspaceStore } from "../stores/image-workspace-store";
 import { useInspectorStore } from "../stores/inspector-store";
 import { useChatStore } from "../stores/chat-store";
 import { useWorkflowTemplateStore } from "../stores/workflow-template-store";
+import { useMediaStore } from "../stores/media-store";
+import { usePromptLibraryStore } from "../stores/prompt-library-store";
+import { useResearchStore } from "../stores/research-store";
+import { useRpChatStore } from "../stores/rp-chat-store";
 import { resetVolatileProfileState } from "../hooks/useProfileVolatileReset";
 
 beforeEach(() => {
@@ -28,7 +32,7 @@ beforeEach(() => {
 });
 
 describe("resetVolatileProfileState", () => {
-  it("clears image-workspace drafts, inspector logs, conversations, and active workflow", () => {
+  it("clears all profile-scoped stores including media, prompt-library, research, and rp-chat", () => {
     useImageWorkspaceStore
       .getState()
       .enqueueGenerate({ draft: { prompt: "leaky-prompt" }, autoGenerate: false, parentId: null, operation: "regenerate" });
@@ -45,6 +49,11 @@ describe("resetVolatileProfileState", () => {
     useChatStore.getState().setActiveConversation("c1");
     useWorkflowTemplateStore.getState().setActiveWorkflow("wf-1");
 
+    useMediaStore.setState({ items: [{ id: "m1" } as never], loaded: true, totalCount: 1 });
+    usePromptLibraryStore.setState({ prompts: [{ id: "p1" } as never], hydrated: true });
+    useResearchStore.setState({ sessions: [{ id: "s1" } as never], activeSessionId: "s1", hydrated: true });
+    useRpChatStore.setState({ chats: [{ id: "rp1" } as never], activeChatId: "rp1", hasLoaded: true });
+
     resetVolatileProfileState();
 
     expect(useImageWorkspaceStore.getState().pending).toBeNull();
@@ -52,6 +61,15 @@ describe("resetVolatileProfileState", () => {
     expect(useChatStore.getState().conversations).toEqual([]);
     expect(useChatStore.getState().activeConversationId).toBeNull();
     expect(useWorkflowTemplateStore.getState().activeWorkflowId).toBeNull();
+
+    expect(useMediaStore.getState().items).toEqual([]);
+    expect(useMediaStore.getState().loaded).toBe(false);
+    expect(usePromptLibraryStore.getState().prompts).toEqual([]);
+    expect(usePromptLibraryStore.getState().hydrated).toBe(false);
+    expect(useResearchStore.getState().sessions).toEqual([]);
+    expect(useResearchStore.getState().activeSessionId).toBeNull();
+    expect(useRpChatStore.getState().chats).toEqual([]);
+    expect(useRpChatStore.getState().activeChatId).toBeNull();
   });
 
   it("does not throw when called on a fresh-booted system with no prior state", () => {

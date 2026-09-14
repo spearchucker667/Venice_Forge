@@ -43,6 +43,10 @@ describe("WorkflowTemplatesView", () => {
 
   it("renders empty state initially", () => {
     render(<WorkflowTemplatesView />);
+    expect(screen.getByRole("toolbar", { name: "Workflows" })).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-list-empty")).toHaveTextContent(
+      "No workflows found.",
+    );
     expect(screen.getByTestId("empty-state")).toBeInTheDocument();
     expect(screen.getByText("Select or create a workflow to begin.")).toBeInTheDocument();
   });
@@ -56,9 +60,15 @@ describe("WorkflowTemplatesView", () => {
     await waitFor(() => {
         expect(screen.getByTestId("workflow-detail")).toBeInTheDocument();
     });
+    expect(screen.getByRole("toolbar", { name: "New Workflow" })).toBeInTheDocument();
     
     const titleInput = screen.getByTestId("workflow-title-input") as HTMLInputElement;
     expect(titleInput.value).toBe("New Workflow");
+    fireEvent.click(screen.getByTestId("favorite-workflow-btn"));
+    await waitFor(() => {
+      expect(screen.getByTestId("favorite-workflow-btn").querySelector("[data-tone]"))
+        .toHaveAttribute("data-tone", "warning");
+    });
   });
 
   it("adds and removes steps", async () => {
@@ -77,6 +87,7 @@ describe("WorkflowTemplatesView", () => {
     const stepItems = await screen.findAllByTestId("workflow-step-item");
     expect(stepItems).toHaveLength(1);
     expect(stepItems[0]).toHaveTextContent("New Prompt Step");
+    expect(stepItems[0]).toHaveAttribute("data-elevation", "flat");
 
     // Remove step
     const removeBtn = screen.getByTestId("remove-step-btn");
@@ -96,6 +107,7 @@ describe("WorkflowTemplatesView", () => {
     render(<WorkflowTemplatesView />);
 
     expect(screen.getByTestId("compile-preview")).toBeInTheDocument();
+    expect(screen.getByTestId("compile-preview")).toHaveAttribute("data-elevation", "flat");
     expect(screen.getByText("Workflow is valid.")).toBeInTheDocument();
 
     expect(screen.getByTestId("run-plan-preview")).toBeInTheDocument();

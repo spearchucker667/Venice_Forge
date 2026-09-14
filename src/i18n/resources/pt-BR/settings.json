@@ -556,6 +556,9 @@
     "preview": "Prévia de tipografia ao vivo",
     "previewHeading": "O espaço de trabalho de IA sereno e confiante",
     "previewBody": "O Venice Forge oferece chat de IA privado, composição de cenas e geração multimodal.",
-    "reset": "Restaurar padrão"
+    "reset": "Restaurar padrão",
+    "default": "__MISSING__:font.default",
+    "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
+    "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
   }
 }

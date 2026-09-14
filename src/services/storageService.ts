@@ -813,23 +813,37 @@ const StorageService = {
 
   /**
    * Apply the same patch to multiple records. Records that do not exist are
-   * silently skipped. Returns the number of records updated.
+   * silently skipped. Returns per-ID outcome arrays so callers can reconcile
+   * in-memory state with only the records that were actually written.
    */
-  async bulkPatchMedia(ids: readonly string[], patch: Record<string, unknown>): Promise<number> {
-    if (!Array.isArray(ids) || ids.length === 0) return 0;
-    let updated = 0;
+  async bulkPatchMedia(ids: readonly string[], patch: Record<string, unknown>): Promise<{
+    updatedIds: string[];
+    missingIds: string[];
+    failedIds: string[];
+  }> {
+    if (!Array.isArray(ids) || ids.length === 0) return { updatedIds: [], missingIds: [], failedIds: [] };
+    const updatedIds: string[] = [];
+    const missingIds: string[] = [];
+    const failedIds: string[] = [];
     for (const id of ids) {
-      if (!isValidId(id)) continue;
+      if (!isValidId(id)) {
+        failedIds.push(id);
+        continue;
+      }
       try {
         const existing = (await this.getItem("images", id)) as Record<string, unknown> | null;
-        if (!existing) continue;
+        if (!existing) {
+          missingIds.push(id);
+          continue;
+        }
         await this.saveItem("images", { ...existing, ...patch, id, timestamp: existing.timestamp });
-        updated += 1;
+        updatedIds.push(id);
       } catch (err) {
         warn(`[storageService] bulkPatchMedia: failed to patch ${id}: ${(err as Error).message}`);
+        failedIds.push(id);
       }
     }
-    return updated;
+    return { updatedIds, missingIds, failedIds };
   },
 
   /**

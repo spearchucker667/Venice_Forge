@@ -556,6 +556,9 @@
     "preview": "Aperçu typographique en direct",
     "previewHeading": "L'espace de travail d'IA sereinement confiant",
     "previewBody": "Venice Forge propose un chat IA privé, la composition de scènes et la génération multimodale.",
-    "reset": "Réinitialiser par défaut"
+    "reset": "Réinitialiser par défaut",
+    "default": "__MISSING__:font.default",
+    "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
+    "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
   }
 }

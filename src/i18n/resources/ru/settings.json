@@ -556,6 +556,9 @@
     "preview": "Живой предварительный просмотр типографики",
     "previewHeading": "Уверенное и спокойное рабочее пространство ИИ",
     "previewBody": "Venice Forge обеспечивает приватный чат с ИИ, композицию сцен и мультимодальную генерацию.",
-    "reset": "Сбросить по умолчанию"
+    "reset": "Сбросить по умолчанию",
+    "default": "__MISSING__:font.default",
+    "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
+    "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
   }
 }

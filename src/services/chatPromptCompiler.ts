@@ -8,6 +8,7 @@ import {
 } from "./chatContextBudget";
 import { notify } from "./notification-service";
 import { parseCharacterSceneRequest } from "./characterSceneRequestParser";
+import { resolveEffectiveChatPromptContext } from "./effectiveChatPrompt";
 
 export type ChatPromptSegment = {
   id: string;
@@ -84,30 +85,10 @@ export function compileChatPrompt(
   maxTokens: number,
   includeVeniceSystemPrompt = true,
 ): { messages: ChatMessage[]; systemPrompt: string; maxTokens: number } {
-  // 1. Compile System Prompt Segments
-  const mode = conv.metadata?.systemPromptMode ?? "inherit";
-  const characterSystemPrompt = conv.metadata?.character?.systemPrompt;
-  const isHostedCharacter = !!conv.metadata?.character?.slug;
-
-  const systemSegments: string[] = [];
-  let effectiveSystemPrompt = "";
-
-  if (mode === "override") {
-    if (conv.systemPrompt) systemSegments.push(conv.systemPrompt.trim());
-  } else if (mode === "inherit") {
-    if (conv.metadata?.character) {
-      if (conv.systemPrompt) systemSegments.push(conv.systemPrompt.trim());
-      else if (characterSystemPrompt)
-        systemSegments.push(characterSystemPrompt.trim());
-    } else {
-      if (conv.systemPrompt) systemSegments.push(conv.systemPrompt.trim());
-      else if (globalSystemPrompt)
-        systemSegments.push(globalSystemPrompt.trim());
-    }
-  }
-
-  // Precedence: just join them with double newlines
-  effectiveSystemPrompt = systemSegments.filter(Boolean).join("\n\n");
+  // 1. Compile System Prompt Segments (shared resolver)
+  const promptCtx = resolveEffectiveChatPromptContext(conv, globalSystemPrompt);
+  const isHostedCharacter = promptCtx.hostedCharacter;
+  const effectiveSystemPrompt = promptCtx.effectiveSystemPrompt;
 
   // 2. Build Messages
   const requestMessages: ChatMessage[] = conv.messages

@@ -556,6 +556,9 @@
     "preview": "Live Typography Preview",
     "previewHeading": "The Quietly Confident AI Workspace",
     "previewBody": "Venice Forge provides private AI chat, scene composition, and multimodal generation.",
-    "reset": "Reset to Default"
+    "reset": "Reset to Default",
+    "default": "Default",
+    "rangeValuetext": "{{pixels}} pixels, {{percent}} percent",
+    "rangeValuetextDefault": "{{pixels}} pixels, {{percent}} percent, default"
   }
 }

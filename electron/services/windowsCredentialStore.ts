@@ -17,8 +17,23 @@
  */
 
 import { spawnSync } from "node:child_process";
+import path from "node:path";
 
 const IS_WINDOWS = process.platform === "win32";
+
+/**
+ * Resolves the canonical System32 PowerShell executable path on Windows
+ * instead of relying on an unqualified name found via PATH (IMP-004).
+ */
+export function getPowerShellExecutable(): string {
+  if (process.platform === "win32") {
+    const systemRoot = process.env.SystemRoot || process.env.windir || "C:\\Windows";
+    return path.win32
+      ? path.win32.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+      : `${systemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`;
+  }
+  return "powershell.exe";
+}
 
 /** Maximum time to wait for a PowerShell credential operation. */
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -68,7 +83,7 @@ function runPowerShell(
       env[CRED_TARGET_ENV] = options.target;
     }
     const result = spawnSync(
-      "powershell.exe",
+      getPowerShellExecutable(),
       ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
       {
         input: options.stdin,

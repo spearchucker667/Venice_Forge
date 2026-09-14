@@ -556,6 +556,9 @@
     "preview": "실시간 타이포그래피 미리보기",
     "previewHeading": "차분하고 자신감 넘치는 AI 워크스페이스",
     "previewBody": "Venice Forge는 비공개 AI 채팅, 장면 구성 및 멀티모달 생성을 제공합니다.",
-    "reset": "기본값으로 재설정"
+    "reset": "기본값으로 재설정",
+    "default": "__MISSING__:font.default",
+    "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
+    "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
   }
 }
