@@ -50,6 +50,7 @@ import {
 } from "../../utils/chatPayloadContext";
 import { redactErrorMessage } from "../../shared/redaction";
 import { Trans, useTranslation } from "react-i18next";
+import { createPortal } from "react-dom";
 
 interface MessageBubbleCallbacks {
   onCopy: () => void;
@@ -1246,10 +1247,53 @@ function PriorConversationContextSelector({
     activeConversation?.metadata?.systemPromptMode || "inherit";
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // The composer clips overflow, so the popover is portaled to <body> and
+  // positioned programmatically (CSP-safe: no JSX inline styles — same
+  // pattern as the context meter width update). Clamped to the viewport and
+  // flipped below the button when there is not enough room above.
+  useEffect(() => {
+    if (!open) return;
+    const position = () => {
+      const button = buttonRef.current;
+      const popover = popoverRef.current;
+      if (!button || !popover) return;
+      const rect = button.getBoundingClientRect();
+      const margin = 16;
+      const width = Math.min(28 * 16, window.innerWidth - margin * 2);
+      const left = Math.min(
+        Math.max(margin, rect.left),
+        Math.max(margin, window.innerWidth - width - margin),
+      );
+      popover.style.width = `${width}px`;
+      popover.style.left = `${left}px`;
+      const height = popover.offsetHeight || 320;
+      const spaceAbove = rect.top - margin;
+      const spaceBelow = window.innerHeight - rect.bottom - margin;
+      if (spaceAbove >= height + 8 || spaceAbove >= spaceBelow) {
+        popover.style.top = `${Math.max(margin, rect.top - height - 8)}px`;
+      } else {
+        popover.style.top = `${Math.min(rect.bottom + 8, window.innerHeight - height - margin)}px`;
+      }
+    };
+    position();
+    const frame = requestAnimationFrame(position);
+    window.addEventListener("resize", position);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", position);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
@@ -1273,6 +1317,7 @@ function PriorConversationContextSelector({
     <div ref={rootRef} className="relative">
       <button
         type="button"
+        ref={buttonRef}
         aria-label={tRuntime(
           "runtimeGenerated.components.chat.chatView.attribute.chatContextSettings",
         )}
@@ -1294,14 +1339,16 @@ function PriorConversationContextSelector({
             )
           : tRuntime("runtimeGenerated.components.chat.chatView.text.priorOff")}
       </button>
-      {open && (
-        <div
-          role="dialog"
-          aria-label={tRuntime(
-            "runtimeGenerated.components.chat.chatView.attribute.chatContext",
-          )}
-          className="absolute bottom-full left-0 z-30 mb-2 w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface-elevated px-3 py-3 shadow-xl"
-        >
+      {open &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            role="dialog"
+            aria-label={tRuntime(
+              "runtimeGenerated.components.chat.chatView.attribute.chatContext",
+            )}
+            className="fixed z-50 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg border border-border bg-surface-elevated px-3 py-3 shadow-xl"
+          >
           <div className="mb-2 vf-meta font-semibold uppercase tracking-wide text-text-muted">
             <Trans i18nKey="common:surface.componentsChatChatView.text.chatContext" />
           </div>
@@ -1414,8 +1461,9 @@ function PriorConversationContextSelector({
               </div>
             </div>
           )}
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
