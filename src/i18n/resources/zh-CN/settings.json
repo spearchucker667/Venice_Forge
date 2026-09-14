@@ -129,7 +129,6 @@
     "chatTtsTitle": "聊天文本转语音",
     "chatTtsDescription": "文本转语音会将选定的助手回复文本发送至您配置的语音提供商，可能会消耗 API 使用量。默认情况下自动播放处于关闭状态。",
     "showControls": "在助手回复上显示 TTS 控件",
-    "autoRead": "自动朗读已完成的回复",
     "ttsModel": "TTS 模型",
     "defaultProviderModel": "默认提供商模型",
     "saved": "(已保存)",

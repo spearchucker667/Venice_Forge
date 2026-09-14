@@ -139,19 +139,6 @@ export function AudioSpeechPanel() {
             <span className="text-sm text-text-primary">{t('settings:audioSpeech.showControls', 'Show TTS controls on assistant replies')}</span>
           </label>
 
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              className="rounded border-border/50 bg-surface text-accent focus:ring-accent/50"
-              checked={chatTts.autoReadDefault}
-              onChange={(e) => {
-                uiSoundController.play(e.target.checked ? 'toggleOn' : 'toggleOff', uiSounds.packId)
-                setChatTtsPreferences({ autoReadDefault: e.target.checked })
-              }}
-            />
-            <span className="text-sm text-text-primary">{t('settings:audioSpeech.autoRead', 'Automatically read completed replies')}</span>
-          </label>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-text-secondary mb-1.5">

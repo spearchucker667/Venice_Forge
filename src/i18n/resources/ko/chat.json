@@ -52,7 +52,6 @@
     "failedTitle": "메모리 검색에 실패했습니다. 메시지가 메모리 컨텍스트 없이 전송되었습니다."
   },
   "controls": {
-    "autoRead": "자동 읽기",
     "citations": "인용",
     "scrape": "긁다",
     "xSearch": "X 검색",

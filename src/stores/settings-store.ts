@@ -109,7 +109,6 @@ export interface AudioPreferences {
 
   chatTts: {
     showMessageControls: boolean;
-    autoReadDefault: boolean;
     model?: string;
     voice?: string;
     speed: number;
@@ -129,7 +128,6 @@ export const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = {
   },
   chatTts: {
     showMessageControls: true,
-    autoReadDefault: false,
     model: undefined,
     voice: undefined,
     speed: 1,

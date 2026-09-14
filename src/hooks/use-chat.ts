@@ -12,7 +12,6 @@ import { toast } from "../stores/toast-store";
 import { venice } from "../lib/venice-client";
 import { desktopConversations } from "../services/desktopBridge";
 import type { ChatMessage, ContentPart } from "../types/venice";
-import type { Conversation } from "../types/conversation";
 import type { ChatAttachmentRef } from "../types/chatAttachment";
 import { generateCharacterScene } from "../services/characterSceneGenerationService";
 import { parseCharacterSceneRequest } from "../services/characterSceneRequestParser";
@@ -129,34 +128,9 @@ function stopTtsWhenStartingReply(): void {
 }
 
 /**
- * If the user has auto-read enabled, plays the most recent assistant message
- * through the chat TTS controller. Routes failures through the project logger
- * so they are not silently dropped and the raw error text does not leak to
- * the console.
+ * TTS is strictly on-demand: playback only starts from explicit user action
+ * (the per-message TTS controls). We never auto-play completed replies.
  */
-function maybeAutoReadAssistantMessage(
-  conversation: Conversation | undefined,
-): void {
-  if (!conversation) return;
-  const isAutoRead =
-    conversation.metadata?.autoReadEnabled ??
-    useSettingsStore.getState().audioPreferences?.chatTts?.autoReadDefault ??
-    false;
-  if (!isAutoRead) return;
-  const lastMsg = conversation.messages[conversation.messages.length - 1];
-  if (!lastMsg || lastMsg.role !== "assistant") return;
-  const textToRead =
-    typeof lastMsg.content === "string"
-      ? lastMsg.content
-      : lastMsg.content
-          .filter((p) => p.type === "text")
-          .map((p) => p.text)
-          .join("\n");
-  if (!textToRead.trim()) return;
-  chatTtsController.play(lastMsg.id, textToRead, { isAutoRead: true }).catch((err: unknown) => {
-    logger.error("auto-read assistant message failed", err);
-  });
-}
 
 function joinInjectedContexts(...contexts: Array<string | undefined>): string {
   return contexts
@@ -686,11 +660,6 @@ export function useChat() {
         if (!aborted && !blocked && !stopRequestedRef.current) {
           await executeMediaTools(convId, streamModel);
           await maybeAutoGenerateScene(convId);
-
-          const finalConv = useChatStore
-            .getState()
-            .conversations.find((c) => c.id === convId);
-          maybeAutoReadAssistantMessage(finalConv);
         }
       } catch (err) {
         // The stream manager already appends a safe error message for non-
@@ -728,11 +697,6 @@ export function useChat() {
         if (!aborted && !blocked && !stopRequestedRef.current) {
           await executeMediaTools(convId, model);
           await maybeAutoGenerateScene(convId);
-
-          const finalConv = useChatStore
-            .getState()
-            .conversations.find((c) => c.id === convId);
-          maybeAutoReadAssistantMessage(finalConv);
         }
       } catch (err) {
         logger.error("useChat regenerate failed", err);

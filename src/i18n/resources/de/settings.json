@@ -129,7 +129,6 @@
     "chatTtsTitle": "Chat-Text-zu-Sprache",
     "chatTtsDescription": "Text-zu-Sprache sendet den ausgewählten Antworttext des Assistenten an Ihren konfigurierten Sprachanbieter und kann API-Nutzung verbrauchen. Die automatische Wiedergabe ist standardmäßig deaktiviert.",
     "showControls": "TTS-Steuerelemente auf Assistentenantworten anzeigen",
-    "autoRead": "Abgeschlossene Antworten automatisch vorlesen",
     "ttsModel": "TTS-Modell",
     "defaultProviderModel": "Standardanbietermodell",
     "saved": "(gespeichert)",

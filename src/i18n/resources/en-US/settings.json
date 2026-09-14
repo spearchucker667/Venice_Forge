@@ -129,7 +129,6 @@
     "chatTtsTitle": "Chat Text-to-Speech",
     "chatTtsDescription": "Text-to-speech sends the selected assistant reply text to your configured speech provider and may consume API usage. Automatic playback is off by default.",
     "showControls": "Show TTS controls on assistant replies",
-    "autoRead": "Automatically read completed replies",
     "ttsModel": "TTS model",
     "defaultProviderModel": "Default provider model",
     "saved": "(saved)",

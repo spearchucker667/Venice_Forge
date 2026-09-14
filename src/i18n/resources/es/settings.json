@@ -129,7 +129,6 @@
     "chatTtsTitle": "Chat de texto a voz",
     "chatTtsDescription": "La conversión de texto a voz envía el texto de respuesta del asistente seleccionado a tu proveedor de voz configurado y puede consumir uso de API. La reproducción automática está desactivada de forma predeterminada.",
     "showControls": "Mostrar controles de TTS en las respuestas del asistente",
-    "autoRead": "Leer automáticamente las respuestas completadas",
     "ttsModel": "Modelo TTS",
     "defaultProviderModel": "Predeterminado provider model",
     "saved": "(guardado)",

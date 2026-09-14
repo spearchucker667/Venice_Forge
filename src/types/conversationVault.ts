@@ -144,7 +144,6 @@ export interface ConversationRecordV1 {
     character?: ConversationCharacterMeta;
     memoryRetrievalEnabled?: boolean;
     includePriorConversationContext?: boolean;
-    autoReadEnabled?: boolean;
     systemPromptMode?: "inherit" | "override" | "disabled";
   };
   memory: {

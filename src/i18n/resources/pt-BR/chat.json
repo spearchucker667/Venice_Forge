@@ -52,7 +52,6 @@
     "failedTitle": "Falha na recuperação da memória. Sua mensagem foi enviada sem contexto de memória."
   },
   "controls": {
-    "autoRead": "Leitura automática",
     "citations": "Citações",
     "scrape": "Raspar",
     "xSearch": "Pesquisa X",

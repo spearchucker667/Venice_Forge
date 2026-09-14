@@ -52,7 +52,6 @@
     "failedTitle": "Minneshämtning misslyckades. Ditt meddelande skickades utan minneskontext."
   },
   "controls": {
-    "autoRead": "Automatisk läsning",
     "citations": "Citat",
     "scrape": "Skrapa",
     "xSearch": "X sökning",

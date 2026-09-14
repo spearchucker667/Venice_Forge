@@ -33,7 +33,6 @@ import { CharacterAvatar } from "../characters/CharacterAvatar";
 import { RefreshCw } from "lucide-react";
 import { desktopConversations } from "../../services/desktopBridge";
 import * as logger from "../../shared/logger";
-import { chatTtsController } from "../../services/chatTtsController";
 import { contentToSearchText } from "../../utils/messageContent";
 import { getBalancedPromptStarters } from "../../services/promptStarterService";
 import { askDecision } from "../ui/modal-requests";
@@ -115,40 +114,9 @@ export function ChatView() {
     ? memoryStatus
     : "disabled";
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const prevStreamingRef = useRef(isStreaming);
 
-  useEffect(() => {
-    const wasStreaming = prevStreamingRef.current;
-    prevStreamingRef.current = isStreaming;
-    if (wasStreaming && !isStreaming) {
-      const globalAutoRead =
-        useSettingsStore.getState().audioPreferences?.chatTts
-          ?.autoReadDefault ?? false;
-      const autoReadEnabled =
-        conversation?.metadata?.autoReadEnabled ?? globalAutoRead;
-      if (
-        autoReadEnabled &&
-        conversation?.messages &&
-        conversation.messages.length > 0
-      ) {
-        const lastMsg = conversation.messages[conversation.messages.length - 1];
-        if (lastMsg.role === "assistant") {
-          const textContent = contentToSearchText(lastMsg.content);
-          if (textContent) {
-            void chatTtsController.play(
-              lastMsg.id || (conversation.messages.length - 1).toString(),
-              textContent,
-            );
-          }
-        }
-      }
-    }
-  }, [
-    isStreaming,
-    conversation?.metadata?.autoReadEnabled,
-    conversation?.id,
-    conversation?.messages,
-  ]);
+  // TTS is strictly on-demand: no auto-play when a reply completes.
+  // Playback starts only from the per-message TTS controls.
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");

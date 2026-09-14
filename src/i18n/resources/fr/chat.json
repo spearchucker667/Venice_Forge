@@ -52,7 +52,6 @@
     "failedTitle": "La récupération de la mémoire a échoué. Votre message a été envoyé sans contexte mémoire."
   },
   "controls": {
-    "autoRead": "Lecture automatique",
     "citations": "Citations",
     "scrape": "Gratter",
     "xSearch": "X recherche",

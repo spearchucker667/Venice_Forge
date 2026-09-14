@@ -129,7 +129,6 @@
     "chatTtsTitle": "Chatt-text-till-tal",
     "chatTtsDescription": "Text-till-tal skickar den valda assistentsvarstexten till din konfigurerade talleverantör och kan förbruka API-användning. Automatisk uppspelning är av som standard.",
     "showControls": "Visa TTS-kontroller på assistentsvar",
-    "autoRead": "Läs automatiskt upp slutförda svar",
     "ttsModel": "TTS-modell",
     "defaultProviderModel": "Standardleverantörsmodell",
     "saved": "(sparad)",

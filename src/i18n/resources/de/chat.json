@@ -52,7 +52,6 @@
     "failedTitle": "Der Speicherabruf ist fehlgeschlagen. Ihre Nachricht wurde ohne Speicherkontext gesendet."
   },
   "controls": {
-    "autoRead": "Automatisch lesen",
     "citations": "Zitate",
     "scrape": "Kratzen",
     "xSearch": "X-Suche",

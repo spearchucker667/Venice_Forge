@@ -1,7 +1,11 @@
 import { translateRuntime } from "../i18n/runtimeTranslator";
 import type { Conversation } from "../types/conversation";
 import type { ChatMessage, ModelInfo, ContentPart } from "../types/venice";
-import { calculateChatContextBudget } from "./chatContextBudget";
+import {
+  calculateChatContextBudget,
+  estimateMessageTokens,
+  estimateTokenCount,
+} from "./chatContextBudget";
 import { notify } from "./notification-service";
 import { parseCharacterSceneRequest } from "./characterSceneRequestParser";
 
@@ -11,6 +15,67 @@ export type ChatPromptSegment = {
   content: string;
   priority: number; // lower is higher priority (kept first)
 };
+
+const TRUNCATION_MARKER = "\n\n[... content truncated to fit the context window]";
+const MIN_PRESERVED_MESSAGE_TOKENS = 16;
+
+function shrinkTextToTokenTarget(text: string, targetTokens: number): string {
+  if (estimateTokenCount(text).count <= targetTokens) return text;
+  // estimateTokenCount approximates ceil(codePoints / 4); cut with headroom.
+  const keepChars = Math.max(
+    0,
+    Math.floor(targetTokens * 4) - TRUNCATION_MARKER.length,
+  );
+  if (keepChars <= 0) return TRUNCATION_MARKER.trim();
+  return text.slice(0, keepChars) + TRUNCATION_MARKER;
+}
+
+/**
+ * Shorten a user/assistant message's text content toward a token target,
+ * trimming the tail of the last text part first (attachment/provider context
+ * trails the visible message). Array content is COPIED before mutation so the
+ * conversation's persisted message objects are never modified. Returns true
+ * when the message was actually shrunk.
+ */
+function shrinkMessageContent(msg: ChatMessage, excessTokens: number): boolean {
+  const currentTokens = estimateMessageTokens(msg);
+  const target = Math.max(
+    MIN_PRESERVED_MESSAGE_TOKENS,
+    currentTokens - Math.ceil(excessTokens * 1.15) - 1,
+  );
+  if (currentTokens <= MIN_PRESERVED_MESSAGE_TOKENS) return false;
+
+  if (typeof msg.content === "string") {
+    const shrunk = shrinkTextToTokenTarget(msg.content, target);
+    if (shrunk === msg.content) return false;
+    msg.content = shrunk;
+    return true;
+  }
+
+  const parts = (msg.content as ContentPart[]).map((part) =>
+    part.type === "text" ? { ...part } : part,
+  );
+  let allowance = target;
+  let changed = false;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const part = parts[i];
+    if (part.type !== "text" || !part.text) continue;
+    const partTokens = estimateTokenCount(part.text).count;
+    if (partTokens <= allowance) {
+      allowance -= partTokens;
+      continue;
+    }
+    const shrunk = shrinkTextToTokenTarget(
+      part.text,
+      Math.max(MIN_PRESERVED_MESSAGE_TOKENS, allowance),
+    );
+    changed = shrunk !== part.text;
+    part.text = shrunk;
+    break;
+  }
+  if (changed) msg.content = parts;
+  return changed;
+}
 
 export function compileChatPrompt(
   conv: Conversation,
@@ -209,22 +274,82 @@ export function compileChatPrompt(
     );
   }
 
+  // 3b. Content-truncation fallback. The turn-dropping loop above stops at
+  // system + newest message; when that remaining content alone still exceeds
+  // the budget (e.g. a large attachment), shorten message text, oldest
+  // non-system message first, until the request fits. The system prompt is
+  // never modified — it carries the runtime/safety layer.
+  let truncated = false;
+  if (minimumOutputBudget.remainingInputBudget < 0) {
+    let guard = 0;
+    while (minimumOutputBudget.remainingInputBudget < 0 && guard++ < 64) {
+      const excess = -minimumOutputBudget.remainingInputBudget;
+      const idx = requestMessages.findIndex(
+        (m) =>
+          (m.role === "user" || m.role === "assistant") &&
+          estimateMessageTokens(m) > MIN_PRESERVED_MESSAGE_TOKENS,
+      );
+      if (idx === -1) break;
+      const before = estimateMessageTokens(requestMessages[idx]);
+      if (!shrinkMessageContent(requestMessages[idx], excess)) break;
+      const after = estimateMessageTokens(requestMessages[idx]);
+      if (after >= before) break; // no progress; avoid looping
+      truncated = true;
+      budget = calculateChatContextBudget(
+        requestMessages,
+        isHostedCharacter ? effectiveSystemPrompt : "",
+        modelInfo,
+        maxTokens,
+        includeVeniceSystemPrompt,
+      );
+      minimumOutputBudget = calculateChatContextBudget(
+        requestMessages,
+        isHostedCharacter ? effectiveSystemPrompt : "",
+        modelInfo,
+        minimumUsefulOutputTokens,
+        includeVeniceSystemPrompt,
+      );
+    }
+  }
+
   if (compacted && compactionId) {
     const removedCount = initialMessagesCount - requestMessages.length;
     const turnWord = removedCount === 1 ? "message" : "messages";
+    const shortenedSuffix = truncated
+      ? " " +
+        translateRuntime(
+          "runtimeGenerated.services.chatpromptcompiler.metadata.longMessageContentWasShortenedToFit",
+          "Long message content was shortened to fit within context limits. Start a new chat or use a model with a larger context window to preserve full content.",
+        )
+      : "";
     notify.update(compactionId, {
       severity: "info",
       title: translateRuntime(
         "runtimeGenerated.services.chatpromptcompiler.metadata.contextTruncated",
         "Context truncated",
       ),
-      message: translateRuntime(
-        "runtimeGenerated.services.chatpromptcompiler.metadata.removedRemovedcountOldTurnwordToFitWithinContextLimitsStart",
-        "Removed {{removedCount}} old {{turnWord}} to fit within context limits. Start a new chat or use a model with a larger context window to preserve full history.",
-        { removedCount: removedCount, turnWord: turnWord },
-      ),
+      message:
+        translateRuntime(
+          "runtimeGenerated.services.chatpromptcompiler.metadata.removedRemovedcountOldTurnwordToFitWithinContextLimitsStart",
+          "Removed {{removedCount}} old {{turnWord}} to fit within context limits. Start a new chat or use a model with a larger context window to preserve full history.",
+          { removedCount: removedCount, turnWord: turnWord },
+        ) + shortenedSuffix,
       durationMs: 5500,
     });
+  } else if (truncated) {
+    notify.info(
+      translateRuntime(
+        "runtimeGenerated.services.chatpromptcompiler.metadata.contextTruncated",
+        "Context truncated",
+      ),
+      {
+        message: translateRuntime(
+          "runtimeGenerated.services.chatpromptcompiler.metadata.longMessageContentWasShortenedToFit",
+          "Long message content was shortened to fit within context limits. Start a new chat or use a model with a larger context window to preserve full content.",
+        ),
+        durationMs: 5500,
+      },
+    );
   }
 
   if (minimumOutputBudget.remainingInputBudget < 0) {

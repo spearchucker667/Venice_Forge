@@ -52,7 +52,6 @@
     "failedTitle": "メモリの取得に失敗しました。メッセージはメモリコンテキストなしで送信されました。"
   },
   "controls": {
-    "autoRead": "自動読み取り",
     "citations": "引用",
     "scrape": "こする",
     "xSearch": "X検索",

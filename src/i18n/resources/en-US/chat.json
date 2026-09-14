@@ -52,7 +52,6 @@
     "failedTitle": "Memory retrieval failed. Your message was sent without memory context."
   },
   "controls": {
-    "autoRead": "Auto-Read",
     "citations": "Citations",
     "scrape": "Scrape",
     "xSearch": "X search",

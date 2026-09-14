@@ -44,7 +44,6 @@ export function VeniceParams() {
     activeConversationId,
     setActiveConversation,
     conversations,
-    updateConversationMetadata,
   } = useChatStore(
     useShallow((s) => ({
       veniceParams: s.veniceParams,
@@ -60,15 +59,9 @@ export function VeniceParams() {
       activeConversationId: s.activeConversationId,
       setActiveConversation: s.setActiveConversation,
       conversations: s.conversations,
-      updateConversationMetadata: s.updateConversationMetadata,
     })),
   );
   const [showSettings, setShowSettings] = useState(false);
-
-  const globalAutoRead = useSettingsStore(
-    (s) => s.audioPreferences?.chatTts?.autoReadDefault ?? false,
-  );
-  const setGlobalAutoRead = useSettingsStore((s) => s.setChatTtsPreferences);
 
   const activeConv = activeConversationId
     ? conversations.find((c) => c.id === activeConversationId)
@@ -84,27 +77,11 @@ export function VeniceParams() {
     : useSettingsStore.getState().selectedModels.chat;
   const toolsSupported = supportsFunctionCalling(getModelById(chatModel ?? ""));
 
-  const isAutoRead = activeConv?.metadata?.autoReadEnabled ?? globalAutoRead;
   const systemPromptLimitResult = checkSystemPromptLimit(systemPrompt);
-
-  const toggleAutoRead = () => {
-    if (activeConv) {
-      updateConversationMetadata(activeConv.id, {
-        autoReadEnabled: !isAutoRead,
-      });
-    } else {
-      setGlobalAutoRead({ autoReadDefault: !globalAutoRead });
-    }
-  };
 
   return (
     <div className="px-4 py-1.5">
       <div className="flex items-center gap-1">
-        <Pill
-          label={t("controls.autoRead")}
-          active={isAutoRead}
-          onClick={toggleAutoRead}
-        />
         <SearchPill
           value={veniceParams.enable_web_search || "off"}
           onChange={(v) => setVeniceParams({ enable_web_search: v })}

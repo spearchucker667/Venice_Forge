@@ -52,7 +52,6 @@
     "failedTitle": "记忆检索失败。您的消息是在没有记忆上下文的情况下发送的。"
   },
   "controls": {
-    "autoRead": "自动读取",
     "citations": "引文",
     "scrape": "刮",
     "xSearch": "X搜索",

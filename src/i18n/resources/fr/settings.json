@@ -129,7 +129,6 @@
     "chatTtsTitle": "Synthèse vocale du chat",
     "chatTtsDescription": "La synthèse vocale envoie le texte de la réponse de l'assistant sélectionnée à votre fournisseur de synthèse vocale configuré et peut consommer de l'utilisation d'API. La lecture automatique est désactivée par défaut.",
     "showControls": "Afficher les contrôles de synthèse vocale sur les réponses de l'assistant",
-    "autoRead": "Lire automatiquement les réponses terminées",
     "ttsModel": "Modèle de synthèse vocale",
     "defaultProviderModel": "Par défaut provider model",
     "saved": "(enregistré)",
