@@ -130,7 +130,7 @@ export function MediaDetailDialog({
       className="mesh-panel fixed inset-0 z-50 flex rounded-none border-0 bg-overlay backdrop-blur-sm"
     >
       <div className="relative flex flex-1 flex-col">
-        <header className="flex items-center justify-between soft-separator-y mesh-header mesh-surface px-5 py-3 text-text-primary">
+        <header className="flex items-center justify-between border-b border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg px-5 py-3 text-text-primary">
           <div className="flex items-center gap-2">
             <Badge tone={isVideo ? "rose" : isAudio ? "sky" : "slate"}>
               {isVideo
@@ -160,7 +160,7 @@ export function MediaDetailDialog({
                 "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[12px] transition-colors",
                 item.favorite
                   ? "border-danger/40 bg-danger/10 text-danger"
-                  : "border-border text-text-secondary hover:border-accent hover:text-accent",
+                  : "border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent",
               )}
             >
               <Heart
@@ -179,7 +179,7 @@ export function MediaDetailDialog({
               onClick={() => void onSaveAs(item)}
               disabled={!src && !item.generatedMediaId}
               aria-label={tRuntime("actions.saveAs")}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Download className="h-3.5 w-3.5" />
               {tRuntime("actions.saveAs")}
@@ -196,7 +196,7 @@ export function MediaDetailDialog({
               ref={closeRef}
               type="button"
               onClick={onClose}
-              className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             >
               <Trans i18nKey="common:surface.galleryMediaDetailDialog.action.closeEsc" />
             </button>
@@ -211,7 +211,7 @@ export function MediaDetailDialog({
             aria-label={tRuntime(
               "runtimeGenerated.components.gallery.mediaDetailDialog.attribute.previous",
             )}
-            className="absolute left-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-overlay text-text-primary transition-opacity hover:border-accent disabled:opacity-30"
+            className="absolute left-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-vf-panel-border bg-overlay text-text-primary transition-opacity hover:border-accent disabled:opacity-30"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -220,7 +220,7 @@ export function MediaDetailDialog({
               <ManagedVideoPlayer
                 src={src}
                 autoPlay
-                className="max-h-[80vh] max-w-[90vw] rounded-lg border border-border"
+                className="max-h-[80vh] max-w-[90vw] rounded-md border border-vf-panel-border"
               />
             ) : (
               <img
@@ -231,11 +231,11 @@ export function MediaDetailDialog({
                     "runtimeGenerated.components.gallery.mediaDetailDialog.attribute.generatedImagePreview",
                   )
                 }
-                className="max-h-[80vh] max-w-[90vw] rounded-lg border border-border object-contain"
+                className="max-h-[80vh] max-w-[90vw] rounded-md border border-vf-panel-border object-contain"
               />
             )
           ) : (
-            <div className="grid h-64 w-96 place-items-center rounded-lg border border-border bg-surface text-text-muted">
+            <div className="grid h-64 w-96 place-items-center rounded-md border border-vf-panel-border bg-vf-panel-bg text-text-muted">
               <Trans i18nKey="common:surface.galleryMediaDetailDialog.text.previewUnavailable" />
             </div>
           )}
@@ -246,13 +246,13 @@ export function MediaDetailDialog({
             aria-label={tRuntime(
               "runtimeGenerated.components.gallery.mediaDetailDialog.attribute.next",
             )}
-            className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-border bg-overlay text-text-primary transition-opacity hover:border-accent disabled:opacity-30"
+            className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-vf-panel-border bg-overlay text-text-primary transition-opacity hover:border-accent disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="border-t border-border/50 bg-overlay px-4 py-2">
+        <div className="border-t border-vf-panel-border bg-overlay px-4 py-2">
           <p
             className="line-clamp-2 text-[12.5px] text-text-primary"
             title={item.prompt}
@@ -309,7 +309,7 @@ export function MediaDetailDialog({
         </div>
       </div>
 
-      <aside className="hidden w-72 shrink-0 soft-separator-x mesh-surface p-4 text-text-primary lg:flex lg:flex-col">
+      <aside className="hidden w-72 shrink-0 border-r border-vf-panel-border bg-vf-panel-bg p-4 text-text-primary lg:flex lg:flex-col">
         <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
           <Trans i18nKey="common:surface.galleryMediaDetailDialog.heading.filmstrip" />
         </h3>
@@ -322,10 +322,10 @@ export function MediaDetailDialog({
                 key={candidate.id}
                 onClick={() => onSelect(candidate)}
                 className={cn(
-                  "relative aspect-square overflow-hidden rounded-md border bg-surface-elevated",
+                  "relative aspect-square overflow-hidden rounded-md border bg-vf-panel-bg-raised",
                   selected
                     ? "border-accent ring-2 ring-accent/40"
-                    : "border-border hover:border-accent",
+                    : "border-vf-panel-border hover:border-accent",
                 )}
                 aria-label={tRuntime(
                   "runtimeGenerated.components.gallery.mediaDetailDialog.attribute.openValue1",

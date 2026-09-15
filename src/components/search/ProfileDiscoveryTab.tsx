@@ -51,7 +51,7 @@ export function ProfileDiscoveryTab({
   const { t: tRuntime } = useTranslation("common");
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg flex flex-col gap-4">
+      <div className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-lg flex flex-col gap-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">
           <Trans i18nKey="common:surface.componentsSearchProfilediscoverytab.heading.publicProfileDiscovery" />
         </h3>
@@ -71,7 +71,7 @@ export function ProfileDiscoveryTab({
               placeholder={tRuntime(
                 "runtimeGenerated.components.search.profilediscoverytab.attribute.consentingPersonOrBrandName",
               )}
-              className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
+              className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
             />
           </Field>
           <Field label="Known Handle/Username">
@@ -81,7 +81,7 @@ export function ProfileDiscoveryTab({
               placeholder={tRuntime(
                 "runtimeGenerated.components.search.profilediscoverytab.attribute.username",
               )}
-              className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all font-mono placeholder:text-text-muted/50"
+              className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all font-mono placeholder:text-text-muted/50"
             />
           </Field>
           <Field
@@ -93,7 +93,7 @@ export function ProfileDiscoveryTab({
               value={knownWebsite}
               onChange={(e) => setKnownWebsite(e.target.value)}
               placeholder="example.com"
-              className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all font-mono placeholder:text-text-muted/50"
+              className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all font-mono placeholder:text-text-muted/50"
             />
           </Field>
           <Field
@@ -107,7 +107,7 @@ export function ProfileDiscoveryTab({
               placeholder={tRuntime(
                 "runtimeGenerated.components.search.profilediscoverytab.attribute.githubInc",
               )}
-              className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
+              className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
             />
           </Field>
           <Field
@@ -121,7 +121,7 @@ export function ProfileDiscoveryTab({
               placeholder={tRuntime(
                 "runtimeGenerated.components.search.profilediscoverytab.attribute.sanFranciscoCa",
               )}
-              className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
+              className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
             />
           </Field>
           <Field
@@ -135,7 +135,7 @@ export function ProfileDiscoveryTab({
               max={10}
               value={maxDepth}
               onChange={(e) => setMaxDepth(Number(e.target.value) || 3)}
-              className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
+              className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
             />
           </Field>
         </div>
@@ -151,10 +151,10 @@ export function ProfileDiscoveryTab({
                 <button
                   key={platform}
                   onClick={() => togglePlatform(platform)}
-                  className={`text-[12px] px-2.5 py-1 rounded-lg border transition-all duration-150 cursor-pointer ${
+                  className={`text-[12px] px-2.5 py-1 rounded-md border transition-all duration-150 cursor-pointer ${
                     isSelected
                       ? "bg-accent/10 border-accent/30 text-accent font-medium"
-                      : "bg-transparent border-border text-text-muted hover:text-text-secondary hover:bg-surface-elevated/50"
+                      : "bg-transparent border-vf-panel-border text-text-muted hover:text-text-primary hover:bg-vf-panel-bg-raised/50"
                   }`}
                 >
                   {platform}
@@ -164,10 +164,10 @@ export function ProfileDiscoveryTab({
           </div>
         </div>
 
-        <label htmlFor="profile-discovery-2" className="flex items-start gap-3 p-4 rounded-xl border border-border bg-surface-elevated cursor-pointer mt-2">
+        <label htmlFor="profile-discovery-2" className="flex items-start gap-3 p-4 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised cursor-pointer mt-2">
           <input
             type="checkbox" id="profile-discovery-2" 
-            className="mt-0.5 rounded border-border bg-surface text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
+            className="mt-0.5 rounded border-vf-panel-border bg-vf-panel-bg text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
             checked={authorized}
             onChange={(e) => setAuthorized(e.target.checked)}
           />
@@ -180,7 +180,7 @@ export function ProfileDiscoveryTab({
 
         <div className="flex gap-2">
           <button
-            className="px-4 py-2 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-md text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer shadow-[0_0_8px_var(--color-vf-accent-glow)]"
             onClick={runProfileDiscovery}
             disabled={
               loading === "profile-discovery" ||
@@ -198,7 +198,7 @@ export function ProfileDiscoveryTab({
           </button>
           {loading === "profile-discovery" && (
             <button
-              className="px-4 py-2 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-md text-[13px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-primary hover:bg-vf-panel-bg-raised transition-colors cursor-pointer"
               onClick={cancelRun}
             >
               <Trans i18nKey="common:surface.componentsSearchProfilediscoverytab.action.cancel" />
@@ -208,7 +208,7 @@ export function ProfileDiscoveryTab({
       </div>
 
       {profileCandidates.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+        <div className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-lg space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-[14.5px] font-medium text-text-primary">
               <Trans i18nKey="common:surface.componentsSearchProfilediscoverytab.heading.discoveredProfileCandidates" />
@@ -222,7 +222,7 @@ export function ProfileDiscoveryTab({
             {profileCandidates.map((c, idx) => (
               <div
                 key={`${c.platform}-${c.handle}-${idx}`}
-                className="rounded-lg bg-surface border border-border p-3 text-[13px] space-y-2"
+                className="rounded-md bg-vf-panel-bg border border-vf-panel-border p-3 text-[13px] space-y-2"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-text-primary">

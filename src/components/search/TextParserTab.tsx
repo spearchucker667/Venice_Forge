@@ -84,7 +84,7 @@ export function TextParserTab({
 }) {
   const { t: tRuntime } = useTranslation("common");
   return (
-    <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+    <div className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-lg space-y-4">
       <h3 className="text-[14.5px] font-medium text-text-primary">
         <Trans i18nKey="common:surface.componentsSearchTextparsertab.heading.documentTextParser" />
       </h3>
@@ -97,10 +97,10 @@ export function TextParserTab({
             type="file"
             accept={SUPPORTED_DOCUMENT_ACCEPT}
             onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="block w-full text-[13px] text-text-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[12.5px] file:font-semibold file:bg-surface-elevated file:text-text-primary file:cursor-pointer"
+            className="block w-full text-[13px] text-text-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-[12.5px] file:font-semibold file:bg-vf-panel-bg-raised file:text-text-primary file:cursor-pointer"
           />
           <button
-            className="px-4 py-2 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-md text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer shadow-[0_0_8px_var(--color-vf-accent-glow)]"
             onClick={runParser}
             disabled={loading === "parser" || !file}
           >
@@ -119,7 +119,7 @@ export function TextParserTab({
           placeholder={tRuntime(
             "runtimeGenerated.components.search.textparsertab.attribute.extractedDocumentText",
           )}
-          className="w-full bg-surface border border-border rounded-lg px-3.5 py-2.5 text-[13px] text-text-secondary outline-none font-mono focus:border-accent transition-all min-h-[160px] placeholder:text-text-muted/50"
+          className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2.5 text-[13px] text-text-secondary outline-none font-mono focus:border-accent transition-all min-h-[160px] placeholder:text-text-muted/50"
         />
       </div>
     </div>

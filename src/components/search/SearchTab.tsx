@@ -28,7 +28,7 @@ export function SearchTab({
 }) {
   const { t: tRuntime } = useTranslation("common");
   return (
-    <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg flex flex-col gap-4">
+    <div className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-lg flex flex-col gap-4">
       <h3 className="text-[14.5px] font-medium text-text-primary">
         <Trans i18nKey="common:surface.componentsSearchSearchtab.heading.webSearch" />
       </h3>
@@ -44,7 +44,7 @@ export function SearchTab({
           placeholder={tRuntime(
             "runtimeGenerated.components.search.searchtab.attribute.latestModelRoutingBestPractices",
           )}
-          className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
+          className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
         />
       </Field>
 
@@ -56,7 +56,7 @@ export function SearchTab({
         <select
           value={provider}
           onChange={(e) => setProvider(e.target.value)}
-          className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+          className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
         >
           <option value="brave">
             <Trans i18nKey="common:surface.componentsSearchSearchtab.option.braveSearchVenice" />
@@ -71,7 +71,7 @@ export function SearchTab({
       </Field>
 
       <button
-        className="px-4 py-2 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors self-start cursor-pointer"
+        className="px-4 py-2 rounded-md text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors self-start cursor-pointer shadow-[0_0_8px_var(--color-vf-accent-glow)]"
         onClick={runSearch}
         disabled={loading === "search" || !query.trim()}
       >
@@ -90,7 +90,7 @@ export function SearchTab({
           return (
             <div
               key={url || idx}
-              className="rounded-lg bg-surface border border-border p-3 text-[13px]"
+              className="rounded-md bg-vf-panel-bg border border-vf-panel-border p-3 text-[13px]"
             >
               <strong className="text-text-primary block mb-1">
                 {r.title ||
@@ -109,7 +109,7 @@ export function SearchTab({
                 {onScrapeWithVenice && (
                   <button
                     onClick={() => onScrapeWithVenice(url)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
+                    className="px-2 py-1 rounded bg-vf-panel-bg-raised border border-vf-panel-border text-[12px] hover:bg-vf-panel-bg-muted transition-colors"
                   >
                     <Trans i18nKey="common:surface.componentsSearchSearchtab.action.scrapeWithVenice" />
                   </button>
@@ -117,7 +117,7 @@ export function SearchTab({
                 {onReadWithJina && (
                   <button
                     onClick={() => onReadWithJina(url)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
+                    className="px-2 py-1 rounded bg-vf-panel-bg-raised border border-vf-panel-border text-[12px] hover:bg-vf-panel-bg-muted transition-colors"
                   >
                     <Trans i18nKey="common:surface.componentsSearchSearchtab.action.readWithJina" />
                   </button>
@@ -125,7 +125,7 @@ export function SearchTab({
                 {onSaveToSession && (
                   <button
                     onClick={() => onSaveToSession(r)}
-                    className="px-2 py-1 rounded bg-surface-elevated border border-border text-[12px] hover:bg-surface-muted transition-colors"
+                    className="px-2 py-1 rounded bg-vf-panel-bg-raised border border-vf-panel-border text-[12px] hover:bg-vf-panel-bg-muted transition-colors"
                   >
                     <Trans i18nKey="common:surface.componentsSearchSearchtab.action.saveToSession" />
                   </button>

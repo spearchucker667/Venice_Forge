@@ -141,7 +141,7 @@ export function ResearchProviderStatus({
       {providers.map((p) => (
         <div
           key={p.id}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-surface-elevated border border-border"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-vf-panel-bg-raised border border-vf-panel-border"
           title={p.message}
         >
           {statusDot(p.status)}

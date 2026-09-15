@@ -308,7 +308,7 @@ export function VideoView() {
           <Label>
             <Trans i18nKey="common:surface.componentsVideoVideoView.text.generationMode" />
           </Label>
-          <div className="flex gap-px bg-surface-elevated rounded-lg p-0.5 border border-border">
+          <div className="flex gap-px bg-vf-panel-bg-raised rounded-md p-0.5 border border-vf-panel-border">
             {hasTextMode && (
               <button
                 onClick={() => setMode("text")}
@@ -384,7 +384,7 @@ export function VideoView() {
                 alt={tRuntime(
                   "runtimeGenerated.components.video.videoView.attribute.reference",
                 )}
-                className="w-full rounded-lg border border-border"
+                className="w-full rounded-md border border-vf-panel-border"
               />
               <button
                 type="button"
@@ -440,7 +440,7 @@ export function VideoView() {
                 aria-label={tRuntime(
                   "runtimeGenerated.components.video.videoView.attribute.chooseReferenceImage",
                 )}
-                className="block w-full cursor-pointer border border-dashed border-border hover:border-accent rounded-lg py-5 text-center transition-colors"
+                className="block w-full cursor-pointer border border-dashed border-vf-panel-border hover:border-accent rounded-md py-5 text-center transition-colors"
               >
                 <p className="text-[14px] text-text-muted">
                   <Trans i18nKey="common:surface.componentsVideoVideoView.description.clickToAddImage" />
@@ -526,7 +526,7 @@ export function VideoView() {
             onClick={() => setAudioEnabled(!audioEnabled)}
             className={cn(
               "w-8 h-[18px] rounded-full transition-colors relative",
-              audioEnabled ? "bg-accent" : "bg-surface-elevated",
+              audioEnabled ? "bg-accent" : "bg-vf-panel-bg-raised",
             )}
           >
             <div
@@ -547,7 +547,7 @@ export function VideoView() {
           {tags.map((t) => (
             <span
               key={t}
-              className="text-xs text-text-muted bg-surface-elevated border border-border rounded px-1.5 py-0.5"
+              className="text-xs text-text-muted bg-vf-panel-bg-raised border border-vf-panel-border rounded px-1.5 py-0.5"
             >
               {t}
             </span>
@@ -782,7 +782,7 @@ export function VideoView() {
           </div>
           <ManagedVideoPlayer
             src={videoUrl}
-            className="w-full rounded-lg bg-overlay border border-border"
+            className="w-full rounded-md bg-overlay border border-vf-panel-border"
           />
           <button
             type="button"

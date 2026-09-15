@@ -217,7 +217,7 @@ export function LineageViewer({
                 <button
                   type="button"
                   onClick={() => onOpenItem?.(node.item!)}
-                  className="line-clamp-1 rounded border border-border bg-surface-elevated px-1.5 py-0.5 text-left hover:border-accent hover:text-accent"
+                  className="line-clamp-1 rounded border border-vf-panel-border bg-vf-panel-bg-raised px-1.5 py-0.5 text-left hover:border-accent hover:text-accent"
                 >
                   {node.item!.prompt || node.item!.id}
                 </button>
@@ -259,7 +259,7 @@ export function LineageViewer({
                 <button
                   type="button"
                   onClick={() => onOpenItem?.(node.item!)}
-                  className="line-clamp-1 rounded border border-border bg-surface-elevated px-1.5 py-0.5 text-left hover:border-accent hover:text-accent"
+                  className="line-clamp-1 rounded border border-vf-panel-border bg-vf-panel-bg-raised px-1.5 py-0.5 text-left hover:border-accent hover:text-accent"
                 >
                   {node.item!.prompt || node.item!.id}
                 </button>

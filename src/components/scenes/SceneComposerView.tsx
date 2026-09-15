@@ -211,10 +211,10 @@ export function SceneComposerView() {
   return (
     <div className="flex flex-col md:flex-row h-full w-full min-h-0 text-text-primary">
       <aside
-        className="w-full md:w-[320px] lg:w-[340px] shrink-0 border-b md:border-b-0 md:border-r border-border/50 flex flex-col min-h-0 max-h-[35vh] md:max-h-none"
+        className="w-full md:w-[320px] lg:w-[340px] shrink-0 border-b md:border-b-0 md:border-r border-vf-panel-border flex flex-col min-h-0 max-h-[35vh] md:max-h-none"
         data-testid="scene-composer-list-pane"
       >
-        <div className="px-3 py-2 border-b border-border/50 space-y-2">
+        <div className="px-3 py-2 border-b border-vf-panel-border space-y-2">
           <div className="flex items-center gap-2">
             <h2 className="text-[14px] font-semibold">
               <Trans i18nKey="common:surface.componentsScenesScenecomposerview.heading.sceneComposer" />
@@ -229,7 +229,7 @@ export function SceneComposerView() {
                 });
                 setActiveScene(created.id);
               }}
-              className="ml-auto rounded-md border border-border px-2 py-1 text-[12px] hover:border-accent hover:text-accent"
+              className="ml-auto rounded-md border border-vf-panel-border px-2 py-1 text-[12px] hover:border-accent hover:text-accent"
               data-testid="scene-composer-new"
             >
               <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.new" />
@@ -241,7 +241,7 @@ export function SceneComposerView() {
             placeholder={tRuntime(
               "runtimeGenerated.components.scenes.scenecomposerview.attribute.searchScenes",
             )}
-            className="w-full rounded-md border border-border bg-background px-2 py-1 text-[12.5px] focus:outline-none focus:border-accent"
+            className="w-full rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1 text-[12.5px] focus:outline-none focus:border-accent"
             data-testid="scene-composer-search"
           />
           <Toolbar
@@ -256,7 +256,7 @@ export function SceneComposerView() {
               onChange={(e) =>
                 setScopeFilter(e.target.value as SceneScope | "all")
               }
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
+              className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px]"
               data-testid="scene-composer-scope-filter"
             >
               <option value="all">
@@ -272,7 +272,7 @@ export function SceneComposerView() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px]"
+              className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px]"
               data-testid="scene-composer-sort"
             >
               <option value="newest">
@@ -295,7 +295,7 @@ export function SceneComposerView() {
               className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 favoritesOnly
                   ? "border-warning/40 text-warning"
-                  : "border-border text-text-secondary hover:border-accent hover:text-accent"
+                  : "border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent"
               }`}
               data-testid="scene-composer-favorites-filter"
             >
@@ -308,7 +308,7 @@ export function SceneComposerView() {
               className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 showArchived
                   ? "border-accent text-accent"
-                  : "border-border text-text-secondary hover:border-accent hover:text-accent"
+                  : "border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent"
               }`}
               data-testid="scene-composer-archive-filter"
             >
@@ -345,8 +345,8 @@ export function SceneComposerView() {
                   <button
                     type="button"
                     onClick={() => setActiveScene(s.id)}
-                    className={`w-full text-left px-3 py-2 hover:bg-background ${
-                      s.id === activeSceneId ? "bg-background" : ""
+                    className={`w-full text-left px-3 py-2 hover:bg-vf-shell-bg ${
+                      s.id === activeSceneId ? "bg-vf-shell-bg" : ""
                     }`}
                     data-testid={`scene-composer-item-${s.id}`}
                   >
@@ -540,7 +540,7 @@ function SceneReferencePanel({
             return (
               <li
                 key={ref.entityId}
-                className="flex items-center gap-2 text-[12px] rounded-md border border-border/60 px-2 py-1"
+                className="flex items-center gap-2 text-[12px] rounded-md border border-vf-panel-border px-2 py-1"
               >
                 <span className="inline-block w-6 h-6 rounded bg-muted shrink-0 overflow-hidden">
                   <img
@@ -560,7 +560,7 @@ function SceneReferencePanel({
                       Array.from(new Set([...prev, ref.entityId])),
                     )
                   }
-                  className="ml-auto rounded border border-border px-1.5 py-0.5 text-[12px] hover:border-danger/60 hover:text-danger"
+                  className="ml-auto rounded border border-vf-panel-border px-1.5 py-0.5 text-[12px] hover:border-danger/60 hover:text-danger"
                   data-testid={`scene-reference-remove-${ref.entityId}`}
                 >
                   <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.remove" />
@@ -585,7 +585,7 @@ function SceneReferencePanel({
                 onClick={() =>
                   setRemovedIds((prev) => prev.filter((x) => x !== id))
                 }
-                className="text-[12px] rounded border border-border px-1.5 py-0.5 hover:border-accent hover:text-accent"
+                className="text-[12px] rounded border border-vf-panel-border px-1.5 py-0.5 hover:border-accent hover:text-accent"
                 data-testid={`scene-reference-restore-${id}`}
               >
                 <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.restore" />{" "}
@@ -907,7 +907,7 @@ function SceneDetail(props: SceneDetailProps) {
       className="flex-1 min-h-0 flex flex-col"
       data-testid="scene-composer-detail"
     >
-      <header className="px-4 py-3 border-b border-border/50 space-y-2">
+      <header className="px-4 py-3 border-b border-vf-panel-border space-y-2">
         <div className="flex items-center gap-2">
           <input
             value={title}
@@ -918,7 +918,7 @@ function SceneDetail(props: SceneDetailProps) {
           <button
             type="button"
             onClick={onToggleFavorite}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="scene-composer-favorite"
           >
             {item.favorite
@@ -932,7 +932,7 @@ function SceneDetail(props: SceneDetailProps) {
           <button
             type="button"
             onClick={onArchive}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="scene-composer-archive"
           >
             {item.archivedAt
@@ -975,7 +975,7 @@ function SceneDetail(props: SceneDetailProps) {
           placeholder={tRuntime(
             "runtimeGenerated.components.scenes.scenecomposerview.attribute.optionalDescription",
           )}
-          className="w-full rounded-md border border-border bg-background px-2 py-1 text-[12px]"
+          className="w-full rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1 text-[12px]"
           data-testid="scene-composer-description"
         />
         <div className="flex flex-wrap items-center gap-2">
@@ -985,7 +985,7 @@ function SceneDetail(props: SceneDetailProps) {
             placeholder={tRuntime(
               "runtimeGenerated.components.scenes.scenecomposerview.attribute.tagsCommaSeparated",
             )}
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] flex-1 min-w-[200px]"
+            className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px] flex-1 min-w-[200px]"
             data-testid="scene-composer-tags"
           />
           <button
@@ -1007,7 +1007,7 @@ function SceneDetail(props: SceneDetailProps) {
             placeholder={tRuntime(
               "runtimeGenerated.components.scenes.scenecomposerview.attribute.modelEGFluxDev",
             )}
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[160px]"
+            className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px] w-[160px]"
             data-testid="scene-composer-default-model"
           />
           <input
@@ -1016,7 +1016,7 @@ function SceneDetail(props: SceneDetailProps) {
             placeholder={tRuntime(
               "runtimeGenerated.components.scenes.scenecomposerview.attribute.width",
             )}
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[70px]"
+            className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px] w-[70px]"
             data-testid="scene-composer-default-width"
           />
           <input
@@ -1025,7 +1025,7 @@ function SceneDetail(props: SceneDetailProps) {
             placeholder={tRuntime(
               "runtimeGenerated.components.scenes.scenecomposerview.attribute.height",
             )}
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[70px]"
+            className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px] w-[70px]"
             data-testid="scene-composer-default-height"
           />
           <input
@@ -1034,7 +1034,7 @@ function SceneDetail(props: SceneDetailProps) {
             placeholder={tRuntime(
               "runtimeGenerated.components.scenes.scenecomposerview.attribute.aspectEG169",
             )}
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[100px]"
+            className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px] w-[100px]"
             data-testid="scene-composer-default-aspect"
           />
         </div>
@@ -1059,7 +1059,7 @@ function SceneDetail(props: SceneDetailProps) {
             <button
               type="button"
               onClick={addComponent}
-              className="rounded-md border border-border px-2 py-1.5 min-h-[32px] text-[12px] hover:border-accent hover:text-accent"
+              className="rounded-md border border-vf-panel-border px-2 py-1.5 min-h-[32px] text-[12px] hover:border-accent hover:text-accent"
               data-testid="scene-composer-add-component"
             >
               <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.add" />
@@ -1077,7 +1077,7 @@ function SceneDetail(props: SceneDetailProps) {
               {components.map((c) => (
                 <div
                   key={c.key}
-                  className="flex gap-2 items-start rounded-md border border-border p-2"
+                  className="flex gap-2 items-start rounded-md border border-vf-panel-border p-2"
                   data-testid={`scene-composer-component-${c.key}`}
                 >
                   <select
@@ -1087,7 +1087,7 @@ function SceneDetail(props: SceneDetailProps) {
                         kind: e.target.value as SceneComponentKind,
                       })
                     }
-                    className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[110px] shrink-0"
+                    className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px] w-[110px] shrink-0"
                     data-testid={`scene-composer-component-kind-${c.key}`}
                   >
                     {COMPONENT_KIND_OPTIONS.map((k) => (
@@ -1104,7 +1104,7 @@ function SceneDetail(props: SceneDetailProps) {
                     placeholder={tRuntime(
                       "runtimeGenerated.components.scenes.scenecomposerview.attribute.optionalLabel",
                     )}
-                    className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] w-[120px] shrink-0"
+                    className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px] w-[120px] shrink-0"
                     data-testid={`scene-composer-component-title-${c.key}`}
                   />
                   <textarea
@@ -1115,7 +1115,7 @@ function SceneDetail(props: SceneDetailProps) {
                     placeholder={tRuntime(
                       "runtimeGenerated.components.scenes.scenecomposerview.attribute.componentContent",
                     )}
-                    className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] min-h-[36px] resize-none"
+                    className="flex-1 rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1 text-[12px] min-h-[36px] resize-none"
                     rows={1}
                     data-testid={`scene-composer-component-content-${c.key}`}
                   />
@@ -1127,7 +1127,7 @@ function SceneDetail(props: SceneDetailProps) {
                     className={`rounded-md border px-1.5 py-0.5 text-[12px] shrink-0 ${
                       c.enabled
                         ? "border-accent/40 text-accent"
-                        : "border-border text-text-muted"
+                        : "border-vf-panel-border text-text-muted"
                     }`}
                     data-testid={`scene-composer-component-toggle-${c.key}`}
                   >
@@ -1164,7 +1164,7 @@ function SceneDetail(props: SceneDetailProps) {
           <button
             type="button"
             onClick={handleSendToImageStudio}
-            className="rounded-md border border-border px-2 py-1 text-[12px] hover:border-accent hover:text-accent"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] hover:border-accent hover:text-accent"
             data-testid="scene-composer-use-image"
           >
             <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.useInImageStudio" />
@@ -1172,7 +1172,7 @@ function SceneDetail(props: SceneDetailProps) {
           <button
             type="button"
             onClick={handleCopyRecipe}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="scene-composer-copy-recipe"
           >
             <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.copyRecipe" />
@@ -1180,7 +1180,7 @@ function SceneDetail(props: SceneDetailProps) {
           <button
             type="button"
             onClick={onCreateWorkflow}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="scene-composer-create-workflow"
           >
             <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.createWorkflow" />
@@ -1188,7 +1188,7 @@ function SceneDetail(props: SceneDetailProps) {
           <button
             type="button"
             onClick={() => setShowVersionHistory((v) => !v)}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="scene-composer-toggle-history"
           >
             {showVersionHistory
@@ -1210,7 +1210,7 @@ function SceneDetail(props: SceneDetailProps) {
                   "runtimeGenerated.components.scenes.scenecomposerview.attribute.typeValue1ToConfirm",
                   { value1: item.title },
                 )}
-                className="rounded-md border border-danger/40 bg-background px-2 py-1 text-[12px]"
+                className="rounded-md border border-danger/40 bg-vf-shell-bg px-2 py-1 text-[12px]"
                 data-testid="scene-composer-delete-confirm"
               />
               <button
@@ -1228,7 +1228,7 @@ function SceneDetail(props: SceneDetailProps) {
                   setConfirmDelete(false);
                   setConfirmDeleteText("");
                 }}
-                className="rounded-md border border-border px-2 py-1 text-[12px]"
+                className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
               >
                 <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.cancel" />
               </button>
@@ -1258,7 +1258,7 @@ function SceneDetail(props: SceneDetailProps) {
                     className={`rounded-md border px-2 py-1.5 ${
                       v.id === item.currentVersionId
                         ? "border-accent/60"
-                        : "border-border"
+                        : "border-vf-panel-border"
                     }`}
                   >
                   <div className="flex items-center gap-2 text-[12px]">
@@ -1275,7 +1275,7 @@ function SceneDetail(props: SceneDetailProps) {
                       type="button"
                       onClick={() => void onSetCurrentVersion(v.id)}
                       disabled={v.id === item.currentVersionId}
-                      className="ml-auto rounded-md border border-border px-2 py-0.5 text-[12px] disabled:opacity-50"
+                      className="ml-auto rounded-md border border-vf-panel-border px-2 py-0.5 text-[12px] disabled:opacity-50"
                       data-testid={`scene-composer-use-version-${v.version}`}
                     >
                       <Trans i18nKey="common:surface.componentsScenesScenecomposerview.action.useThisVersion" />

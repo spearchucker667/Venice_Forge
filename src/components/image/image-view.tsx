@@ -1049,7 +1049,7 @@ export function ImageView() {
       {/* Model capability summary. Reflects the live registry so the user
           knows what is and is not available BEFORE they fill out the form. */}
       <div
-        className="text-[12px] text-text-secondary flex flex-wrap gap-x-2 gap-y-0.5 px-2 py-1.5 rounded-md bg-surface/40 border border-border/60"
+        className="text-[12px] text-text-secondary flex flex-wrap gap-x-2 gap-y-0.5 px-2 py-1.5 rounded-md bg-vf-panel-bg/40 border border-vf-panel-border"
         aria-label={t("imageStudioRuntime.capabilitiesFor", {
           model: caps.label,
           capabilities: capabilitySummary.join(", "),
@@ -1082,7 +1082,7 @@ export function ImageView() {
               type="button"
               onClick={() => void handleSavePromptToLibrary("image", prompt)}
               disabled={!prompt.trim()}
-              className="text-[12px] px-2 py-1 rounded-md border border-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
+              className="text-[12px] px-2 py-1 rounded-md border border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
               aria-label={t("imageStudioRuntime.savePromptToLibrary")}
               data-testid="image-save-prompt-to-library"
             >
@@ -1116,7 +1116,7 @@ export function ImageView() {
                   e.target.value = "";
                 }
               }}
-              className="relative z-40 text-[12px] bg-surface-elevated text-text-secondary border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-text-secondary transition-colors cursor-pointer min-w-[120px]"
+              className="relative z-40 text-[12px] bg-vf-panel-bg-raised text-text-secondary border border-vf-panel-border rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-accent hover:text-text-primary transition-colors cursor-pointer min-w-[120px]"
               defaultValue=""
             >
               <option value="" disabled>
@@ -1161,25 +1161,25 @@ export function ImageView() {
 
       {/* Enhance prompt review flow */}
       {showEnhanceReview && enhancedPrompt && (
-        <div className="p-3 mt-2 rounded-lg border border-accent/30 bg-accent/5">
+        <div className="p-3 mt-2 rounded-md border border-accent/30 bg-accent/5">
           <Label>
             <Trans i18nKey="common:surface.componentsImageImageView.text.enhancedPromptPreview" />
           </Label>
-          <div className="text-[12.5px] text-text-primary mt-1 p-2 rounded bg-surface border border-border break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
+          <div className="text-[12.5px] text-text-primary mt-1 p-2 rounded bg-vf-panel-bg border border-vf-panel-border break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
             {enhancedPrompt}
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
             <button
               type="button"
               onClick={applyEnhancedPrompt}
-              className="px-3 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+              className="px-3 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer shadow-[0_0_8px_var(--color-vf-accent-glow)]"
             >
               <Trans i18nKey="common:surface.componentsImageImageView.action.useEnhancedPrompt" />
             </button>
             <button
               type="button"
               onClick={cancelEnhanceReview}
-              className="px-3 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              className="px-3 py-1 text-[12px] rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               <Trans i18nKey="common:surface.componentsImageImageView.action.keepOriginal" />
             </button>
@@ -1189,13 +1189,13 @@ export function ImageView() {
 
       {/* Template preview flow */}
       {previewTemplate && (
-        <div className="p-3 mt-2 rounded-lg border border-accent/30 bg-accent/5">
+        <div className="p-3 mt-2 rounded-md border border-accent/30 bg-accent/5">
           <Label>
             <Trans i18nKey="common:surface.componentsImageImageView.text.applyTemplate" />{" "}
             {previewTemplate.label}
           </Label>
           {previewTemplate.positiveText && (
-            <div className="text-[12.5px] text-text-primary mt-1 mb-2 p-2 rounded bg-surface border border-border break-all whitespace-pre-wrap">
+            <div className="text-[12.5px] text-text-primary mt-1 mb-2 p-2 rounded bg-vf-panel-bg border border-vf-panel-border break-all whitespace-pre-wrap">
               <strong className="text-text-secondary">
                 <Trans i18nKey="common:surface.componentsImageImageView.text.positive" />
               </strong>{" "}
@@ -1203,7 +1203,7 @@ export function ImageView() {
             </div>
           )}
           {previewTemplate.negativeText && (
-            <div className="text-[12.5px] text-text-primary mt-1 mb-2 p-2 rounded bg-surface border border-border break-all whitespace-pre-wrap">
+            <div className="text-[12.5px] text-text-primary mt-1 mb-2 p-2 rounded bg-vf-panel-bg border border-vf-panel-border break-all whitespace-pre-wrap">
               <strong className="text-text-secondary">
                 <Trans i18nKey="common:surface.componentsImageImageView.text.negative" />
               </strong>{" "}
@@ -1253,7 +1253,7 @@ export function ImageView() {
               disabled={Boolean(
                 previewTemplate.negativeText && !caps.supportsNegativePrompt,
               )}
-              className="px-3 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+              className="px-3 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer shadow-[0_0_8px_var(--color-vf-accent-glow)]"
             >
               <Trans i18nKey="common:surface.componentsImageImageView.action.append" />
             </button>
@@ -1283,7 +1283,7 @@ export function ImageView() {
             <button
               type="button"
               onClick={() => setPreviewTemplate(null)}
-              className="px-3 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              className="px-3 py-1 text-[12px] rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               <Trans i18nKey="common:surface.componentsImageImageView.action.cancel" />
             </button>
@@ -1303,7 +1303,7 @@ export function ImageView() {
                 void handleSavePromptToLibrary("negative", negativePrompt)
               }
               disabled={!negativePrompt.trim()}
-              className="text-[12px] px-2 py-1 rounded-md border border-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
+              className="text-[12px] px-2 py-1 rounded-md border border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50"
               aria-label={t("imageStudioRuntime.saveNegativePromptToLibrary")}
               data-testid="image-save-negative-to-library"
             >
@@ -1396,7 +1396,7 @@ export function ImageView() {
       )}
 
       {styleReferencesEnabled && (
-        <fieldset className="rounded-lg border border-border/60 bg-surface/40 p-3 space-y-2">
+        <fieldset className="rounded-md border border-vf-panel-border bg-vf-panel-bg/40 p-3 space-y-2">
           <legend className="px-1 text-[12px] font-semibold text-foreground-muted uppercase tracking-[0.08em]">
             {t("imageStudioRuntime.styleReferences")}
           </legend>
@@ -1425,7 +1425,7 @@ export function ImageView() {
               void handleStyleReferenceFiles(files);
               event.currentTarget.value = "";
             }}
-            className="block w-full text-[12px] text-text-secondary file:mr-2 file:rounded-md file:border file:border-border file:bg-surface-elevated file:px-2 file:py-1 file:text-text-primary hover:file:border-accent disabled:opacity-50"
+            className="block w-full text-[12px] text-text-secondary file:mr-2 file:rounded-md file:border file:border-vf-panel-border file:bg-vf-panel-bg-raised file:px-2 file:py-1 file:text-text-primary hover:file:border-accent disabled:opacity-50"
           />
           <p
             id={`${styleReferencesId}-count`}
@@ -1442,7 +1442,7 @@ export function ImageView() {
               {styleReferences.map((reference) => (
                 <li
                   key={reference.entityId}
-                  className="rounded-md border border-border/60 bg-surface-elevated p-2"
+                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-2"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-[12px] text-text-primary">
@@ -1460,7 +1460,7 @@ export function ImageView() {
                       aria-label={t("imageStudioRuntime.removeStyleReference", {
                         name: reference.name,
                       })}
-                      className="shrink-0 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+                      className="shrink-0 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                     >
                       {t("imageStudioRuntime.remove")}
                     </button>
@@ -1518,7 +1518,7 @@ export function ImageView() {
                 onChange={(e) =>
                   setSeedMode(e.target.checked ? "fixed" : "off")
                 }
-                className="rounded border-border bg-surface-elevated text-accent w-3.5 h-3.5 cursor-pointer"
+                className="rounded border-vf-panel-border bg-vf-panel-bg-raised text-accent w-3.5 h-3.5 cursor-pointer"
               />
               <Trans i18nKey="common:surface.componentsImageImageView.label.useFixedSeed" />
             </label>
@@ -1538,13 +1538,13 @@ export function ImageView() {
                 }}
                 min={-999999999}
                 max={999999999}
-                className="w-32 bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
+                className="w-32 bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
                 aria-label={t("imageStudioRuntime.seedValue")}
               />
               <button
                 type="button"
                 onClick={() => setSeedValue(randomSeed())}
-                className="px-2 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                className="px-2 py-1 text-[12px] rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
                 aria-label={t("imageStudioRuntime.randomizeSeed")}
               >
                 <Trans i18nKey="common:surface.componentsImageImageView.action.randomize" />
@@ -1552,7 +1552,7 @@ export function ImageView() {
               <button
                 type="button"
                 onClick={() => setSeedMode("off")}
-                className="px-2 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                className="px-2 py-1 text-[12px] rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
                 aria-label={t("imageStudioRuntime.clearSeed")}
               >
                 <Trans i18nKey="common:surface.componentsImageImageView.action.clear" />
@@ -1648,13 +1648,13 @@ export function ImageView() {
                 e.stopPropagation();
                 lightboxMenu.openAt(e);
               }}
-              className="max-w-[90vw] max-h-[90vh] rounded-xl shadow-2xl"
+              className="max-w-[90vw] max-h-[90vh] rounded-md shadow-2xl"
             />
             <div className="absolute top-3 right-3 flex gap-1.5">
               <button
                 onClick={() => downloadImage(selectedImage)}
                 aria-label={t("imageStudioRuntime.download")}
-                className="p-2 bg-overlay hover:bg-overlay rounded-lg text-text-secondary hover:text-text-primary transition-colors backdrop-blur-sm"
+                className="p-2 bg-overlay hover:bg-overlay rounded-md text-text-secondary hover:text-text-primary transition-colors backdrop-blur-sm"
               >
                 <svg
                   aria-hidden="true"
@@ -1674,7 +1674,7 @@ export function ImageView() {
               <button
                 onClick={() => setSelectedImage(null)}
                 aria-label={t("imageStudioRuntime.close")}
-                className="p-2 bg-overlay hover:bg-overlay rounded-lg text-text-secondary hover:text-text-primary transition-colors backdrop-blur-sm"
+                className="p-2 bg-overlay hover:bg-overlay rounded-md text-text-secondary hover:text-text-primary transition-colors backdrop-blur-sm"
               >
                 <svg
                   aria-hidden="true"
@@ -1752,14 +1752,14 @@ export function ImageView() {
                 aria-label={t("imageStudioRuntime.openGeneratedImage", {
                   number: i + 1,
                 })}
-                className="block w-full rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="block w-full rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               >
                 <ResolvedMediaImg
                   src={toImageSrc(img)}
                   alt={t("imageStudioRuntime.generatedNumber", {
                     number: i + 1,
                   })}
-                  className="w-full rounded-xl border border-border hover:border-accent transition-all duration-200"
+                  className="w-full rounded-md border border-vf-panel-border hover:border-accent transition-all duration-200"
                 />
               </button>
               <button
@@ -1769,7 +1769,7 @@ export function ImageView() {
                   downloadImage(img, i);
                 }}
                 aria-label={t("imageStudioRuntime.download")}
-                className="absolute top-2 right-2 p-1.5 bg-overlay hover:bg-overlay rounded-lg text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-all backdrop-blur-sm"
+                className="absolute top-2 right-2 p-1.5 bg-overlay hover:bg-overlay rounded-md text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-all backdrop-blur-sm"
                 title={t("imageStudioRuntime.download")}
               >
                 <svg
@@ -1823,7 +1823,7 @@ export function ImageView() {
                     t("imageStudioRuntime.characterCreatorLaunched"),
                   );
                 }}
-                className="absolute bottom-2 left-2 rounded-lg border border-accent bg-overlay px-2 py-1 text-[11px] text-accent opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100"
+                className="absolute bottom-2 left-2 rounded-md border border-accent bg-overlay px-2 py-1 text-[11px] text-accent opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100"
                 data-testid="image-create-st-card"
               >
                 <Trans i18nKey="common:surface.componentsImageImageView.action.createStCard" />

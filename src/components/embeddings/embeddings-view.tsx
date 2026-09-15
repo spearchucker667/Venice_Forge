@@ -126,7 +126,7 @@ export function EmbeddingsView() {
                 <Trans i18nKey="common:surface.componentsEmbeddingsEmbeddingsView.action.copy" />
               </button>
             </div>
-            <div className="bg-surface-elevated border border-border rounded-lg p-4 max-h-[calc(100vh-240px)] overflow-y-auto">
+            <div className="bg-vf-panel-bg-raised border border-vf-panel-border rounded-md p-4 max-h-[calc(100vh-240px)] overflow-y-auto">
               <code className="text-[14px] text-text-muted font-mono break-all leading-loose">
                 [
                 {displayValues?.map((n, i) => (
@@ -176,7 +176,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-text-muted">{label}</span>
-      <span className="text-text-secondary bg-surface-elevated border border-border rounded px-2 py-0.5 font-mono text-[13px]">
+      <span className="text-text-secondary bg-vf-panel-bg-raised border border-vf-panel-border rounded px-2 py-0.5 font-mono text-[13px]">
         {value}
       </span>
     </div>

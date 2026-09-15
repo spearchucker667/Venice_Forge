@@ -145,7 +145,7 @@ export function AudioView() {
 
   const controls = (
     <>
-      <div className="flex gap-px bg-surface-elevated rounded-lg p-0.5 border border-border">
+      <div className="flex gap-px bg-vf-panel-bg-raised rounded-md p-0.5 border border-vf-panel-border">
         {(["tts", "transcribe"] as const).map((t) => (
           <button
             key={t}
@@ -154,8 +154,8 @@ export function AudioView() {
             className={cn(
               "flex-1 px-3 py-2 text-[13px] font-medium rounded-[7px] transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
               tab === t
-                ? "bg-accent text-accent-fg shadow-sm"
-                : "text-text-secondary hover:text-text-secondary",
+                ? "bg-accent text-accent-fg shadow-sm shadow-[0_0_8px_var(--color-vf-accent-glow)]"
+                : "text-text-secondary hover:text-text-primary",
             )}
           >
             {t === "tts"
@@ -240,7 +240,7 @@ export function AudioView() {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="w-full border border-dashed border-border hover:border-accent hover:bg-surface-muted rounded-xl p-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="w-full border border-dashed border-vf-panel-border hover:border-accent hover:bg-vf-panel-bg-muted rounded-md p-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >
             <input
               ref={fileRef}
@@ -350,7 +350,7 @@ export function AudioView() {
               }}
             />
             {playbackError && <ErrorText>{playbackError}</ErrorText>}
-            <div className="bg-surface-elevated border border-border rounded-lg p-4">
+            <div className="bg-vf-panel-bg-raised border border-vf-panel-border rounded-md p-4">
               <p className="text-[15px] text-text-muted leading-relaxed">
                 {text}
               </p>
@@ -385,7 +385,7 @@ export function AudioView() {
           <Label>
             <Trans i18nKey="common:surface.componentsAudioAudioView.text.transcript" />
           </Label>
-          <div className="bg-surface border border-border rounded-xl p-6 text-[15px] text-text-secondary whitespace-pre-wrap leading-relaxed">
+          <div className="bg-vf-panel-bg border border-vf-panel-border rounded-md p-6 text-[15px] text-text-secondary whitespace-pre-wrap leading-relaxed">
             {transcript}
           </div>
         </div>

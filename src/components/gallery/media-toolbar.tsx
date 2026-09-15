@@ -262,7 +262,7 @@ export function MediaToolbar({
   ];
 
   return (
-    <div className="flex flex-col gap-3 soft-separator-y mesh-surface px-5 py-3">
+    <div className="flex flex-col gap-3 border-b border-vf-panel-border bg-vf-panel-bg px-5 py-3">
       <Toolbar
         bare
         aria-label={tRuntime(
@@ -282,7 +282,7 @@ export function MediaToolbar({
             aria-label={tRuntime(
               "runtimeGenerated.components.gallery.mediaToolbar.attribute.searchMedia",
             )}
-            className="w-full rounded-lg border border-border bg-surface-elevated py-1.5 pl-8 pr-9 text-[13px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
+            className="w-full rounded-md border border-vf-panel-border bg-vf-panel-bg-raised py-1.5 pl-8 pr-9 text-[13px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
           />
           {query && (
             <IconButton
@@ -305,7 +305,7 @@ export function MediaToolbar({
             id="media-toolbar-sort"
             value={sort}
             onChange={(e) => onSortChange(e.target.value as MediaSort)}
-            className="rounded-md border border-border bg-surface-elevated px-2 py-1 text-[12px] text-text-primary focus:border-accent focus:outline-none"
+            className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1 text-[12px] text-text-primary focus:border-accent focus:outline-none"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -336,10 +336,10 @@ export function MediaToolbar({
           onClick={onToggleMultiSelect}
           aria-pressed={multiSelectMode}
           className={cn(
-            "rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
+            "rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
             multiSelectMode
-              ? "border-accent bg-accent/15 text-accent"
-              : "border-border text-text-secondary hover:border-accent hover:text-accent",
+              ? "border border-accent/40 bg-accent/15 text-accent shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)]"
+              : "bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover",
           )}
         >
           {multiSelectMode
@@ -372,7 +372,7 @@ export function MediaToolbar({
           aria-label={tRuntime(
             "surface.componentsGalleryMediaToolbar.text.selected",
           )}
-          className="w-full flex-wrap rounded-lg border border-border bg-surface-elevated px-3 py-2"
+          className="w-full flex-wrap rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-3 py-2"
           data-testid="bulk-action-toolbar"
         >
           <Pill>
@@ -398,7 +398,7 @@ export function MediaToolbar({
               type="button"
               onClick={onSelectAll}
               data-testid="bulk-select-all"
-              className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             >
               <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.selectAll" />
             </button>
@@ -406,7 +406,7 @@ export function MediaToolbar({
               type="button"
               onClick={onClearSelection}
               data-testid="bulk-clear-selection"
-              className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             >
               <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.clear" />
             </button>
@@ -416,7 +416,7 @@ export function MediaToolbar({
                 onClick={onBatchCompare}
                 disabled={!compareReady}
                 data-testid="bulk-compare"
-                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed"
+                className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.compare" />
               </button>
@@ -427,7 +427,7 @@ export function MediaToolbar({
                 onClick={onBatchExport}
                 disabled={!hasSelection}
                 data-testid="bulk-export"
-                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+                className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
               >
                 <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.export" />
               </button>
@@ -438,7 +438,7 @@ export function MediaToolbar({
                 onClick={onBatchAddTag}
                 disabled={!hasSelection}
                 data-testid="bulk-add-tag"
-                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+                className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
               >
                 <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.addTag" />
               </button>
@@ -454,7 +454,7 @@ export function MediaToolbar({
                   onChange={(e) => onBulkProjectIdChange(e.target.value)}
                   disabled={!hasSelection}
                   data-testid="bulk-project-select"
-                  className="rounded-md border border-border bg-surface-elevated px-2 py-1 text-[12px] text-text-primary focus:border-accent focus:outline-none disabled:opacity-30"
+                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1 text-[12px] text-text-primary focus:border-accent focus:outline-none disabled:opacity-30"
                 >
                   {projectOptions.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -470,7 +470,7 @@ export function MediaToolbar({
                 onClick={onBatchAssignProject}
                 disabled={!hasSelection}
                 data-testid="bulk-assign-project"
-                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+                className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
               >
                 <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.apply" />
               </button>
@@ -494,7 +494,7 @@ export function MediaToolbar({
               type="button"
               onClick={onBatchUnfavorite}
               disabled={!hasSelection}
-              className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+              className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
             >
               <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.unstar" />
             </button>

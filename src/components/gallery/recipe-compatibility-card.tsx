@@ -124,7 +124,7 @@ export function RecipeCompatibilityCard({
           <button
             type="button"
             onClick={() => onUseWithCurrentModel(report.sanitizedRecipe)}
-            className="px-2 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+            className="px-2 py-1 text-[12px] rounded-md bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer shadow-[0_0_8px_var(--color-vf-accent-glow)]"
             data-testid="recipe-use-with-current-model"
           >
             <Trans i18nKey="common:surface.galleryRecipeCompatibilityCard.action.useWith" />{" "}
@@ -135,7 +135,7 @@ export function RecipeCompatibilityCard({
           <button
             type="button"
             onClick={() => onUseOriginal(recipe)}
-            className="px-2 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+            className="px-2 py-1 text-[12px] rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             data-testid="recipe-use-original"
             title={tRuntime(
               "runtimeGenerated.components.gallery.recipeCompatibilityCard.attribute.sendTheOriginalRecipeToImageStudioWithoutSanitization",
@@ -148,7 +148,7 @@ export function RecipeCompatibilityCard({
           <button
             type="button"
             onClick={onToggleComparison}
-            className="px-2 py-1 text-[12px] rounded-md bg-surface border border-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+            className="px-2 py-1 text-[12px] rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             data-testid="recipe-toggle-comparison"
             aria-expanded={showComparison}
           >

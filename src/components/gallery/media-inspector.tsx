@@ -514,7 +514,7 @@ export function MediaInspector({
 
   return (
     <aside
-      className="flex h-full w-full flex-col gap-4 overflow-y-auto soft-separator-x mesh-surface px-4 py-4"
+      className="flex h-full w-full flex-col gap-4 overflow-y-auto border-r border-vf-panel-border bg-vf-panel-bg px-4 py-4"
       aria-label={tRuntime(
         "runtimeGenerated.components.gallery.mediaInspector.attribute.mediaInspector",
       )}
@@ -534,7 +534,7 @@ export function MediaInspector({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+          className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
         >
           <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.close" />
         </button>
@@ -549,7 +549,7 @@ export function MediaInspector({
               "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] transition-colors",
               item.favorite
                 ? "border-danger/40 bg-danger/10 text-danger"
-                : "border-border text-text-secondary hover:border-accent hover:text-accent",
+                : "border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent",
             )}
           >
             <Heart
@@ -655,7 +655,7 @@ export function MediaInspector({
           <Label>
             <Trans i18nKey="common:surface.componentsGalleryMediaInspector.text.enhancedPrompt" />
           </Label>
-          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[12px] text-text-primary">
+          <p className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-2 text-[12px] text-text-primary">
             {item.enhancedPrompt}
           </p>
         </section>
@@ -665,7 +665,7 @@ export function MediaInspector({
           <Label>
             <Trans i18nKey="common:surface.componentsGalleryMediaInspector.text.originalPrompt" />
           </Label>
-          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[12px] text-text-muted">
+          <p className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-2 text-[12px] text-text-muted">
             {item.originalPrompt}
           </p>
         </section>
@@ -675,7 +675,7 @@ export function MediaInspector({
           <Label>
             <Trans i18nKey="common:surface.componentsGalleryMediaInspector.text.remixPrompt" />
           </Label>
-          <p className="rounded-md border border-border bg-surface-elevated p-2 text-[12px] text-text-primary">
+          <p className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-2 text-[12px] text-text-primary">
             {item.remixPrompt}
           </p>
         </section>
@@ -691,7 +691,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleUseSettingsClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.loadThisImageSSettingsIntoImageStudioNoGeneration",
               )}
@@ -728,7 +728,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={() => onUseRecipe(item)}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.loadTheGenerationRecipePromptModelSeedDimensionsEtcInto",
               )}
@@ -742,7 +742,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleRegenerateClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.regenerateUsingThisImageSSettingsNewRandomSeed",
               )}
@@ -756,7 +756,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleRegenerateSameSeedClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.regenerateUsingTheSameSeedAsThisImage",
               )}
@@ -770,7 +770,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleUpscaleClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.upscaleEnhanceThisImage",
               )}
@@ -784,7 +784,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleEditClick}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.openThisImageInTheImageEditor",
               )}
@@ -798,7 +798,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={() => void handleInspectorDownload()}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.saveTheMainProcessMediaFileWithANativeDialog",
               )}
@@ -811,7 +811,7 @@ export function MediaInspector({
           <button
             type="button"
             onClick={handleCopyPrompt}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             title={tRuntime(
               "runtimeGenerated.components.gallery.mediaInspector.attribute.copyPromptText",
             )}
@@ -824,7 +824,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleCopyNegative}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.copyNegativePrompt",
               )}
@@ -838,7 +838,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleCopySeed}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.copySeedValue1",
                 { value1: item.seed },
@@ -852,7 +852,7 @@ export function MediaInspector({
           <button
             type="button"
             onClick={handleCopyMetadata}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             title={tRuntime(
               "runtimeGenerated.components.gallery.mediaInspector.attribute.copyMetadataAsJson",
             )}
@@ -865,7 +865,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={() => void handleSaveRecipeToLibrary()}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.saveRecipeToPromptLibrary",
               )}
@@ -879,7 +879,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleCopyRecipe}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.copyGenerationRecipeAsJson",
               )}
@@ -893,7 +893,7 @@ export function MediaInspector({
             <button
               type="button"
               onClick={handleExportRecipe}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               title={tRuntime(
                 "runtimeGenerated.components.gallery.mediaInspector.attribute.downloadGenerationRecipeAsAJsonFile",
               )}
@@ -909,7 +909,7 @@ export function MediaInspector({
                 type="button"
                 onClick={handleEnhance}
                 disabled={enhanceState?.loading || !enhancerEnabled}
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
                 title={
                   !enhancerEnabled
                     ? tRuntime(
@@ -934,7 +934,7 @@ export function MediaInspector({
                 type="button"
                 onClick={handleRemix}
                 disabled={enhanceState?.loading || !enhancerEnabled}
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-40"
                 title={
                   !enhancerEnabled
                     ? tRuntime(
@@ -974,7 +974,7 @@ export function MediaInspector({
             <Trans i18nKey="common:surface.componentsGalleryMediaInspector.heading.prompt" />
           </h4>
           <div className="space-y-2">
-            <p className="rounded-md border border-border bg-surface-elevated p-2 text-[12px] text-text-primary">
+            <p className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-2 text-[12px] text-text-primary">
               {enhanceState.result}
             </p>
             <p className="text-[12px] text-text-muted">
@@ -996,7 +996,7 @@ export function MediaInspector({
                   <button
                     type="button"
                     onClick={() => setEnhanceState(null)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+                    className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                   >
                     <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.cancel" />
                   </button>
@@ -1007,7 +1007,7 @@ export function MediaInspector({
                     <button
                       type="button"
                       onClick={handleApplyRemixToStudio}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+                      className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                       data-testid="inspector-remix-apply-to-studio"
                     >
                       <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.applyToImageStudio" />
@@ -1035,7 +1035,7 @@ export function MediaInspector({
                         });
                         setEnhanceState(null);
                       }}
-                      className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+                      className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                       data-testid="inspector-remix-save"
                     >
                       <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.saveRemix" />
@@ -1044,7 +1044,7 @@ export function MediaInspector({
                   <button
                     type="button"
                     onClick={() => setEnhanceState(null)}
-                    className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+                    className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2.5 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
                   >
                     <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.cancel" />
                   </button>
@@ -1057,7 +1057,7 @@ export function MediaInspector({
 
       {/* ── Loading state ───────────────────────────────────────────── */}
       {enhanceState?.loading && (
-        <section className="rounded-md border border-border p-2.5">
+        <section className="rounded-md border border-vf-panel-border p-2.5">
           <p className="text-[12px] text-text-muted">
             {enhanceState.mode === "enhance"
               ? tRuntime(
@@ -1127,12 +1127,12 @@ export function MediaInspector({
             placeholder={tRuntime(
               "runtimeGenerated.components.gallery.mediaInspector.attribute.addATagAndPressEnter",
             )}
-            className="flex-1 rounded-md border border-border bg-surface-elevated px-2 py-1.5 text-[12px] text-text-primary focus:border-accent focus:outline-none"
+            className="flex-1 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1.5 text-[12px] text-text-primary focus:border-accent focus:outline-none"
           />
           <button
             type="button"
             onClick={() => void handleAddTags()}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1.5 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1.5 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
           >
             <TagIcon className="h-3.5 w-3.5" />{" "}
             <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.add" />
@@ -1148,7 +1148,7 @@ export function MediaInspector({
                 title={tRuntime(
                   "runtimeGenerated.components.gallery.mediaInspector.attribute.removeTag",
                 )}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-elevated px-1.5 py-0.5 text-[12px] text-text-secondary hover:border-danger/40 hover:text-danger hover:bg-danger/10"
+                className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-1.5 py-0.5 text-[12px] text-text-secondary hover:border-danger/40 hover:text-danger hover:bg-danger/10"
               >
                 #{tag}
                 <span aria-hidden="true">×</span>
@@ -1187,7 +1187,7 @@ export function MediaInspector({
             type="button"
             onClick={() => void handleSaveNote()}
             disabled={noteDraft === item.note}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] text-text-secondary transition-colors hover:border-accent hover:text-accent disabled:opacity-30"
+            className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2.5 py-1 text-[12px] text-text-secondary transition-colors hover:border-accent hover:text-accent disabled:opacity-30"
           >
             <NotebookPen className="h-3 w-3" />{" "}
             <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.saveNote" />
@@ -1203,7 +1203,7 @@ export function MediaInspector({
           <button
             type="button"
             onClick={() => onOpenParent(parentItem)}
-            className="flex w-full items-center gap-2 rounded-md border border-border bg-surface-elevated p-2 text-left hover:border-accent"
+            className="flex w-full items-center gap-2 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-2 text-left hover:border-accent"
           >
             <span className="line-clamp-1 text-[12px] text-text-primary">
               {parentItem.prompt ||
@@ -1230,7 +1230,7 @@ export function MediaInspector({
                 <button
                   type="button"
                   onClick={() => onOpenChild(child)}
-                  className="flex w-full items-center gap-2 rounded-md border border-border bg-surface-elevated p-2 text-left hover:border-accent"
+                  className="flex w-full items-center gap-2 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-2 text-left hover:border-accent"
                 >
                   <span className="line-clamp-1 text-[12px] text-text-primary">
                     {child.prompt ||

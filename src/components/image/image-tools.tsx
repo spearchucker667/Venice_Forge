@@ -318,9 +318,9 @@ export function ImageTools() {
 
   return (
     <div className="flex h-full">
-      <div className="w-96 border-r border-border/50 p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
+      <div className="w-96 border-r border-vf-panel-border p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
         {/* Tool selector */}
-        <div className="flex gap-px bg-surface-elevated rounded-lg p-0.5 border border-border">
+        <div className="flex gap-px bg-vf-panel-bg-raised rounded-md p-0.5 border border-vf-panel-border">
           {(["edit", "upscale", "remove-bg"] as const).map((id) => (
             <button
               key={id}
@@ -331,7 +331,7 @@ export function ImageTools() {
               className={cn(
                 "flex-1 px-2 py-2.5 text-[14px] font-medium rounded-[7px] transition-all duration-150",
                 tool === id
-                  ? "bg-accent text-accent-fg"
+                  ? "bg-accent text-accent-fg shadow-[0_0_8px_var(--color-vf-accent-glow)]"
                   : "text-text-muted hover:text-text-muted",
               )}
             >
@@ -353,7 +353,7 @@ export function ImageTools() {
               <img
                 src={imageData}
                 alt={t("imageTools.source")}
-                className="w-full rounded-lg border border-border"
+                className="w-full rounded-md border border-vf-panel-border"
               />
               <button
                 onClick={() => {
@@ -412,7 +412,7 @@ export function ImageTools() {
               onClick={() => fileRef.current?.click()}
               onDragOver={handleSourceDragOver}
               onDrop={handleSourceDrop}
-              className="w-full border border-dashed border-border hover:border-accent rounded-lg py-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+              className="w-full border border-dashed border-vf-panel-border hover:border-accent rounded-md py-8 text-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
             >
               <input
                 ref={fileRef}
@@ -485,7 +485,7 @@ export function ImageTools() {
                       "rounded-md border px-3 py-2 text-[13px]",
                       scale === factor
                         ? "border-accent bg-accent/10 text-accent"
-                        : "border-border text-text-secondary",
+                        : "border-vf-panel-border text-text-secondary",
                     )}
                   >
                     {factor}×
@@ -520,7 +520,7 @@ export function ImageTools() {
                 <Trans i18nKey="common:surface.componentsImageImageTools.description.higherValuesStayCloserToTheSource" />
               </p>
             </div>
-            <div className="rounded-md border border-border bg-surface px-3 py-2 text-[12px] text-text-muted">
+            <div className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[12px] text-text-muted">
               <Trans i18nKey="common:surface.componentsImageImageTools.text.veniceUpscalingDoesNotAcceptAText" />
               <button
                 type="button"
@@ -614,7 +614,7 @@ export function ImageTools() {
               alt={t("imageTools.result")}
               onContextMenu={resultMenu.openAt}
               className={cn(
-                "w-full rounded-lg border border-border",
+                "w-full rounded-md border border-vf-panel-border",
                 tool === "remove-bg" &&
                   "bg-[repeating-conic-gradient(var(--surface-muted)_0%_25%,var(--surface-elevated)_0%_50%)_0_0/20px_20px]",
               )}

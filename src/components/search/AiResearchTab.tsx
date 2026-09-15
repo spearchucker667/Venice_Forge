@@ -64,13 +64,13 @@ export function AiResearchTab({
         onChange={(e) =>
           setter(Math.min(max, Math.max(min, Number(e.target.value))))
         }
-        className="w-full bg-surface border border-border rounded-lg px-3 py-1.5 text-[13px] text-text-primary outline-none focus:border-accent transition-all"
+        className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-1.5 text-[13px] text-text-primary outline-none focus:border-accent transition-all"
       />
     </div>
   );
 
   return (
-    <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg flex flex-col gap-4">
+    <div className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-lg flex flex-col gap-4">
       <h3 className="text-[14.5px] font-medium text-text-primary">
         <Trans i18nKey="common:surface.componentsSearchAiresearchtab.heading.deepAiResearchAgent" />
       </h3>
@@ -89,7 +89,7 @@ export function AiResearchTab({
           placeholder={tRuntime(
             "runtimeGenerated.components.search.airesearchtab.attribute.whatAreTheLatestChangesInSafetyPoliciesOfFrontier",
           )}
-          className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
+          className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50"
         />
       </Field>
 
@@ -104,7 +104,7 @@ export function AiResearchTab({
             onChange={(e) =>
               setResearchProviderId(e.target.value as "venice" | "jina")
             }
-            className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
           >
             <option value="venice">Venice (Brave/Google)</option>
             <option value="jina">
@@ -126,7 +126,7 @@ export function AiResearchTab({
               )
             }
             disabled={researchProviderId !== "venice"}
-            className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer disabled:opacity-50"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer disabled:opacity-50"
           >
             <option value="auto">
               <Trans i18nKey="common:surface.componentsSearchAiresearchtab.option.autoDefaultFromConfig" />
@@ -153,7 +153,7 @@ export function AiResearchTab({
               e.target.value as "retrieve-only" | "retrieve-and-synthesize",
             )
           }
-          className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+          className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
         >
           <option value="retrieve-and-synthesize">
             <Trans i18nKey="common:surface.componentsSearchAiresearchtab.option.retrieveSynthesizeUsesVeniceModel" />
@@ -164,7 +164,7 @@ export function AiResearchTab({
         </select>
       </Field>
 
-      <div className="rounded-lg bg-surface border border-border p-4 space-y-3">
+      <div className="rounded-md bg-vf-panel-bg border border-vf-panel-border p-4 space-y-3">
         <div className="text-[12.5px] font-medium text-text-primary">
           <Trans i18nKey="common:surface.componentsSearchAiresearchtab.text.budgetControls" />
         </div>
@@ -211,7 +211,7 @@ export function AiResearchTab({
 
       <div className="flex gap-2 flex-wrap">
         <button
-          className="px-4 py-2 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
+          className="px-4 py-2 rounded-md text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer shadow-[0_0_8px_var(--color-vf-accent-glow)]"
           onClick={runAiResearch}
           disabled={loading === "ai-research" || !researchQuestion.trim()}
         >
@@ -224,7 +224,7 @@ export function AiResearchTab({
               )}
         </button>
         <button
-          className="px-3.5 py-2 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
+          className="px-3.5 py-2 rounded-md text-[13px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-primary hover:bg-vf-panel-bg-raised transition-colors cursor-pointer"
           onClick={() => {
             copyText(researchOutput);
             toast.success(
@@ -238,7 +238,7 @@ export function AiResearchTab({
           <Trans i18nKey="common:surface.componentsSearchAiresearchtab.action.copyAnswer" />
         </button>
         <button
-          className="px-3.5 py-2 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
+          className="px-3.5 py-2 rounded-md text-[13px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-primary hover:bg-vf-panel-bg-raised transition-colors cursor-pointer"
           onClick={() => {
             copyText(researchEvidenceSources);
             toast.success(
@@ -259,11 +259,11 @@ export function AiResearchTab({
         placeholder={tRuntime(
           "runtimeGenerated.components.search.airesearchtab.attribute.synthesizedAnswersWillBeStreamedHere",
         )}
-        className="w-full bg-surface border border-border rounded-lg px-3.5 py-2.5 text-[13px] text-text-secondary outline-none focus:border-accent transition-all min-h-[300px] placeholder:text-text-muted/50"
+        className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3.5 py-2.5 text-[13px] text-text-secondary outline-none focus:border-accent transition-all min-h-[300px] placeholder:text-text-muted/50"
       />
 
       {researchEvidenceSources && (
-        <div className="rounded-lg bg-surface border border-border p-4 space-y-2">
+        <div className="rounded-md bg-vf-panel-bg border border-vf-panel-border p-4 space-y-2">
           <div className="text-[12.5px] font-medium text-text-primary">
             <Trans i18nKey="common:surface.componentsSearchAiresearchtab.text.retrievedEvidenceSources" />
           </div>

@@ -261,10 +261,10 @@ export function PromptLibraryView() {
   return (
     <div className="flex flex-col md:flex-row h-full w-full min-h-0 text-text-primary">
       <aside
-        className="w-full md:w-[clamp(280px,30%,400px)] shrink-0 border-b md:border-b-0 soft-separator-x mesh-surface flex flex-col min-h-0 max-h-[35vh] md:max-h-none"
+        className="w-full md:w-[clamp(280px,30%,400px)] shrink-0 border-b md:border-b-0 border-r border-vf-panel-border bg-vf-panel-bg flex flex-col min-h-0 max-h-[35vh] md:max-h-none"
         data-testid="prompt-library-list-pane"
       >
-        <div className="px-3 py-2 soft-separator-y mesh-header mesh-surface space-y-2">
+        <div className="px-3 py-2 border-b border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg space-y-2">
           <div className="flex items-center gap-2">
             <h2 className="text-[14px] font-semibold">
               <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.heading.promptLibrary" />
@@ -278,7 +278,7 @@ export function PromptLibraryView() {
                   setIsCreateModalOpen(true);
                 }
               }}
-              className="ml-auto rounded-md border border-border px-2 py-1 text-[12px] hover:border-accent hover:text-accent"
+              className="ml-auto rounded-md border border-vf-panel-border px-2 py-1 text-[12px] hover:border-accent hover:text-accent"
               data-testid="prompt-library-new"
             >
               <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.new" />
@@ -290,7 +290,7 @@ export function PromptLibraryView() {
             placeholder={tRuntime(
               "runtimeGenerated.components.prompts.promptlibraryview.attribute.searchPrompts",
             )}
-            className="w-full rounded-md border border-border bg-background px-2 py-1 text-[12.5px] focus:outline-none focus:border-accent"
+            className="w-full rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1 text-[12.5px] focus:outline-none focus:border-accent"
             data-testid="prompt-library-search"
           />
           <Toolbar
@@ -409,7 +409,7 @@ export function PromptLibraryView() {
               className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 favoritesOnly
                   ? "border-warning/40 text-warning"
-                  : "border-border text-text-secondary hover:border-accent hover:text-accent"
+                  : "border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent"
               }`}
               data-testid="prompt-library-favorites-filter"
             >
@@ -422,7 +422,7 @@ export function PromptLibraryView() {
               className={`rounded-md border px-2 py-0.5 text-[12px] ${
                 showArchived
                   ? "border-accent text-accent"
-                  : "border-border text-text-secondary hover:border-accent hover:text-accent"
+                  : "border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent"
               }`}
               data-testid="prompt-library-archive-filter"
             >
@@ -470,8 +470,8 @@ export function PromptLibraryView() {
                   <button
                     type="button"
                     onClick={() => handleSetActivePrompt(p.id)}
-                    className={`w-full text-left px-3 py-2 hover:bg-background ${
-                      p.id === activePromptId ? "bg-background" : ""
+                    className={`w-full text-left px-3 py-2 hover:bg-vf-shell-bg ${
+                      p.id === activePromptId ? "bg-vf-shell-bg" : ""
                     }`}
                     data-testid={`prompt-library-item-${p.id}`}
                   >
@@ -819,7 +819,7 @@ function PromptDetail(props: PromptDetailProps) {
       className="flex-1 min-h-0 flex flex-col"
       data-testid="prompt-library-detail"
     >
-      <header className="px-4 py-3 soft-separator-y mesh-header mesh-surface space-y-2">
+      <header className="px-4 py-3 border-b border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg space-y-2">
         <div className="flex items-center gap-2">
           <input
             value={title}
@@ -830,7 +830,7 @@ function PromptDetail(props: PromptDetailProps) {
           <button
             type="button"
             onClick={onToggleFavorite}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="prompt-library-favorite"
           >
             {item.favorite
@@ -844,7 +844,7 @@ function PromptDetail(props: PromptDetailProps) {
           <button
             type="button"
             onClick={onArchive}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="prompt-library-archive"
           >
             {item.archivedAt
@@ -894,14 +894,14 @@ function PromptDetail(props: PromptDetailProps) {
             placeholder={tRuntime(
               "runtimeGenerated.components.prompts.promptlibraryview.attribute.tagsCommaSeparated",
             )}
-            className="rounded-md border border-border bg-background px-1.5 py-0.5 text-[12px] flex-1 min-w-[200px]"
+            className="rounded-md border border-vf-panel-border bg-vf-shell-bg px-1.5 py-0.5 text-[12px] flex-1 min-w-[200px]"
             data-testid="prompt-library-tags"
           />
           <button
             type="button"
             disabled={!isMetadataDirty || isSavingMetadata}
             onClick={() => void persistMetadata()}
-            className={`rounded-md border px-2 py-0.5 text-[12px] transition-colors ${isMetadataDirty ? "border-accent text-accent" : "border-border text-text-muted"} ${isSavingMetadata ? "opacity-50" : ""}`}
+            className={`rounded-md border px-2 py-0.5 text-[12px] transition-colors ${isMetadataDirty ? "border-accent text-accent" : "border-vf-panel-border text-text-muted"} ${isSavingMetadata ? "opacity-50" : ""}`}
             data-testid="prompt-library-save-metadata"
           >
             {isSavingMetadata
@@ -919,7 +919,7 @@ function PromptDetail(props: PromptDetailProps) {
           placeholder={tRuntime(
             "runtimeGenerated.components.prompts.promptlibraryview.attribute.optionalDescription",
           )}
-          className="w-full rounded-md border border-border bg-background px-2 py-1 text-[12px]"
+          className="w-full rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1 text-[12px]"
           data-testid="prompt-library-description"
         />
       </header>
@@ -932,7 +932,7 @@ function PromptDetail(props: PromptDetailProps) {
           <textarea
             value={content} id="prompt-library-1" 
             onChange={(e) => setContent(e.target.value)}
-            className="mt-1 w-full min-h-[180px] rounded-md border border-border bg-background px-2 py-1.5 text-[12.5px] font-mono"
+            className="mt-1 w-full min-h-[180px] rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1.5 text-[12.5px] font-mono"
             data-testid="prompt-library-content"
           />
         </div>
@@ -943,7 +943,7 @@ function PromptDetail(props: PromptDetailProps) {
           <textarea
             value={negativeContent} id="prompt-library-2" 
             onChange={(e) => setNegativeContent(e.target.value)}
-            className="mt-1 w-full min-h-[100px] rounded-md border border-border bg-background px-2 py-1.5 text-[12.5px] font-mono"
+            className="mt-1 w-full min-h-[100px] rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1.5 text-[12.5px] font-mono"
             data-testid="prompt-library-negative"
           />
         </div>
@@ -952,7 +952,7 @@ function PromptDetail(props: PromptDetailProps) {
             type="button"
             disabled={!isContentDirty || isSavingVersion}
             onClick={saveNewVersion}
-            className={`rounded-md border px-2 py-1 text-[12px] transition-colors ${isContentDirty ? "border-accent text-accent" : "border-border text-text-muted"} ${isSavingVersion ? "opacity-50" : ""}`}
+            className={`rounded-md border px-2 py-1 text-[12px] transition-colors ${isContentDirty ? "border-accent text-accent" : "border-vf-panel-border text-text-muted"} ${isSavingVersion ? "opacity-50" : ""}`}
             data-testid="prompt-library-save-version"
           >
             {isSavingVersion
@@ -986,7 +986,7 @@ function PromptDetail(props: PromptDetailProps) {
                   ),
                 );
               }}
-              className="rounded-md border border-border px-2 py-1 text-[12px]"
+              className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
               data-testid="prompt-library-use-image"
             >
               <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.useInImageStudio" />
@@ -1006,7 +1006,7 @@ function PromptDetail(props: PromptDetailProps) {
                   ),
                 );
               }}
-              className="rounded-md border border-border px-2 py-1 text-[12px]"
+              className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
               data-testid="prompt-library-use-chat"
             >
               <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.useInChat" />
@@ -1015,7 +1015,7 @@ function PromptDetail(props: PromptDetailProps) {
           <button
             type="button"
             onClick={onCreateWorkflow}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="prompt-library-create-workflow"
           >
             <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.createWorkflow" />
@@ -1025,7 +1025,7 @@ function PromptDetail(props: PromptDetailProps) {
             onClick={async () => {
               await copyText(content);
             }}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="prompt-library-copy"
           >
             <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.copy" />
@@ -1033,7 +1033,7 @@ function PromptDetail(props: PromptDetailProps) {
           <button
             type="button"
             onClick={() => setShowVersionHistory((value) => !value)}
-            className="rounded-md border border-border px-2 py-1 text-[12px]"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
             data-testid="prompt-library-toggle-history"
           >
             {showVersionHistory
@@ -1055,7 +1055,7 @@ function PromptDetail(props: PromptDetailProps) {
                   "runtimeGenerated.components.prompts.promptlibraryview.attribute.typeValue1ToConfirm",
                   { value1: item.title },
                 )}
-                className="rounded-md border border-danger/40 bg-background px-2 py-1 text-[12px]"
+                className="rounded-md border border-danger/40 bg-vf-shell-bg px-2 py-1 text-[12px]"
                 data-testid="prompt-library-delete-confirm"
               />
               <button
@@ -1073,7 +1073,7 @@ function PromptDetail(props: PromptDetailProps) {
                   setConfirmDelete(false);
                   setConfirmDeleteText("");
                 }}
-                className="rounded-md border border-border px-2 py-1 text-[12px]"
+                className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px]"
               >
                 <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.cancel" />
               </button>
@@ -1101,7 +1101,7 @@ function PromptDetail(props: PromptDetailProps) {
                   className={`rounded-md border px-2 py-1.5 ${
                     v.id === item.currentVersionId
                       ? "border-accent/60"
-                      : "border-border"
+                      : "border-vf-panel-border"
                   }`}
                 >
                   <div className="flex items-center gap-2 text-[12px]">
@@ -1118,7 +1118,7 @@ function PromptDetail(props: PromptDetailProps) {
                       type="button"
                       onClick={() => void onSetCurrentVersion(v.id)}
                       disabled={v.id === item.currentVersionId}
-                      className="ml-auto rounded-md border border-border px-2 py-0.5 text-[12px] disabled:opacity-50"
+                      className="ml-auto rounded-md border border-vf-panel-border px-2 py-0.5 text-[12px] disabled:opacity-50"
                       data-testid={`prompt-library-use-version-${v.version}`}
                     >
                       <Trans i18nKey="common:surface.componentsPromptsPromptlibraryview.action.useThisVersion" />

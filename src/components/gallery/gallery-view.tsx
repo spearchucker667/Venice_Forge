@@ -1130,8 +1130,8 @@ export function MediaStudioView() {
   }, [upsert]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-surface">
-      <header className="flex items-center justify-between soft-separator-y mesh-header mesh-surface px-5 py-4">
+    <div className="flex h-full flex-col overflow-hidden bg-vf-panel-bg">
+      <header className="flex items-center justify-between border-b border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg px-5 py-4">
         <div>
           <h2 className="text-[17px] font-semibold text-text-primary">
             <Trans i18nKey="common:surface.componentsGalleryGalleryView.heading.mediaStudio" />
@@ -1197,7 +1197,7 @@ export function MediaStudioView() {
         </div>
       )}
 
-      <div className="flex items-center border-b border-border/50 bg-surface px-5 py-2">
+      <div className="flex items-center border-b border-vf-panel-border bg-vf-panel-bg px-5 py-2">
         <button
           type="button"
           onClick={async () => {
@@ -1218,10 +1218,10 @@ export function MediaStudioView() {
             }
           }}
           className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors",
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors",
             vaultView
-              ? "bg-accent text-accent-fg"
-              : "border border-border text-text-muted hover:text-text-primary hover:bg-surface-elevated",
+              ? "bg-accent text-accent-fg shadow-[0_0_8px_var(--color-vf-accent-glow)]"
+              : "border border-vf-panel-border text-text-muted hover:text-text-primary hover:bg-vf-panel-bg-raised",
           )}
         >
           {vaultView ? <Unlock size={14} /> : <Lock size={14} />}
@@ -1305,7 +1305,7 @@ export function MediaStudioView() {
                 type="button"
                 onClick={() => void loadMore()}
                 disabled={loadingMore}
-                className="rounded-lg border border-border bg-surface-elevated px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60"
+                className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60"
               >
                 {loadingMore
                   ? tRuntime(
@@ -1387,7 +1387,7 @@ export function MediaStudioView() {
           aria-modal="true"
         >
           <div
-            className="max-h-[80vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-border bg-surface p-4"
+            className="max-h-[80vh] w-full max-w-4xl overflow-y-auto rounded-md border border-vf-panel-border bg-vf-panel-bg p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <CompareView
@@ -1409,7 +1409,7 @@ export function MediaStudioView() {
           aria-modal="true"
         >
           <div
-            className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-surface p-4"
+            className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-md border border-vf-panel-border bg-vf-panel-bg p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <LineageViewer
@@ -1421,7 +1421,7 @@ export function MediaStudioView() {
               <button
                 type="button"
                 onClick={() => setLineageOpen(false)}
-                className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+                className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
               >
                 <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.close" />
               </button>
@@ -1432,7 +1432,7 @@ export function MediaStudioView() {
 
       {/* Phase 2B: Bulk tag input row, visible in multi-select mode when items are selected. */}
       {multiSelectMode && selectedMediaIds.length > 0 && (
-        <div className="border-t border-border/50 bg-surface px-5 py-2 flex items-center gap-2 text-[12px]">
+        <div className="border-t border-vf-panel-border bg-vf-panel-bg px-5 py-2 flex items-center gap-2 text-[12px]">
           <label htmlFor="gallery-view-1" className="text-text-muted">
             <Trans i18nKey="common:surface.componentsGalleryGalleryView.label.quickTag" />
           </label>
@@ -1451,14 +1451,14 @@ export function MediaStudioView() {
               "runtimeGenerated.components.gallery.galleryView.attribute.heroLandscape",
             )}
             data-testid="bulk-tag-input"
-            className="flex-1 rounded-md border border-border bg-surface-elevated px-2 py-1 text-[12px] text-text-primary focus:border-accent focus:outline-none"
+            className="flex-1 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1 text-[12px] text-text-primary focus:border-accent focus:outline-none"
           />
           <button
             type="button"
             onClick={() => void handleBatchAddTag()}
             disabled={!bulkTagInput.trim()}
             data-testid="bulk-tag-apply"
-            className="rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
           >
             <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.apply" />
           </button>
@@ -1470,7 +1470,7 @@ export function MediaStudioView() {
           recipe actions. This panel is a top-level launcher for the
           new Compare + Lineage modals and a send-to menu. */}
       {inspectorItem && (
-        <div className="border-t border-border/50 bg-surface px-5 py-2 flex flex-wrap items-center gap-1.5 text-[12px]">
+        <div className="border-t border-vf-panel-border bg-vf-panel-bg px-5 py-2 flex flex-wrap items-center gap-1.5 text-[12px]">
           <button
             type="button"
             onClick={() => setCompareOpen(true)}
@@ -1479,7 +1479,7 @@ export function MediaStudioView() {
               selectedMediaIds.length > MEDIA_COMPARE_MAX
             }
             data-testid="open-compare"
-            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
           >
             <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.compare" />
             {selectedMediaIds.length})
@@ -1488,7 +1488,7 @@ export function MediaStudioView() {
             type="button"
             onClick={() => setLineageOpen(true)}
             data-testid="open-lineage"
-            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
           >
             <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.lineage" />
           </button>
@@ -1500,7 +1500,7 @@ export function MediaStudioView() {
             type="button"
             onClick={() => handleSendToImageStudio(inspectorItem)}
             data-testid="send-to-image"
-            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
           >
             <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.imageStudio" />
           </button>
@@ -1509,7 +1509,7 @@ export function MediaStudioView() {
               type="button"
               onClick={() => handleSendToImageTools(inspectorItem)}
               data-testid="send-to-tools"
-              className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-vf-panel-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
             >
               <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.imageTools" />
             </button>
@@ -1518,7 +1518,7 @@ export function MediaStudioView() {
             type="button"
             onClick={() => handleSendToChat(inspectorItem)}
             data-testid="send-to-chat"
-            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
           >
             <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.chat" />
           </button>
@@ -1526,7 +1526,7 @@ export function MediaStudioView() {
             type="button"
             onClick={() => handleSendToVideo(inspectorItem)}
             data-testid="send-to-video"
-            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
           >
             <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.videoStudio" />
           </button>
@@ -1538,7 +1538,7 @@ export function MediaStudioView() {
             type="button"
             onClick={() => void handleCopyPrompt(inspectorItem)}
             data-testid="copy-prompt"
-            className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+            className="rounded-md border border-vf-panel-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
           >
             <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.prompt" />
           </button>
@@ -1547,7 +1547,7 @@ export function MediaStudioView() {
               type="button"
               onClick={() => void handleCopyNegative(inspectorItem)}
               data-testid="copy-negative"
-              className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-vf-panel-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
             >
               <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.negative" />
             </button>
@@ -1557,7 +1557,7 @@ export function MediaStudioView() {
               type="button"
               onClick={() => void handleCopySeed(inspectorItem)}
               data-testid="copy-seed"
-              className="rounded-md border border-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
+              className="rounded-md border border-vf-panel-border px-2 py-1 text-text-secondary hover:border-accent hover:text-accent"
             >
               <Trans i18nKey="common:surface.componentsGalleryGalleryView.action.seed" />
             </button>

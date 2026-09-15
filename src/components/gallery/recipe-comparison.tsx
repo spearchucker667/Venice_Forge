@@ -213,9 +213,9 @@ export function RecipeComparison({
               )}
         </span>
       </div>
-      <div className="mt-1.5 rounded-md border border-border/60 overflow-hidden">
+      <div className="mt-1.5 rounded-md border border-vf-panel-border overflow-hidden">
         <table className="w-full text-[12px]">
-          <thead className="bg-surface/60 text-text-secondary">
+          <thead className="bg-vf-panel-bg/60 text-text-secondary">
             <tr>
               <th className="text-left px-2 py-1 font-medium">
                 <Trans i18nKey="common:surface.componentsGalleryRecipeComparison.column.field" />

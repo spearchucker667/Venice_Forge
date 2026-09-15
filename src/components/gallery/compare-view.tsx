@@ -449,7 +449,7 @@ export function CompareView({ items, className, onClose }: CompareViewProps) {
           <button
             type="button"
             onClick={onClose}
-            className="mt-1.5 rounded-md border border-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+            className="mt-1.5 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
           >
             <Trans i18nKey="common:surface.componentsGalleryCompareView.action.close" />
           </button>
@@ -492,7 +492,7 @@ export function CompareView({ items, className, onClose }: CompareViewProps) {
           <button
             type="button"
             onClick={onClose}
-            className="ml-2 rounded-md border border-border px-2 py-1.5 min-h-[32px] text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+            className="ml-2 rounded-md border border-vf-panel-border px-2 py-1.5 min-h-[32px] text-[12px] text-text-secondary hover:border-accent hover:text-accent"
             aria-label={tRuntime(
               "runtimeGenerated.components.gallery.compareView.attribute.closeCompareView",
             )}
@@ -501,9 +501,9 @@ export function CompareView({ items, className, onClose }: CompareViewProps) {
           </button>
         )}
       </div>
-      <div className="mt-1.5 overflow-auto rounded-md border border-border/60 max-h-[60vh]">
+      <div className="mt-1.5 overflow-auto rounded-md border border-vf-panel-border max-h-[60vh]">
         <table className="w-full text-[12px]">
-          <thead className="bg-surface/60 sticky top-0 z-10">
+          <thead className="bg-vf-panel-bg/60 sticky top-0 z-10">
             <tr>
               <th className="text-left px-2 py-1 font-medium">
                 <Trans i18nKey="common:surface.componentsGalleryCompareView.column.field" />

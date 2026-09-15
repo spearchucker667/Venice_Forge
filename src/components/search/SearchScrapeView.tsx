@@ -495,10 +495,10 @@ export function SearchScrapeView() {
     <button
       key={id}
       onClick={() => setSubTab(id)}
-      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+      className={`px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${
         subTab === id
           ? "bg-accent/10 text-accent border border-accent/20"
-          : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/50"
+          : "text-text-secondary hover:text-text-primary hover:bg-vf-panel-bg-raised/50"
       }`}
     >
       {label}
@@ -506,8 +506,8 @@ export function SearchScrapeView() {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-surface">
-      <div className="flex-none p-5 border-b border-border/50 bg-surface">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-vf-panel-bg">
+      <div className="flex-none p-5 border-b border-vf-panel-border bg-vf-panel-bg">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-[17px] font-semibold text-text-primary">
@@ -542,7 +542,7 @@ export function SearchScrapeView() {
         {error && (
           <div
             role="alert"
-            className="mb-6 p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-sm leading-relaxed"
+            className="mb-6 p-3 bg-danger/10 border border-danger/20 text-danger rounded-md text-sm leading-relaxed"
           >
             {error}
           </div>
@@ -550,7 +550,7 @@ export function SearchScrapeView() {
 
         {loading && (
           <div
-            className="mb-5 rounded-xl border border-accent/30 bg-accent/5 p-4"
+            className="mb-5 rounded-md border border-accent/30 bg-accent/5 p-4"
             role="status"
             aria-live="polite"
             data-testid="research-loading-indicator"

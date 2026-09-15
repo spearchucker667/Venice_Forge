@@ -357,7 +357,7 @@ export function MusicView() {
               )}
               value={duration}
               onChange={(e) => setDuration(Number(e.target.value))}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[14px] text-text-primary"
+              className="w-full rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[14px] text-text-primary"
             >
               {config.durationOptions.map((value) => (
                 <option key={value} value={value}>
@@ -393,7 +393,7 @@ export function MusicView() {
             aria-pressed={instrumental}
             className={cn(
               "w-9 h-5 rounded-full transition-colors relative",
-              instrumental ? "bg-accent" : "bg-surface-elevated",
+              instrumental ? "bg-accent" : "bg-vf-panel-bg-raised",
             )}
           >
             <div
@@ -626,7 +626,7 @@ export function MusicView() {
             }}
           />
           {playbackError && <ErrorText>{playbackError}</ErrorText>}
-          <div className="bg-surface-elevated border border-border rounded-lg p-4">
+          <div className="bg-vf-panel-bg-raised border border-vf-panel-border rounded-md p-4">
             <p className="text-[15px] text-text-muted leading-relaxed">
               {prompt}
             </p>
@@ -696,7 +696,7 @@ function formatElapsedMusic(ms: number): string {
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[12px] text-text-secondary bg-surface-elevated border border-border rounded px-1.5 py-0.5">
+    <span className="text-[12px] text-text-secondary bg-vf-panel-bg-raised border border-vf-panel-border rounded px-1.5 py-0.5">
       {children}
     </span>
   );

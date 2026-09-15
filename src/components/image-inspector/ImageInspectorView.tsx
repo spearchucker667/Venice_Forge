@@ -162,10 +162,10 @@ export function ImageInspectorView() {
   const analysis = activeSession?.analysis;
 
   return (
-    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-background">
+    <div className="flex flex-col md:flex-row h-full overflow-hidden bg-vf-shell-bg">
       {/* Left Pane: Sessions & Input */}
-      <div className="w-full md:w-[320px] lg:w-[340px] flex-shrink-0 border-b md:border-b-0 md:border-r border-border/50 flex flex-col bg-surface overflow-hidden max-h-[35vh] md:max-h-none">
-        <div className="p-4 border-b border-border/50">
+      <div className="w-full md:w-[320px] lg:w-[340px] flex-shrink-0 border-b md:border-b-0 md:border-r border-vf-panel-border flex flex-col bg-vf-panel-bg overflow-hidden max-h-[35vh] md:max-h-none">
+        <div className="p-4 border-b border-vf-panel-border">
           <h2 className="text-[14px] font-semibold text-text mb-4 flex items-center gap-2">
             <ScanSearch className="w-4 h-4" />
             <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.imageInspector" />
@@ -174,14 +174,14 @@ export function ImageInspectorView() {
           <div className="flex gap-2">
             <button
               onClick={handleUploadClick}
-              className="flex-1 bg-accent text-accent-fg hover:bg-accent/90 rounded-md font-medium text-[12px] py-1.5 flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 bg-accent text-accent-fg hover:bg-accent-hover rounded-md font-medium text-[12px] py-1.5 flex items-center justify-center gap-2 transition-colors shadow-[0_0_8px_var(--color-vf-accent-glow)]"
             >
               <HardDriveUpload className="w-3 h-3" />
               <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.action.openFile" />
             </button>
             <button
               onClick={handleClipboardPaste}
-              className="flex items-center justify-center bg-surface-elevated hover:bg-surface-muted text-text-muted rounded-md px-3 border border-border/50 transition-colors"
+              className="flex items-center justify-center bg-vf-panel-bg-raised hover:bg-vf-panel-bg-muted text-text-muted rounded-md px-3 border border-vf-panel-border transition-colors"
               title={tRuntime(
                 "runtimeGenerated.components.imageInspector.imageinspectorview.attribute.pasteFromClipboard",
               )}
@@ -207,7 +207,7 @@ export function ImageInspectorView() {
                     "rounded-md text-[13px] flex items-center gap-1 transition-colors",
                     activeSession?.id === s.id
                       ? "bg-accent/10 text-accent-fg"
-                      : "hover:bg-surface-muted text-text-muted",
+                      : "hover:bg-vf-panel-bg-muted text-text-muted",
                   )}
                 >
                   <button
@@ -219,7 +219,7 @@ export function ImageInspectorView() {
                       { value1: s.title },
                     )}
                   >
-                    <div className="w-10 h-10 rounded overflow-hidden bg-surface-muted flex-shrink-0 border border-border/50">
+                    <div className="w-10 h-10 rounded overflow-hidden bg-vf-panel-bg-muted flex-shrink-0 border border-vf-panel-border">
                       {s.inputs[0]?.uri && (
                         <img
                           src={s.inputs[0].uri}
@@ -266,7 +266,7 @@ export function ImageInspectorView() {
       </div>
 
       {/* Right Pane: Active Image & Analysis */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 bg-vf-shell-bg overflow-y-auto">
         {!activeSession ? (
           <div className="flex-1 flex items-center justify-center flex-col text-text-muted/50">
             <ScanSearch className="w-16 h-16 opacity-20 mb-4" />
@@ -278,7 +278,7 @@ export function ImageInspectorView() {
           <div className="flex-1 flex flex-col lg:flex-row p-6 gap-6 max-w-6xl mx-auto w-full">
             {/* Image Preview & Config */}
             <div className="flex flex-col gap-6 w-full lg:w-[400px] flex-shrink-0">
-              <div className="rounded-lg border border-border/50 overflow-hidden bg-surface-muted flex items-center justify-center min-h-[300px]">
+              <div className="rounded-md border border-vf-panel-border overflow-hidden bg-vf-panel-bg-muted flex items-center justify-center min-h-[300px]">
                 {activeInput?.uri ? (
                   <img
                     src={activeInput.uri}
@@ -292,7 +292,7 @@ export function ImageInspectorView() {
                 )}
               </div>
 
-              <div className="space-y-5 bg-surface p-5 rounded-lg border border-border/50">
+              <div className="space-y-5 bg-vf-panel-bg p-5 rounded-md border border-vf-panel-border">
                 {/* Vision Model Selection (Strictly Limited to Vision Models) */}
                 <div className="space-y-2">
                   <Label>
@@ -442,7 +442,7 @@ export function ImageInspectorView() {
                     disabled={
                       loading || visionModels.length === 0 || !selectedModelId
                     }
-                    className="w-full bg-accent text-accent-fg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-md font-medium py-2.5 mt-2 flex items-center justify-center gap-2 transition-colors"
+                    className="w-full bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-md font-medium py-2.5 mt-2 flex items-center justify-center gap-2 transition-colors shadow-[0_0_8px_var(--color-vf-accent-glow)]"
                   >
                     <ScanSearch className="w-4 h-4" />
                     <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.action.analyzeImage" />
@@ -454,9 +454,9 @@ export function ImageInspectorView() {
             {/* Analysis Results & Search Discovery */}
             <div className="flex-1 flex flex-col min-w-0 space-y-6">
               {analysis ? (
-                <div className="bg-surface p-6 rounded-lg border border-border/50 space-y-6">
+                <div className="bg-vf-panel-bg p-6 rounded-md border border-vf-panel-border space-y-6">
                   <div>
-                    <h3 className="text-[14px] font-semibold text-text mb-2 border-b border-border/50 pb-2">
+                    <h3 className="text-[14px] font-semibold text-text mb-2 border-b border-vf-panel-border pb-2">
                       <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.analysisSummary" />
                     </h3>
                     <p className="text-[13px] text-text-muted leading-relaxed whitespace-pre-wrap">
@@ -469,14 +469,14 @@ export function ImageInspectorView() {
 
                   {analysis.replicationPrompt && (
                     <div>
-                      <h3 className="text-[14px] font-semibold text-text mb-2 border-b border-border/50 pb-2">
+                      <h3 className="text-[14px] font-semibold text-text mb-2 border-b border-vf-panel-border pb-2">
                         <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.replicationPrompt" />
                       </h3>
-                      <div className="bg-background rounded p-3 text-[13px] text-text border border-border/30 font-mono whitespace-pre-wrap select-all">
+                      <div className="bg-vf-shell-bg rounded p-3 text-[13px] text-text border border-vf-panel-border font-mono whitespace-pre-wrap select-all">
                         {analysis.replicationPrompt.positive}
                       </div>
                       {analysis.replicationPrompt.negative && (
-                        <div className="mt-2 bg-background/50 rounded p-3 text-[12px] text-error/80 border border-error/20 font-mono whitespace-pre-wrap select-all">
+                        <div className="mt-2 bg-vf-shell-bg/50 rounded p-3 text-[12px] text-error/80 border border-error/20 font-mono whitespace-pre-wrap select-all">
                           <strong>
                             <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.text.negative" />
                           </strong>{" "}
@@ -488,7 +488,7 @@ export function ImageInspectorView() {
 
                   {analysis.subjects && analysis.subjects.length > 0 && (
                     <div>
-                      <h3 className="text-[14px] font-semibold text-text mb-2 border-b border-border/50 pb-2">
+                      <h3 className="text-[14px] font-semibold text-text mb-2 border-b border-vf-panel-border pb-2">
                         <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.subjects" />
                       </h3>
                       <ul className="list-disc pl-5 text-[13px] text-text-muted space-y-1">
@@ -509,7 +509,7 @@ export function ImageInspectorView() {
                   )}
 
                   {/* Direct image matching is fail-closed until a supported provider is configured. */}
-                  <div className="pt-4 border-t border-border/50">
+                  <div className="pt-4 border-t border-vf-panel-border">
                     <h3 className="text-[14px] font-semibold text-text mb-3 flex items-center gap-2">
                       <Globe className="w-4 h-4 text-accent" />
                       <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.imageBasedSourceSearch" />
@@ -530,7 +530,7 @@ export function ImageInspectorView() {
                           {searchResults.map((res) => (
                             <div
                               key={res.id}
-                              className="p-3 bg-background rounded border border-border/40 text-[12px] space-y-1"
+                              className="p-3 bg-vf-shell-bg rounded border border-vf-panel-border text-[12px] space-y-1"
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <a
@@ -542,7 +542,7 @@ export function ImageInspectorView() {
                                   {res.title}
                                   <ExternalLink className="w-3 h-3 flex-shrink-0" />
                                 </a>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-muted text-text-muted border border-border/30">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-vf-panel-bg-muted text-text-muted border border-vf-panel-border">
                                   {res.sourceDomain}
                                 </span>
                               </div>
@@ -559,7 +559,7 @@ export function ImageInspectorView() {
                   </div>
                 </div>
               ) : activeSession.status === "analyzing" ? (
-                <div className="flex-1 flex items-center justify-center bg-surface rounded-lg border border-border/50 min-h-[400px]">
+                <div className="flex-1 flex items-center justify-center bg-vf-panel-bg rounded-md border border-vf-panel-border min-h-[400px]">
                   <GenerationLoadingIndicator
                     state="processing"
                     size="lg"
@@ -570,7 +570,7 @@ export function ImageInspectorView() {
                   />
                 </div>
               ) : activeSession.status === "failed" ? (
-                <div className="flex-1 flex items-center justify-center bg-error/5 rounded-lg border border-error/30 min-h-[400px] p-8">
+                <div className="flex-1 flex items-center justify-center bg-error/5 rounded-md border border-error/30 min-h-[400px] p-8">
                   <div className="max-w-lg text-center">
                     <div className="text-[14px] font-semibold text-error">
                       <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.text.imageAnalysisFailed" />
@@ -584,7 +584,7 @@ export function ImageInspectorView() {
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center bg-surface/50 rounded-lg border border-border/50 border-dashed min-h-[400px]">
+                <div className="flex-1 flex items-center justify-center bg-vf-panel-bg/50 rounded-md border border-vf-panel-border border-dashed min-h-[400px]">
                   <div className="text-[13px] text-text-muted/50">
                     <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.text.analysisResultsWillAppearHere" />
                   </div>
