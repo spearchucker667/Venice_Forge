@@ -9,10 +9,10 @@ import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndic
 import { Trans, useTranslation } from "react-i18next";
 
 const STATUS_BADGE: Record<BackgroundTaskStatus, string> = {
-  idle: "bg-surface-muted text-text-muted border-border",
-  queued: "bg-surface-muted text-text-muted border-border",
-  pending_finalize: "bg-surface-muted text-text-muted border-border",
-  intent_persisted: "bg-surface-muted text-text-muted border-border",
+  idle: "bg-vf-panel-bg text-text-muted border-vf-panel-border",
+  queued: "bg-vf-panel-bg text-text-muted border-vf-panel-border",
+  pending_finalize: "bg-vf-panel-bg text-text-muted border-vf-panel-border",
+  intent_persisted: "bg-vf-panel-bg text-text-muted border-vf-panel-border",
   dispatching: "bg-info/15 text-info border-info/30",
   processing: "bg-info/15 text-info border-info/30",
   acceptance_unknown: "bg-warning/15 text-warning border-warning/30",
@@ -73,7 +73,7 @@ export function TaskCenterDrawer() {
   return (
     <>
       <div
-        className="fixed inset-0 z-[100] bg-surface-base/80 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 z-[100] bg-overlay/80 backdrop-blur-[2px] transition-opacity cursor-pointer"
         onClick={close}
         aria-hidden
       />
@@ -84,9 +84,9 @@ export function TaskCenterDrawer() {
           "runtimeGenerated.components.status.taskcenterdrawer.attribute.taskCenter",
         )}
         aria-modal="true"
-        className="fixed inset-y-0 right-0 z-[100] flex w-full max-w-sm flex-col soft-separator-l bg-surface-base shadow-2xl transition-transform duration-300 ease-out"
+        className="fixed inset-y-0 right-0 z-[100] flex w-full max-w-sm flex-col border-l border-vf-panel-border bg-vf-shell-bg shadow-2xl transition-transform duration-300 ease-out"
       >
-        <div className="flex shrink-0 items-center justify-between soft-separator-b p-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-vf-panel-border p-4">
           <div>
             <h2 className="text-lg font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsStatusTaskcenterdrawer.heading.taskCenter" />
@@ -101,7 +101,7 @@ export function TaskCenterDrawer() {
             aria-label={tRuntime(
               "runtimeGenerated.components.status.taskcenterdrawer.attribute.closeTaskCenter",
             )}
-            className="rounded-md p-1.5 text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]"
+            className="rounded-md p-1.5 text-text-secondary hover:bg-vf-control-hover hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] transition-colors cursor-pointer"
           >
             <svg
               width="20"
@@ -143,7 +143,7 @@ export function TaskCenterDrawer() {
               return (
                 <div
                   key={task.id}
-                  className="rounded-lg border border-border bg-surface-elevated p-3"
+                  className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised p-3.5 space-y-2 shadow-sm"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
@@ -193,7 +193,7 @@ export function TaskCenterDrawer() {
                       <button
                         type="button"
                         onClick={() => cancelTask(task.id)}
-                        className="rounded bg-surface-base px-2 py-1 text-xs font-medium text-text-primary hover:bg-surface-muted transition-colors border border-border"
+                        className="rounded-md bg-vf-panel-bg px-2.5 py-1 text-xs font-medium text-text-primary hover:bg-vf-control-hover transition-colors border border-vf-panel-border cursor-pointer"
                       >
                         <Trans i18nKey="common:surface.componentsStatusTaskcenterdrawer.action.cancel" />
                       </button>
@@ -209,7 +209,7 @@ export function TaskCenterDrawer() {
                       <button
                         type="button"
                         onClick={() => retryTask(task.id)}
-                        className="rounded bg-surface-base px-2 py-1 text-xs font-medium text-text-primary hover:bg-surface-muted transition-colors border border-border"
+                        className="rounded-md bg-vf-panel-bg px-2.5 py-1 text-xs font-medium text-text-primary hover:bg-vf-control-hover transition-colors border border-vf-panel-border cursor-pointer"
                       >
                         <Trans i18nKey="common:surface.componentsStatusTaskcenterdrawer.action.retry" />
                       </button>
@@ -218,7 +218,7 @@ export function TaskCenterDrawer() {
                       <button
                         type="button"
                         onClick={() => handleOpenTask(task.id)}
-                        className="rounded bg-surface-base px-2 py-1 text-xs font-medium text-text-primary hover:bg-surface-muted transition-colors border border-border"
+                        className="rounded-md bg-vf-panel-bg px-2.5 py-1 text-xs font-medium text-text-primary hover:bg-vf-control-hover transition-colors border border-vf-panel-border cursor-pointer"
                       >
                         <Trans i18nKey="common:surface.componentsStatusTaskcenterdrawer.action.open" />
                       </button>
@@ -226,7 +226,7 @@ export function TaskCenterDrawer() {
                     <button
                       type="button"
                       onClick={() => clearTask(task.id)}
-                      className="rounded bg-surface-base px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10 transition-colors border border-border"
+                      className="rounded-md bg-vf-panel-bg px-2.5 py-1 text-xs font-medium text-danger hover:bg-danger/10 transition-colors border border-vf-panel-border cursor-pointer"
                     >
                       <Trans i18nKey="common:surface.componentsStatusTaskcenterdrawer.action.clear" />
                     </button>

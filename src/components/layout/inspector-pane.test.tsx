@@ -36,7 +36,7 @@ describe('InspectorPane', () => {
   it('uses responsive drawer geometry, labelled controls, and closes on Escape', () => {
     render(<InspectorPane />)
     const inspector = screen.getByRole('complementary', { name: 'Developer traffic inspector' })
-    expect(inspector.className).toContain('relative soft-separator-x mesh-surface')
+    expect(inspector.className).toContain('relative bg-vf-shell-bg border-l border-vf-panel-border')
     expect(screen.getByRole('button', { name: 'Clear all inspector logs' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Export redacted inspector logs as JSON' })).toBeInTheDocument()
     fireEvent.keyDown(window, { key: 'Escape' })

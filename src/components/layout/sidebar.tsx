@@ -475,7 +475,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           "runtimeGenerated.components.layout.sidebar.attribute.primaryNavigation",
         )}
         className={cn(
-          "flex flex-col h-full min-h-0 mesh-surface mesh-sidebar soft-separator-x shell-region",
+          "flex flex-col h-full min-h-0 bg-vf-shell-bg mesh-sidebar border-r border-vf-panel-border shell-region",
           "fixed top-0 left-0 z-40 w-72 h-[100dvh] md:static md:h-full md:w-[var(--sidebar-width,256px)] md:shrink-0",
           mobileOpen
             ? "translate-x-0 visible pointer-events-auto"
@@ -484,7 +484,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       >
       <div
         className={cn(
-          "flex items-center gap-2.5 h-14 shrink-0 soft-separator-y",
+          "flex items-center gap-2.5 h-14 shrink-0 border-b border-vf-panel-border",
           expanded ? "px-4" : "md:px-3 md:justify-center px-4",
         )}
       >
@@ -517,7 +517,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           New assets (e.g. chats) default to active project via projectRefs.
           Default project is ensured on load (safe for fresh/corrupt/migration). */}
       {expanded && (
-        <div className="px-3 pt-1 pb-2 soft-separator-y shrink-0">
+        <div className="px-3 pt-1 pb-2 border-b border-vf-panel-border shrink-0">
           <div className="vf-tag tracking-[0.08em] text-text-muted mb-1.5 px-1 flex items-center justify-between">
             <span>{t("project.label", "Project")}</span>
             <button
@@ -555,7 +555,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   toast.error(msg);
                 }
               }}
-              className="vf-meta normal-case tracking-normal border border-transparent bg-surface-elevated rounded px-1.5 py-0.5 hover:border-text-muted"
+              className="vf-meta normal-case tracking-normal border border-vf-panel-border bg-vf-panel-bg-raised rounded px-1.5 py-0.5 hover:bg-vf-control-hover text-text-secondary hover:text-text-primary transition-colors"
               title={t("project.new", "+ New")}
             >
               {t("project.new", "+ New")}
@@ -568,7 +568,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               const id = e.currentTarget.value || null;
               useProjectStore.getState().setActiveProject(id);
             }}
-            className="w-full vf-meta rounded-md mesh-input px-2 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="w-full vf-meta rounded-md bg-vf-panel-bg-inset border border-vf-panel-border px-2 py-1 text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             aria-label={t("project.activeProject", "Active project")}
             title={t("project.label", "Switch active project")}
           >
@@ -583,7 +583,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           <button
             type="button"
             onClick={startNewChat}
-            className="mesh-input mt-2 flex w-full items-center justify-center rounded-lg px-3 py-2 vf-meta font-semibold text-text-primary hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="mesh-input mt-2 flex w-full items-center justify-center rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-3 py-2 vf-meta font-semibold text-text-primary hover:text-accent hover:bg-vf-control-hover hover:border-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent transition-colors"
             title={t("chat.newChatShortcut", "New chat (⌘N)")}
           >
             {t("chat.newChatAction", "+ New chat")}
@@ -617,7 +617,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                     .renameProject(activeProjectId, name);
                   toast.success(t("project.renamed", "Project renamed"));
                 }}
-                className="rounded border border-transparent bg-surface-elevated px-1.5 py-0.5 hover:border-text-muted"
+                className="rounded border border-vf-panel-border bg-vf-panel-bg-raised px-1.5 py-0.5 hover:bg-vf-control-hover text-text-secondary hover:text-text-primary transition-colors"
               >
                 {t("project.renameAction", "Rename")}
               </button>
@@ -638,7 +638,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                     .archiveProject(activeProjectId);
                   toast.success(t("project.archived", "Project archived"));
                 }}
-                className="rounded border border-transparent bg-surface-elevated px-1.5 py-0.5 hover:border-text-muted"
+                className="rounded border border-vf-panel-border bg-vf-panel-bg-raised px-1.5 py-0.5 hover:bg-vf-control-hover text-text-secondary hover:text-text-primary transition-colors"
               >
                 {t("project.archiveAction", "Archive")}
               </button>
@@ -668,7 +668,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                       ),
                     );
                 }}
-                className="rounded border border-transparent bg-surface-elevated px-1.5 py-0.5 hover:border-text-muted text-danger"
+                className="rounded border border-vf-panel-border bg-vf-panel-bg-raised px-1.5 py-0.5 hover:bg-vf-control-hover text-danger transition-colors"
               >
                 {t("project.deleteAction", "Delete")}
               </button>
@@ -702,7 +702,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 className={cn(expanded ? "px-2" : "md:px-1.5 px-2")}
               >
                 {expanded && (
-                  <div className="px-2 pb-1.5 vf-tag tracking-[0.1em] text-text-muted">
+                  <div className="px-2 pb-1.5 vf-tag uppercase tracking-[0.08em] font-semibold text-text-muted">
                     {groupLabel}
                   </div>
                 )}
@@ -722,17 +722,17 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                         aria-current={isActive ? "page" : undefined}
                         title={!expanded ? tabLabel : undefined}
                         className={cn(
-                          "relative flex items-center gap-2.5 rounded-lg vf-meta transition-all duration-150 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 cursor-pointer",
+                          "relative flex items-center gap-2.5 rounded-md vf-meta transition-all duration-150 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 cursor-pointer",
                           expanded
                             ? "px-2.5 py-2"
                             : "md:px-0 md:py-2 md:justify-center px-2.5 py-2",
                           isActive
-                            ? "bg-accent/10 text-accent font-semibold"
-                            : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/40",
+                            ? "bg-accent/10 text-text-primary font-semibold shadow-[inset_2px_0_0_var(--color-accent)]"
+                            : "text-text-secondary hover:text-text-primary hover:bg-vf-control-hover",
                         )}
                       >
                         {isActive && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-accent" />
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-accent shadow-[0_0_8px_var(--color-vf-accent-glow)]" />
                         )}
                         <Icon />
                         {expanded && (
@@ -748,7 +748,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
         </nav>
 
         {expanded && activeTab === "chat" && (
-          <div className="flex flex-col flex-1 min-h-0 soft-separator-y">
+          <div className="flex flex-col flex-1 min-h-0 border-t border-vf-panel-border">
             <div
               className="relative flex items-center justify-between px-3 pt-3 pb-1.5 shrink-0"
               ref={chatOptionsRef}
@@ -792,7 +792,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 aria-label={t("chat.options", "Chat options")}
                 aria-haspopup="menu"
                 aria-expanded={chatOptionsOpen}
-                className="mesh-input text-text-secondary hover:text-text-primary p-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
+                className="border border-vf-panel-border bg-vf-panel-bg-raised hover:bg-vf-control-hover text-text-secondary hover:text-text-primary p-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer transition-colors"
                 title={t("chat.options", "Chat options")}
               >
                 <svg
@@ -811,7 +811,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 <div
                   role="menu"
                   aria-label={t("chat.options", "Chat options")}
-                  className="mesh-panel absolute right-3 top-10 z-50 min-w-48 rounded-xl p-1.5 vf-meta shadow-xl"
+                  className="vf-shell-panel mesh-panel absolute right-3 top-10 z-50 min-w-48 rounded-lg p-1.5 vf-meta shadow-xl"
                 >
                   <button
                     role="menuitem"
@@ -892,7 +892,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={t("chat.searchPlaceholder", "Search…")}
                     aria-label={t("chat.searchAria", "Search conversations")}
-                    className="mesh-input w-full rounded-md px-2.5 py-1 vf-meta text-text-primary outline-none focus:border-accent placeholder:text-text-muted"
+                    className="w-full rounded-md bg-vf-panel-bg-inset border border-vf-panel-border px-2.5 py-1 vf-meta text-text-primary outline-none focus:border-accent placeholder:text-placeholder"
                   />
                   {deferredSearch !== search && (
                     <div
@@ -947,7 +947,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
       </div>
 
       {expanded && (
-        <div className="shrink-0 soft-separator-y p-3 gap-2 flex flex-col">
+        <div className="shrink-0 border-t border-vf-panel-border soft-separator-y p-3 gap-2 flex flex-col">
           {/* Traffic Inspector controls */}
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -968,13 +968,13 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               onClick={toggleRedTeamMode}
               className={cn(
                 "w-8 h-4 rounded-full transition-colors relative cursor-pointer shrink-0",
-                redTeamMode ? "bg-accent" : "bg-border",
+                redTeamMode ? "bg-accent shadow-[0_0_8px_var(--color-vf-accent-glow)]" : "bg-vf-panel-border",
               )}
               aria-label={t("inspector.toggle", "Toggle Traffic Inspector")}
             >
               <div
                 className={cn(
-                  "w-3.5 h-3.5 rounded-full bg-surface-elevated shadow-sm absolute top-[1px] transition-all",
+                  "w-3.5 h-3.5 rounded-full bg-vf-panel-bg-raised shadow-sm absolute top-[1px] transition-all",
                   redTeamMode ? "left-4" : "left-[1px]",
                 )}
               />
@@ -1002,7 +1002,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               onClick={() => void toggleFamilySafeMode()}
               className={cn(
                 "w-8 h-4 rounded-full transition-colors relative cursor-pointer shrink-0",
-                localFamilySafeModeEnabled ? "bg-accent" : "bg-border",
+                localFamilySafeModeEnabled ? "bg-accent shadow-[0_0_8px_var(--color-vf-accent-glow)]" : "bg-vf-panel-border",
               )}
               aria-label={t("familySafeMode.toggle", "Toggle Family Safe Mode")}
               title={
@@ -1019,7 +1019,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
             >
               <div
                 className={cn(
-                  "w-3.5 h-3.5 rounded-full bg-surface-elevated shadow-sm absolute top-[1px] transition-all",
+                  "w-3.5 h-3.5 rounded-full bg-vf-panel-bg-raised shadow-sm absolute top-[1px] transition-all",
                   localFamilySafeModeEnabled ? "left-4" : "left-[1px]",
                 )}
               />
@@ -1031,8 +1031,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
             className={cn(
               "flex items-center justify-center gap-1.5 w-full py-1.5 px-2 border rounded-md vf-meta font-semibold transition-colors cursor-pointer shrink-0",
               showInspector
-                ? "bg-accent/10 border-accent text-accent"
-                : "border-border text-text-secondary hover:border-accent hover:text-accent",
+                ? "bg-accent/10 border-accent text-accent shadow-[0_0_8px_var(--color-vf-accent-glow)]"
+                : "border-vf-panel-border bg-vf-panel-bg hover:bg-vf-control-hover text-text-secondary hover:border-accent/40 hover:text-accent",
             )}
           >
             <svg
@@ -1081,9 +1081,9 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           onKeyDown={handleResizeKeyDown}
           className={cn(
             "absolute inset-y-0 right-0 z-20 hidden w-2 translate-x-1/2 cursor-col-resize md:block",
-            "after:absolute after:inset-y-0 after:left-1/2 after:w-px after:-translate-x-1/2 after:bg-border",
+            "after:absolute after:inset-y-0 after:left-1/2 after:w-px after:-translate-x-1/2 after:bg-vf-panel-border",
             "hover:after:bg-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:after:bg-accent",
-            dragging && "after:bg-accent",
+            dragging && "after:bg-accent after:shadow-[0_0_8px_var(--color-vf-accent-glow)]",
           )}
         />
       )}
@@ -1154,8 +1154,8 @@ function ConversationRow({
       className={cn(
         "group relative flex items-center gap-1 px-2.5 py-1.5 rounded-md vf-meta cursor-pointer transition-colors",
         isActive
-          ? "bg-accent/15 text-accent font-semibold"
-          : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/40",
+          ? "bg-vf-control-active text-text-primary font-medium shadow-[inset_2px_0_0_var(--color-accent)]"
+          : "text-text-secondary hover:text-text-primary hover:bg-vf-control-hover",
       )}
     >
       <button

@@ -78,7 +78,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   );
 
   return (
-    <header className="flex items-center gap-3 h-14 px-3 soft-separator-y mesh-surface mesh-header shrink-0 shell-region">
+    <header className="flex items-center gap-3 h-14 px-3 bg-vf-shell-bg border-b border-vf-panel-border shrink-0 shell-region">
       <button
         type="button"
         onClick={() => onOpenMobileSidebar?.()}
@@ -139,7 +139,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
 
       {!hasOwnSelector && (
         <>
-          <div className="w-px h-5 bg-border hidden sm:block" aria-hidden />
+          <div className="w-px h-5 bg-vf-panel-border hidden sm:block" aria-hidden />
           <div className="flex items-center gap-1.5">
             <ModelSelect
               value={currentModel}
@@ -166,7 +166,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
                   onClick={() => setActiveConversation(null)}
                   aria-label={t("navigation:chat.newChat")}
                   title={t("navigation:chat.newChatShortcut")}
-                  className="flex items-center justify-center w-8 h-8 rounded-md border border-transparent bg-surface-elevated hover:border-text-muted hover:bg-surface-elevated text-text-secondary hover:text-text-primary transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
+                  className="flex items-center justify-center w-8 h-8 rounded-md border border-vf-panel-border bg-vf-panel-bg hover:bg-vf-control-hover hover:border-accent/40 text-text-secondary hover:text-text-primary transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
                 >
                   <svg
                     width="14"
@@ -192,7 +192,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
         type="button"
         onClick={toggleTaskCenter}
         aria-label={t("navigation:header.toggleTaskCenter")}
-        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent bg-surface-elevated hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
+        className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-vf-panel-border bg-vf-panel-bg hover:bg-vf-control-hover hover:border-accent/40 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer"
       >
         <svg
           width="14"
@@ -210,7 +210,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
           {t("navigation:header.tasks")}
         </span>
         {activeTaskCount > 0 && (
-          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent text-accent-fg vf-tag font-bold">
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent text-accent-fg shadow-[0_0_6px_var(--color-vf-accent-glow)] vf-tag font-bold">
             {activeTaskCount}
           </span>
         )}
@@ -228,7 +228,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
               ? t("navigation:header.apiKeyConnectedManage")
               : t("navigation:header.connectApiKey")
         }
-        className="flex items-center gap-2 vf-meta px-2.5 py-1.5 rounded-md border border-transparent bg-surface-elevated hover:border-text-muted transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"
+        className="flex items-center gap-2 vf-meta px-2.5 py-1.5 rounded-md border border-vf-panel-border bg-vf-panel-bg hover:bg-vf-control-hover hover:border-accent/40 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2 cursor-pointer"
       >
         <StatusDot
           tone={hasVeniceKey ? "teal" : "slate"}

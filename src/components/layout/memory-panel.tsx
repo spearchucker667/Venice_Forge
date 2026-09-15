@@ -265,7 +265,7 @@ export function MemoryPanel() {
             </button>
             <button
               onClick={handleOpenFolder}
-              className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
+              className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-panel-bg-raised transition-colors cursor-pointer"
             >
               <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.action.openFolder" />
             </button>
@@ -274,7 +274,7 @@ export function MemoryPanel() {
       )}
 
       {/* Settings Options */}
-      <div className="rounded-xl soft-panel mesh-surface-elevated p-5 space-y-4">
+      <div className="rounded-xl soft-panel p-5 space-y-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">
           <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.heading.encryptedConversationVault" />
         </h3>
@@ -302,7 +302,7 @@ export function MemoryPanel() {
           </div>
 
           {/* Enable Retrieval */}
-          <div className="flex items-center justify-between soft-separator-y pt-3">
+          <div className="flex items-center justify-between border-b border-vf-panel-border pt-3">
             <div>
               <label htmlFor="memory-panel-2" className="text-[13.5px] font-medium text-text-primary">
                 <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.label.enableMemoryRetrieval" />
@@ -320,7 +320,7 @@ export function MemoryPanel() {
           </div>
 
           {/* Show Context Preview */}
-          <div className="flex items-center justify-between soft-separator-y pt-3">
+          <div className="flex items-center justify-between border-b border-vf-panel-border pt-3">
             <div>
               <label htmlFor="memory-panel-3" className="text-[13.5px] font-medium text-text-primary">
                 <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.label.showPulledContextBeforeSending" />
@@ -340,7 +340,7 @@ export function MemoryPanel() {
           </div>
 
           {/* AI summaries toggle */}
-          <div className="flex items-center justify-between soft-separator-y pt-3">
+          <div className="flex items-center justify-between border-b border-vf-panel-border pt-3">
             <div>
               <label htmlFor="memory-panel-4" className="text-[13.5px] font-medium text-text-primary">
                 <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.label.useAiSummaries" />
@@ -360,7 +360,7 @@ export function MemoryPanel() {
       </div>
 
       {/* Index & Folder Management Actions */}
-      <div className="rounded-xl soft-panel mesh-surface-elevated p-5 space-y-4">
+      <div className="rounded-xl soft-panel p-5 space-y-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">
           <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.heading.maintenanceOperations" />
         </h3>
@@ -380,7 +380,7 @@ export function MemoryPanel() {
           </button>
           <button
             onClick={handleOpenFolder}
-            className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
+            className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-panel-bg-raised transition-colors cursor-pointer"
           >
             <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.action.openVaultFolder" />
           </button>
@@ -393,7 +393,7 @@ export function MemoryPanel() {
         )}
       </div>
 
-      <div className="rounded-xl soft-panel mesh-surface-elevated p-5 space-y-4">
+      <div className="rounded-xl soft-panel p-5 space-y-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">
           <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.heading.searchVault" />
         </h3>
@@ -405,7 +405,7 @@ export function MemoryPanel() {
             "runtimeGenerated.components.layout.memoryPanel.attribute.searchConversations",
             "Search conversations",
           )}
-          className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="w-full px-3 py-2 bg-vf-panel-bg border border-vf-panel-border rounded-lg text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         />
         {vaultSearching && (
           <p className="text-[12px] text-text-muted">
@@ -420,7 +420,7 @@ export function MemoryPanel() {
             {vaultResults.map((result) => (
               <div
                 key={result.id}
-                className="p-3 rounded-lg border border-border bg-surface/50"
+                className="p-3 rounded-lg border border-vf-panel-border bg-vf-panel-bg"
               >
                 <div className="text-[13px] font-medium text-text-primary">
                   {result.title}
@@ -435,7 +435,7 @@ export function MemoryPanel() {
       </div>
 
       {/* Remembered Facts List */}
-      <div className="rounded-xl soft-panel mesh-surface-elevated p-5 space-y-4">
+      <div className="rounded-xl soft-panel p-5 space-y-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">
           <Trans i18nKey="common:surface.componentsLayoutMemoryPanel.heading.curatedFacts" />
           {allFacts.length})
@@ -453,7 +453,7 @@ export function MemoryPanel() {
             allFacts.map(({ fact, record }) => (
               <div
                 key={fact.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-surface/50 hover:border-accent/30 transition-colors"
+                className="flex items-center justify-between gap-3 p-3 rounded-lg border border-vf-panel-border bg-vf-panel-bg hover:border-accent/30 transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] text-text-primary leading-normal break-words">

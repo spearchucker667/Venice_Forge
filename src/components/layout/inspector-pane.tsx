@@ -233,7 +233,7 @@ export function InspectorPane() {
 
   return (
     <aside
-      className="relative soft-separator-x mesh-surface flex flex-col h-full shrink-0 min-w-0 shell-region max-w-full"
+      className="relative bg-vf-shell-bg border-l border-vf-panel-border flex flex-col h-full shrink-0 min-w-0 shell-region max-w-full"
       aria-label={tRuntime(
         "runtimeGenerated.components.layout.inspectorPane.attribute.developerTrafficInspector",
       )}
@@ -249,7 +249,7 @@ export function InspectorPane() {
         aria-label={tRuntime(
           "runtimeGenerated.components.layout.inspectorPane.attribute.resizeInspector",
         )}
-        className="absolute left-0 top-0 bottom-0 w-1.5 -ml-[0.75px] cursor-col-resize hover:bg-accent/50 focus-visible:bg-accent z-50 transition-colors outline-none"
+        className="absolute left-0 top-0 bottom-0 w-1.5 -ml-[0.75px] cursor-col-resize hover:bg-accent/60 focus-visible:bg-accent z-50 transition-colors outline-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -268,7 +268,7 @@ export function InspectorPane() {
         }}
         onDoubleClick={() => setInspectorWidth(400)}
       />
-      <div className="flex items-center justify-between px-3 h-14 soft-separator-y">
+      <div className="flex items-center justify-between px-3 h-14 border-b border-vf-panel-border ">
         <div className="flex items-center gap-2">
           <svg
             className="text-accent"
@@ -298,7 +298,7 @@ export function InspectorPane() {
             aria-label={tRuntime(
               "runtimeGenerated.components.layout.inspectorPane.attribute.clearAllInspectorLogs",
             )}
-            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
+            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-vf-control-hover rounded-md transition-colors cursor-pointer"
           >
             <svg
               width="14"
@@ -321,7 +321,7 @@ export function InspectorPane() {
             aria-label={tRuntime(
               "runtimeGenerated.components.layout.inspectorPane.attribute.exportRedactedInspectorLogsAsJson",
             )}
-            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
+            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-vf-control-hover rounded-md transition-colors cursor-pointer"
           >
             <svg
               width="14"
@@ -344,7 +344,7 @@ export function InspectorPane() {
             aria-label={tRuntime(
               "runtimeGenerated.components.layout.inspectorPane.attribute.closeTrafficInspector",
             )}
-            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-elevated rounded transition-colors cursor-pointer"
+            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-vf-control-hover rounded-md transition-colors cursor-pointer"
           >
             <svg
               width="14"
@@ -362,18 +362,20 @@ export function InspectorPane() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 px-3 pt-1 pb-2 soft-separator-y">
+      <div className="flex items-center justify-between gap-2 px-3 pt-1 pb-2 border-b border-vf-panel-border ">
         <span
           className={cn(
             "flex items-center gap-1.5 text-[11px] uppercase tracking-wider",
-            redTeamMode ? "text-accent" : "text-text-muted",
+            redTeamMode ? "text-accent font-semibold" : "text-text-muted",
           )}
         >
           <span
             aria-hidden="true"
             className={cn(
               "w-1.5 h-1.5 rounded-full",
-              redTeamMode ? "bg-accent animate-pulse" : "bg-border",
+              redTeamMode
+                ? "bg-accent animate-pulse shadow-[0_0_6px_var(--color-vf-accent-glow)]"
+                : "bg-border bg-vf-panel-border",
             )}
           />
           {redTeamMode
@@ -395,17 +397,17 @@ export function InspectorPane() {
         </span>
       </div>
 
-      <div className="flex px-3 gap-1 soft-separator-y pb-2 pt-2">
+      <div className="flex px-3 gap-2 border-b border-vf-panel-border pb-2 pt-2">
         {(["traffic", "prompt-layers"] as const).map((tab) => (
           <button
             key={tab}
             type="button"
             onClick={() => setInspectorTab(tab)}
             className={cn(
-              "px-3 py-1 rounded-md text-[12px] font-medium transition-colors cursor-pointer",
+              "px-2.5 py-1 text-[12px] font-medium transition-colors cursor-pointer border-b-2 -mb-[9px]",
               inspectorTab === tab
-                ? "bg-accent/20 text-accent"
-                : "text-text-muted hover:text-text-primary hover:bg-surface-elevated",
+                ? "border-accent text-text-primary font-semibold shadow-[0_1px_4px_var(--color-vf-accent-glow)]"
+                : "border-transparent text-text-muted hover:text-text-secondary hover:border-vf-panel-border",
             )}
           >
             {tab === "traffic"
@@ -421,17 +423,17 @@ export function InspectorPane() {
 
       {inspectorTab === "traffic" ? (
         <>
-          <div className="px-2 py-2 soft-separator-y flex flex-wrap gap-1">
+          <div className="px-2 py-2 border-b border-vf-panel-border flex flex-wrap gap-1">
             {FILTER_CHIPS.map((chip) => (
               <button
                 key={chip.id}
                 type="button"
                 onClick={() => setActiveFilter(chip.id)}
                 className={cn(
-                  "px-2 py-0.5 rounded-full text-[12px] font-medium transition-colors cursor-pointer",
+                  "px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer border",
                   activeFilter === chip.id
-                    ? "bg-accent/20 text-accent"
-                    : "bg-surface-elevated/50 text-text-muted hover:text-text-primary",
+                    ? "bg-accent/15 border-accent text-accent shadow-[0_0_6px_var(--color-vf-accent-glow)]"
+                    : "border-vf-panel-border bg-vf-panel-bg text-text-muted hover:text-text-primary hover:bg-vf-control-hover",
                 )}
               >
                 {chip.label}
@@ -440,7 +442,7 @@ export function InspectorPane() {
           </div>
 
           <div className="flex-1 flex min-h-0">
-            <div className="w-[180px] soft-separator-x overflow-y-auto flex flex-col shrink-0">
+            <div className="w-[180px] border-r border-vf-panel-border overflow-y-auto flex flex-col shrink-0">
               {filteredLogs.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-4 text-[12px] text-text-muted text-center">
                   <span>
@@ -465,10 +467,10 @@ export function InspectorPane() {
                       key={log.id}
                       onClick={() => setSelectedLogId(log.id)}
                       className={cn(
-                        "text-left p-2.5 soft-separator-y transition-colors w-full cursor-pointer flex flex-col gap-0.5",
+                        "text-left p-2.5 border-b border-vf-panel-border transition-colors w-full cursor-pointer flex flex-col gap-0.5",
                         isSelected
-                          ? "bg-accent/10 text-accent font-medium"
-                          : "hover:bg-surface-elevated/40 text-text-secondary",
+                          ? "bg-vf-control-active text-text-primary font-medium shadow-[inset_2px_0_0_var(--color-accent)]"
+                          : "hover:bg-vf-control-hover text-text-secondary",
                       )}
                     >
                       <div className="flex items-center justify-between text-[12px]">
@@ -515,7 +517,7 @@ export function InspectorPane() {
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 min-w-0">
               {selectedLog ? (
                 <div className="space-y-4 text-[12px] min-w-0">
-                  <div className="p-2 soft-panel mesh-surface-elevated/40 rounded-md font-mono select-all text-[12px] space-y-0.5">
+                  <div className="p-2.5 vf-inset-canvas rounded-md font-mono select-all text-[12px] space-y-0.5">
                     <div>
                       <span className="text-text-muted font-bold">
                         <Trans i18nKey="common:surface.componentsLayoutInspectorPane.text.time" />
@@ -780,7 +782,7 @@ export function InspectorPane() {
                     <span className="font-semibold text-text-secondary select-none">
                       <Trans i18nKey="common:surface.componentsLayoutInspectorPane.text.requestHeaders" />
                     </span>
-                    <pre className="p-2 soft-panel mesh-surface-elevated/40 rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-36">
+                    <pre className="p-2.5 vf-inset-canvas rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-36">
                       {JSON.stringify(selectedLog.requestHeaders, null, 2)}
                     </pre>
                   </div>
@@ -789,7 +791,7 @@ export function InspectorPane() {
                     <span className="font-semibold text-text-secondary select-none">
                       <Trans i18nKey="common:surface.componentsLayoutInspectorPane.text.requestBody" />
                     </span>
-                    <pre className="p-2 soft-panel mesh-surface-elevated/40 rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-48">
+                    <pre className="p-2.5 vf-inset-canvas rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-48">
                       {selectedLog.requestBody
                         ? JSON.stringify(selectedLog.requestBody, null, 2)
                         : tRuntime(
@@ -812,12 +814,12 @@ export function InspectorPane() {
                       <span className="font-semibold text-text-secondary select-none">
                         <Trans i18nKey="common:surface.componentsLayoutInspectorPane.text.responseBody" />
                       </span>
-                      <pre className="p-2 soft-panel mesh-surface-elevated/40 rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-60">
+                      <pre className="p-2.5 vf-inset-canvas rounded-md font-mono text-[12px] overflow-x-auto select-all max-h-60">
                         {selectedLog.responseBody
                           ? JSON.stringify(selectedLog.responseBody, null, 2)
                           : tRuntime(
-                              "runtimeGenerated.components.layout.inspectorPane.text.pendingOrEmpty",
-                            )}
+                            "runtimeGenerated.components.layout.inspectorPane.text.pendingOrEmpty",
+                          )}
                       </pre>
                     </div>
                   )}
@@ -850,8 +852,8 @@ export function InspectorPane() {
                   key={layer.id}
                   className={`rounded-lg border p-3 space-y-1.5 ${
                     layer.active
-                      ? "border-accent/30 bg-accent/5"
-                      : "border-border/40 bg-surface-elevated/30 opacity-50"
+                      ? "border-accent/40 bg-accent/5 shadow-[inset_0_0_12px_var(--color-vf-accent-glow-subtle)]"
+                      : "border-vf-panel-border bg-vf-panel-bg/50 opacity-60"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -861,7 +863,7 @@ export function InspectorPane() {
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                         layer.active
-                          ? "bg-green-500/20 text-green-400"
+                          ? "bg-success/20 text-success"
                           : "bg-text-muted/10 text-text-muted"
                       }`}
                     >
@@ -874,7 +876,7 @@ export function InspectorPane() {
                           )}
                     </span>
                   </div>
-                  <pre className="text-[11px] text-text-muted whitespace-pre-wrap break-words font-mono leading-relaxed max-h-[200px] overflow-y-auto bg-surface/50 rounded p-2">
+                  <pre className="text-[11px] text-text-muted whitespace-pre-wrap break-words font-mono leading-relaxed max-h-[200px] overflow-y-auto vf-inset-canvas rounded p-2">
                     {layer.content}
                   </pre>
                   <div className="text-[10px] text-text-muted/50">
