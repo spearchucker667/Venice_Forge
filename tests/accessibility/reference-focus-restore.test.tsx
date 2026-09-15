@@ -53,7 +53,6 @@ describe("AccessibleDialog primitive", () => {
     render(
       <AccessibleDialog
         panelRef={panelRef}
-        open
         onClose={() => undefined}
         title="Reference sample"
       >
