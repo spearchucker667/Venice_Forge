@@ -157,7 +157,8 @@
   --color-vf-grid-line: color-mix(in srgb, var(--color-border) 55%, transparent);
   --color-vf-accent-glow: color-mix(in srgb, var(--color-accent) 22%, transparent);
   --color-vf-accent-glow-strong: color-mix(in srgb, var(--color-accent) 42%, transparent);
-  --color-vf-control-hover: color-mix(in srgb, var(--color-surface-elevated) 72%, transparent);
+  --color-vf-accent-glow-subtle: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --color-vf-control-hover: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   --color-vf-control-active: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --vf-noise-opacity: 0.4;
 }

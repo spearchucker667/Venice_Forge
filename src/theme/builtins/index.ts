@@ -1,3 +1,4 @@
+import type { ThemeMode } from '../themeTypes';
 import { BUILTIN_AMBER_ARCHIVE } from './amberArchive';
 import { BUILTIN_ARCTIC_GLASS } from './arcticGlass';
 import { BUILTIN_AURORA_BOREAL } from './auroraBoreal';
@@ -135,3 +136,49 @@ export const BUILTIN_THEME_FAMILIES = [
 ];
 
 export const DEFAULT_THEME_FAMILY = BUILTIN_VENICE;
+
+export const BUILTIN_CANONICAL_MODES: Record<string, ThemeMode> = {
+  "amber-archive": "light",
+  "arctic-glass": "light",
+  "aurora-boreal": "dark",
+  "basalt-noir": "dark",
+  catppuccin: "dark",
+  "circuit-mint": "dark",
+  copper: "dark",
+  "cotton-candy-console": "light",
+  "cyber-orchid": "dark",
+  dark: "dark",
+  "desert-copperfield": "light",
+  dracula: "dark",
+  "dual-persona": "light",
+  "ember-monastery": "dark",
+  "github-light": "light",
+  "glacial-ink": "dark",
+  "gruvbox-dark": "dark",
+  "harbor-fog": "light",
+  light: "light",
+  "midnight-cobalt": "dark",
+  "midnight-velvet": "dark",
+  monokai: "dark",
+  "moss-circuit": "dark",
+  "neon-dusk": "dark",
+  nord: "dark",
+  "obsidian-bloom": "dark",
+  "obsidian-ember": "dark",
+  "one-dark": "dark",
+  "polaroid-board": "light",
+  "porcelain-daybreak": "light",
+  "porcelain-sky": "light",
+  rosepine: "dark",
+  "sakura-terminal": "dark",
+  sandstone: "light",
+  "solar-ash": "light",
+  solarized: "dark",
+  "sweet-nightmare": "dark",
+  "synthwave-harbor": "dark",
+  "terminal-forest": "dark",
+  "tokyo-night": "dark",
+  "toxic-limewire": "dark",
+  "ultraviolet-rain": "dark",
+  venice: "dark",
+};

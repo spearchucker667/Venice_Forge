@@ -8,6 +8,7 @@ export const ALLOWED_TOP_LEVEL_KEYS = new Set<string>([
   'schemaVersion',
   'id',
   'name',
+  'mode',
   'variants',
   'base',
   'aliases',
@@ -281,6 +282,9 @@ export function validateRawThemeYaml(
       if (doc[key] !== undefined && (typeof doc[key] !== 'string' || doc[key].length > 2048)) {
         errors.push(`${key} must be a string of at most 2048 characters.`);
       }
+    }
+    if (doc.mode !== undefined && doc.mode !== 'dark' && doc.mode !== 'light') {
+      errors.push('mode must be "dark" or "light" when present.');
     }
 
     if (!doc.variants || typeof doc.variants !== 'object' || Array.isArray(doc.variants)) {

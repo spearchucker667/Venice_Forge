@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { contrastRatio, isAAPass } from "./contrast";
 import {
+  BUILTIN_CANONICAL_MODES,
   BUILTIN_COPPER,
   BUILTIN_DARK,
   BUILTIN_DRACULA,
@@ -161,60 +162,21 @@ describe("built-in semantic theme contract", () => {
   });
 });
 
-const CANONICAL_MODES: Record<string, ThemeMode> = {
-  "amber-archive": "light",
-  "arctic-glass": "light",
-  "aurora-boreal": "dark",
-  "basalt-noir": "dark",
-  catppuccin: "dark",
-  "circuit-mint": "dark",
-  copper: "dark",
-  "cotton-candy-console": "light",
-  "cyber-orchid": "dark",
-  dark: "dark",
-  "desert-copperfield": "light",
-  dracula: "dark",
-  "dual-persona": "light",
-  "ember-monastery": "dark",
-  "github-light": "light",
-  "glacial-ink": "dark",
-  "gruvbox-dark": "dark",
-  "harbor-fog": "light",
-  light: "light",
-  "midnight-cobalt": "dark",
-  "midnight-velvet": "dark",
-  monokai: "dark",
-  "moss-circuit": "dark",
-  "neon-dusk": "dark",
-  nord: "dark",
-  "obsidian-bloom": "dark",
-  "obsidian-ember": "dark",
-  "one-dark": "dark",
-  "polaroid-board": "light",
-  "porcelain-daybreak": "light",
-  "porcelain-sky": "light",
-  rosepine: "dark",
-  "sakura-terminal": "dark",
-  sandstone: "light",
-  "solar-ash": "light",
-  solarized: "dark",
-  "sweet-nightmare": "dark",
-  "synthwave-harbor": "dark",
-  "terminal-forest": "dark",
-  "tokyo-night": "dark",
-  "toxic-limewire": "dark",
-  "ultraviolet-rain": "dark",
-  venice: "dark",
-};
-
 function canonicalMode(family: ThemeFamily): ThemeMode {
-  return CANONICAL_MODES[family.id] ?? "dark";
+  return BUILTIN_CANONICAL_MODES[family.id] ?? "dark";
 }
 
 describe("all built-in themes WCAG contrast regression guard", () => {
-  it.each(
-    BUILTIN_THEME_FAMILIES.map((f) => [`${f.id}:${canonicalMode(f)}`, f, canonicalMode(f)] as const)
-  )(
+  const allVariants = BUILTIN_THEME_FAMILIES.flatMap((f) => {
+    const canon = canonicalMode(f);
+    const comp: ThemeMode = canon === "dark" ? "light" : "dark";
+    return [
+      [`${f.id}:${canon}`, f, canon] as const,
+      [`${f.id}:${comp}`, f, comp] as const,
+    ];
+  });
+
+  it.each(allVariants)(
     "%s passes expanded contrast checks",
     (_id, family, mode) => {
       const t = tokensFor(family, mode);

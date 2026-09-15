@@ -20,7 +20,7 @@ export const BUILTIN_VENICE: ThemeFamily = {
       accent: "#c81e3f",
       accentHover: "#a51836",
       accentForeground: "#ffffff",
-      success: "#3f9142",
+      success: "#2e7d32",
       warning: "#a16207",
       danger: "#dc2626",
       info: "#1d4ed8",
