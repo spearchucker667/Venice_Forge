@@ -489,3 +489,27 @@
 | File | Status | Phase/Notes |
 |---|---|---|
 | `venice-builtin.test.ts` | NOT_APPLICABLE (test file) | relocated from src/theme/builtins/ in Phase 1 (verify:theme-tokens family-shape scope) |
+
+## `tests/accessibility/` (5 files)
+
+| File | Status | Phase/Notes |
+|---|---|---|
+| `reduced-motion.test.tsx` | INHERITS_GLOBAL_SYSTEM | pre-existing Phase 8 a11y test, retained unchanged |
+| `theme-focus.test.ts` | INHERITS_GLOBAL_SYSTEM | pre-existing Phase 8 a11y test, retained unchanged |
+| `reference-rtl-shell.test.tsx` | REDESIGNED — Phase 8: RTL shell regression guards (3 tests) |
+| `reference-viewport.test.tsx` | REDESIGNED — Phase 8: viewport collapse regression guards (2 tests) |
+| `reference-keyboard-nav.test.tsx` | REDESIGNED — Phase 8: keyboard Tab/Shift+Tab regression guards (3 tests) |
+| `reference-focus-restore.test.tsx` | REDESIGNED — Phase 8: InspectorPane close + AccessibleDialog role guards (3 tests) |
+| `reference-aria-live.test.tsx` | REDESIGNED — Phase 8: ToastViewport aria-live=polite regression guards (2 tests) |
+
+## `tests/chat/` (1 files)
+
+| File | Status | Phase/Notes |
+|---|---|---|
+| `referenceChatFamily.test.tsx` | REDESIGNED — Phase 3: chat-family surface invariant suite |
+
+## `tests/shell/` (1 files)
+
+| File | Status | Phase/Notes |
+|---|---|---|
+| `referenceShell.test.tsx` | REDESIGNED — Phase 2: shell navigation/resize/accessibility invariant suite |
