@@ -136,7 +136,7 @@ export function VeniceParams() {
           {activeConversationId !== null && hasMessages && (
             <button
               onClick={() => setActiveConversation(null)}
-              className="flex items-center gap-1 vf-meta font-medium px-2.5 py-[2px] rounded-full bg-surface-elevated/40 text-text-muted/60 hover:text-text-secondary hover:bg-surface-elevated/50 transition-colors duration-100 cursor-pointer"
+              className="flex items-center gap-1 vf-meta font-medium px-2.5 py-[2px] rounded-full bg-vf-panel-bg-raised/40 text-text-muted/60 hover:text-text-secondary hover:bg-vf-panel-bg-raised/50 transition-colors duration-100 cursor-pointer"
               title={t("controls.newChatShortcut")}
             >
               <svg
@@ -160,7 +160,7 @@ export function VeniceParams() {
               "flex items-center gap-1 vf-meta font-medium px-2 py-[2px] rounded-full transition-colors duration-100",
               showSettings
                 ? "bg-text-primary text-bg"
-                : "bg-surface-elevated/40 text-text-muted/40 hover:text-text-muted/60 hover:bg-surface-elevated/50 cursor-pointer",
+                : "bg-vf-panel-bg-raised/40 text-text-muted/40 hover:text-text-muted/60 hover:bg-vf-panel-bg-raised/50 cursor-pointer",
             )}
           >
             <svg
@@ -191,7 +191,7 @@ export function VeniceParams() {
               {!hydrated || loading ? (
                 <select
                   disabled id="venice-params-1" 
-                  className="bg-surface-elevated border border-border rounded px-2 py-0.5 vf-meta text-text-muted outline-none max-w-[200px] cursor-not-allowed"
+                  className="bg-vf-panel-bg-raised border border-vf-panel-border rounded px-2 py-0.5 vf-meta text-text-muted outline-none max-w-[200px] cursor-not-allowed"
                 >
                   <option>
                     <Trans i18nKey="common:surface.componentsChatVeniceParams.option.loadingLibrary" />
@@ -200,7 +200,7 @@ export function VeniceParams() {
               ) : loadError ? (
                 <select
                   disabled
-                  className="bg-surface-elevated border border-border rounded px-2 py-0.5 vf-meta text-danger outline-none max-w-[200px] cursor-not-allowed"
+                  className="bg-vf-panel-bg-raised border border-vf-panel-border rounded px-2 py-0.5 vf-meta text-danger outline-none max-w-[200px] cursor-not-allowed"
                 >
                   <option>
                     <Trans i18nKey="common:surface.componentsChatVeniceParams.option.errorLoadingLibrary" />
@@ -209,7 +209,7 @@ export function VeniceParams() {
               ) : (
                 customPrompts.length > 0 && (
                   <select
-                    className="bg-surface-elevated border border-border rounded px-2 py-0.5 vf-meta text-text-muted outline-none hover:text-text-secondary transition-colors max-w-[200px] cursor-pointer"
+                    className="bg-vf-panel-bg-raised border border-vf-panel-border rounded px-2 py-0.5 vf-meta text-text-muted outline-none hover:text-text-secondary transition-colors max-w-[200px] cursor-pointer"
                     onChange={(e) => {
                       const id = e.target.value;
                       if (id) {
@@ -241,7 +241,7 @@ export function VeniceParams() {
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder={t("controls.systemPromptPlaceholder")}
               rows={2}
-              className="w-full bg-surface-muted border border-border rounded-lg px-3 py-2 vf-body text-text-secondary outline-none resize-none placeholder:text-text-muted/30 focus:border-border-strong transition-colors"
+              className="w-full bg-vf-panel-bg-inset border border-vf-panel-border rounded-lg px-3 py-2 vf-body text-text-secondary outline-none resize-none placeholder:text-text-muted/30 focus:border-vf-panel-border-strong transition-colors"
             />
             {systemPromptLimitResult.isWarning && (
               <div className="vf-meta text-warning mt-1">
@@ -372,12 +372,12 @@ function Pill({
       title={title}
       aria-disabled={disabled === true}
       className={cn(
-        "vf-meta font-medium px-2 py-[2px] rounded-full transition-colors duration-100",
+        "transition-colors duration-100",
         active
-          ? "bg-text-primary text-bg"
+          ? "bg-accent/15 text-accent border border-accent/40 shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)] rounded-md px-2 py-0.5 vf-meta font-medium"
           : disabled
-            ? "bg-surface-elevated/40 text-text-muted/25 cursor-not-allowed"
-            : "bg-surface-elevated/40 text-text-muted/40 hover:text-text-muted/60 hover:bg-surface-elevated/50",
+            ? "bg-vf-panel-bg-inset border border-vf-panel-border/50 text-text-muted/40 cursor-not-allowed rounded-md px-2 py-0.5 vf-meta font-medium"
+            : "bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover rounded-md px-2 py-0.5 vf-meta font-medium",
       )}
     >
       {label}
@@ -408,10 +408,10 @@ function SearchPill({
     <button
       onClick={next}
       className={cn(
-        "vf-meta font-medium px-2 py-[2px] rounded-full transition-colors duration-100",
+        "transition-colors duration-100",
         active
-          ? "bg-text-primary text-bg"
-          : "bg-surface-elevated/40 text-text-muted/40 hover:text-text-muted/60 hover:bg-surface-elevated/50",
+          ? "bg-accent/15 text-accent border border-accent/40 shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)] rounded-md px-2 py-0.5 vf-meta font-medium"
+          : "bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover rounded-md px-2 py-0.5 vf-meta font-medium",
       )}
     >
       {label}

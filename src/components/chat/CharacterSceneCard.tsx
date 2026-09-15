@@ -43,7 +43,7 @@ export function CharacterSceneCard({
     status === "failed" || status === "blocked" || status === "rate_limited";
 
   return (
-    <div className="my-3 rounded-xl border border-border bg-surface-elevated p-4 shadow-sm max-w-md">
+    <div className="my-3 rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised p-4 shadow-sm max-w-md">
       <div className="flex items-center gap-2 mb-2">
         <span
           className={`inline-block w-2 h-2 rounded-full ${
@@ -52,7 +52,7 @@ export function CharacterSceneCard({
               : isError
                 ? "bg-danger"
                 : isRunning
-                  ? "bg-accent animate-pulse"
+                  ? "bg-accent shadow-[0_0_6px_var(--color-vf-accent-glow)] animate-pulse"
                   : "bg-text-muted"
           }`}
         />
@@ -73,7 +73,7 @@ export function CharacterSceneCard({
       )}
 
       {isError && (
-        <div className="mb-3 text-[13px] text-danger bg-danger/5 border border-danger/10 rounded-lg px-3 py-2">
+        <div className="mb-3 text-[13px] text-danger bg-danger/10 border border-danger/20 rounded-md px-3 py-2">
           {rateLimitReason ||
             error ||
             tRuntime(
@@ -83,7 +83,7 @@ export function CharacterSceneCard({
       )}
 
       {imageUrl && status === "complete" && (
-        <div className="mb-3 rounded-lg border border-border overflow-hidden">
+        <div className="mb-3 rounded-md border border-vf-panel-border overflow-hidden">
           <img
             src={imageUrl}
             alt={tRuntime(
@@ -98,7 +98,7 @@ export function CharacterSceneCard({
         {status === "complete" && onOpenInMediaStudio && (
           <button
             onClick={onOpenInMediaStudio}
-            className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-md text-[12.5px] font-medium bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)] transition-colors cursor-pointer"
           >
             <Trans i18nKey="common:surface.componentsChatCharacterscenecard.action.openInMediaStudio" />
           </button>
@@ -106,7 +106,7 @@ export function CharacterSceneCard({
         {prompt && onCopyPrompt && (
           <button
             onClick={onCopyPrompt}
-            className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-md text-[12.5px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors cursor-pointer"
           >
             <Trans i18nKey="common:surface.componentsChatCharacterscenecard.action.copyPrompt" />
           </button>
@@ -114,7 +114,7 @@ export function CharacterSceneCard({
         {(status === "failed" || status === "rate_limited") && onRetry && (
           <button
             onClick={onRetry}
-            className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-md text-[12.5px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors cursor-pointer"
           >
             <Trans i18nKey="common:surface.componentsChatCharacterscenecard.action.retry" />
           </button>
@@ -122,7 +122,7 @@ export function CharacterSceneCard({
         {status === "complete" && onRegenerate && (
           <button
             onClick={onRegenerate}
-            className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-md text-[12.5px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors cursor-pointer"
           >
             <Trans i18nKey="common:surface.componentsChatCharacterscenecard.action.regenerate" />
           </button>
@@ -130,7 +130,7 @@ export function CharacterSceneCard({
         {isRunning && onCancel && (
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-md text-[12.5px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors cursor-pointer"
           >
             <Trans i18nKey="common:surface.componentsChatCharacterscenecard.action.cancel" />
           </button>

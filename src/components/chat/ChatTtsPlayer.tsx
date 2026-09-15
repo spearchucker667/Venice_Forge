@@ -61,7 +61,7 @@ export function ChatTtsPlayer({
     <div className={`flex items-center gap-1 ${className}`}>
       <button
         onClick={handlePlayPause}
-        className="p-1.5 text-text-muted/60 hover:text-text-secondary transition-colors rounded-md hover:bg-surface-elevated cursor-pointer disabled:opacity-50"
+        className="p-1.5 text-text-muted/60 hover:text-text-primary transition-colors rounded-md hover:bg-vf-control-hover cursor-pointer disabled:opacity-50"
         title={
           isPlaying
             ? tRuntime(
@@ -102,7 +102,7 @@ export function ChatTtsPlayer({
         <>
           <button
             onClick={handleStop}
-            className="p-1.5 text-text-muted/60 hover:text-danger transition-colors rounded-md hover:bg-surface-elevated cursor-pointer"
+            className="p-1.5 text-text-muted/60 hover:text-danger transition-colors rounded-md hover:bg-vf-control-hover cursor-pointer"
             title={tRuntime(
               "runtimeGenerated.components.chat.chatttsplayer.attribute.stopSpeech",
             )}
@@ -120,7 +120,7 @@ export function ChatTtsPlayer({
 
           <button
             onClick={handleRestart}
-            className="p-1.5 text-text-muted/60 hover:text-text-secondary transition-colors rounded-md hover:bg-surface-elevated cursor-pointer"
+            className="p-1.5 text-text-muted/60 hover:text-text-primary transition-colors rounded-md hover:bg-vf-control-hover cursor-pointer"
             title={tRuntime(
               "runtimeGenerated.components.chat.chatttsplayer.attribute.restartSpeech",
             )}

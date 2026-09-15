@@ -259,7 +259,7 @@ export function ChatInput({
                     <img
                       src={safeImg}
                       alt={t("composer.attachmentAlt", { number: i + 1 })}
-                      className="h-16 w-16 object-cover rounded-lg border border-border"
+                      className="h-16 w-16 object-cover rounded-lg border border-vf-panel-border"
                     />
                     <IconButton
                       size="sm"
@@ -293,7 +293,7 @@ export function ChatInput({
               return (
                 <div
                   key={att.id}
-                  className="relative group shrink-0 flex items-center gap-2 h-16 px-3 bg-surface border border-border rounded-lg max-w-vf-narrow"
+                  className="relative group shrink-0 flex items-center gap-2 h-16 px-3 bg-vf-panel-bg border border-vf-panel-border rounded-lg max-w-vf-narrow"
                   title={att.name}
                 >
                   <div className="flex flex-col flex-1 min-w-0">
@@ -434,7 +434,7 @@ export function ChatInput({
                 onClick={() => fileRef.current?.click()}
                 disabled={attachDisabled}
                 aria-label={t("composer.attachFile")}
-                className="flex items-center gap-1.5 px-2 py-1.5 vf-meta text-text-muted hover:text-text-primary transition-colors rounded-lg hover:bg-surface-elevated disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="flex items-center gap-1.5 px-2 py-1.5 vf-meta text-text-muted hover:text-text-primary transition-colors rounded-md hover:bg-vf-control-hover disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                 title={attachTitle}
               >
                 <svg
@@ -459,7 +459,7 @@ export function ChatInput({
               <button
                 onClick={onStop}
                 aria-label={t("composer.stopGenerating")}
-                className="flex items-center gap-1.5 px-3 py-1.5 vf-meta font-medium text-text-primary bg-surface-elevated hover:bg-surface border border-border rounded-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="flex items-center gap-1.5 px-3 py-1.5 vf-meta font-medium text-text-primary bg-vf-panel-bg-raised hover:bg-vf-control-hover border border-vf-panel-border rounded-lg transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               >
                 <svg
                   width="9"
@@ -480,10 +480,10 @@ export function ChatInput({
                 }
                 aria-label={t("composer.sendMessage")}
                 className={cn(
-                  "w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
+                  "w-10 h-10 flex items-center justify-center rounded-md transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2",
                   (value.trim() || attachments.length > 0) && !disabled
-                    ? "bg-accent text-accent-fg hover:bg-accent-hover active:scale-95 shadow-sm"
-                    : "bg-surface-elevated text-text-muted border border-border",
+                    ? "bg-accent text-accent-fg hover:bg-accent-hover active:scale-95 shadow-[0_0_8px_var(--color-vf-accent-glow)]"
+                    : "bg-vf-panel-bg-inset text-text-muted border border-vf-panel-border",
                 )}
               >
                 <svg

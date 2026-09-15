@@ -205,12 +205,12 @@ function MessageBubbleImpl({
   };
 
   const injectedContextDisclosure = injectedContext ? (
-    <details className="mt-3 rounded-lg border border-border-soft bg-surface-elevated/30 text-left vf-meta text-text-secondary">
+    <details className="mt-3 rounded-lg border border-vf-panel-border-soft bg-vf-panel-bg-raised/30 text-left vf-meta text-text-secondary">
       <summary className="cursor-pointer select-none px-3 py-2 font-medium text-text-primary">
         {injectedContextLabel}{" "}
         <Trans i18nKey="common:surface.componentsChatMessageBubble.text.attachedToThisMessage" />
       </summary>
-      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words soft-separator-y px-3 py-2 font-mono vf-meta leading-relaxed text-text-muted">
+      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words border-b border-vf-panel-border px-3 py-2 font-mono vf-meta leading-relaxed text-text-muted">
         {injectedContext}
       </pre>
     </details>
@@ -571,7 +571,7 @@ function MessageBubbleImpl({
         >
         <div className="flex items-end gap-1.5 max-w-chat-bubble">
           {actions}
-          <div className="bg-surface-elevated border border-border rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+          <div className="bg-vf-panel-bg-raised border border-vf-panel-border rounded-xl rounded-br-sm px-4 py-2.5 shadow-sm">
             {images.length > 0 && (
               <div className="flex gap-1.5 mb-2">
                 {images.map((img, i) => {
@@ -596,7 +596,7 @@ function MessageBubbleImpl({
                           "runtimeGenerated.components.chat.messageBubble.attribute.attachmentValue1",
                           { value1: i + 1 },
                         )}
-                        className="h-24 rounded-lg border border-border"
+                        className="h-24 rounded-lg border border-vf-panel-border"
                       />
                     );
                   }
@@ -622,13 +622,13 @@ function MessageBubbleImpl({
                     )
                       saveEdit();
                   }}
-                  className="min-h-24 w-full resize-y rounded-md border border-border bg-surface p-2 text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                  className="min-h-24 w-full resize-y bg-vf-panel-bg-inset border border-vf-panel-border text-text-primary rounded-md p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                 />
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="rounded-md px-2 py-1 text-sm text-text-secondary hover:bg-surface"
+                    className="rounded-md px-2 py-1 text-sm text-text-secondary hover:bg-vf-panel-bg"
                   >
                     <Trans i18nKey="common:surface.componentsChatMessageBubble.action.cancel" />
                   </button>
@@ -650,7 +650,7 @@ function MessageBubbleImpl({
                 {attachmentRefs.map((ref) => (
                   <div
                     key={ref.id}
-                    className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1.5 vf-meta text-text-secondary"
+                    className="flex items-center gap-1.5 rounded-md border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 vf-meta text-text-secondary"
                     title={tRuntime(
                       "runtimeGenerated.components.chat.messageBubble.attribute.value1Value2",
                       { value1: ref.name, value2: ref.mimeType },
@@ -696,7 +696,7 @@ function MessageBubbleImpl({
               </div>
             )}
             {redTeamMode && localSafetyDecision && (
-              <div className="mt-2 vf-meta font-mono p-2 bg-surface border border-border-soft rounded-md text-left text-text-secondary select-text space-y-1">
+              <div className="mt-2 vf-meta font-mono p-2 bg-vf-panel-bg-inset border border-vf-panel-border rounded-md text-left text-text-secondary select-text space-y-1">
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-text-muted">
                     <Trans i18nKey="common:surface.componentsChatMessageBubble.text.safety" />
@@ -760,7 +760,7 @@ function MessageBubbleImpl({
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
       >
-      <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-border flex items-center justify-center shrink-0 mt-0.5 shadow-sm overflow-hidden">
+      <div className="w-8 h-8 rounded-md bg-vf-panel-bg-inset border border-vf-panel-border flex items-center justify-center shrink-0 mt-0.5 shadow-sm overflow-hidden">
         {assistantCharacter && assistantCharacterCacheKey ? (
           <CharacterAvatar
             character={assistantCharacter}
@@ -816,7 +816,7 @@ function MessageBubbleImpl({
                 id={reasoningPanelId}
                 role="region"
                 aria-label={t("common:surface.componentsChatMessageBubble.text.reasoningRegionLabel")}
-                className="bg-surface border border-border rounded-lg px-3 py-2 vf-body text-text-muted leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto"
+                className="bg-vf-panel-bg-inset border border-vf-panel-border rounded-md px-3 py-2 text-text-muted vf-body leading-relaxed whitespace-pre-wrap animate-fade-in max-h-60 overflow-y-auto"
               >
                 {message.reasoning_content}
               </div>
@@ -839,13 +839,13 @@ function MessageBubbleImpl({
                 if (event.key === "Enter" && (event.metaKey || event.ctrlKey))
                   saveEdit();
               }}
-              className="min-h-28 w-full resize-y rounded-md border border-border bg-surface p-2 text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              className="min-h-28 w-full resize-y bg-vf-panel-bg-inset border border-vf-panel-border text-text-primary rounded-md p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             />
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="rounded-md px-2 py-1 text-sm text-text-secondary hover:bg-surface-elevated"
+                className="rounded-md px-2 py-1 text-sm text-text-secondary hover:bg-vf-panel-bg-raised"
               >
                 <Trans i18nKey="common:surface.componentsChatMessageBubble.action.cancel" />
               </button>
@@ -862,7 +862,7 @@ function MessageBubbleImpl({
           <div className="space-y-2">
             <ChatMarkdown content={content} />
             {redTeamMode && localSafetyDecision && (
-              <div className="vf-meta font-mono p-2 bg-surface border border-border-soft rounded-md text-text-secondary select-text space-y-1">
+              <div className="vf-meta font-mono p-2 bg-vf-panel-bg-inset border border-vf-panel-border rounded-md text-text-secondary select-text space-y-1">
                 <div className="flex items-center gap-1.5">
                   <span className="font-semibold text-text-muted">
                     <Trans i18nKey="common:surface.componentsChatMessageBubble.text.safety" />
@@ -923,7 +923,7 @@ function MessageBubbleImpl({
             {message.tool_calls.map((tc, idx) => (
               <div
                 key={idx}
-                className="bg-surface-elevated/40 border border-border-soft rounded-md p-2 font-mono vf-meta text-text-secondary"
+                className="bg-vf-panel-bg-inset border border-vf-panel-border rounded-md p-2 font-mono vf-meta text-text-secondary"
               >
                 <div className="flex items-center gap-1.5 text-accent mb-1">
                   <svg
@@ -959,7 +959,7 @@ function MessageBubbleImpl({
 
         {isTool && (
           <div className="mt-2">
-            <details className="rounded-md border border-border-soft bg-surface-elevated/20 vf-meta text-text-secondary">
+            <details className="bg-vf-panel-bg-inset border border-vf-panel-border text-text-secondary rounded-md vf-meta">
               <summary className="cursor-pointer select-none px-3 py-1.5 font-medium flex items-center gap-1.5">
                 <svg
                   width="12"
@@ -974,7 +974,7 @@ function MessageBubbleImpl({
                 <Trans i18nKey="common:surface.componentsChatMessageBubble.text.resultFrom" />{" "}
                 {message.name || "tool"}
               </summary>
-              <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words soft-separator-y px-3 py-2 font-mono vf-tag leading-relaxed text-text-muted">
+              <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words border-b border-vf-panel-border px-3 py-2 font-mono vf-tag leading-relaxed text-text-muted">
                 {content}
               </pre>
             </details>
@@ -999,7 +999,7 @@ function MessageBubbleImpl({
             .map((r) => (
               <div
                 key={r.id}
-                className="relative group mt-2 mb-1 w-full max-w-sm rounded-lg overflow-hidden border border-border bg-surface-sunken"
+                className="relative group mt-2 mb-1 w-full max-w-sm rounded-lg overflow-hidden border border-vf-panel-border bg-vf-panel-bg-sunken"
               >
                 <img
                   src={

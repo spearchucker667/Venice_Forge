@@ -660,7 +660,7 @@ export function ChatView() {
       {searchOpen && (
         <div
           role="search"
-          className="flex items-center gap-2 soft-separator-y bg-surface-elevated px-4 py-2"
+          className="flex items-center gap-2 border-b border-vf-panel-border bg-vf-shell-bg px-4 py-2 shadow-sm"
         >
           <input
             autoFocus
@@ -675,7 +675,7 @@ export function ChatView() {
             placeholder={tRuntime(
               "runtimeGenerated.components.chat.chatView.attribute.searchThisConversation",
             )}
-            className="min-w-0 flex-1 rounded-md border border-border bg-surface px-3 py-1.5 text-sm text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="min-w-0 flex-1 rounded-md border border-vf-panel-border bg-vf-panel-bg-inset px-3 py-1.5 text-sm text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           />
           <span aria-live="polite" className="text-xs text-text-muted">
             {searchMatches.length === 0
@@ -702,7 +702,7 @@ export function ChatView() {
                   (value - 1 + searchMatches.length) % searchMatches.length,
               )
             }
-            className="rounded p-1 text-text-secondary hover:bg-surface"
+            className="rounded p-1 text-text-secondary hover:bg-vf-panel-bg"
           >
             ↑
           </button>
@@ -717,7 +717,7 @@ export function ChatView() {
                 (value) => (value + 1) % searchMatches.length,
               )
             }
-            className="rounded p-1 text-text-secondary hover:bg-surface"
+            className="rounded p-1 text-text-secondary hover:bg-vf-panel-bg"
           >
             ↓
           </button>
@@ -730,7 +730,7 @@ export function ChatView() {
               setSearchOpen(false);
               setSearchQuery("");
             }}
-            className="rounded p-1 text-text-secondary hover:bg-surface"
+            className="rounded p-1 text-text-secondary hover:bg-vf-panel-bg"
           >
             ×
           </button>
@@ -784,7 +784,7 @@ export function ChatView() {
                           model,
                         )
                       }
-                      className="text-left px-3 py-2.5 rounded-lg border border-border bg-surface-elevated hover:border-accent/40 text-text-secondary hover:text-text-primary hover:bg-surface transition-all vf-meta focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent cursor-pointer"
+                      className="text-left px-3 py-2.5 rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised hover:border-accent/40 text-text-secondary hover:text-text-primary hover:bg-vf-panel-bg transition-all vf-meta focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent cursor-pointer"
                     >
                       {t(s.translationKey, { defaultValue: s.fallbackPrompt })}
                     </button>
@@ -797,7 +797,7 @@ export function ChatView() {
         ) : (
           <>
             {conversation?.metadata?.character && (
-              <div className="soft-separator-y mesh-surface bg-surface-elevated/40">
+              <div className="border-b border-vf-panel-border bg-vf-shell-bg/50">
                 <div className="max-w-vf-wide mx-auto px-4 sm:px-5 py-2 flex items-center gap-3">
                   <ActiveCharacterPill
                     character={conversation.metadata.character}
@@ -835,12 +835,12 @@ export function ChatView() {
                 </div>
               </div>
             )}
-            <div className="soft-separator-y mesh-surface">
+            <div className="border-b border-vf-panel-border bg-vf-shell-bg/40">
               <VeniceParams />
             </div>
             <div className="w-full max-w-vf-wide mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
               {isCharacterBound && conversation.messages.length === 0 && (
-                <div className="rounded-lg border border-border bg-surface-elevated p-5 text-center vf-meta text-text-secondary">
+                <div className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised p-5 text-center vf-meta text-text-secondary">
                   <Trans i18nKey="common:surface.componentsChatChatView.text.startAConversationWith" />{" "}
                   {conversation.metadata?.character?.name ||
                     tRuntime(
@@ -900,7 +900,7 @@ export function ChatView() {
       {pendingContext && (
         <div
           aria-live="polite"
-          className="soft-separator-y bg-surface-elevated p-4 flex flex-col gap-3 max-w-vf-wide mx-auto w-full rounded-t-xl shadow-lg transition-all duration-200"
+          className="border-t border-vf-panel-border bg-vf-panel-bg-raised p-4 flex flex-col gap-3 max-w-vf-wide mx-auto w-full rounded-t-xl shadow-lg transition-all duration-200"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -930,13 +930,13 @@ export function ChatView() {
                     decision,
                   );
                 }}
-                className="px-2.5 py-1 vf-meta font-semibold rounded bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer"
+                className="px-2.5 py-1 vf-meta font-semibold rounded-md bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_0_8px_var(--color-vf-accent-glow)] rounded-md transition-colors cursor-pointer"
               >
                 <Trans i18nKey="common:surface.componentsChatChatView.action.confirmSend" />
               </button>
               <button
                 onClick={() => setIsEditingContext(!isEditingContext)}
-                className="px-2.5 py-1 vf-meta font-medium rounded border border-border bg-surface hover:bg-surface-elevated text-text-secondary transition-colors cursor-pointer"
+                className="px-2.5 py-1 vf-meta font-medium rounded-md border border-vf-panel-border bg-vf-panel-bg hover:bg-vf-panel-bg-raised text-text-secondary transition-colors cursor-pointer"
               >
                 {isEditingContext
                   ? tRuntime(
@@ -953,7 +953,7 @@ export function ChatView() {
                     source: "preview",
                   });
                 }}
-                className="px-2.5 py-1 vf-meta font-medium rounded border border-transparent bg-danger/10 hover:bg-danger/20 text-danger transition-colors cursor-pointer"
+                className="px-2.5 py-1 vf-meta font-medium rounded-md border border-transparent border border-danger/30 bg-danger/10 hover:bg-danger/20 text-danger transition-colors cursor-pointer"
               >
                 <Trans i18nKey="common:surface.componentsChatChatView.action.disableMemoryForThisMessage" />
               </button>
@@ -977,7 +977,7 @@ export function ChatView() {
               <textarea
                 value={editedText}
                 onChange={(e) => setEditedText(e.target.value)}
-                className="w-full bg-surface border border-border rounded-lg p-2.5 vf-meta text-text-primary font-mono outline-none focus:border-accent resize-y min-h-[120px]"
+                className="w-full bg-vf-panel-bg-inset border border-vf-panel-border rounded-md p-2.5 vf-meta text-text-primary font-mono outline-none focus:border-accent resize-y min-h-[120px]"
               />
               <button
                 onClick={() => {
@@ -987,7 +987,7 @@ export function ChatView() {
                   });
                   setIsEditingContext(false);
                 }}
-                className="self-end px-3 py-1.5 rounded bg-accent text-accent-fg vf-meta font-medium hover:bg-accent-hover transition-colors cursor-pointer"
+                className="self-end px-3 py-1.5 rounded-md bg-accent text-accent-fg vf-meta font-medium hover:bg-accent-hover transition-colors cursor-pointer"
               >
                 <Trans i18nKey="common:surface.componentsChatChatView.action.saveContextText" />
               </button>
@@ -997,7 +997,7 @@ export function ChatView() {
               {pendingContext.summaries?.map((sum: string, idx: number) => (
                 <div
                   key={`sum-${idx}`}
-                  className="flex items-center justify-between gap-3 p-2 bg-surface/40 rounded border border-border-soft text-[12.5px]"
+                  className="flex items-center justify-between gap-3 p-2 bg-vf-panel-bg-inset rounded-md border border-vf-panel-border text-[12.5px]"
                 >
                   <div className="text-text-secondary italic">
                     <Trans i18nKey="common:surface.componentsChatChatView.text.previousThread" />{" "}
@@ -1040,7 +1040,7 @@ export function ChatView() {
               {pendingContext.facts?.map((fact: MemoryFact) => (
                 <div
                   key={fact.id}
-                  className="flex items-center justify-between gap-3 p-2 bg-surface/40 rounded border border-border-soft text-[12.5px]"
+                  className="flex items-center justify-between gap-3 p-2 bg-vf-panel-bg-inset rounded-md border border-vf-panel-border text-[12.5px]"
                 >
                   <div className="text-text-primary">{fact.text}</div>
                   <div className="flex gap-2">
@@ -1332,7 +1332,7 @@ function PriorConversationContextSelector({
         aria-haspopup="dialog"
         aria-controls={open ? popoverDialogId : undefined}
         onClick={() => setOpen((value) => !value)}
-        className="rounded-lg px-2 py-1.5 vf-meta text-text-muted hover:bg-surface-elevated hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        className="rounded-lg px-2 py-1.5 vf-meta text-text-muted hover:bg-vf-panel-bg-raised hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       >
         <Trans i18nKey="common:surface.componentsChatChatView.action.chatContext" />{" "}
         {memoryEnabled
@@ -1358,7 +1358,7 @@ function PriorConversationContextSelector({
             aria-label={tRuntime(
               "runtimeGenerated.components.chat.chatView.attribute.chatContext",
             )}
-            className="fixed z-50 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg border border-border bg-surface-elevated px-3 py-3 shadow-xl"
+            className="fixed z-50 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg border border-vf-panel-border bg-vf-shell-bg px-3 py-3 shadow-xl"
           >
           <div className="mb-2 vf-meta font-semibold uppercase tracking-wide text-text-muted">
             <Trans i18nKey="common:surface.componentsChatChatView.text.chatContext" />
@@ -1377,7 +1377,7 @@ function PriorConversationContextSelector({
                     e.target.value as "inherit" | "override" | "disabled",
                   )
                 }
-                className="w-full bg-surface border border-border rounded px-2 py-1.5 vf-meta text-text-primary outline-none focus:border-accent"
+                className="w-full bg-vf-panel-bg-inset border border-vf-panel-border rounded-md px-2 py-1.5 vf-meta text-text-primary outline-none focus:border-accent"
               >
                 <option value="inherit">
                   <Trans i18nKey="common:surface.componentsChatChatView.option.inheritFromDefaultSettings" />
@@ -1448,8 +1448,8 @@ function PriorConversationContextSelector({
                     onClick={() => toggleId(item.id)}
                     className={`rounded-md border px-2 py-1 vf-meta transition-colors ${
                       selectedIds.includes(item.id)
-                        ? "border-accent bg-accent/10 text-accent"
-                        : "border-border text-text-secondary hover:text-text-primary"
+                        ? "border-accent/40 bg-accent/15 text-accent shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)]"
+                        : "border-vf-panel-border text-text-secondary hover:text-text-primary"
                     }`}
                   >
                     {selectedIds.includes(item.id)
@@ -1492,14 +1492,14 @@ function ActiveCharacterPill({
   const { t: tRuntime } = useTranslation("common");
   return (
     <div
-      className="flex items-center gap-3 rounded-full bg-surface-elevated border border-accent/30 pl-1.5 pr-3 py-1 text-[12.5px]"
+      className="flex items-center gap-3 rounded-full bg-vf-panel-bg-raised border border-accent/40 shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)] pl-1.5 pr-3 py-1 text-[12.5px]"
       data-testid="active-character-pill"
     >
       <CharacterAvatar
         character={character}
         cacheKey={`pill-${character.localCharacterId || character.slug || character.id || character.name}`}
         size="md"
-        className="border border-border"
+        className="border border-vf-panel-border"
       />
       <div className="flex flex-col leading-tight">
         <span className="text-text-primary font-semibold">

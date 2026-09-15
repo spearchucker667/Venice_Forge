@@ -453,14 +453,14 @@ describe("ChatInput", () => {
   it("uses semantic surface tokens for the disabled send button", async () => {
     render(<ChatInput onSend={vi.fn()} onStop={vi.fn()} isStreaming={false} />);
     const sendButton = screen.getByRole("button", { name: "Send message" });
-    expect(sendButton.className).toContain("bg-surface-elevated");
+    expect(sendButton.className).toContain("bg-vf-panel-bg-inset");
     expect(sendButton.className).toContain("text-text-muted");
   });
 
   it("uses semantic surface tokens for the stop button", () => {
     render(<ChatInput onSend={vi.fn()} onStop={vi.fn()} isStreaming />);
     const stopButton = screen.getByRole("button", { name: "Stop generating" });
-    expect(stopButton.className).toContain("bg-surface-elevated");
+    expect(stopButton.className).toContain("bg-vf-panel-bg-raised");
     expect(stopButton.className).toContain("text-text-primary");
   });
 

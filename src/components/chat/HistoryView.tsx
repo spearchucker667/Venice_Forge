@@ -502,10 +502,10 @@ export default function HistoryView() {
     filtered.length > 0 && filtered.every((c) => selectedIds.includes(c.id));
 
   return (
-    <div className="flex flex-col h-full bg-surface">
-      <div className="flex items-center justify-between px-6 py-4 soft-separator-y mesh-header mesh-surface shrink-0">
+    <div className="flex flex-col h-full bg-vf-panel-bg">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-vf-panel-border bg-vf-shell-bg shrink-0">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-accent/10 rounded-lg text-accent">
+          <div className="p-2 bg-accent/10 rounded-md text-accent">
             <Meteocon name="time-morning" size={20} />
           </div>
           <div>
@@ -519,7 +519,7 @@ export default function HistoryView() {
         </div>
         <button
           onClick={handleStartNew}
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-fg text-[13px] font-medium rounded-md hover:bg-accent/90 transition-colors shadow-sm cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-fg text-[13px] font-medium rounded-md hover:bg-accent-hover shadow-[0_0_8px_var(--color-vf-accent-glow)] transition-colors cursor-pointer"
         >
           <Plus size={16} />
           <Trans i18nKey="common:surface.componentsChatHistoryview.action.newChat" />
@@ -541,7 +541,7 @@ export default function HistoryView() {
                 )}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-surface-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-[14px] text-text-primary placeholder:text-text-muted transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-vf-panel-bg-inset border border-vf-panel-border rounded-md focus:outline-none focus:border-accent text-[14px] text-text-primary placeholder:text-text-muted transition-all"
               />
             </div>
             <select
@@ -551,7 +551,7 @@ export default function HistoryView() {
                   e.target.value as "all" | "character" | "standard",
                 )
               }
-              className="px-4 py-2.5 bg-surface-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-[14px] text-text-primary transition-all"
+              className="px-4 py-2.5 bg-vf-panel-bg-inset border border-vf-panel-border rounded-md focus:outline-none focus:border-accent text-[14px] text-text-primary transition-all cursor-pointer"
             >
               <option value="all">
                 <Trans i18nKey="common:surface.componentsChatHistoryview.option.allChats" />
@@ -565,14 +565,14 @@ export default function HistoryView() {
             </select>
             <label
               htmlFor="history-show-archived"
-              className="flex items-center gap-2 px-3 py-2.5 bg-surface-elevated border border-border rounded-lg text-[13px] text-text-secondary cursor-pointer"
+              className="flex items-center gap-2 px-3 py-2.5 bg-vf-panel-bg-inset border border-vf-panel-border rounded-md text-[13px] text-text-secondary cursor-pointer"
             >
               <input
                 id="history-show-archived"
                 type="checkbox"
                 checked={showArchived}
                 onChange={(e) => setShowArchived(e.target.checked)}
-                className="h-4 w-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+                className="h-4 w-4 rounded border-vf-panel-border text-accent focus:ring-accent cursor-pointer"
               />
               {tRuntime(
                 "runtimeGenerated.components.chat.historyview.text.showArchived",
@@ -582,12 +582,12 @@ export default function HistoryView() {
           </div>
 
           {/* Multi-Selection Control Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-elevated px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-3 py-2">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleSelectAllVisible}
-                className="px-2.5 py-1 text-[12px] font-medium rounded border border-border text-text-secondary hover:border-accent hover:text-accent transition-colors"
+                className="px-2.5 py-1 text-[12px] font-medium rounded-md border border-vf-panel-border bg-vf-panel-bg text-text-secondary hover:border-accent/40 hover:text-accent transition-colors"
               >
                 {isAllVisibleSelected
                   ? tRuntime(
@@ -629,7 +629,7 @@ export default function HistoryView() {
                       }
                     }}
                     defaultValue=""
-                    className="px-2 py-1 bg-surface border border-border rounded text-[12px] text-text-primary focus:border-accent focus:outline-none cursor-pointer"
+                    className="px-2 py-1 bg-vf-panel-bg-inset border border-vf-panel-border rounded text-[12px] text-text-primary focus:border-accent focus:outline-none cursor-pointer"
                   >
                     <option value="" disabled>
                       <Trans i18nKey="common:surface.componentsChatHistoryview.option.selectDestinationFolder" />
@@ -655,7 +655,7 @@ export default function HistoryView() {
                 type="button"
                 onClick={() => setSelectedIds([])}
                 disabled={selectedIds.length === 0}
-                className="px-3 py-1 text-[12px] rounded-md border border-border text-text-secondary disabled:opacity-40 hover:bg-surface transition-colors"
+                className="px-3 py-1 text-[12px] rounded-md border border-vf-panel-border bg-vf-panel-bg text-text-secondary disabled:opacity-40 hover:bg-vf-control-hover hover:text-text-primary transition-colors"
               >
                 <Trans i18nKey="common:surface.componentsChatHistoryview.action.clearSelection" />
               </button>
@@ -663,10 +663,10 @@ export default function HistoryView() {
                 type="button"
                 onClick={handleBatchDelete}
                 disabled={selectedIds.length === 0}
-                className="px-3 py-1 text-[12px] rounded-md border border-danger/40 text-danger disabled:opacity-40 hover:bg-danger/10 transition-colors font-medium"
+                className="px-3 py-1 text-[12px] rounded-md border border-danger/40 bg-danger/10 text-danger disabled:opacity-40 hover:bg-danger/20 transition-colors font-medium"
               >
                 <Trans i18nKey="common:surface.componentsChatHistoryview.action.deleteSelected" />
-                {selectedIds.length})
+                ({selectedIds.length})
               </button>
             </div>
           </div>
@@ -706,7 +706,7 @@ export default function HistoryView() {
               return (
                 <div key={folder.id} className="space-y-4">
                   <div
-                    className="flex items-center justify-between px-2 py-1.5 hover:bg-surface-elevated rounded-md group/folder cursor-pointer"
+                    className="flex items-center justify-between px-2 py-1.5 hover:bg-vf-control-hover rounded-md group/folder cursor-pointer"
                     onClick={() =>
                       setExpandedFolders((prev) => ({
                         ...prev,
@@ -745,7 +745,7 @@ export default function HistoryView() {
                           type="checkbox"
                           checked={isFolderFullySelected}
                           onChange={() => {}}
-                          className="h-4 w-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+                          className="h-4 w-4 rounded border-vf-panel-border text-accent focus:ring-accent cursor-pointer"
                         />
                       </button>
                       <span className="text-text-muted">
@@ -773,7 +773,7 @@ export default function HistoryView() {
                             }
                           }}
                           onBlur={() => setEditingFolderId(null)}
-                          className="bg-surface border border-border rounded px-2 py-0.5 text-[14px] text-text-primary outline-none"
+                          className="bg-vf-panel-bg-inset border border-vf-panel-border rounded px-2 py-0.5 text-[14px] text-text-primary outline-none focus:border-accent"
                         />
                       ) : (
                         <span className="text-[15px] font-semibold text-text-primary">
@@ -800,7 +800,7 @@ export default function HistoryView() {
                           e.stopPropagation();
                           void moveFolder(-1);
                         }}
-                        className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-surface disabled:opacity-30"
+                        className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-vf-control-hover disabled:opacity-30"
                         title={tRuntime(
                           "runtimeGenerated.components.chat.historyview.attribute.moveFolderUp",
                         )}
@@ -821,7 +821,7 @@ export default function HistoryView() {
                           e.stopPropagation();
                           void moveFolder(1);
                         }}
-                        className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-surface disabled:opacity-30"
+                        className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-vf-control-hover disabled:opacity-30"
                         title={tRuntime(
                           "runtimeGenerated.components.chat.historyview.attribute.moveFolderDown",
                         )}
@@ -838,7 +838,7 @@ export default function HistoryView() {
                           setEditingFolderId(folder.id);
                           setEditingFolderName(folder.name);
                         }}
-                        className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-surface"
+                        className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-vf-control-hover"
                         title={tRuntime(
                           "runtimeGenerated.components.chat.historyview.attribute.renameFolder",
                         )}
@@ -869,10 +869,10 @@ export default function HistoryView() {
                               key={conv.id}
                               onClick={() => handleSelect(conv.id)}
                               aria-selected={selectedIds.includes(conv.id)}
-                              className={`group relative flex flex-col p-5 bg-surface-elevated border rounded-xl hover:border-accent hover:shadow-md cursor-pointer transition-all duration-200 ${
+                              className={`group relative flex flex-col p-5 bg-vf-panel-bg-raised border rounded-lg hover:border-accent/40 hover:shadow-sm cursor-pointer transition-all duration-150 ${
                                 selectedIds.includes(conv.id)
-                                  ? "border-accent ring-2 ring-accent/30 bg-accent/5"
-                                  : "border-border"
+                                  ? "border-accent ring-1 ring-accent/40 bg-accent/10 shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)]"
+                                  : "border-vf-panel-border"
                               }`}
                             >
                               <div className="flex justify-between items-start mb-3">
@@ -885,7 +885,7 @@ export default function HistoryView() {
                                       e.stopPropagation();
                                       toggleSelection(conv.id);
                                     }}
-                                    className="h-4 w-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+                                    className="h-4 w-4 rounded border-vf-panel-border text-accent focus:ring-accent cursor-pointer"
                                     title={
                                       selectedIds.includes(conv.id)
                                         ? tRuntime(
@@ -896,7 +896,7 @@ export default function HistoryView() {
                                           )
                                     }
                                   />
-                                  <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/5 rounded-md text-accent">
+                                  <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/10 border border-accent/30 rounded-md text-accent">
                                     {conv.metadata?.character ? (
                                       <CharacterAvatar
                                         character={conv.metadata.character}
@@ -987,7 +987,7 @@ export default function HistoryView() {
 
                               <div className="flex-1" />
 
-                              <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
+                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-vf-panel-border">
                                 <div className="flex items-center gap-2.5 text-[12px] text-text-muted">
                                   <span className="flex items-center gap-1">
                                     <MessageSquare
@@ -1014,7 +1014,7 @@ export default function HistoryView() {
 
                   {expandedFolders[folder.id] !== false &&
                     folderConvs.length === 0 && (
-                      <div className="pl-8 py-4 text-[13px] text-text-muted/60 italic border border-dashed border-border/50 rounded-lg text-center">
+                      <div className="pl-8 py-4 text-[13px] text-text-muted italic border border-dashed border-vf-panel-border rounded-lg text-center">
                         <Trans i18nKey="common:surface.componentsChatHistoryview.text.noConversationsInThisFolder" />
                       </div>
                     )}
@@ -1035,7 +1035,7 @@ export default function HistoryView() {
               return (
                 <div className="space-y-4">
                   <div
-                    className="flex items-center justify-between px-2 py-1.5 hover:bg-surface-elevated rounded-md group/unfiled cursor-pointer"
+                    className="flex items-center justify-between px-2 py-1.5 hover:bg-vf-control-hover rounded-md group/unfiled cursor-pointer"
                     onClick={() =>
                       setExpandedFolders((prev) => ({
                         ...prev,
@@ -1065,7 +1065,7 @@ export default function HistoryView() {
                           type="checkbox"
                           checked={isUnfiledFullySelected}
                           onChange={() => {}}
-                          className="h-4 w-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+                          className="h-4 w-4 rounded border-vf-panel-border text-accent focus:ring-accent cursor-pointer"
                         />
                       </button>
                       <span className="text-text-muted">
@@ -1100,10 +1100,10 @@ export default function HistoryView() {
                               key={conv.id}
                               onClick={() => handleSelect(conv.id)}
                               aria-selected={selectedIds.includes(conv.id)}
-                              className={`group relative flex flex-col p-5 bg-surface-elevated border rounded-xl hover:border-accent hover:shadow-md cursor-pointer transition-all duration-200 ${
+                              className={`group relative flex flex-col p-5 bg-vf-panel-bg-raised border rounded-lg hover:border-accent/40 hover:shadow-sm cursor-pointer transition-all duration-150 ${
                                 selectedIds.includes(conv.id)
-                                  ? "border-accent ring-2 ring-accent/30 bg-accent/5"
-                                  : "border-border"
+                                  ? "border-accent ring-1 ring-accent/40 bg-accent/10 shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)]"
+                                  : "border-vf-panel-border"
                               }`}
                             >
                               <div className="flex justify-between items-start mb-3">
@@ -1116,7 +1116,7 @@ export default function HistoryView() {
                                       e.stopPropagation();
                                       toggleSelection(conv.id);
                                     }}
-                                    className="h-4 w-4 rounded border-border text-accent focus:ring-accent cursor-pointer"
+                                    className="h-4 w-4 rounded border-vf-panel-border text-accent focus:ring-accent cursor-pointer"
                                     title={
                                       selectedIds.includes(conv.id)
                                         ? tRuntime(
@@ -1127,7 +1127,7 @@ export default function HistoryView() {
                                           )
                                     }
                                   />
-                                  <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/5 rounded-md text-accent">
+                                  <div className="flex items-center gap-2 px-2 py-0.5 bg-accent/10 border border-accent/30 rounded-md text-accent">
                                     {conv.metadata?.character ? (
                                       <CharacterAvatar
                                         character={conv.metadata.character}
@@ -1218,7 +1218,7 @@ export default function HistoryView() {
 
                               <div className="flex-1" />
 
-                              <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
+                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-vf-panel-border">
                                 <div className="flex items-center gap-2.5 text-[12px] text-text-muted">
                                   <span className="flex items-center gap-1">
                                     <MessageSquare
@@ -1245,7 +1245,7 @@ export default function HistoryView() {
 
                   {expandedFolders["unfiled"] !== false &&
                     unfiledConvs.length === 0 && (
-                      <div className="pl-8 py-4 text-[13px] text-text-muted/60 italic border border-dashed border-border/50 rounded-lg text-center">
+                      <div className="pl-8 py-4 text-[13px] text-text-muted italic border border-dashed border-vf-panel-border rounded-lg text-center">
                         <Trans i18nKey="common:surface.componentsChatHistoryview.text.noUnfiledConversations" />
                       </div>
                     )}
@@ -1254,7 +1254,7 @@ export default function HistoryView() {
             })()}
 
             {/* New Folder Button */}
-            <div className="pt-4 border-t border-border/50 flex gap-2">
+            <div className="pt-4 border-t border-vf-panel-border flex gap-2">
               {isCreatingFolder ? (
                 <div className="flex gap-2 w-full max-w-sm">
                   <input
@@ -1280,14 +1280,14 @@ export default function HistoryView() {
                     placeholder={tRuntime(
                       "runtimeGenerated.components.chat.historyview.attribute.folderName",
                     )}
-                    className="flex-1 bg-surface border border-border rounded px-3 py-1.5 text-[14px] outline-none focus:border-accent"
+                    className="flex-1 bg-vf-panel-bg-inset border border-vf-panel-border rounded px-3 py-1.5 text-[14px] outline-none focus:border-accent"
                   />
                   <button
                     onClick={() => {
                       setNewFolderName("");
                       setIsCreatingFolder(false);
                     }}
-                    className="px-3 py-1.5 text-[13px] text-text-muted hover:bg-surface-elevated border border-border rounded"
+                    className="px-3 py-1.5 text-[13px] text-text-muted hover:bg-vf-control-hover hover:text-text-primary border border-vf-panel-border rounded"
                   >
                     <Trans i18nKey="common:surface.componentsChatHistoryview.action.cancel" />
                   </button>
@@ -1295,7 +1295,7 @@ export default function HistoryView() {
               ) : (
                 <button
                   onClick={() => setIsCreatingFolder(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-[13px] font-medium text-text-muted hover:text-accent hover:bg-accent/10 rounded-md transition-colors border border-dashed border-border hover:border-accent/50"
+                  className="flex items-center gap-2 px-3 py-1.5 text-[13px] font-medium text-text-muted hover:text-accent hover:bg-accent/10 rounded-md transition-colors border border-dashed border-vf-panel-border hover:border-accent/50"
                 >
                   <FolderPlus size={16} />
                   <Trans i18nKey="common:surface.componentsChatHistoryview.action.newFolder" />
@@ -1303,7 +1303,7 @@ export default function HistoryView() {
               )}
             </div>
             {filtered.length === 0 && (
-              <div className="col-span-full py-32 flex flex-col items-center justify-center text-text-muted bg-surface-elevated/30 border border-dashed border-border rounded-2xl">
+              <div className="col-span-full py-32 flex flex-col items-center justify-center text-text-muted bg-vf-panel-bg-raised border border-dashed border-vf-panel-border rounded-xl">
                 <BookOpen size={48} className="mb-4 opacity-10" />
                 <h3 className="text-[16px] font-medium">
                   <Trans i18nKey="common:surface.componentsChatHistoryview.heading.noConversationsFound" />
@@ -1313,7 +1313,7 @@ export default function HistoryView() {
                 </p>
                 <button
                   onClick={handleStartNew}
-                  className="mt-6 px-5 py-2 border border-accent text-accent hover:bg-accent hover:text-accent-fg rounded-md transition-all text-[13px] font-medium cursor-pointer"
+                  className="mt-6 px-5 py-2 border border-accent text-accent hover:bg-accent hover:text-accent-fg rounded-md shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)] transition-all text-[13px] font-medium cursor-pointer"
                 >
                   <Trans i18nKey="common:surface.componentsChatHistoryview.action.startNewConversation" />
                 </button>
@@ -1331,7 +1331,7 @@ export default function HistoryView() {
             role="menu"
             aria-orientation="vertical"
             tabIndex={-1}
-            className="bg-surface-elevated border border-border rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in-0 zoom-in-95 outline-none"
+            className="bg-vf-shell-bg border border-vf-panel-border rounded-md shadow-2xl py-1 min-w-[160px] animate-in fade-in-0 zoom-in-95 outline-none"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === "Escape") {
@@ -1415,7 +1415,7 @@ export default function HistoryView() {
                     title={tRuntime(
                       "runtimeGenerated.components.chat.historyview.attribute.privacyAccessGateNotPerFolderEncryptionAtRest",
                     )}
-                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-vf-control-hover hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer"
                   >
                     {isLocked ? (
                       <>
@@ -1442,7 +1442,7 @@ export default function HistoryView() {
                       }
                       setFolderContextMenu(null);
                     }}
-                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-vf-control-hover hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer"
                   >
                     <Edit2 size={14} />{" "}
                     <Trans i18nKey="common:surface.componentsChatHistoryview.action.rename" />
@@ -1459,7 +1459,7 @@ export default function HistoryView() {
                     <Trash2 size={14} />{" "}
                     <Trans i18nKey="common:surface.componentsChatHistoryview.action.delete" />
                   </button>
-                  <div className="h-px bg-border/50 my-1" />
+                  <div className="h-px bg-vf-panel-border my-1" />
                   <button
                     role="menuitem"
                     onClick={async (e) => {
@@ -1485,7 +1485,7 @@ export default function HistoryView() {
                         });
                       }
                     }}
-                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-vf-control-hover hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer"
                   >
                     <Download size={14} />{" "}
                     <Trans i18nKey="common:surface.componentsChatHistoryview.action.export" />
@@ -1497,7 +1497,7 @@ export default function HistoryView() {
                       setFolderContextMenu(null);
                       await handleImportFolder();
                     }}
-                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-accent/10 hover:text-accent transition-colors flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-vf-control-hover hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer"
                   >
                     <Upload size={14} />{" "}
                     <Trans i18nKey="common:surface.componentsChatHistoryview.action.import" />
