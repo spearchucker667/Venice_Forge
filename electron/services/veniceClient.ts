@@ -597,6 +597,9 @@ async function performSingleVeniceRequest(
         let totalBytes = 0;
         const responseHeaders = sanitizeHeaders(res.headers);
         const contentType = String(res.headers["content-type"] || "");
+        const isSseResponse = Boolean(
+          options.onDelta && contentType.includes("event-stream") && res.statusCode && res.statusCode < 400,
+        );
         // Shared incremental SSE decoder: blank-line framing, multiline
         // data: joining, streaming UTF-8, typed decode errors, EOF flush.
         // The same decoder drives the Web transport so both emit identical
@@ -604,6 +607,7 @@ async function performSingleVeniceRequest(
         let sseDecoder: SseDecoder | undefined;
         let streamText = "";
         let streamTerminalError: string | undefined;
+        let streamFinished = false;
 
         const onDelta = options.onDelta;
         const consumeSseEvents = (events: SseEvent[]) => {
@@ -616,6 +620,7 @@ async function performSingleVeniceRequest(
                 : {}),
             });
             streamText += outcome.text;
+            if (outcome.done) streamFinished = true;
             if (outcome.malformed) {
               // SECURITY: redact any leaked secret-like values before
               // logging; the raw frame never reaches the renderer.
@@ -639,7 +644,7 @@ async function performSingleVeniceRequest(
             return;
           }
 
-          if (contentType.includes("event-stream") && res.statusCode && res.statusCode < 400) {
+          if (isSseResponse) {
             if (!sseDecoder) sseDecoder = new SseDecoder();
             let events: SseEvent[];
             try {
@@ -692,9 +697,20 @@ async function performSingleVeniceRequest(
             });
             return;
           }
+          if (isSseResponse && (res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300 && !streamFinished) {
+            resolve({
+              ok: false,
+              status: 502,
+              statusText: "Bad Gateway",
+              headers: responseHeaders,
+              body: { error: "Venice stream ended before the [DONE] terminator." },
+              contentType,
+            });
+            return;
+          }
           const buffer = Buffer.concat(chunks);
           let body =
-            options.onDelta && contentType.includes("event-stream") && res.statusCode && res.statusCode < 400
+            isSseResponse && res.statusCode && res.statusCode < 400
               ? { text: streamText }
               : parseBody(buffer, contentType);
 

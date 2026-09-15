@@ -110,6 +110,38 @@ describe("performVeniceRequest streaming safety", () => {
     expect(response.body).toMatchObject({ error: "Venice stream ended with a truncated data sequence." });
   });
 
+  it("returns ok:false when a successful SSE stream ends before [DONE]", async () => {
+    const requestMock = https.request as unknown as HttpsRequestMock;
+    requestMock.mockImplementation((_options, callback) => {
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn();
+      req.destroy = vi.fn();
+      req.end = vi.fn(() => {
+        const res = new EventEmitter() as MockResponse;
+        res.headers = { "content-type": "text/event-stream" };
+        res.statusCode = 200;
+        res.statusMessage = "OK";
+        callback(res);
+        res.emit("data", Buffer.from('data: {"choices":[{"delta":{"content":"partial"}}]}\n\n'));
+        res.emit("end");
+      });
+      return req;
+    });
+
+    const onDelta = vi.fn();
+    const response = await performVeniceRequest(
+      { endpoint: "/chat/completions", method: "POST", body: { model: "venice-uncensored" } },
+      { onDelta },
+    );
+
+    expect(response).toMatchObject({
+      ok: false,
+      status: 502,
+      body: { error: "Venice stream ended before the [DONE] terminator." },
+    });
+    expect(onDelta).toHaveBeenCalledWith(expect.objectContaining({ content: "partial" }));
+  });
+
   it("caps concurrent Venice requests and queues overflow", async () => {
     const requestMock = https.request as unknown as HttpsRequestMock;
     const inflight: Array<{ req: MockRequest; res: MockResponse }> = [];

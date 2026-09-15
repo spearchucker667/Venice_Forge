@@ -505,14 +505,17 @@ describe("chat-stream-manager", () => {
     expect(after.messages.some((m) => String(m.content).includes("ok-reply"))).toBe(true);
   });
 
-  it("discards partial deltas on a hard stream failure and keeps only the safe error marker", async () => {
+  it("discards partial deltas when an incomplete stream fails", async () => {
     const convId = useChatStore.getState().createConversation("llama-3.3-70b");
     useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
     useChatStore.getState().addMessage(convId, { role: "assistant", content: "" });
 
     mockedVeniceStreamChat.mockImplementationOnce(async (_payload, opts) => {
       opts.onDelta?.({ content: "partial-then-fail", reasoning: "" });
-      const err = Object.assign(new Error("bad request"), { status: 400 });
+      const err = Object.assign(
+        new Error("Venice stream ended before the [DONE] terminator."),
+        { status: 502 },
+      );
       throw err;
     });
 

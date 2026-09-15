@@ -430,6 +430,25 @@ describe("veniceClient web regressions", () => {
     expect(onDelta).not.toHaveBeenCalled();
   });
 
+  it("rejects a streamed response that ends before [DONE]", async () => {
+    useSettingsStore.setState({ localFamilySafeModeEnabled: false });
+    mockSseResponse([
+      'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n',
+    ]);
+    const onDelta = vi.fn();
+
+    const error = await veniceStreamChat(
+      { model: "venice-uncensored", messages: [{ role: "user", content: "hi" }] },
+      { onDelta },
+    ).catch((value: unknown) => value);
+
+    expect(error).toMatchObject({
+      message: "Venice stream ended before the [DONE] terminator.",
+      status: 502,
+    });
+    expect(onDelta).toHaveBeenCalledWith(expect.objectContaining({ content: "partial" }));
+  });
+
   it("releases withheld streamed deltas after Family Safe Mode allows the body", async () => {
     mockSseResponse([
       'data: {"choices":[{"delta":{"content":"hello"}}]}\n\n',

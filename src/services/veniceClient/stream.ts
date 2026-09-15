@@ -379,9 +379,12 @@ export async function veniceStreamChat(
           }
           throw err;
         }
-        // `streamFinished` is not read after this point, so the flush result
-        // only needs to be consumed.
-        consumeSseEvents(tail);
+        streamFinished = consumeSseEvents(tail);
+      }
+      if (!streamFinished) {
+        const error = new Error("Venice stream ended before the [DONE] terminator.") as VeniceApiError;
+        error.status = 502;
+        throw error;
       }
       if (malformedFrameCount > 0) {
         console.warn(
