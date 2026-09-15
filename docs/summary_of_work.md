@@ -9,7 +9,7 @@ This is the active handoff and validation ledger. The canonical current-work led
   - **Focused validation:** `npx vitest run electron/utils/validateIpcSender.test.ts electron/ipc/handlers/common.security.test.ts src/services/ingestion/attachmentChunking.test.ts src/services/safetyGatedSse.test.ts scripts/verify-superdesign-init.test.ts scripts/verify-agent-docs.test.ts --no-file-parallelism` — PASS (6 files / 57 tests). `npx vitest run src/hooks/use-chat.attachments.test.ts src/services/ingestion/textIngestion.test.ts src/services/ingestion/codeIngestion.test.ts src/services/ingestion/pdfIngestion.test.ts src/services/ingestion/docxIngestion.test.ts src/research/providers/jinaResearchProvider.test.ts server.test.ts --no-file-parallelism` — PASS (8 files / 143 tests).
   - **Repository gates:** `npm run lint:eslint` — PASS; `npm run typecheck` — PASS; `npm run verify:contracts:static` — PASS; `npm run build` — PASS; `npm run verify:superdesign-init` — PASS; `npm run verify:agent-docs` — PASS; `npm run verify:theme-tokens` — PASS. Vitest emitted the existing non-failing 935 missing-marker fallback notices. `npm test` completed 6,198/6,203 tests successfully but had one parallel-load timeout in `server.test.ts` (`rejects an upstream Content-Type outside the scrape allowlist`); rerunning that test alone passed. `npm test -- --runInBand` was not a valid Vitest invocation and failed on the unknown option.
   - **Remaining:** semantic generated-media classification is intentionally still unavailable; no headed visual, screen-reader, funded-provider, two-device sync, signed/notarized artifact, hosted CI, or CodeQL validation was performed for this uncommitted tranche. Visual evidence remains direct-capture complete for 9 surfaces and not tested for the other 15 canonical tabs; see `docs/ROADMAP.md`.
-  - Worktree remains uncommitted on `main`; no push or publication performed.
+  - Committed on `main` as `227ab12539328e1dec999c589e672533e57822c8` and pushed to `origin/main`; local and remote SHA matched. Hosted CI/CodeQL status for this SHA was not available through the connected GitHub tooling in this session.
 
 - **2026-09-15 Light and Dark Theme Selection & Rendering Remediation.**
   - **Identified and fixed 5 root causes of light/dark theme selection and rendering failures:**
@@ -2524,7 +2524,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 - Implemented and locally validated the IPC, Family Safe Mode SSE, attachment chunk-selection, Superdesign verifier/artifact, agent-doc, theme-token, and Jina contract changes described in Latest Session Summary.
 - Updated `docs/ROADMAP.md` with explicit visual-evidence statuses and remaining acceptance limitations.
-- No commit, push, hosted CI, CodeQL, headed visual QA, or manual accessibility QA performed.
+- Commit `227ab12539328e1dec999c589e672533e57822c8` was pushed to `origin/main` and local/remote SHA equality was verified. Hosted CI/CodeQL, headed visual QA, and manual accessibility QA were not available/performed in this continuation.
 
 ### Previous sessions
 
