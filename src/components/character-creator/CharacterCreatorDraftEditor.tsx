@@ -132,9 +132,9 @@ export function CharacterCreatorDraftEditor({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background">
+    <div className="flex flex-col h-full overflow-hidden bg-vf-shell-bg">
       {/* Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-border/60 bg-surface/60 shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-vf-panel-border bg-vf-panel-bg/60 shrink-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <span className="text-xs px-2.5 py-1 rounded-full bg-accent/15 text-accent font-semibold shrink-0">
             <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.draftRev" />{" "}
@@ -152,7 +152,7 @@ export function CharacterCreatorDraftEditor({
           <button
             type="button"
             onClick={onSaveDraft}
-            className="px-3 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-md bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors"
           >
             <Save className="w-3.5 h-3.5" />
             <span>
@@ -162,7 +162,7 @@ export function CharacterCreatorDraftEditor({
           <button
             type="button"
             onClick={onValidateDraft}
-            className="px-3 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-md bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors"
           >
             <CheckCircle2 className="w-3.5 h-3.5 text-success" />
             <span>
@@ -172,7 +172,7 @@ export function CharacterCreatorDraftEditor({
           <button
             type="button"
             onClick={onApproveAndCreate}
-            className="px-4 py-1.5 rounded-lg bg-accent text-accent-contrast font-medium text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+            className="px-4 py-1.5 rounded-md bg-accent text-accent-contrast font-medium text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>
@@ -184,7 +184,7 @@ export function CharacterCreatorDraftEditor({
 
       {/* Assumptions & Design Summary Banner */}
       {draft.creatorMetadata && (
-        <div className="p-3 bg-surface-elevated/40 border-b border-border/40 text-xs flex flex-col gap-1 shrink-0">
+        <div className="p-3 bg-vf-panel-bg-raised/40 border-b border-vf-panel-border text-xs flex flex-col gap-1 shrink-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-text-primary font-semibold">
               <Info className="w-3.5 h-3.5 text-accent" />
@@ -214,7 +214,7 @@ export function CharacterCreatorDraftEditor({
               {draft.creatorMetadata.assumptions.map((a, i) => (
                 <span
                   key={i}
-                  className="px-1.5 py-0.5 rounded bg-surface border border-border"
+                  className="px-1.5 py-0.5 rounded bg-vf-panel-bg border border-vf-panel-border"
                 >
                   {a}
                 </span>
@@ -222,7 +222,7 @@ export function CharacterCreatorDraftEditor({
             </div>
           )}
           {showProcessLog && (
-            <div className="mt-2 pt-2 border-t border-border/40">
+            <div className="mt-2 pt-2 border-t border-vf-panel-border">
               <CharacterCreatorProcessPanel
                 events={draft.processTrace || []}
                 processSummary={draft.creatorMetadata.processSummary}
@@ -235,7 +235,7 @@ export function CharacterCreatorDraftEditor({
       )}
 
       {/* Main Tab Bar */}
-      <div className="flex items-center gap-1 px-4 pt-2 border-b border-border/50 bg-surface/30 overflow-x-auto shrink-0 scrollbar-none">
+      <div className="flex items-center gap-1 px-4 pt-2 border-b border-vf-panel-border bg-vf-panel-bg/30 overflow-x-auto shrink-0 scrollbar-none">
         {[
           {
             id: "overview",
@@ -327,7 +327,7 @@ export function CharacterCreatorDraftEditor({
                   type="text" id={`${baseId}-1`} 
                   value={cardData.name}
                   onChange={(e) => updateCardField("name", e.target.value)}
-                  className="w-full mt-1 p-3 text-sm rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full mt-1 p-3 text-sm rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -340,7 +340,7 @@ export function CharacterCreatorDraftEditor({
                   onChange={(e) =>
                     updateCardField("description", e.target.value)
                   }
-                  className="w-full mt-1 p-3 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full mt-1 p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -359,7 +359,7 @@ export function CharacterCreatorDraftEditor({
                         .filter(Boolean),
                     )
                   }
-                  className="w-full mt-1 p-3 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full mt-1 p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -372,7 +372,7 @@ export function CharacterCreatorDraftEditor({
                   onChange={(e) =>
                     updateCardField("creator_notes", e.target.value)
                   }
-                  className="w-full mt-1 p-3 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full mt-1 p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
             </div>
@@ -390,7 +390,7 @@ export function CharacterCreatorDraftEditor({
                   onChange={(e) =>
                     updateCardField("description", e.target.value)
                   }
-                  className="w-full mt-1 p-3 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full mt-1 p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
             </div>
@@ -420,7 +420,7 @@ export function CharacterCreatorDraftEditor({
                   onChange={(e) =>
                     updateCardField("personality", e.target.value)
                   }
-                  className="w-full p-3 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
             </div>
@@ -448,7 +448,7 @@ export function CharacterCreatorDraftEditor({
                   rows={4} id={`${baseId}-7`} 
                   value={cardData.scenario}
                   onChange={(e) => updateCardField("scenario", e.target.value)}
-                  className="w-full p-3 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
 
@@ -472,7 +472,7 @@ export function CharacterCreatorDraftEditor({
                   rows={5} id={`${baseId}-8`} 
                   value={cardData.first_mes}
                   onChange={(e) => updateCardField("first_mes", e.target.value)}
-                  className="w-full p-3 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
 
@@ -491,7 +491,7 @@ export function CharacterCreatorDraftEditor({
                           next[idx] = e.target.value;
                           updateCardField("alternate_greetings", next);
                         }}
-                        className="flex-1 p-2 text-xs rounded-lg bg-surface border border-border text-text-primary"
+                        className="flex-1 p-2 text-xs rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-primary"
                       />
                       <button
                         type="button"
@@ -501,7 +501,7 @@ export function CharacterCreatorDraftEditor({
                           );
                           updateCardField("alternate_greetings", next);
                         }}
-                        className="p-1 text-danger hover:bg-surface-elevated rounded"
+                        className="p-1 text-danger hover:bg-vf-control-hover rounded"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -538,7 +538,7 @@ export function CharacterCreatorDraftEditor({
                   placeholder={tRuntime(
                     "runtimeGenerated.components.characterCreator.charactercreatordrafteditor.attribute.start10UserHello10CharGreetings",
                   )}
-                  className="w-full mt-1 p-3 text-xs rounded-xl bg-surface border border-border text-text-primary font-mono focus:outline-none focus:border-accent"
+                  className="w-full mt-1 p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary font-mono focus:outline-none focus:border-accent"
                 />
               </div>
             </div>
@@ -546,7 +546,7 @@ export function CharacterCreatorDraftEditor({
 
           {activeTab === "advanced" && (
             <div className="flex flex-col gap-4">
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
                   <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.advancedPromptingInstructionsDirectlyModifySystemPrompt" />
@@ -563,7 +563,7 @@ export function CharacterCreatorDraftEditor({
                   onChange={(e) =>
                     updateCardField("system_prompt", e.target.value)
                   }
-                  className="w-full mt-1 p-3 text-xs rounded-xl bg-surface border border-border text-text-primary font-mono focus:outline-none focus:border-accent"
+                  className="w-full mt-1 p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary font-mono focus:outline-none focus:border-accent"
                 />
               </div>
 
@@ -577,7 +577,7 @@ export function CharacterCreatorDraftEditor({
                   onChange={(e) =>
                     updateCardField("post_history_instructions", e.target.value)
                   }
-                  className="w-full mt-1 p-3 text-xs rounded-xl bg-surface border border-border text-text-primary font-mono focus:outline-none focus:border-accent"
+                  className="w-full mt-1 p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary font-mono focus:outline-none focus:border-accent"
                 />
               </div>
             </div>
@@ -586,7 +586,7 @@ export function CharacterCreatorDraftEditor({
           {activeTab === "appearance" && (
             <div className="flex flex-col gap-5">
               <div className="flex flex-col sm:flex-row gap-4 items-start">
-                <div className="w-32 h-32 rounded-xl bg-surface-elevated border border-border flex items-center justify-center overflow-hidden shrink-0">
+                <div className="w-32 h-32 rounded-lg bg-vf-panel-bg-raised border border-vf-panel-border flex items-center justify-center overflow-hidden shrink-0">
                   {avatarDataUrl ? (
                     <img
                       src={avatarDataUrl}
@@ -606,7 +606,7 @@ export function CharacterCreatorDraftEditor({
                     <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.label.avatarControls" />
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <label htmlFor={`${baseId}-14`} className="px-3 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-medium cursor-pointer transition-colors">
+                    <label htmlFor={`${baseId}-14`} className="px-3 py-1.5 rounded-md bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium cursor-pointer transition-colors">
                       <span>
                         <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.chooseImageFile" />
                       </span>
@@ -621,7 +621,7 @@ export function CharacterCreatorDraftEditor({
                       <button
                         type="button"
                         onClick={onGenerateAvatar}
-                        className="px-3 py-1.5 rounded-lg bg-accent/20 border border-accent/30 text-accent text-xs font-medium flex items-center gap-1 hover:bg-accent/30 transition-colors"
+                        className="px-3 py-1.5 rounded-md bg-accent/20 border border-accent/30 text-accent text-xs font-medium flex items-center gap-1 hover:bg-accent/30 transition-colors"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>
@@ -657,7 +657,7 @@ export function CharacterCreatorDraftEditor({
                       },
                     });
                   }}
-                  className="w-full mt-1 p-3 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full mt-1 p-3 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                 />
               </div>
             </div>
@@ -694,7 +694,7 @@ export function CharacterCreatorDraftEditor({
                       entries: [...(currentBook.entries || []), newEntry],
                     });
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-accent text-accent-contrast text-xs font-medium flex items-center gap-1 hover:opacity-90 transition-opacity"
+                  className="px-3 py-1.5 rounded-md bg-accent text-accent-contrast text-xs font-medium flex items-center gap-1 hover:opacity-90 transition-opacity"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>
@@ -705,7 +705,7 @@ export function CharacterCreatorDraftEditor({
 
               {!cardData.character_book?.entries ||
               cardData.character_book.entries.length === 0 ? (
-                <div className="p-6 text-center rounded-xl bg-surface border border-border text-xs text-text-muted flex flex-col items-center gap-2">
+                <div className="p-6 text-center rounded-lg bg-vf-panel-bg border border-vf-panel-border text-xs text-text-muted flex flex-col items-center gap-2">
                   <BookOpen className="w-8 h-8 text-text-muted/60" />
                   <span>
                     <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.noEmbeddedLoreEntriesYetAddKeywords" />
@@ -716,11 +716,11 @@ export function CharacterCreatorDraftEditor({
                   {cardData.character_book.entries.map((entry, idx) => (
                     <div
                       key={idx}
-                      className="p-4 rounded-xl bg-surface border border-border flex flex-col gap-3"
+                      className="p-4 rounded-lg bg-vf-panel-bg border border-vf-panel-border flex flex-col gap-3"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-elevated text-accent font-bold">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-vf-panel-bg-raised text-accent font-bold">
                             #{entry.insertion_order || idx + 1}
                           </span>
                           <input
@@ -743,7 +743,7 @@ export function CharacterCreatorDraftEditor({
                             placeholder={tRuntime(
                               "runtimeGenerated.components.characterCreator.charactercreatordrafteditor.attribute.triggerKeywordsEGGothamBatcave",
                             )}
-                            className="p-1.5 text-xs rounded-lg bg-surface-elevated border border-border text-text-primary focus:outline-none focus:border-accent w-64"
+                            className="p-1.5 text-xs rounded-md bg-vf-panel-bg-raised border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent w-64"
                           />
                         </div>
                         <div className="flex items-center gap-2">
@@ -764,7 +764,7 @@ export function CharacterCreatorDraftEditor({
                                   entries,
                                 });
                               }}
-                              className="rounded border-border bg-surface text-accent"
+                              className="rounded border-vf-panel-border bg-vf-panel-bg text-accent"
                             />
                             <span>
                               <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.enabled" />
@@ -806,7 +806,7 @@ export function CharacterCreatorDraftEditor({
                         placeholder={tRuntime(
                           "runtimeGenerated.components.characterCreator.charactercreatordrafteditor.attribute.loreDetailContentTriggeredWhenAnyKeywordAppearsInConversation",
                         )}
-                        className="w-full p-2.5 text-xs rounded-lg bg-surface-elevated border border-border text-text-primary focus:outline-none focus:border-accent"
+                        className="w-full p-2.5 text-xs rounded-md bg-vf-panel-bg-raised border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
                       />
                     </div>
                   ))}
@@ -817,13 +817,13 @@ export function CharacterCreatorDraftEditor({
 
           {activeTab === "metadata" && (
             <div className="flex flex-col gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-surface border border-border flex justify-between">
+              <div className="p-3 rounded-lg bg-vf-panel-bg border border-vf-panel-border flex justify-between">
                 <span className="text-text-muted">
                   <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.draftId" />
                 </span>
                 <span className="font-mono text-text-primary">{draft.id}</span>
               </div>
-              <div className="p-3 rounded-xl bg-surface border border-border flex justify-between">
+              <div className="p-3 rounded-lg bg-vf-panel-bg border border-vf-panel-border flex justify-between">
                 <span className="text-text-muted">
                   <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.revisionNumber" />
                 </span>
@@ -831,7 +831,7 @@ export function CharacterCreatorDraftEditor({
                   {draft.revision}
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-surface border border-border flex justify-between">
+              <div className="p-3 rounded-lg bg-vf-panel-bg border border-vf-panel-border flex justify-between">
                 <span className="text-text-muted">
                   <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.creatorModel" />
                 </span>
@@ -839,7 +839,7 @@ export function CharacterCreatorDraftEditor({
                   {draft.modelId}
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-surface border border-border flex justify-between">
+              <div className="p-3 rounded-lg bg-vf-panel-bg border border-vf-panel-border flex justify-between">
                 <span className="text-text-muted">
                   <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.specification" />
                 </span>
@@ -852,7 +852,7 @@ export function CharacterCreatorDraftEditor({
         </div>
 
         {/* Right Side Natural Language AI Revision Panel */}
-        <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-border/50 bg-surface/20 p-4 flex flex-col gap-4 shrink-0">
+        <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-vf-panel-border bg-vf-panel-bg/20 p-4 flex flex-col gap-4 shrink-0">
           <div className="flex items-center gap-2 text-xs font-bold text-text-primary">
             <Sparkles className="w-4 h-4 text-accent" />
             <span>
@@ -874,12 +874,12 @@ export function CharacterCreatorDraftEditor({
               placeholder={tRuntime(
                 "runtimeGenerated.components.characterCreator.charactercreatordrafteditor.attribute.eGMakeHerLessHostileGiveHimADry",
               )}
-              className="w-full p-2.5 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-accent"
+              className="w-full p-2.5 text-xs rounded-lg bg-vf-panel-bg border border-vf-panel-border text-text-primary focus:outline-none focus:border-accent"
             />
             <button
               type="submit"
               disabled={!revisionInput.trim() || isRevising}
-              className="w-full py-2 rounded-xl bg-accent/20 border border-accent/30 text-accent font-medium text-xs flex items-center justify-center gap-1.5 hover:bg-accent/30 disabled:opacity-50 transition-colors"
+              className="w-full py-2 rounded-lg bg-accent/20 border border-accent/30 text-accent font-medium text-xs flex items-center justify-center gap-1.5 hover:bg-accent/30 disabled:opacity-50 transition-colors"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>

@@ -316,7 +316,7 @@ export function CharacterLibrary({ onEdit }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
         <div className="flex-1 min-w-[12rem]">
           <input
             value={searchQuery}
@@ -327,7 +327,7 @@ export function CharacterLibrary({ onEdit }: Props) {
             aria-label={tRuntime(
               "runtimeGenerated.components.rpStudio.characterlibrary.attribute.searchCharacters2",
             )}
-            className="w-full bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
           />
           <p className="mt-1 text-[12px] text-text-muted">
             <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.description.localCharactersAreStoredInVeniceForge" />
@@ -357,7 +357,7 @@ export function CharacterLibrary({ onEdit }: Props) {
               if (isImeCompositionEvent(e)) return;
               if (e.key === "Enter") handleCreateMe();
             }}
-            className="text-[13px] bg-surface-elevated border border-border rounded px-3 py-1.5 focus:outline-none focus:border-accent"
+            className="text-[13px] bg-vf-panel-bg-raised border border-vf-panel-border rounded px-3 py-1.5 focus:outline-none focus:border-accent"
           />
           <PrimaryButton
             onClick={handleCreateMe}
@@ -394,7 +394,7 @@ export function CharacterLibrary({ onEdit }: Props) {
       )}
       {lastUndo && (
         <div
-          className="mx-4 mt-3 flex items-center justify-between rounded-lg border border-warning/40 bg-surface-elevated px-3 py-2 text-[13px]"
+          className="mx-4 mt-3 flex items-center justify-between rounded-md border border-warning/40 bg-vf-panel-bg-raised px-3 py-2 text-[13px]"
           role="status"
         >
           <span>
@@ -428,7 +428,7 @@ export function CharacterLibrary({ onEdit }: Props) {
       )}
       {showDraftManager && (
         <section
-          className="mx-4 mt-3 rounded-lg border border-border bg-surface-elevated p-3"
+          className="mx-4 mt-3 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-3"
           aria-labelledby="card-drafts-title"
         >
           <div className="flex items-center justify-between">
@@ -454,7 +454,7 @@ export function CharacterLibrary({ onEdit }: Props) {
               {draftRecords.map((record) => (
                 <div
                   key={record.id}
-                  className="flex items-center justify-between gap-3 rounded border border-border bg-surface px-3 py-2"
+                  className="flex items-center justify-between gap-3 rounded border border-vf-panel-border bg-vf-panel-bg px-3 py-2"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-[13px] text-text-primary">
@@ -538,7 +538,7 @@ export function CharacterLibrary({ onEdit }: Props) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="card-import-title"
-            className="w-full max-w-lg rounded-xl border border-border bg-surface-elevated p-5 shadow-xl focus:outline-none"
+            className="w-full max-w-lg rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-xl focus:outline-none"
           >
             <h2
               id="card-import-title"
@@ -595,7 +595,7 @@ export function CharacterLibrary({ onEdit }: Props) {
             </dl>
             {importCandidate.preview.warnings.length > 0 && (
               <div
-                className="mt-4 rounded-lg border border-warning/40 p-3 text-sm text-text-secondary"
+                className="mt-4 rounded-md border border-warning/40 p-3 text-sm text-text-secondary"
                 role="status"
               >
                 {importCandidate.preview.warnings.map((warning) => (
@@ -617,7 +617,7 @@ export function CharacterLibrary({ onEdit }: Props) {
                       event.target.value as typeof importBookMode,
                     )
                   }
-                  className="rounded border border-border bg-surface px-2 py-1 text-text-primary"
+                  className="rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1 text-text-primary"
                 >
                   <option value="both">
                     <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.option.embeddedLinkedRecommended" />
@@ -657,7 +657,7 @@ export function CharacterLibrary({ onEdit }: Props) {
                 <ErrorText>
                   <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.text.aMatchingCardAlreadyExistsChooseAn" />
                 </ErrorText>
-                <fieldset className="mt-3 rounded border border-border p-2">
+                <fieldset className="mt-3 rounded border border-vf-panel-border p-2">
                   <legend className="px-1 text-[12px] text-text-muted">
                     <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.text.fieldsToMerge" />
                   </legend>
@@ -795,14 +795,14 @@ function CardTile({
   const avatarSrc = avatarDataUri(card.avatar);
   return (
     <div
-      className="group relative flex flex-col gap-2 bg-surface border border-border hover:border-accent/40 rounded-xl p-3 transition-colors focus-within:border-accent"
+      className="group relative flex flex-col gap-2 bg-vf-panel-bg border border-vf-panel-border hover:border-accent/40 rounded-lg p-3 transition-colors focus-within:border-accent"
       role="article"
       aria-label={tRuntime(
         "runtimeGenerated.components.rpStudio.characterlibrary.attribute.characterValue1",
         { value1: card.name },
       )}
     >
-      <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-surface-elevated border border-border">
+      <div className="relative aspect-square w-full rounded-md overflow-hidden bg-vf-panel-bg-raised border border-vf-panel-border">
         {avatarSrc ? (
           <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
         ) : (
@@ -864,7 +864,7 @@ function CardTile({
         <button
           type="button"
           onClick={onEdit}
-          className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:border-accent/40 hover:bg-surface-elevated transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+          className="flex-1 text-[12px] py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:border-accent/40 hover:bg-vf-control-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
         >
           <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.action.edit" />
         </button>
@@ -908,7 +908,7 @@ function CardTile({
         <button
           type="button"
           onClick={() => onExport("json")}
-          className="flex-1 text-[11px] py-1 rounded border border-border text-text-muted hover:text-text-primary"
+          className="flex-1 text-[11px] py-1 rounded border border-vf-panel-border text-text-muted hover:text-text-primary"
         >
           <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.action.exportJson" />
         </button>
@@ -916,7 +916,7 @@ function CardTile({
           type="button"
           onClick={() => onExport("png")}
           disabled={!card.avatar}
-          className="flex-1 text-[11px] py-1 rounded border border-border text-text-muted hover:text-text-primary disabled:opacity-40"
+          className="flex-1 text-[11px] py-1 rounded border border-vf-panel-border text-text-muted hover:text-text-primary disabled:opacity-40"
         >
           <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.action.exportPng" />
         </button>

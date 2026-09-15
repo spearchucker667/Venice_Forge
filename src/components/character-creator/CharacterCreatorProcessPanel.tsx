@@ -128,10 +128,10 @@ export function CharacterCreatorProcessPanel({
 
   return (
     <div
-      className={`flex flex-col bg-surface/60 rounded-2xl border border-border/80 p-5 shadow-sm ${className}`}
+      className={`flex flex-col bg-vf-panel-bg/60 rounded-xl border border-vf-panel-border p-5 shadow-sm ${className}`}
     >
       {/* Header Row */}
-      <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/50">
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-vf-panel-border">
         <div>
           <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
             <span>
@@ -154,7 +154,7 @@ export function CharacterCreatorProcessPanel({
             <button
               type="button"
               onClick={handleCopyProcessSummary}
-              className="px-3 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors shrink-0"
+              className="px-3 py-1.5 rounded-md bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors shrink-0"
             >
               {copied ? (
                 <Check className="w-3.5 h-3.5 text-success" />
@@ -186,7 +186,7 @@ export function CharacterCreatorProcessPanel({
 
       {/* Authoring Design Decisions Summary (if available) */}
       {processSummary && (
-        <div className="my-4 p-3.5 rounded-xl bg-accent/5 border border-accent/20 flex flex-col gap-2">
+        <div className="my-4 p-3.5 rounded-lg bg-accent/5 border border-accent/20 flex flex-col gap-2">
           <div className="text-xs font-semibold text-accent uppercase tracking-wider">
             <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorprocesspanel.text.designDirectionSummary" />
           </div>
@@ -204,7 +204,7 @@ export function CharacterCreatorProcessPanel({
                 {processSummary.major_decisions.map((d) => (
                   <div
                     key={d.area}
-                    className="text-[11px] bg-surface/50 p-2 rounded-lg border border-border/40"
+                    className="text-[11px] bg-vf-panel-bg/50 p-2 rounded-md border border-vf-panel-border"
                   >
                     <span className="font-bold text-accent capitalize">
                       {d.area}:
@@ -245,14 +245,14 @@ export function CharacterCreatorProcessPanel({
             return (
               <div
                 key={ev.id}
-                className={`p-3 rounded-xl border transition-colors ${
+                className={`p-3 rounded-lg border transition-colors ${
                   ev.status === "active"
                     ? "bg-accent/5 border-accent/30"
                     : ev.status === "warning"
                       ? "bg-warning/5 border-warning/30"
                       : ev.status === "failed"
                         ? "bg-danger/5 border-danger/30"
-                        : "bg-surface/40 border-border/50"
+                        : "bg-vf-panel-bg/40 border-vf-panel-border"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -286,11 +286,11 @@ export function CharacterCreatorProcessPanel({
                 </div>
 
                 {isExpanded && ev.details && (
-                  <div className="mt-2 pt-2 border-t border-border/40 pl-6 flex flex-col gap-1">
+                  <div className="mt-2 pt-2 border-t border-vf-panel-border pl-6 flex flex-col gap-1">
                     {ev.details.map((detail, idx) => (
                       <div
                         key={`${idx}-${detail.slice(0, 20)}`}
-                        className="text-[11px] text-text-muted font-mono bg-surface/60 p-1.5 rounded"
+                        className="text-[11px] text-text-muted font-mono bg-vf-panel-bg/60 p-1.5 rounded"
                       >
                         {detail}
                       </div>
@@ -305,11 +305,11 @@ export function CharacterCreatorProcessPanel({
 
       {/* Cancel Action during generation */}
       {isGenerating && onCancel && (
-        <div className="mt-4 pt-3 border-t border-border/40 flex justify-end">
+        <div className="mt-4 pt-3 border-t border-vf-panel-border flex justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3.5 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-danger hover:opacity-80 flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-1.5 rounded-md bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-danger hover:opacity-80 flex items-center gap-1.5 transition-colors"
           >
             <XCircle className="w-3.5 h-3.5" />
             <span>

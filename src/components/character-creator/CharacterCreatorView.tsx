@@ -904,9 +904,9 @@ export function CharacterCreatorView() {
   };
 
   return (
-    <div className="h-full w-full flex flex-col bg-background text-text-primary overflow-hidden">
+    <div className="h-full w-full flex flex-col bg-vf-shell-bg text-text-primary overflow-hidden">
       {autosaveError && (
-        <div className="mx-6 mt-4 p-3 bg-red-950/60 border border-red-500/40 rounded-lg flex items-center justify-between text-red-200 text-sm shrink-0">
+        <div className="mx-6 mt-4 p-3 bg-red-950/60 border border-red-500/40 rounded-md flex items-center justify-between text-red-200 text-sm shrink-0">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
             <span>

@@ -26,7 +26,7 @@ export function CharacterCreatorGenerating({
   return (
     <div className="flex flex-col items-center justify-start min-h-full h-full p-6 md:p-8 max-w-2xl mx-auto overflow-y-auto w-full">
       <div className="flex flex-col items-center text-center mb-6">
-        <div className="p-3 rounded-2xl bg-accent/10 border border-accent/20 mb-3 flex items-center justify-center">
+        <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 mb-3 flex items-center justify-center">
           <CharacterCreatorMascot size="lg" />
         </div>
         <h2 className="text-xl font-bold text-text-primary mb-1"><Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorgenerating.heading.generatingCharacterDraft" /></h2>

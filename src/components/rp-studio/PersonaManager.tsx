@@ -96,7 +96,7 @@ export function PersonaManager({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -106,7 +106,7 @@ export function PersonaManager({
           aria-label={tRuntime(
             "runtimeGenerated.components.rpStudio.personamanager.attribute.searchPersonas2",
           )}
-          className="flex-1 min-w-[12rem] bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+          className="flex-1 min-w-[12rem] bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
         />
         <PrimaryButton
           size="sm"
@@ -145,7 +145,7 @@ export function PersonaManager({
             {filtered.map((p) => (
               <li
                 key={p.id}
-                className={`flex flex-col gap-1.5 bg-surface border rounded-xl p-3 transition-colors ${p.id === activePersonaId ? "border-[var(--color-accent)]/50 bg-[var(--color-accent-soft)]" : "border-border hover:border-accent/40"}`}
+                className={`flex flex-col gap-1.5 bg-vf-panel-bg border rounded-lg p-3 transition-colors ${p.id === activePersonaId ? "border-[var(--color-accent)]/50 bg-[var(--color-accent-soft)]" : "border-vf-panel-border hover:border-accent/40"}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[14px] font-semibold text-text-primary truncate">
@@ -169,7 +169,7 @@ export function PersonaManager({
                   <button
                     type="button"
                     onClick={() => setEditingId(p.id)}
-                    className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+                    className="flex-1 text-[12px] py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors"
                   >
                     <Trans i18nKey="common:surface.componentsRpStudioPersonamanager.action.edit" />
                   </button>
@@ -178,7 +178,7 @@ export function PersonaManager({
                     onClick={() =>
                       void setActive(p.id === activePersonaId ? null : p.id)
                     }
-                    className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+                    className="flex-1 text-[12px] py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors"
                   >
                     {p.id === activePersonaId
                       ? tRuntime(
@@ -331,14 +331,14 @@ export function PersonaEditor({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="flex items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
         <button
           type="button"
           onClick={onClose}
           aria-label={tRuntime(
             "runtimeGenerated.components.rpStudio.personamanager.attribute.back",
           )}
-          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-surface-elevated"
+          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-vf-control-hover"
         >
           <svg
             width="14"
@@ -397,7 +397,7 @@ export function PersonaEditor({
                   "runtimeGenerated.components.rpStudio.personamanager.attribute.personaPreview",
                 )}
                 data-testid="persona-image-preview"
-                className="h-16 w-16 rounded-full border border-border object-cover"
+                className="h-16 w-16 rounded-full border border-vf-panel-border object-cover"
               />
             )}
             <GhostButton onClick={() => imageInputRef.current?.click()}>
@@ -425,7 +425,7 @@ export function PersonaEditor({
             value={draft.name}
             onChange={(e) => update("name", e.target.value)}
             maxLength={200}
-            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
           />
         </div>
         <div>
@@ -440,7 +440,7 @@ export function PersonaEditor({
               "runtimeGenerated.components.rpStudio.personamanager.attribute.eGTheWanderer",
             )}
             maxLength={200}
-            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
           />
         </div>
         <div>
@@ -506,7 +506,7 @@ export function PersonaEditor({
               placeholder={tRuntime(
                 "runtimeGenerated.components.rpStudio.personamanager.attribute.addTag",
               )}
-              className="flex-1 bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+              className="flex-1 bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
             />
             <GhostButton onClick={addTag} disabled={!tagInput.trim()}>
               <Trans i18nKey="common:surface.componentsRpStudioPersonamanager.text.add" />
@@ -524,7 +524,7 @@ export function PersonaEditor({
                       draft.tags.filter((x) => x !== t),
                     )
                   }
-                  className="text-[12px] px-2 py-0.5 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary"
+                  className="text-[12px] px-2 py-0.5 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised text-text-secondary hover:text-text-primary"
                 >
                   {t} ×
                 </button>

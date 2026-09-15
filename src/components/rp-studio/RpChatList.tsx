@@ -105,7 +105,7 @@ export function RpChatList({ onOpen }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
         <PillGroup
           options={[
             {
@@ -167,7 +167,7 @@ export function RpChatList({ onOpen }: Props) {
               return (
                 <li
                   key={chat.id}
-                  className="flex flex-col gap-2 bg-surface border border-border hover:border-accent/40 rounded-xl p-3 transition-colors"
+                  className="flex flex-col gap-2 bg-vf-panel-bg border border-vf-panel-border hover:border-accent/40 rounded-lg p-3 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -194,7 +194,7 @@ export function RpChatList({ onOpen }: Props) {
                           <div
                             key={c.id}
                             title={c.name}
-                            className="w-7 h-7 rounded-full overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-[12px] font-semibold text-text-secondary"
+                            className="w-7 h-7 rounded-full overflow-hidden border border-vf-panel-border bg-vf-panel-bg-raised flex items-center justify-center text-[12px] font-semibold text-text-secondary"
                           >
                             {src ? (
                               <img
@@ -209,7 +209,7 @@ export function RpChatList({ onOpen }: Props) {
                         );
                       })}
                       {roster.length > 5 && (
-                        <div className="w-7 h-7 rounded-full border border-border bg-surface-elevated flex items-center justify-center text-[12px] text-text-secondary">
+                        <div className="w-7 h-7 rounded-full border border-vf-panel-border bg-vf-panel-bg-raised flex items-center justify-center text-[12px] text-text-secondary">
                           +{roster.length - 5}
                         </div>
                       )}
@@ -227,7 +227,7 @@ export function RpChatList({ onOpen }: Props) {
                         setActive(chat.id);
                         onOpen(chat.id);
                       }}
-                      className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+                      className="flex-1 text-[12px] py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors"
                     >
                       <Trans i18nKey="common:surface.componentsRpStudioRpchatlist.action.open" />
                     </button>
@@ -458,8 +458,8 @@ export function NewChatDialog({
       )}
       className="absolute inset-0 z-30 flex items-center justify-center bg-bg/70 backdrop-blur-sm"
     >
-      <div className="w-full max-w-2xl max-h-[85%] flex flex-col bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="w-full max-w-2xl max-h-[85%] flex flex-col bg-vf-panel-bg border border-vf-panel-border rounded-xl shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
           <h2 className="text-[15px] font-semibold text-text-primary">
             <Trans i18nKey="common:surface.componentsRpStudioRpchatlist.heading.newRpChat" />
           </h2>
@@ -488,7 +488,7 @@ export function NewChatDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
-              className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+              className="w-full bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             />
           </div>
           <div>
@@ -499,7 +499,7 @@ export function NewChatDialog({
               id="rp-model"
               value={modelId}
               onChange={(e) => setModelId(e.target.value)}
-              className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+              className="w-full bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             >
               {FALLBACK_MODELS.text.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -516,7 +516,7 @@ export function NewChatDialog({
               id="rp-greeting"
               value={greetingChoice}
               onChange={(event) => setGreetingChoice(event.target.value)}
-              className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary"
+              className="w-full bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary"
             >
               <option value="primary">
                 <Trans i18nKey="common:surface.componentsRpStudioRpchatlist.option.usePrimaryGreeting" />
@@ -554,7 +554,7 @@ export function NewChatDialog({
                     type="button"
                     onClick={() => toggleCard(c.id)}
                     aria-pressed={selectedCards.includes(c.id)}
-                    className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${selectedCards.includes(c.id) ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-border text-text-secondary hover:text-text-primary hover:border-accent/40"}`}
+                    className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${selectedCards.includes(c.id) ? "bg-accent/15 border border-accent/40 shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)] text-accent" : "bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover"}`}
                   >
                     {c.name}
                     {c.adult && <span className="ml-1 text-rose-300">18+</span>}
@@ -571,7 +571,7 @@ export function NewChatDialog({
               id="rp-persona"
               value={personaId}
               onChange={(e) => setPersonaId(e.target.value)}
-              className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+              className="w-full bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             >
               <option value="">
                 <Trans i18nKey="common:surface.componentsRpStudioRpchatlist.option.noPersona" />
@@ -595,7 +595,7 @@ export function NewChatDialog({
                     type="button"
                     onClick={() => toggleLorebook(l.id)}
                     aria-pressed={selectedLorebooks.includes(l.id)}
-                    className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${selectedLorebooks.includes(l.id) ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-border text-text-secondary hover:text-text-primary hover:border-accent/40"}`}
+                    className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${selectedLorebooks.includes(l.id) ? "bg-accent/15 border border-accent/40 shadow-[0_0_8px_var(--color-vf-accent-glow-subtle)] text-accent" : "bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover"}`}
                   >
                     {l.name} ({l.entries.length})
                   </button>
@@ -615,7 +615,7 @@ export function NewChatDialog({
               placeholder={tRuntime(
                 "runtimeGenerated.components.rpStudio.rpchatlist.attribute.leaveBlankToUseTheFirstCharacterSScenario",
               )}
-              className="w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted resize-none"
+              className="w-full bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted resize-none"
             />
           </div>
         </div>

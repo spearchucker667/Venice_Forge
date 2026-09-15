@@ -125,7 +125,7 @@ export function LorebookManager({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
         <input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -135,7 +135,7 @@ export function LorebookManager({
           aria-label={tRuntime(
             "runtimeGenerated.components.rpStudio.lorebookmanager.attribute.searchLorebooks2",
           )}
-          className="flex-1 min-w-[12rem] bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+          className="flex-1 min-w-[12rem] bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
         />
         <PrimaryButton
           size="sm"
@@ -174,7 +174,7 @@ export function LorebookManager({
             {filtered.map((l) => (
               <li
                 key={l.id}
-                className="flex flex-col gap-1.5 bg-surface border border-border hover:border-accent/40 rounded-xl p-3 transition-colors"
+                className="flex flex-col gap-1.5 bg-vf-panel-bg border border-vf-panel-border hover:border-accent/40 rounded-lg p-3 transition-colors"
               >
                 <div className="text-[14px] font-semibold text-text-primary truncate">
                   {l.name}
@@ -193,7 +193,7 @@ export function LorebookManager({
                   <button
                     type="button"
                     onClick={() => setEditingId(l.id)}
-                    className="flex-1 text-[12px] py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+                    className="flex-1 text-[12px] py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors"
                   >
                     <Trans i18nKey="common:surface.componentsRpStudioLorebookmanager.action.edit" />
                   </button>
@@ -321,14 +321,14 @@ export function LorebookEditor({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="flex items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
         <button
           type="button"
           onClick={onClose}
           aria-label={tRuntime(
             "runtimeGenerated.components.rpStudio.lorebookmanager.attribute.back",
           )}
-          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-surface-elevated"
+          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-vf-control-hover"
         >
           <svg
             width="14"
@@ -372,7 +372,7 @@ export function LorebookEditor({
               value={draft.name}
               onChange={(e) => update("name", e.target.value)}
               maxLength={200}
-              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+              className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             />
           </div>
           <div>
@@ -393,7 +393,7 @@ export function LorebookEditor({
                 ).slice(0, MAX_TAGS);
                 update("tags", tags);
               }}
-              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+              className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -463,7 +463,7 @@ function EntryRow({
       ),
     );
   return (
-    <div className="bg-surface-elevated border border-border rounded-lg p-3 space-y-2">
+    <div className="bg-vf-panel-bg-raised border border-vf-panel-border rounded-md p-3 space-y-2">
       <div className="flex items-center gap-2">
         <input
           value={keysText}
@@ -475,7 +475,7 @@ function EntryRow({
           placeholder={tRuntime(
             "runtimeGenerated.components.rpStudio.lorebookmanager.attribute.triggerKeysCommaSeparated",
           )}
-          className="flex-1 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+          className="flex-1 bg-vf-panel-bg border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
         />
         <label className="flex items-center gap-1.5 text-[12px] text-text-secondary">
           <input
@@ -546,7 +546,7 @@ function EntryRow({
             }
             min={0}
             max={50}
-            className="w-20 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
+            className="w-20 bg-vf-panel-bg border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
             aria-label={tRuntime(
               "runtimeGenerated.components.rpStudio.lorebookmanager.attribute.depth",
             )}
@@ -560,7 +560,7 @@ function EntryRow({
           }
           min={0}
           max={1000}
-          className="w-20 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
+          className="w-20 bg-vf-panel-bg border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors"
           aria-label={tRuntime(
             "runtimeGenerated.components.rpStudio.lorebookmanager.attribute.order",
           )}

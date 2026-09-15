@@ -232,12 +232,12 @@ function DirectoryNode({
 }) {
   const isRoot = depth === 0;
   return (
-    <div className={isRoot ? "" : "pl-3 border-l border-border/50"}>
+    <div className={isRoot ? "" : "pl-3 border-l border-vf-panel-border"}>
       {!isRoot && (
         <button
           type="button"
           onClick={() => onToggle(node.relativePath)}
-          className="w-full text-left text-[12px] text-foreground py-1 px-2 rounded hover:bg-surface-muted flex items-center gap-2 transition-colors"
+          className="w-full text-left text-[12px] text-foreground py-1 px-2 rounded hover:bg-vf-control-hover-muted flex items-center gap-2 transition-colors"
         >
           <span className="text-[12px]">{node.expanded ? "▼" : "▶"}</span>
           <span>📁</span>
@@ -299,8 +299,8 @@ function FileNode({
       onClick={() => onSelectFile(node.relativePath)}
       className={`w-full text-left text-[12px] py-1 px-2 pl-2 rounded flex items-center justify-between transition-colors ${
         selected
-          ? "bg-surface-elevated text-foreground"
-          : "text-foreground hover:bg-surface-muted"
+          ? "bg-vf-panel-bg-raised text-foreground"
+          : "text-foreground hover:bg-vf-control-hover-muted"
       }`}
     >
       <span className="truncate">

@@ -115,7 +115,7 @@ export function RpStudioView() {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-1 px-3 py-2 soft-separator-y mesh-header mesh-surface overflow-x-auto">
+      <div className="flex items-center gap-1 px-3 py-2 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg overflow-x-auto">
         <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-semibold mr-2 shrink-0">
           <Trans i18nKey="common:surface.componentsRpStudioRpstudioview.text.rpStudio" />
         </div>
@@ -125,7 +125,7 @@ export function RpStudioView() {
             type="button"
             onClick={() => setSub(t.id)}
             aria-pressed={sub === t.id}
-            className={`text-[12.5px] px-2.5 py-1 rounded-md border transition-colors shrink-0 ${sub === t.id ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-border text-text-secondary hover:text-text-primary"}`}
+            className={`text-[12.5px] px-2.5 py-1 rounded-md border transition-colors shrink-0 ${sub === t.id ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-vf-panel-border text-text-secondary hover:text-text-primary"}`}
           >
             {t.label}
           </button>
@@ -146,7 +146,7 @@ export function RpStudioView() {
       )}
 
       {sub === "scenes" && (
-        <div className="px-3 py-1.5 soft-separator-y mesh-surface">
+        <div className="px-3 py-1.5 border-y border-vf-panel-border bg-vf-panel-bg">
           <PillGroup
             options={[
               {

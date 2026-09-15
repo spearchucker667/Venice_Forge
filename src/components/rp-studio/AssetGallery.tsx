@@ -69,7 +69,7 @@ export function AssetGallery() {
   return (
     <div className="flex h-full min-h-0">
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex flex-wrap items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
           <PillGroup
             options={[
               {
@@ -109,14 +109,14 @@ export function AssetGallery() {
               {filtered.map((a) => (
                 <div
                   key={a.id}
-                  className={`group bg-surface border rounded-xl overflow-hidden transition-colors ${a.id === selectedId ? "border-[var(--color-accent)]/50" : "border-border hover:border-accent/40"}`}
+                  className={`group bg-vf-panel-bg border rounded-lg overflow-hidden transition-colors ${a.id === selectedId ? "border-[var(--color-accent)]/50" : "border-vf-panel-border hover:border-accent/40"}`}
                 >
                   <button
                     type="button"
                     onClick={() => setSelectedId(a.id)}
                     className="block w-full text-left"
                   >
-                    <div className="aspect-video w-full bg-surface-elevated border-b border-border/40">
+                    <div className="aspect-video w-full bg-vf-panel-bg-raised border-b border-vf-panel-border">
                       {a.url ? (
                         <img
                           src={a.url}
@@ -186,10 +186,10 @@ export function AssetGallery() {
           )}
         </div>
       </div>
-      <div className="w-80 shrink-0 soft-separator-x mesh-surface overflow-y-auto p-3 space-y-2">
+      <div className="w-80 shrink-0 border-x border-vf-panel-border bg-vf-panel-bg overflow-y-auto p-3 space-y-2">
         {selected ? (
           <>
-            <div className="aspect-video w-full rounded-lg overflow-hidden border border-border bg-surface-elevated">
+            <div className="aspect-video w-full rounded-md overflow-hidden border border-vf-panel-border bg-vf-panel-bg-raised">
               {selected.url ? (
                 <img
                   src={selected.url}

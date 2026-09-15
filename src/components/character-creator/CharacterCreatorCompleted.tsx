@@ -42,7 +42,7 @@ export function CharacterCreatorCompleted({
         <button
           type="button"
           onClick={onStartChat}
-          className="w-full py-2.5 rounded-xl bg-accent text-accent-contrast font-medium text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+          className="w-full py-2.5 rounded-lg bg-accent text-accent-contrast font-medium text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
         >
           <MessageSquare className="w-4 h-4" />
           <span><Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorcompleted.text.startChat" /></span>
@@ -52,7 +52,7 @@ export function CharacterCreatorCompleted({
           <button
             type="button"
             onClick={onViewCharacter}
-            className="py-2 px-3 rounded-xl bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-primary flex items-center justify-center gap-1.5 transition-colors"
+            className="py-2 px-3 rounded-lg bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-primary flex items-center justify-center gap-1.5 transition-colors"
           >
             <User className="w-3.5 h-3.5" />
             <span><Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorcompleted.text.viewCharacter" /></span>
@@ -60,18 +60,18 @@ export function CharacterCreatorCompleted({
           <button
             type="button"
             onClick={onContinueEditing}
-            className="py-2 px-3 rounded-xl bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-primary flex items-center justify-center gap-1.5 transition-colors"
+            className="py-2 px-3 rounded-lg bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-primary flex items-center justify-center gap-1.5 transition-colors"
           >
             <Edit3 className="w-3.5 h-3.5" />
             <span><Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorcompleted.text.continueEditing" /></span>
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40">
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-vf-panel-border">
           <button
             type="button"
             onClick={onExportCard}
-            className="py-2 px-3 rounded-xl bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-secondary flex items-center justify-center gap-1.5 transition-colors"
+            className="py-2 px-3 rounded-lg bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-secondary flex items-center justify-center gap-1.5 transition-colors"
           >
             <FileUp className="w-3.5 h-3.5 text-accent" />
             <span><Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorcompleted.text.exportCard" /></span>
@@ -79,7 +79,7 @@ export function CharacterCreatorCompleted({
           <button
             type="button"
             onClick={onCreateAnother}
-            className="py-2 px-3 rounded-xl bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-secondary flex items-center justify-center gap-1.5 transition-colors"
+            className="py-2 px-3 rounded-lg bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-secondary flex items-center justify-center gap-1.5 transition-colors"
           >
             <Sparkles className="w-3.5 h-3.5 text-accent" />
             <span><Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorcompleted.text.createAnother" /></span>

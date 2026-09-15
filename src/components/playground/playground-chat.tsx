@@ -275,7 +275,7 @@ export function PlaygroundChat() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface">
+    <div className="flex flex-col h-full bg-vf-panel-bg">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
           <div className="flex flex-col gap-3 pt-8">
@@ -290,7 +290,7 @@ export function PlaygroundChat() {
                 <button
                   key={p}
                   onClick={() => send(p)}
-                  className="text-left px-3 py-2.5 rounded-lg border border-border bg-surface-elevated hover:border-accent hover:bg-surface-muted transition-all text-[13px] text-text-secondary hover:text-text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+                  className="text-left px-3 py-2.5 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised hover:border-accent hover:bg-vf-control-hover-muted transition-all text-[13px] text-text-secondary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
                 >
                   {p}
                 </button>
@@ -309,10 +309,10 @@ export function PlaygroundChat() {
               >
                 <div
                   className={cn(
-                    "max-w-[88%] px-3.5 py-2 rounded-xl text-[13.5px] leading-relaxed whitespace-pre-wrap",
+                    "max-w-[88%] px-3.5 py-2 rounded-lg text-[13.5px] leading-relaxed whitespace-pre-wrap",
                     m.role === "user"
-                      ? "bg-surface-elevated text-text-primary border border-border"
-                      : "bg-surface-elevated border border-border text-text-secondary",
+                      ? "bg-vf-panel-bg-raised text-text-primary border border-vf-panel-border"
+                      : "bg-vf-panel-bg-raised border border-vf-panel-border text-text-secondary",
                   )}
                 >
                   {m.pending && (!m.activity || m.activity.length === 0) ? (
@@ -376,7 +376,7 @@ export function PlaygroundChat() {
         )}
       </div>
 
-      <div className="shrink-0 border-t border-border/50 p-3">
+      <div className="shrink-0 border-t border-vf-panel-border p-3">
         {error && (
           <div className="mb-2 text-[13px] text-red-300/95">{error}</div>
         )}
@@ -402,12 +402,12 @@ export function PlaygroundChat() {
             }
             rows={2}
             disabled={isThinking}
-            className="flex-1 bg-surface-elevated border border-border rounded-lg px-3 py-2 text-[13.5px] text-text-secondary outline-none resize-none placeholder:text-text-muted focus:border-accent disabled:opacity-60"
+            className="flex-1 bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-3 py-2 text-[13.5px] text-text-secondary outline-none resize-none placeholder:text-text-muted focus:border-accent disabled:opacity-60"
           />
           {isThinking ? (
             <button
               onClick={cancel}
-              className="shrink-0 px-3 py-2 text-[13px] text-text-secondary hover:text-text-primary border border-border hover:bg-surface-muted rounded-lg transition-colors"
+              className="shrink-0 px-3 py-2 text-[13px] text-text-secondary hover:text-text-primary border border-vf-panel-border hover:bg-vf-control-hover-muted rounded-md transition-colors"
             >
               <Trans i18nKey="common:surface.componentsPlaygroundPlaygroundChat.action.stop" />
             </button>
@@ -415,7 +415,7 @@ export function PlaygroundChat() {
             <button
               onClick={() => send(input)}
               disabled={!input.trim()}
-              className="shrink-0 px-4 py-2 text-[13px] font-medium bg-accent text-accent-fg rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="shrink-0 px-4 py-2 text-[13px] font-medium bg-accent text-accent-fg rounded-md hover:bg-accent-hover shadow-[0_0_8px_var(--color-vf-accent-glow)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Trans i18nKey="common:surface.componentsPlaygroundPlaygroundChat.action.send" />
             </button>

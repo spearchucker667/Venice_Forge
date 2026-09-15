@@ -130,7 +130,7 @@ export function RpChatView({
   if (!chat) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-6">
-        <div className="w-16 h-16 mb-4 rounded-full bg-surface-elevated flex items-center justify-center text-text-muted">
+        <div className="w-16 h-16 mb-4 rounded-full bg-vf-panel-bg-raised flex items-center justify-center text-text-muted">
           <svg
             width="24"
             height="24"
@@ -366,14 +366,14 @@ export function RpChatView({
 
   return (
     <div className="flex flex-col h-full min-h-0 relative">
-      <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="flex items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
         <button
           type="button"
           onClick={onBack}
           aria-label={tRuntime(
             "runtimeGenerated.components.rpStudio.rpchatview.attribute.back",
           )}
-          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-surface-elevated"
+          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-vf-control-hover"
         >
           <svg
             width="14"
@@ -428,7 +428,7 @@ export function RpChatView({
           return <MessageBubble key={m.id} message={m} speaker={speaker} />;
         })}
         {isStreaming && (
-          <div className="mt-4 p-4 rounded-xl border border-border bg-surface shadow-sm">
+          <div className="mt-4 p-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg shadow-sm">
             <GenerationLoadingIndicator
               size="sm"
               state="streaming"
@@ -457,7 +457,7 @@ export function RpChatView({
         </div>
       )}
 
-      <div className="border-t border-border/50 px-4 py-3 space-y-2">
+      <div className="border-t border-vf-panel-border px-4 py-3 space-y-2">
         {roster.length > 1 && (
           <div className="flex items-center gap-2">
             <Label>
@@ -473,7 +473,7 @@ export function RpChatView({
                     setNarratorMode(false);
                   }}
                   aria-pressed={!narratorMode && speakerIdx === i}
-                  className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${!narratorMode && speakerIdx === i ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-border text-text-secondary hover:text-text-primary"}`}
+                  className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${!narratorMode && speakerIdx === i ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]" : "border-vf-panel-border text-text-secondary hover:text-text-primary"}`}
                 >
                   {c.name}
                 </button>
@@ -482,7 +482,7 @@ export function RpChatView({
                 type="button"
                 onClick={() => setNarratorMode(true)}
                 aria-pressed={narratorMode}
-                className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${narratorMode ? "border-amber-400/40 bg-amber-400/10 text-amber-200" : "border-border text-text-secondary hover:text-text-primary"}`}
+                className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${narratorMode ? "border-amber-400/40 bg-amber-400/10 text-amber-200" : "border-vf-panel-border text-text-secondary hover:text-text-primary"}`}
               >
                 <Trans i18nKey="common:surface.componentsRpStudioRpchatview.action.narrator" />
               </button>
@@ -570,7 +570,7 @@ function MessageBubble({
   return (
     <div className={`flex gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}>
       {!isUser && (
-        <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-[12px] font-semibold text-text-muted">
+        <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden border border-vf-panel-border bg-vf-panel-bg-raised flex items-center justify-center text-[12px] font-semibold text-text-muted">
           {speaker ? (
             avatarDataUri(speaker.avatar) ? (
               <img
@@ -600,7 +600,7 @@ function MessageBubble({
           </span>
         </div>
         <div
-          className={`rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap ${isUser ? "bg-surface border border-border text-text-primary" : "bg-surface-elevated text-text-primary"} ${isNarrator ? "italic" : ""}`}
+          className={`rounded-xl px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap ${isUser ? "bg-vf-panel-bg border border-vf-panel-border text-text-primary" : "bg-vf-panel-bg-raised text-text-primary"} ${isNarrator ? "italic" : ""}`}
         >
           {message.content}
         </div>

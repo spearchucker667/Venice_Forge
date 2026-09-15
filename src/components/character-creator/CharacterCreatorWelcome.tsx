@@ -57,7 +57,7 @@ export function CharacterCreatorWelcome({
     <div className="flex flex-col items-center justify-start min-h-full p-6 md:p-10 max-w-4xl mx-auto overflow-y-auto">
       {/* Hero Section */}
       <div className="flex flex-col items-center text-center gap-3 mb-8">
-        <div className="p-3 rounded-2xl bg-accent/10 border border-accent/20 mb-2 flex items-center justify-center">
+        <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 mb-2 flex items-center justify-center">
           <CharacterCreatorMascot size="lg" />
         </div>
         <h1 className="text-2xl md:text-3xl font-bold text-text-primary tracking-tight">
@@ -69,7 +69,7 @@ export function CharacterCreatorWelcome({
         <p className="text-xs md:text-sm text-text-muted max-w-2xl leading-relaxed mt-1">
           <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorwelcome.description.startWithASentenceADetailedConcept" />
         </p>
-        <div className="mt-1 px-3 py-1 rounded-full bg-surface-elevated border border-border text-[11px] font-mono text-text-muted">
+        <div className="mt-1 px-3 py-1 rounded-full bg-vf-panel-bg-raised border border-vf-panel-border text-[11px] font-mono text-text-muted">
           <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorwelcome.text.creatorModel" />{" "}
           <span className="text-accent font-semibold">GLM 5.2</span>{" "}
           <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorwelcome.text.immutable" />
@@ -79,7 +79,7 @@ export function CharacterCreatorWelcome({
       {/* Idea Intake Form */}
       <form
         onSubmit={handleStart}
-        className="w-full flex flex-col gap-4 mb-10 bg-surface/50 p-6 rounded-2xl border border-border/60 shadow-sm"
+        className="w-full flex flex-col gap-4 mb-10 bg-vf-panel-bg/50 p-6 rounded-xl border border-vf-panel-border shadow-sm"
       >
         <div className="flex flex-col gap-2">
           <label
@@ -96,12 +96,12 @@ export function CharacterCreatorWelcome({
               "runtimeGenerated.components.characterCreator.charactercreatorwelcome.attribute.exampleIWantABroodingNocturnalDetectiveWhoProtectsA",
             )}
             rows={3}
-            className="w-full p-4 text-sm rounded-xl bg-surface-elevated border border-border focus:outline-none focus:border-accent text-text-primary resize-y min-h-[90px]"
+            className="w-full p-4 text-sm rounded-lg bg-vf-panel-bg-raised border border-vf-panel-border focus:outline-none focus:border-accent text-text-primary resize-y min-h-[90px]"
           />
         </div>
 
         {/* Optional Context Accordion */}
-        <div className="border-t border-border/40 pt-3">
+        <div className="border-t border-vf-panel-border pt-3">
           <button
             type="button"
             onClick={() => setShowAdvancedContext(!showAdvancedContext)}
@@ -132,7 +132,7 @@ export function CharacterCreatorWelcome({
                   onChange={(e) =>
                     setContext({ ...context, setting: e.target.value })
                   }
-                  className="w-full p-2 text-xs rounded-lg bg-surface border border-border text-text-primary mt-1"
+                  className="w-full p-2 text-xs rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-primary mt-1"
                 />
               </div>
               <div>
@@ -148,7 +148,7 @@ export function CharacterCreatorWelcome({
                   onChange={(e) =>
                     setContext({ ...context, tone: e.target.value })
                   }
-                  className="w-full p-2 text-xs rounded-lg bg-surface border border-border text-text-primary mt-1"
+                  className="w-full p-2 text-xs rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-primary mt-1"
                 />
               </div>
               <div>
@@ -164,7 +164,7 @@ export function CharacterCreatorWelcome({
                   onChange={(e) =>
                     setContext({ ...context, relationship: e.target.value })
                   }
-                  className="w-full p-2 text-xs rounded-lg bg-surface border border-border text-text-primary mt-1"
+                  className="w-full p-2 text-xs rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-primary mt-1"
                 />
               </div>
               <div>
@@ -176,7 +176,7 @@ export function CharacterCreatorWelcome({
                   onChange={(e) =>
                     setContext({ ...context, contentRating: e.target.value })
                   }
-                  className="w-full p-2 text-xs rounded-lg bg-surface border border-border text-text-primary mt-1"
+                  className="w-full p-2 text-xs rounded-md bg-vf-panel-bg border border-vf-panel-border text-text-primary mt-1"
                 >
                   <option value="general">
                     {tRuntime("runtimeSlashLabels.generalPg")}
@@ -201,7 +201,7 @@ export function CharacterCreatorWelcome({
           <button
             type="submit"
             disabled={!idea.trim() || isGenerating}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-accent text-accent-contrast font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-accent text-accent-contrast font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             <Sparkles className="w-4 h-4" />
             <span>
@@ -216,7 +216,7 @@ export function CharacterCreatorWelcome({
         <button
           type="button"
           onClick={onImportCard}
-          className="px-4 py-2 rounded-xl bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-primary flex items-center gap-2 transition-colors"
+          className="px-4 py-2 rounded-lg bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-primary flex items-center gap-2 transition-colors"
         >
           <FileUp className="w-4 h-4 text-accent" />
           <span>
@@ -226,7 +226,7 @@ export function CharacterCreatorWelcome({
         <button
           type="button"
           onClick={onEditLocalCharacter}
-          className="px-4 py-2 rounded-xl bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-primary flex items-center gap-2 transition-colors"
+          className="px-4 py-2 rounded-lg bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-primary flex items-center gap-2 transition-colors"
         >
           <Edit3 className="w-4 h-4 text-accent" />
           <span>
@@ -237,7 +237,7 @@ export function CharacterCreatorWelcome({
 
       {/* Three Step Instruction Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-10">
-        <div className="p-4 rounded-xl bg-surface/30 border border-border/40 flex flex-col gap-2">
+        <div className="p-4 rounded-lg bg-vf-panel-bg/30 border border-vf-panel-border flex flex-col gap-2">
           <div className="flex items-center gap-2 text-xs font-bold text-accent">
             <span className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center text-[10px]">
               1
@@ -250,7 +250,7 @@ export function CharacterCreatorWelcome({
             <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorwelcome.description.enterAnythingFromAOneLineConcept" />
           </p>
         </div>
-        <div className="p-4 rounded-xl bg-surface/30 border border-border/40 flex flex-col gap-2">
+        <div className="p-4 rounded-lg bg-vf-panel-bg/30 border border-vf-panel-border flex flex-col gap-2">
           <div className="flex items-center gap-2 text-xs font-bold text-accent">
             <span className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center text-[10px]">
               2
@@ -263,7 +263,7 @@ export function CharacterCreatorWelcome({
             <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorwelcome.description.inspectAndEditTheIdentityPersonalityScenario" />
           </p>
         </div>
-        <div className="p-4 rounded-xl bg-surface/30 border border-border/40 flex flex-col gap-2">
+        <div className="p-4 rounded-lg bg-vf-panel-bg/30 border border-vf-panel-border flex flex-col gap-2">
           <div className="flex items-center gap-2 text-xs font-bold text-accent">
             <span className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center text-[10px]">
               3
@@ -280,7 +280,7 @@ export function CharacterCreatorWelcome({
 
       {/* Recent Drafts Section */}
       {recentDrafts.length > 0 && (
-        <div className="w-full flex flex-col gap-3 pt-4 border-t border-border/40">
+        <div className="w-full flex flex-col gap-3 pt-4 border-t border-vf-panel-border">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary flex items-center gap-2">
             <FolderOpen className="w-4 h-4" />
             <span>
@@ -291,7 +291,7 @@ export function CharacterCreatorWelcome({
             {recentDrafts.map((d) => (
               <div
                 key={d.id}
-                className="p-3 rounded-xl bg-surface border border-border hover:border-accent/40 flex flex-col justify-between gap-2 transition-colors group"
+                className="p-3 rounded-lg bg-vf-panel-bg border border-vf-panel-border hover:border-accent/40 flex flex-col justify-between gap-2 transition-colors group"
               >
                 <div className="flex items-center justify-between">
                   <span
@@ -300,7 +300,7 @@ export function CharacterCreatorWelcome({
                   >
                     {d.name}
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-surface-elevated text-text-muted font-mono">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-vf-panel-bg-raised text-text-muted font-mono">
                     <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorwelcome.text.rev" />{" "}
                     {d.revision}
                   </span>
@@ -308,7 +308,7 @@ export function CharacterCreatorWelcome({
                 <p className="text-[11px] text-text-muted line-clamp-1 italic">
                   {d.sourceIdea}
                 </p>
-                <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/30">
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-vf-panel-border">
                   <button
                     type="button"
                     onClick={() => onOpenDraft(d.id)}

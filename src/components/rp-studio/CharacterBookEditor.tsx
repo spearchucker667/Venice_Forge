@@ -61,7 +61,7 @@ function JsonObjectEditor({
         aria-invalid={invalid}
         rows={4}
         spellCheck={false}
-        className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 font-mono text-[12px] text-text-primary"
+        className="w-full resize-y rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 font-mono text-[12px] text-text-primary"
       />
       {invalid && (
         <p className="mt-1 text-[12px] text-error" role="alert">
@@ -111,7 +111,7 @@ export function CharacterBookEditor({
             onChange={(event) =>
               onChange({ ...book, name: event.target.value })
             }
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+            className="w-full rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-primary"
           />
         </div>
         <div>
@@ -123,7 +123,7 @@ export function CharacterBookEditor({
             onChange={(event) =>
               onChange({ ...book, description: event.target.value })
             }
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+            className="w-full rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-primary"
           />
         </div>
         <div>
@@ -137,7 +137,7 @@ export function CharacterBookEditor({
             onChange={(event) =>
               onChange({ ...book, scan_depth: Number(event.target.value) })
             }
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+            className="w-full rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-primary"
           />
         </div>
         <div>
@@ -151,7 +151,7 @@ export function CharacterBookEditor({
             onChange={(event) =>
               onChange({ ...book, token_budget: Number(event.target.value) })
             }
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+            className="w-full rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-primary"
           />
         </div>
       </div>
@@ -188,7 +188,7 @@ export function CharacterBookEditor({
       {book.entries.map((entry, index) => (
         <fieldset
           key={`${entry.id ?? "entry"}-${index}`}
-          className="space-y-3 rounded-lg border border-border bg-surface-elevated p-3"
+          className="space-y-3 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-3"
         >
           <legend className="px-1 text-[13px] font-medium text-text-primary">
             <Trans i18nKey="common:surface.componentsRpStudioCharacterbookeditor.text.entry" />{" "}
@@ -204,7 +204,7 @@ export function CharacterBookEditor({
                 onChange={(event) =>
                   updateEntry(index, { name: event.target.value })
                 }
-                className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px]"
+                className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px]"
               />
             </div>
             <div>
@@ -216,7 +216,7 @@ export function CharacterBookEditor({
                 onChange={(event) =>
                   updateEntry(index, { keys: parseList(event.target.value) })
                 }
-                className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px]"
+                className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px]"
               />
             </div>
             <div>
@@ -230,7 +230,7 @@ export function CharacterBookEditor({
                     secondary_keys: parseList(event.target.value),
                   })
                 }
-                className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px]"
+                className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px]"
               />
             </div>
             <div>
@@ -242,7 +242,7 @@ export function CharacterBookEditor({
                 onChange={(event) =>
                   updateEntry(index, { comment: event.target.value })
                 }
-                className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px]"
+                className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px]"
               />
             </div>
           </div>
@@ -270,7 +270,7 @@ export function CharacterBookEditor({
                       "before_char" | "after_char",
                   })
                 }
-                className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px]"
+                className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px]"
               >
                 <option value="before_char">
                   <Trans i18nKey="common:surface.componentsRpStudioCharacterbookeditor.option.beforeCharacter" />
@@ -292,7 +292,7 @@ export function CharacterBookEditor({
                     insertion_order: Number(event.target.value),
                   })
                 }
-                className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px]"
+                className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px]"
               />
             </div>
             <div>
@@ -305,7 +305,7 @@ export function CharacterBookEditor({
                 onChange={(event) =>
                   updateEntry(index, { priority: Number(event.target.value) })
                 }
-                className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px]"
+                className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px]"
               />
             </div>
           </div>

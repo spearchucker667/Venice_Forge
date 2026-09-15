@@ -19,7 +19,7 @@ export function ManagedDocumentAttachmentCard({ docRef }: { docRef: ChatDocument
   return (
     <div
       onClick={handleClick}
-      className="mt-2 mb-1 w-full max-w-sm rounded-lg border border-border bg-surface-elevated/40 hover:bg-surface-elevated/80 p-3 transition-colors cursor-pointer group"
+      className="mt-2 mb-1 w-full max-w-sm rounded-md border border-vf-panel-border bg-vf-panel-bg-raised/40 hover:bg-vf-control-hover p-3 transition-colors cursor-pointer group"
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -29,7 +29,7 @@ export function ManagedDocumentAttachmentCard({ docRef }: { docRef: ChatDocument
       }}
     >
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-md bg-surface border border-border/60 text-accent group-hover:scale-105 transition-transform">
+        <div className="p-2 rounded-md bg-vf-panel-bg border border-vf-panel-border text-accent group-hover:scale-105 transition-transform">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
             <polyline points="14 2 14 8 20 8" />

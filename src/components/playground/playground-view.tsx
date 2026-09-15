@@ -181,13 +181,13 @@ export function PlaygroundView() {
 
   return (
     <div className="flex flex-col lg:flex-row h-full min-h-0">
-      <div className="w-full lg:w-[420px] shrink-0 border-b lg:border-b-0 lg:border-r border-border/50 flex flex-col min-h-0 max-h-[45vh] lg:max-h-none">
-        <div className="flex items-center justify-between gap-2 px-3 h-11 border-b border-border/50 bg-surface shrink-0">
+      <div className="w-full lg:w-[420px] shrink-0 border-b lg:border-b-0 lg:border-r border-vf-panel-border flex flex-col min-h-0 max-h-[45vh] lg:max-h-none">
+        <div className="flex items-center justify-between gap-2 px-3 h-11 border-b border-vf-panel-border bg-vf-panel-bg shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[14px] font-medium text-text-secondary shrink-0">
               <Trans i18nKey="common:surface.componentsPlaygroundPlaygroundView.text.playground" />
             </span>
-            <span className="text-[12px] px-1.5 py-0.5 rounded bg-surface-elevated text-text-muted uppercase tracking-wider shrink-0">
+            <span className="text-[12px] px-1.5 py-0.5 rounded bg-vf-panel-bg-raised text-text-muted uppercase tracking-wider shrink-0">
               <Trans i18nKey="common:surface.componentsPlaygroundPlaygroundView.text.agent" />
             </span>
           </div>
@@ -198,7 +198,7 @@ export function PlaygroundView() {
             />
             <button
               onClick={handleReset}
-              className="text-[12px] text-text-muted hover:text-text-secondary transition-colors px-3 py-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
+              className="text-[12px] text-text-muted hover:text-text-primary transition-colors px-3 py-1 rounded focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
               title={tRuntime(
                 "runtimeGenerated.components.playground.playgroundView.attribute.clearConversation",
               )}
@@ -213,10 +213,10 @@ export function PlaygroundView() {
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <div className="flex items-center gap-2 px-3 h-11 border-b border-border/50 bg-surface shrink-0">
+        <div className="flex items-center gap-2 px-3 h-11 border-b border-vf-panel-border bg-vf-panel-bg shrink-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {linkedWorkflow ? (
-              <div className="flex items-center gap-1 min-w-0 px-2 py-0.5 rounded bg-surface-elevated border border-border">
+              <div className="flex items-center gap-1 min-w-0 px-2 py-0.5 rounded bg-vf-panel-bg-raised border border-vf-panel-border">
                 <svg
                   width="11"
                   height="11"
@@ -237,7 +237,7 @@ export function PlaygroundView() {
                 </span>
                 <button
                   onClick={handleUnlink}
-                  className="text-text-muted hover:text-text-secondary transition-colors p-0.5 -mr-1 shrink-0"
+                  className="text-text-muted hover:text-text-primary transition-colors p-0.5 -mr-1 shrink-0"
                   title={tRuntime(
                     "runtimeGenerated.components.playground.playgroundView.attribute.unlink",
                   )}
@@ -262,7 +262,7 @@ export function PlaygroundView() {
                 onChange={(e) =>
                   e.target.value && handleLoadWorkflow(e.target.value)
                 }
-                className="bg-surface-elevated border border-border rounded px-2 py-1 text-[12px] text-text-muted outline-none hover:border-accent max-w-[200px]"
+                className="bg-vf-panel-bg-raised border border-vf-panel-border rounded px-2 py-1 text-[12px] text-text-muted outline-none hover:border-accent max-w-[200px]"
               >
                 <option value="">
                   <Trans i18nKey="common:surface.componentsPlaygroundPlaygroundView.option.editSavedWorkflow" />
@@ -303,7 +303,7 @@ export function PlaygroundView() {
             <button
               onClick={resetDraft}
               disabled={!canExport || isRunning}
-              className="text-text-muted hover:text-text-secondary transition-colors p-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="text-text-muted hover:text-text-primary transition-colors p-2 disabled:opacity-30 disabled:cursor-not-allowed"
               title={tRuntime(
                 "runtimeGenerated.components.playground.playgroundView.attribute.resetCanvas",
               )}
@@ -328,7 +328,7 @@ export function PlaygroundView() {
                 "flex items-center gap-1.5 text-[13px] font-medium px-2.5 py-1 rounded-md transition-colors",
                 canRun
                   ? "bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30"
-                  : "bg-surface-elevated text-text-muted border border-border cursor-not-allowed",
+                  : "bg-vf-panel-bg-raised text-text-muted border border-vf-panel-border cursor-not-allowed",
               )}
               title={
                 validation.errors.length > 0
@@ -363,9 +363,9 @@ export function PlaygroundView() {
               onClick={handleSave}
               disabled={!canExport || isRunning}
               className={cn(
-                "text-[13px] px-2.5 py-1 rounded-md border border-border transition-colors",
+                "text-[13px] px-2.5 py-1 rounded-md border border-vf-panel-border transition-colors",
                 canExport && !isRunning
-                  ? "text-text-secondary hover:border-accent hover:text-text-secondary"
+                  ? "text-text-secondary hover:border-accent hover:text-text-primary"
                   : "text-text-muted opacity-40 cursor-not-allowed",
               )}
               title={
@@ -391,7 +391,7 @@ export function PlaygroundView() {
               <button
                 onClick={handleSaveAsNew}
                 disabled={!canExport || isRunning}
-                className="text-text-muted hover:text-text-secondary transition-colors p-2 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="text-text-muted hover:text-text-primary transition-colors p-2 disabled:opacity-30 disabled:cursor-not-allowed"
                 title={tRuntime(
                   "runtimeGenerated.components.playground.playgroundView.attribute.saveAsANewWorkflow",
                 )}
@@ -417,8 +417,8 @@ export function PlaygroundView() {
               className={cn(
                 "flex items-center gap-1.5 text-[13px] font-medium px-2.5 py-1 rounded-md transition-colors",
                 canExport && !isRunning
-                  ? "bg-accent text-accent-fg hover:bg-accent-hover"
-                  : "bg-surface-elevated text-text-muted cursor-not-allowed",
+                  ? "bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_0_8px_var(--color-vf-accent-glow)] shadow-[0_0_8px_var(--color-vf-accent-glow)]"
+                  : "bg-vf-panel-bg-raised text-text-muted cursor-not-allowed",
               )}
               title={tRuntime(
                 "runtimeGenerated.components.playground.playgroundView.attribute.openInWorkflowsTab",

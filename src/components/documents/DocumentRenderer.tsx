@@ -13,7 +13,7 @@ export function DocumentRenderer({ blocks }: { blocks: DocumentBlock[] }) {
           case 'heading': {
             const Tag = `h${block.level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
             const sizeClasses: Record<number, string> = {
-              1: 'text-2xl font-bold mt-4 mb-2 text-foreground soft-separator-y pb-1',
+              1: 'text-2xl font-bold mt-4 mb-2 text-foreground border-y border-vf-panel-border pb-1',
               2: 'text-xl font-bold mt-3 mb-2 text-foreground',
               3: 'text-lg font-semibold mt-3 mb-1 text-foreground',
               4: 'text-base font-semibold mt-2 mb-1 text-foreground',
@@ -36,14 +36,14 @@ export function DocumentRenderer({ blocks }: { blocks: DocumentBlock[] }) {
             return (
               <blockquote
                 key={block.id}
-                className="border-l-4 border-accent/60 pl-3 py-1 text-foreground-muted italic bg-surface-elevated/40 rounded-r-md"
+                className="border-l-4 border-accent/60 pl-3 py-1 text-foreground-muted italic bg-vf-panel-bg-raised/40 rounded-r-md"
               >
                 {block.text}
               </blockquote>
             )
           case 'code':
             return (
-              <div key={block.id} className="rounded-lg border border-border bg-surface-sunken p-3 font-mono text-[13px] overflow-x-auto">
+              <div key={block.id} className="rounded-md border border-vf-panel-border bg-vf-panel-bg-sunken p-3 font-mono text-[13px] overflow-x-auto">
                 {block.language && (
                   <div className="text-[11px] text-foreground-muted uppercase tracking-wider mb-1 font-sans">
                     {block.language}
@@ -67,16 +67,16 @@ export function DocumentRenderer({ blocks }: { blocks: DocumentBlock[] }) {
           }
           case 'table':
             return (
-              <div key={block.id} className="overflow-x-auto my-3 rounded-lg border border-border">
+              <div key={block.id} className="overflow-x-auto my-3 rounded-md border border-vf-panel-border">
                 <table className="w-full text-left text-[13px] border-collapse">
                   <tbody>
                     {block.rows.map((row, rIdx) => (
                       <tr
                         key={row.id}
-                        className={rIdx === 0 ? 'bg-surface-elevated font-semibold soft-separator-y' : 'border-b border-border/40 hover:bg-surface-elevated/30'}
+                        className={rIdx === 0 ? 'bg-vf-panel-bg-raised font-semibold border-y border-vf-panel-border' : 'border-b border-vf-panel-border hover:bg-vf-control-hover'}
                       >
                         {row.cells.map((cell) => (
-                          <td key={cell.id} className="p-2 border-r border-border/30 last:border-r-0">
+                          <td key={cell.id} className="p-2 border-r border-vf-panel-border last:border-r-0">
                             {cell.text}
                           </td>
                         ))}
@@ -88,8 +88,8 @@ export function DocumentRenderer({ blocks }: { blocks: DocumentBlock[] }) {
             )
           case 'pageBreak':
             return (
-              <div key={block.id} className="my-6 border-b border-dashed border-border/80 text-center relative">
-                <span className="bg-surface px-2 text-[11px] text-foreground-muted uppercase tracking-widest absolute -top-2.5 left-1/2 -translate-x-1/2">
+              <div key={block.id} className="my-6 border-b border-dashed border-vf-panel-border text-center relative">
+                <span className="bg-vf-panel-bg px-2 text-[11px] text-foreground-muted uppercase tracking-widest absolute -top-2.5 left-1/2 -translate-x-1/2">
                   <Trans i18nKey="common:surface.componentsDocumentsDocumentrenderer.text.pageBreak" /></span>
               </div>
             )

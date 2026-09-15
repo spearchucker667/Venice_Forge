@@ -54,7 +54,7 @@ export function CharacterCreatorError({
       </p>
 
       {/* Error Details Box */}
-      <div className="w-full bg-surface/60 rounded-xl border border-danger/20 p-4 mb-6 text-left">
+      <div className="w-full bg-vf-panel-bg/60 rounded-lg border border-danger/20 p-4 mb-6 text-left">
         <div className="flex items-center justify-between text-xs text-danger font-bold mb-1">
           <span>
             <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorerror.text.diagnosticMessage" />
@@ -81,7 +81,7 @@ export function CharacterCreatorError({
           <button
             type="button"
             onClick={onReturnToDraft}
-            className="px-4 py-2 rounded-xl bg-surface border border-border hover:bg-surface-elevated text-xs font-medium text-text-secondary flex items-center gap-1.5 transition-colors"
+            className="px-4 py-2 rounded-lg bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-xs font-medium text-text-secondary flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>
@@ -92,7 +92,7 @@ export function CharacterCreatorError({
         <button
           type="button"
           onClick={onRetry}
-          className="px-5 py-2 rounded-xl bg-accent text-accent-contrast font-medium text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+          className="px-5 py-2 rounded-lg bg-accent text-accent-contrast font-medium text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity"
         >
           <RotateCcw className="w-4 h-4" />
           <span>

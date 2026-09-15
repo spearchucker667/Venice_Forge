@@ -139,7 +139,7 @@ function DocumentAccessControl({
             onChange={(event) =>
               onPresetChange(event.target.value as AgentPermissionPreset)
             }
-            className="w-full rounded-lg border border-border bg-input-bg px-3 py-1.5 text-[13px] text-input-fg"
+            className="w-full rounded-md border border-vf-panel-border bg-input-bg px-3 py-1.5 text-[13px] text-input-fg"
           >
             <option value="off">
               <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.option.off" />
@@ -160,7 +160,7 @@ function DocumentAccessControl({
         </div>
 
         {preset === "workspace_with_approval" && (
-          <div className="flex-1 w-full rounded-lg border border-border bg-surface-muted p-2.5 flex items-center justify-between gap-3">
+          <div className="flex-1 w-full rounded-md border border-vf-panel-border bg-vf-panel-bg-inset p-2.5 flex items-center justify-between gap-3">
             {workspaceGrant ? (
               <div className="flex items-center justify-between gap-3 w-full">
                 <div>
@@ -617,7 +617,7 @@ export function DocumentAgentView() {
     );
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-surface-base p-5 space-y-4">
+    <div className="h-full flex flex-col overflow-hidden bg-vf-panel-bg p-5 space-y-4">
       {/* Top Header: Access Controls, Working Group Selector, Environment Tabs */}
       <DocumentAccessControl
         preset={preset}
@@ -641,7 +641,7 @@ export function DocumentAgentView() {
         }}
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between soft-separator-y pb-3">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between border-y border-vf-panel-border pb-3">
         {/* Working Group Selector */}
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
@@ -656,7 +656,7 @@ export function DocumentAgentView() {
                 id="document-agent-working-group"
                 value={projectId || ""}
                 onChange={(e) => setActiveProject(e.target.value)}
-                className="rounded-lg border border-border bg-input-bg px-3 py-1.5 text-[14px] font-semibold text-foreground"
+                className="rounded-md border border-vf-panel-border bg-input-bg px-3 py-1.5 text-[14px] font-semibold text-foreground"
               >
                 {projects
                   .filter((p) => !p.archivedAt)
@@ -674,16 +674,16 @@ export function DocumentAgentView() {
         </div>
 
         {/* Environment Selector Tabs */}
-        <div className="flex items-center gap-1 bg-surface-elevated/40 p-1 rounded-lg border border-border">
+        <div className="flex items-center gap-1 bg-vf-panel-bg-raised/40 p-1 rounded-md border border-vf-panel-border">
           <button
             onClick={() => setActiveEnvironment("managed")}
-            className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${activeEnvironment === "managed" ? "bg-surface text-foreground shadow-sm" : "text-foreground-muted hover:text-foreground"}`}
+            className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${activeEnvironment === "managed" ? "bg-vf-panel-bg text-foreground shadow-sm" : "text-foreground-muted hover:text-foreground"}`}
           >
             <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.action.managedLibrary" />
           </button>
           <button
             onClick={() => setActiveEnvironment("workspace")}
-            className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${activeEnvironment === "workspace" ? "bg-surface text-foreground shadow-sm" : "text-foreground-muted hover:text-foreground"}`}
+            className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${activeEnvironment === "workspace" ? "bg-vf-panel-bg text-foreground shadow-sm" : "text-foreground-muted hover:text-foreground"}`}
           >
             <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.action.connectedWorkspace" />
           </button>
@@ -718,7 +718,7 @@ export function DocumentAgentView() {
               placeholder={tRuntime(
                 "runtimeGenerated.components.documents.documentagentview.attribute.searchDocuments",
               )}
-              className="w-full rounded-lg border border-border bg-input-bg px-3 py-1.5 text-[12px] text-input-fg outline-none focus:border-accent"
+              className="w-full rounded-md border border-vf-panel-border bg-input-bg px-3 py-1.5 text-[12px] text-input-fg outline-none focus:border-accent"
             />
 
             <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
@@ -729,7 +729,7 @@ export function DocumentAgentView() {
                   onClick={() => {
                     void readDocument(doc.id);
                   }}
-                  className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${selected?.documentId === doc.id ? "border-accent bg-surface-elevated" : "border-border hover:bg-surface-muted"}`}
+                  className={`w-full rounded-md border px-3 py-2.5 text-left transition-colors ${selected?.documentId === doc.id ? "border-accent bg-vf-panel-bg-raised" : "border-vf-panel-border hover:bg-vf-control-hover-muted"}`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-[13px] text-foreground truncate">
@@ -759,7 +759,7 @@ export function DocumentAgentView() {
             {selected ? (
               <div className="flex-1 flex flex-col min-h-0 space-y-3">
                 {/* Document Header Controls */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 soft-separator-y pb-3 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-y border-vf-panel-border pb-3 flex-shrink-0">
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-[16px] font-semibold text-foreground">
@@ -779,22 +779,22 @@ export function DocumentAgentView() {
 
                   {/* Mode Switcher & Export */}
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 bg-surface-elevated/40 p-1 rounded-md border border-border text-[12px]">
+                    <div className="flex items-center gap-1 bg-vf-panel-bg-raised/40 p-1 rounded-md border border-vf-panel-border text-[12px]">
                       <button
                         onClick={() => setEditorTab("preview")}
-                        className={`px-2.5 py-1 rounded transition-colors ${editorTab === "preview" ? "bg-surface font-medium text-foreground" : "text-foreground-muted hover:text-foreground"}`}
+                        className={`px-2.5 py-1 rounded transition-colors ${editorTab === "preview" ? "bg-vf-panel-bg font-medium text-foreground" : "text-foreground-muted hover:text-foreground"}`}
                       >
                         <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.action.preview" />
                       </button>
                       <button
                         onClick={() => setEditorTab("source")}
-                        className={`px-2.5 py-1 rounded transition-colors ${editorTab === "source" ? "bg-surface font-medium text-foreground" : "text-foreground-muted hover:text-foreground"}`}
+                        className={`px-2.5 py-1 rounded transition-colors ${editorTab === "source" ? "bg-vf-panel-bg font-medium text-foreground" : "text-foreground-muted hover:text-foreground"}`}
                       >
                         <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.action.source" />
                       </button>
                       <button
                         onClick={() => setEditorTab("revisions")}
-                        className={`px-2.5 py-1 rounded transition-colors ${editorTab === "revisions" ? "bg-surface font-medium text-foreground" : "text-foreground-muted hover:text-foreground"}`}
+                        className={`px-2.5 py-1 rounded transition-colors ${editorTab === "revisions" ? "bg-vf-panel-bg font-medium text-foreground" : "text-foreground-muted hover:text-foreground"}`}
                       >
                         <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.action.history" />
                         {revisions.length})
@@ -826,7 +826,7 @@ export function DocumentAgentView() {
 
                 {/* Editor Tab Content */}
                 {editorTab === "preview" && (
-                  <div className="flex-1 overflow-y-auto p-3 rounded-lg border border-border bg-surface-muted min-h-0">
+                  <div className="flex-1 overflow-y-auto p-3 rounded-md border border-vf-panel-border bg-vf-panel-bg-inset min-h-0">
                     <DocumentRenderer blocks={selected.blocks} />
                   </div>
                 )}
@@ -859,7 +859,7 @@ export function DocumentAgentView() {
                     {revisions.map((rev) => (
                       <div
                         key={rev.id}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 bg-surface-elevated/20"
+                        className="flex items-center justify-between gap-3 rounded-md border border-vf-panel-border p-3 bg-vf-panel-bg-raised/20"
                       >
                         <div>
                           <div className="text-[13px] font-medium text-foreground">
@@ -888,7 +888,7 @@ export function DocumentAgentView() {
                 {/* Change Proposal Review */}
                 {proposal && (
                   <div
-                    className="rounded-xl border border-border-strong bg-surface-elevated p-4 space-y-3 flex-shrink-0 mt-2"
+                    className="rounded-lg border border-vf-panel-border-strong bg-vf-panel-bg-raised p-4 space-y-3 flex-shrink-0 mt-2"
                     role="region"
                     aria-label={tRuntime(
                       "runtimeGenerated.components.documents.documentagentview.attribute.documentChangeProposal",
@@ -909,7 +909,7 @@ export function DocumentAgentView() {
                         <div className="text-[11px] font-semibold text-danger uppercase tracking-wider mb-1">
                           <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.text.before" />
                         </div>
-                        <pre className="overflow-auto rounded-lg bg-surface-muted p-3 text-[12px] text-foreground max-h-[160px]">
+                        <pre className="overflow-auto rounded-md bg-vf-panel-bg-inset p-3 text-[12px] text-foreground max-h-[160px]">
                           {proposal.preview.before.map(blockText).join("\n\n")}
                         </pre>
                       </div>
@@ -917,7 +917,7 @@ export function DocumentAgentView() {
                         <div className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">
                           <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.text.after" />
                         </div>
-                        <pre className="overflow-auto rounded-lg bg-surface-muted p-3 text-[12px] text-foreground max-h-[160px]">
+                        <pre className="overflow-auto rounded-md bg-vf-panel-bg-inset p-3 text-[12px] text-foreground max-h-[160px]">
                           {proposal.preview.after.map(blockText).join("\n\n")}
                         </pre>
                       </div>
@@ -974,7 +974,7 @@ export function DocumentAgentView() {
 
             {workspaceGrant ? (
               <>
-                <div className="rounded-lg border border-border bg-surface-muted p-3 space-y-1">
+                <div className="rounded-md border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1">
                   <div className="text-[13px] font-medium text-foreground">
                     {workspaceGrant.displayName}
                   </div>
@@ -995,7 +995,7 @@ export function DocumentAgentView() {
                     placeholder={tRuntime(
                       "runtimeGenerated.components.documents.documentagentview.attribute.searchWorkspaceText",
                     )}
-                    className="flex-1 rounded-lg border border-border bg-input-bg px-2.5 py-1.5 text-[12px] text-input-fg outline-none focus:border-accent"
+                    className="flex-1 rounded-md border border-vf-panel-border bg-input-bg px-2.5 py-1.5 text-[12px] text-input-fg outline-none focus:border-accent"
                   />
                   <GhostButton
                     onClick={() => {
@@ -1007,7 +1007,7 @@ export function DocumentAgentView() {
                 </div>
 
                 {workspaceSearchResults.length > 0 && (
-                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto rounded-lg border border-border bg-surface-muted p-2">
+                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto rounded-md border border-vf-panel-border bg-vf-panel-bg-inset p-2">
                     <div className="text-[11px] font-semibold text-foreground-muted">
                       <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.text.searchMatches" />
                       {workspaceSearchResults.length})
@@ -1019,7 +1019,7 @@ export function DocumentAgentView() {
                         onClick={() => {
                           void readWorkspaceFile(res.relativePath);
                         }}
-                        className="w-full text-left text-[11px] text-foreground hover:bg-surface-elevated p-1 rounded transition-colors"
+                        className="w-full text-left text-[11px] text-foreground hover:bg-vf-control-hover p-1 rounded transition-colors"
                       >
                         <span className="font-mono text-accent">
                           {res.relativePath}:{res.line}
@@ -1062,7 +1062,7 @@ export function DocumentAgentView() {
                 )}
             </h2>
             {workspaceFileContent ? (
-              <pre className="flex-1 overflow-auto rounded-lg bg-surface-muted p-4 text-[12px] font-mono text-foreground leading-relaxed whitespace-pre-wrap">
+              <pre className="flex-1 overflow-auto rounded-md bg-vf-panel-bg-inset p-4 text-[12px] font-mono text-foreground leading-relaxed whitespace-pre-wrap">
                 {workspaceFileContent.text}
               </pre>
             ) : (
@@ -1098,7 +1098,7 @@ export function DocumentAgentView() {
                   placeholder={tRuntime(
                     "runtimeGenerated.components.documents.documentagentview.attribute.eGNotesMd",
                   )}
-                  className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-[13px] text-input-fg"
+                  className="w-full rounded-md border border-vf-panel-border bg-input-bg px-3 py-2 text-[13px] text-input-fg"
                 />
               </div>
               <div>
@@ -1110,7 +1110,7 @@ export function DocumentAgentView() {
                   onChange={(e) =>
                     setNewDocFormat(e.target.value as DocumentFormat)
                   }
-                  className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-[13px] text-input-fg"
+                  className="w-full rounded-md border border-vf-panel-border bg-input-bg px-3 py-2 text-[13px] text-input-fg"
                 >
                   <option value="md">
                     <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.option.markdownMd" />
@@ -1147,7 +1147,7 @@ export function DocumentAgentView() {
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+            <div className="flex justify-end gap-2 pt-2 border-t border-vf-panel-border">
               <GhostButton onClick={() => setShowNewDocModal(false)}>
                 <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.text.cancel" />
               </GhostButton>
@@ -1184,10 +1184,10 @@ export function DocumentAgentView() {
                 placeholder={tRuntime(
                   "runtimeGenerated.components.documents.documentagentview.attribute.eGQ3Architecture",
                 )}
-                className="w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-[13px] text-input-fg"
+                className="w-full rounded-md border border-vf-panel-border bg-input-bg px-3 py-2 text-[13px] text-input-fg"
               />
             </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+            <div className="flex justify-end gap-2 pt-2 border-t border-vf-panel-border">
               <GhostButton onClick={() => setShowNewGroupModal(false)}>
                 <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.text.cancel" />
               </GhostButton>

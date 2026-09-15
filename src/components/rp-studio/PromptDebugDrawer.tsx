@@ -25,10 +25,10 @@ const KIND_TONE: Record<PromptAssemblyTraceEntry["kind"], string> = {
   scenario: "border-amber-400/30 text-amber-300",
   "lorebook-entry": "border-pink-400/30 text-pink-300",
   memory: "border-rose-400/30 text-rose-300",
-  "recent-message": "border-border text-text-secondary",
+  "recent-message": "border-vf-panel-border text-text-secondary",
   "post-history-instruction": "border-orange-400/30 text-orange-300",
   "active-turn-instruction": "border-emerald-400/30 text-emerald-300",
-  "user-message": "border-border text-text-primary",
+  "user-message": "border-vf-panel-border text-text-primary",
 };
 
 interface Props {
@@ -67,8 +67,8 @@ export function PromptDebugDrawer({ assembly, onClose }: Props) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="ml-auto h-full w-full max-w-xl mesh-surface soft-separator-x flex flex-col">
-        <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="ml-auto h-full w-full max-w-xl bg-vf-panel-bg border-x border-vf-panel-border flex flex-col">
+        <div className="flex items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
           <h2 className="text-[14px] font-semibold text-text-primary">
             <Trans i18nKey="common:surface.componentsRpStudioPromptdebugdrawer.heading.promptTrace" />
           </h2>
@@ -89,7 +89,7 @@ export function PromptDebugDrawer({ assembly, onClose }: Props) {
             </GhostButton>
           </div>
         </div>
-        <div className="px-4 py-2 soft-separator-y mesh-surface">
+        <div className="px-4 py-2 border-y border-vf-panel-border bg-vf-panel-bg">
           <PillGroup
             options={[
               {
@@ -133,7 +133,7 @@ export function PromptDebugDrawer({ assembly, onClose }: Props) {
                   className={cn(
                     "flex items-start gap-2 text-[12px] border rounded-md px-2.5 py-1.5",
                     KIND_TONE[entry.kind] ??
-                      "border-border text-text-secondary",
+                      "border-vf-panel-border text-text-secondary",
                     !entry.included && "opacity-50",
                   )}
                 >
@@ -181,7 +181,7 @@ export function PromptDebugDrawer({ assembly, onClose }: Props) {
                 assembly.recentMessages.map((m, i) => (
                   <div
                     key={i}
-                    className="bg-surface-elevated border border-border rounded-md p-2"
+                    className="bg-vf-panel-bg-raised border border-vf-panel-border rounded-md p-2"
                   >
                     <div className="text-[12px] uppercase tracking-wider text-text-muted">
                       {m.role}

@@ -363,12 +363,12 @@ export const ResearchWorkspaceView: React.FC = () => {
     <div className="flex h-full bg-bg text-text-primary overflow-hidden">
       {/* Sidebar - Session List */}
       <aside
-        className={`${sessionSidebarCollapsed ? "w-12" : "w-[clamp(200px,22vw,256px)]"} flex-shrink-0 border-r border-border/50 flex flex-col bg-surface transition-[width]`}
+        className={`${sessionSidebarCollapsed ? "w-12" : "w-[clamp(200px,22vw,256px)]"} flex-shrink-0 border-r border-vf-panel-border flex flex-col bg-vf-panel-bg transition-[width]`}
         aria-label={tRuntime(
           "runtimeGenerated.components.research.researchworkspaceview.attribute.researchSessions",
         )}
       >
-        <div className="p-4 border-b border-border/50 flex justify-between items-center">
+        <div className="p-4 border-b border-vf-panel-border flex justify-between items-center">
           {!sessionSidebarCollapsed && (
             <h2 className="font-bold text-text-primary flex items-center gap-2">
               <Meteocon name="compass" size={18} />{" "}
@@ -380,7 +380,7 @@ export const ResearchWorkspaceView: React.FC = () => {
               <button
                 type="button"
                 onClick={handleCreateSession}
-                className="p-2 hover:bg-surface-elevated rounded text-text-secondary"
+                className="p-2 hover:bg-vf-control-hover rounded text-text-secondary"
                 aria-label={tRuntime(
                   "runtimeGenerated.components.research.researchworkspaceview.attribute.createResearchSession",
                 )}
@@ -393,7 +393,7 @@ export const ResearchWorkspaceView: React.FC = () => {
             <button
               type="button"
               onClick={() => setSessionSidebarCollapsed((value) => !value)}
-              className="p-2 hover:bg-surface-elevated rounded text-text-secondary"
+              className="p-2 hover:bg-vf-control-hover rounded text-text-secondary"
               aria-label={
                 sessionSidebarCollapsed
                   ? tRuntime(
@@ -420,7 +420,7 @@ export const ResearchWorkspaceView: React.FC = () => {
             {filteredSessions.map((s) => (
               <div
                 key={s.id}
-                className={`flex items-start border-b border-border/50 transition-colors hover:bg-surface-elevated ${activeSessionId === s.id ? "border-l-4 border-l-accent bg-surface-elevated" : "border-l-4 border-l-transparent"}`}
+                className={`flex items-start border-b border-vf-panel-border transition-colors hover:bg-vf-control-hover ${activeSessionId === s.id ? "border-l-4 border-l-accent bg-vf-panel-bg-raised" : "border-l-4 border-l-transparent"}`}
               >
                 <button
                   type="button"
@@ -489,7 +489,7 @@ export const ResearchWorkspaceView: React.FC = () => {
         {activeSession ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-border/50 flex justify-between items-center bg-surface-elevated">
+            <div className="p-4 border-b border-vf-panel-border flex justify-between items-center bg-vf-panel-bg-raised">
               <div>
                 <h1 className="text-xl font-bold text-text-primary">
                   {activeSession.title}
@@ -502,20 +502,20 @@ export const ResearchWorkspaceView: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   onClick={handleCreateWorkflow}
-                  className="px-3 py-1 bg-surface border border-border hover:bg-surface-elevated text-text-primary rounded text-sm transition-colors"
+                  className="px-3 py-1 bg-vf-panel-bg border border-vf-panel-border hover:bg-vf-control-hover text-text-primary rounded text-sm transition-colors"
                 >
                   <Trans i18nKey="common:surface.componentsResearchResearchworkspaceview.action.createWorkflow" />
                 </button>
                 <button
                   onClick={handleSaveToLibrary}
-                  className="px-3 py-1 bg-accent text-accent-fg hover:bg-accent-hover rounded text-sm transition-colors"
+                  className="px-3 py-1 bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_0_8px_var(--color-vf-accent-glow)] shadow-[0_0_8px_var(--color-vf-accent-glow)] rounded text-sm transition-colors"
                 >
                   <Trans i18nKey="common:surface.componentsResearchResearchworkspaceview.action.saveSummary" />
                 </button>
                 <button
                   type="button"
                   onClick={() => archiveSession(activeSession.id)}
-                  className="p-2 hover:bg-surface-elevated rounded text-text-secondary"
+                  className="p-2 hover:bg-vf-control-hover rounded text-text-secondary"
                   aria-label={tRuntime(
                     "runtimeGenerated.components.research.researchworkspaceview.attribute.archiveSession",
                   )}
@@ -544,8 +544,8 @@ export const ResearchWorkspaceView: React.FC = () => {
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 flex overflow-hidden">
                   {/* Left Column - Search & Sources */}
-                  <div className="flex-1 flex flex-col border-r border-border/50 overflow-hidden">
-                    <div className="p-4 space-y-4 border-b border-border/50">
+                  <div className="flex-1 flex flex-col border-r border-vf-panel-border overflow-hidden">
+                    <div className="p-4 space-y-4 border-b border-vf-panel-border">
                       <form onSubmit={handleSearch} className="flex gap-2">
                         <label
                           htmlFor="research-search-query"
@@ -560,7 +560,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                           placeholder={tRuntime(
                             "runtimeGenerated.components.research.researchworkspaceview.attribute.searchQuery",
                           )}
-                          className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+                          className="flex-1 bg-vf-panel-bg border border-vf-panel-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                         />
                         <button
                           type="submit"
@@ -568,7 +568,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                           aria-label={tRuntime(
                             "runtimeGenerated.components.research.researchworkspaceview.attribute.runResearchSearch",
                           )}
-                          className="px-4 py-2 bg-surface-elevated hover:bg-surface-muted text-text-primary rounded text-sm disabled:opacity-50 transition-colors"
+                          className="px-4 py-2 bg-vf-panel-bg-raised hover:bg-vf-control-hover-muted text-text-primary rounded text-sm disabled:opacity-50 transition-colors"
                         >
                           {isSearching ? "..." : <SearchIcon />}
                         </button>
@@ -585,7 +585,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                           value={scrapeUrl}
                           onChange={(e) => setScrapeUrl(e.target.value)}
                           placeholder="Scrape URL (https://...)"
-                          className="flex-1 bg-surface border border-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+                          className="flex-1 bg-vf-panel-bg border border-vf-panel-border rounded px-3 py-2 text-sm text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                         />
                         <button
                           type="submit"
@@ -593,7 +593,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                           aria-label={tRuntime(
                             "runtimeGenerated.components.research.researchworkspaceview.attribute.scrapeUrl",
                           )}
-                          className="px-4 py-2 bg-surface-elevated hover:bg-surface-muted text-text-primary rounded text-sm disabled:opacity-50 transition-colors"
+                          className="px-4 py-2 bg-vf-panel-bg-raised hover:bg-vf-control-hover-muted text-text-primary rounded text-sm disabled:opacity-50 transition-colors"
                         >
                           {isScraping ? "..." : <ScrapeIcon />}
                         </button>
@@ -611,7 +611,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={isUploading}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-surface-elevated border border-border hover:bg-surface-muted text-text-primary rounded text-xs disabled:opacity-50 transition-colors"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-vf-panel-bg-raised border border-vf-panel-border hover:bg-vf-control-hover-muted text-text-primary rounded text-xs disabled:opacity-50 transition-colors"
                         >
                           <UploadIcon />
                           {isUploading
@@ -633,7 +633,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                       {activeSession.sources.map((src) => (
                         <div
                           key={src.id}
-                          className="bg-surface-elevated border border-border rounded p-3 relative group"
+                          className="bg-vf-panel-bg-raised border border-vf-panel-border rounded p-3 relative group"
                         >
                           <button
                             type="button"
@@ -669,8 +669,8 @@ export const ResearchWorkspaceView: React.FC = () => {
                   </div>
 
                   {/* Right Column - Findings */}
-                  <div className="w-96 flex flex-col bg-surface overflow-hidden">
-                    <div className="p-4 border-b border-border/50">
+                  <div className="w-96 flex flex-col bg-vf-panel-bg overflow-hidden">
+                    <div className="p-4 border-b border-vf-panel-border">
                       <h3 className="font-bold text-sm uppercase text-text-muted mb-4">
                         <Trans i18nKey="common:surface.componentsResearchResearchworkspaceview.heading.addFinding" />
                       </h3>
@@ -689,7 +689,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                             placeholder={tRuntime(
                               "runtimeGenerated.components.research.researchworkspaceview.attribute.summarizeTheFinding",
                             )}
-                            className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
                           />
                         </div>
                         <div className="space-y-1">
@@ -707,12 +707,12 @@ export const ResearchWorkspaceView: React.FC = () => {
                               "runtimeGenerated.components.research.researchworkspaceview.attribute.addSupportingDetailsAndCitations",
                             )}
                             rows={4}
-                            className="w-full bg-surface border border-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none"
+                            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-muted resize-none"
                           />
                         </div>
                         <button
                           onClick={handleAddFinding}
-                          className="w-full py-2 bg-accent text-accent-fg hover:bg-accent-hover rounded text-sm font-bold transition-colors"
+                          className="w-full py-2 bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_0_8px_var(--color-vf-accent-glow)] shadow-[0_0_8px_var(--color-vf-accent-glow)] rounded text-sm font-bold transition-colors"
                         >
                           <Trans i18nKey="common:surface.componentsResearchResearchworkspaceview.action.saveFinding" />
                         </button>
@@ -727,7 +727,7 @@ export const ResearchWorkspaceView: React.FC = () => {
                       {activeSession.findings.map((f) => (
                         <div
                           key={f.id}
-                          className="bg-surface-elevated border border-border rounded p-3 group"
+                          className="bg-vf-panel-bg-raised border border-vf-panel-border rounded p-3 group"
                         >
                           <div className="flex justify-between items-start mb-2">
                             <h4 className="font-bold text-text-primary">
@@ -768,7 +768,7 @@ export const ResearchWorkspaceView: React.FC = () => {
             </p>
             <button
               onClick={handleCreateSession}
-              className="px-6 py-2 bg-accent text-accent-fg hover:bg-accent-hover rounded font-bold transition-colors"
+              className="px-6 py-2 bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_0_8px_var(--color-vf-accent-glow)] shadow-[0_0_8px_var(--color-vf-accent-glow)] rounded font-bold transition-colors"
             >
               <Trans i18nKey="common:surface.componentsResearchResearchworkspaceview.action.newResearchSession" />
             </button>

@@ -48,13 +48,13 @@ function Inner({ nodes: source, edges: sourceEdges }: { nodes: Node<VeniceNodeDa
       nodesConnectable={false}
       elementsSelectable={false}
       proOptions={{ hideAttribution: true }}
-      className="bg-surface"
+      className="bg-vf-panel-bg"
       defaultEdgeOptions={{ animated: true, style: { stroke: 'var(--border)', strokeWidth: 2 } }}
     >
       <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--border)" />
       <Controls
         showInteractive={false}
-        className="!bg-surface-elevated !border-border !shadow-xl [&>button]:!bg-surface-elevated [&>button]:!border-border [&>button]:!text-text-muted [&>button:hover]:!bg-surface-elevated"
+        className="!bg-vf-panel-bg-raised !border-vf-panel-border !shadow-xl [&>button]:!bg-vf-panel-bg-raised [&>button]:!border-vf-panel-border [&>button]:!text-text-muted [&>button:hover]:!bg-vf-panel-bg-raised"
       />
     </ReactFlow>
   )

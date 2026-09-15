@@ -1053,14 +1053,14 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center gap-2 px-4 py-3 soft-separator-y mesh-header mesh-surface">
+      <div className="flex items-center gap-2 px-4 py-3 border-y border-vf-panel-border bg-vf-shell-bg bg-vf-panel-bg">
         <button
           type="button"
           onClick={onClose}
           aria-label={tRuntime(
             "runtimeGenerated.components.rpStudio.charactereditor.attribute.backToLibrary",
           )}
-          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-surface-elevated transition-colors"
+          className="text-text-secondary hover:text-text-primary p-2 rounded-md hover:bg-vf-control-hover transition-colors"
         >
           <svg
             width="14"
@@ -1162,13 +1162,13 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
           aria-label={tRuntime(
             "runtimeGenerated.components.rpStudio.charactereditor.attribute.stCardStudioSteps",
           )}
-          className="sticky top-0 z-10 -mx-4 flex gap-1 overflow-x-auto bg-surface px-4 pb-3 soft-separator-y"
+          className="sticky top-0 z-10 -mx-4 flex gap-1 overflow-x-auto bg-vf-panel-bg px-4 pb-3 border-y border-vf-panel-border"
         >
           <button
             type="button"
             aria-current={activeStudioStep === "all" ? "step" : undefined}
             onClick={() => setActiveStudioStep("all")}
-            className={`shrink-0 rounded-md border px-2 py-1 text-[11px] ${activeStudioStep === "all" ? "border-accent bg-accent/10 text-accent" : "border-border text-text-muted"}`}
+            className={`shrink-0 rounded-md border px-2 py-1 text-[11px] ${activeStudioStep === "all" ? "border-accent bg-accent/10 text-accent" : "border-vf-panel-border text-text-muted"}`}
           >
             <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.allSteps" />
           </button>
@@ -1178,7 +1178,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               type="button"
               aria-current={activeStudioStep === index ? "step" : undefined}
               onClick={() => setActiveStudioStep(index)}
-              className={`shrink-0 rounded-md border px-2 py-1 text-[11px] ${activeStudioStep === index ? "border-accent bg-accent/10 text-accent" : "border-border text-text-muted"}`}
+              className={`shrink-0 rounded-md border px-2 py-1 text-[11px] ${activeStudioStep === index ? "border-accent bg-accent/10 text-accent" : "border-vf-panel-border text-text-muted"}`}
             >
               {index + 1}. {step}
             </button>
@@ -1216,13 +1216,13 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 1: Source */}
         {isStepVisible(0) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.1SourceAvatar" />
             </h3>
             <div className="flex gap-4 items-start">
               <div className="shrink-0">
-                <div className="w-24 h-24 rounded-xl overflow-hidden border border-border bg-surface-elevated flex items-center justify-center text-text-muted text-3xl font-semibold">
+                <div className="w-24 h-24 rounded-lg overflow-hidden border border-vf-panel-border bg-vf-panel-bg-raised flex items-center justify-center text-text-muted text-3xl font-semibold">
                   {avatarSrc ? (
                     <img
                       src={avatarSrc}
@@ -1247,7 +1247,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-2 w-24 text-[12px] py-1 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors"
+                  className="mt-2 w-24 text-[12px] py-1 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors"
                 >
                   {draft.avatar
                     ? tRuntime(
@@ -1278,14 +1278,14 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     value={draft.characterVersion ?? ""}
                     onChange={(e) => update("characterVersion", e.target.value)}
                     maxLength={64}
-                    className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent"
+                    className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent"
                   />
                 </div>
                 <div>
                   <Label>
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.importSource" />
                   </Label>
-                  <div className="rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-text-secondary">
+                  <div className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-secondary">
                     {draft.sourceFormat ??
                       tRuntime(
                         "runtimeGenerated.components.rpStudio.charactereditor.text.veniceForgeLocal",
@@ -1299,7 +1299,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 2: Identity */}
         {isStepVisible(1) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.2Identity" />
             </h3>
@@ -1313,7 +1313,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   value={draft.name}
                   onChange={(e) => update("name", e.target.value)}
                   maxLength={200}
-                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+                  className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
                 />
               </div>
               <div>
@@ -1328,7 +1328,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   }
                   placeholder="optional"
                   maxLength={200}
-                  className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+                  className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                 />
               </div>
             </div>
@@ -1403,7 +1403,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     "runtimeGenerated.components.rpStudio.charactereditor.attribute.addATagAndPressEnter",
                   )}
                   maxLength={64}
-                  className="flex-1 bg-surface border border-border rounded-lg px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+                  className="flex-1 bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-1.5 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                 />
                 <GhostButton onClick={addTag} disabled={!tagInput.trim()}>
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.add" />
@@ -1416,7 +1416,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                       key={t}
                       type="button"
                       onClick={() => removeTag(t)}
-                      className="text-[12px] px-2 py-0.5 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors"
+                      className="text-[12px] px-2 py-0.5 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors"
                       aria-label={tRuntime(
                         "runtimeGenerated.components.rpStudio.charactereditor.attribute.removeTagT",
                         { t: t },
@@ -1433,7 +1433,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 3: Persona */}
         {isStepVisible(2) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.3Persona" />
             </h3>
@@ -1482,7 +1482,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 4: Prompt Behavior */}
         {isStepVisible(3) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.4PromptBehavior" />
             </h3>
@@ -1579,7 +1579,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 5: Greetings */}
         {isStepVisible(4) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.5Greetings" />
             </h3>
@@ -1616,7 +1616,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 </GhostButton>
               </div>
               <div
-                className="mt-2 rounded-lg border border-border bg-surface-elevated p-3"
+                className="mt-2 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-3"
                 aria-live="polite"
               >
                 <div className="mb-1 text-[11px] uppercase text-text-muted">
@@ -1683,13 +1683,13 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                       )}
                       rows={2}
                       maxLength={CARD_FIELD_MAX}
-                      className="flex-1 resize-y rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+                      className="flex-1 resize-y rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-primary"
                     />
                     <div className="flex flex-col gap-1">
                       <button
                         type="button"
                         onClick={() => update("firstMessage", greeting)}
-                        className="text-[11px] rounded border border-border px-2 py-1 text-text-secondary"
+                        className="text-[11px] rounded border border-vf-panel-border px-2 py-1 text-text-secondary"
                       >
                         <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.setPrimary" />
                       </button>
@@ -1707,7 +1707,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                             ),
                           ])
                         }
-                        className="text-[11px] rounded border border-border px-2 py-1 text-text-secondary"
+                        className="text-[11px] rounded border border-vf-panel-border px-2 py-1 text-text-secondary"
                       >
                         <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.duplicate" />
                       </button>
@@ -1722,7 +1722,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                           ];
                           update("alternateGreetings", next);
                         }}
-                        className="text-[11px] rounded border border-border px-2 py-1 text-text-secondary disabled:opacity-40"
+                        className="text-[11px] rounded border border-vf-panel-border px-2 py-1 text-text-secondary disabled:opacity-40"
                       >
                         Up
                       </button>
@@ -1739,7 +1739,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                           ];
                           update("alternateGreetings", next);
                         }}
-                        className="text-[11px] rounded border border-border px-2 py-1 text-text-secondary disabled:opacity-40"
+                        className="text-[11px] rounded border border-vf-panel-border px-2 py-1 text-text-secondary disabled:opacity-40"
                       >
                         <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.down" />
                       </button>
@@ -1753,7 +1753,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                             ),
                           )
                         }
-                        className="text-[11px] rounded border border-border px-2 py-1 text-error"
+                        className="text-[11px] rounded border border-vf-panel-border px-2 py-1 text-error"
                       >
                         <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.remove" />
                       </button>
@@ -1767,7 +1767,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 6: Example Dialogue */}
         {isStepVisible(5) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.6ExampleDialogue" />
             </h3>
@@ -1807,7 +1807,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   {draft.exampleDialogues.map((d, i) => (
                     <div
                       key={getExampleKey(d)}
-                      className="flex gap-2 items-start bg-surface-elevated border border-border rounded-lg p-2"
+                      className="flex gap-2 items-start bg-vf-panel-bg-raised border border-vf-panel-border rounded-md p-2"
                     >
                       <div className="w-32 shrink-0">
                         <input
@@ -1823,7 +1823,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                             "runtimeGenerated.components.rpStudio.charactereditor.attribute.speaker",
                           )}
                           maxLength={200}
-                          className="w-full bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
+                          className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted"
                         />
                         {!d.speaker.trim() && (
                           <span
@@ -1844,7 +1844,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                         )}
                         rows={2}
                         maxLength={CARD_FIELD_MAX}
-                        className="flex-1 bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted resize-none"
+                        className="flex-1 bg-vf-panel-bg border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent transition-colors placeholder:text-text-muted resize-none"
                       />
                       <div className="flex flex-col gap-1">
                         <button
@@ -1929,7 +1929,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 7: Character Book */}
         {isStepVisible(6) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.7CharacterBookExtensions" />
             </h3>
@@ -1961,14 +1961,14 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 }}
                 rows={6}
                 spellCheck={false}
-                className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 font-mono text-[12px] text-text-primary"
+                className="w-full resize-y rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 font-mono text-[12px] text-text-primary"
               />
               <p className="text-[12px] text-text-muted">
                 Unknown safe namespaces are preserved. Unsafe keys and
                 over-limit values are rejected during persistence/export.
               </p>
             </div>
-            <div className="space-y-3 rounded-lg border border-border bg-surface-elevated p-3 text-[13px] text-text-secondary">
+            <div className="space-y-3 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-3 text-[13px] text-text-secondary">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Label>
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.characterBook" />
@@ -2023,7 +2023,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                         );
                       event.target.value = "";
                     }}
-                    className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px] text-text-primary"
+                    className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px] text-text-primary"
                   >
                     <option value="">
                       <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.option.chooseLorebook" />
@@ -2067,7 +2067,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     return (
                       <div
                         key={id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded border border-border bg-surface px-2 py-1.5"
+                        className="flex flex-wrap items-center justify-between gap-2 rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5"
                       >
                         <span>{lorebook?.name ?? id}</span>
                         <div className="flex gap-2">
@@ -2113,7 +2113,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 8: Model and Context */}
         {isStepVisible(7) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.8ModelAndContext" />
             </h3>
@@ -2125,7 +2125,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 id="card-model"
                 value={draft.modelId ?? ""}
                 onChange={(e) => update("modelId", e.target.value || undefined)}
-                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+                className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
               >
                 <option value="">
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.option.useChatDefault" />
@@ -2137,7 +2137,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 ))}
               </select>
             </div>
-            <div className="space-y-4 pt-2 border-t border-border/50">
+            <div className="space-y-4 pt-2 border-t border-vf-panel-border">
               <Label>
                 <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.specialSettings" />
               </Label>
@@ -2147,7 +2147,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     type="checkbox"
                     checked={!!draft.webSearch}
                     onChange={(e) => update("webSearch", e.target.checked)}
-                    className="rounded border-border bg-surface text-accent focus:ring-accent"
+                    className="rounded border-vf-panel-border bg-vf-panel-bg text-accent focus:ring-accent"
                   />
                   <span className="text-[12px] text-text-primary">
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.webSearch" />
@@ -2165,7 +2165,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                         e.target.value as "off" | "brave" | "google",
                       )
                     }
-                    className="bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent"
+                    className="bg-vf-panel-bg border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent"
                     aria-label={tRuntime(
                       "runtimeGenerated.components.rpStudio.charactereditor.attribute.urlScrapingProvider",
                     )}
@@ -2186,7 +2186,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     type="checkbox"
                     checked={draft.enableThoughts ?? true}
                     onChange={(e) => update("enableThoughts", e.target.checked)}
-                    className="rounded border-border bg-surface text-accent focus:ring-accent"
+                    className="rounded border-vf-panel-border bg-vf-panel-bg text-accent focus:ring-accent"
                   />
                   <span className="text-[12px] text-text-primary">
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.enableThoughts" />
@@ -2211,7 +2211,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     onChange={(e) =>
                       update("temperature", parseFloat(e.target.value))
                     }
-                    className="w-full bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent"
+                    className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent"
                   />
                 </div>
                 <div>
@@ -2229,12 +2229,12 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     max="1"
                     value={draft.topP ?? 0.9}
                     onChange={(e) => update("topP", parseFloat(e.target.value))}
-                    className="w-full bg-surface border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent"
+                    className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary outline-none focus:border-accent"
                   />
                 </div>
               </div>
             </div>
-            <div className="space-y-2 pt-2 border-t border-border/50">
+            <div className="space-y-2 pt-2 border-t border-vf-panel-border">
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <Label>
@@ -2244,7 +2244,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.description.filesLoadedIntoPersonalitySystemPromptInstructions" />
                   </p>
                 </div>
-                <label className="text-[12px] px-2.5 py-1 rounded-md border border-border bg-surface-elevated text-text-secondary hover:text-text-primary hover:border-accent/40 cursor-pointer transition-colors shrink-0">
+                <label className="text-[12px] px-2.5 py-1 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised text-text-secondary hover:text-text-primary hover:border-accent/40 cursor-pointer transition-colors shrink-0">
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.label.uploadFileMax5mb" />
                   <input
                     type="file"
@@ -2263,7 +2263,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   {draft.contextFiles.map((f) => (
                     <div
                       key={f.id}
-                      className="flex gap-2 items-center justify-between bg-surface-elevated border border-border rounded-lg p-2.5"
+                      className="flex gap-2 items-center justify-between bg-vf-panel-bg-raised border border-vf-panel-border rounded-md p-2.5"
                     >
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -2334,7 +2334,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 9: Test */}
         {isStepVisible(8) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.9TestAiRefinement" />
             </h3>
@@ -2350,7 +2350,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   <Label>
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.promptOrderTrace" />
                   </Label>
-                  <ol className="max-h-40 overflow-y-auto rounded border border-border bg-surface p-2 text-[11px] text-text-secondary">
+                  <ol className="max-h-40 overflow-y-auto rounded border border-vf-panel-border bg-vf-panel-bg p-2 text-[11px] text-text-secondary">
                     {testCompilation.sections
                       .filter((section) => section.included)
                       .map((section) => (
@@ -2464,7 +2464,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 </div>
               </div>
               {testResponse && (
-                <div className="rounded border border-border bg-surface p-3 text-[13px] text-text-primary">
+                <div className="rounded border border-vf-panel-border bg-vf-panel-bg p-3 text-[13px] text-text-primary">
                   <div className="mb-1 text-[11px] uppercase text-text-muted">
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.unsavedModelResponse" />
                   </div>
@@ -2517,7 +2517,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               )}
             </div>
             <div
-              className="space-y-3 rounded-lg border border-border bg-surface-elevated p-3"
+              className="space-y-3 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-3"
               aria-labelledby="card-generation-title"
             >
               <div className="flex items-center justify-between gap-2">
@@ -2548,7 +2548,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   <select
                     value={generationModel}
                     onChange={(event) => setGenerationModel(event.target.value)}
-                    className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px] text-text-primary"
+                    className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px] text-text-primary"
                   >
                     {liveTextModels.map((model) => (
                       <option key={model.id} value={model.id}>
@@ -2564,7 +2564,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   <select
                     value={visionModel}
                     onChange={(event) => setVisionModel(event.target.value)}
-                    className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px] text-text-primary"
+                    className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px] text-text-primary"
                   >
                     <option value="">
                       <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.option.noCompatibleLiveModel" />
@@ -2592,7 +2592,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     onChange={(event) =>
                       setSelectedSourceMediaId(event.target.value)
                     }
-                    className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px] text-text-primary"
+                    className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px] text-text-primary"
                   >
                     <option value="">
                       <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.option.chooseMediaStudioImage" />
@@ -2618,13 +2618,13 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                     placeholder={tRuntime(
                       "runtimeGenerated.components.rpStudio.charactereditor.attribute.genreSettingRolePersonalityRelationship",
                     )}
-                    className="w-full rounded border border-border bg-surface px-2 py-1.5 text-[13px] text-text-primary"
+                    className="w-full rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px] text-text-primary"
                   />
                 </label>
               </div>
               {selectedVisionModel && (
                 <div
-                  className="rounded border border-border bg-surface p-2 text-[11px] text-text-muted"
+                  className="rounded border border-vf-panel-border bg-vf-panel-bg p-2 text-[11px] text-text-muted"
                   aria-label={tRuntime(
                     "runtimeGenerated.components.rpStudio.charactereditor.attribute.visionModelCapabilitySummary",
                   )}
@@ -2642,7 +2642,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   catalog
                 </div>
               )}
-              <details className="rounded border border-border bg-surface p-2">
+              <details className="rounded border border-vf-panel-border bg-vf-panel-bg p-2">
                 <summary className="cursor-pointer text-[12px] text-text-secondary">
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.textGenerationProfile" />
                 </summary>
@@ -2671,7 +2671,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                             [key]: event.target.value,
                           }))
                         }
-                        className="w-full rounded border border-border bg-surface-elevated px-2 py-1 text-[12px]"
+                        className="w-full rounded border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1 text-[12px]"
                       />
                     </label>
                   ))}
@@ -2688,7 +2688,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                             .value as typeof options.contentRating,
                         }))
                       }
-                      className="w-full rounded border border-border bg-surface-elevated px-2 py-1 text-[12px]"
+                      className="w-full rounded border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1 text-[12px]"
                     >
                       <option value="general">
                         <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.option.general" />
@@ -2714,7 +2714,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                             .value as typeof options.detailLevel,
                         }))
                       }
-                      className="w-full rounded border border-border bg-surface-elevated px-2 py-1 text-[12px]"
+                      className="w-full rounded border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1 text-[12px]"
                     >
                       {[
                         "concise",
@@ -2741,7 +2741,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                             customDirection: event.target.value,
                           }))
                         }
-                        className="w-full rounded border border-border bg-surface-elevated px-2 py-1 text-[12px]"
+                        className="w-full rounded border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1 text-[12px]"
                       />
                     </label>
                   )}
@@ -2848,7 +2848,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 </PrimaryButton>
               </div>
               {analysisDraft && (
-                <div className="rounded border border-border bg-surface p-2 text-[12px] text-text-secondary">
+                <div className="rounded border border-vf-panel-border bg-vf-panel-bg p-2 text-[12px] text-text-secondary">
                   <strong className="text-text-primary">
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.visualAnalysis" />
                   </strong>{" "}
@@ -2864,7 +2864,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 </div>
               )}
               {generatedDraft && (
-                <div className="space-y-2 rounded border border-accent/40 bg-surface p-3">
+                <div className="space-y-2 rounded border border-accent/40 bg-vf-panel-bg p-3">
                   <div className="text-[13px] font-medium text-text-primary">
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.generatedV2Draft" />{" "}
                     {generatedDraft.name ||
@@ -2908,14 +2908,14 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   </div>
                 </div>
               )}
-              <div className="pt-3 soft-separator-y">
+              <div className="pt-3 border-y border-vf-panel-border">
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                   <select
                     value={fieldTarget}
                     onChange={(event) =>
                       setFieldTarget(event.target.value as typeof fieldTarget)
                     }
-                    className="rounded border border-border bg-surface px-2 py-1.5 text-[13px] text-text-primary"
+                    className="rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-[13px] text-text-primary"
                   >
                     {[
                       "name",
@@ -2966,7 +2966,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   </GhostButton>
                 </div>
                 {fieldProposal && (
-                  <div className="mt-2 grid gap-2 rounded border border-border bg-surface p-2 text-[12px] sm:grid-cols-2">
+                  <div className="mt-2 grid gap-2 rounded border border-vf-panel-border bg-vf-panel-bg p-2 text-[12px] sm:grid-cols-2">
                     <div>
                       <span className="text-text-muted">
                         <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.before" />
@@ -3003,7 +3003,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 )}
               </div>
             </div>
-            <div className="space-y-3 pt-3 border-t border-border/50">
+            <div className="space-y-3 pt-3 border-t border-vf-panel-border">
               <Label>
                 <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.aiRefinementAssistant" />
               </Label>
@@ -3014,7 +3014,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 <select
                   value={refinementAction}
                   onChange={(event) => setRefinementAction(event.target.value)}
-                  className="rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-primary"
                 >
                   {[
                     "Review consistency",
@@ -3041,7 +3041,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   placeholder={tRuntime(
                     "runtimeGenerated.components.rpStudio.charactereditor.attribute.optionalDirection",
                   )}
-                  className="rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-primary"
                 />
               </div>
               <div className="flex gap-2">
@@ -3102,14 +3102,14 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 )}
               </div>
               {proposal && (
-                <div className="space-y-2 rounded-lg border border-border bg-surface-elevated p-3">
+                <div className="space-y-2 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised p-3">
                   <div className="text-[13px] font-medium text-text-primary">
                     {proposal.summary}
                   </div>
                   {proposal.operations.map((operation, index) => (
                     <div
                       key={index}
-                      className="rounded border border-border bg-surface p-2 text-[12px]"
+                      className="rounded border border-vf-panel-border bg-vf-panel-bg p-2 text-[12px]"
                     >
                       <label className="flex items-center gap-2 font-mono text-text-secondary">
                         <input
@@ -3189,7 +3189,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 </div>
               )}
             </div>
-            <div className="space-y-2 pt-3 border-t border-border/50">
+            <div className="space-y-2 pt-3 border-t border-vf-panel-border">
               <Label>
                 <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.cardValidation" />
               </Label>
@@ -3228,7 +3228,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
         {/* Step 10: Export */}
         {isStepVisible(9) && (
-          <section className="space-y-4 rounded-xl border border-border bg-surface/50 p-4">
+          <section className="space-y-4 rounded-lg border border-vf-panel-border bg-vf-panel-bg/50 p-4">
             <h3 className="text-[13px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.heading.10ExportWorkflow" />
             </h3>
@@ -3282,7 +3282,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
               </div>
               {exportReport && (
                 <dl
-                  className="grid gap-x-3 gap-y-1 rounded border border-border bg-surface p-3 text-[12px] sm:grid-cols-[auto_1fr]"
+                  className="grid gap-x-3 gap-y-1 rounded border border-vf-panel-border bg-vf-panel-bg p-3 text-[12px] sm:grid-cols-[auto_1fr]"
                   aria-label={tRuntime(
                     "runtimeGenerated.components.rpStudio.charactereditor.attribute.stCardExportReport",
                   )}
@@ -3347,7 +3347,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 </dl>
               )}
             </div>
-            <div className="space-y-2 pt-3 border-t border-border/50">
+            <div className="space-y-2 pt-3 border-t border-vf-panel-border">
               <div className="flex items-center justify-between">
                 <Label>
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.versionHistory" />
@@ -3364,7 +3364,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                       className={`flex items-center justify-between px-2 py-1.5 rounded-md border text-[12px] ${
                         v.id === draft.currentVersionId
                           ? "border-accent/30 bg-accent/5"
-                          : "border-border bg-surface"
+                          : "border-vf-panel-border bg-vf-panel-bg"
                       }`}
                     >
                       <div className="flex-1 min-w-0">
@@ -3427,7 +3427,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   ] as const;
                   return (
                     <div
-                      className="rounded-lg border border-border bg-surface p-3"
+                      className="rounded-md border border-vf-panel-border bg-vf-panel-bg p-3"
                       aria-label={tRuntime(
                         "runtimeGenerated.components.rpStudio.charactereditor.attribute.characterVersionComparison",
                       )}
@@ -3457,13 +3457,13 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                               <span className="font-mono text-text-muted">
                                 {field}
                               </span>
-                              <span className="rounded border border-border p-2">
+                              <span className="rounded border border-vf-panel-border p-2">
                                 <span className="block text-[10px] uppercase text-text-muted">
                                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.saved" />
                                 </span>
                                 {String(version.snapshot[field] ?? "")}
                               </span>
-                              <span className="rounded border border-border p-2">
+                              <span className="rounded border border-vf-panel-border p-2">
                                 <span className="block text-[10px] uppercase text-text-muted">
                                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.current4fc0e2b" />
                                 </span>
@@ -3477,7 +3477,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 })()}
             </div>
             <div
-              className="space-y-2 pt-3 border-t border-border/50"
+              className="space-y-2 pt-3 border-t border-vf-panel-border"
               data-testid="character-editor-workflow"
             >
               <Label>
@@ -3489,7 +3489,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   onClick={() => void handleSaveToPromptLibrary()}
                   disabled={disabled}
                   data-testid="character-editor-save-to-prompt-library"
-                  className="text-[12px] px-2.5 py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-[12px] px-2.5 py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.saveToPromptLibrary" />
                 </button>
@@ -3503,7 +3503,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   }}
                   disabled={disabled}
                   data-testid="character-editor-attach-scene"
-                  className="text-[12px] px-2 py-1.5 rounded-md border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors disabled:opacity-50"
+                  className="text-[12px] px-2 py-1.5 rounded-md border border-vf-panel-border bg-vf-panel-bg text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors disabled:opacity-50"
                 >
                   <option value="">
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.option.attachScene" />
@@ -3524,7 +3524,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   }}
                   disabled={disabled}
                   data-testid="character-editor-attach-prompt"
-                  className="text-[12px] px-2 py-1.5 rounded-md border border-border bg-surface text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors disabled:opacity-50"
+                  className="text-[12px] px-2 py-1.5 rounded-md border border-vf-panel-border bg-vf-panel-bg text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors disabled:opacity-50"
                 >
                   <option value="">
                     <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.option.attachPrompt" />
@@ -3560,7 +3560,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   onClick={() => void handleCreateScenarioFromCharacter()}
                   disabled={disabled}
                   data-testid="character-editor-create-scenario"
-                  className="text-[12px] px-2.5 py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-[12px] px-2.5 py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.createScenarioFromCharacter" />
                 </button>
@@ -3569,7 +3569,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   onClick={() => void handleCreateWorkflow()}
                   disabled={disabled}
                   data-testid="character-editor-create-workflow"
-                  className="text-[12px] px-2.5 py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-[12px] px-2.5 py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.createWorkflow" />
                 </button>
@@ -3603,7 +3603,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
         )}
 
         {typeof activeStudioStep === "number" && (
-          <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-4">
+          <div className="flex items-center justify-between pt-4 border-t border-vf-panel-border mt-4">
             <button
               type="button"
               disabled={activeStudioStep === 0}
@@ -3612,7 +3612,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   typeof prev === "number" && prev > 0 ? prev - 1 : prev,
                 )
               }
-              className="text-[12px] px-3 py-1.5 rounded-md border border-border text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="text-[12px] px-3 py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:bg-vf-control-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.previous" />
               {activeStudioStep > 0 ? studioSteps[activeStudioStep - 1] : ""})
@@ -3620,7 +3620,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
             <button
               type="button"
               onClick={() => setActiveStudioStep("all")}
-              className="text-[12px] px-3 py-1.5 rounded-md border border-border text-text-muted hover:text-text-primary hover:bg-surface-elevated transition-colors"
+              className="text-[12px] px-3 py-1.5 rounded-md border border-vf-panel-border text-text-muted hover:text-text-primary hover:bg-vf-control-hover transition-colors"
             >
               <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.viewAllSteps" />
             </button>
@@ -3648,8 +3648,8 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
 
       {viewingContextFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-4">
-          <div className="flex flex-col w-full max-w-2xl max-h-[80vh] rounded-xl border border-border bg-surface shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-surface-elevated">
+          <div className="flex flex-col w-full max-w-2xl max-h-[80vh] rounded-lg border border-vf-panel-border bg-vf-panel-bg shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-vf-panel-border bg-vf-panel-bg-raised">
               <div>
                 <h3 className="text-[14px] font-semibold text-text-primary">
                   {viewingContextFile.name}
@@ -3685,10 +3685,10 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 font-mono text-[12px] text-text-secondary whitespace-pre-wrap bg-surface-elevated/30">
+            <div className="flex-1 overflow-y-auto p-4 font-mono text-[12px] text-text-secondary whitespace-pre-wrap bg-vf-panel-bg-raised/30">
               {viewingContextFile.content}
             </div>
-            <div className="flex items-center justify-end px-4 py-3 border-t border-border/50 bg-surface gap-2">
+            <div className="flex items-center justify-end px-4 py-3 border-t border-vf-panel-border bg-vf-panel-bg gap-2">
               {viewingContextFile.targetField &&
                 viewingContextFile.targetField !== "general" && (
                   <PrimaryButton

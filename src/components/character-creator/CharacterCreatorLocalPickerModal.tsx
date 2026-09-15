@@ -34,9 +34,9 @@ export function CharacterCreatorLocalPickerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-4">
-      <div className="flex flex-col w-full max-w-xl max-h-[80vh] rounded-2xl border border-border bg-surface shadow-2xl overflow-hidden">
+      <div className="flex flex-col w-full max-w-xl max-h-[80vh] rounded-xl border border-vf-panel-border bg-vf-panel-bg shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-surface-elevated">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-vf-panel-border bg-vf-panel-bg-raised">
           <div>
             <h3 className="text-sm font-bold text-text-primary">
               <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorlocalpickermodal.heading.selectLocalCharacterToEdit" />
@@ -48,14 +48,14 @@ export function CharacterCreatorLocalPickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-text-muted hover:text-text-primary p-1 rounded-lg"
+            className="text-text-muted hover:text-text-primary p-1 rounded-md"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Search Bar */}
-        <div className="p-4 border-b border-border/40 bg-surface">
+        <div className="p-4 border-b border-vf-panel-border bg-vf-panel-bg">
           <div className="relative">
             <Search className="w-4 h-4 text-text-muted absolute left-3 top-2.5" />
             <input
@@ -65,7 +65,7 @@ export function CharacterCreatorLocalPickerModal({
               placeholder={tRuntime(
                 "runtimeGenerated.components.characterCreator.charactercreatorlocalpickermodal.attribute.searchByCharacterNameTagOrDescription",
               )}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-surface-elevated border border-border focus:outline-none focus:border-accent text-text-primary"
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-lg bg-vf-panel-bg-raised border border-vf-panel-border focus:outline-none focus:border-accent text-text-primary"
             />
           </div>
         </div>
@@ -90,10 +90,10 @@ export function CharacterCreatorLocalPickerModal({
                 <div
                   key={card.id}
                   onClick={() => onSelectCharacter(card.id)}
-                  className="p-3 rounded-xl bg-surface-elevated/40 border border-border/60 hover:border-accent/50 cursor-pointer flex items-center justify-between gap-3 transition-colors group"
+                  className="p-3 rounded-lg bg-vf-panel-bg-raised/40 border border-vf-panel-border hover:border-accent/50 cursor-pointer flex items-center justify-between gap-3 transition-colors group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-surface border border-border/60 overflow-hidden shrink-0 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-vf-panel-bg border border-vf-panel-border overflow-hidden shrink-0 flex items-center justify-center">
                       {avatarUri ? (
                         <img
                           src={avatarUri}
@@ -119,7 +119,7 @@ export function CharacterCreatorLocalPickerModal({
                           {card.tags.slice(0, 3).map((t) => (
                             <span
                               key={t}
-                              className="text-[9px] px-1.5 py-0.2 rounded bg-surface border border-border/40 text-text-muted font-mono"
+                              className="text-[9px] px-1.5 py-0.2 rounded bg-vf-panel-bg border border-vf-panel-border text-text-muted font-mono"
                             >
                               #{t}
                             </span>
@@ -144,11 +144,11 @@ export function CharacterCreatorLocalPickerModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end px-5 py-3 border-t border-border/50 bg-surface gap-2">
+        <div className="flex items-center justify-end px-5 py-3 border-t border-vf-panel-border bg-vf-panel-bg gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-surface border border-border text-xs font-medium text-text-secondary hover:text-text-primary transition-colors"
+            className="px-4 py-2 rounded-lg bg-vf-panel-bg border border-vf-panel-border text-xs font-medium text-text-secondary hover:text-text-primary transition-colors"
           >
             <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorlocalpickermodal.action.cancel" />
           </button>

@@ -74,8 +74,8 @@ export function AgentModelPicker({ value, onChange }: Props) {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "w-full flex items-center justify-between gap-2 bg-surface-elevated border border-border rounded-md px-2.5 py-1.5 text-[13px] hover:border-accent transition-colors text-left",
-          open && "border-border",
+          "w-full flex items-center justify-between gap-2 bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-2.5 py-1.5 text-[13px] hover:border-accent transition-colors text-left",
+          open && "border-vf-panel-border",
         )}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -106,8 +106,8 @@ export function AgentModelPicker({ value, onChange }: Props) {
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 mt-1 w-[340px] z-50 bg-surface-elevated border border-border rounded-lg shadow-2xl shadow-none animate-scale-in overflow-hidden">
-          <div className="px-2 py-2 border-b border-border/50 flex items-center gap-2">
+        <div className="absolute top-full right-0 mt-1 w-[340px] z-50 bg-vf-panel-bg-raised border border-vf-panel-border rounded-md shadow-2xl shadow-none animate-scale-in overflow-hidden">
+          <div className="px-2 py-2 border-b border-vf-panel-border flex items-center gap-2">
             <input
               autoFocus
               value={search}
@@ -115,15 +115,15 @@ export function AgentModelPicker({ value, onChange }: Props) {
               placeholder={tRuntime(
                 "runtimeGenerated.components.playground.agentModelPicker.attribute.searchModels",
               )}
-              className="flex-1 bg-surface-elevated border border-border rounded px-2 py-1 text-[13px] text-text-secondary outline-none focus:border-accent placeholder:text-text-muted"
+              className="flex-1 bg-vf-panel-bg-raised border border-vf-panel-border rounded px-2 py-1 text-[13px] text-text-secondary outline-none focus:border-accent placeholder:text-text-muted"
             />
             <button
               onClick={() => setShowAll(!showAll)}
               className={cn(
                 "text-[12px] px-1.5 py-1 rounded border transition-colors",
                 showAll
-                  ? "bg-surface-elevated border-border text-text-secondary"
-                  : "border-border text-text-muted hover:text-text-secondary",
+                  ? "bg-vf-panel-bg-raised border-vf-panel-border text-text-secondary"
+                  : "border-vf-panel-border text-text-muted hover:text-text-primary",
               )}
               title={
                 showAll
@@ -164,8 +164,8 @@ export function AgentModelPicker({ value, onChange }: Props) {
                       setSearch("");
                     }}
                     className={cn(
-                      "w-full text-left px-3 py-2 hover:bg-surface-muted transition-colors",
-                      m.id === value && "bg-surface-elevated",
+                      "w-full text-left px-3 py-2 hover:bg-vf-control-hover-muted transition-colors",
+                      m.id === value && "bg-vf-panel-bg-raised",
                     )}
                   >
                     <div className="flex items-center gap-1.5">
@@ -252,8 +252,8 @@ const TONE: Record<string, string> = {
   amber: "bg-warning/15 text-warning",
   warning: "bg-warning/15 text-warning",
   pink: "bg-danger/15 text-danger",
-  slate: "bg-surface-elevated text-text-secondary",
-  neutral: "bg-surface-elevated text-text-secondary",
+  slate: "bg-vf-panel-bg-raised text-text-secondary",
+  neutral: "bg-vf-panel-bg-raised text-text-secondary",
   rose: "bg-danger/15 text-danger",
   danger: "bg-danger/15 text-danger",
 };

@@ -144,7 +144,7 @@ export function SceneGenerator({
             id="scene-chat"
             value={selectedChatId}
             onChange={(e) => setSelectedChatId(e.target.value)}
-            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
           >
             <option value="">
               <Trans i18nKey="common:surface.componentsRpStudioScenegenerator.option.selectAChat" />
@@ -164,7 +164,7 @@ export function SceneGenerator({
             id="scene-model"
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
           >
             {FALLBACK_MODELS.image.map((m) => (
               <option key={m.id} value={m.id}>
@@ -225,7 +225,7 @@ export function SceneGenerator({
             value={seed}
             onChange={(e) => setSeed(e.target.value)}
             min={0}
-            className="w-32 bg-surface border border-border rounded-lg px-3 py-1.5 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
+            className="w-32 bg-vf-panel-bg border border-vf-panel-border rounded-md px-3 py-1.5 text-[14px] text-text-primary outline-none focus:border-accent transition-colors"
           />
         </div>
         {error && <ErrorText>{error}</ErrorText>}
@@ -237,7 +237,7 @@ export function SceneGenerator({
           <Trans i18nKey="common:surface.componentsRpStudioScenegenerator.text.generateScene" />
         </PrimaryButton>
       </div>
-      <div className="w-72 shrink-0 soft-separator-x mesh-surface overflow-y-auto p-3 space-y-2">
+      <div className="w-72 shrink-0 border-x border-vf-panel-border bg-vf-panel-bg overflow-y-auto p-3 space-y-2">
         <div className="text-[12px] uppercase tracking-[0.08em] text-text-muted font-semibold">
           <Trans i18nKey="common:surface.componentsRpStudioScenegenerator.text.recentScenes" />
           {filterChatId
@@ -256,9 +256,9 @@ export function SceneGenerator({
               key={a.id}
               type="button"
               onClick={() => onViewAsset?.(a.id)}
-              className="block w-full text-left bg-surface border border-border hover:border-accent/40 rounded-lg p-2 transition-colors"
+              className="block w-full text-left bg-vf-panel-bg border border-vf-panel-border hover:border-accent/40 rounded-md p-2 transition-colors"
             >
-              <div className="aspect-video w-full rounded overflow-hidden bg-surface-elevated border border-border mb-1.5">
+              <div className="aspect-video w-full rounded overflow-hidden bg-vf-panel-bg-raised border border-vf-panel-border mb-1.5">
                 {a.url ? (
                   <img
                     src={a.url}
