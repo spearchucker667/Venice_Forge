@@ -15,7 +15,7 @@ const TONE_CLASS: Record<StatusSeverity, string> = {
   ok: "bg-success/15 text-success border-success/30",
   warn: "bg-warning/15 text-warning border-warning/30",
   error: "bg-danger/15 text-danger border-danger/30",
-  unknown: "bg-surface-muted text-text-muted border-border",
+  unknown: "bg-vf-panel-bg-inset text-text-muted border-vf-panel-border",
 };
 
 const DOT_CLASS: Record<StatusSeverity, string> = {

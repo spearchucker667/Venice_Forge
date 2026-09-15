@@ -36,7 +36,7 @@ export function LanguageRegionPanel() {
         </p>
       </div>
 
-      <div className="p-4 rounded-xl bg-surface-elevated/40 border border-border/50 space-y-4">
+      <div className="p-4 rounded-xl bg-vf-panel-bg-raised border border-vf-panel-border space-y-4">
         <div>
           <label htmlFor="ui-language-select" className="block text-sm font-medium text-text-primary mb-1.5">
             {t('settings:languageRegion.uiLanguageLabel', 'Interface Language')}
@@ -45,7 +45,7 @@ export function LanguageRegionPanel() {
             id="ui-language-select"
             value={uiLocale}
             onChange={handleLanguageChange}
-            className="w-full sm:w-80 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:ring-2 focus:ring-accent focus:border-accent"
+            className="w-full sm:w-80 px-3 py-2 bg-vf-panel-bg border border-vf-panel-border rounded-lg text-sm text-text-primary focus:ring-2 focus:ring-accent focus:border-accent"
           >
             <option value="system">
               {t('settings:languageRegion.useSystemLanguage', 'Use system language')} ({SUPPORTED_LOCALES[resolveEffectiveLocale('system')]?.nativeName})
@@ -58,7 +58,7 @@ export function LanguageRegionPanel() {
           </select>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/40">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-vf-panel-border">
           <div className="flex flex-col">
             <span className="text-xs font-medium text-text-muted">
               {t('settings:languageRegion.resolvedLocale', 'Active Locale')}
@@ -84,12 +84,12 @@ export function LanguageRegionPanel() {
       </div>
 
       {/* Regional Formatting Preview */}
-      <div className="p-4 rounded-xl bg-surface-elevated/20 border border-border/40 space-y-3">
+      <div className="p-4 rounded-xl bg-vf-panel-bg-raised border border-vf-panel-border space-y-3">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
           {t('settings:languageRegion.formattingPreview', 'Regional Formatting Preview')}
         </h4>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="p-2.5 rounded-lg bg-surface/60 border border-border/30">
+          <div className="p-2.5 rounded-lg bg-vf-panel-bg-raised border border-vf-panel-border">
             <span className="text-text-muted block text-[11px]">
               {t('settings:languageRegion.dateExample', 'Date')}
             </span>
@@ -97,7 +97,7 @@ export function LanguageRegionPanel() {
               {formatDate(sampleDate, activeEffectiveLocale)}
             </span>
           </div>
-          <div className="p-2.5 rounded-lg bg-surface/60 border border-border/30">
+          <div className="p-2.5 rounded-lg bg-vf-panel-bg-raised border border-vf-panel-border">
             <span className="text-text-muted block text-[11px]">
               {t('settings:languageRegion.timeExample', 'Time')}
             </span>
@@ -105,7 +105,7 @@ export function LanguageRegionPanel() {
               {formatTime(sampleDate, activeEffectiveLocale)}
             </span>
           </div>
-          <div className="p-2.5 rounded-lg bg-surface/60 border border-border/30">
+          <div className="p-2.5 rounded-lg bg-vf-panel-bg-raised border border-vf-panel-border">
             <span className="text-text-muted block text-[11px]">
               {t('settings:languageRegion.numberExample', 'Number')}
             </span>
@@ -113,7 +113,7 @@ export function LanguageRegionPanel() {
               {formatNumber(1234567.89, activeEffectiveLocale)}
             </span>
           </div>
-          <div className="p-2.5 rounded-lg bg-surface/60 border border-border/30">
+          <div className="p-2.5 rounded-lg bg-vf-panel-bg-raised border border-vf-panel-border">
             <span className="text-text-muted block text-[11px]">
               {t('settings:languageRegion.bytesExample', 'File Size')}
             </span>

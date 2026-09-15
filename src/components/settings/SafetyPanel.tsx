@@ -28,7 +28,7 @@ export function SafetyPanel({
   } | null>(null);
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+      <div className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-sm space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="text-[14.5px] font-medium text-text-primary">
@@ -57,7 +57,7 @@ export function SafetyPanel({
                 });
                 setShowPasswordDialog(true);
               }}
-              className="h-4 w-4 rounded border-border bg-surface text-accent"
+              className="h-4 w-4 rounded border-vf-panel-border bg-vf-panel-bg-inset text-accent"
             />
             <span className="text-[12.5px] font-medium text-text-primary">
               {localFamilySafeModeEnabled
@@ -82,7 +82,7 @@ export function SafetyPanel({
               )}
         </p>
 
-        <div className="rounded-lg bg-surface-base p-3 border border-border text-[12px] space-y-1">
+        <div className="rounded-md bg-vf-panel-bg-inset p-3 border border-vf-panel-border text-[12px] space-y-1">
           <div className="font-medium text-text-primary">
             {t("settings:safety.effectiveStatus", {
               defaultValue:
@@ -124,7 +124,7 @@ export function SafetyPanel({
               )}
             </button>
           ) : (
-            <span className="text-[12.5px] text-green-500">
+            <span className="text-[12.5px] text-success">
               {t(
                 "settings:safety.masterPasswordEnabled",
                 "Master Password is enabled",
@@ -134,7 +134,7 @@ export function SafetyPanel({
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+      <div className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-sm space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="text-[14.5px] font-medium text-text-primary">
@@ -162,7 +162,7 @@ export function SafetyPanel({
                 event.target.checked,
               );
             }}
-            className="h-4 w-4 rounded border-border bg-surface text-accent cursor-pointer"
+            className="h-4 w-4 rounded border-vf-panel-border bg-vf-panel-bg-inset text-accent cursor-pointer"
           />
         </div>
       </div>

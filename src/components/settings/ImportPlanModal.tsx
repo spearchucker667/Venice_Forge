@@ -26,8 +26,8 @@ export function ImportPlanModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-2xl bg-surface-elevated border border-border/50 rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
-        <div className="p-5 border-b border-border/50">
+      <div className="w-full max-w-2xl bg-vf-panel-bg-raised border border-vf-panel-border rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
+        <div className="p-5 border-b border-vf-panel-border">
           <h2 className="text-[17px] font-semibold text-text-primary">{t('settings:importPlan.title', 'Review Import Plan')}</h2>
           <p className="text-[13px] text-text-secondary mt-1">
             {t('settings:importPlan.summary', { defaultValue: 'This backup contains {{records}} records across {{stores}} data stores.', records: plan.totalRecords.toLocaleString(), stores: plan.stores.length })}
@@ -45,7 +45,7 @@ export function ImportPlanModal({
                   {plan.manifest.metadataVerified ? t('settings:importPlan.metadata.authenticated', 'Authenticated Backup Metadata') : t('settings:importPlan.metadata.legacy', 'Legacy Backup Metadata')}
                 </h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px] text-text-secondary bg-surface border border-border/50 rounded-lg p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px] text-text-secondary bg-vf-panel-bg border border-vf-panel-border rounded-lg p-3">
                 <span>{t('settings:importPlan.metadata.format', { defaultValue: 'Format: v{{version}}{{appVersion}}', version: plan.manifest.version, appVersion: plan.manifest.appVersion ? ` / app ${plan.manifest.appVersion}` : "" })}</span>
                 <span>{t('settings:importPlan.metadata.exportedAt', { defaultValue: 'Exported: {{date}}', date: new Date(plan.manifest.exportedAt).toLocaleString() })}</span>
                 {plan.manifest.sourceRuntime && <span>{t('settings:importPlan.metadata.source', { defaultValue: 'Source: {{runtime}} / {{device}}', runtime: plan.manifest.sourceRuntime, device: plan.manifest.sourceDeviceRef })}</span>}
@@ -61,7 +61,7 @@ export function ImportPlanModal({
                       key={warning.code}
                       className={`rounded-lg border p-2 text-[12px] ${warning.severity === "warning"
                         ? "border-warning/30 bg-warning/10 text-warning"
-                        : "border-border/50 bg-surface text-text-secondary"}`}
+                        : "border-vf-panel-border bg-vf-panel-bg text-text-secondary"}`}
                     >
                       {warning.message}
                     </div>
@@ -75,7 +75,7 @@ export function ImportPlanModal({
             <h3 className="text-sm font-medium text-text-primary">{t('settings:importPlan.preview.title', 'Data Changes Preview')}</h3>
             <div className="space-y-2">
               {plan.stores.map((store) => (
-                <div key={store.storeName} className="flex flex-col bg-surface border border-border/50 rounded-lg p-3">
+                <div key={store.storeName} className="flex flex-col bg-vf-panel-bg border border-vf-panel-border rounded-lg p-3">
                   <div className="flex justify-between mb-1">
                     <span className="text-[13px] font-medium text-text-primary">{store.storeName}</span>
                     <span className="text-[12px] font-semibold text-text-secondary">{t('settings:importPlan.preview.recordsCount', { defaultValue: '{{count}} records', count: store.records })}</span>
@@ -100,7 +100,7 @@ export function ImportPlanModal({
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all text-center gap-2 ${
                   selectedMode === "merge"
                     ? "bg-accent/10 border-accent text-accent"
-                    : "bg-surface border-border/50 text-text-secondary hover:border-accent/50"
+                    : "bg-vf-panel-bg border-vf-panel-border text-text-secondary hover:border-accent/50"
                 }`}
               >
                 <Merge size={20} />
@@ -113,7 +113,7 @@ export function ImportPlanModal({
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all text-center gap-2 ${
                   selectedMode === "replace"
                     ? "bg-danger/10 border-danger text-danger"
-                    : "bg-surface border-border/50 text-text-secondary hover:border-danger/50"
+                    : "bg-vf-panel-bg border-vf-panel-border text-text-secondary hover:border-danger/50"
                 }`}
               >
                 <Trash2 size={20} />
@@ -126,7 +126,7 @@ export function ImportPlanModal({
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all text-center gap-2 ${
                   selectedMode === "newProfile"
                     ? "bg-success/10 border-success text-success"
-                    : "bg-surface border-border/50 text-text-secondary hover:border-success/50"
+                    : "bg-vf-panel-bg border-vf-panel-border text-text-secondary hover:border-success/50"
                 }`}
               >
                 <FolderPlus size={20} />
@@ -157,23 +157,23 @@ export function ImportPlanModal({
           )}
 
           {selectedMode === "newProfile" && (
-            <div className="p-4 bg-surface border border-border/50 rounded-lg space-y-2">
+            <div className="p-4 bg-vf-panel-bg border border-vf-panel-border rounded-lg space-y-2">
               <label className="text-[13px] font-medium text-text-primary">{t('settings:importPlan.profileName', 'Profile Name')}</label>
               <input
                 type="text"
                 value={newProfileName}
                 onChange={(e) => setNewProfileName(e.target.value)}
                 placeholder={t('settings:importPlan.profileNamePlaceholder', 'e.g. Work Backup')}
-                className="w-full px-3 py-2 bg-background border border-border/50 rounded text-[13px] text-text-primary outline-none focus:border-success"
+                className="w-full px-3 py-2 bg-vf-shell-bg border border-vf-panel-border rounded text-[13px] text-text-primary outline-none focus:border-success"
               />
             </div>
           )}
         </div>
 
-        <div className="p-4 border-t border-border/50 flex justify-end gap-3 bg-surface-elevated/50">
+        <div className="p-4 border-t border-vf-panel-border flex justify-end gap-3 bg-vf-panel-bg-raised">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg text-[13px] font-medium text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors border border-border/50"
+            className="px-4 py-2 rounded-lg text-[13px] font-medium text-text-secondary hover:bg-vf-panel-bg-raised hover:text-text-primary transition-colors border border-vf-panel-border"
           >
             {t('common:actions.cancel', 'Cancel')}
           </button>

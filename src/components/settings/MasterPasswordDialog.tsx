@@ -93,7 +93,7 @@ export function MasterPasswordDialog({ isOpen, onClose, onSuccess, mode }: Maste
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 bg-surface border border-border rounded"
+            className="w-full px-3 py-2 bg-vf-panel-bg border border-vf-panel-border rounded"
             autoComplete={mode === 'setup' ? 'new-password' : 'current-password'}
             aria-invalid={error ? 'true' : 'false'}
             aria-describedby={error ? `${passwordId}-error` : undefined}
@@ -101,12 +101,12 @@ export function MasterPasswordDialog({ isOpen, onClose, onSuccess, mode }: Maste
           {mode === 'setup' && (
             <div className="flex flex-col gap-2">
               <label htmlFor={confirmId} className="text-sm font-medium text-text-secondary">{t('settings:masterPassword.labels.confirm', 'Confirm master password')}</label>
-              <input id={confirmId} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded" autoComplete="new-password" />
+              <input id={confirmId} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full px-3 py-2 bg-vf-panel-bg border border-vf-panel-border rounded" autoComplete="new-password" />
             </div>
           )}
           {error && <p id={`${passwordId}-error`} role="alert" className="text-danger text-sm">{error}</p>}
           <div className="flex justify-end gap-3 mt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-surface text-text-primary rounded">{t('common:actions.cancel', 'Cancel')}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-vf-panel-bg text-text-primary rounded">{t('common:actions.cancel', 'Cancel')}</button>
             <button type="submit" className="px-4 py-2 bg-button-primary-bg text-button-primary-fg rounded">
               {mode === 'setup' ? t('common:actions.save', 'Save') : t('common:actions.unlock', 'Unlock')}
             </button>

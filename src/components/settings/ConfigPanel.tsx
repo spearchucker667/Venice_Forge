@@ -60,27 +60,27 @@ export function ConfigPanel(): React.ReactElement {
   return (
     <div className="space-y-6">
       <FontSettingsPanel />
-      <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-3">
+      <div className="rounded-xl border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-lg space-y-3">
         <h3 className="text-[15px] font-semibold text-text-primary">{t('settings:configPanel.masterConfig.title', 'Local Master Config')}</h3>
         <p className="text-[12.5px] text-text-secondary">
-          {t('settings:configPanel.masterConfig.description1', 'Edit ')}<code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]"><Trans i18nKey="common:surface.componentsSettingsConfigpanel.text.configYaml" /></code>{t('settings:configPanel.masterConfig.description2', ' and ')}
-          <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]"><Trans i18nKey="common:surface.componentsSettingsConfigpanel.text.themesYaml" /></code>{t('settings:configPanel.masterConfig.description3', ' on disk to configure Venice Forge without touching the UI. See ')}
-          <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]">docs/CONFIG.md</code>{t('settings:configPanel.masterConfig.description4', ' for the full schema.')}
+          {t('settings:configPanel.masterConfig.description1', 'Edit ')}<code className="px-1 py-0.5 rounded bg-vf-panel-bg border border-vf-panel-border text-[12px]"><Trans i18nKey="common:surface.componentsSettingsConfigpanel.text.configYaml" /></code>{t('settings:configPanel.masterConfig.description2', ' and ')}
+          <code className="px-1 py-0.5 rounded bg-vf-panel-bg border border-vf-panel-border text-[12px]"><Trans i18nKey="common:surface.componentsSettingsConfigpanel.text.themesYaml" /></code>{t('settings:configPanel.masterConfig.description3', ' on disk to configure Venice Forge without touching the UI. See ')}
+          <code className="px-1 py-0.5 rounded bg-vf-panel-bg border border-vf-panel-border text-[12px]">docs/CONFIG.md</code>{t('settings:configPanel.masterConfig.description4', ' for the full schema.')}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
-          <div className="rounded-lg border border-border p-3 bg-surface">
+          <div className="rounded-lg border border-vf-panel-border p-3 bg-vf-panel-bg">
             <div className="text-text-muted mb-1">{t('settings:configPanel.masterConfig.configPath', 'Config path')}</div>
             <div className="text-text-primary font-mono break-all">{status?.configPath || t('settings:configPanel.masterConfig.unavailable', '(unavailable)')}</div>
           </div>
-          <div className="rounded-lg border border-border p-3 bg-surface">
+          <div className="rounded-lg border border-vf-panel-border p-3 bg-vf-panel-bg">
             <div className="text-text-muted mb-1">{t('settings:configPanel.masterConfig.themesPath', 'Themes path')}</div>
             <div className="text-text-primary font-mono break-all">{status?.themesPath || t('settings:configPanel.masterConfig.unavailable', '(unavailable)')}</div>
           </div>
-          <div className="rounded-lg border border-border p-3 bg-surface">
+          <div className="rounded-lg border border-vf-panel-border p-3 bg-vf-panel-bg">
             <div className="text-text-muted mb-1">{t('settings:configPanel.masterConfig.loadedFrom', 'Loaded from')}</div>
             <div className="text-text-primary">{status?.source || "—"}</div>
           </div>
-          <div className="rounded-lg border border-border p-3 bg-surface">
+          <div className="rounded-lg border border-vf-panel-border p-3 bg-vf-panel-bg">
             <div className="text-text-muted mb-1">{t('settings:configPanel.masterConfig.profile', 'Profile')}</div>
             <div className="text-text-primary">
               {status?.configName || "default"} / {status?.profile || "default"}
@@ -111,35 +111,35 @@ export function ConfigPanel(): React.ReactElement {
           <button
             onClick={handleReload}
             disabled={working || loading}
-            className="px-3 py-1.5 rounded-md border border-border bg-surface text-text-primary text-[12.5px] hover:bg-surface-elevated disabled:opacity-50"
+            className="px-3 py-1.5 rounded-md border border-vf-panel-border bg-vf-panel-bg text-text-primary text-[12.5px] hover:bg-vf-panel-bg-raised disabled:opacity-50"
           >
             {working ? t('common:status.working', 'Working…') : t('settings:configPanel.actions.reload', 'Reload Config')}
           </button>
           <button
             onClick={handleOpenFolder}
             disabled={working}
-            className="px-3 py-1.5 rounded-md border border-border bg-surface text-text-primary text-[12.5px] hover:bg-surface-elevated disabled:opacity-50"
+            className="px-3 py-1.5 rounded-md border border-vf-panel-border bg-vf-panel-bg text-text-primary text-[12.5px] hover:bg-vf-panel-bg-raised disabled:opacity-50"
           >
             {t('settings:configPanel.actions.openFolder', 'Open Config Folder')}
           </button>
           <button
             onClick={handleExport}
             disabled={working}
-            className="px-3 py-1.5 rounded-md border border-border bg-surface text-text-primary text-[12.5px] hover:bg-surface-elevated disabled:opacity-50"
+            className="px-3 py-1.5 rounded-md border border-vf-panel-border bg-vf-panel-bg text-text-primary text-[12.5px] hover:bg-vf-panel-bg-raised disabled:opacity-50"
           >
             {t('settings:configPanel.actions.exportTemplate', 'Export Sanitized Template')}
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-3">
+      <div className="rounded-xl border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-lg space-y-3">
         <h3 className="text-[15px] font-semibold text-text-primary">{t('settings:configPanel.apiKeyImport.title', 'API Key Import')}</h3>
         <p className="text-[12.5px] text-text-secondary">
-          {t('settings:configPanel.apiKeyImport.description1', 'Plaintext keys in ')}<code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]"><Trans i18nKey="common:surface.componentsSettingsConfigpanel.text.configYaml" /></code>{t('settings:configPanel.apiKeyImport.description2', ' are imported into OS secure storage on startup and redacted from the file (unless ')}
-          <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]"><Trans i18nKey="common:surface.componentsSettingsConfigpanel.text.secretsKeepPlaintextKeysTrue" /></code>{t('settings:configPanel.apiKeyImport.description3', ' is set).')}
+          {t('settings:configPanel.apiKeyImport.description1', 'Plaintext keys in ')}<code className="px-1 py-0.5 rounded bg-vf-panel-bg border border-vf-panel-border text-[12px]"><Trans i18nKey="common:surface.componentsSettingsConfigpanel.text.configYaml" /></code>{t('settings:configPanel.apiKeyImport.description2', ' are imported into OS secure storage on startup and redacted from the file (unless ')}
+          <code className="px-1 py-0.5 rounded bg-vf-panel-bg border border-vf-panel-border text-[12px]"><Trans i18nKey="common:surface.componentsSettingsConfigpanel.text.secretsKeepPlaintextKeysTrue" /></code>{t('settings:configPanel.apiKeyImport.description3', ' is set).')}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
-          <div className="rounded-lg border border-border p-3 bg-surface">
+          <div className="rounded-lg border border-vf-panel-border p-3 bg-vf-panel-bg">
             <div className="text-text-muted mb-1">{t('settings:configPanel.apiKeyImport.veniceKey', 'Venice key')}</div>
             <div className="text-text-primary">
               {status?.secureStore.venice ? t('settings:configPanel.apiKeyImport.configured', 'Configured (secure store)') : t('settings:configPanel.apiKeyImport.notConfigured', 'Not configured')}
@@ -147,7 +147,7 @@ export function ConfigPanel(): React.ReactElement {
             {status?.keysImported.venice && <div className="text-success mt-1">{t('settings:configPanel.apiKeyImport.imported', 'Imported this run')}</div>}
             {status?.keysRedacted.venice && <div className="text-text-muted mt-1">{t('settings:configPanel.apiKeyImport.redacted', 'Plaintext redacted')}</div>}
           </div>
-          <div className="rounded-lg border border-border p-3 bg-surface">
+          <div className="rounded-lg border border-vf-panel-border p-3 bg-vf-panel-bg">
             <div className="text-text-muted mb-1">{t('settings:configPanel.apiKeyImport.jinaKey', 'Jina key')}</div>
             <div className="text-text-primary">
               {status?.secureStore.jina ? t('settings:configPanel.apiKeyImport.configured', 'Configured (secure store)') : t('settings:configPanel.apiKeyImport.notConfigured', 'Not configured')}
@@ -189,11 +189,11 @@ export function ConfigPanel(): React.ReactElement {
       </div>
 
       {config && (
-        <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-3">
+        <div className="rounded-xl border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-lg space-y-3">
           <h3 className="text-[15px] font-semibold text-text-primary">{t('settings:configPanel.effectiveSettings.title', 'Effective Settings (preview)')}</h3>
           <p className="text-[12.5px] text-text-secondary">
             {t('settings:configPanel.effectiveSettings.description1', 'Read-only preview of the merged config currently in memory. The ')}
-            <code className="px-1 py-0.5 rounded bg-surface border border-border text-[12px]">YAML</code>{t('settings:configPanel.effectiveSettings.description2', ' source remains the canonical source of truth — edit it on disk and click ')}<em>{t('settings:configPanel.actions.reload', 'Reload Config')}</em>.
+            <code className="px-1 py-0.5 rounded bg-vf-panel-bg border border-vf-panel-border text-[12px]">YAML</code>{t('settings:configPanel.effectiveSettings.description2', ' source remains the canonical source of truth — edit it on disk and click ')}<em>{t('settings:configPanel.actions.reload', 'Reload Config')}</em>.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
             <div>

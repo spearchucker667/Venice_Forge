@@ -57,7 +57,7 @@ export function DefaultsPanel({
         </div>
       </div>
 
-      <div className="border-t border-border/50 pt-5 space-y-4">
+      <div className="border-t border-vf-panel-border pt-5 space-y-4">
         <div>
           <label className="text-[12.5px] text-text-secondary block mb-1.5 font-medium">{t('settings:defaultsPanel.defaultWebSearch', 'Default Web Search')}</label>
           <select
@@ -65,7 +65,7 @@ export function DefaultsPanel({
             onChange={(e) =>
               setVeniceParams({ enable_web_search: e.target.value as "off" | "on" | "auto" })
             }
-            className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
           >
             <option value="off">{t('common:status.off', 'Off')}</option>
             <option value="on">{t('common:status.on', 'On')}</option>
@@ -80,17 +80,17 @@ export function DefaultsPanel({
             onChange={(e) => setSystemPrompt(e.target.value)}
             placeholder={t('settings:defaultsPanel.systemPromptPlaceholder', 'Optional. Leave empty to avoid adding an app-authored system message.')}
             rows={4}
-            className="w-full bg-surface border border-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50 resize-none"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-lg px-3.5 py-2 text-[14px] text-text-primary outline-none focus:border-accent transition-all placeholder:text-text-muted/50 resize-none"
           />
         </div>
 
-        <div className="flex flex-col gap-3.5 p-4 rounded-xl border border-border bg-surface-elevated">
+        <div className="flex flex-col gap-3.5 p-4 rounded-xl border border-vf-panel-border bg-vf-panel-bg-raised">
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={veniceParams.include_venice_system_prompt !== false}
               onChange={(e) => setVeniceParams({ include_venice_system_prompt: e.target.checked })}
-              className="rounded border-border bg-surface text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
+              className="rounded border-vf-panel-border bg-vf-panel-bg text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
             />
             <span className="text-[13.5px] text-text-primary">{t('settings:defaultsPanel.veniceSystemPromptToggle', 'Venice System Prompt Toggle')}</span>
           </label>
@@ -100,13 +100,13 @@ export function DefaultsPanel({
               type="checkbox"
               checked={veniceParams.enable_web_citations === true}
               onChange={(e) => setVeniceParams({ enable_web_citations: e.target.checked })}
-              className="rounded border-border bg-surface text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
+              className="rounded border-vf-panel-border bg-vf-panel-bg text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
             />
             <span className="text-[13.5px] text-text-primary">{t('settings:defaultsPanel.enableCitations', 'Enable Citations by Default')}</span>
           </label>
         </div>
 
-        <div className="flex flex-col gap-3.5 p-4 rounded-xl border border-border bg-surface-elevated">
+        <div className="flex flex-col gap-3.5 p-4 rounded-xl border border-vf-panel-border bg-vf-panel-bg-raised">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h3 className="text-[14.5px] font-medium text-text-primary">{t('settings:defaultsPanel.characterSceneGeneration.title', 'Character Scene Generation')}</h3>
@@ -119,7 +119,7 @@ export function DefaultsPanel({
                 type="checkbox"
                 checked={characterSceneGenerationEnabled}
                 onChange={(e) => setCharacterSceneGenerationEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-border bg-surface text-accent cursor-pointer"
+                className="h-4 w-4 rounded border-vf-panel-border bg-vf-panel-bg text-accent cursor-pointer"
               />
               <span className="text-[12.5px] font-medium text-text-primary">
                 {characterSceneGenerationEnabled ? t('common:status.on', 'On') : t('common:status.off', 'Off')}
@@ -127,7 +127,7 @@ export function DefaultsPanel({
             </label>
           </div>
           {characterSceneGenerationEnabled && (
-            <div className="pt-2 border-t border-border/50">
+            <div className="pt-2 border-t border-vf-panel-border">
               <label className="text-[12.5px] text-text-secondary block mb-2 font-medium">{t('settings:defaultsPanel.characterSceneGeneration.mode', 'Mode')}</label>
               <PillGroup
                 ariaLabel={t('settings:defaultsPanel.characterSceneGeneration.modeAriaLabel', 'Character scene generation mode')}

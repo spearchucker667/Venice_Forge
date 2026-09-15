@@ -21,7 +21,7 @@ export function AboutPanel(): React.ReactElement {
           {t('settings:aboutPanel.disclaimer', 'Venice Forge is a third-party desktop client configured to interface directly with the Venice.ai inference API endpoints. It is not affiliated with, endorsed by, sponsored by, or approved by Venice.ai, Inc.')}
         </p>
 
-        <div className="p-3 bg-surface-elevated border border-border rounded-lg">
+        <div className="p-3 bg-vf-panel-bg-raised border border-vf-panel-border rounded-lg">
           <div className="text-[12px] uppercase tracking-wider text-text-muted font-bold mb-1">{t('settings:aboutPanel.officialLinks', 'Official Links')}</div>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5">
             <a href={OFFICIAL_LINKS.terms} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
@@ -50,7 +50,7 @@ export function AboutPanel(): React.ReactElement {
                 toast.error(t('settings:aboutPanel.toasts.resetFailed', "Could not reset acknowledgment."));
               }
             }}
-            className="px-3 py-1 rounded bg-surface-elevated border border-border hover:bg-surface text-text-primary cursor-pointer transition-colors"
+            className="px-3 py-1 rounded bg-vf-panel-bg-raised border border-vf-panel-border hover:bg-vf-panel-bg text-text-primary cursor-pointer transition-colors"
           >
             {t('settings:aboutPanel.resetGateBtn', 'Reset gate')}
           </button>

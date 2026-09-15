@@ -339,16 +339,16 @@ export function SettingsView() {
   }
 
   const sectionButtonClass = (section: string) => `
-    w-full text-left px-3.5 py-2 rounded-lg text-[13.5px] font-medium transition-all duration-150
+    w-full text-left px-3.5 py-2 rounded-md text-[13.5px] font-medium transition-all duration-150
     ${activeSection === section
       ? "bg-accent/10 text-accent border border-accent/20"
-      : "text-text-secondary hover:text-text-primary hover:bg-surface-elevated/50 border border-transparent"}
+      : "text-text-secondary hover:text-text-primary hover:bg-vf-control-hover border border-transparent"}
   `;
 
   return (
-    <div className="flex flex-col h-full bg-surface">
+    <div className="flex flex-col h-full bg-vf-panel-bg">
       {/* Header */}
-      <div className="flex-none p-5 border-b border-border/50 bg-surface">
+      <div className="flex-none p-5 border-b border-vf-panel-border bg-vf-shell-bg">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-[17px] font-semibold text-text-primary">{t('settings:header.title', 'Config')}</h2>
@@ -361,7 +361,7 @@ export function SettingsView() {
 
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Navigation Rail */}
-        <div className="w-52 border-r border-border/50 p-3 space-y-1 overflow-y-auto shrink-0 hidden sm:block">
+        <div className="w-52 border-r border-vf-panel-border p-3 space-y-1 overflow-y-auto shrink-0 hidden sm:block bg-vf-shell-bg">
           <button onClick={() => setActiveSection("language")} className={sectionButtonClass("language")}>
             <div className="flex items-center gap-2.5">
               <GlobeIcon className="w-4 h-4 opacity-75" />

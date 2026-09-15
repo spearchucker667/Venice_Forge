@@ -27,9 +27,9 @@ export function FontSettingsPanel(): React.ReactElement {
   const percent = Math.round((fontSize / DEFAULT_FONT_SIZE) * 100);
 
   return (
-    <div className="rounded-xl border border-border bg-surface-elevated/40 p-5 space-y-5">
+    <div className="rounded-xl border border-vf-panel-border bg-vf-panel-bg-raised p-5 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/50 pb-3">
+      <div className="flex items-center justify-between border-b border-vf-panel-border pb-3">
         <div className="flex items-center gap-2.5">
           <Type className="w-4 h-4 text-accent" />
           <div>
@@ -45,7 +45,7 @@ export function FontSettingsPanel(): React.ReactElement {
           <button
             type="button"
             onClick={resetFontSettings}
-            className="px-2.5 py-1 rounded-md vf-meta font-medium border border-border hover:bg-surface-muted text-text-secondary hover:text-text-primary transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+            className="px-2.5 py-1 rounded-md vf-meta font-medium border border-vf-panel-border hover:bg-vf-panel-bg-inset text-text-secondary hover:text-text-primary transition-colors inline-flex items-center gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3 h-3 opacity-75" />
             {t('settings:font.reset', 'Reset to Default')}
@@ -60,7 +60,7 @@ export function FontSettingsPanel(): React.ReactElement {
             <label htmlFor={selectId} className="vf-meta font-medium text-text-primary">
               {t('settings:font.familyLabel', 'Font Family')}
             </label>
-            <span className="vf-tag px-1.5 py-0.5 rounded bg-surface-muted text-text-muted border border-border/50 uppercase tracking-wider font-mono">
+            <span className="vf-tag px-1.5 py-0.5 rounded bg-vf-panel-bg-inset text-text-muted border border-vf-panel-border uppercase tracking-wider font-mono">
               {activeFont.category}
             </span>
           </div>
@@ -69,7 +69,7 @@ export function FontSettingsPanel(): React.ReactElement {
             aria-label={t('settings:font.familyLabel', 'Font Family')}
             value={fontFamily}
             onChange={(e) => setFontFamily(e.target.value)}
-            className="w-full bg-surface border border-border rounded-lg px-3 py-2 vf-body text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
+            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-lg px-3 py-2 vf-body text-text-primary outline-none focus:border-accent transition-all cursor-pointer"
           >
             {FONT_OPTIONS.map((opt) => (
               <option key={opt.id} value={opt.id} data-font-preview={opt.id}>
@@ -140,8 +140,8 @@ export function FontSettingsPanel(): React.ReactElement {
       </div>
 
       {/* Live Typography Preview */}
-      <div className="rounded-lg border border-border/60 bg-surface p-4 space-y-2">
-        <div className="flex items-center justify-between border-b border-border/40 pb-2">
+      <div className="rounded-lg border border-vf-panel-border bg-vf-panel-bg p-4 space-y-2">
+        <div className="flex items-center justify-between border-b border-vf-panel-border pb-2">
           <span className="vf-tag font-medium text-text-muted uppercase tracking-wider">
             {t('settings:font.preview', 'Live Typography Preview')}
           </span>
@@ -156,7 +156,7 @@ export function FontSettingsPanel(): React.ReactElement {
           <p className="font-preview text-text-secondary leading-relaxed">
             {t('settings:font.previewBody', 'Venice Forge provides private AI chat, scene composition, and multimodal generation.')}
           </p>
-          <div className="p-2 rounded bg-surface-elevated border border-border/50 text-text-muted font-mono vf-meta">
+          <div className="p-2 rounded bg-vf-panel-bg-raised border border-vf-panel-border text-text-muted font-mono vf-meta">
             <code>
               {
                 // i18n-allow-next-line: technical typography preview code snippet

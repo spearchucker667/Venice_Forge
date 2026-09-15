@@ -158,7 +158,7 @@ export function ProfilePanel() {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-border bg-surface-elevated p-5 shadow-lg space-y-4">
+      <div className="rounded-xl border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-lg space-y-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">{t('settings:profiles.title', 'Manage Profiles')}</h3>
         <p className="text-[12.5px] text-text-secondary leading-relaxed">
           {t('settings:profiles.description', 'Each profile maintains isolated settings, API keys, and configurations. Switching profiles will clear active application state and reload.')}
@@ -166,7 +166,7 @@ export function ProfilePanel() {
         
         <ul className="space-y-2 mt-4">
           {profiles.map(p => (
-            <li key={p.id} className="flex items-center justify-between gap-3 p-3 border border-border rounded bg-surface">
+            <li key={p.id} className="flex items-center justify-between gap-3 p-3 border border-vf-panel-border rounded bg-vf-panel-bg">
               <div className="min-w-0">
                 <span className="text-[13px] font-medium text-text-primary">
                   {p.name} {p.id === activeProfileId && <span className="ml-2 text-[12px] bg-accent/20 text-accent px-1.5 py-0.5 rounded">{t('settings:profiles.badge.active', 'ACTIVE')}</span>}
@@ -228,13 +228,13 @@ export function ProfilePanel() {
 
         {profileDeleteError && <p role="alert" className="text-[12.5px] text-danger">{profileDeleteError}</p>}
 
-        <form onSubmit={handleAdd} className="flex gap-2 mt-4 pt-4 soft-separator-y">
+        <form onSubmit={handleAdd} className="flex gap-2 mt-4 pt-4 border-vf-panel-border">
           <input
             type="text"
             value={newProfileName}
             onChange={(e) => setNewProfileName(e.target.value)}
             placeholder={t('settings:profiles.newProfilePlaceholder', 'New Profile Name')}
-            className="flex-1 px-3 py-1.5 bg-surface border border-border rounded text-[13px]"
+            className="flex-1 px-3 py-1.5 bg-vf-panel-bg border border-vf-panel-border rounded text-[13px]"
           />
           <button type="submit" className="px-4 py-1.5 bg-button-primary-bg text-button-primary-fg rounded text-[13px] font-medium">
             {t('settings:profiles.actions.createProfile', 'Create Profile')}
@@ -262,7 +262,7 @@ export function ProfilePanel() {
                   aria-label={passwordDialog.mode === 'set' ? t('settings:profiles.dialog.labelSet', 'Profile password') : t('settings:profiles.dialog.labelUnlock', 'Unlock password')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 w-full rounded border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+                  className="mt-1 w-full rounded border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-primary"
                   autoComplete={passwordDialog.mode === 'set' ? 'new-password' : 'current-password'}
                 />
               </label>
@@ -275,14 +275,14 @@ export function ProfilePanel() {
                     aria-label={t('settings:profiles.dialog.labelConfirm', 'Confirm profile password')}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="mt-1 w-full rounded border border-border bg-surface px-3 py-2 text-[13px] text-text-primary"
+                    className="mt-1 w-full rounded border border-vf-panel-border bg-vf-panel-bg px-3 py-2 text-[13px] text-text-primary"
                     autoComplete="new-password"
                   />
                 </label>
               )}
               {passwordError && <p role="alert" className="text-[12.5px] text-danger">{passwordError}</p>}
               <div className="mt-2 flex justify-end gap-2">
-                <button type="button" onClick={closePasswordDialog} className="rounded bg-surface px-4 py-2 text-[13px] text-text-primary">
+                <button type="button" onClick={closePasswordDialog} className="rounded bg-vf-panel-bg px-4 py-2 text-[13px] text-text-primary">
                   {t('common:actions.cancel', 'Cancel')}
                 </button>
                 <button type="submit" className="rounded bg-button-primary-bg px-4 py-2 text-[13px] font-medium text-button-primary-fg">

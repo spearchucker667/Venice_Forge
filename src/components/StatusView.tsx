@@ -103,7 +103,7 @@ export function StatusView() {
           <Trans i18nKey="common:surface.componentsStatusview.description.toInspectDetailedConsoleOutput" /></p>
       </section>
 
-      <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
+      <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
           <Meteocon name="barometer" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.runtime" /></h3>
         <Row k="App version" v={diag.appVersion} />
@@ -114,7 +114,7 @@ export function StatusView() {
         <Row k="Node" v={diag.nodeVersion || 'n/a'} />
       </section>
 
-      <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
+      <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
           <Meteocon name="humidity" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.storage" /></h3>
         <Row k="Secure store" v={diag.storageMode} />
@@ -124,7 +124,7 @@ export function StatusView() {
         <Row k="Logs path" v={diag.logsPath} mono />
       </section>
 
-      <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
+      <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
           <Meteocon name="umbrella" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.safetyGuardAudit" /></h3>
         <Row k="Allowed" v={String(audit.allowed)} />
@@ -141,7 +141,7 @@ export function StatusView() {
         )}
       </section>
 
-      <section className="rounded-lg border border-border bg-surface-muted p-3 space-y-1.5">
+      <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
           <Meteocon name="time-morning" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.lastRequest" /></h3>
         {lastRequest ? (

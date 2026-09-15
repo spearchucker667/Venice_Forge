@@ -206,7 +206,7 @@ export function DataStoragePanel({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-border/50 bg-surface p-5 shadow-sm space-y-4">
+      <div className="rounded-xl border border-vf-panel-border bg-vf-panel-bg p-5 shadow-sm space-y-4">
         <h3 className="text-[14.5px] font-medium text-text-primary">{t('settings:dataStorage.manualBackup.title', 'Manual Backup')}</h3>
         <p className="text-[12.5px] text-text-secondary leading-relaxed">
           {t('settings:dataStorage.manualBackup.description', 'Create an encrypted, portable backup of your local history, character cards, and workflows. You can import this backup on any device.')}
@@ -217,7 +217,7 @@ export function DataStoragePanel({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={t('settings:dataStorage.manualBackup.passwordPlaceholder', 'Backup Password')}
-            className="w-64 px-3 py-1.5 rounded-lg border border-border bg-surface text-[13px] text-text-primary focus:outline-none focus:border-accent"
+            className="w-64 px-3 py-1.5 rounded-lg border border-vf-panel-border bg-vf-panel-bg text-[13px] text-text-primary focus:outline-none focus:border-accent"
           />
           <label className="flex items-center gap-2 text-[12.5px] text-text-secondary"><input type="checkbox" checked={includeCharacterCardDrafts} onChange={(event) => setIncludeCharacterCardDrafts(event.target.checked)} /> {t('settings:dataStorage.manualBackup.includeDrafts', 'Include encrypted local ST Card drafts (drafts never sync)')}</label>
           <label className="flex items-center gap-2 text-[12.5px] text-text-secondary">
@@ -240,7 +240,7 @@ export function DataStoragePanel({
             <button
               onClick={handleImportStart}
               disabled={!password}
-              className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-surface-elevated transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-primary hover:bg-vf-panel-bg-raised transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('settings:dataStorage.manualBackup.import', 'Import Backup')}
             </button>
@@ -272,7 +272,7 @@ export function DataStoragePanel({
         <div className="flex flex-wrap gap-2.5">
           <button
             onClick={clearLocalSettings}
-            className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-surface border border-border text-text-primary hover:bg-danger/10 hover:text-danger hover:border-danger/25 transition-colors cursor-pointer"
+            className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-primary hover:bg-danger/10 hover:text-danger hover:border-danger/25 transition-colors cursor-pointer"
           >
             {t('settings:dataStorage.dangerZone.clearDefaults', 'Clear App Defaults')}
           </button>

@@ -264,8 +264,8 @@ export function BackupSyncPanel() {
       </div>
 
       {/* Sync Folder Section */}
-      <div className="border border-border/50 rounded-xl bg-surface-elevated overflow-hidden">
-        <div className="p-4 border-b border-border/50 bg-surface-elevated/50 flex items-center justify-between">
+      <div className="border border-vf-panel-border rounded-xl bg-vf-panel-bg-raised overflow-hidden">
+        <div className="p-4 border-b border-vf-panel-border bg-vf-panel-bg-raised flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-accent/10 rounded-lg">
               <FolderOpen size={18} className="text-accent" />
@@ -277,7 +277,7 @@ export function BackupSyncPanel() {
               </p>
             </div>
           </div>
-          <div className="px-3 py-1 bg-surface rounded text-xs font-medium text-text-secondary border border-border/50">
+          <div className="px-3 py-1 bg-vf-panel-bg rounded text-xs font-medium text-text-secondary border border-vf-panel-border">
             {isSyncActive
               ? t('settings:backupSync.status.active', 'Active')
               : runtimeStatus.mainWatcher === "error"
@@ -290,7 +290,7 @@ export function BackupSyncPanel() {
 
         <div className="p-4 space-y-4">
           <div className="flex items-center space-x-4">
-            <div className="flex-1 bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-text-primary truncate">
+            <div className="flex-1 bg-vf-panel-bg border border-vf-panel-border rounded-lg px-3 py-2 text-sm text-text-primary truncate">
               {isLoading ? t('common:status.loading', 'Loading...') : (syncFolder || t('settings:backupSync.syncFolder.none', 'No sync folder selected'))}
             </div>
             <button
@@ -310,7 +310,7 @@ export function BackupSyncPanel() {
                   checked={syncIncludeMedia}
                   disabled={isSyncActive || isTransitioning}
                   onChange={(e) => setSyncIncludeMedia(e.target.checked)}
-                  className="h-4 w-4 rounded border-border/50 bg-surface accent-accent"
+                  className="h-4 w-4 rounded border-vf-panel-border bg-vf-panel-bg accent-accent"
                   aria-label={t('settings:backupSync.syncFolder.includeMedia', 'Include media blobs in sync packets')}
                 />
                 <span>
@@ -327,13 +327,13 @@ export function BackupSyncPanel() {
                 type="password"
                 placeholder={t('settings:backupSync.syncFolder.passphrasePlaceholder', 'Enter Encryption Passphrase')}
                 disabled={isSyncActive || isTransitioning}
-                className="flex-1 bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
+                className="flex-1 bg-vf-panel-bg border border-vf-panel-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted outline-none focus:border-accent"
               />
               {isSyncActive ? (
                 <button
                   onClick={handlePauseSync}
                   disabled={isTransitioning}
-                  className="px-4 py-2 bg-surface text-error rounded-lg text-sm font-medium hover:bg-surface-elevated transition-colors border border-border/50 whitespace-nowrap disabled:opacity-50"
+                  className="px-4 py-2 bg-vf-panel-bg text-error rounded-lg text-sm font-medium hover:bg-vf-panel-bg-raised transition-colors border border-vf-panel-border whitespace-nowrap disabled:opacity-50"
                 >
                   {t('settings:backupSync.syncFolder.pause', 'Pause Sync')}
                 </button>
@@ -371,8 +371,8 @@ export function BackupSyncPanel() {
       </div>
 
       {/* Conflicts & Logs section (Phase 5 UI) */}
-      <div className="border border-border/50 rounded-xl bg-surface-elevated overflow-hidden">
-         <div className="p-4 border-b border-border/50 bg-surface-elevated/50 flex items-center justify-between">
+      <div className="border border-vf-panel-border rounded-xl bg-vf-panel-bg-raised overflow-hidden">
+         <div className="p-4 border-b border-vf-panel-border bg-vf-panel-bg-raised flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-warning/10 rounded-lg">
               <Meteocon name="humidity" size={18} className="text-warning" />
@@ -426,7 +426,7 @@ export function BackupSyncPanel() {
                   conflict.conflictRecord?.name || conflict.conflictRecord?.title || t('common:status.untitledLowercase', '(untitled)');
                 const loserTitle = String(loserTitleRaw).replace(/ \(Conflict from .*\)$/, "");
                 return (
-                  <div key={conflict.conflictId} className="bg-surface border border-border/50 rounded-lg p-3 space-y-2">
+                  <div key={conflict.conflictId} className="bg-vf-panel-bg border border-vf-panel-border rounded-lg p-3 space-y-2">
                     <div className="flex justify-between items-start gap-3">
                       <div>
                         <h5 className="text-[13px] font-medium text-text-primary">
@@ -441,21 +441,21 @@ export function BackupSyncPanel() {
                     <div className="flex gap-2 mt-2">
                       <button
                         onClick={() => resolveConflict(conflict, "keep_original")}
-                        className="px-3 py-1.5 bg-surface-elevated hover:bg-accent/10 hover:text-accent text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
+                        className="px-3 py-1.5 bg-vf-panel-bg-raised hover:bg-accent/10 hover:text-accent text-text-secondary rounded text-[12px] font-medium border border-vf-panel-border transition-colors flex-1"
                         title={t('settings:backupSync.conflicts.keepOriginalTitle', 'Keep the revision currently saved at this id and discard the conflicting copy.')}
                       >
                         {t('settings:backupSync.conflicts.keepOriginal', { defaultValue: 'Keep {{winner}} copy', winner: winnerLabel })}
                       </button>
                       <button
                         onClick={() => resolveConflict(conflict, "keep_conflict")}
-                        className="px-3 py-1.5 bg-surface-elevated hover:bg-warning/10 hover:text-warning text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
+                        className="px-3 py-1.5 bg-vf-panel-bg-raised hover:bg-warning/10 hover:text-warning text-text-secondary rounded text-[12px] font-medium border border-vf-panel-border transition-colors flex-1"
                         title={t('settings:backupSync.conflicts.keepConflictTitle', { defaultValue: 'Replace the current revision with the {{loser}} copy.', loser: loserLabel })}
                       >
                         {t('settings:backupSync.conflicts.keepConflict', { defaultValue: 'Use {{loser}} copy', loser: loserLabel })}
                       </button>
                       <button
                         onClick={() => resolveConflict(conflict, "keep_both")}
-                        className="px-3 py-1.5 bg-surface-elevated hover:bg-success/10 hover:text-success text-text-secondary rounded text-[12px] font-medium border border-border/50 transition-colors flex-1"
+                        className="px-3 py-1.5 bg-vf-panel-bg-raised hover:bg-success/10 hover:text-success text-text-secondary rounded text-[12px] font-medium border border-vf-panel-border transition-colors flex-1"
                         title={t('settings:backupSync.conflicts.keepBothTitle', { defaultValue: 'Keep the current revision and save the {{loser}} copy as a separate record.', loser: loserLabel })}
                       >
                         {t('settings:backupSync.conflicts.keepBoth', { defaultValue: 'Save {{loser}} as copy', loser: loserLabel })}

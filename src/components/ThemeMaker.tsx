@@ -2,6 +2,7 @@ import { translateRuntime } from "../i18n/runtimeTranslator";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   applyTheme,
+  resolveInitialTheme,
   legacyThemeToFamily,
   luminance,
   resolveTheme,
@@ -20,7 +21,7 @@ import {
   resolveCodeThemeTokens,
   deriveCodeThemeTokens,
 } from "../theme";
-import { BUILTIN_THEME_FAMILIES } from "../theme/builtins";
+import { BUILTIN_CANONICAL_MODES, BUILTIN_THEME_FAMILIES } from "../theme/builtins";
 import { COLOR_INPUT_FALLBACK } from "../theme/fallbacks";
 import { isValidColorValue } from "../theme/validateColor";
 import { ConfirmModal } from "./ConfirmModal";
@@ -253,6 +254,10 @@ function defaultCustomFamily(): ThemeFamily {
 }
 
 function getCanonicalMode(family: ThemeFamily): ThemeMode {
+  const normId = family.id.replace(/^builtin-/, "");
+  if (normId in BUILTIN_CANONICAL_MODES) {
+    return BUILTIN_CANONICAL_MODES[normId];
+  }
   return luminance(family.variants.light.tokens.background) > 0.55
     ? "light"
     : "dark";
@@ -261,9 +266,11 @@ function getCanonicalMode(family: ThemeFamily): ThemeMode {
 const EMPTY_CUSTOM_THEMES: Theme[] = [];
 
 /** Backwards-compatible single-mode Theme exporter.
- *  Serializes the theme as a V2 family with the same tokens in both variants. */
+ *  Serializes the theme as a V2 family with the same tokens in both variants.
+ *  The original `mode` is preserved via a top-level `mode` field so the
+ *  single-mode intent survives a yamlToTheme round-trip. */
 export async function themeToYaml(theme: Theme): Promise<string> {
-  return serializeThemeFamilyYaml(familyFromTheme(theme));
+  return serializeThemeFamilyYaml(familyFromTheme(theme), { mode: theme.mode });
 }
 
 /** Backwards-compatible single-mode Theme importer.
@@ -699,14 +706,21 @@ export function ThemeMaker() {
     if (previewMode === mode) return;
     setPreviewMode(mode);
     document.documentElement.dataset.themeMode = mode;
+    applyTheme(resolveTheme(draft, mode));
   }
 
   useEffect(() => {
     document.documentElement.dataset.themeMode = previewMode;
+  }, [previewMode]);
+
+  useEffect(() => {
     return () => {
       delete document.documentElement.dataset.themeMode;
+      const settings = useSettingsStore.getState();
+      const yaml = useConfigStore.getState().yamlThemes;
+      applyTheme(resolveInitialTheme(settings, yaml));
     };
-  }, [previewMode]);
+  }, []);
 
   function updateName(name: string) {
     setDraft((prev: ThemeFamily) => ({ ...prev, name }));
@@ -928,7 +942,7 @@ export function ThemeMaker() {
       />
       <fieldset disabled={busy} className="min-w-0 space-y-6">
         {/* Header Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-vf-panel-border pb-4">
           <div>
             <h3 className="text-lg font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsThememaker.heading.themeSystemEditor" />
@@ -990,7 +1004,7 @@ export function ThemeMaker() {
               </span>
             )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 min-h-[16rem] max-h-[36rem] overflow-y-auto p-2 border border-border rounded-lg bg-surface-elevated">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 min-h-[16rem] max-h-[36rem] overflow-y-auto p-2 border border-vf-panel-border rounded-lg bg-vf-panel-bg-raised">
             {themeOptions.map((opt) => {
               const family = allFamiliesMap[opt.id];
               const isSelected = selector === opt.id;
@@ -1020,20 +1034,20 @@ export function ThemeMaker() {
                       );
                       el.style.setProperty(
                         "--theme-text",
-                        theme.tokens.textPrimary || "inherit",
+                        theme.tokens.foreground || theme.tokens.textPrimary || "inherit",
                       );
                     }
                   }}
                   className={`relative group flex flex-col overflow-hidden rounded-xl border text-left transition-all hover:shadow-sm ${
                     isSelected
-                      ? "border-accent ring-1 ring-accent bg-surface"
-                      : "border-border hover:border-accent/50 bg-surface"
+                      ? "border-accent ring-1 ring-accent bg-vf-panel-bg"
+                      : "border-vf-panel-border hover:border-accent/50 bg-vf-panel-bg"
                   }`}
                   aria-pressed={isSelected}
                 >
                   {theme ? (
                     <div
-                      className="h-12 w-full flex border-b border-border/50 bg-[var(--theme-bg)]"
+                      className="h-12 w-full flex border-b border-vf-panel-border bg-[var(--theme-bg)]"
                       aria-hidden="true"
                     >
                       <div className="w-1/2 h-full flex items-end justify-start p-1 bg-[var(--theme-surface)]">
@@ -1042,14 +1056,14 @@ export function ThemeMaker() {
                     </div>
                   ) : (
                     <div
-                      className="h-12 w-full bg-surface-elevated flex items-center justify-center text-xs text-text-muted border-b border-border/50"
+                      className="h-12 w-full bg-vf-panel-bg-raised flex items-center justify-center text-xs text-text-muted border-b border-vf-panel-border"
                       aria-hidden="true"
                     >
                       {/* Fallback placeholder */}
                     </div>
                   )}
                   <div className="px-2.5 py-2">
-                    <div className="text-xs font-medium truncate text-[var(--theme-text,inherit)]">
+                    <div className="text-xs font-medium truncate text-text-primary">
                       {opt.label}
                     </div>
                   </div>
@@ -1060,20 +1074,20 @@ export function ThemeMaker() {
         </div>
 
         {/* Draft Family Editor */}
-        <div className="space-y-4 rounded-xl border border-border p-4 bg-surface">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
+        <div className="space-y-4 rounded-xl border border-vf-panel-border p-4 bg-vf-panel-bg">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-vf-panel-border pb-3">
             <div className="flex items-center gap-3">
               <input
                 type="text"
                 id="theme-maker-1"
                 value={draft.name}
                 onChange={(e) => updateName(e.target.value)}
-                className="rounded-md border border-border bg-surface-elevated px-3 py-1 text-sm font-semibold text-text-primary"
+                className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-3 py-1 text-sm font-semibold text-text-primary"
                 aria-label={tRuntime(
                   "runtimeGenerated.components.thememaker.attribute.themeName",
                 )}
               />
-              <div className="flex items-center gap-1 rounded-lg border border-border bg-surface-elevated p-1">
+              <div className="flex items-center gap-1 rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised p-1">
                 <button
                   type="button"
                   onClick={() => updatePreviewMode("dark")}
@@ -1148,7 +1162,7 @@ export function ThemeMaker() {
                 key={tRuntime(`themeEditor.categories.${cat.name}`)}
                 className="space-y-2"
               >
-                <div className="flex items-center justify-between border-b border-border/50 pb-1">
+                <div className="flex items-center justify-between border-b border-vf-panel-border pb-1">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
                     {tRuntime(`themeEditor.categories.${cat.name}`)}
                   </h4>
@@ -1179,7 +1193,7 @@ export function ThemeMaker() {
                     return (
                       <div
                         key={key}
-                        className="flex items-center gap-2 rounded-md border border-border/60 p-2 bg-surface-elevated"
+                        className="flex items-center gap-2 rounded-md border border-vf-panel-border p-2 bg-vf-panel-bg-raised"
                       >
                         <input
                           type="color"
@@ -1198,7 +1212,7 @@ export function ThemeMaker() {
                               : COLOR_INPUT_FALLBACK
                           }
                           onChange={(e) => updateToken(key, e.target.value)}
-                          className="h-7 w-8 shrink-0 rounded border border-border bg-transparent cursor-pointer"
+                          className="h-7 w-8 shrink-0 rounded border border-vf-panel-border bg-transparent cursor-pointer"
                         />
                         <div className="flex flex-1 flex-col min-w-0">
                           <div className="flex items-center justify-between">
@@ -1239,8 +1253,8 @@ export function ThemeMaker() {
                             value={value}
                             onChange={(e) => updateToken(key, e.target.value)}
                             aria-invalid={!valid}
-                            className={`w-full rounded border px-1.5 py-0.5 text-xs font-mono bg-surface text-text-primary ${
-                              valid ? "border-border" : "border-danger"
+                            className={`w-full rounded border px-1.5 py-0.5 text-xs font-mono bg-vf-panel-bg text-text-primary ${
+                              valid ? "border-vf-panel-border" : "border-danger"
                             }`}
                           />
                         </div>
@@ -1261,7 +1275,7 @@ export function ThemeMaker() {
           </div>
 
           {/* Code & Syntax Editor */}
-          <div className="space-y-4 pt-4 border-t border-border/50">
+          <div className="space-y-4 pt-4 border-t border-vf-panel-border">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h4 className="text-sm font-semibold text-text-secondary">
                 <Trans i18nKey="common:surface.componentsThememaker.heading.codeAndSyntax" />
@@ -1279,7 +1293,7 @@ export function ThemeMaker() {
                   onChange={(e) =>
                     updateCodePreset(e.target.value as CodeSyntaxPresetId)
                   }
-                  className="rounded-md border border-border bg-surface-elevated px-2 py-1 text-xs text-text-primary"
+                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1 text-xs text-text-primary"
                 >
                   {Object.keys(CODE_SYNTAX_PRESETS).map((preset) => (
                     <option key={preset} value={preset}>
@@ -1295,7 +1309,7 @@ export function ThemeMaker() {
                 key={tRuntime(`themeEditor.categories.${cat.name}`)}
                 className="space-y-2"
               >
-                <div className="flex items-center justify-between border-b border-border/50 pb-1">
+                <div className="flex items-center justify-between border-b border-vf-panel-border pb-1">
                   <h5 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
                     {tRuntime(`themeEditor.categories.${cat.name}`)}
                   </h5>
@@ -1328,7 +1342,7 @@ export function ThemeMaker() {
                     return (
                       <div
                         key={key}
-                        className="flex items-center gap-2 rounded-md border border-border/60 p-2 bg-surface-elevated"
+                        className="flex items-center gap-2 rounded-md border border-vf-panel-border p-2 bg-vf-panel-bg-raised"
                       >
                         <input
                           type="color"
@@ -1342,7 +1356,7 @@ export function ThemeMaker() {
                               : COLOR_INPUT_FALLBACK
                           }
                           onChange={(e) => updateCodeToken(key, e.target.value)}
-                          className="h-7 w-8 shrink-0 rounded border border-border bg-transparent cursor-pointer"
+                          className="h-7 w-8 shrink-0 rounded border border-vf-panel-border bg-transparent cursor-pointer"
                         />
                         <div className="flex flex-1 flex-col min-w-0">
                           <div className="flex items-center justify-between">
@@ -1376,8 +1390,8 @@ export function ThemeMaker() {
                               updateCodeToken(key, e.target.value)
                             }
                             aria-invalid={!valid}
-                            className={`w-full rounded border px-1.5 py-0.5 text-xs font-mono bg-surface text-text-primary ${
-                              valid ? "border-border" : "border-danger"
+                            className={`w-full rounded border px-1.5 py-0.5 text-xs font-mono bg-vf-panel-bg text-text-primary ${
+                              valid ? "border-vf-panel-border" : "border-danger"
                             }`}
                           />
                         </div>
@@ -1425,9 +1439,9 @@ export function ThemeMaker() {
               aria-modal="true"
               aria-labelledby="theme-import-title"
               tabIndex={-1}
-              className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border border-border bg-surface-elevated p-6 space-y-4 shadow-2xl"
+              className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border border-vf-panel-border bg-vf-panel-bg-raised p-6 space-y-4 shadow-2xl"
             >
-              <div className="border-b border-border/50 pb-3">
+              <div className="border-b border-vf-panel-border pb-3">
                 <h3
                   id="theme-import-title"
                   className="text-lg font-semibold text-text-primary"
@@ -1461,7 +1475,7 @@ export function ThemeMaker() {
                 )}
               </div>
 
-              <div className="rounded-lg border border-border p-3 bg-surface">
+              <div className="rounded-lg border border-vf-panel-border p-3 bg-vf-panel-bg">
                 <div className="text-xs font-semibold text-text-muted mb-2">
                   <Trans i18nKey="common:surface.componentsThememaker.text.importedLayoutPreview" />
                 </div>
@@ -1473,7 +1487,7 @@ export function ThemeMaker() {
                 />
               </div>
 
-              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/50">
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-vf-panel-border">
                 <button
                   className="btn ghost"
                   onClick={() => setImportModal(null)}

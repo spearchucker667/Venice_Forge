@@ -101,7 +101,7 @@ export function HeaderStatusCluster({
         data-testid="status-cluster-summary"
         data-severity={worst.item.severity}
         onClick={() => openDrawer(worst.key)}
-        className="2xl:hidden inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-elevated px-2 py-1 text-xs text-text-secondary"
+        className="2xl:hidden inline-flex items-center gap-1.5 rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-2 py-1 text-xs text-text-secondary"
         aria-label={t("statusCluster.aria.openHighest", {
           category: worst.label,
           severity: t(`statusCluster.severities.${worst.item.severity}`),

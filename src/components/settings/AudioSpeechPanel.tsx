@@ -42,7 +42,7 @@ export function AudioSpeechPanel() {
       </div>
 
       {/* Interface Sounds */}
-      <div className="space-y-4 bg-surface-elevated rounded-xl p-5 border border-border/50">
+      <div className="space-y-4 bg-vf-panel-bg-raised rounded-xl p-5 border border-vf-panel-border">
         <div className="flex items-center justify-between">
           <div>
             <h4 className="text-sm font-medium text-text-primary">{t('settings:audioSpeech.interfaceSoundsTitle', 'Interface Sounds')}</h4>
@@ -61,7 +61,7 @@ export function AudioSpeechPanel() {
                   setUiSoundPreferences({ enabled: e.target.checked })
                 }}
               />
-              <div className="w-9 h-5 bg-surface-elevated border border-border/80 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-text-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-secondary peer-checked:after:bg-text-primary after:border-border/10 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
+              <div className="w-9 h-5 bg-vf-panel-bg-raised border border-vf-panel-border peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-text-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-secondary peer-checked:after:bg-text-primary after:border-vf-panel-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent peer-checked:border-accent"></div>
             </label>
           </div>
         </div>
@@ -72,7 +72,7 @@ export function AudioSpeechPanel() {
               {t('settings:audioSpeech.soundPack', 'Sound pack')}
             </label>
             <select
-              className="w-full bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50"
+              className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50"
               value={uiSounds.packId}
               onChange={(e) => setUiSoundPreferences({ packId: e.target.value as UiSoundPackId })}
             >
@@ -102,7 +102,7 @@ export function AudioSpeechPanel() {
           <div className="flex justify-between items-center pt-2">
             <button 
               onClick={() => uiSoundController.preview(uiSounds.packId)}
-              className="px-3 py-1.5 text-xs font-medium bg-surface-elevated hover:bg-surface-elevated/80 border border-border/50 rounded-md text-text-primary transition-colors"
+              className="px-3 py-1.5 text-xs font-medium bg-vf-panel-bg-raised hover:bg-vf-panel-bg-raised border border-vf-panel-border rounded-md text-text-primary transition-colors"
             >
               {t('common:actions.preview', 'Preview')}
             </button>
@@ -117,7 +117,7 @@ export function AudioSpeechPanel() {
       </div>
 
       {/* Chat Text-to-Speech */}
-      <div className="space-y-4 bg-surface-elevated rounded-xl p-5 border border-border/50">
+      <div className="space-y-4 bg-vf-panel-bg-raised rounded-xl p-5 border border-vf-panel-border">
         <div>
           <h4 className="text-sm font-medium text-text-primary">{t('settings:audioSpeech.chatTtsTitle', 'Chat Text-to-Speech')}</h4>
           <p className="text-xs text-text-muted mt-1">
@@ -129,7 +129,7 @@ export function AudioSpeechPanel() {
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
-              className="rounded border-border/50 bg-surface text-accent focus:ring-accent/50"
+              className="rounded border-vf-panel-border bg-vf-panel-bg text-accent focus:ring-accent/50"
               checked={chatTts.showMessageControls}
               onChange={(e) => {
                 uiSoundController.play(e.target.checked ? 'toggleOn' : 'toggleOff', uiSounds.packId)
@@ -145,7 +145,7 @@ export function AudioSpeechPanel() {
                 {t('settings:audioSpeech.ttsModel', 'TTS model')}
               </label>
               <select
-                className="w-full bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50"
+                className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50"
                 value={chatTts.model || ""}
                 onChange={(e) => setChatTtsPreferences({ model: e.target.value || undefined })}
               >
@@ -164,7 +164,7 @@ export function AudioSpeechPanel() {
                 {t('settings:audioSpeech.voice', 'Voice')}
               </label>
               <select
-                className="w-full bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50"
+                className="w-full bg-vf-panel-bg border border-vf-panel-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50"
                 value={chatTts.voice || ""}
                 onChange={(e) => setChatTtsPreferences({ voice: e.target.value || undefined })}
               >
@@ -210,7 +210,7 @@ export function AudioSpeechPanel() {
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
-              className="rounded border-border/50 bg-surface text-accent focus:ring-accent/50"
+              className="rounded border-vf-panel-border bg-vf-panel-bg text-accent focus:ring-accent/50"
               checked={chatTts.skipCodeBlocks}
               onChange={(e) => {
                 uiSoundController.play(e.target.checked ? 'toggleOn' : 'toggleOff', uiSounds.packId)
@@ -223,7 +223,7 @@ export function AudioSpeechPanel() {
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
-              className="rounded border-border/50 bg-surface text-accent focus:ring-accent/50"
+              className="rounded border-vf-panel-border bg-vf-panel-bg text-accent focus:ring-accent/50"
               checked={chatTts.stopOnNewReply}
               onChange={(e) => {
                 uiSoundController.play(e.target.checked ? 'toggleOn' : 'toggleOff', uiSounds.packId)
@@ -233,11 +233,11 @@ export function AudioSpeechPanel() {
             <span className="text-sm text-text-primary">{t('settings:audioSpeech.stopOnNewReply', 'Stop current playback when a new reply begins')}</span>
           </label>
 
-          <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          <div className="flex items-center justify-between pt-2 border-t border-vf-panel-border">
             <label className="flex items-center gap-3 cursor-pointer">
               <span className="text-sm text-text-primary">{t('settings:audioSpeech.cacheSpeech', 'Cache generated speech')}</span>
               <select
-                className="bg-surface border border-border/50 rounded-md px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-accent/50 ml-2"
+                className="bg-vf-panel-bg border border-vf-panel-border rounded-md px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-accent/50 ml-2"
                 value={chatTts.cacheEnabled ? "on" : "off"}
                 onChange={(e) => setChatTtsPreferences({ cacheEnabled: e.target.value === "on" })}
               >
@@ -250,7 +250,7 @@ export function AudioSpeechPanel() {
               type="button"
               onClick={() => { void handleClearTtsCache(); }}
               disabled={clearingCache || !isElectron()}
-              className="px-3 py-1.5 text-xs font-medium bg-surface-elevated hover:bg-surface-elevated/80 hover:text-danger border border-border/50 rounded-md text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-xs font-medium bg-vf-panel-bg-raised hover:bg-vf-panel-bg-raised hover:text-danger border border-vf-panel-border rounded-md text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {clearingCache ? t('settings:audioSpeech.clearing', 'Clearing…') : t('settings:audioSpeech.clearCache', 'Clear TTS cache')}
             </button>

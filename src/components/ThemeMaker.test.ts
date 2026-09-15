@@ -126,6 +126,16 @@ describe("ThemeMaker new built-in theme round-trips", () => {
     expect(imported.code.tokens).toEqual(theme.code.tokens);
     expect(imported.code.preset).toBe(theme.code.preset);
   });
+
+  it("preserves the original mode even when canonical mode disagrees", async () => {
+    // Regression guard for BUILTIN_SOLARIZED_LIGHT: solarized canonical mode
+    // is "dark" but a single-mode light theme must round-trip as light.
+    const lightTheme = familyToTheme(BUILTIN_SOLARIZED, "light");
+    const yaml = await themeToYaml(lightTheme);
+    const imported = await yamlToTheme(yaml);
+
+    expect(imported.mode).toBe("light");
+  });
 });
 
 describe("ThemeMaker legacy YAML import", () => {
