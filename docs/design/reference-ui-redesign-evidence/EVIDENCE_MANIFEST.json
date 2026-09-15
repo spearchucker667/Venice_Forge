@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T10:48:08.553Z",
+  "generatedAt": "2026-09-15T11:25:16.512Z",
   "viewport": [
     {
       "name": "1280x720",
@@ -32,28 +32,93 @@
       "id": "venice-dark",
       "theme": "venice",
       "mode": "dark",
-      "dir": "ltr"
+      "locale": "en-US"
     },
     {
       "id": "venice-light",
       "theme": "venice",
       "mode": "light",
-      "dir": "ltr"
+      "locale": "en-US"
+    },
+    {
+      "id": "nord-dark",
+      "theme": "nord",
+      "mode": "dark",
+      "locale": "en-US"
     },
     {
       "id": "venice-rtl",
       "theme": "venice",
       "mode": "dark",
-      "dir": "rtl"
+      "locale": "ar"
     }
   ],
   "surfaces": [
     "shell",
     "chat",
+    "image-studio",
+    "media-studio",
+    "workflows",
+    "documents",
     "settings",
-    "status"
+    "status",
+    "command-palette"
   ],
   "captures": [
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "shell",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/shell.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "chat",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/chat.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "image-studio",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/image-studio.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "media-studio",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/media-studio.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "workflows",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/workflows.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "documents",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/documents.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "settings",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/settings.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "status",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/status.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "command-palette",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/command-palette.png"
+    },
     {
       "viewport": "1280x720",
       "preset": "venice-dark",
@@ -164,6 +229,36 @@
     },
     {
       "viewport": "1440x900",
+      "preset": "venice-light",
+      "surface": "settings",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-light/settings.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-light",
+      "surface": "status",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-light/status.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "nord-dark",
+      "surface": "shell",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/nord-dark/shell.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "nord-dark",
+      "surface": "chat",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/nord-dark/chat.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "nord-dark",
+      "surface": "settings",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/nord-dark/settings.png"
+    },
+    {
+      "viewport": "1440x900",
       "preset": "venice-rtl",
       "surface": "shell",
       "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-rtl/shell.png"
@@ -173,6 +268,12 @@
       "preset": "venice-rtl",
       "surface": "chat",
       "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-rtl/chat.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-rtl",
+      "surface": "settings",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-rtl/settings.png"
     },
     {
       "viewport": "mobile-390x844",

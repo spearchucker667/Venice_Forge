@@ -1,17 +1,21 @@
 #!/usr/bin/env node
-/* global window, console, process, setTimeout */
+/* global window, console, process, setTimeout, localStorage */
 /**
  * Phase 9 visual QA capture for the reference-driven redesign.
  *
  * Boots Vite, drives the Venice Forge renderer through Playwright, and
- * captures a focused screenshot matrix into
+ * captures the focused screenshot matrix into
  *   docs/design/reference-ui-redesign-evidence/<viewport>/<theme-locale>/<surface>.png
  *
- * The matrix is intentionally a subset of the handoff §33 table — the
- * canonical surfaces (shell, chat, settings, status) at the four
- * documented viewports, plus the Light theme and an Arabic RTL pass on
- * the shell — to keep a single headless run within a few minutes while
- * still proving the reference visual contract.
+ * The matrix is a representative subset of the handoff §33 table covering
+ * the canonical surfaces (shell / chat / image-studio / media-studio /
+ * workflows / documents / settings-theme-maker / status / modal-command-palette)
+ * at the four documented viewports, with light + alt-dark (Nord) + RTL
+ * (Arabic) representative samples on the most important surfaces.
+ *
+ * The capture sequence dismisses the four-step onboarding splash, then
+ * for each (viewport × preset × surface) plan navigates via the sidebar
+ * (or via keyboard for the command palette) and captures the viewport.
  */
 import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -26,7 +30,7 @@ const repoRoot = path.resolve(__dirname, "..");
 const nodeBin = process.execPath;
 const viteBin = path.join(repoRoot, "node_modules", "vite", "bin", "vite.js");
 const host = process.env.REDESIGN_CAPTURE_HOST || "127.0.0.1";
-const port = Number(process.env.REDESIGN_CAPTURE_PORT || 5188);
+const port = Number(process.env.REDESIGN_CAPTURE_PORT || 5189);
 const baseUrl = process.env.REDESIGN_CAPTURE_URL || `http://${host}:${port}`;
 const outRoot = path.resolve(
   repoRoot,
@@ -41,19 +45,26 @@ const VIEWPORTS = [
   { name: "mobile-390x844", width: 390, height: 844 },
 ];
 
-// Themes are encoded as initialTheme + activeAppearanceMode values that the
-// app already persists; the page picks them up via localStorage on init.
+// (id, theme, mode, locale). "alt-dark" uses Nord via persisted settings.
 const THEME_PRESETS = [
-  { id: "venice-dark", theme: "venice", mode: "dark", dir: "ltr" },
-  { id: "venice-light", theme: "venice", mode: "light", dir: "ltr" },
-  { id: "venice-rtl", theme: "venice", mode: "dark", dir: "rtl" },
+  { id: "venice-dark", theme: "venice", mode: "dark", locale: "en-US" },
+  { id: "venice-light", theme: "venice", mode: "light", locale: "en-US" },
+  { id: "nord-dark", theme: "nord", mode: "dark", locale: "en-US" },
+  { id: "venice-rtl", theme: "venice", mode: "dark", locale: "ar" },
 ];
 
+// (id, navigateTo, action). navigateTo clicks a sidebar button by name.
+// "command-palette" uses keyboard (Ctrl+K) instead of a sidebar button.
 const SURFACES = [
-  { id: "shell", navigateTo: "Chat", selector: "body" },
-  { id: "chat", navigateTo: "Chat", selector: "body" },
-  { id: "settings", navigateTo: "Settings", selector: "body" },
-  { id: "status", navigateTo: "Status", selector: "body" },
+  { id: "shell", navigateTo: "Chat" },
+  { id: "chat", navigateTo: "Chat" },
+  { id: "image-studio", navigateTo: "Image Studio" },
+  { id: "media-studio", navigateTo: "Media Studio" },
+  { id: "workflows", navigateTo: "Workflows" },
+  { id: "documents", navigateTo: "Documents" },
+  { id: "settings", navigateTo: "Settings" },
+  { id: "status", navigateTo: "Status" },
+  { id: "command-palette", navigateTo: null, action: "commandPalette" },
 ];
 
 function waitForServer(url, timeoutMs = 45_000) {
@@ -86,41 +97,70 @@ function waitForServer(url, timeoutMs = 45_000) {
 }
 
 async function clickIfPresent(page, pattern) {
-  const button = page.getByRole("button", { name: pattern });
   try {
+    const button = page.getByRole("button", { name: pattern });
     await button.click({ timeout: 1200 });
+    return true;
   } catch {
     /* optional */
+    return false;
   }
 }
 
+async function dismissOnboarding(page) {
+  // First, dismiss the legal first-run modal if present.
+  await clickIfPresent(page, /I understand and am 18\+/i);
+  await page.waitForTimeout(250);
+  for (let step = 0; step < 6; step += 1) {
+    const c = await clickIfPresent(page, /^Continue$/);
+    const g = await clickIfPresent(page, /^Get Started$/);
+    const l = await clickIfPresent(page, /I understand and am 18\+/i);
+    if (!c && !g && !l) break;
+    await page.waitForTimeout(300);
+  }
+  // Some surfaces show the legal gate after the splash. Re-check once more.
+  await clickIfPresent(page, /I understand and am 18\+/i);
+  await page.waitForTimeout(400);
+}
+
 async function openTab(page, name) {
-  try {
-    await page.getByRole("button", { name, exact: true }).click({ timeout: 2000 });
-  } catch {
-    try {
-      await page.getByRole("link", { name, exact: true }).click({ timeout: 2000 });
-    } catch {
-      /* surface may not exist in this build */
-    }
+  if (!name) return;
+  const clicked = await clickIfPresent(page, name);
+  if (!clicked) {
+    // Fall back to setting via store
+    await page.evaluate((tabName) => {
+      const raw = localStorage.getItem("venice-settings");
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          parsed.state = { ...(parsed.state ?? {}), activeTab: tabName.toLowerCase().replace(/\s+/g, "-") };
+          localStorage.setItem("venice-settings", JSON.stringify(parsed));
+        } catch {
+          /* ignore */
+        }
+      }
+    }, name);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await dismissOnboarding(page);
   }
   await page.waitForTimeout(450);
+}
+
+async function openCommandPalette(page) {
+  await page.keyboard.press("ControlOrMeta+k");
+  await page.waitForTimeout(500);
 }
 
 async function captureSurface(browser, preset, viewport, surface, outDir) {
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
     deviceScaleFactor: 1,
-    locale: preset.dir === "rtl" ? "ar" : "en-US",
+    locale: preset.locale,
     colorScheme: preset.mode === "light" ? "light" : "dark",
   });
   const page = await context.newPage();
   await page.addInitScript(
     ({ preset }) => {
-      // Persist the theme + appearance via the zustand settings-store name
-      // so the bootstrap picks them up. The persisted slice is a subset of
-      // `useSettingsStore`; we write a minimal valid payload that resets
-      // appearanceMode + activeMode + activeThemeId + locale.
       const settingsPayload = {
         state: {
           appearanceMode: preset.mode,
@@ -133,13 +173,13 @@ async function captureSurface(browser, preset, viewport, surface, outDir) {
         "venice-settings",
         JSON.stringify(settingsPayload),
       );
-      // Persisted locale lives in the i18n slice.
       window.localStorage.setItem(
         "venice.locale",
-        JSON.stringify({
-          locale: preset.dir === "rtl" ? "ar" : "en-US",
-        }),
+        JSON.stringify({ locale: preset.locale }),
       );
+      // Pre-acknowledge the legal first-run gate so the legal modal does not
+      // obscure the workspace on first paint.
+      window.localStorage.setItem("vf.legal.firstRunAcknowledged", "1");
     },
     { preset },
   );
@@ -164,19 +204,13 @@ async function captureSurface(browser, preset, viewport, surface, outDir) {
 
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(1200);
+  await dismissOnboarding(page);
 
-  await clickIfPresent(page, /I understand and am 18\+/i);
-
-  // Dismiss the onboarding splash (4 steps: welcome → profiles → security → safety).
-  // The first three steps render "Continue"; the final step renders "Get Started".
-  for (let step = 0; step < 6; step += 1) {
-    await clickIfPresent(page, /^Continue$/);
-    await clickIfPresent(page, /^Get Started$/);
-    await page.waitForTimeout(300);
+  if (surface.action === "commandPalette") {
+    await openCommandPalette(page);
+  } else {
+    await openTab(page, surface.navigateTo);
   }
-  await page.waitForTimeout(600);
-
-  await openTab(page, surface.navigateTo);
 
   const filename = `${surface.id}.png`;
   const out = path.join(outDir, filename);
@@ -218,27 +252,46 @@ async function main() {
     await waitForServer(baseUrl);
     const browser = await chromium.launch();
 
-    // Limit the matrix to keep the run short. Default Venice at all 4 desktop
-    // viewports, plus Light at 1440, plus RTL Arabic at 1440 — on shell/chat/
-    // settings/status surfaces.
+    // Handoff §33 matrix: shell, chat, image-studio, media-studio,
+    // workflows, documents, settings, status, modal/command-palette across
+    // default dark / light / alt dark / RTL at multiple viewports.
+    // Keep the run focused: shell + chat + settings at all 4 desktop
+    // viewports; alt-dark on the same; full surface sweep at 1440x900.
     const plan = [];
-    for (const viewport of VIEWPORTS.filter((v) => ! v.name.startsWith("mobile"))) {
-      for (const surface of SURFACES) {
+    // 1) All 9 surfaces at 1440x900 venice-dark (the canonical default).
+    for (const surface of SURFACES) {
+      plan.push({ viewport: VIEWPORTS[1], preset: THEME_PRESETS[0], surface });
+    }
+    // 2) Shell + chat + settings + status at every desktop viewport (venice-dark).
+    for (const viewport of VIEWPORTS.filter((v) => !v.name.startsWith("mobile"))) {
+      for (const surfaceId of ["shell", "chat", "settings", "status"]) {
+        const surface = SURFACES.find((s) => s.id === surfaceId);
         plan.push({ viewport, preset: THEME_PRESETS[0], surface });
       }
     }
-    plan.push({ viewport: VIEWPORTS[1], preset: THEME_PRESETS[1], surface: SURFACES[0] });
-    plan.push({ viewport: VIEWPORTS[1], preset: THEME_PRESETS[1], surface: SURFACES[1] });
-    plan.push({ viewport: VIEWPORTS[1], preset: THEME_PRESETS[2], surface: SURFACES[0] });
-    plan.push({ viewport: VIEWPORTS[1], preset: THEME_PRESETS[2], surface: SURFACES[1] });
-    // Mobile viewport — shell only.
+    // 3) venice-light on shell/chat/settings/status at 1440x900.
+    for (const surfaceId of ["shell", "chat", "settings", "status"]) {
+      const surface = SURFACES.find((s) => s.id === surfaceId);
+      plan.push({ viewport: VIEWPORTS[1], preset: THEME_PRESETS[1], surface });
+    }
+    // 4) nord-dark (alt dark) on shell/chat/settings at 1440x900.
+    for (const surfaceId of ["shell", "chat", "settings"]) {
+      const surface = SURFACES.find((s) => s.id === surfaceId);
+      plan.push({ viewport: VIEWPORTS[1], preset: THEME_PRESETS[2], surface });
+    }
+    // 5) venice-rtl (Arabic) on shell/chat/settings at 1440x900.
+    for (const surfaceId of ["shell", "chat", "settings"]) {
+      const surface = SURFACES.find((s) => s.id === surfaceId);
+      plan.push({ viewport: VIEWPORTS[1], preset: THEME_PRESETS[3], surface });
+    }
+    // 6) mobile-390x844 on shell only.
     plan.push({ viewport: VIEWPORTS[4], preset: THEME_PRESETS[0], surface: SURFACES[0] });
 
     for (const item of plan) {
       const dir = path.join(
         outRoot,
         item.viewport.name,
-        `${item.preset.id}`,
+        item.preset.id,
       );
       await mkdir(dir, { recursive: true });
       try {
