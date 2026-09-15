@@ -96,6 +96,15 @@ pnpm-debug.log*
 /docs/design/*
 !/docs/design/*.md
 
+# Reference-driven redesign evidence (Phase 9 visual QA capture):
+# allow the evidence directory recursively so PNGs and JSON can be
+# tracked alongside the design docs. Mirrors the docs/audits/visual-snapshots
+# pattern (the docs/design/ subtree normally excludes non-md content).
+!/docs/design/reference-ui-redesign-evidence/
+!/docs/design/reference-ui-redesign-evidence/**
+!/docs/design/reference-ui-redesign-evidence/**/*.png
+!/docs/design/reference-ui-redesign-evidence/**/*.json
+
 /docs/ROADMAP.md.clean
 
 # Historical archives: keep tracked archives, ignore local session dumps

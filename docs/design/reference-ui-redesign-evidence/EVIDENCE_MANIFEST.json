@@ -1,0 +1,185 @@
+{
+  "generatedAt": "2026-09-15T10:48:08.553Z",
+  "viewport": [
+    {
+      "name": "1280x720",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "1440x900",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "name": "1920x1080",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "name": "2560x1440",
+      "width": 2560,
+      "height": 1440
+    },
+    {
+      "name": "mobile-390x844",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "themePresets": [
+    {
+      "id": "venice-dark",
+      "theme": "venice",
+      "mode": "dark",
+      "dir": "ltr"
+    },
+    {
+      "id": "venice-light",
+      "theme": "venice",
+      "mode": "light",
+      "dir": "ltr"
+    },
+    {
+      "id": "venice-rtl",
+      "theme": "venice",
+      "mode": "dark",
+      "dir": "rtl"
+    }
+  ],
+  "surfaces": [
+    "shell",
+    "chat",
+    "settings",
+    "status"
+  ],
+  "captures": [
+    {
+      "viewport": "1280x720",
+      "preset": "venice-dark",
+      "surface": "shell",
+      "file": "docs/design/reference-ui-redesign-evidence/1280x720/venice-dark/shell.png"
+    },
+    {
+      "viewport": "1280x720",
+      "preset": "venice-dark",
+      "surface": "chat",
+      "file": "docs/design/reference-ui-redesign-evidence/1280x720/venice-dark/chat.png"
+    },
+    {
+      "viewport": "1280x720",
+      "preset": "venice-dark",
+      "surface": "settings",
+      "file": "docs/design/reference-ui-redesign-evidence/1280x720/venice-dark/settings.png"
+    },
+    {
+      "viewport": "1280x720",
+      "preset": "venice-dark",
+      "surface": "status",
+      "file": "docs/design/reference-ui-redesign-evidence/1280x720/venice-dark/status.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "shell",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/shell.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "chat",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/chat.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "settings",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/settings.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-dark",
+      "surface": "status",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-dark/status.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "preset": "venice-dark",
+      "surface": "shell",
+      "file": "docs/design/reference-ui-redesign-evidence/1920x1080/venice-dark/shell.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "preset": "venice-dark",
+      "surface": "chat",
+      "file": "docs/design/reference-ui-redesign-evidence/1920x1080/venice-dark/chat.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "preset": "venice-dark",
+      "surface": "settings",
+      "file": "docs/design/reference-ui-redesign-evidence/1920x1080/venice-dark/settings.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "preset": "venice-dark",
+      "surface": "status",
+      "file": "docs/design/reference-ui-redesign-evidence/1920x1080/venice-dark/status.png"
+    },
+    {
+      "viewport": "2560x1440",
+      "preset": "venice-dark",
+      "surface": "shell",
+      "file": "docs/design/reference-ui-redesign-evidence/2560x1440/venice-dark/shell.png"
+    },
+    {
+      "viewport": "2560x1440",
+      "preset": "venice-dark",
+      "surface": "chat",
+      "file": "docs/design/reference-ui-redesign-evidence/2560x1440/venice-dark/chat.png"
+    },
+    {
+      "viewport": "2560x1440",
+      "preset": "venice-dark",
+      "surface": "settings",
+      "file": "docs/design/reference-ui-redesign-evidence/2560x1440/venice-dark/settings.png"
+    },
+    {
+      "viewport": "2560x1440",
+      "preset": "venice-dark",
+      "surface": "status",
+      "file": "docs/design/reference-ui-redesign-evidence/2560x1440/venice-dark/status.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-light",
+      "surface": "shell",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-light/shell.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-light",
+      "surface": "chat",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-light/chat.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-rtl",
+      "surface": "shell",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-rtl/shell.png"
+    },
+    {
+      "viewport": "1440x900",
+      "preset": "venice-rtl",
+      "surface": "chat",
+      "file": "docs/design/reference-ui-redesign-evidence/1440x900/venice-rtl/chat.png"
+    },
+    {
+      "viewport": "mobile-390x844",
+      "preset": "venice-dark",
+      "surface": "shell",
+      "file": "docs/design/reference-ui-redesign-evidence/mobile-390x844/venice-dark/shell.png"
+    }
+  ],
+  "failures": []
+}
