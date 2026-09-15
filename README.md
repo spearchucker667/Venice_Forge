@@ -32,7 +32,7 @@
     <img alt="Apache 2.0 License" src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" />
   </a>
   <a href="package.json">
-    <img alt="Node.js 22.15.x" src="https://img.shields.io/badge/node.js-22.15.x-339933.svg" />
+    <img alt="Node.js 22.x" src="https://img.shields.io/badge/node.js-22.x-339933.svg" />
   </a>
   <a href="tsconfig.json">
     <img alt="TypeScript strict" src="https://img.shields.io/badge/typescript-strict-3178c6.svg" />

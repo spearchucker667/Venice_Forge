@@ -4,6 +4,77 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-15 Release-candidate behavioral verification (committed locally in this session).**
+  - Exercised the real `/api/venice/chat/completions` route through the focused suite for approved, empty, unsafe-first, unsafe-later, overflow, upstream-error, and disconnect paths. All passed.
+  - Ran a headless assertion against the actual parser/pump modules: delayed classification released `first` then `second`, completion fired once, upstream paused once, and was not destroyed.
+  - `npm test` passed: 544 files, 6,208 passed, 4 skipped. `npm run build` passed for web, server, and Electron. Focused suite passed with 114 tests. No production defect was found and no code changes were made in this verification pass. Existing 935 i18n fallback notices and unrelated test warnings remain non-failing.
+
+- **2026-09-15 SSE contract completion and fixture simplification (committed locally in this session).**
+  - Added the missing real-route post-header upstream-error case and extended the existing `mockSseResponse` fixture with a minimal terminal-mode option instead of a second proxy override. The test now proves a partially released SSE response ends cleanly at HTTP 200 and destroys the upstream.
+  - Focused server/SSE/pump suite passed: 4 files, 114 tests. `npm run typecheck`, `npm run lint:eslint`, and `git diff --check` passed. One initial test-driver timing setup incorrectly emitted the error before the first event released; scheduling the synthetic error on the next turn corrected the test to exercise the intended boundary. No production code changed in this pass.
+
+- **2026-09-15 Real-route SSE failure-path verification (uncommitted).**
+  - Exercised the actual `/api/venice/chat/completions` route for approved completion, empty upstream output, unsafe first and later events, bounded queue overflow, upstream error, and client disconnect. A concrete defect was found: after a safe event had already sent headers, a later safety/upstream failure called an error writer that returned without ending the response, leaving the client hanging.
+  - Fixed `server.ts` so post-header proxy failures terminate the response cleanly while preserving the already-established 200 stream status. Added route regressions for unsafe later events, 413 queue overflow, and 502 upstream failure.
+  - Headless lifecycle assertion passed for delayed ordered classification, upstream completion, pause/resume, and no unnecessary destruction. Focused suite passed with 113 tests; full `npm test` passed with 6,207 tests. Build, typecheck, and ESLint passed. No commit or push performed.
+
+- **2026-09-15 Adversarial SSE entry-point verification after test simplification (uncommitted).**
+  - Re-ran the actual `/api/venice/chat/completions` route cases for approved multi-event completion, empty upstream completion, unsafe input rejection, and client disconnect cleanup; the focused suite passed with 110 tests. Corrected the unsafe-route fixture to use real SSE line breaks so the regression exercises parser framing rather than literal backslash text.
+  - Re-ran the headless pump/parser lifecycle coverage: delayed ordered classification, upstream completion during active work, bounded overflow, and cancellation all passed. No production defect was substantiated.
+  - `npm test` passed: 544 files, 6,207 passed, 4 skipped. `npm run build`, `npm run typecheck`, `npm run lint:eslint`, and `git diff --check` passed. Existing 935 i18n fallback notices and unrelated test warnings remain non-failing. No commit or push performed.
+
+- **2026-09-15 Behavioral verification after SSE test simplification (uncommitted).**
+  - Focused real-route tests and the actual-module headless lifecycle assertion passed: ordered delayed events released in order, upstream completion finalized cleanly, pause count was one, and upstream destruction count was zero. Empty-stream and client-disconnect route cases also passed.
+  - Full `npm test` passed: 544 files, 6,203 passed, 4 skipped. `npm run build` passed for web, server, and Electron. Existing 935 i18n fallback notices and unrelated React/storage warnings remain non-failing.
+  - No commit or push performed.
+
+- **2026-09-15 SSE contract fixture simplification (uncommitted).**
+  - Reduced `src/services/safetyGatedSsePump.test.ts` by replacing its bespoke event-emitter class with a small typed EventEmitter adapter. Preserved the three distinct behavior cases: ordered delayed classification, bounded overflow, and cancellation.
+  - Validation: focused server/SSE/pump suite — PASS (4 files / 109 tests); `npm run typecheck` — PASS; `npm run lint:eslint` — PASS; `git diff --check` — PASS. No production behavior changed.
+
+- **2026-09-15 Adversarial SSE cleanup verification (uncommitted).**
+  - Exercised the real HTTP proxy entry point for approved streaming, empty upstream completion, and client disconnect before upstream completion. All three passed: approved output terminated normally, empty output retained SSE headers, and client disconnect destroyed the upstream without completing the response.
+  - No additional defect was substantiated. The cleanup test was kept as one focused route-level case; existing pump tests continue to cover bounded overflow and async ordering without duplicating route fixture machinery.
+  - Validation: focused server/SSE/pump suite — PASS (4 files / 109 tests); `npm run typecheck` — PASS; `npm run lint:eslint` — PASS; `git diff --check` — PASS. No commit or push performed.
+
+- **2026-09-15 SSE contract/test simplification (uncommitted).**
+  - Replaced duplicated EventEmitter setup in the two real proxy SSE tests with one `mockSseResponse(events)` fixture. Kept the approved multi-event and empty-upstream cases separate because they assert different observable contracts; retained the three direct pump boundary tests because their async/overflow/cancellation setup is materially distinct.
+  - Validation: focused server/SSE/pump suite — PASS (4 files / 108 tests); `npm run typecheck` — PASS; `npm run lint:eslint` — PASS; `git diff --check` — PASS. No production behavior changed in this simplification.
+
+- **2026-09-15 Adversarial SSE entry-point pass (uncommitted).**
+  - Exercised the real `/api/venice/chat/completions` proxy with approved multi-event output and an empty upstream SSE response. Empty upstream output exposed a concrete defect: headers were initialized only when an event was released, so an empty SSE response lacked `Content-Type: text/event-stream`.
+  - Fixed the defect by centralizing `initializeSseResponse()` and calling it both on event release and successful stream completion. Added a real-route regression asserting 200 status, empty body, SSE content type, and no upstream destruction.
+  - Focused lifecycle route tests passed (2 tests); typecheck and ESLint passed. Full suite/build were subsequently rerun and passed in the same verification cycle. No commit or push performed.
+
+- **2026-09-15 Behavioral verification of SSE lifecycle (uncommitted).**
+  - Exercised the real `/api/venice/chat/completions` proxy path through `server.test.ts`; the approved multi-event response released both events, preserved `[DONE]`, paused the upstream, did not destroy it, and terminated the HTTP response.
+  - Ran a headless `npx tsx -e` lifecycle assertion against the actual `SafetyGatedSse` and `startSafetyGatedSsePump` modules: delayed first classification, queued second event, upstream end, ordered release, completion, one pause, and zero destruction all passed. The first invocation failed only because top-level await is unsupported in tsx CJS eval; the wrapped-IIFE invocation passed.
+  - Full `npm test` passed: 544 files, 6,201 passed, 4 skipped. `npm run build` passed for web, server, and Electron. Existing 935 i18n fallback notices and unrelated React/test warnings remain non-failing.
+
+- **2026-09-15 SSE contract simplification (uncommitted).**
+  - Kept the three focused pump boundary tests and the single real proxy completion test as the executable contract; removed no meaningful coverage. Simplified repeated proxy error/status serialization behind one route-local helper in `server.ts` rather than adding another abstraction.
+  - Validation: focused server/SSE/pump suites — PASS (4 files / 107 tests); `npm run typecheck` — PASS; `npm run lint:eslint` — PASS; `git diff --check` — PASS. Existing 935 i18n fallback notices remain non-failing.
+
+- **2026-09-15 SSE lifecycle redesign (uncommitted).**
+  - Replaced the inline Family Safe Mode SSE backpressure/finalization state machine in `server.ts` with the focused `src/services/safetyGatedSsePump.ts` transport coordinator. The route now supplies screening, response, and error callbacks while the pump owns ordered classification, one-chunk bounded buffering, upstream pause/resume, completion, and cancellation.
+  - Added direct pump contract coverage for delayed classification ordering, upstream end during active work, bounded overflow, and cancellation. Existing real proxy lifecycle coverage remains intact.
+  - Validation: focused server/SSE suites — PASS (4 files / 107 tests); `npm run typecheck` — PASS; `npm run lint:eslint` — PASS. Build and full suite were not rerun in this pass. Existing 935 i18n fallback notices remain non-failing.
+  - No commit or push performed.
+
+- **2026-09-15 Documentation and repository hygiene revalidation (uncommitted).**
+  - Revalidated current `main` at `362c912a2b82e1b829c6d36e18f0e9ca3a492857` against the existing documentation, maintenance manifests, root perimeter, tracked-file ignore conflicts, local artifacts, naming/path references, and repository metadata. No safe source, test, asset, script, or documentation move/deletion was established.
+  - Corrected stale maintenance metadata, refreshed the reinitialization anchor and React version wording, changed the README Node badge to the supported Node 22 line, clarified maintenance-document authority, and added a root screenshot ignore pattern so local design evidence does not depend on `.git/info/exclude`.
+  - Validation: `npm ci` — PASS (857 packages audited, 0 vulnerabilities); `npm run lint:eslint` — PASS; `npm run typecheck` — PASS; `npm test` — PASS (543 files, 6,198 passed, 4 skipped); `npm run build` — PASS; `npm run verify:markdown-links` — PASS (428 files); `npm run verify:agent-docs` — PASS; `npm run verify:release-metadata` — PASS; tracked-ignore and likely-secret-literal scans — PASS; `git diff --check` — PASS.
+  - Full test output retains the repository’s known 935 i18n fallback notices and several pre-existing React `act()`/duplicate-key warnings; no test failed. No commit or push performed.
+
+- **2026-09-15 Adversarial boundary pass (uncommitted).**
+  - Reproduced and fixed three concrete defects in the remediation tranche: Family Safe Mode SSE processing could cancel healthy streams on a normal request `close`, suppress every event after the first because release was guarded by `headersSent`, and retain an unbounded promise/buffer chain under a fast upstream and slow classifier; attachment admission discarded usable remaining context because it accepted only whole chunks.
+  - `server.ts` now distinguishes request aborts from response disconnects, releases all approved SSE events after initializing headers once, pauses the upstream while screening, permits only one queued chunk, and fails closed on bounded-queue overflow. `src/services/ingestion/attachmentChunking.ts` fits a Unicode-safe partial prefix before omitting later content. Removed the dead `extractionTruncated` field from selection results.
+  - Updated the real proxy lifecycle regression and attachment expectations; coverage includes approved multi-event SSE termination, partial-prefix fitting, and surrogate boundaries.
+  - Follow-up contract cleanup: consolidated parser framing cases into a table, added async classification ordering coverage, removed redundant model-budget table cases, and removed a per-instance SSE byte-count field whose value was only used within one drain operation.
+  - Validation: focused `server.test.ts`, `src/services/safetyGatedSse.test.ts`, `src/hooks/use-chat.attachments.test.ts`, `src/services/ingestion/attachmentChunking.test.ts`, and Electron bridge suites — PASS (5 files / 113 tests); `npm run lint:eslint` — PASS; `npm run typecheck` — PASS; `npm run build` — PASS; `git diff --check` — PASS.
+  - No full-suite, headed Electron, funded-provider, or hosted CI/CodeQL validation was run in this pass. Changes remain uncommitted.
+
 - **2026-09-15 Current-main audit remediation tranche (in progress).**
   - **Changes completed:** hardened privileged IPC sender validation to reject missing initiating-frame identity; replaced Family Safe Mode chat whole-response buffering with bounded incremental UTF-8/SSE event gating; added bounded provenance-carrying attachment chunks and selected-model-aware prompt assembly; removed the unsupported Jina `respectRobotsTxt` option rather than claiming remote crawler enforcement; regenerated all six `.superdesign/init/` artifacts and added `verify:superdesign-init`; refreshed agent guidance; removed duplicate theme border declarations.
   - **Focused validation:** `npx vitest run electron/utils/validateIpcSender.test.ts electron/ipc/handlers/common.security.test.ts src/services/ingestion/attachmentChunking.test.ts src/services/safetyGatedSse.test.ts scripts/verify-superdesign-init.test.ts scripts/verify-agent-docs.test.ts --no-file-parallelism` — PASS (6 files / 57 tests). `npx vitest run src/hooks/use-chat.attachments.test.ts src/services/ingestion/textIngestion.test.ts src/services/ingestion/codeIngestion.test.ts src/services/ingestion/pdfIngestion.test.ts src/services/ingestion/docxIngestion.test.ts src/research/providers/jinaResearchProvider.test.ts server.test.ts --no-file-parallelism` — PASS (8 files / 143 tests).
@@ -1875,6 +1946,18 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-15 — Adversarial SSE entry-point verification
+
+- `npx vitest run server.test.ts src/services/safetyGatedSse.test.ts src/services/safetyGatedSsePump.test.ts --no-file-parallelism` — PASS (4 files, 110 tests).
+- `npm test` — PASS (544 files, 6,204 passed, 4 skipped).
+- `npm run typecheck` — PASS.
+- `npm run lint:eslint` — PASS.
+- `npm run build` — PASS (web, server, Electron).
+- `git diff --check` — PASS.
+- Real-route behaviors observed: approved multi-event completion, empty SSE completion with `text/event-stream`, unsafe event blocked before headers, and client disconnect destroying upstream without completing the response.
+- Headless lifecycle behaviors observed: ordered delayed classification, upstream-end finalization, bounded overflow failure, and cancellation cleanup.
+- Known non-failing output: 935 i18n fallback notices and unrelated React/storage test warnings.
 
 ### 2026-09-15 — Light and Dark Theme Selection & Rendering Remediation
 

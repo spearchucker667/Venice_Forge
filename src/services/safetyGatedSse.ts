@@ -20,7 +20,6 @@ export interface GatedSseOptions {
 export class SafetyGatedSse {
   private readonly decoder = new TextDecoder("utf-8", { fatal: false });
   private pending = "";
-  private eventBytes = 0;
   private readonly options: GatedSseOptions;
   private closed = false;
 
@@ -51,8 +50,8 @@ export class SafetyGatedSse {
     while (!this.closed) {
       const boundary = this.findBoundary();
       if (boundary < 0) {
-        this.eventBytes = Buffer.byteLength(this.pending, "utf8");
-        if (this.eventBytes > this.options.maxEventBytes) {
+        const eventBytes = Buffer.byteLength(this.pending, "utf8");
+        if (eventBytes > this.options.maxEventBytes) {
           this.closed = true;
           throw new Error("SSE safety event exceeded the bounded screening window.");
         }
@@ -67,8 +66,8 @@ export class SafetyGatedSse {
       const raw = this.pending.slice(0, boundary);
       const separatorLength = this.pending.startsWith("\r\n\r\n", boundary) ? 4 : 2;
       this.pending = this.pending.slice(boundary + separatorLength);
-      this.eventBytes = Buffer.byteLength(raw, "utf8");
-      if (this.eventBytes > this.options.maxEventBytes) {
+      const eventBytes = Buffer.byteLength(raw, "utf8");
+      if (eventBytes > this.options.maxEventBytes) {
         this.closed = true;
         throw new Error("SSE safety event exceeded the bounded screening window.");
       }

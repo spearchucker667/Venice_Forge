@@ -141,7 +141,8 @@ describe("use-chat attachment context budget", () => {
 
     const content = userMessage!.content as string;
     expect(content).toContain("att1");
-    expect(content).not.toContain("att2");
+    expect(content).toContain("att2");
+    expect(content).not.toContain("B".repeat(100_000));
     expect(mockedToastWarn).toHaveBeenCalledWith(
       "Attachment context truncated",
       expect.stringContaining("Some attachments were omitted"),

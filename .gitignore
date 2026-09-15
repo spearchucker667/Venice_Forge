@@ -335,6 +335,9 @@ VENICE_FORGE_COMPLETE_AUDIT.md
 # OS metadata
 # -----------------------------------------------------------------------------
 
+# Root-level design references are local evidence, not repository assets.
+/Screenshot_*.png
+
 .DS_Store
 .DS_Store?
 .AppleDouble

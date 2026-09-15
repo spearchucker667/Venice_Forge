@@ -3,7 +3,7 @@
 > **Canonical Repository Root:** `/Users/super_user/Projects/Venice_Forge`
 > **GitHub:** `spearchucker667/Venice_Forge`
 > **Version:** `3.0.0-beta.3`
-> **Last Re-Initialization:** 2026-09-15 (Anchored to git commit `07ad9ee6ec6e4249f2ea2a27dc794fa148bd96e8`)
+> **Last Re-Initialization:** 2026-09-15 (Anchored to git commit `362c912a2b82e1b829c6d36e18f0e9ca3a492857`)
 > **Canonical tab registry:** `src/config/tabs.ts` (`CANONICAL_TAB_ORDER`; do not duplicate a tab count here)
 > **Audience:** Senior Engineers & AI Coding Agents joining the project.
 
@@ -15,13 +15,13 @@ Venice Forge is a desktop-first (**Electron 43**) and web-compatible (**Vite 8 +
 
 ### Core Architecture & Transports
 - **Dual Transport System:**
-  - **Electron Desktop (`isElectron() === true`):** Renderer (Vite 8 / React 19) $\rightarrow$ ContextBridge (`window.veniceForge`) $\rightarrow$ Preload (`electron/preload.ts`) $\rightarrow$ Main IPC Handlers (`electron/ipc/handlers.ts`) $\rightarrow$ Upstream Venice API (`api.venice.ai`). API keys and secrets are secured in OS-native `safeStorage` via `providerSettingsStore`.
+  - **Electron Desktop (`isElectron() === true`):** Renderer (Vite 8 / React 19.2) $\rightarrow$ ContextBridge (`window.veniceForge`) $\rightarrow$ Preload (`electron/preload.ts`) $\rightarrow$ Main IPC Handlers (`electron/ipc/handlers.ts`) $\rightarrow$ Upstream Venice API (`api.venice.ai`). API keys and secrets are secured in OS-native `safeStorage` via `providerSettingsStore`.
   - **Web Proxy (`isElectron() === false`):** Renderer $\rightarrow$ Express 5 Proxy Server (`server.ts` at `/api/venice/*`) $\rightarrow$ Upstream Venice API (`api.venice.ai`). API keys read from `.env` or ephemeral session memory.
 - **Single Dispatch Bottleneck:** All Venice HTTP requests MUST flow through `veniceFetch()` / `veniceStreamChat()` in `src/services/veniceClient.ts`. Direct `fetch('/api/venice/...')` or direct `window.veniceForge.*` calls outside of `src/services/desktopBridge.ts` are strictly forbidden (`VERIFY-009`).
 
 ```mermaid
 flowchart TD
-  subgraph Renderer ["Renderer Layer (Vite 8 / React 19 / Zustand 5)"]
+  subgraph Renderer ["Renderer Layer (Vite 8 / React 19.2 / Zustand 5)"]
     UI["Canonical Tab Views (src/config/tabs.ts)"]
     Bridge["Desktop Bridge (src/services/desktopBridge.ts)"]
     VClient["Venice Client (src/services/veniceClient.ts)"]
@@ -96,7 +96,7 @@ All entries sourced from repository git commit history (July 2026):
 │   ├── ipc/                          # Modular IPC channel handlers (handlers.ts, backgroundTaskHandlers.ts, etc.)
 │   ├── services/                     # Main process services (guardPipeline.ts, chatStorage.ts, providerSettingsStore.ts)
 │   └── security/                     # Network policy & CSP enforcement
-├── src/                              # Renderer process (Vite 8 / React 19 / TypeScript ESNext)
+├── src/                              # Renderer process (Vite 8 / React 19.2 / TypeScript ESNext)
 │   ├── App.tsx                       # Main component, tab router, modal/drawer mounts
 │   ├── components/                   # UI views (chat, gallery, image, rp-studio, prompts, scenes, workflows, privacy, status)
 │   ├── config/                       # Canonical registries (tabs.ts, themes.ts, image-model-capabilities.ts, configSchema.ts)

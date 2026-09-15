@@ -1,12 +1,20 @@
 # Venice Forge — Repository Hygiene, Organization, File Hygiene & Gitignore Overhaul Report
 
-> **Baseline SHA:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`  
+> **Latest revalidation:** `362c912a2b82e1b829c6d36e18f0e9ca3a492857` on `main` (2026-09-15)
+> **Historical baseline for the original overhaul:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
 > **Package Version:** `3.0.0-beta.3`  
 > **Branch:** `main`  
 > **Date:** 2026-09-14  
 > **Authority:** Principal Repository Maintainer, Documentation Architect & Release Engineer  
 
 ---
+
+## Current Revalidation — 2026-09-15
+
+- The checked-out `main` is at `362c912a2b82e1b829c6d36e18f0e9ca3a492857`, with `origin/main` at the same SHA; this session began with unrelated uncommitted remediation changes that were preserved.
+- Tracked root files remain the intended 29-file governance/configuration/entrypoint perimeter. Local root-only artifacts (`.DS_Store`, the design reference screenshot, two Kimi session exports, `.env`, and generated directories) are untracked and ignored or locally excluded; the screenshot pattern is now documented in `.gitignore` rather than relying only on `.git/info/exclude`.
+- No safe file move, rename, or deletion was established by the current revalidation. Existing manifests below retain the historical execution record and are not rewritten as if those older findings were current.
+- Current source-of-truth documentation remains `docs/DOCS_INDEX.md`, `docs/ROADMAP.md`, and `docs/summary_of_work.md`; audit packages and old work orders remain historical evidence.
 
 ## 1. Executive Summary
 

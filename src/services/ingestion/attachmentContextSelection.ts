@@ -12,7 +12,6 @@ export interface SelectedAttachmentContext {
   omittedAttachmentIds: Set<string>;
   omittedChunkCount: number;
   usedTokens: number;
-  extractionTruncatedAttachmentIds: Set<string>;
 }
 
 /** Selects ordered chunks across attachments for a known model budget. Images
@@ -39,7 +38,7 @@ export function selectAttachmentContext(
   });
   const selection: AttachmentChunkSelection = selectAttachmentChunks(lists, allowanceTokens);
   const selectedIds = new Set(selection.chunks.map((chunk) => chunk.attachmentId));
-  const omittedIds = new Set<string>();
+  const omittedIds = new Set<string>(selection.partiallySelectedAttachmentIds);
   for (const attachment of textAttachments) {
     const all = attachment.chunks?.length ?? 1;
     const selected = selection.chunks.filter((chunk) => chunk.attachmentId === attachment.id).length;
@@ -61,10 +60,5 @@ export function selectAttachmentContext(
     omittedAttachmentIds: omittedIds,
     omittedChunkCount: selection.omittedChunkCount,
     usedTokens: selection.usedTokens,
-    extractionTruncatedAttachmentIds: new Set(
-      textAttachments
-        .filter((attachment) => attachment.extraction.truncated)
-        .map((attachment) => attachment.id),
-    ),
   };
 }

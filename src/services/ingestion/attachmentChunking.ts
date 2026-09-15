@@ -21,7 +21,7 @@ export interface AttachmentChunkSelection {
   usedTokens: number;
   omittedChunkCount: number;
   omittedCharacterCount: number;
-  extractionTruncated: boolean;
+  partiallySelectedAttachmentIds: Set<string>;
 }
 
 /** Move a boundary away from a UTF-16 surrogate pair and, when possible, to a
@@ -76,9 +76,41 @@ export function extractAttachmentChunks(
   return { chunks, extractionTruncated: text.length > retainedLength };
 }
 
-/** Select chunks in attachment order until the selected model's remaining
- * token allowance is exhausted. Whole chunks are admitted; no chunk is split
- * at this stage, and omitted metadata is explicit for truthful UI state. */
+/** Return the largest prefix whose estimate fits the remaining budget. */
+function fitChunkToTokenBudget(
+  chunk: AttachmentChunk,
+  allowanceTokens: number,
+): AttachmentChunk | null {
+  if (allowanceTokens <= 0 || chunk.text.length === 0) return null;
+  if (chunk.tokenEstimate <= allowanceTokens) return chunk;
+
+  let low = 1;
+  let high = chunk.text.length;
+  let bestEnd = 0;
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    const candidate = safeChunkEnd(chunk.text, 0, middle);
+    const estimate = estimateTokenCount(chunk.text.slice(0, candidate)).count;
+    if (estimate <= allowanceTokens) {
+      bestEnd = candidate;
+      low = middle + 1;
+    } else {
+      high = middle - 1;
+    }
+  }
+
+  if (bestEnd === 0) return null;
+  const text = chunk.text.slice(0, bestEnd);
+  return {
+    ...chunk,
+    endOffset: chunk.startOffset + bestEnd,
+    tokenEstimate: estimateTokenCount(text).count,
+    text,
+  };
+}
+
+/** Select ordered chunks in attachment order, fitting a safe prefix of the
+ * first chunk that exceeds the remaining model budget. */
 export function selectAttachmentChunks(
   chunkLists: AttachmentChunk[][],
   allowanceTokens: number,
@@ -88,13 +120,20 @@ export function selectAttachmentChunks(
   let usedTokens = 0;
   let omittedChunkCount = 0;
   let omittedCharacterCount = 0;
-  const extractionTruncated = false;
+  const partiallySelectedAttachmentIds = new Set<string>();
 
   for (const chunks of chunkLists) {
     for (const chunk of chunks) {
-      if (usedTokens + chunk.tokenEstimate <= limit) {
-        selected.push(chunk);
-        usedTokens += chunk.tokenEstimate;
+      const remaining = limit - usedTokens;
+      const admitted = fitChunkToTokenBudget(chunk, remaining);
+      if (admitted) {
+        selected.push(admitted);
+        usedTokens += admitted.tokenEstimate;
+        if (admitted.text.length < chunk.text.length) {
+          partiallySelectedAttachmentIds.add(chunk.attachmentId);
+          omittedChunkCount += 1;
+          omittedCharacterCount += chunk.text.length - admitted.text.length;
+        }
       } else {
         omittedChunkCount += 1;
         omittedCharacterCount += chunk.text.length;
@@ -107,6 +146,6 @@ export function selectAttachmentChunks(
     usedTokens,
     omittedChunkCount,
     omittedCharacterCount,
-    extractionTruncated,
+    partiallySelectedAttachmentIds,
   };
 }

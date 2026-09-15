@@ -221,7 +221,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Repository Maintenance & Hygiene
 
-- [repository-maintenance/README.md](repository-maintenance/README.md) — 2026-09-11 repository organization, hygiene report, and move/deletion manifests.
+- [repository-maintenance/README.md](repository-maintenance/README.md) — Current repository organization, hygiene report, and move/deletion manifests; the latest revalidation is anchored to the checked-out `main` state.
 - [repository-maintenance/REPOSITORY_HYGIENE_REPORT.md](repository-maintenance/REPOSITORY_HYGIENE_REPORT.md) — Comprehensive repository hygiene audit, policy enforcement, and validation evidence.
 - [repository-maintenance/FILE_MOVE_MANIFEST.md](repository-maintenance/FILE_MOVE_MANIFEST.md) — Complete file move and rename manifest with backwards-compatibility notes.
 - [repository-maintenance/DELETION_MANIFEST.md](repository-maintenance/DELETION_MANIFEST.md) — Exhaustive deletion and un-tracking manifest with rationale.

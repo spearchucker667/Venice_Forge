@@ -1,6 +1,6 @@
 # Repository Maintenance & Hygiene
 
-This directory preserves authoritative governance reports, file move manifests, and deletion ledgers produced during repository hygiene and organization passes.
+This directory preserves the current repository-hygiene report plus dated move and deletion manifests. It is a documentation record, not a second roadmap; current unfinished work belongs in [`../ROADMAP.md`](../ROADMAP.md). Historical audit findings remain evidence only and do not override current source or tests.
 
 ## Documents
 

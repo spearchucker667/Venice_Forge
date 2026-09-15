@@ -4,8 +4,19 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vite
 import request from "supertest";
 import express from "express";
 import dns from "node:dns/promises";
+import nodeHttp from "node:http";
+import { EventEmitter } from "node:events";
 // Configurable proxy mock status for circuit-breaker tests.
-const proxyMocks = vi.hoisted(() => ({ statusCode: 200 }));
+const proxyMocks = vi.hoisted(() => ({
+  statusCode: 200,
+  proxyResponse: null as (() => EventEmitter & {
+    statusCode: number;
+    headers: Record<string, string>;
+    pause: ReturnType<typeof vi.fn>;
+    resume: ReturnType<typeof vi.fn>;
+    destroy: ReturnType<typeof vi.fn>;
+  }) | null,
+}));
 
 // Stub out the proxy so the augment (and other allowed) endpoint tests don't make
 // real network calls to api.venice.ai. The assertions only care about validation
@@ -22,7 +33,9 @@ vi.mock("http-proxy-middleware", () => ({
       return;
     }
     if (options.on?.proxyRes) {
-      options.on.proxyRes({ statusCode: status, headers: {} }, req, res);
+      const proxyResponse = proxyMocks.proxyResponse?.() ?? { statusCode: status, headers: {} };
+      options.on.proxyRes(proxyResponse, req, res);
+      if (proxyMocks.proxyResponse) return;
     }
     if (!res.headersSent) {
       res.status(status).json({ mocked: true });
@@ -34,12 +47,50 @@ import { applyVeniceProxyHeaders, createServerApp as originalCreateServerApp } f
 import { AppConfig } from "./src/shared/configSchema";
 import * as safetyModule from "./src/shared/safety";
 import * as localFamilyGuardRules from "./src/shared/safety/localFamilyGuardRules";
+import { triggerInput } from "./tests/safety/fixtureBuilders";
 
 let activeApps: any[] = [];
 function createServerApp() {
   const app = originalCreateServerApp();
   activeApps.push(app);
   return app;
+}
+
+function mockSseResponse(
+  events: string[] | null,
+  terminal: "end" | "error" | "none" = events ? "end" : "none",
+): EventEmitter & {
+  statusCode: number;
+  headers: Record<string, string>;
+  pause: ReturnType<typeof vi.fn>;
+  resume: ReturnType<typeof vi.fn>;
+  destroy: ReturnType<typeof vi.fn>;
+} {
+  const upstream = new EventEmitter() as EventEmitter & {
+    statusCode: number;
+    headers: Record<string, string>;
+    pause: ReturnType<typeof vi.fn>;
+    resume: ReturnType<typeof vi.fn>;
+    destroy: ReturnType<typeof vi.fn>;
+  };
+  upstream.statusCode = 200;
+  upstream.headers = { "content-type": "text/event-stream" };
+  upstream.pause = vi.fn();
+  upstream.resume = vi.fn();
+  upstream.destroy = vi.fn();
+  proxyMocks.proxyResponse = () => {
+    setImmediate(() => {
+      if (events) {
+        for (const event of events) upstream.emit("data", Buffer.from(event));
+      }
+      if (terminal === "end") upstream.emit("end");
+      if (terminal === "error") {
+        setImmediate(() => upstream.emit("error", new Error("upstream failure")));
+      }
+    });
+    return upstream;
+  };
+  return upstream;
 }
 
 beforeEach(() => {
@@ -62,6 +113,7 @@ afterEach(() => {
     }
   }
   activeApps = [];
+  proxyMocks.proxyResponse = null;
 });
 
 beforeEach(() => {
@@ -124,6 +176,123 @@ describe("server.ts Jina response limits", () => {
     expect(response.status).toBe(413);
     expect(response.body.error).toMatch(/2 MiB limit/i);
     expect(cancelled).toBe(true);
+  });
+});
+
+describe("server.ts Family Safe Mode SSE lifecycle", () => {
+  it("terminates an approved streamed response after the upstream ends", async () => {
+    const upstream = mockSseResponse(["data: hello\n\n", "data: [DONE]\n\n"]);
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({ model: "test", messages: [{ role: "user", content: "hello" }] });
+    expect(response.status).toBe(200);
+    expect(response.text).toContain("data: hello");
+    expect(response.text).toContain("data: [DONE]");
+    expect(upstream.pause).toHaveBeenCalled();
+    expect(upstream.destroy).not.toHaveBeenCalled();
+  });
+
+  it("initializes SSE headers for an empty upstream response", async () => {
+    const upstream = mockSseResponse([]);
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({ model: "test", messages: [] });
+
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toMatch(/^text\/event-stream/);
+    expect(response.text).toBe("");
+    expect(upstream.destroy).not.toHaveBeenCalled();
+  });
+
+  it("blocks an unsafe first event before sending response headers", async () => {
+    const upstream = mockSseResponse([`data: ${triggerInput("CSAM_EXPLICIT")}\n\n`]);
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({ model: "test", messages: [] });
+
+    expect(response.status).toBe(451);
+    expect(upstream.destroy).toHaveBeenCalledOnce();
+    expect(response.text).not.toContain(triggerInput("CSAM_EXPLICIT"));
+  });
+
+  it("ends a partially released response when a later event is unsafe", async () => {
+    const upstream = mockSseResponse([
+      "data: safe\n\n",
+      `data: ${triggerInput("CSAM_EXPLICIT")}\n\n`,
+    ]);
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({ model: "test", messages: [] });
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain("data: safe");
+    expect(response.text).not.toContain(triggerInput("CSAM_EXPLICIT"));
+    expect(upstream.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("returns 413 and destroys the upstream when the SSE queue overflows", async () => {
+    const upstream = mockSseResponse([
+      "data: first\n\n",
+      "data: second\n\n",
+      "data: third\n\n",
+    ]);
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({ model: "test", messages: [] });
+
+    expect(response.status).toBe(413);
+    expect(response.body.error).toMatch(/bounded/i);
+    expect(upstream.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("returns 502 when the SSE upstream errors before sending data", async () => {
+    const upstream = mockSseResponse(null, "error");
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({ model: "test", messages: [] });
+
+    expect(response.status).toBe(502);
+    expect(response.body).toEqual({ error: "Proxy error" });
+    expect(upstream.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("ends a partially released response when the SSE upstream errors", async () => {
+    const upstream = mockSseResponse(["data: safe\n\n"], "error");
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({ model: "test", messages: [] });
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain("data: safe");
+    expect(upstream.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("destroys the upstream when the client disconnects before completion", async () => {
+    const upstream = mockSseResponse(null);
+    let proxyInvoked = false;
+    proxyMocks.proxyResponse = () => {
+      proxyInvoked = true;
+      return upstream;
+    };
+    const app = createServerApp();
+    const listener = app.listen(0);
+    await new Promise<void>((resolve) => listener.once("listening", resolve));
+    const address = listener.address();
+    if (!address || typeof address === "string") throw new Error("expected an ephemeral HTTP port");
+
+    const client = nodeHttp.request({
+      host: "127.0.0.1",
+      port: address.port,
+      path: "/api/venice/chat/completions",
+      method: "POST",
+      headers: { "content-type": "application/json" },
+    });
+    client.on("error", () => {});
+    client.end(JSON.stringify({ model: "test", messages: [] }));
+    await vi.waitFor(() => expect(proxyInvoked).toBe(true));
+    client.destroy();
+    await vi.waitFor(() => expect(upstream.destroy).toHaveBeenCalledOnce());
+    await new Promise<void>((resolve) => listener.close(() => resolve()));
   });
 });
 

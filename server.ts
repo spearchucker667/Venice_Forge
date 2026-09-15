@@ -33,6 +33,7 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./src/shared/urlSecurity";
 import { JINA_MAX_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES } from "./src/shared/limits";
 import { SafetyGatedSse } from "./src/services/safetyGatedSse";
+import { startSafetyGatedSsePump } from "./src/services/safetyGatedSsePump";
 
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "./src/shared/readBoundedFetchBody";
 import { checkSystemPromptMessages } from "./src/shared/promptLimits";
@@ -756,6 +757,12 @@ export function createServerApp() {
 
     const contentType = String(proxyRes.headers["content-type"] || "");
     const isSse = contentType.includes("text/event-stream");
+    const initializeSseResponse = (): void => {
+      if (res.headersSent) return;
+      copyProxyResponseHeaders(proxyRes, res);
+      res.removeHeader("content-length");
+      res.setHeader("Content-Type", contentType || "text/event-stream");
+    };
     const eventGate = isSse
       ? new SafetyGatedSse({
           maxEventBytes: VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES,
@@ -769,104 +776,118 @@ export function createServerApp() {
             return { allowed: screen.allowed };
           },
           release: ({ raw }) => {
-            if (!res.headersSent) {
-              copyProxyResponseHeaders(proxyRes, res);
-              res.removeHeader("content-length");
-              res.setHeader("Content-Type", contentType || "text/event-stream");
-              res.write(`${raw}\n\n`);
-            }
+            initializeSseResponse();
+            res.write(`${raw}\n\n`);
           },
         })
       : null;
 
-    const chunks: Buffer[] = [];
-    let length = 0;
     let exceeded = false;
-    let gateChain: Promise<void> = Promise.resolve();
-
-    proxyRes.on("data", (chunk: Buffer | string) => {
+    const endProxyError = (status: number, message: string): void => {
+      if (res.headersSent) {
+        if (!res.writableEnded) res.end();
+        return;
+      }
+      res.statusCode = status;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ error: message }));
+    };
+    const failSse = (error: unknown): void => {
       if (exceeded) return;
-      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      if (eventGate) {
-        gateChain = gateChain.then(() => eventGate.push(buf)).catch(() => {
+      exceeded = true;
+      const bounded = error instanceof Error && /bounded/i.test(error.message);
+      endProxyError(
+        bounded ? 413 : 451,
+        bounded
+          ? "Response could not be screened within the bounded Family Safe Mode window."
+          : "Response blocked by Family Safe Mode.",
+      );
+    };
+
+    let ssePump: ReturnType<typeof startSafetyGatedSsePump> | null = null;
+    if (eventGate) {
+      ssePump = startSafetyGatedSsePump({
+        upstream: proxyRes,
+        gate: eventGate,
+        onSafetyFailure: failSse,
+        onUpstreamError: () => {
+          if (exceeded) return;
+          exceeded = true;
+          endProxyError(502, "Proxy error");
+        },
+        onComplete: () => {
+          applyCircuitFromStatus(proxyRes.statusCode);
+          if (!res.writableEnded) {
+            initializeSseResponse();
+            res.end();
+          }
+        },
+      });
+    } else {
+      const chunks: Buffer[] = [];
+      let length = 0;
+      proxyRes.on("data", (chunk: Buffer | string) => {
+        if (exceeded) return;
+        const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        length += buf.length;
+        if (length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
           exceeded = true;
           proxyRes.destroy();
-          if (!res.headersSent) {
-            res.statusCode = 451;
-            res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: "Response blocked by Family Safe Mode." }));
-          }
-        });
-        return;
-      }
-      length += buf.length;
-      if (length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
-        exceeded = true;
-        proxyRes.destroy();
-        if (!res.headersSent) {
-          res.statusCode = 413;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ error: "Response too large to screen under Family Safe Mode." }));
-        }
-        return;
-      }
-      chunks.push(buf);
-    });
-
-    proxyRes.on("end", () => {
-      if (exceeded || res.headersSent) {
-        applyCircuitFromStatus(proxyRes.statusCode);
-        return;
-      }
-      applyCircuitFromStatus(proxyRes.statusCode);
-      if (eventGate) {
-        void gateChain.then(() => eventGate.end()).then(() => {
-          if (!res.writableEnded) res.end();
-        }).catch(() => {
-          if (!res.headersSent) {
-            res.statusCode = 451;
-            res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: "Response blocked by Family Safe Mode." }));
-          }
-        });
-        return;
-      }
-
-      const buffer = Buffer.concat(chunks, length);
-      const text = extractChatCompletionText(buffer.toString("utf8"), contentType);
-      if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300 && text.trim()) {
-        const screen = screenResponseBody(
-          JSON.stringify({ choices: [{ message: { role: "assistant", content: text } }] }),
-          { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
-          isLocalFamilySafeModeEnabled(req),
-        );
-        if (!screen.allowed) {
-          res.statusCode = 451;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify(safetyBlockBodyFromResponseScreen(screen)));
+          endProxyError(413, "Response too large to screen under Family Safe Mode.");
           return;
         }
-      }
-      copyProxyResponseHeaders(proxyRes, res);
-      res.setHeader("content-length", Buffer.byteLength(buffer));
-      res.end(buffer);
-    });
+        chunks.push(buf);
+      });
 
-    proxyRes.on("error", () => {
-      eventGate?.cancel();
-      if (exceeded) return;
-      if (!res.headersSent) {
-        res.statusCode = 502;
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ error: "Proxy error" }));
-      }
-    });
-    req.on("close", () => {
-      if (!res.writableEnded) {
-        eventGate?.cancel();
+      proxyRes.on("end", () => {
+        if (exceeded) {
+          applyCircuitFromStatus(proxyRes.statusCode);
+          return;
+        }
+        applyCircuitFromStatus(proxyRes.statusCode);
+        if (res.headersSent) return;
+
+        const buffer = Buffer.concat(chunks, length);
+        const text = extractChatCompletionText(buffer.toString("utf8"), contentType);
+        if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300 && text.trim()) {
+          const screen = screenResponseBody(
+            JSON.stringify({ choices: [{ message: { role: "assistant", content: text } }] }),
+            { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
+            isLocalFamilySafeModeEnabled(req),
+          );
+          if (!screen.allowed) {
+            res.statusCode = 451;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify(safetyBlockBodyFromResponseScreen(screen)));
+            return;
+          }
+        }
+        copyProxyResponseHeaders(proxyRes, res);
+        res.setHeader("content-length", Buffer.byteLength(buffer));
+        res.end(buffer);
+      });
+    }
+
+    if (!eventGate) {
+      proxyRes.on("error", () => {
+        if (exceeded) return;
+        endProxyError(502, "Proxy error");
+      });
+    }
+    const cancelActiveSse = (): void => {
+      if (res.writableEnded) return;
+      if (ssePump) {
+        ssePump.cancel();
+      } else {
         proxyRes.destroy();
       }
-    });
+    };
+    // `IncomingMessage.close` also fires for a normally completed request body
+    // in some adapters/test transports. Use the abort signal for the request and
+    // the response close signal for an actual client disconnect so a healthy
+    // streamed response is not cancelled before its first event is released.
+    req.on("aborted", cancelActiveSse);
+    res.on("close", cancelActiveSse);
   };
 
   const fsmChatStreamProxy = createProxyMiddleware({

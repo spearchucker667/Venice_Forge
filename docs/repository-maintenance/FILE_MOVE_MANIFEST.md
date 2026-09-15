@@ -1,10 +1,15 @@
 # Venice Forge — File Move & Rename Manifest
 
-**Current baseline commit:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`  
+**Latest revalidation commit:** `362c912a2b82e1b829c6d36e18f0e9ca3a492857` on `main` (2026-09-15)
+**Historical overhaul baseline:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
 **Date:** 2026-09-14  
 **Scope:** Repository Hygiene & Organization Overhaul  
 
 ---
+
+## 0. Current Revalidation — 2026-09-15
+
+No current-main move or rename was justified. The repository retains its existing source, test, script, asset, and documentation locations; the current session only corrected stale maintenance metadata and ignore discoverability.
 
 ## 1. 2026-09-14 Session Move & Rename Audit
 

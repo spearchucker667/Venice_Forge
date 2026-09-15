@@ -38,39 +38,53 @@ describe("attachmentChunking", () => {
     });
   });
 
-  it.each([
-    [128_000, 128_000],
-    [200_000, 200_000],
-    [1_000_000, 1_000_000],
-  ])("selects ordered chunks within a %s-token model budget", (allowance, expected) => {
+  it("preserves chunk order within the token allowance", () => {
     const chunks = [0, 1, 2].map((chunkIndex) => ({
       attachmentId: "att",
       chunkIndex,
       startOffset: chunkIndex * 10,
       endOffset: (chunkIndex + 1) * 10,
-      tokenEstimate: expected / 3,
+      tokenEstimate: 4,
       text: `chunk-${chunkIndex}`,
       provenance: { name: "a.txt", mimeType: "text/plain" },
     }));
-    const selection = selectAttachmentChunks([chunks], allowance);
-    expect(selection.usedTokens).toBeLessThanOrEqual(allowance);
-    expect(selection.chunks.map((chunk) => chunk.chunkIndex)).toEqual([0, 1, 2]);
+    const selection = selectAttachmentChunks([chunks], 8);
+    expect(selection.usedTokens).toBe(8);
+    expect(selection.chunks.map((chunk) => chunk.chunkIndex)).toEqual([0, 1]);
   });
 
-  it("omits later chunks truthfully when the remaining context is small", () => {
+  it("fits a safe prefix before omitting later chunks", () => {
     const chunks = [0, 1, 2].map((chunkIndex) => ({
       attachmentId: "att",
       chunkIndex,
-      startOffset: chunkIndex * 5,
-      endOffset: (chunkIndex + 1) * 5,
+      startOffset: chunkIndex * 400,
+      endOffset: (chunkIndex + 1) * 400,
       tokenEstimate: 100,
-      text: "x".repeat(5),
+      text: "x".repeat(400),
       provenance: { name: "a.txt", mimeType: "text/plain" },
     }));
-    expect(selectAttachmentChunks([chunks], 150)).toMatchObject({
-      usedTokens: 100,
-      omittedChunkCount: 2,
-      omittedCharacterCount: 10,
-    });
+    const selection = selectAttachmentChunks([chunks], 150);
+    expect(selection.usedTokens).toBe(150);
+    expect(selection.chunks).toHaveLength(2);
+    expect(selection.chunks[1].text.length).toBeGreaterThan(0);
+    expect(selection.chunks[1].text.length).toBeLessThan(400);
+    expect(selection.omittedChunkCount).toBe(2);
+    expect(selection.omittedCharacterCount).toBe(600);
+    expect(selection.partiallySelectedAttachmentIds).toEqual(new Set(["att"]));
+  });
+
+  it("does not admit a partial Unicode surrogate", () => {
+    const chunk = {
+      attachmentId: "att",
+      chunkIndex: 0,
+      startOffset: 0,
+      endOffset: 16,
+      tokenEstimate: 2,
+      text: "😀😀😀😀😀😀😀😀",
+      provenance: { name: "a.txt", mimeType: "text/plain" },
+    };
+    const selection = selectAttachmentChunks([[chunk]], 1);
+    expect(selection.chunks[0]?.text).toBe("😀😀😀😀");
+    expect(selection.chunks[0]?.text).not.toContain("�");
   });
 });
