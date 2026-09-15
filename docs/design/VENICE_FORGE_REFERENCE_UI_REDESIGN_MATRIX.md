@@ -8,173 +8,173 @@
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `index.html` | PENDING | |
+| `index.html` | NO_VISUAL_SURFACE — shell HTML entry point, no Tailwind surface classes | |
 
 ## `src/` (1 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `App.tsx` | PENDING | |
+| `App.tsx` | REDESIGNED — Phase 2: Shell root graphite cockpit background and panel bg | |
 
 ## `src/components/` (25 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `CharactersView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `CharactersView.tsx` | PENDING | |
-| `Chip.tsx` | PENDING | |
+| `CharactersView.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `Chip.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `ConfirmModal.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ConfirmModal.tsx` | PENDING | |
-| `DiagnosticsPreview.tsx` | PENDING | |
+| `ConfirmModal.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `DiagnosticsPreview.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `ErrorBoundary.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ErrorBoundary.tsx` | PENDING | |
+| `ErrorBoundary.tsx` | REDESIGNED — Phase 7: rounded-2xl → rounded-xl alignment | |
 | `Field.test.tsx` | NOT_APPLICABLE (test file) | |
-| `Field.tsx` | PENDING | |
+| `Field.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `FirstRunModal.test.tsx` | NOT_APPLICABLE (test file) | |
-| `FirstRunModal.tsx` | PENDING | |
-| `ModelSelect.tsx` | PENDING | |
+| `FirstRunModal.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `ModelSelect.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `OnboardingSplash.test.tsx` | NOT_APPLICABLE (test file) | |
-| `OnboardingSplash.tsx` | PENDING | |
-| `SearchScrapeView.tsx` | PENDING | |
+| `OnboardingSplash.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `SearchScrapeView.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `SettingsView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `SettingsView.tsx` | PENDING | |
-| `StatusView.tsx` | PENDING | |
+| `SettingsView.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `StatusView.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `ThemeMaker.custom.test.tsx` | NOT_APPLICABLE (test file) | |
 | `ThemeMaker.test.ts` | NOT_APPLICABLE (test file) | |
-| `ThemeMaker.tsx` | PENDING | |
+| `ThemeMaker.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `ThemeMaker.ui.test.tsx` | NOT_APPLICABLE (test file) | |
 | `ThemePreview.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ThemePreview.tsx` | PENDING | |
+| `ThemePreview.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 
 ## `src/components/audio/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `audio-view.test.tsx` | NOT_APPLICABLE (test file) | |
-| `audio-view.tsx` | PENDING | |
+| `audio-view.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/character-creator/` (11 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `CharacterCreatorCompleted.tsx` | PENDING | |
-| `CharacterCreatorDraftEditor.tsx` | PENDING | |
-| `CharacterCreatorError.tsx` | PENDING | |
-| `CharacterCreatorGenerating.tsx` | PENDING | |
-| `CharacterCreatorLocalPickerModal.tsx` | PENDING | |
-| `CharacterCreatorMascot.tsx` | PENDING | |
-| `CharacterCreatorProcessPanel.tsx` | PENDING | |
-| `CharacterCreatorReady.tsx` | PENDING | |
+| `CharacterCreatorCompleted.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `CharacterCreatorDraftEditor.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `CharacterCreatorError.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `CharacterCreatorGenerating.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `CharacterCreatorLocalPickerModal.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `CharacterCreatorMascot.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `CharacterCreatorProcessPanel.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `CharacterCreatorReady.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `CharacterCreatorView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `CharacterCreatorView.tsx` | PENDING | |
-| `CharacterCreatorWelcome.tsx` | PENDING | |
+| `CharacterCreatorView.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `CharacterCreatorWelcome.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 
 ## `src/components/characters/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `CharacterAvatar.test.tsx` | NOT_APPLICABLE (test file) | |
-| `CharacterAvatar.tsx` | PENDING | |
+| `CharacterAvatar.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/chat/` (20 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `CharacterChatsView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `CharacterChatsView.tsx` | PENDING | |
+| `CharacterChatsView.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
 | `CharacterSceneCard.test.tsx` | NOT_APPLICABLE (test file) | |
-| `CharacterSceneCard.tsx` | PENDING | |
-| `ChatMarkdown.tsx` | PENDING | |
-| `ChatTtsPlayer.tsx` | PENDING | |
+| `CharacterSceneCard.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
+| `ChatMarkdown.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
+| `ChatTtsPlayer.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
 | `HistoryView.multiSelect.test.tsx` | NOT_APPLICABLE (test file) | |
 | `HistoryView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `HistoryView.tsx` | PENDING | |
-| `StandardChatView.tsx` | PENDING | |
+| `HistoryView.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
+| `StandardChatView.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
 | `chat-input.test.tsx` | NOT_APPLICABLE (test file) | |
-| `chat-input.tsx` | PENDING | |
+| `chat-input.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
 | `chat-view.test.tsx` | NOT_APPLICABLE (test file) | |
-| `chat-view.tsx` | PENDING | |
+| `chat-view.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
 | `codeHighlighting.test.tsx` | NOT_APPLICABLE (test file) | |
-| `codeHighlighting.tsx` | PENDING | |
+| `codeHighlighting.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
 | `message-bubble.test.tsx` | NOT_APPLICABLE (test file) | |
-| `message-bubble.tsx` | PENDING | |
+| `message-bubble.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
 | `message-bubble.unicode-copy.test.tsx` | NOT_APPLICABLE (test file) | |
-| `venice-params.tsx` | PENDING | |
+| `venice-params.tsx` | REDESIGNED — Phase 3: Chat family graphite cockpit migration | |
 
 ## `src/components/command-palette/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `CommandPalette.test.tsx` | NOT_APPLICABLE (test file) | |
-| `CommandPalette.tsx` | PENDING | |
+| `CommandPalette.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 
 ## `src/components/documents/` (9 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `DocumentAgentView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `DocumentAgentView.tsx` | PENDING | |
-| `DocumentRenderer.tsx` | PENDING | |
+| `DocumentAgentView.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `DocumentRenderer.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `ManagedDocumentAttachmentCard.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ManagedDocumentAttachmentCard.tsx` | PENDING | |
+| `ManagedDocumentAttachmentCard.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `WorkspaceTree.test.tsx` | NOT_APPLICABLE (test file) | |
-| `WorkspaceTree.tsx` | PENDING | |
+| `WorkspaceTree.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `documentViewHelpers.test.ts` | NOT_APPLICABLE (test file) | |
-| `documentViewHelpers.ts` | PENDING | |
+| `documentViewHelpers.ts` | NO_VISUAL_SURFACE — utility/type file, no JSX | |
 
 ## `src/components/embeddings/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `embeddings-view.test.tsx` | NOT_APPLICABLE (test file) | |
-| `embeddings-view.tsx` | PENDING | |
+| `embeddings-view.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/gallery/` (16 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `compare-view.test.tsx` | NOT_APPLICABLE (test file) | |
-| `compare-view.tsx` | PENDING | |
+| `compare-view.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `gallery-view.test.tsx` | NOT_APPLICABLE (test file) | |
-| `gallery-view.tsx` | PENDING | |
+| `gallery-view.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `lineage-viewer.test.tsx` | NOT_APPLICABLE (test file) | |
-| `lineage-viewer.tsx` | PENDING | |
-| `media-card.tsx` | PENDING | |
+| `lineage-viewer.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
+| `media-card.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `media-detail-dialog.test.tsx` | NOT_APPLICABLE (test file) | |
-| `media-detail-dialog.tsx` | PENDING | |
+| `media-detail-dialog.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `media-inspector.test.tsx` | NOT_APPLICABLE (test file) | |
-| `media-inspector.tsx` | PENDING | |
-| `media-toolbar.tsx` | PENDING | |
+| `media-inspector.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
+| `media-toolbar.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `recipe-comparison.test.tsx` | NOT_APPLICABLE (test file) | |
-| `recipe-comparison.tsx` | PENDING | |
+| `recipe-comparison.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `recipe-compatibility-card.test.tsx` | NOT_APPLICABLE (test file) | |
-| `recipe-compatibility-card.tsx` | PENDING | |
+| `recipe-compatibility-card.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/generation/` (4 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `GenerationLoadingIndicator.tsx` | PENDING | |
-| `generation-animation-preloader.ts` | PENDING | |
-| `generation-animation-registry.ts` | PENDING | |
-| `generation-animation-state.ts` | PENDING | |
+| `GenerationLoadingIndicator.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
+| `generation-animation-preloader.ts` | NO_VISUAL_SURFACE — utility/type file, no JSX | |
+| `generation-animation-registry.ts` | NO_VISUAL_SURFACE — utility/type file, no JSX | |
+| `generation-animation-state.ts` | NO_VISUAL_SURFACE — utility/type file, no JSX | |
 
 ## `src/components/image/` (5 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `image-page.tsx` | PENDING | |
+| `image-page.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `image-tools.test.tsx` | NOT_APPLICABLE (test file) | |
-| `image-tools.tsx` | PENDING | |
+| `image-tools.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `image-view.test.tsx` | NOT_APPLICABLE (test file) | |
-| `image-view.tsx` | PENDING | |
+| `image-view.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/image-inspector/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `ImageInspectorView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ImageInspectorView.tsx` | PENDING | |
+| `ImageInspectorView.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/layout/` (10 files)
 
@@ -182,207 +182,207 @@
 |---|---|---|
 | `AppMeshOverlay.tsx` | INHERITS_GLOBAL_SYSTEM | visual now provided by .app-mesh-overlay grain layer (component unchanged) |
 | `api-key-dialog.test.tsx` | NOT_APPLICABLE (test file) | |
-| `api-key-dialog.tsx` | PENDING | |
+| `api-key-dialog.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `header.test.tsx` | NOT_APPLICABLE (test file) | |
-| `header.tsx` | PENDING | |
+| `header.tsx` | REDESIGNED — Phase 2+7: Reference shell header; soft-separator residuals cleaned in Phase 7 | |
 | `inspector-pane.test.tsx` | NOT_APPLICABLE (test file) | |
-| `inspector-pane.tsx` | PENDING | |
-| `memory-panel.tsx` | PENDING | |
+| `inspector-pane.tsx` | REDESIGNED — Phase 2: Graphite utility rail panel, flat instrument tabs, technical filter chips, inset pre views | |
+| `memory-panel.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `sidebar.test.tsx` | NOT_APPLICABLE (test file) | |
-| `sidebar.tsx` | PENDING | |
+| `sidebar.tsx` | REDESIGNED — Phase 2: Cockpit sidebar with 1px border, technical uppercase section labels, rounded-md nav buttons, and luminous active rail | |
 
 ## `src/components/media/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `ManagedVideoPlayer.tsx` | PENDING | |
-| `ResolvedMediaImg.tsx` | PENDING | |
+| `ManagedVideoPlayer.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
+| `ResolvedMediaImg.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/music/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `music-view.test.ts` | NOT_APPLICABLE (test file) | |
-| `music-view.tsx` | PENDING | |
+| `music-view.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/notifications/` (5 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `ProgressToast.tsx` | PENDING | |
-| `ToastItem.tsx` | PENDING | |
+| `ProgressToast.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `ToastItem.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `ToastProvider.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ToastProvider.tsx` | PENDING | |
-| `ToastViewport.tsx` | PENDING | |
+| `ToastProvider.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `ToastViewport.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 
 ## `src/components/playground/` (7 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `agent-model-picker.tsx` | PENDING | |
+| `agent-model-picker.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `playground-chat.test.tsx` | NOT_APPLICABLE (test file) | |
-| `playground-chat.tsx` | PENDING | |
-| `playground-view.tsx` | PENDING | |
+| `playground-chat.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `playground-view.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `preview-node.test.tsx` | NOT_APPLICABLE (test file) | |
-| `preview-node.tsx` | PENDING | |
-| `workflow-preview.tsx` | PENDING | |
+| `preview-node.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `workflow-preview.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 
 ## `src/components/privacy/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `StoragePrivacyDashboard.test.tsx` | NOT_APPLICABLE (test file) | |
-| `StoragePrivacyDashboard.tsx` | PENDING | |
+| `StoragePrivacyDashboard.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 
 ## `src/components/prompts/` (5 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `PromptCreateModal.test.tsx` | NOT_APPLICABLE (test file) | |
-| `PromptCreateModal.tsx` | PENDING | |
+| `PromptCreateModal.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `PromptLibrarySelection.test.ts` | NOT_APPLICABLE (test file) | |
 | `PromptLibraryView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `PromptLibraryView.tsx` | PENDING | |
+| `PromptLibraryView.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/research/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `ResearchWorkspaceView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ResearchWorkspaceView.tsx` | PENDING | |
+| `ResearchWorkspaceView.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 
 ## `src/components/rp-studio/` (22 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `AssetGallery.tsx` | PENDING | |
+| `AssetGallery.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `CharacterBookEditor.test.tsx` | NOT_APPLICABLE (test file) | |
-| `CharacterBookEditor.tsx` | PENDING | |
+| `CharacterBookEditor.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `CharacterEditor.test.tsx` | NOT_APPLICABLE (test file) | |
-| `CharacterEditor.tsx` | PENDING | |
+| `CharacterEditor.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `CharacterLibrary.test.tsx` | NOT_APPLICABLE (test file) | |
-| `CharacterLibrary.tsx` | PENDING | |
+| `CharacterLibrary.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `LorebookManager.test.tsx` | NOT_APPLICABLE (test file) | |
-| `LorebookManager.tsx` | PENDING | |
+| `LorebookManager.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `PersonaManager.test.tsx` | NOT_APPLICABLE (test file) | |
-| `PersonaManager.tsx` | PENDING | |
+| `PersonaManager.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `PromptDebugDrawer.test.tsx` | NOT_APPLICABLE (test file) | |
-| `PromptDebugDrawer.tsx` | PENDING | |
+| `PromptDebugDrawer.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `RpChatList.test.tsx` | NOT_APPLICABLE (test file) | |
-| `RpChatList.tsx` | PENDING | |
+| `RpChatList.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `RpChatView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `RpChatView.tsx` | PENDING | |
-| `RpStudioView.tsx` | PENDING | |
-| `SceneGenerator.tsx` | PENDING | |
+| `RpChatView.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `RpStudioView.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `SceneGenerator.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 | `_shared.test.tsx` | NOT_APPLICABLE (test file) | |
-| `_shared.tsx` | PENDING | |
-| `index.ts` | PENDING | |
+| `_shared.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
+| `index.ts` | NO_VISUAL_SURFACE — re-export barrel, no JSX | |
 
 ## `src/components/scenes/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `SceneComposerView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `SceneComposerView.tsx` | PENDING | |
+| `SceneComposerView.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/search/` (13 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `AiResearchTab.tsx` | PENDING | |
-| `ProfileDiscoveryTab.tsx` | PENDING | |
+| `AiResearchTab.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
+| `ProfileDiscoveryTab.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `ResearchProviderStatus.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ResearchProviderStatus.tsx` | PENDING | |
-| `ResearchWorkspacePanel.tsx` | PENDING | |
+| `ResearchProviderStatus.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
+| `ResearchWorkspacePanel.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `ScrapeTab.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ScrapeTab.tsx` | PENDING | |
+| `ScrapeTab.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 | `SearchScrapeView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `SearchScrapeView.tsx` | PENDING | |
-| `SearchTab.tsx` | PENDING | |
-| `TextParserTab.tsx` | PENDING | |
-| `searchScrapeTypes.ts` | PENDING | |
-| `searchScrapeUtils.ts` | PENDING | |
+| `SearchScrapeView.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
+| `SearchTab.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
+| `TextParserTab.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
+| `searchScrapeTypes.ts` | NO_VISUAL_SURFACE — utility/type file, no JSX | |
+| `searchScrapeUtils.ts` | NO_VISUAL_SURFACE — utility/type file, no JSX | |
 
 ## `src/components/settings/` (24 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `AboutPanel.tsx` | PENDING | |
-| `ApiKeysPanel.tsx` | PENDING | |
+| `AboutPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `ApiKeysPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `AudioSpeechPanel.test.tsx` | NOT_APPLICABLE (test file) | |
-| `AudioSpeechPanel.tsx` | PENDING | |
+| `AudioSpeechPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `BackupSyncPanel.test.tsx` | NOT_APPLICABLE (test file) | |
-| `BackupSyncPanel.tsx` | PENDING | |
-| `ConfigPanel.tsx` | PENDING | |
+| `BackupSyncPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `ConfigPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `DataStoragePanel.test.tsx` | NOT_APPLICABLE (test file) | |
-| `DataStoragePanel.tsx` | PENDING | |
-| `DefaultsPanel.tsx` | PENDING | |
+| `DataStoragePanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `DefaultsPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `FontSettingsPanel.test.tsx` | NOT_APPLICABLE (test file) | |
-| `FontSettingsPanel.tsx` | PENDING | |
-| `ImportPlanModal.tsx` | PENDING | |
+| `FontSettingsPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `ImportPlanModal.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `LanguageRegionPanel.test.tsx` | NOT_APPLICABLE (test file) | |
-| `LanguageRegionPanel.tsx` | PENDING | |
+| `LanguageRegionPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `MasterPasswordDialog.test.tsx` | NOT_APPLICABLE (test file) | |
-| `MasterPasswordDialog.tsx` | PENDING | |
+| `MasterPasswordDialog.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `ProfilePanel.test.tsx` | NOT_APPLICABLE (test file) | |
-| `ProfilePanel.tsx` | PENDING | |
-| `ProvidersPanel.tsx` | PENDING | |
-| `SafetyPanel.tsx` | PENDING | |
-| `SettingsView.tsx` | PENDING | |
-| `UpdatesPanel.tsx` | PENDING | |
-| `types.ts` | PENDING | |
+| `ProfilePanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `ProvidersPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `SafetyPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `SettingsView.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `UpdatesPanel.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `types.ts` | NO_VISUAL_SURFACE — utility/icon/type file, no themeable surface tokens | |
 
 ## `src/components/status/` (7 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `DiagnosticsDrawer.test.tsx` | NOT_APPLICABLE (test file) | |
-| `DiagnosticsDrawer.tsx` | PENDING | |
+| `DiagnosticsDrawer.tsx` | REDESIGNED — Phase 2: Graphite utility rail drawer with vf-utility-rail-section cards and technical action buttons | |
 | `HeaderStatusCluster.test.tsx` | NOT_APPLICABLE (test file) | |
-| `HeaderStatusCluster.tsx` | PENDING | |
+| `HeaderStatusCluster.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
 | `StatusIndicator.test.tsx` | NOT_APPLICABLE (test file) | |
-| `StatusIndicator.tsx` | PENDING | |
-| `TaskCenterDrawer.tsx` | PENDING | |
+| `StatusIndicator.tsx` | REDESIGNED — Phase 6: System/Settings family graphite cockpit migration | |
+| `TaskCenterDrawer.tsx` | REDESIGNED — Phase 2: Graphite utility rail drawer with dark overlay backdrop and technical generation cards | |
 
 ## `src/components/ui/` (21 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `AccessibleDialog.test.tsx` | NOT_APPLICABLE (test file) | |
-| `AccessibleDialog.tsx` | PENDING | |
-| `ContextMenu.tsx` | PENDING | |
+| `AccessibleDialog.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `ContextMenu.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `Meteocon.test.tsx` | NOT_APPLICABLE (test file) | |
-| `Meteocon.tsx` | PENDING | |
+| `Meteocon.tsx` | NO_VISUAL_SURFACE — utility/icon/type file, no themeable surface tokens | |
 | `error-boundary.test.tsx` | NOT_APPLICABLE (test file) | |
-| `error-boundary.tsx` | PENDING | |
-| `generation-view.tsx` | PENDING | |
-| `logo.tsx` | PENDING | |
-| `meteoconSvgTransformer.ts` | PENDING | |
+| `error-boundary.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `generation-view.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `logo.tsx` | NO_VISUAL_SURFACE — utility/icon/type file, no themeable surface tokens | |
+| `meteoconSvgTransformer.ts` | NO_VISUAL_SURFACE — utility/icon/type file, no themeable surface tokens | |
 | `modal-requests.test.tsx` | NOT_APPLICABLE (test file) | |
-| `modal-requests.tsx` | PENDING | |
+| `modal-requests.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `primitives.test.tsx` | NOT_APPLICABLE (test file) | |
 | `primitives.tsx` | REDESIGNED — Phase 1: six shell primitives added (existing exports untouched) | |
 | `select.test.tsx` | NOT_APPLICABLE (test file) | |
-| `select.tsx` | PENDING | |
+| `select.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
 | `shared.i18n.test.tsx` | NOT_APPLICABLE (test file) | |
 | `shared.test.tsx` | NOT_APPLICABLE (test file) | |
-| `shared.tsx` | PENDING | |
-| `spinner.tsx` | PENDING | |
-| `toaster.tsx` | PENDING | |
+| `shared.tsx` | REDESIGNED — Phase 7: Global overlays/UI graphite cockpit migration | |
+| `spinner.tsx` | NO_VISUAL_SURFACE — utility/icon/type file, no themeable surface tokens | |
+| `toaster.tsx` | NO_VISUAL_SURFACE — utility/icon/type file, no themeable surface tokens | |
 
 ## `src/components/video/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `video-view.test.tsx` | NOT_APPLICABLE (test file) | |
-| `video-view.tsx` | PENDING | |
+| `video-view.tsx` | REDESIGNED — Phase 4: Generate family graphite cockpit migration | |
 
 ## `src/components/workflows/` (2 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
 | `WorkflowTemplatesView.test.tsx` | NOT_APPLICABLE (test file) | |
-| `WorkflowTemplatesView.tsx` | PENDING | |
+| `WorkflowTemplatesView.tsx` | REDESIGNED — Phase 5: Build family graphite cockpit migration | |
 
 ## `src/styles/` (3 files)
 
