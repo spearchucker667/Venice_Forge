@@ -32,19 +32,27 @@ export function setRendererRootForTesting(root: string | undefined): void {
   rendererRootForTesting = root;
 }
 
-/** Returns the sender URL, preferring the specific frame that emitted the
- *  invoke and falling back to the top-level WebContents URL. */
+/** Returns only the URL of the exact frame that initiated the IPC call.
+ *
+ * `webContents.getURL()` describes the top-level page, not necessarily the
+ * initiating frame. Privileged IPC must fail closed when Chromium does not
+ * provide sender-frame identity rather than substituting that weaker signal.
+ */
 function getSenderUrl(event: IpcMainInvokeEvent | null | undefined): string | undefined {
   if (!event) return undefined;
   const frameUrl = event.senderFrame?.url;
-  if (typeof frameUrl === "string" && frameUrl.length > 0) {
-    return frameUrl;
-  }
-  try {
-    return event.sender?.getURL();
-  } catch {
-    return undefined;
-  }
+  return typeof frameUrl === "string" && frameUrl.length > 0 ? frameUrl : undefined;
+}
+
+/** Returns false when Chromium cannot prove which frame initiated the call. */
+export function hasTrustedSenderFrame(event: IpcMainInvokeEvent | null | undefined): boolean {
+  return Boolean(event?.senderFrame && getSenderUrl(event));
+}
+
+/** Returns the exact initiating frame for callers that need an explicit
+ * frame-identity check. This intentionally never falls back to WebContents. */
+export function getInitiatingSenderFrame(event: IpcMainInvokeEvent | null | undefined): Electron.WebFrameMain | null {
+  return event?.senderFrame ?? null;
 }
 
 /** True if the hostname belongs to a loopback, link-local, or RFC1918 address. */
@@ -73,6 +81,7 @@ function isPrivateHostname(hostname: string): boolean {
 
 /** True when the IPC event was emitted by a trusted renderer frame. */
 export function isTrustedIpcSender(event: IpcMainInvokeEvent | null | undefined): boolean {
+  if (!hasTrustedSenderFrame(event)) return false;
   const senderUrl = getSenderUrl(event);
   if (!senderUrl) return false;
 

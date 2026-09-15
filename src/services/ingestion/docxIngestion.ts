@@ -4,6 +4,7 @@ import { MAX_DOCX_FILE_BYTES, MAX_EXTRACTED_TEXT_CHARS } from "./ingestionLimits
 import { FileTooLargeError, UnsupportedFileTypeError, DocxExtractionError } from "./ingestionErrors";
 import { escapeXmlAttribute, escapeXmlText } from "./xmlEscape";
 import { redactSecrets } from "../../shared/redaction";
+import { extractAttachmentChunks } from "./attachmentChunking";
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -41,10 +42,14 @@ export async function ingestDocxFile(file: File): Promise<IngestedAttachment> {
 
   const result = await extractDocxText(file);
   const rawText = result.text;
-  
-  const truncated = rawText.length > MAX_EXTRACTED_TEXT_CHARS;
-  const truncatedText = truncated ? rawText.slice(0, MAX_EXTRACTED_TEXT_CHARS) : rawText;
-  const text = redactSecrets(truncatedText);
+  const id = generateId();
+  const chunkResult = extractAttachmentChunks(redactSecrets(rawText), {
+    attachmentId: id,
+    name: file.name,
+    mimeType: file.type,
+  }, { maxChars: MAX_EXTRACTED_TEXT_CHARS });
+  const truncated = chunkResult.extractionTruncated;
+  const text = chunkResult.chunks.map((chunk) => chunk.text).join("");
 
   const warnings = [...result.warnings];
   if (truncated) {
@@ -57,7 +62,7 @@ ${escapeXmlText(text)}
 </attached_file>`;
 
   return {
-    id: generateId(),
+    id,
     kind: "docx",
     name: file.name,
     extension: classified.extension,
@@ -65,6 +70,7 @@ ${escapeXmlText(text)}
     sizeBytes: file.size,
     createdAt: new Date().toISOString(),
     text: wrappedText,
+    chunks: chunkResult.chunks,
     extraction: {
       route: "local-docx",
       local: true,

@@ -1,33 +1,42 @@
-# Venice Forge — Pages
+# Venice Forge — Pages / Dependency Trees (source-grounded init)
+
+> Each tree starts at the canonical view source and names the principal local dependencies. Read imports from the current source before extending a surface; this is a navigational baseline, not implementation authority.
 
 ## Conversation
-- **Chat** (`chat/`): transcript + composer (`vf-composer`), StandardChatView/chat-view, message-bubble (user/assistant/tool/reasoning blocks), ChatMarkdown (`.prose-venice` + Refractor syntax), chat-input (attachments, context chips, model controls), venice-params, HistoryView (dense conversation list, search, multi-select delete/export).
-- **Character Chats**: CharacterChatsView + CharacterSceneCard — chat plus avatar identity, character metadata, persona state.
-- **History**: master list; date grouping; hover/focus actions.
+
+- **Chat** — `src/components/chat/StandardChatView.tsx` → `src/components/chat/chat-view.tsx` → `message-bubble.tsx`, `chat-input.tsx`, `ChatMarkdown.tsx`, `venice-params.tsx`, `src/hooks/use-chat.ts` → `src/services/veniceClient.ts` / `src/services/desktopBridge.ts` → chat stores and prompt compiler.
+- **Character Chats** — `src/components/chat/CharacterChatsView.tsx` → `CharacterSceneCard.tsx`, character picker/dialog primitives, `src/stores/chat-store.ts` → shared chat stream and character scene services.
+- **History** — `src/components/chat/HistoryView.tsx` → conversation summaries, folders, context menu, `AccessibleDialog`, chat storage/store actions.
 
 ## Generate
-- **Image Studio** (`image/`): prompt stack, model/style controls, preview canvas, tools (upscale/background-removal), generation progress.
-- **Media Studio** (`gallery/`): media grid (media-card), media-toolbar (bulk actions, filters), compare-view, lineage-viewer, media-detail-dialog, media-inspector, recipe-comparison/compatibility-card.
-- **Image Inspector**: central image canvas + analysis rails, histogram-style data surfaces.
-- **Prompt Library** (`prompts/`): library rail + framed editor/preview, PromptCreateModal, tags, versions.
-- **Scene Composer** (`scenes/`): layers rail + composition canvas + properties.
-- **Audio / Music**: voice/model controls, waveform player, queue/history lists.
-- **Video**: preview canvas + parameter panel + queue rail.
-- **Embeddings**: model selector, input editor, vector/response panel, copy/export.
-- **Search/Scrape**: search bar + dense results + scrape preview (SearchTab, ScrapeTab, AiResearchTab, ProfileDiscoveryTab, TextParserTab).
-- **Characters**: character grid/list + detail, CharacterAvatar.
+
+- **Image Studio** — `src/components/image/image-page.tsx` → `image-view.tsx`, recipe/model capability controls, media persistence and generation task services.
+- **Media Studio** — `src/components/gallery/gallery-view.tsx` → media cards, toolbar, compare/lineage/detail surfaces, `src/stores/media-store.ts`, content/media bridge.
+- **Image Inspector** — `src/components/image-inspector/ImageInspectorView.tsx` → source ingestion, analysis panels, image-inspector store, research service.
+- **Prompt Library** — `src/components/prompts/PromptLibraryView.tsx` → prompt editor/list, version chain, prompt-library store, shared `Toolbar`/`Card`/`EmptyState`.
+- **Scene Composer** — `src/components/scenes/SceneComposerView.tsx` → layer list, canvas/properties, scene compiler, scene-composer store.
+- **Audio** — `src/components/audio/audio-view.tsx` → TTS controls, task center/background task store, audio playback bridge.
+- **Music** — `src/components/music/music-view.tsx` → music request controls, queue/task store, managed media player.
+- **Video** — `src/components/video/video-view.tsx` → video request controls, queue/retrieve service, managed video player and media store.
+- **Embeddings** — `src/components/embeddings/embeddings-view.tsx` → embedding model/input/result panels and canonical Venice client.
+- **Search/Scrape** — `src/components/SearchScrapeView.tsx` → SearchTab, ScrapeTab, TextParserTab, AiResearchTab, ProfileDiscoveryTab, ResearchWorkspacePanel → research providers/services.
+- **Characters** — `src/components/CharactersView.tsx` → `src/components/characters/`, character store, avatar/cache services.
 
 ## Build
-- **Character Creator** (`character-creator/`): welcome → draft editor → generating → ready/completed states, process panel, mascot, local picker modal.
-- **RP Studio** (`rp-studio/`): master/detail — CharacterLibrary/Editor, CharacterBookEditor, LorebookManager, PersonaManager, RpChatList/RpChatView, SceneGenerator, AssetGallery, PromptDebugDrawer, `_shared` primitives.
-- **Workflow Templates**: template library + graph canvas + inspector, WorkflowTemplatesView.
-- **Documents / Document Agent**: WorkspaceTree | DocumentRenderer/editor | agent/approval rail; ManagedDocumentAttachmentCard.
-- **Playground**: parameters | request editor | response/metadata, agent-model-picker, workflow-preview.
+
+- **Character Creator** — `src/components/character-creator/CharacterCreatorView.tsx` → creator steps, mascot, local picker/modal, character-card services.
+- **RP Studio** — `src/components/rp-studio/RpStudioView.tsx` → character library/editor, character book, lorebook/persona managers, RP chat, scene/asset tools, prompt compiler.
+- **Workflows** — `src/components/workflows/WorkflowTemplatesView.tsx` → workflow library/canvas/inspector, workflow store, workflow runner and persistence.
+- **Documents** — `src/components/documents/DocumentAgentView.tsx` → workspace tree/editor/agent rail → typed document bridge → main-process workspace/document services.
+- **Playground** — `src/components/playground/playground-view.tsx` → request editor, model picker, workflow preview, canonical request boundary.
 
 ## System
-- **Privacy** (`privacy/StoragePrivacyDashboard.tsx`): storage stats, sync state, encryption state, data management.
-- **Settings** (`settings/`): SettingsView + panels (Profile, ApiKeys, Providers, Safety, Defaults, AudioSpeech, DataStorage, BackupSync, FontSettings, LanguageRegion, Config, About, Updates, MasterPasswordDialog) + **ThemeMaker** + ThemePreview (theme families, dark/light, token + code/syntax editing, YAML import/export, live preview).
-- **Status** (`status/` + StatusView.tsx): provider/network health, diagnostics summary, task/activity lists; HeaderStatusCluster + StatusIndicator shared with header.
 
-## Global overlays
-api-key-dialog, FirstRunModal (age gate), OnboardingSplash, CommandPalette, inspector-pane (Traffic Inspector), DiagnosticsDrawer, TaskCenterDrawer, Toaster, ModalRequestHost, ConfirmModal, ErrorBoundary screens.
+- **Privacy** — `src/components/privacy/StoragePrivacyDashboard.tsx` → storage/privacy service, profile/sync status, secure persistence controls.
+- **Settings** — `src/components/SettingsView.tsx` → settings panels, settings/config stores and theme service.
+- **Theme Maker** — `src/components/ThemeMaker.tsx` → `ThemePreview.tsx`, Theme Family resolver/application, YAML import/export, and settings/config persistence.
+- **Status** — `src/components/StatusView.tsx` → status cards, `src/components/status/`, diagnostics/task stores and provider health services.
+
+## Global surfaces
+
+`src/components/layout/api-key-dialog.tsx`, `FirstRunModal.tsx`, `OnboardingSplash.tsx`, `src/components/command-palette/CommandPalette.tsx`, `src/components/layout/inspector-pane.tsx`, `DiagnosticsDrawer.tsx`, `TaskCenterDrawer.tsx`, `src/components/ui/modal-requests.tsx`, and security/master-password dialogs are mounted by `src/App.tsx` and are not canonical tabs.

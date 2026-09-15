@@ -31,7 +31,8 @@ import {
 import type { SafetyGuardDecision } from "./src/shared/safety";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./src/shared/urlSecurity";
-import { JINA_MAX_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_RESPONSE_BYTES } from "./src/shared/limits";
+import { JINA_MAX_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES } from "./src/shared/limits";
+import { SafetyGatedSse } from "./src/services/safetyGatedSse";
 
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "./src/shared/readBoundedFetchBody";
 import { checkSystemPromptMessages } from "./src/shared/promptLimits";
@@ -748,18 +749,60 @@ export function createServerApp() {
     res: express.Response,
   ): void => {
     applyRetryAfterHeaders(proxyRes, res);
-
     if (typeof proxyRes.on !== "function") {
       applyCircuitFromStatus(proxyRes.statusCode);
       return;
     }
 
-    const contentLength = proxyRes.headers["content-length"];
-    if (contentLength) {
-      const declared = Number(contentLength);
-      if (Number.isFinite(declared) && declared > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
+    const contentType = String(proxyRes.headers["content-type"] || "");
+    const isSse = contentType.includes("text/event-stream");
+    const eventGate = isSse
+      ? new SafetyGatedSse({
+          maxEventBytes: VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES,
+          classify: ({ data, done }) => {
+            if (done || !data.trim()) return { allowed: true };
+            const screen = screenResponseBody(
+              JSON.stringify({ choices: [{ delta: { content: data } }] }),
+              { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
+              isLocalFamilySafeModeEnabled(req),
+            );
+            return { allowed: screen.allowed };
+          },
+          release: ({ raw }) => {
+            if (!res.headersSent) {
+              copyProxyResponseHeaders(proxyRes, res);
+              res.removeHeader("content-length");
+              res.setHeader("Content-Type", contentType || "text/event-stream");
+              res.write(`${raw}\n\n`);
+            }
+          },
+        })
+      : null;
+
+    const chunks: Buffer[] = [];
+    let length = 0;
+    let exceeded = false;
+    let gateChain: Promise<void> = Promise.resolve();
+
+    proxyRes.on("data", (chunk: Buffer | string) => {
+      if (exceeded) return;
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      if (eventGate) {
+        gateChain = gateChain.then(() => eventGate.push(buf)).catch(() => {
+          exceeded = true;
+          proxyRes.destroy();
+          if (!res.headersSent) {
+            res.statusCode = 451;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ error: "Response blocked by Family Safe Mode." }));
+          }
+        });
+        return;
+      }
+      length += buf.length;
+      if (length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
+        exceeded = true;
         proxyRes.destroy();
-        applyCircuitFromStatus(proxyRes.statusCode);
         if (!res.headersSent) {
           res.statusCode = 413;
           res.setHeader("Content-Type", "application/json");
@@ -767,28 +810,7 @@ export function createServerApp() {
         }
         return;
       }
-    }
-
-    const chunks: Buffer[] = [];
-    let length = 0;
-    let exceeded = false;
-
-    proxyRes.on("data", (chunk: Buffer | string) => {
-      if (exceeded) return;
-      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      length += buf.length;
-      if (length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
-        exceeded = true;
-        chunks.length = 0;
-        proxyRes.destroy();
-        if (!res.headersSent) {
-          res.statusCode = 413;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ error: "Response too large to screen under Family Safe Mode." }));
-        }
-      } else {
-        chunks.push(buf);
-      }
+      chunks.push(buf);
     });
 
     proxyRes.on("end", () => {
@@ -797,14 +819,24 @@ export function createServerApp() {
         return;
       }
       applyCircuitFromStatus(proxyRes.statusCode);
+      if (eventGate) {
+        void gateChain.then(() => eventGate.end()).then(() => {
+          if (!res.writableEnded) res.end();
+        }).catch(() => {
+          if (!res.headersSent) {
+            res.statusCode = 451;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ error: "Response blocked by Family Safe Mode." }));
+          }
+        });
+        return;
+      }
+
       const buffer = Buffer.concat(chunks, length);
-      const contentType = String(proxyRes.headers["content-type"] || "");
       const text = extractChatCompletionText(buffer.toString("utf8"), contentType);
       if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300 && text.trim()) {
         const screen = screenResponseBody(
-          JSON.stringify({
-            choices: [{ message: { role: "assistant", content: text } }],
-          }),
+          JSON.stringify({ choices: [{ message: { role: "assistant", content: text } }] }),
           { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
           isLocalFamilySafeModeEnabled(req),
         );
@@ -821,11 +853,18 @@ export function createServerApp() {
     });
 
     proxyRes.on("error", () => {
+      eventGate?.cancel();
       if (exceeded) return;
       if (!res.headersSent) {
         res.statusCode = 502;
         res.setHeader("Content-Type", "application/json");
         res.end(JSON.stringify({ error: "Proxy error" }));
+      }
+    });
+    req.on("close", () => {
+      if (!res.writableEnded) {
+        eventGate?.cancel();
+        proxyRes.destroy();
       }
     });
   };

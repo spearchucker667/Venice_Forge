@@ -41,7 +41,6 @@ export interface ScrapeInput {
   signal?: AbortSignal;
   options?: {
     outputFormat?: "markdown" | "text" | "json";
-    respectRobotsTxt?: boolean;
     doNotCache?: boolean;
     removeImages?: boolean;
     includeLinksSummary?: boolean;

@@ -65,8 +65,8 @@ describe("validateIpcSender", () => {
       expect(isTrustedIpcSender(makeEvent("http://localhost:5173/src/main.tsx"))).toBe(true);
     });
 
-    it("trusts the Vite dev server origin via sender fallback", () => {
-      expect(isTrustedIpcSender(makeEventWithSenderUrl("http://localhost:5173/"))).toBe(true);
+    it("rejects a trusted top-level URL when senderFrame identity is absent", () => {
+      expect(isTrustedIpcSender(makeEventWithSenderUrl("http://localhost:5173/"))).toBe(false);
     });
 
     it("rejects untrusted HTTP origins", () => {

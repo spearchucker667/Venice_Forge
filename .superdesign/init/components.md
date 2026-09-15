@@ -1,39 +1,99 @@
-# Venice Forge — Components
+# Venice Forge — Components (source-grounded init)
 
-## Canonical primitive set (`src/components/ui/primitives.tsx`, "VF Design System 2026-09-13")
+> Generated for baseline `07ad9ee6ec6e4249f2ea2a27dc794fa148bd96e8`. Implementation source is authoritative; this bundle is context, not a second registry.
 
-Tailwind classes over semantic CSS tokens; `cn()` = filter/join (no tailwind-merge).
+## Canonical source map
 
-- `IconButton` — tones: neutral/accent/success/warning/danger/info; sizes sm/md/lg; target sizes test-covered.
-- `Pill`, `Toolbar`, `Card`, `EmptyState`, `Input` (forwardRef).
+| Name | Source path | Description | Obvious props |
+|---|---|---|---|
+| `IconButton` | `src/components/ui/primitives.tsx` | Accessible icon-only action with tone, size, disabled, and optional plain-button semantics | `icon`, `ariaLabel`, `tone`, `size`, `filled`, `asPlainButton` |
+| `Pill` | `src/components/ui/primitives.tsx` | Semantic status/category badge | `tone`, `solid`, `leading` |
+| `Toolbar` | `src/components/ui/primitives.tsx` | Compact action group with opt-in toolbar semantics | `size`, `bare`, `align`, `asToolbar` |
+| `Card` | `src/components/ui/primitives.tsx` | Elevated grouped surface | `elevation`, `tone`, `padded` |
+| `EmptyState` | `src/components/ui/primitives.tsx` | Empty/zero-state composition | `eyebrow`, `headline`, `helper`, `illustration`, `action` |
+| `Input` | `src/components/ui/primitives.tsx` | Theme-aware input with adornments | `tone`, `inputSize`, `leading`, `trailing` |
+| `AccessibleDialog` | `src/components/ui/AccessibleDialog.tsx` | Focus-trapped modal with Escape and restore semantics | `open`, `onClose`, accessible title/description |
+| `Select` | `src/components/ui/select.tsx` | Searchable keyboard-accessible portal select | value/options/selection callbacks |
+| `Meteocon` | `src/components/ui/Meteocon.tsx` | CSP-safe weather/icon system | `name`, `size`, `className` |
 
-## Legacy/shared set (`src/components/ui/shared.tsx`)
+## Shared primitive source (`src/components/ui/primitives.tsx`)
 
-`Label`, `TextArea`, `PrimaryButton`, `GhostButton`, `SecondaryButton`, `DangerButton`, `PillGroup`, `ErrorText`, `EmptyState` (dupe of primitives), `Card` (dupe), `SectionHeading`, `Badge`, `StatusDot`, `ExamplePrompts`. **Redesign note: primitives.tsx is canonical; migrate shared.tsx consumers and remove duplicates.**
+```tsx
+export interface IconButtonProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+  icon: React.ReactNode
+  ariaLabel: string
+  tone?: Tone
+  size?: Size
+  asPlainButton?: boolean
+  filled?: boolean
+}
 
-## Select (`src/components/ui/select.tsx`)
+export function IconButton({
+  icon,
+  ariaLabel,
+  tone = 'neutral',
+  size = 'md',
+  filled = false,
+  asPlainButton = false,
+  className,
+  type,
+  ...rest
+}: IconButtonProps) {
+  const sizing = ICON_BUTTON_SIZE[size]
+  const toneClasses = ICON_BUTTON_TONE[tone]
+  const cls = cn(
+    'inline-flex items-center justify-center rounded-md transition-colors duration-100',
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
+    'disabled:text-disabled-fg disabled:cursor-not-allowed',
+    sizing.box,
+    filled
+      ? 'bg-surface-overlay hover:bg-surface-elevated border border-border-soft'
+      : 'hover:bg-surface-elevated',
+    toneClasses,
+    className,
+  )
 
-Single custom `Select`: portal dropdown, searchable, keyboard nav, collision flip, `aria-expanded`/`aria-controls`.
+  if (asPlainButton) {
+    const { disabled, onClick, onKeyDown, ...plainRest } = rest
+    const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (event) => {
+      const handleCallerKeyDown = onKeyDown as unknown as
+        | React.KeyboardEventHandler<HTMLDivElement>
+        | undefined
+      handleCallerKeyDown?.(event)
+      if (event.defaultPrevented || disabled) return
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        event.currentTarget.click()
+      }
+    }
+    return (
+      <div role="button" tabIndex={disabled ? -1 : 0} aria-label={ariaLabel}
+        aria-disabled={disabled || undefined} className={cls}
+        onClick={disabled ? undefined : (onClick as unknown as React.MouseEventHandler<HTMLDivElement>)}
+        onKeyDown={handleKeyDown} {...(plainRest as unknown as React.HTMLAttributes<HTMLDivElement>)}>
+        {icon}
+      </div>
+    )
+  }
+  return <button type={type ?? 'button'} aria-label={ariaLabel} className={cls} {...rest}>{icon}</button>
+}
+```
 
-## Overlays & feedback
+## Layout and overlay components
 
-- `AccessibleDialog` (focus trap, Escape, label), `ContextMenu` (portal), `modal-requests` (askText/askDecision), `ConfirmModal`, `toaster` + `notifications/ToastProvider` (semantic tones), `spinner`, `generation-view` + `generation/*` (GenerationLoadingIndicator, animation registry/preloader).
-- `ErrorBoundary` / `ui/error-boundary`.
+- `src/components/layout/sidebar.tsx` — resizable grouped navigation and profile/project controls.
+- `src/components/layout/header.tsx` — current tab title, model selector, task center, connection status.
+- `src/components/layout/inspector-pane.tsx` — optional right utility rail with traffic/prompt layers.
+- `src/components/status/DiagnosticsDrawer.tsx` and `TaskCenterDrawer.tsx` — full-height utility drawers.
+- `src/components/layout/AppMeshOverlay.tsx` — fixed, `aria-hidden`, pointer-events-none ambient layer.
 
-## Brand & icons
+## CSS/token sources
 
-- `ui/logo.tsx`: `VeniceLogo` / `VeniceWordmark` (mask-image based). NEVER replace with placeholders.
-- `ui/Meteocon.tsx`: icon system (CSP-safe SVG); `meteoconSvgTransformer.ts`.
-- `Chip.tsx`, `Field.tsx`, `ModelSelect.tsx`, `media/ResolvedMediaImg.tsx`, `media/ManagedVideoPlayer.tsx`.
+- `src/styles/theme.css` — semantic runtime variables, typography, geometry, and derived `--color-vf-*` material tokens.
+- `src/styles/components.css` — shared surface, action, shell, and utility-rail classes.
+- `src/styles/accessibility.css` — focus, reduced-motion, forced-colors, and target-size rules.
 
-## Layout components
+## Legacy/shared compatibility
 
-`layout/sidebar.tsx`, `layout/header.tsx`, `layout/inspector-pane.tsx`, `layout/AppMeshOverlay.tsx` (8-line ambient layer div), `layout/api-key-dialog.tsx`, `layout/memory-panel.tsx`, `status/HeaderStatusCluster.tsx`, `status/StatusIndicator.tsx`.
-
-## CSS class layers
-
-`src/styles/theme.css` (Tailwind v4 `@theme`, type scale `.vf-display…vf-tag`, `.prose-venice`, scrollbars, focus ring, keyframes, reduced-motion), `src/styles/components.css` (`.btn` system, `.mesh-*` surfaces, `.glass-*`, `.modal-*`, `.vf-action-*`, `.vf-empty-state*`, `.vf-composer`, `.border-soft/faint`), `src/styles/accessibility.css`.
-
-## Redesign targets for shared primitives (new, derived-token based)
-
-`ShellPanel`, `PanelHeader`, `PanelSection`, `InsetCanvas`, `UtilityRail`/`UtilityRailSection`, `StatusRow`, `MetricStrip`, `DenseListRow`, `InspectorCard`, `AccentProgress`, `DataGridSurface` — add only where ≥2 substantial surfaces consume them.
+`src/components/ui/shared.tsx` still exposes compatibility helpers. New shared UI should use `primitives.tsx`; do not create a third duplicate Card/EmptyState/Pill system. Preserve the Electron/web bridge, i18n, safety, and theme-token contracts when adding components.

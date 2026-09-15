@@ -21,6 +21,19 @@ export type IngestionExtractionRoute =
   | "vision-model"
   | "unsupported";
 
+export interface AttachmentChunk {
+  attachmentId: string;
+  chunkIndex: number;
+  startOffset: number;
+  endOffset: number;
+  tokenEstimate: number;
+  text: string;
+  provenance: {
+    name: string;
+    mimeType: string;
+  };
+}
+
 export interface IngestedAttachment {
   id: string;
   /** Optional main-process registry id enabling Document Agent promotion. */
@@ -34,6 +47,10 @@ export interface IngestedAttachment {
 
   text?: string;
   markdown?: string;
+  /** Ordered extracted chunks retained separately from the provider-selected
+   *  `text` envelope. Chunks are bounded by resource limits and may be
+   *  selected later according to the active model context window. */
+  chunks?: AttachmentChunk[];
   dataUrl?: string;
   objectUrl?: string;
 

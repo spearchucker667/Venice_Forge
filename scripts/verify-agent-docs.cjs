@@ -25,7 +25,6 @@ const COPILOT_CURRENT_ARCHITECTURE_MARKERS = [
   'electron/ipc/handlers/',
   'GET  /image/styles',
   'GET  /characters',
-  '20 top-level tabs',
   'Character Chats',
 ];
 
@@ -179,6 +178,9 @@ function verifyAgentDocs(repoRoot) {
     }
     if (/\(\d+\s+stores\b/i.test(copilot)) {
       errorSet.add('ERROR: .github/copilot-instructions.md hardcodes a numeric IndexedDB store count; reference STORE_NAMES/ENCRYPTED_STORES instead.');
+    }
+    if (/\b\d+\s+(?:top-level|canonical)\s+tabs?\b/i.test(copilot)) {
+      errorSet.add('ERROR: .github/copilot-instructions.md hardcodes a numeric tab count; reference src/config/tabs.ts instead.');
     }
     const hasAllGroundTruth = STORAGE_GROUND_TRUTH.every(p => copilot.includes(p));
     if (!hasAllGroundTruth) {

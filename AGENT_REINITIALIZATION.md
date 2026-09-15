@@ -3,7 +3,8 @@
 > **Canonical Repository Root:** `/Users/super_user/Projects/Venice_Forge`
 > **GitHub:** `spearchucker667/Venice_Forge`
 > **Version:** `3.0.0-beta.3`
-> **Last Re-Initialization:** 2026-08-26 (Anchored to git commit `eba90428be6c87b85a96e07b83be09e0f383db89`)
+> **Last Re-Initialization:** 2026-09-15 (Anchored to git commit `07ad9ee6ec6e4249f2ea2a27dc794fa148bd96e8`)
+> **Canonical tab registry:** `src/config/tabs.ts` (`CANONICAL_TAB_ORDER`; do not duplicate a tab count here)
 > **Audience:** Senior Engineers & AI Coding Agents joining the project.
 
 ---
@@ -21,7 +22,7 @@ Venice Forge is a desktop-first (**Electron 43**) and web-compatible (**Vite 8 +
 ```mermaid
 flowchart TD
   subgraph Renderer ["Renderer Layer (Vite 8 / React 19 / Zustand 5)"]
-    UI["20 Top-Level Tab Views (App.tsx)"]
+    UI["Canonical Tab Views (src/config/tabs.ts)"]
     Bridge["Desktop Bridge (src/services/desktopBridge.ts)"]
     VClient["Venice Client (src/services/veniceClient.ts)"]
     Stores["19+ Zustand Stores (chat, media, status, etc.)"]

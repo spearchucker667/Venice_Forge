@@ -5,6 +5,7 @@ import { FileTooLargeError, UnsupportedFileTypeError } from "./ingestionErrors";
 import { extractTextFromFile } from "./textIngestion";
 import { escapeXmlAttribute, escapeXmlText } from "./xmlEscape";
 import { redactSecrets } from "../../shared/redaction";
+import { extractAttachmentChunks } from "./attachmentChunking";
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -65,9 +66,15 @@ export async function ingestCodeFile(file: File): Promise<IngestedAttachment> {
   }
 
   const rawText = await extractTextFromFile(file);
-  const truncated = rawText.length > MAX_CODE_CHARS_PER_FILE;
-  const truncatedText = truncated ? rawText.slice(0, MAX_CODE_CHARS_PER_FILE) : rawText;
-  const text = redactSecrets(truncatedText);
+  const redactedRawText = redactSecrets(rawText);
+  const id = generateId();
+  const chunkResult = extractAttachmentChunks(redactedRawText, {
+    attachmentId: id,
+    name: file.name,
+    mimeType: file.type,
+  }, { maxChars: MAX_CODE_CHARS_PER_FILE });
+  const truncated = chunkResult.extractionTruncated;
+  const text = chunkResult.chunks.map((chunk) => chunk.text).join("");
 
   const warnings: string[] = [];
   if (truncated) {
@@ -85,7 +92,7 @@ ${escapeXmlText(text)}
 </attached_file>`;
 
   return {
-    id: generateId(),
+    id,
     kind: "code",
     name: file.name,
     extension: classified.extension,
@@ -93,6 +100,7 @@ ${escapeXmlText(text)}
     sizeBytes: file.size,
     createdAt: new Date().toISOString(),
     text: wrappedText,
+    chunks: chunkResult.chunks,
     language,
     extraction: {
       route: "local-code",

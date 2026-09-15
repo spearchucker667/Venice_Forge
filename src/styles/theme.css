@@ -61,9 +61,8 @@
   --color-bg-raised: #111114; /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
   --color-bg-overlay: #16161b; /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
 
-  /* Border scale */
-  --color-border-faint: rgba(255, 255, 255, 0.05); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
-  --color-border-soft: rgba(255, 255, 255, 0.08); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
+  /* Border scale is defined below as semantic aliases derived from the
+     active theme border token. Keep one authority per custom property. */
 
   /* Text scale */
   --color-text-tertiary: var(--foreground-subtle);

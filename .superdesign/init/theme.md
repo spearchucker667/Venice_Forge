@@ -1,20 +1,67 @@
-# Venice Forge — Theme System
+# Venice Forge — Theme System (source-grounded init)
+
+> **Authorities:** `src/theme/themeTypes.ts`, `src/theme/builtins/index.ts`, `src/theme/builtins/venice.ts`, `src/theme/resolver.ts`, `src/theme/applyTheme.ts`, `src/styles/theme.css`.
 
 ## Architecture
 
-- **Theme Family v2**: one identity = `ThemeFamily { schemaVersion: 2, variants: { light, dark } }`; each variant = `{ tokens: ThemeTokens, code: CodeThemeConfig }`.
-- **43 built-in families** as TypeScript token definitions in `src/theme/builtins/` (aggregated in `builtins/index.ts`). Default = `BUILTIN_VENICE`.
-- **Runtime application**: `src/theme/applyTheme.ts` writes ~90 CSS custom properties onto `document.documentElement.style` (`--bg`, `--surface`, `--surface-elevated`, `--surface-muted`, `--border`, `--border-strong`, `--accent`, `--accent-hover`, `--accent-fg`, `--foreground`, `--foreground-muted`, `--success/--warning/--danger/--info`, `--glow`, `--overlay`, `--code-*`, `--syntax-*`, `--app-mesh-opacity`, `--app-font-scale`). Sets `data-theme-mode` + `color-scheme`.
-- **Tailwind v4 (CSS-first, no JS config)**: `src/styles/theme.css` `@theme` block maps Tailwind color utilities to the runtime CSS vars. Geometry shared across all themes: `--radius-control: 8px`, `--radius-panel: 12px`, `--radius-dialog: 16px`; motion 75/140/220/350 ms; shadow scale `--shadow-subtle → --shadow-overlay`.
-- **Custom themes & YAML import/export**: `src/theme/yaml/*`, `electron/services/themeService.ts`, Theme Maker UI (`src/components/ThemeMaker.tsx`). Resolution: YAML → legacy custom → built-in → default.
-- **FOUC bootstrap**: `public/bootstrap-theme.js` + `localStorage['vf.theme.bootstrap']`.
-- **Syntax/code themes**: 8 code-surface + 25 syntax tokens (`--code-*`, `--syntax-*`), consumed by Refractor in `.prose-venice`.
-- **Verifier**: no hardcoded colors without `THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR` marker; `npm run verify:theme-tokens`.
+- `ThemeFamily` schema version 2 contains one family identity with `variants.light` and `variants.dark`.
+- `src/theme/builtins/index.ts` registers the built-in family list and `BUILTIN_CANONICAL_MODES`; `BUILTIN_VENICE` is the default family.
+- `resolveTheme()` selects the effective mode and completes semantic tokens; `applyTheme()` writes runtime CSS variables and pins `color-scheme`.
+- YAML/custom persistence uses `src/theme/yaml/`, Electron theme services, and Theme Maker. Do not add renderer secret/file access.
+- Tailwind v4 utilities map to CSS variables in `src/styles/theme.css`; UI components must not hardcode palette values.
 
-## Current default (Venice Parity Dark)
+## Current Venice fingerprints
 
-Blue-tinted graphite: `--bg #050a0f`, `--surface #080f15`, `--surface-elevated #111922`, `--border #1b2632`, accent `#63b3ed` (blue). Redesign target: graphite-neutral near-black (`#050505–#212025`) with restrained crimson accent (`#EF555F` family) for the default dark variant only — all other families keep their own hues.
+`src/theme/builtins/venice.ts` current default direction:
 
-## Redesign constraint
+- dark background: `#050505`
+- dark accent: `#ef555f`
+- dark accent hover: `#f65964`
+- light accent: `#c81e3f`
+- dark surface: `#0d0d10` / raised `#16161a`
 
-NEVER bypass the token system. New material language (shell/panel/glow tokens) must be **derived CSS variables** in `src/styles/theme.css` using `color-mix()` from the semantic tokens above, so every theme family (incl. custom/YAML) inherits the new geometry/material with its own hue.
+The old blue/cyan values are not current authority and must not be regenerated into design artifacts.
+
+## Raw CSS/token source (`src/styles/theme.css`)
+
+```css
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-text-primary: var(--text-primary);
+  --color-vf-shell-bg: var(--color-bg);
+  --color-vf-shell-bg-deep: color-mix(in srgb, var(--color-bg) 92%, var(--color-surface-muted) 8%);
+  --color-vf-panel-bg: var(--color-surface);
+  --color-vf-panel-bg-raised: var(--color-surface-elevated);
+  --color-vf-panel-bg-inset: var(--color-surface-muted);
+  --color-vf-panel-border: var(--color-border);
+  --color-vf-panel-border-hot: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  --color-vf-accent-glow: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  --color-vf-accent-glow-strong: color-mix(in srgb, var(--color-accent) 42%, transparent);
+  --color-vf-accent-glow-subtle: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --color-vf-control-hover: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+:root {
+  --radius-control: 0.5rem;
+  --radius-panel: 0.625rem;
+  --radius-dialog: 0.875rem;
+}
+```
+
+## Runtime application source (`src/theme/applyTheme.ts`)
+
+```ts
+Object.entries(map).forEach(([key, value]) => root.style.setProperty(key, value));
+root.dataset.themeMode = theme.mode;
+root.style.colorScheme = theme.mode;
+```
+
+## Design constraints
+
+- Derive new material tokens from semantic variables with `color-mix()`; do not create palette-specific component literals.
+- Keep token names unique in a scope; `--color-border-soft` and `--color-border-faint` each have one semantic definition.
+- Preserve contrast, reduced motion, forced colors, RTL, and custom/YAML theme inheritance.

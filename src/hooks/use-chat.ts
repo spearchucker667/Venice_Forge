@@ -20,11 +20,10 @@ import type { CharacterSceneGenerationResult } from "../types/characterSceneGene
 import type { IngestedAttachment } from "../types/ingestion";
 import {
   computeAttachmentTextAllowance,
-  estimateTokenCount,
 } from "../services/chatContextBudget";
 import { resolveEffectiveChatPromptContext } from "../services/effectiveChatPrompt";
 import { getModelById } from "../services/modelService";
-import { buildExternalAttachmentEnvelope } from "../services/ingestion/xmlEscape";
+import { selectAttachmentContext } from "../services/ingestion/attachmentContextSelection";
 import * as logger from "../shared/logger";
 import { generateId } from "../lib/utils";
 import { chatTtsController } from "../services/chatTtsController";
@@ -573,6 +572,8 @@ export function useChat() {
       const attachmentRefs: ChatAttachmentRef[] = [];
       let providerContextText = "";
       let contextTruncated = false;
+      let selectedTextAttachmentIds = new Set<string>();
+      let omittedTextAttachmentIds = new Set<string>();
 
       // Model-aware admission: extracted attachment text competes for the
       // SELECTED MODEL's remaining context window, not a fixed 1 MiB ceiling.
@@ -593,6 +594,17 @@ export function useChat() {
       let contextUnitsUsed = 0;
 
       if (attachments && attachments.length > 0) {
+        const knownModelSelection = useTokenBudget
+          ? selectAttachmentContext(attachments, attachmentAllowance.allowanceTokens)
+          : null;
+        if (knownModelSelection) {
+          providerContextText = knownModelSelection.providerContextText;
+          selectedTextAttachmentIds = knownModelSelection.selectedAttachmentIds;
+          omittedTextAttachmentIds = knownModelSelection.omittedAttachmentIds;
+          contextUnitsUsed = knownModelSelection.usedTokens;
+          contextTruncated = knownModelSelection.omittedChunkCount > 0;
+        }
+
         for (const att of attachments) {
           let omittedByContext = false;
           if (att.kind === "image" && att.dataUrl) {
@@ -601,30 +613,18 @@ export function useChat() {
               type: "image_url",
               image_url: { url: att.dataUrl },
             });
-          } else if (att.text) {
-            const attUnits = useTokenBudget
-              ? estimateTokenCount(att.text).count
-              : new TextEncoder().encode(att.text).length;
+          } else if (att.text && !knownModelSelection) {
+            const attUnits = new TextEncoder().encode(att.text).length;
             omittedByContext =
-              contextUnitsUsed + attUnits >
-              (useTokenBudget
-                ? attachmentAllowance.allowanceTokens
-                : attachmentAllowance.allowanceBytes);
+              contextUnitsUsed + attUnits > attachmentAllowance.allowanceBytes;
             if (!omittedByContext) {
-              // Provider-only context: wrapped in an untrusted-data envelope.
-              // This text is NOT stored in the visible persisted message content.
-              // The guard (childExploitationGuard.ts) splits on this exact tag to
-              // assess attachment text as quoted data rather than user intent.
-              providerContextText += `\n\n${buildExternalAttachmentEnvelope({
-                id: att.id,
-                name: att.name,
-                mimeType: att.mimeType,
-                text: att.text,
-              })}`;
+              providerContextText += `\n\n${selectAttachmentContext([att], Number.MAX_SAFE_INTEGER).providerContextText}`;
               contextUnitsUsed += attUnits;
             } else {
               contextTruncated = true;
             }
+          } else if (att.text) {
+            omittedByContext = omittedTextAttachmentIds.has(att.id);
           }
           // Build structured attachment ref (no raw extracted content).
           const extractionTruncated = att.extraction.truncated === true;
@@ -637,7 +637,12 @@ export function useChat() {
             sizeBytes: att.sizeBytes,
             createdAt: att.createdAt,
             extractionRoute: att.extraction.route,
-            truncated: extractionTruncated || omittedByContext,
+            truncated:
+              extractionTruncated ||
+              omittedByContext ||
+              (selectedTextAttachmentIds.has(att.id) &&
+                (att.chunks?.length ?? 1) > 1 &&
+                omittedTextAttachmentIds.has(att.id)),
             requiresVision: att.modelRequirements.requiresVision,
           });
         }

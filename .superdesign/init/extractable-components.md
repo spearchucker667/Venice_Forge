@@ -1,21 +1,38 @@
-# Venice Forge — Extractable Components (redesign candidates)
+# Venice Forge — Extractable Components (source-grounded init)
 
-Reusable primitives that at least two substantial surfaces need. Canonical home after redesign: `src/components/ui/primitives.tsx` + `src/styles/components.css` (derived-token classes). Names illustrative.
+> Extract only when a pattern has at least two substantial consumers and its behavior can remain within the existing theme, i18n, accessibility, safety, persistence, and bridge contracts.
 
-## New (reference material language)
-| Component | Consumers | Notes |
-|---|---|---|
-| `ShellPanel` | App main, Settings, Status, Chat, drawers | 1px border, low radius (6–10px), raised graphite, subtle top inner highlight |
-| `PanelHeader` | every pane, drawers, Theme Maker | compact title row, optional actions, micro-label style |
-| `PanelSection` | Settings groups, Status cards, Privacy | divider-based hierarchy, not card-per-row |
-| `InsetCanvas` | Chat transcript, image/video preview, workflow graph, playground editor, code surfaces | darker inset bg, faint grid option |
-| `UtilityRail` / `UtilityRailSection` | InspectorPane, DiagnosticsDrawer, TaskCenterDrawer, Documents agent rail | compact stacked technical cards |
-| `DenseListRow` | History, Media grid rows, Task Center, prompt library | strong selected state, hover actions |
-| `StatusRow` / `MetricStrip` | Status, Privacy dashboard, HeaderStatusCluster | label + value + compact indicator |
-| `AccentProgress` | generation progress, task progress, checklist items | accent-derived, restrained glow |
-| `DataGridSurface` | Status charts, Inspector timing, token/context meters | faint grid, muted ticks, accent current trace |
+## Required extraction record schema
 
-## Existing to consolidate
-- `Card`/`EmptyState` duplicated in `ui/shared.tsx` and `ui/primitives.tsx` → keep primitives, migrate consumers, delete dupes.
-- `.mesh-*` / `.glass-*` classes (components.css) → re-anchor onto derived `--vf-*` shell tokens; retire visual variants that fight the new material contract.
-- `StatusDot`, `Badge`, `Pill` → single status-badge system with semantic tones (success/warning/danger/info/neutral/accent).
+Every candidate must record:
+
+| Field | Meaning |
+|---|---|
+| **name** | Stable component name/export |
+| **source path** | Current implementation or intended canonical home |
+| **category** | shell, panel, form, status, list, media, overlay, or editor |
+| **description** | Visible/behavioral responsibility |
+| **state/navigation props** | State, callbacks, route/tab, and ownership inputs |
+| **hardcoded elements** | Any intentional fixed copy/color/geometry that must remain tokenized or localized |
+
+## Current canonical candidates
+
+| Name | Source path | Category | Description | State/navigation props | Hardcoded elements |
+|---|---|---|---|---|---|
+| `ShellPanel` | `src/components/ui/primitives.tsx` | shell/panel | Framed raised or inset workspace panel | `inset`, children, ARIA attrs | none; consumes `--vf-*` classes |
+| `PanelHeader` | `src/components/ui/primitives.tsx` | panel | Compact title/action row | `title`, `actions`, children | none; title is caller-localized |
+| `UtilityRailSection` | `src/components/ui/primitives.tsx` | shell/status | Utility rail section with compact header | `title`, `actions`, children | none |
+| `DenseListRow` | `src/components/ui/primitives.tsx` | list | Selected/hoverable compact row | `selected`, leading/label/trailing, button handlers | none |
+| `AccentProgress` | `src/components/ui/primitives.tsx` | status | Accessible accent progress bar | `value`, `label` | none; width uses CSP-safe CSS property |
+| `IconButton` | `src/components/ui/primitives.tsx` | form/action | Shared icon action semantics | `ariaLabel`, `tone`, `size`, disabled, onClick | no fixed visible copy |
+| `Card` | `src/components/ui/primitives.tsx` | panel | Semantic elevation surface | `elevation`, `tone`, `padded` | none |
+| `EmptyState` | `src/components/ui/primitives.tsx` | status | Headline/helper/action empty state | `headline`, helper, action, illustration | visible text supplied by caller and must be localized |
+| `AccessibleDialog` | `src/components/ui/AccessibleDialog.tsx` | overlay | Focus trap, Escape, restore | `open`, `onClose`, title/description | none |
+| `Toolbar` | `src/components/ui/primitives.tsx` | action | Shared action grouping | `size`, `bare`, `align`, `asToolbar` | none |
+
+## Do not extract blindly
+
+- Do not create a parallel theme/token system; all visual values resolve through `src/styles/theme.css` and `src/styles/components.css`.
+- Do not move security-sensitive document/workspace or IPC authorization into renderer components.
+- Do not turn global tab navigation into a generic component that bypasses `src/config/tabs.ts`.
+- Do not persist media data URLs or raw credentials through a reusable UI state layer.

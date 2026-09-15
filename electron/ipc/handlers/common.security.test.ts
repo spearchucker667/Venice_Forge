@@ -190,9 +190,9 @@ describe("registerPrivilegedIpcChannel sender validation", () => {
     expect(handlerState.state.ran).toBe(false);
   });
 
-  it("falls back to sender.getURL() when senderFrame is absent", async () => {
+  it("rejects a trusted parent webContents URL when senderFrame is absent", async () => {
     const handler = capturedHandlers.get(TEST_CHANNEL)!;
-    const trustedEvent = {
+    const trustedParentOnlyEvent = {
       senderFrame: undefined,
       sender: {
         id: 1,
@@ -200,7 +200,7 @@ describe("registerPrivilegedIpcChannel sender validation", () => {
         isDestroyed: () => false,
       } as unknown as Electron.WebContents,
     } as unknown as Electron.IpcMainInvokeEvent;
-    const result = await handler(trustedEvent);
-    expect(result).toEqual({ ok: true, secret: "handler-ran" });
+    await expect(handler(trustedParentOnlyEvent)).rejects.toThrow(/untrusted/i);
+    expect(handlerState.state.ran).toBe(false);
   });
 });

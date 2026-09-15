@@ -12,8 +12,9 @@ import { translateRuntime } from "../../i18n/runtimeTranslator";
  *   X-Return-Format, X-No-Cache, X-Timeout, X-Max-Tokens, X-Token-Budget,
  *   X-With-Links-Summary, X-With-Images-Summary, X-Retain-Images
  *
- * Unverified / not implemented in this pass:
- *   respectRobotsTxt — no user-controllable header confirmed.
+ * Robots policy: this adapter delegates retrieval to Jina's hosted Reader.
+ * Venice Forge cannot truthfully enforce the remote crawler's robots policy, so
+ * no `respectRobotsTxt` option is exposed by the provider contract.
  */
 
 import type {

@@ -1,44 +1,66 @@
-# Venice Forge — Layouts / Shell
+# Venice Forge — Layouts / Shell (source-grounded init)
 
-## Desktop shell (src/App.tsx)
+> Generated for baseline `07ad9ee6ec6e4249f2ea2a27dc794fa148bd96e8`. Layout source is authoritative.
 
-Three-zone instrument layout already in place; redesign retunes rather than rebuilds:
+## Application composition (`src/App.tsx`)
 
-```
-┌────────────────────────────────────────────────────────────┐
-│ Header — h-14, mesh-surface, soft-separator-y              │
-├──────────────┬──────────────────────────────┬──────────────┤
-│ Sidebar      │ main#main-content            │ InspectorPane│
-│ (resizable)  │ .mesh-panel, lazy view       │ (right rail, │
-│ 220–480px    │                              │ when open)   │
-│ collapsed 60 │                              │              │
-└──────────────┴──────────────────────────────┴──────────────┘
-AppMeshOverlay — fixed, aria-hidden, pointer-events:none (ambient layer)
+The desktop shell is a three-zone composition: sidebar, main workspace, and optional inspector rail. Header sits above the workspace. The main view is selected from `views: Record<TabId, React.ComponentType>` after `normaliseTab(activeTab)`.
+
+```tsx
+return (
+  <div className="relative isolate flex h-[100dvh] w-screen overflow-hidden bg-vf-shell-bg-deep">
+    <a href="#main-content" className="sr-only focus:not-sr-only">Skip to main content</a>
+    <AppMeshOverlay />
+    {mobileSidebarOpen && (
+      <button aria-label={tRuntime("runtimeGenerated.app.attribute.closeMenu")}
+        className="md:hidden fixed inset-0 z-30 bg-overlay/80 backdrop-blur-[2px]"
+        onClick={() => setMobileSidebarOpen(false)} />
+    )}
+    <Sidebar mobileOpen={mobileSidebarOpen} onMobileClose={() => setMobileSidebarOpen(false)} />
+    <div className="relative z-10 flex flex-col flex-1 min-w-0">
+      <Header onOpenApiKey={() => setApiKeyOpen(true)} onOpenMobileSidebar={() => setMobileSidebarOpen(true)} />
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <main id="main-content" tabIndex={-1}
+          className="flex-1 min-h-0 overflow-hidden bg-vf-panel-bg rounded-none border-0 shadow-none outline-none">
+          <ErrorBoundary key={normalisedActiveTab}>
+            <div key={normalisedActiveTab} className="section-transition h-full"><ActiveView /></div>
+          </ErrorBoundary>
+        </main>
+        <InspectorPane />
+      </div>
+    </div>
+    <DiagnosticsDrawer />
+    <TaskCenterDrawer />
+  </div>
+)
 ```
 
 ## Sidebar (`src/components/layout/sidebar.tsx`)
 
-- Resizable via pointer + keyboard separator; constants `src/stores/settings-store.ts:27-30` (`SIDEBAR_MIN 220`, `DEFAULT 256`, `MAX 480`, `COLLAPSED 60`); width via `--sidebar-width` CSS var.
-- Collapsed mode = 60px icon rail with tooltips (`sidebarOpen=false`).
-- Mobile (< md): fixed `w-72` drawer + backdrop scrim in App.
-- Content: logo/wordmark → project switcher → nav groups (Conversation / Generate / Build / System, order from `src/config/tabs.ts`) → chat history + search (chat tab) → Traffic Inspector & Family Safe switches → shortcut legend.
-- Icons: Meteocon icon system; character avatars preserved.
+- Source: `src/components/layout/sidebar.tsx`
+- Width constants: `SIDEBAR_MIN_WIDTH`, `SIDEBAR_DEFAULT_WIDTH`, `SIDEBAR_MAX_WIDTH`, `SIDEBAR_COLLAPSED_WIDTH` from `src/stores/settings-store.ts`.
+- Desktop width is `--sidebar-width`; collapsed mode is an icon rail; mobile mode is a fixed drawer under `md` with a scrim.
+- Navigation is derived from `TAB_REGISTRY`, `TAB_GROUP_LABELS`, and `TAB_ICONS`; do not hand-maintain a second route list.
+- Project switcher, new-chat action, conversation search/history, Family Safe Mode toggle, Traffic Inspector toggle, and shortcut legend are sidebar-owned controls.
 
 ## Header (`src/components/layout/header.tsx`)
 
-h-14, `mesh-surface mesh-header soft-separator-y`. Left: mobile hamburger, sidebar toggle, tab title/subtitle, model selector (hidden when `modelSelectorOwner: 'view'`). Right: Task Center toggle + count badge, `HeaderStatusCluster`, API-key status button (`StatusDot`). Labels collapse below xl/sm breakpoints.
+- Source: `src/components/layout/header.tsx`
+- `h-14`, `bg-vf-shell-bg`, bottom border `border-vf-panel-border`.
+- Left controls: mobile menu and desktop sidebar toggle.
+- Center-left: active character avatar, canonical tab label/subtitle, model selector where the tab descriptor owns a selector.
+- Right: Task Center, `HeaderStatusCluster`, API-key status/manage action.
 
-## Right utility rail
+## Inspector rail (`src/components/layout/inspector-pane.tsx`)
 
-`src/components/layout/inspector-pane.tsx` renders null unless `showInspector`; drag-resizable width (`inspectorWidth` + drag override); internal 180px column. Siblings with same visual role: `status/DiagnosticsDrawer.tsx`, `status/TaskCenterDrawer.tsx` (full-height drawers).
+- Optional, null when `showInspector` is false.
+- Source: `src/components/layout/inspector-pane.tsx`.
+- Main frame uses an accessible vertical `role="separator"`, pointer drag, arrow-key resize, Enter/Space/Escape reset, and focus restore on close.
+- Tabs: traffic and prompt layers. Export is redacted telemetry only.
 
-## View layouts by family
+## Responsive and overlay contracts
 
-- **Chat**: full-height column — transcript scroll + composer (`vf-composer`), HistoryView as master list.
-- **Generate**: mostly three-pane (controls | canvas/preview | options/history) or toolbar+grid (Media Studio gallery).
-- **Build**: master/detail editors — RP Studio (rails + central editor), Documents (tree | editor | agent rail), Scene Composer (layers | canvas | properties), Workflows (graph canvas + inspector).
-- **System**: Settings = narrow nav rail + config pane (+ Theme Maker live preview); Status = summary strip + diagnostic panels + cards.
-
-## Responsive contracts (test-asserted)
-
-sidebar.test.tsx / header.test.tsx assert widths, collapse, drawer behavior — must not regress. Breakpoint `md` is the mobile boundary.
+- `md` is the mobile boundary.
+- `src/components/layout/AppMeshOverlay.tsx` is ambient only: `aria-hidden="true"`, no interaction.
+- Global overlays include `ApiKeyDialog`, `FirstRunModal`, `OnboardingSplash`, `CommandPalette`, `ModalRequestHost`, `Toaster`, `DiagnosticsDrawer`, and `TaskCenterDrawer`.
+- Do not introduce unrestricted navigation, renderer filesystem access, or a second shell route registry.
