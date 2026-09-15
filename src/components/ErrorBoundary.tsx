@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           role="alert"
-          className="m-8 rounded-2xl border border-danger/20 bg-danger/10 p-8 backdrop-blur-md shadow-lg"
+          className="m-8 rounded-xl border border-danger/20 bg-danger/10 p-8 backdrop-blur-md shadow-lg"
         >
           <h2 className="text-xl font-display font-semibold text-danger mb-3"><Trans i18nKey="common:surface.componentsErrorboundary.heading.somethingWentWrong" /></h2>
           <p className="text-sm text-danger/80 mb-6">

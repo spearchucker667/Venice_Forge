@@ -53,7 +53,7 @@ function DefaultFallback({ error, reset }: { error: Error; reset: () => void }) 
           <Trans i18nKey="common:surface.componentsUiErrorBoundary.description.theAppHitAnUnexpectedErrorAnd" /></p>
         <details className="mb-5 text-left">
           <summary className="text-[13px] text-text-muted cursor-pointer hover:text-text-secondary"><Trans i18nKey="common:surface.componentsUiErrorBoundary.text.showDetails" /></summary>
-          <pre className="mt-2 text-[12px] text-danger/70 bg-surface-muted border border-border rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap break-words">
+          <pre className="mt-2 text-[12px] text-danger/70 bg-vf-panel-bg-inset border border-vf-panel-border rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap break-words">
             {message}
             {stack ? `\n\n${stack}` : ''}
           </pre>
@@ -66,7 +66,7 @@ function DefaultFallback({ error, reset }: { error: Error; reset: () => void }) 
             <Trans i18nKey="common:surface.componentsUiErrorBoundary.action.tryAgain" /></button>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 text-[14px] font-medium border border-border text-text-secondary hover:text-text-primary hover:border-border-strong rounded-md transition-colors"
+            className="px-4 py-2 text-[14px] font-medium border border-vf-panel-border text-text-secondary hover:text-text-primary hover:border-border-strong rounded-md transition-colors"
           >
             <Trans i18nKey="common:surface.componentsUiErrorBoundary.action.reloadPage" /></button>
         </div>

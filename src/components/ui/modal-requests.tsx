@@ -189,7 +189,7 @@ export function ModalRequestHost() {
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-2xl focus:outline-none"
+        className="w-full max-w-md rounded-xl border border-vf-panel-border bg-vf-panel-bg p-6 shadow-2xl focus:outline-none"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"

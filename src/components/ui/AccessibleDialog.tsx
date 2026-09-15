@@ -56,7 +56,7 @@ export function AccessibleDialog({
         aria-describedby={descriptionId}
         className={`flex max-h-[min(90vh,900px)] w-full flex-col overflow-hidden modal-surface-container focus:outline-none ${panelClassName}`}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-border/50 px-5 py-4">
+        <header className="flex items-start justify-between gap-4 border-b border-vf-panel-border px-5 py-4">
           <div className="min-w-0">
             <h2 id={titleId} className="text-lg font-display font-semibold text-text-primary">
               {title}

@@ -41,7 +41,7 @@ export function FirstRunModal({ open, onAcknowledge, onDismiss }: FirstRunModalP
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border/50 bg-surface/90 shadow-[0_24px_64px_var(--overlay),0_0_0_1px_var(--glow)] backdrop-blur-xl animate-[slideUp_0.4s_cubic-bezier(0.16,1,0.3,1)] focus:outline-none sm:max-h-[calc(100dvh-3rem)]"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-vf-panel-border bg-vf-panel-bg shadow-[0_24px_64px_var(--overlay),0_0_0_1px_var(--glow)] backdrop-blur-xl animate-[slideUp_0.4s_cubic-bezier(0.16,1,0.3,1)] focus:outline-none sm:max-h-[calc(100dvh-3rem)]"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -54,7 +54,7 @@ export function FirstRunModal({ open, onAcknowledge, onDismiss }: FirstRunModalP
         <div id="first-run-detail" className="min-h-0 flex-1 overflow-y-auto px-6 py-4 text-sm text-text-secondary leading-relaxed space-y-3 whitespace-pre-line">
           {FIRST_RUN_COPY.body}
         </div>
-        <div className="flex shrink-0 flex-col items-stretch justify-end gap-3 border-t border-border/50 px-6 py-4 sm:flex-row sm:items-center">
+        <div className="flex shrink-0 flex-col items-stretch justify-end gap-3 border-t border-vf-panel-border px-6 py-4 sm:flex-row sm:items-center">
           <a
             href="https://venice.ai/brand"
             target="_blank"

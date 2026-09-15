@@ -245,7 +245,7 @@ export function Select({
         className={cn(
           "mesh-input w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-[15px] hover:border-text-muted outline-none cursor-pointer",
           open && "border-accent",
-          disabled && "opacity-50 cursor-not-allowed hover:border-border",
+          disabled && "opacity-50 cursor-not-allowed hover:border-vf-panel-border",
         )}
       >
         <span
@@ -286,10 +286,10 @@ export function Select({
               width: rect.width,
             }}
             onKeyDown={handleKeyDown}
-            className="mesh-panel absolute z-50 w-full mt-0.5 rounded-lg animate-scale-in overflow-hidden shadow-xl border border-border"
+            className="mesh-panel absolute z-50 w-full mt-0.5 rounded-lg animate-scale-in overflow-hidden shadow-xl border border-vf-panel-border"
           >
             {searchable && (
-              <div className="p-1 border-b border-border/50">
+              <div className="p-1 border-b border-vf-panel-border">
                 <input
                   ref={inputRef}
                   role="combobox"
@@ -344,7 +344,7 @@ export function Select({
                       "w-full text-left px-3 py-[6px] text-[15px] rounded transition-colors cursor-pointer",
                       o.value === value
                         ? "bg-accent/15 text-accent font-semibold"
-                        : "text-text-secondary hover:bg-surface hover:text-text-primary",
+                        : "text-text-secondary hover:bg-vf-panel-bg hover:text-text-primary",
                       "data-[highlighted=true]:bg-accent/10 data-[highlighted=true]:text-text-primary",
                     )}
                   >

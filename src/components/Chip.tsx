@@ -11,9 +11,9 @@ const toneClasses: Record<string, string> = {
   warn: 'bg-warning/10 text-warning border-transparent',
   danger: 'bg-danger/10 text-danger border-transparent',
   running: 'bg-accent/10 text-accent border-transparent',
-  muted: 'bg-surface-elevated text-text-muted border-border',
+  muted: 'bg-vf-panel-bg-raised text-text-muted border-vf-panel-border',
   video: 'bg-info/10 text-info border-transparent',
-  default: 'bg-surface text-text-primary border-border'
+  default: 'bg-vf-panel-bg text-text-primary border-vf-panel-border'
 };
 
 export function Chip({ children, tone = "default", className = "" }: ChipProps) {

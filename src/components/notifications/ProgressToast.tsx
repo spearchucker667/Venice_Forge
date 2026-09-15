@@ -24,7 +24,7 @@ export function ProgressToast({ toast }: { toast: Toast }) {
       onMouseLeave={() => resumeToast(toast.id)}
       onFocusCapture={() => pauseToast(toast.id)}
       onBlurCapture={() => resumeToast(toast.id)}
-      className="pointer-events-auto rounded-xl px-4 py-3 shadow-xl backdrop-blur-md animate-scale-in soft-separator relative overflow-hidden bg-mesh-surface"
+      className="pointer-events-auto rounded-xl px-4 py-3 shadow-xl backdrop-blur-md animate-scale-in relative overflow-hidden bg-vf-shell-bg"
     >
       <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-border/20 pointer-events-none" />
 
@@ -43,7 +43,7 @@ export function ProgressToast({ toast }: { toast: Toast }) {
 
           {toast.progressRatio !== undefined && (
             <div
-              className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-elevated ring-1 ring-inset ring-border/20"
+              className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-vf-panel-bg-raised ring-1 ring-inset ring-border/20"
               role="progressbar"
               aria-label={tRuntime(
                 "runtimeGenerated.components.notifications.progresstoast.attribute.value1Progress",
@@ -79,7 +79,7 @@ export function ProgressToast({ toast }: { toast: Toast }) {
                       }
                     });
                   }}
-                  className="rounded-lg bg-surface-elevated/50 px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-surface-elevated hover:text-text-brand transition-all ring-1 ring-border/20"
+                  className="rounded-lg bg-vf-panel-bg-raised px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-vf-panel-bg-raised hover:text-text-brand transition-all ring-1 ring-border/20"
                 >
                   {action.label}
                 </button>

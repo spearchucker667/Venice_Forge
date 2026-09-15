@@ -88,11 +88,11 @@ export function OnboardingSplash() {
       description={<div className="sr-only">{steps[step].description}</div>}
       panelRef={dialogRef}
       initialFocusRef={primaryActionRef}
-      panelClassName="max-w-xl mesh-surface-elevated overflow-hidden p-0"
+      panelClassName="max-w-xl overflow-hidden p-0"
     >
       <div className="flex flex-col sm:flex-row">
         {/* Left branding panel */}
-        <div className="hidden sm:flex flex-col bg-accent/5 w-1/3 p-6 border-r border-border/50 relative overflow-hidden">
+        <div className="hidden sm:flex flex-col bg-accent/5 w-1/3 p-6 border-r border-vf-panel-border relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Meteocon name="star" size={96} className="text-accent" />
           </div>
@@ -125,7 +125,7 @@ export function OnboardingSplash() {
                 aria-label={t('onboarding:selectLanguage', 'Select language')}
                 value={uiLocale}
                 onChange={handleLanguageChange}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:ring-2 focus:ring-accent focus:border-accent"
+                className="w-full px-3 py-2 bg-vf-panel-bg border border-vf-panel-border rounded-lg text-sm text-text-primary focus:ring-2 focus:ring-accent focus:border-accent"
               >
                 <option value="system">
                   {t('onboarding:systemLanguageOption', { defaultValue: 'System language ({{language}})', language: SUPPORTED_LOCALES[resolveEffectiveLocale('system')]?.nativeName, })}
@@ -167,7 +167,7 @@ export function OnboardingSplash() {
               <button
                 type="button"
                 onClick={handleCreateProfile}
-                className="w-full py-2.5 bg-surface border border-border text-text-secondary rounded-lg font-medium hover:text-text-primary hover:bg-surface-elevated transition-colors"
+                className="w-full py-2.5 bg-vf-panel-bg border border-vf-panel-border text-text-secondary rounded-lg font-medium hover:text-text-primary hover:bg-vf-panel-bg-raised transition-colors"
               >
                 {t('onboarding:createProfile', 'Create Profile')}
               </button>

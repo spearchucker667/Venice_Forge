@@ -129,7 +129,7 @@ export function Avatar({ character }: { character: VeniceCharacter }) {
   const altText = `${character.name} avatar`;
   return (
     <div
-      className="h-16 w-16 rounded-full bg-surface-elevated border border-border flex items-center justify-center overflow-hidden text-text-secondary text-[18px] font-semibold shrink-0"
+      className="h-16 w-16 rounded-full bg-vf-panel-bg-raised border border-vf-panel-border flex items-center justify-center overflow-hidden text-text-secondary text-[18px] font-semibold shrink-0"
       role="img"
       aria-label={altText}
     >
@@ -172,7 +172,7 @@ function CharacterCard({
   const { t: tRuntime } = useTranslation("common");
   return (
     <article
-      className="flex flex-col gap-3 rounded-xl border border-border/35 mesh-surface-elevated soft-panel p-4 shadow-sm hover:border-accent/40 transition-colors"
+      className="flex flex-col gap-3 rounded-xl border border-vf-panel-border soft-panel p-4 shadow-sm hover:border-accent/40 transition-colors"
       data-testid="character-card"
       data-character-slug={character.slug}
     >
@@ -220,7 +220,7 @@ function CharacterCard({
           {character.tags.slice(0, 6).map((tag) => (
             <span
               key={tag}
-              className="text-[12px] px-2 py-0.5 rounded-full bg-surface border border-border text-text-secondary"
+              className="text-[12px] px-2 py-0.5 rounded-full bg-vf-panel-bg border border-vf-panel-border text-text-secondary"
             >
               {tag}
             </span>
@@ -273,7 +273,7 @@ function CharacterCard({
         <button
           type="button"
           onClick={() => onSelect(character)}
-          className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors cursor-pointer"
+          className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors cursor-pointer"
         >
           <Trans i18nKey="common:surface.componentsCharactersview.action.select" />
         </button>
@@ -282,7 +282,7 @@ function CharacterCard({
             href={character.shareUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-surface border border-border text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-vf-panel-bg border border-vf-panel-border text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors cursor-pointer"
             title={tRuntime(
               "runtimeGenerated.components.charactersview.attribute.openOnVenice",
             )}
@@ -297,7 +297,7 @@ function CharacterCard({
             <button
               type="button"
               onClick={() => onFavorite(character)}
-              className="rounded border border-border px-2 py-1.5 text-text-secondary"
+              className="rounded border border-vf-panel-border px-2 py-1.5 text-text-secondary"
             >
               {isFavorite
                 ? tRuntime(
@@ -312,7 +312,7 @@ function CharacterCard({
             <button
               type="button"
               onClick={() => onDetails(character)}
-              className="rounded border border-border px-2 py-1.5 text-text-secondary"
+              className="rounded border border-vf-panel-border px-2 py-1.5 text-text-secondary"
             >
               <Trans i18nKey="common:surface.componentsCharactersview.action.details" />
             </button>
@@ -321,7 +321,7 @@ function CharacterCard({
             <button
               type="button"
               onClick={() => onRefresh(character)}
-              className="rounded border border-border px-2 py-1.5 text-text-secondary"
+              className="rounded border border-vf-panel-border px-2 py-1.5 text-text-secondary"
             >
               <Trans i18nKey="common:surface.componentsCharactersview.action.refresh" />
             </button>
@@ -330,7 +330,7 @@ function CharacterCard({
             <button
               type="button"
               onClick={() => onDuplicate(character)}
-              className="rounded border border-border px-2 py-1.5 text-text-secondary"
+              className="rounded border border-vf-panel-border px-2 py-1.5 text-text-secondary"
             >
               <Trans i18nKey="common:surface.componentsCharactersview.action.duplicateLocally" />
             </button>
@@ -586,7 +586,7 @@ export function CharactersView() {
     return (
       <article
         key={card.id}
-        className="rounded-xl border border-border p-4 mesh-surface-elevated"
+        className="rounded-xl border border-vf-panel-border p-4"
       >
         <div className="flex gap-3">
           <CharacterAvatar
@@ -634,7 +634,7 @@ export function CharactersView() {
           {card.tags.slice(0, 4).map((tag) => (
             <span
               key={tag}
-              className="rounded bg-surface px-2 py-0.5 text-[11px] text-text-muted"
+              className="rounded bg-vf-panel-bg px-2 py-0.5 text-[11px] text-text-muted"
             >
               {tag}
             </span>
@@ -651,7 +651,7 @@ export function CharactersView() {
           <button
             type="button"
             onClick={() => setActiveTab("rp-studio")}
-            className="rounded border border-border px-2 py-1.5 text-text-secondary"
+            className="rounded border border-vf-panel-border px-2 py-1.5 text-text-secondary"
           >
             <Trans i18nKey="common:surface.componentsCharactersview.action.edit" />
           </button>
@@ -666,7 +666,7 @@ export function CharactersView() {
                 updatedAt: Date.now(),
               })
             }
-            className="rounded border border-border px-2 py-1.5 text-text-secondary"
+            className="rounded border border-vf-panel-border px-2 py-1.5 text-text-secondary"
           >
             <Trans i18nKey="common:surface.componentsCharactersview.action.duplicate" />
           </button>
@@ -682,7 +682,7 @@ export function CharactersView() {
                 updatedAt: Date.now(),
               })
             }
-            className="rounded border border-border px-2 py-1.5 text-text-secondary"
+            className="rounded border border-vf-panel-border px-2 py-1.5 text-text-secondary"
           >
             {card.metadata?.favorite === true
               ? tRuntime(
@@ -707,7 +707,7 @@ export function CharactersView() {
                     ),
                 );
             }}
-            className="col-span-2 rounded border border-border px-2 py-1.5 text-text-secondary"
+            className="col-span-2 rounded border border-vf-panel-border px-2 py-1.5 text-text-secondary"
           >
             <Trans i18nKey="common:surface.componentsCharactersview.action.exportStCardJson" />
           </button>
@@ -746,7 +746,7 @@ export function CharactersView() {
         <button
           type="button"
           onClick={() => setHostedDetail(null)}
-          className="rounded border border-border px-2 py-1 text-text-secondary"
+          className="rounded border border-vf-panel-border px-2 py-1 text-text-secondary"
           aria-label={tRuntime(
             "runtimeGenerated.components.charactersview.attribute.closeCharacterDetails",
           )}
@@ -780,7 +780,7 @@ export function CharactersView() {
           <button
             type="button"
             onClick={() => toggleHostedFavorite(hostedDetail)}
-            className="rounded border border-border px-3 py-1.5"
+            className="rounded border border-vf-panel-border px-3 py-1.5"
           >
             {favoriteHostedCharacterSlugs.includes(hostedDetail.slug)
               ? tRuntime(
@@ -793,14 +793,14 @@ export function CharactersView() {
           <button
             type="button"
             onClick={() => void refreshHostedCharacter(hostedDetail)}
-            className="rounded border border-border px-3 py-1.5"
+            className="rounded border border-vf-panel-border px-3 py-1.5"
           >
             <Trans i18nKey="common:surface.componentsCharactersview.action.refresh" />
           </button>
           <button
             type="button"
             onClick={() => void duplicateHostedCharacter(hostedDetail)}
-            className="rounded border border-border px-3 py-1.5"
+            className="rounded border border-vf-panel-border px-3 py-1.5"
           >
             <Trans i18nKey="common:surface.componentsCharactersview.action.duplicateLocally" />
           </button>
@@ -822,7 +822,7 @@ export function CharactersView() {
           type="button"
           aria-pressed={hubSection === section}
           onClick={() => setHubSection(section)}
-          className={`rounded-md border px-3 py-1.5 text-[12px] capitalize ${hubSection === section ? "border-accent bg-accent/10 text-accent" : "border-border text-text-secondary"}`}
+          className={`rounded-md border px-3 py-1.5 text-[12px] capitalize ${hubSection === section ? "border-accent bg-accent/10 text-accent" : "border-vf-panel-border text-text-secondary"}`}
         >
           {section}
         </button>
@@ -842,8 +842,8 @@ export function CharactersView() {
   const hostedList = hubSection === "hosted" ? results : visibleHostedCards;
 
   return (
-    <div className="flex flex-col h-full mesh-surface shell-region">
-      <div className="flex-none flex flex-col gap-3 p-5 soft-panel z-10 bg-surface/40 backdrop-blur">
+    <div className="flex flex-col h-full shell-region">
+      <div className="flex-none flex flex-col gap-3 p-5 soft-panel z-10 bg-vf-panel-bg backdrop-blur">
         <header>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -861,7 +861,7 @@ export function CharactersView() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as CharacterSortBy)}
-                className="bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
+                className="bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -874,7 +874,7 @@ export function CharactersView() {
                 onChange={(e) =>
                   setSortOrder(e.target.value as CharacterSortOrder)
                 }
-                className="bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
+                className="bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
               >
                 {SORT_ORDER_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -892,7 +892,7 @@ export function CharactersView() {
                   "runtimeGenerated.components.charactersview.attribute.characterChatModel",
                 )}
                 data-testid="character-model-select"
-                className="bg-surface-elevated border border-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
+                className="bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-2 py-1 text-[12.5px] text-text-primary cursor-pointer"
               >
                 {MODEL_OPTIONS.map((opt) => (
                   <option key={opt.id} value={opt.id}>
@@ -924,7 +924,7 @@ export function CharactersView() {
                 "Use Import card in the Character Library to review the mandatory preview.",
               );
             }}
-            className="rounded border border-border px-3 py-1.5 text-[12px] text-text-secondary"
+            className="rounded border border-vf-panel-border px-3 py-1.5 text-[12px] text-text-secondary"
           >
             <Trans i18nKey="common:surface.componentsCharactersview.action.importStCard" />
           </button>
@@ -934,13 +934,13 @@ export function CharactersView() {
               setActiveTab("rp-studio");
               toast.info("Open Drafts in the Character Library.");
             }}
-            className="rounded border border-border px-3 py-1.5 text-[12px] text-text-secondary"
+            className="rounded border border-vf-panel-border px-3 py-1.5 text-[12px] text-text-secondary"
           >
             <Trans i18nKey="common:surface.componentsCharactersview.action.drafts" />
           </button>
         </div>
 
-        <div className="flex flex-col gap-3 pt-3 soft-separator-y">
+        <div className="flex flex-col gap-3 pt-3 border-vf-panel-border">
           <input
             type="search"
             value={searchQuery}
@@ -951,7 +951,7 @@ export function CharactersView() {
             aria-label={tRuntime(
               "runtimeGenerated.components.charactersview.attribute.searchCharacters2",
             )}
-            className="w-full bg-surface-elevated border border-border rounded-md px-3 py-2 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors"
+            className="w-full bg-vf-panel-bg-raised border border-vf-panel-border rounded-md px-3 py-2 text-[13.5px] text-text-primary outline-none focus:border-accent transition-colors"
           />
           <div className="flex flex-wrap items-center gap-4 text-[12px] text-text-secondary">
             <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -960,7 +960,7 @@ export function CharactersView() {
                 checked={includeAdultCharacters}
                 onChange={(e) => setIncludeAdult(e.target.checked)}
                 data-testid="character-include-adult"
-                className="rounded border-border bg-surface-elevated text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
+                className="rounded border-vf-panel-border bg-vf-panel-bg-raised text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
               />
               <span>
                 <Trans i18nKey="common:surface.componentsCharactersview.text.includeAdultCharacters" />
@@ -971,7 +971,7 @@ export function CharactersView() {
                 type="checkbox"
                 checked={webEnabledOnly}
                 onChange={(e) => setWebEnabledOnly(e.target.checked)}
-                className="rounded border-border bg-surface-elevated text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
+                className="rounded border-vf-panel-border bg-vf-panel-bg-raised text-accent focus:ring-offset-0 focus:ring-0 w-4 h-4 cursor-pointer"
               />
               <span>
                 <Trans i18nKey="common:surface.componentsCharactersview.text.webEnabledOnly" />
@@ -1070,7 +1070,7 @@ export function CharactersView() {
               type="button"
               onClick={() => void loadMore()}
               disabled={isLoading}
-              className="px-4 py-1.5 rounded-lg text-[12.5px] font-medium bg-surface-elevated border border-border text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors disabled:opacity-50 cursor-pointer"
+              className="px-4 py-1.5 rounded-lg text-[12.5px] font-medium bg-vf-panel-bg-raised border border-vf-panel-border text-text-secondary hover:text-text-primary hover:border-accent/40 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {isLoading
                 ? tRuntime(

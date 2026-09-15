@@ -68,7 +68,7 @@ export function ConfirmModal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl animate-[slideUp_0.4s_cubic-bezier(0.16,1,0.3,1)] focus:outline-none"
+        className="w-full max-w-md rounded-xl border border-vf-panel-border bg-vf-panel-bg p-6 shadow-2xl animate-[slideUp_0.4s_cubic-bezier(0.16,1,0.3,1)] focus:outline-none"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

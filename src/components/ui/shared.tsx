@@ -58,7 +58,7 @@ export function TextArea({
       aria-label={ariaLabel}
       maxLength={maxLength}
       autoFocus={autoFocus}
-      className="w-full min-w-0 max-w-full overflow-x-hidden break-words whitespace-pre-wrap bg-input-bg border border-border rounded-lg px-3 py-2.5 text-[15px] text-input-fg outline-none focus:border-border-strong transition-colors resize-none placeholder:text-placeholder leading-relaxed"
+      className="w-full min-w-0 max-w-full overflow-x-hidden break-words whitespace-pre-wrap bg-input-bg border border-vf-panel-border rounded-lg px-3 py-2.5 text-[15px] text-input-fg outline-none focus:border-vf-panel-border-strong transition-colors resize-none placeholder:text-placeholder leading-relaxed"
     />
   );
 }
@@ -110,7 +110,7 @@ export function PrimaryButton({
         sizing,
         !disabled && !loading
           ? "bg-button-primary-bg text-button-primary-fg hover:bg-accent-hover shadow-sm"
-          : "bg-surface-muted text-disabled-fg cursor-not-allowed",
+          : "bg-vf-panel-bg-inset text-disabled-fg cursor-not-allowed",
         className,
       )}
     >
@@ -147,7 +147,7 @@ export function GhostButton({
       disabled={disabled}
       aria-label={ariaLabel}
       className={cn(
-        "px-3 py-1.5 text-[13px] font-medium rounded-lg border border-border bg-button-secondary-bg text-button-secondary-fg hover:border-border-strong hover:bg-surface-muted transition-colors disabled:text-disabled-fg disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2",
+        "px-3 py-1.5 text-[13px] font-medium rounded-lg border border-vf-panel-border bg-button-secondary-bg text-button-secondary-fg hover:border-vf-panel-border-strong hover:bg-vf-panel-bg-inset transition-colors disabled:text-disabled-fg disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2",
       )}
     >
       {children}
@@ -188,7 +188,7 @@ export function SecondaryButton({
       disabled={disabled}
       aria-label={ariaLabel}
       className={cn(
-        "rounded-lg font-medium border border-border bg-button-secondary-bg text-button-secondary-fg hover:border-border-strong hover:bg-surface-muted vf-control-motion disabled:text-disabled-fg disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2",
+        "rounded-lg font-medium border border-vf-panel-border bg-button-secondary-bg text-button-secondary-fg hover:border-vf-panel-border-strong hover:bg-vf-panel-bg-inset vf-control-motion disabled:text-disabled-fg disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2",
         fullWidth && "w-full",
         sizing,
         className,
@@ -276,8 +276,8 @@ export function PillGroup({
           className={cn(
             "text-[13px] font-medium px-2.5 py-1 rounded-md border vf-control-motion focus-visible:outline focus-visible:outline-1 focus-visible:outline-focus-ring",
             o.value === value
-              ? "border-border-strong bg-surface-muted text-foreground shadow-sm"
-              : "border-border text-foreground-muted hover:text-foreground hover:border-border-strong hover:bg-surface-muted",
+              ? "border-vf-panel-border-strong bg-vf-panel-bg-inset text-foreground shadow-sm"
+              : "border-vf-panel-border text-foreground-muted hover:text-foreground hover:border-vf-panel-border-strong hover:bg-vf-panel-bg-inset",
           )}
         >
           {o.label}
@@ -368,7 +368,7 @@ export function ExamplePrompts({
                 uiSoundController.play("secondaryClick");
                 onPick(text);
               }}
-              className="group text-left px-3.5 py-3 rounded-xl border border-border/60 bg-surface-muted hover:border-border-strong hover:bg-surface-elevated vf-control-motion text-[13.5px] text-text-secondary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+              className="group text-left px-3.5 py-3 rounded-xl border border-vf-panel-border bg-vf-panel-bg-inset hover:border-vf-panel-border-strong hover:bg-vf-panel-bg-raised vf-control-motion text-[13.5px] text-text-secondary hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
             >
               <span className="flex items-start gap-2">
                 <span className="text-text-muted/50 group-hover:text-[var(--color-accent)] transition-colors mt-px">
@@ -424,8 +424,8 @@ const TONE: Record<string, string> = {
   pink: "bg-danger/15 text-danger border-danger/30",
   rose: "bg-danger/15 text-danger border-danger/30",
   danger: "bg-danger/15 text-danger border-danger/30",
-  slate: "bg-surface-muted text-text-secondary border-border",
-  neutral: "bg-surface-muted text-text-secondary border-border",
+  slate: "bg-vf-panel-bg-inset text-text-secondary border-vf-panel-border",
+  neutral: "bg-vf-panel-bg-inset text-text-secondary border-vf-panel-border",
   teal: "bg-accent/15 text-accent border-accent/30",
 };
 

@@ -54,7 +54,7 @@ export function ModelSelect({
                   )}
                   {m.fidelity === "standard" && (
                     <span
-                      className="bg-surface-muted text-text-muted px-1 py-0.5 rounded flex items-center gap-1"
+                      className="bg-vf-panel-bg-inset text-text-muted px-1 py-0.5 rounded flex items-center gap-1"
                       title={tRuntime(
                         "runtimeGenerated.components.modelselect.attribute.standardFidelity",
                       )}

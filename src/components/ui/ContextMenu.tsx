@@ -130,7 +130,7 @@ export function ContextMenu({
         event.preventDefault();
         event.stopPropagation();
       }}
-      className="fixed z-[1000] min-w-[var(--context-menu-min-width)] rounded-lg border border-border bg-surface-elevated py-1 text-sm text-text shadow-xl animate-in fade-in-0 zoom-in-95"
+      className="fixed z-[1000] min-w-[var(--context-menu-min-width)] rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised py-1 text-sm text-text shadow-xl animate-in fade-in-0 zoom-in-95"
     >
       {visibleItems.map((item) => {
         if (item.kind === "separator") {
@@ -145,7 +145,7 @@ export function ContextMenu({
         if (item.hidden) return null;
         const labelClass = item.destructive
           ? "text-error hover:bg-error/10"
-          : "text-text hover:bg-surface-hover";
+          : "text-text hover:bg-vf-panel-bg-hover";
         return (
           <button
             key={item.key}

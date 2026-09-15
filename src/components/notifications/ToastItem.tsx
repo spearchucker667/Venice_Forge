@@ -4,10 +4,10 @@ import { useToastStore, type Toast } from "../../stores/toast-store";
 import { uiSoundController } from "../../services/uiSoundController";
 
 const SEVERITY_STYLES: Record<string, string> = {
-  info: "bg-mesh-surface",
-  success: "bg-mesh-surface border-success/30",
-  warn: "bg-mesh-surface border-warning/30",
-  error: "bg-mesh-surface border-error/30",
+  info: "bg-vf-shell-bg",
+  success: "bg-border-success/30",
+  warn: "bg-border-warning/30",
+  error: "bg-border-error/30",
 };
 
 const SEVERITY_TITLE: Record<string, string> = {
@@ -32,7 +32,7 @@ export function ToastItem({ toast }: { toast: Toast }) {
       onBlurCapture={() => resumeToast(toast.id)}
       className={cn(
         "pointer-events-auto rounded-xl px-4 py-3 shadow-xl backdrop-blur-md animate-scale-in",
-        "soft-separator relative overflow-hidden",
+        "relative overflow-hidden",
         SEVERITY_STYLES[toast.variant] || SEVERITY_STYLES.info,
       )}
     >
@@ -71,7 +71,7 @@ export function ToastItem({ toast }: { toast: Toast }) {
                       }
                     });
                   }}
-                  className="rounded-lg bg-surface-elevated/50 px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-surface-elevated hover:text-text-brand transition-all ring-1 ring-border/20"
+                  className="rounded-lg bg-vf-panel-bg-raised px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-vf-panel-bg-raised hover:text-text-brand transition-all ring-1 ring-border/20"
                 >
                   {action.label}
                 </button>
@@ -87,7 +87,7 @@ export function ToastItem({ toast }: { toast: Toast }) {
                   dismiss(toast.id),
                 );
               }}
-              className="mt-3 rounded-lg bg-surface-elevated/50 px-3 py-1.5 text-xs font-medium text-text-primary ring-1 ring-border/20 transition-all hover:bg-surface-elevated hover:text-text-brand"
+              className="mt-3 rounded-lg bg-vf-panel-bg-raised px-3 py-1.5 text-xs font-medium text-text-primary ring-1 ring-border/20 transition-all hover:bg-vf-panel-bg-raised hover:text-text-brand"
             >
               {toast.action.label}
             </button>

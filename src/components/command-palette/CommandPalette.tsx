@@ -314,10 +314,10 @@ export function CommandPalette({
       onKeyDown={handleListKeyDown}
     >
       <div
-        className="w-full max-w-[520px] rounded-xl border border-border bg-surface shadow-xl overflow-hidden"
+        className="w-full max-w-[520px] rounded-xl border border-vf-panel-border bg-vf-panel-bg shadow-xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
+        <div className="flex items-center gap-2 border-b border-vf-panel-border px-3 py-2">
           <span className="text-[12px] uppercase tracking-[0.08em] text-text-muted pl-1">
             {t("commandPalette.command", "Command")}
           </span>
@@ -351,7 +351,7 @@ export function CommandPalette({
               key={tab.id}
               data-command-item
               onClick={() => handleTab(tab.id)}
-              className="w-full text-left px-3 py-1.5 hover:bg-background flex items-center gap-2 data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+              className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg flex items-center gap-2 data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             >
               <span>{t(`tabs.${tab.id}.label`)}</span>
               <span className="ml-auto text-[12px] text-text-muted/60">
@@ -360,13 +360,13 @@ export function CommandPalette({
             </button>
           ))}
 
-          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-vf-panel-border mt-1">
             {t("groups.projectsAndActions", "Projects & Actions")}
           </div>
           <button
             data-command-item
             onClick={handleNewProject}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
           >
             {t("commandPalette.newProject", "New Project")}
           </button>
@@ -391,7 +391,7 @@ export function CommandPalette({
               }
               onClose();
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
           >
             {t(
               "commandPalette.switchOpenCurrent",
@@ -403,7 +403,7 @@ export function CommandPalette({
               only when the gallery-view has registered its handlers. */}
           {hasMediaHandlers && (
             <div data-testid="command-palette-media-section">
-              <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
+              <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-vf-panel-border mt-1">
                 {t("groups.mediaStudio", {
                   defaultValue: "Media Studio ({{count}} selected)",
                   count: selectionCount,
@@ -412,7 +412,7 @@ export function CommandPalette({
               <button
                 data-command-item
                 onClick={runMediaCommand("select-all")}
-                className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+                className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-select-all"
               >
                 {t(
@@ -424,7 +424,7 @@ export function CommandPalette({
                 data-command-item
                 onClick={runMediaCommand("clear")}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+                className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-clear-selection"
               >
                 {t("commandPalette.clearSelection", "Clear Media Selection")}
@@ -433,7 +433,7 @@ export function CommandPalette({
                 data-command-item
                 onClick={runMediaCommand("compare")}
                 disabled={!isCompareReady}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+                className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-compare"
               >
                 {t("commandPalette.compareSelected", "Compare Selected Media")}
@@ -442,7 +442,7 @@ export function CommandPalette({
                 data-command-item
                 onClick={runMediaCommand("export")}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+                className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-export"
               >
                 {t("commandPalette.exportSelected", "Export Selected Media")}
@@ -451,7 +451,7 @@ export function CommandPalette({
                 data-command-item
                 onClick={runMediaCommand("favorite")}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+                className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-favorite"
               >
                 {t(
@@ -463,7 +463,7 @@ export function CommandPalette({
                 data-command-item
                 onClick={runMediaCommand("add-tag")}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+                className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-add-tag"
               >
                 {t(
@@ -475,7 +475,7 @@ export function CommandPalette({
                 data-command-item
                 onClick={runMediaCommand("send-image")}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+                className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-send-image"
               >
                 {t(
@@ -487,7 +487,7 @@ export function CommandPalette({
                 data-command-item
                 onClick={runMediaCommand("copy-recipe")}
                 disabled={selectionCount === 0}
-                className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+                className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
                 data-testid="command-palette-copy-recipe"
               >
                 {t("commandPalette.copyRecipe", "Copy Selected Recipe JSON")}
@@ -498,7 +498,7 @@ export function CommandPalette({
           {/* Phase 2D — Prompt Library commands. Always visible so the
               palette can route the user into the library; per-prompt
               actions appear when the user has an active prompt. */}
-          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-vf-panel-border mt-1">
             {t("groups.promptLibrary", "Prompt Library")}
           </div>
           <button
@@ -508,7 +508,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-prompts"
           >
             {t("commandPalette.openPromptLibrary", "Open Prompt Library")}
@@ -535,7 +535,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-new-prompt"
           >
             {t("commandPalette.newPrompt", "New Prompt")}
@@ -589,7 +589,7 @@ export function CommandPalette({
               setQuery("");
             }}
             disabled={promptCount === 0}
-            className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-use-selected-prompt"
           >
             {t(
@@ -635,7 +635,7 @@ export function CommandPalette({
               setQuery("");
             }}
             disabled={promptCount === 0}
-            className="w-full text-left px-3 py-1.5 hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg disabled:opacity-30 disabled:cursor-not-allowed data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-export-prompts"
           >
             {t("commandPalette.exportPrompts", "Export Prompts")}
@@ -707,7 +707,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-import-prompts"
           >
             {t("commandPalette.importPrompts", "Import Prompts…")}
@@ -722,7 +722,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-save-current-prompt"
           >
             {t(
@@ -734,7 +734,7 @@ export function CommandPalette({
           {/* Phase 2E — Scene Composer commands. Always visible so the
               palette can route the user into the composer; per-scene
               actions appear when the user has scenes saved. */}
-          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-vf-panel-border mt-1">
             {t("groups.sceneComposer", "Scene Composer")}
           </div>
           <button
@@ -744,7 +744,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-scenes"
           >
             {t("commandPalette.openSceneComposer", "Open Scene Composer")}
@@ -786,7 +786,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-export-scenes"
           >
             {t("commandPalette.exportScenes", "Export Scenes")}
@@ -835,7 +835,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-import-scenes"
           >
             {t("commandPalette.importScenes", "Import Scenes…")}
@@ -843,7 +843,7 @@ export function CommandPalette({
 
           {/* Phase 2F — RP Studio commands. Always visible so the
               palette can route the user into the RP Studio. */}
-          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-vf-panel-border mt-1">
             {t("groups.rpStudio", "RP Studio")}
           </div>
           <button
@@ -853,7 +853,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-rp-studio"
           >
             {t("commandPalette.openRpStudio", "Open RP Studio")}
@@ -872,7 +872,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-new-character"
           >
             {t("commandPalette.createStCard", "Create ST Card")}
@@ -901,7 +901,7 @@ export function CommandPalette({
                 );
               }
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-start-character-chat"
           >
             {t(
@@ -933,7 +933,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-new-scenario"
           >
             {t("commandPalette.newScenario", "New Scenario")}
@@ -946,7 +946,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-workflows"
           >
             {t("commandPalette.openWorkflows", "Open Workflows")}
@@ -954,7 +954,7 @@ export function CommandPalette({
 
           {/* Phase 2I — Research Workspace commands. Always visible so the
               palette can route the user into the Research Workspace. */}
-          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-vf-panel-border mt-1">
             {t("groups.researchWorkspace", "Research Workspace")}
           </div>
           <button
@@ -964,7 +964,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-research"
           >
             {t(
@@ -992,7 +992,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-new-research-session"
           >
             {t("commandPalette.newResearchSession", "New Research Session")}
@@ -1035,7 +1035,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-export-research"
           >
             {t(
@@ -1087,7 +1087,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-import-research"
           >
             {t(
@@ -1096,7 +1096,7 @@ export function CommandPalette({
             )}
           </button>
 
-          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-vf-panel-border mt-1">
             {t("groups.privacyAndStorage", "Privacy & Storage")}
           </div>
           <button
@@ -1106,7 +1106,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-open-privacy"
           >
             {t("commandPalette.openPrivacyDashboard", "Open Privacy Dashboard")}
@@ -1118,7 +1118,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-refresh-inventory"
           >
             {t(
@@ -1133,7 +1133,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-copy-safe-privacy-summary"
           >
             {t(
@@ -1148,7 +1148,7 @@ export function CommandPalette({
               onClose();
               setQuery("");
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
             data-testid="command-palette-export-safe-privacy-summary"
           >
             {t(
@@ -1157,7 +1157,7 @@ export function CommandPalette({
             )}
           </button>
 
-          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-border/50 mt-1">
+          <div className="px-2 pt-2 pb-1 text-[12px] uppercase tracking-[0.06em] text-text-muted border-t border-vf-panel-border mt-1">
             {t("groups.system", "System")}
           </div>
           <button
@@ -1168,13 +1168,13 @@ export function CommandPalette({
                 .setShowInspector(!useSettingsStore.getState().showInspector);
               onClose();
             }}
-            className="w-full text-left px-3 py-1.5 hover:bg-background data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
+            className="w-full text-left px-3 py-1.5 hover:bg-vf-shell-bg data-[active=true]:bg-accent/15 data-[active=true]:text-accent"
           >
             {t("commandPalette.toggleInspector", "Toggle Inspector")}
           </button>
         </div>
 
-        <div className="border-t border-border/50 px-3 py-1.5 text-[12px] text-text-muted/70 flex justify-between">
+        <div className="border-t border-vf-panel-border px-3 py-1.5 text-[12px] text-text-muted/70 flex justify-between">
           <span>{t("commandPalette.toggleHint", "⌘K to toggle")}</span>
           <span>
             {t(
