@@ -2,7 +2,7 @@
 
 **Authority:** Work order 'Complete Reference-Driven UI Redesign' (2026-09-14), baseline `b5760db2`.
 **Statuses:** REDESIGNED | INHERITS_GLOBAL_SYSTEM | NO_VISUAL_SURFACE | DEFERRED_WITH_REASON | NOT_APPLICABLE.
-**PENDING** entries await phase assignment during implementation. This ledger is the completeness proof required by work order §27 — every renderer surface must reach a terminal status before completion is claimed.
+**PENDING** entries await phase assignment during implementation. As of 2026-09-15, every in-scope renderer surface has reached a terminal status. The single remaining **DEFERRED_WITH_REASON** entry (`accessibility.css`) is the dedicated Phase 8 accessibility/RTL/responsive pass — the source CSS itself is correct, and Phase 8 added dedicated regression guards (`tests/accessibility/reference-rtl-shell.test.tsx`, `tests/accessibility/reference-viewport.test.tsx`) without modifying the file.
 
 ## `/` (1 files)
 
@@ -397,92 +397,92 @@
 | File | Status | Phase/Notes |
 |---|---|---|
 | `applyTheme.test.ts` | NOT_APPLICABLE (test file) | |
-| `applyTheme.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `codeSyntax.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `codeSyntaxPresets.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `codeSyntaxTypes.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `applyTheme.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `codeSyntax.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `codeSyntaxPresets.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `codeSyntaxTypes.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `contrast.test.ts` | NOT_APPLICABLE (test file) | |
-| `contrast.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `contrast.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `fallbacks.test.ts` | NOT_APPLICABLE (test file) | |
-| `fallbacks.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `index.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `migration.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `registry.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `resolver.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `schema.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `test-helpers.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `themeTypes.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `fallbacks.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `index.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `migration.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `registry.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `resolver.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `schema.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `test-helpers.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `themeTypes.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `themes.test.ts` | NOT_APPLICABLE (test file) | |
-| `themes.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `themes.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `validateColor.test.ts` | NOT_APPLICABLE (test file) | |
-| `validateColor.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `validation.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `validateColor.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `validation.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `yamlTheme.test.ts` | NOT_APPLICABLE (test file) | |
-| `yamlTheme.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `yamlTheme.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 
 ## `src/theme/builtins/` (44 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `amberArchive.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `arcticGlass.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `auroraBoreal.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `basaltNoir.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `catppuccin.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `circuitMint.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `copper.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `cottonCandyConsole.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `cyberOrchid.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `dark.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `desertCopperfield.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `dracula.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `dualPersona.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `emberMonastery.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `githubLight.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `glacialInk.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `gruvboxDark.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `harborFog.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `index.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `light.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `midnightCobalt.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `midnightVelvet.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `monokai.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `mossCircuit.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `neonDusk.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `nord.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `obsidianBloom.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `obsidianEmber.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `oneDark.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `polaroidBoard.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `porcelainDaybreak.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `porcelainSky.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `rosepine.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `sakuraTerminal.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `sandstone.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `solarAsh.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `solarized.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `sweetNightmare.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `synthwaveHarbor.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `terminalForest.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `tokyoNight.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `toxicLimewire.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `ultravioletRain.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `amberArchive.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `arcticGlass.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `auroraBoreal.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `basaltNoir.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `catppuccin.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `circuitMint.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `copper.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `cottonCandyConsole.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `cyberOrchid.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `dark.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `desertCopperfield.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `dracula.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `dualPersona.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `emberMonastery.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `githubLight.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `glacialInk.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `gruvboxDark.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `harborFog.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `index.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `light.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `midnightCobalt.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `midnightVelvet.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `monokai.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `mossCircuit.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `neonDusk.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `nord.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `obsidianBloom.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `obsidianEmber.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `oneDark.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `polaroidBoard.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `porcelainDaybreak.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `porcelainSky.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `rosepine.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `sakuraTerminal.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `sandstone.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `solarAsh.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `solarized.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `sweetNightmare.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `synthwaveHarbor.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `terminalForest.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `tokyoNight.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `toxicLimewire.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `ultravioletRain.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `venice.ts` | REDESIGNED — Phase 1: default family retuned to graphite/crimson reference palette | |
 
 ## `src/theme/yaml/` (10 files)
 
 | File | Status | Phase/Notes |
 |---|---|---|
-| `index.ts` | PENDING — theme engine (token values only, architecture preserved) | |
-| `legacy.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `index.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
+| `legacy.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `normalize.test.ts` | NOT_APPLICABLE (test file) | |
-| `normalize.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `normalize.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `parse.test.ts` | NOT_APPLICABLE (test file) | |
-| `parse.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `parse.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `serialize.test.ts` | NOT_APPLICABLE (test file) | |
-| `serialize.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `serialize.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 | `validate.test.ts` | NOT_APPLICABLE (test file) | |
-| `validate.ts` | PENDING — theme engine (token values only, architecture preserved) | |
+| `validate.ts` | REDESIGNED — Phase 1 + Phase 7: theme engine token values; architecture preserved | |
 
 ## `tests/theme/` (1 files)
 
