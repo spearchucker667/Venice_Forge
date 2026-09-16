@@ -148,6 +148,14 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     delete veniceParams.enable_e2ee;
   }
 
+  // Phase 7 — `prompt_cache_retention` is a Venice-only cache control and
+  // must not be forwarded to non-Venice fallback providers. Strip at the
+  // same trust boundary as `venice_parameters.enable_*` so a future change
+  // cannot leak Venice-only cache semantics to OpenAI/Google/etc.
+  if ('prompt_cache_retention' in baseBody) {
+    delete (baseBody as Record<string, unknown>).prompt_cache_retention;
+  }
+
   return applyVeniceApiSafeMode(
     "/chat/completions",
     baseBody,

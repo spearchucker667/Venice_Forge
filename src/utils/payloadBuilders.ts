@@ -1,5 +1,5 @@
 /** @fileoverview Shared payload builders for Venice API chat and image requests. */
-import type { E2eeOverride, VeniceModel } from "../types/venice";
+import type { E2eeOverride, PromptCacheRetention, VeniceModel } from "../types/venice";
 import { supportsE2EE } from "../shared/modelCapabilities";
 import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
 
@@ -58,6 +58,13 @@ export interface ChatSettings {
   webSearch?: string;
   webScraping?: boolean;
   webCitations?: boolean;
+  /**
+   * Prompt cache retention override. Resolved at the canonical payload
+   * boundary by `resolvePromptCacheRetention()`. `'default'` omits the
+   * field so Venice applies its documented upstream behavior; `'extended'`
+   * and `'24h'` are equivalent for current models.
+   */
+  promptCacheRetention?: PromptCacheRetention;
   /**
    * Venice provider-side safe_mode toggle. When set, the payload includes
    * a top-level `safe_mode: boolean`. This is separate from the local
@@ -182,7 +189,40 @@ export function buildChatPayload(
     payload.prompt_cache_key = promptCacheKey.slice(0, 256);
   }
   if (options.reasoningEffort) payload.reasoning = { effort: options.reasoningEffort };
+  // Prompt-cache retention (Phase 7). Top-level field per Swagger
+  // ChatCompletionRequest. Resolver emits the field only when the user
+  // explicitly opted into extended retention — 'default' omits.
+  const cacheRetention = resolvePromptCacheRetention(settings.promptCacheRetention);
+  if (cacheRetention !== undefined) {
+    payload.prompt_cache_retention = cacheRetention;
+  }
   return applyVeniceApiSafeMode("/chat/completions", payload, settings.safeMode);
+}
+
+/**
+ * Resolves the user-facing prompt-cache retention override into the
+ * canonical `prompt_cache_retention` value used at the top level of
+ * `ChatCompletionRequest`. Venice-only: the chat-stream-manager provider
+ * fallback path strips the field for non-Venice providers regardless.
+ *
+ * Contract rule:
+ *  - `'default'` and `undefined` both omit the field (Venice applies its
+ *    documented upstream behavior; this matches the OpenAI-compatible
+ *    default).
+ *  - `'extended'` and `'24h'` pass through verbatim.
+ *
+ * Capability gating for whether the selected model actually supports
+ * extended cache retention lives with the model-capability service. The
+ * payload builder is intentionally permissive here so the renderer can
+ * surface the control before metadata has loaded; the canonical request
+ * body is still routed through the trusted main process which can refuse
+ * unsupported combinations.
+ */
+export function resolvePromptCacheRetention(
+  retention: PromptCacheRetention | undefined,
+): PromptCacheRetention | undefined {
+  if (retention === undefined || retention === 'default') return undefined;
+  return retention;
 }
 
 /**

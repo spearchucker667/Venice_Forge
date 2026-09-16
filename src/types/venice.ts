@@ -170,11 +170,65 @@ export interface ModelsResponse {
   data: VeniceModel[]
 }
 
+/** Audio input block — same shape as the existing OpenAI-compatible
+ *  `input_audio` content type. Used by models that advertise audio support. */
+export interface InputAudioContentPart {
+  type?: 'input_audio'
+  /** Base64-encoded audio data. Format is set on the parent ContentPart. */
+  data: string
+  /** MIME-style audio format (wav, mp3, etc.). Matches the upstream
+   *  `InputAudio.format` enum. */
+  format: string
+}
+
+/** File input block (Phase 6 — Phase 6). The `file_data` field carries a
+ *  data URL (`data:application/pdf;base64,...`) or a publicly accessible
+ *  URL — NEVER a raw filesystem path. Filename is optional metadata. */
+export interface FileContentPart {
+  type: 'file'
+  file: {
+    file_data: string
+    filename?: string
+  }
+}
+
+/** Video URL input block (Phase 6). URL can be a direct URL (YouTube is
+ *  accepted for some providers), or a base64 data URL. At most 3 video_url
+ *  parts per request (Swagger limit). */
+export interface VideoUrlContentPart {
+  type: 'video_url'
+  video_url: { url: string }
+}
+
+/** Cache control hint carried by some content parts (file / video_url).
+ *  Mirrors the OpenAI-compatible `cache_control` object with a single
+ *  `type: 'ephemeral'` value. Beta feature — requires a special header. */
+export interface CacheControlHint {
+  type: 'ephemeral'
+  ttl?: string
+}
+
+export interface FileContentPartWithCache extends FileContentPart {
+  cache_control?: CacheControlHint
+}
+
+export interface VideoUrlContentPartWithCache extends VideoUrlContentPart {
+  cache_control?: CacheControlHint
+}
+
+/** OpenAI-compatible content part union. Discriminated by `type` so
+ *  unknown runtime values fail closed at the type level. Adding a new
+ *  type requires updating the `isContentPartType` guard and any
+ *  serializer/validator consumers. */
 export interface ContentPart {
-  type: 'text' | 'image_url' | 'input_audio'
+  type: 'text' | 'image_url' | 'input_audio' | 'file' | 'video_url'
   text?: string
   image_url?: { url: string }
-  input_audio?: { data: string; format: string }
+  input_audio?: InputAudioContentPart
+  file?: { file_data: string; filename?: string }
+  video_url?: { url: string }
+  /** Optional cache control on file / video_url parts only. */
+  cache_control?: CacheControlHint
 }
 
 export interface AssistantToolCall {
@@ -230,6 +284,16 @@ export interface VeniceParameters {
   enable_e2ee?: boolean
 }
 
+/** OpenAI-compatible prompt-cache retention selector (Phase 7). Mirrors
+ *  the Swagger `ChatCompletionRequest.prompt_cache_retention` enum. `'24h'`
+ *  and `'extended'` extend retention to 24 hours for supported models; the
+ *  canonical payload builder is responsible for capability gating and for
+ *  stripping this field when the request is dispatched to a non-Venice
+ *  fallback provider — the field is Venice-only and has no meaning on
+ *  OpenAI/Google/etc. See `resolvePromptCacheRetention()` in
+ *  `payloadBuilders.ts` and `chat-stream-manager.ts` provider fallback. */
+export type PromptCacheRetention = 'default' | 'extended' | '24h';
+
 export interface ChatCompletionRequest {
   model: string
   messages: ChatMessage[]
@@ -242,6 +306,9 @@ export interface ChatCompletionRequest {
   presence_penalty?: number
   /** Top-level per Swagger ChatCompletionRequest; NOT a venice_parameters member. */
   prompt_cache_key?: string
+  /** Top-level per Swagger ChatCompletionRequest. Capability-gated and
+   *  stripped on non-Venice providers. See `PromptCacheRetention`. */
+  prompt_cache_retention?: PromptCacheRetention
   venice_parameters?: VeniceParameters
   safe_mode?: boolean
 }

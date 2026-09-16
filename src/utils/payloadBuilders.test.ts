@@ -10,6 +10,7 @@ import {
   randomSeed,
   resolveAudioResponseFormat,
   resolveE2eeParam,
+  resolvePromptCacheRetention,
   serializeSeed,
   SUPPORTED_AUDIO_OUTPUT_FORMATS,
 } from "./payloadBuilders";
@@ -224,6 +225,44 @@ describe("resolveAudioResponseFormat (Phase 5.5: per-model TTS formats)", () => 
     expect(new Set(SUPPORTED_AUDIO_OUTPUT_FORMATS)).toEqual(
       new Set(["mp3", "opus", "aac", "flac", "wav", "pcm"]),
     );
+  });
+});
+
+describe("resolvePromptCacheRetention (Phase 7: prompt cache retention)", () => {
+  it("omits the field for 'default' or unset (Venice applies upstream default)", () => {
+    expect(resolvePromptCacheRetention("default")).toBeUndefined();
+    expect(resolvePromptCacheRetention(undefined)).toBeUndefined();
+  });
+
+  it("passes 'extended' through verbatim", () => {
+    expect(resolvePromptCacheRetention("extended")).toBe("extended");
+  });
+
+  it("passes '24h' through verbatim", () => {
+    expect(resolvePromptCacheRetention("24h")).toBe("24h");
+  });
+
+  it("is hooked into buildChatPayload (top-level field per Swagger)", () => {
+    const extended = buildChatPayload(
+      "venice-llm",
+      [{ role: "user", content: "hi" }],
+      { promptCacheRetention: "extended" },
+    );
+    expect(extended.prompt_cache_retention).toBe("extended");
+
+    const defaultPayload = buildChatPayload(
+      "venice-llm",
+      [{ role: "user", content: "hi" }],
+      { promptCacheRetention: "default" },
+    );
+    expect(defaultPayload).not.toHaveProperty("prompt_cache_retention");
+
+    const unset = buildChatPayload(
+      "venice-llm",
+      [{ role: "user", content: "hi" }],
+      {},
+    );
+    expect(unset).not.toHaveProperty("prompt_cache_retention");
   });
 });
 

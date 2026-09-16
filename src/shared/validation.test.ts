@@ -3,11 +3,15 @@ import { describe, it, expect } from "vitest";
 import {
   ALLOWED_VENICE_ENDPOINTS,
   ALLOWED_VENICE_METHODS,
+  API_KEYS_ENDPOINT,
   CHARACTER_SLUG_MAX_LENGTH,
   CHARACTERS_ENDPOINT,
+  extractApiKeyId,
   extractCharacterSlug,
+  isAllowedApiKeysRequest,
   isAllowedCharactersRequest,
   isAllowedVeniceRequest,
+  VENICE_API_KEY_ID_PATTERN,
   VENICE_CHARACTER_SLUG_PATTERN,
   VENICE_ENDPOINT_METHODS,
 } from "./validation";
@@ -47,13 +51,20 @@ describe("validation", () => {
         "/billing/balance",
         "/billing/usage-history",
         "/billing/usage-analytics",
+        // Phase 9 — API-key administration. /api_keys/{id} is matched by
+        // the parameterized helper (see isAllowedApiKeysRequest); the
+        // literal-path lookup table carries it as a template.
+        "/api_keys",
+        "/api_keys/{id}",
+        "/api_keys/rate_limits",
+        "/api_keys/rate_limits/log",
       ]);
     });
   });
 
   describe("ALLOWED_VENICE_METHODS", () => {
-    it("contains only GET and POST", () => {
-      expect(ALLOWED_VENICE_METHODS).toEqual(["GET", "POST"]);
+    it("contains GET, POST, PUT, DELETE (Phase 9 added PUT/DELETE for /api_keys/{id})", () => {
+      expect(ALLOWED_VENICE_METHODS).toEqual(["GET", "POST", "PUT", "DELETE"]);
     });
   });
 
@@ -66,7 +77,12 @@ describe("validation", () => {
       expect(VENICE_ENDPOINT_METHODS["/image/styles"]).toEqual(["GET"]);
     });
 
-    it("allows POST for all non-GET-only endpoints", () => {
+    it("allows POST for all non-GET-only endpoints except the parameterized /api_keys/{id}", () => {
+      // Phase 9 widened the method set and added the parameterized
+      // `/api_keys/{id}` (GET/PUT/DELETE). The invariant for this test is
+      // therefore: every endpoint that is not GET-only and is not
+      // `/api_keys/{id}` accepts POST. /api_keys/{id} accepts PUT/DELETE
+      // for single-key CRUD instead.
       const getOnlyEndpoints = new Set([
         "/models",
         "/models/traits",
@@ -76,11 +92,22 @@ describe("validation", () => {
         "/billing/balance",
         "/billing/usage-history",
         "/billing/usage-analytics",
+        // Phase 9 — read-only rate-limit sub-paths.
+        "/api_keys/rate_limits",
+        "/api_keys/rate_limits/log",
+      ]);
+      const nonGetOnlyExceptParameterized = new Set([
+        ...getOnlyEndpoints,
+        // Phase 9 — `/api_keys/{id}` accepts GET/PUT/DELETE, NOT POST.
+        "/api_keys/{id}",
       ]);
       const postEndpoints = Object.entries(VENICE_ENDPOINT_METHODS).filter(
-        ([ep, methods]) => !getOnlyEndpoints.has(ep) && methods.includes("POST")
+        ([ep, methods]) =>
+          !nonGetOnlyExceptParameterized.has(ep) && methods.includes("POST"),
       );
-      expect(postEndpoints.length).toBe(ALLOWED_VENICE_ENDPOINTS.length - getOnlyEndpoints.size);
+      expect(postEndpoints.length).toBe(
+        ALLOWED_VENICE_ENDPOINTS.length - nonGetOnlyExceptParameterized.size,
+      );
     });
 
     it("rejects POST on /billing/usage-history (Phase 2: read-only billing)", () => {
@@ -194,6 +221,77 @@ describe("validation", () => {
 
     it("constant matches the documented list endpoint", () => {
       expect(CHARACTERS_ENDPOINT).toBe("/characters");
+    });
+  });
+
+  describe("Phase 9 — /api_keys administration", () => {
+    it("accepts /api_keys with GET and POST", () => {
+      expect(isAllowedApiKeysRequest("/api_keys", "GET")).toBe(true);
+      expect(isAllowedApiKeysRequest("/api_keys", "POST")).toBe(true);
+    });
+
+    it("accepts /api_keys/{id} with GET / PUT / DELETE", () => {
+      expect(isAllowedApiKeysRequest("/api_keys/abc-123", "GET")).toBe(true);
+      expect(isAllowedApiKeysRequest("/api_keys/abc-123", "PUT")).toBe(true);
+      expect(isAllowedApiKeysRequest("/api_keys/abc-123", "DELETE")).toBe(true);
+    });
+
+    it("rejects POST on /api_keys/{id}", () => {
+      expect(isAllowedApiKeysRequest("/api_keys/abc-123", "POST")).toBe(false);
+    });
+
+    it("rejects nested /api_keys/{id}/{something}", () => {
+      expect(isAllowedApiKeysRequest("/api_keys/abc/extra", "GET")).toBe(false);
+    });
+
+    it("rejects URL-encoded slashes / dot-segments in id", () => {
+      expect(isAllowedApiKeysRequest("/api_keys/%2Fmodels", "GET")).toBe(false);
+      expect(isAllowedApiKeysRequest("/api_keys/has.dot", "GET")).toBe(false);
+    });
+
+    it("rejects unknown methods", () => {
+      expect(isAllowedApiKeysRequest("/api_keys", "PATCH")).toBe(false);
+    });
+
+    it("rejects paths outside the /api_keys prefix", () => {
+      expect(isAllowedApiKeysRequest("/api_keyx", "GET")).toBe(false);
+    });
+
+    it("extractApiKeyId returns the id on match, null otherwise", () => {
+      expect(extractApiKeyId("/api_keys/abc-123")).toBe("abc-123");
+      expect(extractApiKeyId("/api_keys/abc/extra")).toBeNull();
+      expect(extractApiKeyId("/api_keys/")).toBeNull();
+      expect(extractApiKeyId("/api_keys")).toBeNull();
+    });
+
+    it("isAllowedVeniceRequest routes /api_keys/{id} through the parameterized matcher", () => {
+      expect(isAllowedVeniceRequest("/api_keys", "GET")).toBe(true);
+      expect(isAllowedVeniceRequest("/api_keys", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/api_keys/abc-123", "GET")).toBe(true);
+      expect(isAllowedVeniceRequest("/api_keys/abc-123", "PUT")).toBe(true);
+      expect(isAllowedVeniceRequest("/api_keys/abc-123", "DELETE")).toBe(true);
+      expect(isAllowedVeniceRequest("/api_keys/abc/extra", "GET")).toBe(false);
+    });
+
+    it("literal read-only /api_keys/rate_limits is allowed", () => {
+      expect(isAllowedVeniceRequest("/api_keys/rate_limits", "GET")).toBe(true);
+      expect(isAllowedVeniceRequest("/api_keys/rate_limits", "POST")).toBe(false);
+      expect(isAllowedVeniceRequest("/api_keys/rate_limits/log", "GET")).toBe(true);
+      expect(isAllowedVeniceRequest("/api_keys/rate_limits/log", "POST")).toBe(false);
+    });
+
+    it("constant matches the documented base endpoint", () => {
+      expect(API_KEYS_ENDPOINT).toBe("/api_keys");
+    });
+
+    it("api-key id pattern rejects empty / oversized / control / encoded inputs", () => {
+      expect(VENICE_API_KEY_ID_PATTERN.test("a")).toBe(true);
+      expect(VENICE_API_KEY_ID_PATTERN.test("A_b-9")).toBe(true);
+      expect(VENICE_API_KEY_ID_PATTERN.test("a".repeat(128))).toBe(true);
+      expect(VENICE_API_KEY_ID_PATTERN.test("a".repeat(129))).toBe(false);
+      expect(VENICE_API_KEY_ID_PATTERN.test("")).toBe(false);
+      expect(VENICE_API_KEY_ID_PATTERN.test("a/b")).toBe(false);
+      expect(VENICE_API_KEY_ID_PATTERN.test("a.b")).toBe(false);
     });
   });
 });

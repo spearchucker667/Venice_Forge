@@ -38,10 +38,21 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   "/billing/balance",
   "/billing/usage-history",
   "/billing/usage-analytics",
+  // Phase 9 — API-key administration & privacy. `/api_keys/{id}` is a
+  // template that resolves via isAllowedApiKeysRequest(); it is still
+  // enumerated here so the exact-allowlist assertion in
+  // validation.test.ts stays the single source of truth.
+  "/api_keys",
+  "/api_keys/{id}",
+  "/api_keys/rate_limits",
+  "/api_keys/rate_limits/log",
 ] as const;
 
-/** HTTP methods permitted for Venice API requests. */
-export const ALLOWED_VENICE_METHODS = ["GET", "POST"] as const;
+/** HTTP methods permitted for Venice API requests. PUT and DELETE were
+ *  added with the Phase 9 API-key administration surface
+ *  (`/api_keys/{id}`) — both methods are documented upstream for the
+ *  single-key CRUD endpoints. */
+export const ALLOWED_VENICE_METHODS = ["GET", "POST", "PUT", "DELETE"] as const;
 
 /** Union type of allowed Venice API endpoint paths. */
 export type VeniceIpcEndpoint = (typeof ALLOWED_VENICE_ENDPOINTS)[number];
@@ -49,8 +60,14 @@ export type VeniceIpcEndpoint = (typeof ALLOWED_VENICE_ENDPOINTS)[number];
 /** Union type of allowed Venice API HTTP methods. */
 export type VeniceIpcMethod = (typeof ALLOWED_VENICE_METHODS)[number];
 
-/** Allowed HTTP methods for each permitted Venice endpoint. */
-export const VENICE_ENDPOINT_METHODS: Record<VeniceIpcEndpoint, readonly VeniceIpcMethod[]> = {
+/** Allowed HTTP methods for each permitted Venice endpoint.
+ *  Indexed by string at runtime to permit parameterized routes like
+ *  `/api_keys/{id}` (Phase 9) which live alongside the literal lookup
+ *  table. `VeniceIpcEndpoint` (the union of literal entries) is
+ *  preserved as the static type for callers that want compile-time
+ *  safety on the documented endpoints; this Record just broadens the
+ *  index signature so the parameterized route can also be enumerated. */
+export const VENICE_ENDPOINT_METHODS: Record<string, readonly VeniceIpcMethod[]> = {
   "/models": ["GET"],
   "/models/traits": ["GET"],
   "/models/compatibility_mapping": ["GET"],
@@ -84,14 +101,36 @@ export const VENICE_ENDPOINT_METHODS: Record<VeniceIpcEndpoint, readonly VeniceI
   "/billing/balance": ["GET"],
   "/billing/usage-history": ["GET"],
   "/billing/usage-analytics": ["GET"],
+  // Phase 9 — API-key administration & privacy. The canonical CRUD surface
+  // for managing Venice API keys. Note that the renderer must NEVER receive
+  // the active stored secret; create-key responses that include a one-time
+  // secret are surfaced through a narrowly-scoped, one-shot IPC channel
+  // and redacted from logs/diagnostics. See Phase 9 of the 2026-09-16
+  // feature-gap handoff for the security model.
+  "/api_keys": ["GET", "POST"],
+  "/api_keys/{id}": ["GET", "PUT", "DELETE"],
+  "/api_keys/rate_limits": ["GET"],
+  "/api_keys/rate_limits/log": ["GET"],
 };
 
 /** The bare /characters list endpoint. The character-slug variant is
  *  parameterized: see `VENICE_CHARACTER_SLUG_PATTERN`. */
 export const CHARACTERS_ENDPOINT = "/characters" as const;
 
+/** Phase 9 — base path for the API-key administration surface. The
+ *  parameterized `/api_keys/{id}` variant is matched by
+ *  `isAllowedApiKeysRequest()`. */
+export const API_KEYS_ENDPOINT = "/api_keys" as const;
+
 /** Maximum length of a character slug. */
 export const CHARACTER_SLUG_MAX_LENGTH = 128;
+
+/** Regex used to validate a single API-key identifier segment for
+ *  `/api_keys/{id}` (Phase 9). Allowed: ASCII letters, digits, `_`, `-`.
+ *  Length 1..128. Reject: `/`, `.`, `%`, URL-encoded variants, anything
+ *  else. The IPC layer also rejects encoded slashes / dot-segments
+ *  separately. */
+export const VENICE_API_KEY_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
 
 /** Regex used to validate a single character slug segment.
  *  Allowed: ASCII letters, digits, `_`, `-`. Length 1..128.
@@ -139,6 +178,52 @@ export function extractCharacterSlug(pathname: string): string | null {
 }
 
 /**
+ * Checks whether a path matches the Venice `/api_keys` administration
+ * endpoints (Phase 9).
+ *
+ * Accepts:
+ *   - `/api_keys`                   (list / create)
+ *   - `/api_keys/{id}`              (get / update / delete single key)
+ *
+ * Rejects:
+ *   - nested paths beyond a single id segment
+ *   - URL-encoded slashes / dot-segments
+ *   - missing or oversized id
+ *   - POST on `/api_keys/{id}` (per-method split between list/create vs.
+ *     single-key CRUD; see VENICE_ENDPOINT_METHODS for the canonical list)
+ *
+ * Read-only rate-limit endpoints (`/api_keys/rate_limits`,
+ * `/api_keys/rate_limits/log`) are NOT covered by this matcher because
+ * they live under `ALLOWED_VENICE_ENDPOINTS` directly and are matched by
+ * the literal-lookup path in `isAllowedVeniceRequest`.
+ *
+ * @param pathname The parsed Venice endpoint pathname (no query string).
+ * @param method The normalized HTTP method.
+ * @returns True when the pathname + method pair is allowed.
+ */
+export function isAllowedApiKeysRequest(pathname: string, method: string): boolean {
+  // Method constraints mirror VENICE_ENDPOINT_METHODS for the parameterized
+  // shape; literal paths use the standard lookup.
+  if (pathname === API_KEYS_ENDPOINT) {
+    return method === "GET" || method === "POST";
+  }
+  if (!pathname.startsWith(`${API_KEYS_ENDPOINT}/`)) return false;
+  const tail = pathname.slice(API_KEYS_ENDPOINT.length + 1);
+  if (!tail || tail.includes("/")) return false;
+  if (!VENICE_API_KEY_ID_PATTERN.test(tail)) return false;
+  return method === "GET" || method === "PUT" || method === "DELETE";
+}
+
+/** Extracts the API-key id from a `/api_keys/{id}` pathname.
+ *  Returns null when the pathname does not match. */
+export function extractApiKeyId(pathname: string): string | null {
+  if (!pathname.startsWith(`${API_KEYS_ENDPOINT}/`)) return null;
+  const tail = pathname.slice(API_KEYS_ENDPOINT.length + 1);
+  if (!tail || tail.includes("/")) return null;
+  return VENICE_API_KEY_ID_PATTERN.test(tail) ? tail : null;
+}
+
+/**
  * Checks whether an HTTP method is valid for an allowed Venice endpoint.
  * @param endpoint The parsed Venice endpoint pathname.
  * @param method The normalized HTTP method.
@@ -147,5 +232,8 @@ export function extractCharacterSlug(pathname: string): string | null {
 export function isAllowedVeniceRequest(endpoint: string, method: string): boolean {
   const allowedMethods = VENICE_ENDPOINT_METHODS[endpoint as VeniceIpcEndpoint];
   if (allowedMethods?.includes(method as VeniceIpcMethod)) return true;
-  return isAllowedCharactersRequest(endpoint, method);
+  if (isAllowedCharactersRequest(endpoint, method)) return true;
+  // Phase 9 — parameterized `/api_keys/{id}` is matched here because the
+  // literal-path lookup table only carries `/api_keys/{id}` as a template.
+  return isAllowedApiKeysRequest(endpoint, method);
 }
