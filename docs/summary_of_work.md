@@ -2995,3 +2995,49 @@ Investigation only, then four targeted fixes based on the user-reported defects
   - This means: if a user requests a video quote, then submits the queued video request with image refs, the quoted price is derived from a request body that does not include the image refs. If pricing depends on image count (as the handoff §10.4 invariant suggests), the quoted price may not match the actual queued price.
   - **This is a real Phase 5.4 bug**, but per handoff §31 ("Do not invent request or response fields") we cannot add `reference_image_count` / `reference_image_urls` to `VideoQuoteWirePayload` without first confirming the upstream Swagger documents those fields. Per-image pricing for xAI video is not documented in the current Swagger snapshot (verified 2026-09-16 sync HEAD `1993429ec`). Recording the audit finding here; implementation requires a future upstream-contract confirmation before any code lands.
 - **Validation:** typecheck (root + Electron + Electron test) ✅, lint:eslint ✅, verify:contracts:static ✅, 93 focused tests in `payloadBuilders.test.ts` (was 88; +5 new) ✅.
+
+### 2026-09-16 — VF-AUD-P1 hardening: close the envelope-split vector
+
+- **Reproduced the P1 envelope-split exploit.** A reproduction in a
+  temp script against the prior code showed that attachment body text
+  containing `</external_attachment><external_attachment id="evil">…`
+  would split the safety-guard envelope into TWO quoted segments. The
+  attacker's text would leak into the second quoted segment (classified
+  as quoted attachment data, NOT user instruction), breaking the
+  provenance boundary. The regex non-greedy match was matching the
+  first occurrence.
+- **Fix.** `src/services/ingestion/xmlEscape.ts`:
+  - Added `neutralizeEnvelopeTagsInBody()` that replaces any literal
+    `<external_attachment>` or `</external_attachment>` substring inside
+    attachment body text with a safe placeholder
+    (`[external-attachment-tag-redacted]`).
+  - `buildExternalAttachmentEnvelope()` now passes body text through
+    this neutralizer before serializing.
+  - Body content is otherwise preserved verbatim so the safety guard
+    still sees the literal text for classification (the CSAM hard-block
+    invariant is preserved).
+  - The placeholder is human-readable so audit logs and the safety
+    guard's classification pass see the sanitized text rather than the
+    raw attack payload.
+- **Tests added:**
+  - `src/services/ingestion/xmlEscape.test.ts`: 3 new tests covering
+    closing-tag injection, opening-tag injection, and benign content
+    preservation (no false-positive neutralization). Plus 3 tests for
+    the `neutralizeEnvelopeTagsInBody` helper covering opening + closing
+    + tag-with-attributes + no-op cases.
+  - `src/shared/safety/childExploitationGuard.test.ts`: 1 new
+    end-to-end regression test (VF-CUR-P1-002-b) proving the full
+    buildExternalAttachmentEnvelope → splitExternalAttachmentSegments
+    pipeline produces exactly ONE quoted segment regardless of how many
+    literal closing tags the body contains, and that the attacker's
+    text is NOT present in `instructionText`.
+- **Architectural follow-up tracked for future refactor.** The handoff
+  recommends stopping the regex-parsing-of-serialized-prompt pattern
+  entirely and routing typed segments through the safety guard. That
+  is a larger refactor across `use-chat.ts` → `childExploitationGuard.ts`
+  → `assessChildExploitationSafety` consumers. This commit closes the
+  specific P1 split-envelope vector; the broader architectural fix is
+  logged as a separate future-slice item in `docs/ROADMAP.md`.
+- **Validation:** typecheck (root + Electron + Electron test) ✅,
+  lint:eslint ✅, 182 focused tests in `xmlEscape.test.ts` +
+  `childExploitationGuard.test.ts` (was 175; +7 new) ✅.
