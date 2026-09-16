@@ -6,11 +6,13 @@ import {
   buildChatPayload,
   buildImagePayload,
   clampSeed,
+  DEFAULT_PROMPT_CHARACTER_LIMITS,
   normalizeImageDraft,
   randomSeed,
   resolveAudioResponseFormat,
   resolveE2eeParam,
   resolvePromptCacheRetention,
+  resolvePromptCharacterLimit,
   serializeSeed,
   SUPPORTED_AUDIO_OUTPUT_FORMATS,
 } from "./payloadBuilders";
@@ -263,6 +265,41 @@ describe("resolvePromptCacheRetention (Phase 7: prompt cache retention)", () => 
       {},
     );
     expect(unset).not.toHaveProperty("prompt_cache_retention");
+  });
+});
+
+describe("resolvePromptCharacterLimit (Phase 5.3)", () => {
+  it("uses model_spec.prompt_character_limit when the model advertises one", () => {
+    const m = { model_spec: { prompt_character_limit: 1234 } };
+    expect(resolvePromptCharacterLimit(m, "video")).toBe(1234);
+    expect(resolvePromptCharacterLimit(m, "image")).toBe(1234);
+    expect(resolvePromptCharacterLimit(m, "music")).toBe(1234);
+  });
+
+  it("falls back to the per-modality documented default when upstream is absent", () => {
+    expect(resolvePromptCharacterLimit(undefined, "video")).toBe(2500);
+    expect(resolvePromptCharacterLimit({ model_spec: {} }, "music")).toBe(500);
+  });
+
+  it("falls back to the explicit fallback when both upstream and modality default are 0/negative", () => {
+    expect(resolvePromptCharacterLimit(undefined, "image", 9999)).toBe(9999);
+  });
+
+  it("ignores non-positive upstream limits (treats as absent)", () => {
+    expect(resolvePromptCharacterLimit({ model_spec: { prompt_character_limit: 0 } }, "video")).toBe(2500);
+    expect(resolvePromptCharacterLimit({ model_spec: { prompt_character_limit: -1 } }, "music")).toBe(500);
+  });
+
+  it("DEFAULT_PROMPT_CHARACTER_LIMITS aligns with the documented upstream defaults", () => {
+    // Sourced from the Swagger descriptions for video/music (2500/500) and
+    // the long-standing Venice Forge image app-level ceiling (7500). A
+    // change here is a contract change — bump the resolver and tests in
+    // the same commit.
+    expect(DEFAULT_PROMPT_CHARACTER_LIMITS).toEqual({
+      image: 7500,
+      video: 2500,
+      music: 500,
+    });
   });
 });
 

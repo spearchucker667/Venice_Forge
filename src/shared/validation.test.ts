@@ -4,10 +4,12 @@ import {
   ALLOWED_VENICE_ENDPOINTS,
   ALLOWED_VENICE_METHODS,
   API_KEYS_ENDPOINT,
+  CHARACTER_REVIEWS_SUFFIX,
   CHARACTER_SLUG_MAX_LENGTH,
   CHARACTERS_ENDPOINT,
   extractApiKeyId,
   extractCharacterSlug,
+  extractCharacterSlugFromReviewsPath,
   isAllowedApiKeysRequest,
   isAllowedCharactersRequest,
   isAllowedVeniceRequest,
@@ -221,6 +223,51 @@ describe("validation", () => {
 
     it("constant matches the documented list endpoint", () => {
       expect(CHARACTERS_ENDPOINT).toBe("/characters");
+    });
+  });
+
+  describe("Phase 12 — /characters/{slug}/reviews", () => {
+    it("accepts /characters/{slug}/reviews with GET", () => {
+      expect(isAllowedCharactersRequest("/characters/alan-watts/reviews", "GET")).toBe(true);
+    });
+
+    it("accepts the broader isAllowedVeniceRequest path for reviews", () => {
+      expect(isAllowedVeniceRequest("/characters/alan-watts/reviews", "GET")).toBe(true);
+    });
+
+    it("rejects POST / PUT / DELETE on reviews", () => {
+      expect(isAllowedCharactersRequest("/characters/alan-watts/reviews", "POST")).toBe(false);
+      expect(isAllowedCharactersRequest("/characters/alan-watts/reviews", "PUT")).toBe(false);
+      expect(isAllowedCharactersRequest("/characters/alan-watts/reviews", "DELETE")).toBe(false);
+    });
+
+    it("rejects nested paths beyond reviews", () => {
+      // handoff §17 forbids generalizing to arbitrary nested /characters/* paths.
+      expect(isAllowedCharactersRequest("/characters/alan-watts/reviews/something", "GET")).toBe(false);
+      expect(isAllowedCharactersRequest("/characters/alan-watts/tags", "GET")).toBe(false);
+      expect(isAllowedCharactersRequest("/characters/alan-watts/reviews/extra", "GET")).toBe(false);
+    });
+
+    it("rejects reviews with empty or invalid slug", () => {
+      expect(isAllowedCharactersRequest("/characters//reviews", "GET")).toBe(false);
+      expect(isAllowedCharactersRequest("/characters/has.dot/reviews", "GET")).toBe(false);
+      expect(isAllowedCharactersRequest("/characters/has%2Fslash/reviews", "GET")).toBe(false);
+    });
+
+    it("rejects the bare /characters/reviews path (no slug)", () => {
+      expect(isAllowedCharactersRequest("/characters/reviews", "GET")).toBe(false);
+    });
+
+    it("extractCharacterSlugFromReviewsPath returns the slug or null", () => {
+      expect(extractCharacterSlugFromReviewsPath("/characters/alan-watts/reviews")).toBe("alan-watts");
+      expect(extractCharacterSlugFromReviewsPath("/characters/has.dot/reviews")).toBeNull();
+      expect(extractCharacterSlugFromReviewsPath("/characters//reviews")).toBeNull();
+      expect(extractCharacterSlugFromReviewsPath("/characters/reviews")).toBeNull();
+      expect(extractCharacterSlugFromReviewsPath("/characters/alan-watts")).toBeNull();
+    });
+
+    it("constant matches the documented suffix", () => {
+      expect(CHARACTER_REVIEWS_SUFFIX).toBe("/reviews");
     });
   });
 

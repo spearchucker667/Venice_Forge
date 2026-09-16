@@ -138,6 +138,12 @@ export const VENICE_API_KEY_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
  *  The IPC layer also rejects encoded slashes / dot-segments separately. */
 export const VENICE_CHARACTER_SLUG_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
+/** Phase 12 — suffix on the parameterized `/characters/{slug}/reviews`
+ *  route. The handoff explicitly forbids generalizing to arbitrary nested
+ *  `/characters/*` paths; this constant is the single exception and is
+ *  matched verbatim below. */
+export const CHARACTER_REVIEWS_SUFFIX = "/reviews" as const;
+
 /** HTTP methods accepted on the /characters family of endpoints. */
 export const CHARACTERS_ENDPOINT_METHODS: readonly VeniceIpcMethod[] = ["GET"];
 
@@ -147,9 +153,10 @@ export const CHARACTERS_ENDPOINT_METHODS: readonly VeniceIpcMethod[] = ["GET"];
  * Accepts:
  *   - `/characters`              (list)
  *   - `/characters/{slug}`       (single character)
+ *   - `/characters/{slug}/reviews` (Phase 12 — paginated reviews)
  *
  * Rejects:
- *   - nested paths               (`/characters/foo/bar`)
+ *   - other nested paths         (`/characters/foo/bar`)
  *   - URL-encoded slashes/dots   (`/characters/%2Fmodels`)
  *   - missing or oversized slug
  *   - any method other than GET
@@ -162,10 +169,33 @@ export function isAllowedCharactersRequest(pathname: string, method: string): bo
   if (method !== "GET") return false;
   if (pathname === CHARACTERS_ENDPOINT) return true;
   if (!pathname.startsWith(`${CHARACTERS_ENDPOINT}/`)) return false;
-  // Reject nested paths: only one extra segment.
+  // The reviews suffix is the ONLY exception to the "no nested paths"
+  // rule (Phase 12). Anything else nested is rejected.
+  if (pathname.endsWith(CHARACTER_REVIEWS_SUFFIX)) {
+    const slug = pathname.slice(
+      CHARACTERS_ENDPOINT.length + 1,
+      -CHARACTER_REVIEWS_SUFFIX.length,
+    );
+    return slug.length > 0 && !slug.includes("/") && VENICE_CHARACTER_SLUG_PATTERN.test(slug);
+  }
+  // Single-segment path: `/characters/{slug}`.
   const tail = pathname.slice(CHARACTERS_ENDPOINT.length + 1);
   if (!tail || tail.includes("/")) return false;
   return VENICE_CHARACTER_SLUG_PATTERN.test(tail);
+}
+
+/** Extracts the character slug from a `/characters/{slug}/reviews`
+ *  pathname. Returns null when the pathname does not match. */
+export function extractCharacterSlugFromReviewsPath(pathname: string): string | null {
+  if (!pathname.endsWith(CHARACTER_REVIEWS_SUFFIX)) return null;
+  const slug = pathname.slice(
+    CHARACTERS_ENDPOINT.length + 1,
+    -CHARACTER_REVIEWS_SUFFIX.length,
+  );
+  if (!slug || slug.includes("/") || !VENICE_CHARACTER_SLUG_PATTERN.test(slug)) {
+    return null;
+  }
+  return slug;
 }
 
 /** Extracts the character slug from a `/characters/{slug}` pathname.

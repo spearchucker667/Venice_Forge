@@ -199,6 +199,53 @@ export function buildChatPayload(
   return applyVeniceApiSafeMode("/chat/completions", payload, settings.safeMode);
 }
 
+/** Phase 5.3 — defaults applied when a model advertises no
+ *  `model_spec.prompt_character_limit`. Sourced from the upstream Swagger
+ *  descriptions: video defaults to 2500 characters, music to 500. The
+ *  image default is the long-standing app-level ceiling in
+ *  `IMAGE_PROMPT_MAX_CHARS` because the Swagger does not currently
+ *  document an image-model default — the app-level clamp is preserved
+ *  to avoid changing accepted input sizes for image models. */
+export const DEFAULT_PROMPT_CHARACTER_LIMITS = {
+  image: 7500,
+  video: 2500,
+  music: 500,
+} as const;
+
+export type PromptModality = keyof typeof DEFAULT_PROMPT_CHARACTER_LIMITS;
+
+/**
+ * Resolves the canonical prompt-character limit for a chat/media
+ * request. Source-of-truth precedence (verbatim from
+ * `docs/audits/TODO/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md`
+ * §10.3 — Phase 5.3):
+ *
+ *  1. `model.model_spec.prompt_character_limit` when the model advertises
+ *     one. Different model families expose different limits; the upstream
+ *     value is authoritative.
+ *  2. `DEFAULT_PROMPT_CHARACTER_LIMITS[modality]` when no upstream limit
+ *     is provided. These come from the Swagger descriptions for the
+ *     documented default values.
+ *  3. `fallback` parameter (typically `Infinity` for tests / lenient
+ *     callers; production UI should always pass a sensible default).
+ *
+ * This resolver is contract-correct but the rendering layer is
+ * responsible for *enforcement*: per handoff §10.3, the UI must
+ * surface a precise validation error rather than silently truncating
+ * overlong prompts. `buildImagePayload()` keeps the legacy
+ * `slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS)` behavior for back-compat;
+ * new callers should validate before invoking the builder.
+ */
+export function resolvePromptCharacterLimit(
+  modelInfo: Pick<VeniceModel, 'model_spec'> | undefined,
+  modality: PromptModality,
+  fallback: number = DEFAULT_PROMPT_CHARACTER_LIMITS[modality],
+): number {
+  const upstream = modelInfo?.model_spec?.prompt_character_limit;
+  if (typeof upstream === 'number' && upstream > 0) return upstream;
+  return fallback;
+}
+
 /**
  * Resolves the user-facing prompt-cache retention override into the
  * canonical `prompt_cache_retention` value used at the top level of
