@@ -3,11 +3,13 @@
 
 import { describe, expect, it, vi } from "vitest";
 import {
+  assertPromptWithinLimits,
   buildChatPayload,
   buildImagePayload,
   clampSeed,
   DEFAULT_PROMPT_CHARACTER_LIMITS,
   normalizeImageDraft,
+  PromptCharacterLimitExceededError,
   randomSeed,
   resolveAudioResponseFormat,
   resolveE2eeParam,
@@ -300,6 +302,73 @@ describe("resolvePromptCharacterLimit (Phase 5.3)", () => {
       video: 2500,
       music: 500,
     });
+  });
+});
+
+describe("assertPromptWithinLimits (Phase 5.3: do not silently truncate)", () => {
+  it("accepts prompts within the resolved limit", () => {
+    const m = { model_spec: { prompt_character_limit: 100 } };
+    expect(() => assertPromptWithinLimits("hello world", undefined, m)).not.toThrow();
+    expect(() => assertPromptWithinLimits("a".repeat(100), undefined, m)).not.toThrow();
+    expect(() => assertPromptWithinLimits("a".repeat(50), "b".repeat(50), m)).not.toThrow();
+  });
+
+  it("throws PromptCharacterLimitExceededError when prompt exceeds limit", () => {
+    const m = { model_spec: { prompt_character_limit: 10 } };
+    expect(() => assertPromptWithinLimits("a".repeat(11), undefined, m)).toThrow(
+      PromptCharacterLimitExceededError,
+    );
+    try {
+      assertPromptWithinLimits("a".repeat(11), undefined, m, { modelId: "venice-image" });
+    } catch (err) {
+      const e = err as PromptCharacterLimitExceededError;
+      expect(e.field).toBe("prompt");
+      expect(e.limit).toBe(10);
+      expect(e.actual).toBe(11);
+      expect(e.modelId).toBe("venice-image");
+    }
+  });
+
+  it("throws PromptCharacterLimitExceededError when negativePrompt exceeds limit", () => {
+    const m = { model_spec: { prompt_character_limit: 5 } };
+    expect(() => assertPromptWithinLimits("hi", "n".repeat(6), m)).toThrow(
+      PromptCharacterLimitExceededError,
+    );
+  });
+
+  it("falls back to DEFAULT_PROMPT_CHARACTER_LIMITS when no upstream limit is set", () => {
+    // image default is 7500; verify the fallback path.
+    expect(() =>
+      assertPromptWithinLimits("a".repeat(DEFAULT_PROMPT_CHARACTER_LIMITS.image), undefined, undefined),
+    ).not.toThrow();
+  });
+
+  it("ignores empty negativePrompt", () => {
+    const m = { model_spec: { prompt_character_limit: 5 } };
+    expect(() => assertPromptWithinLimits("hi", "", m)).not.toThrow();
+    expect(() => assertPromptWithinLimits("hi", undefined, m)).not.toThrow();
+  });
+});
+
+describe("normalizeImageDraft wired to per-model prompt limit", () => {
+  it("honors a tighter upstream limit when modelInfo is supplied", () => {
+    const tight = { model_spec: { prompt_character_limit: 4 } };
+    const draft = {
+      prompt: "a".repeat(20),
+      negative: "n".repeat(20),
+      width: 128,
+      height: 128,
+    };
+    const out = normalizeImageDraft(draft, { modelInfo: tight });
+    expect(out.prompt).toBe("a".repeat(4));
+    expect(out.negative).toBe("n".repeat(4));
+    expect(out.negativePrompt).toBe("n".repeat(4));
+  });
+
+  it("preserves the legacy 7500-char default when modelInfo is omitted (back-compat)", () => {
+    const long = "a".repeat(8000);
+    const out = normalizeImageDraft({ prompt: long, width: 128, height: 128 });
+    expect(out.prompt.length).toBe(7500);
   });
 });
 

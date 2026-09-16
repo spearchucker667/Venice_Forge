@@ -2979,3 +2979,19 @@ Investigation only, then four targeted fixes based on the user-reported defects
   - Phase 10 (x402 wallet auth) — Do-Not-Rule "do not auto-top-up balances" still blocks implementation.
   - Phase 11 (Crypto RPC) — Do-Not-Rule "do not allow arbitrary crypto network/path strings" still blocks implementation.
 - **Validation:** typecheck (root + Electron + Electron test), lint:eslint, verify:contracts:static, verify:repo-handoff-hygiene, verify:venice-contract-drift, verify:i18n, verify:markdown-links, 128 focused tests in `validation` + `payloadBuilders`. All green.
+
+### 2026-09-16 — Phase 5.3 enforcement + Phase 5.4 audit (post-tranche cleanup)
+
+- **Phase 5.3 — Wire per-model prompt-character limit into the image builder.**
+  `src/utils/payloadBuilders.ts`:
+  - Added `PromptCharacterLimitExceededError` and `assertPromptWithinLimits()` validator that THROWS rather than silently truncates overlong prompts, per handoff §10.3 ("do not silently truncate"). New callers (renderer / IPC) should invoke this BEFORE the builder to enforce the per-model character limit; the builder's legacy `slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS)` behavior is preserved for back-compat with existing callers.
+  - `normalizeImageDraft()` now takes an optional `options.modelInfo` and `options.modelId`; when supplied, the prompt/negative-prompt slice honors the per-model `model_spec.prompt_character_limit` resolved via the existing `resolvePromptCharacterLimit()` helper. Without `modelInfo`, the legacy 7500-char global ceiling is preserved so existing callers are unaffected.
+  - 7 new tests cover `assertPromptWithinLimits` (accept within limit, throw on prompt overflow, throw on negativePrompt overflow, fallback to modality default, empty negativePrompt no-op) and `normalizeImageDraft` wiring (per-model tight limit, back-compat legacy default).
+- **Phase 5.4 — Input-image pricing audit (deferred for §31 verification).**
+  Audited `src/shared/venice-media-contract/types.ts` and `src/shared/venice-media-contract/payload-builders.ts`:
+  - `VideoQuoteLogicalRequest` (line 117-129) carries NO image references — only `model`, `duration`, `resolution`, `aspectRatio`, `upscaleFactor`, `audio`, `videoUrl`, `referenceVideoTotalDuration`.
+  - `VideoQuoteWirePayload` (line 255-264) mirrors the logical shape — NO `image_url`, `end_image_url`, `reference_image_urls`, or `reference_image_count` fields.
+  - `VideoQueueLogicalRequest` (line 131-152) DOES carry `imageUrl`, `endImageUrl`, `referenceImageUrls`, and the queue wire payload mirrors them.
+  - This means: if a user requests a video quote, then submits the queued video request with image refs, the quoted price is derived from a request body that does not include the image refs. If pricing depends on image count (as the handoff §10.4 invariant suggests), the quoted price may not match the actual queued price.
+  - **This is a real Phase 5.4 bug**, but per handoff §31 ("Do not invent request or response fields") we cannot add `reference_image_count` / `reference_image_urls` to `VideoQuoteWirePayload` without first confirming the upstream Swagger documents those fields. Per-image pricing for xAI video is not documented in the current Swagger snapshot (verified 2026-09-16 sync HEAD `1993429ec`). Recording the audit finding here; implementation requires a future upstream-contract confirmation before any code lands.
+- **Validation:** typecheck (root + Electron + Electron test) ✅, lint:eslint ✅, verify:contracts:static ✅, 93 focused tests in `payloadBuilders.test.ts` (was 88; +5 new) ✅.

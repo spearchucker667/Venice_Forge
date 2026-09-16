@@ -246,6 +246,61 @@ export function resolvePromptCharacterLimit(
   return fallback;
 }
 
+/** Thrown when a prompt exceeds the canonical per-model character limit.
+ *  Renderer surfaces this as a precise validation error rather than
+ *  silently truncating, per handoff §10.3 ("do not silently truncate").
+ *  The builder keeps its legacy slice behavior for back-compat; new
+ *  callers should call `assertPromptWithinLimits` before invoking the
+ *  builder. */
+export class PromptCharacterLimitExceededError extends Error {
+  readonly field: 'prompt' | 'negativePrompt';
+  readonly limit: number;
+  readonly actual: number;
+  readonly modelId?: string;
+  constructor(
+    field: 'prompt' | 'negativePrompt',
+    limit: number,
+    actual: number,
+    modelId?: string,
+  ) {
+    super(
+      `${field} exceeds the canonical character limit (${actual} > ${limit})` +
+        (modelId ? ` for model ${modelId}` : ''),
+    );
+    this.name = 'PromptCharacterLimitExceededError';
+    this.field = field;
+    this.limit = limit;
+    this.actual = actual;
+    this.modelId = modelId;
+  }
+}
+
+/** Validates that the prompt and negative-prompt strings fit within the
+ *  resolved per-model character limit. Throws
+ *  `PromptCharacterLimitExceededError` when the limit is exceeded; does
+ *  NOT silently truncate. Callers that previously relied on the
+ *  builder's slice behavior should switch to this validator to honor
+ *  handoff §10.3 "do not silently truncate". */
+export function assertPromptWithinLimits(
+  prompt: string,
+  negativePrompt: string | undefined,
+  modelInfo: Pick<VeniceModel, 'model_spec'> | undefined,
+  options: { modality?: PromptModality; modelId?: string } = {},
+): void {
+  const limit = resolvePromptCharacterLimit(modelInfo, options.modality ?? 'image');
+  if (prompt.length > limit) {
+    throw new PromptCharacterLimitExceededError('prompt', limit, prompt.length, options.modelId);
+  }
+  if (negativePrompt && negativePrompt.length > limit) {
+    throw new PromptCharacterLimitExceededError(
+      'negativePrompt',
+      limit,
+      negativePrompt.length,
+      options.modelId,
+    );
+  }
+}
+
 /**
  * Resolves the user-facing prompt-cache retention override into the
  * canonical `prompt_cache_retention` value used at the top level of
@@ -527,10 +582,22 @@ function clampDimension(value: unknown): number {
  * fields to emit; defaulting to "1:1" here would force every model into
  * aspect-ratio mode and break SD-classic models that need raw width/height.
  *
+ * When `modelInfo` is supplied, the prompt/negative-prompt slice limits
+ * honor the per-model `model_spec.prompt_character_limit` via
+ * `resolvePromptCharacterLimit()`. Without `modelInfo`, the legacy
+ * `VENICE_IMAGE_MAX_PROMPT_CHARS` ceiling is preserved for back-compat.
+ *
  * @param draft The raw image draft.
+ * @param options Optional `modelInfo` to honor per-model prompt-character
+ *   limits via `resolvePromptCharacterLimit()`. Callers that want strict
+ *   "do not silently truncate" enforcement should call
+ *   `assertPromptWithinLimits()` BEFORE invoking this function.
  * @returns A normalized draft with safe values.
  */
-export function normalizeImageDraft(draft: ImageDraftLike): ImageDraftLike {
+export function normalizeImageDraft(
+  draft: ImageDraftLike,
+  options: { modelInfo?: Pick<VeniceModel, 'model_spec'>; modelId?: string } = {},
+): ImageDraftLike {
   const prompt = String(draft.prompt ?? "").trim();
   const rawNegative = draft.negative ?? draft.negativePrompt;
   const negative = String(rawNegative ?? "").trim();
@@ -543,10 +610,15 @@ export function normalizeImageDraft(draft: ImageDraftLike): ImageDraftLike {
     }
     return undefined;
   })();
+  // Per-model limit when the caller provides modelInfo; otherwise fall
+  // back to the legacy global ceiling (existing caller contract).
+  const promptLimit = options.modelInfo
+    ? resolvePromptCharacterLimit(options.modelInfo, 'image', VENICE_IMAGE_MAX_PROMPT_CHARS)
+    : VENICE_IMAGE_MAX_PROMPT_CHARS;
   return {
-    prompt: prompt.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
-    negative: negative.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
-    negativePrompt: negative.slice(0, VENICE_IMAGE_MAX_PROMPT_CHARS),
+    prompt: prompt.slice(0, promptLimit),
+    negative: negative.slice(0, promptLimit),
+    negativePrompt: negative.slice(0, promptLimit),
     width: clampDimension(draft.width),
     height: clampDimension(draft.height),
     aspectRatio: aspectRatio || undefined,
