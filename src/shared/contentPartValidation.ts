@@ -10,10 +10,20 @@
  *  capability gates that decide whether `video_url` / `file` may be
  *  sent at all live separately in `src/shared/modelCapabilities.ts`.
  *
+ *  The error type carries a stable machine-readable `reason` enum that
+ *  the renderer translates via the existing i18n system — there is NO
+ *  English message field on the error. This honors the
+ *  "translate presentation, not transport/state contracts" rule:
+ *  presentation belongs to the renderer/i18n layer; the validator
+ *  surfaces a reason + structured params that the renderer maps to
+ *  the user-visible string. Adding a `message: string` here would
+ *  leak hardcoded English into the canonical contract (and fail the
+ *  `verify:i18n-hardcoded-regressions` gate).
+ *
  *  Local filesystem paths are explicitly rejected — Venice expects a
  *  data URL or a public URL, never an absolute path on the user's
  *  machine. Sending a raw path would leak device-local paths into the
- *  outbound request, violating §9.4 of the 2026-09-16 feature-gap
+ *  outbound request, violating §11 of the 2026-09-16 feature-gap
  *  handoff and the broader "no secrets / no device paths over the
  *  wire" rule in AGENTS.md.
  */
@@ -47,16 +57,29 @@ export const SUPPORTED_FILE_DATA_MIME_PREFIXES = [
   "data:application/json",
 ] as const;
 
+/** Stable machine-readable reason codes. The renderer translates
+ *  these to user-visible messages via the i18n catalog; the validator
+ *  itself never carries English text. Add new codes here when the
+ *  canonical contract grows new failure modes — and add the matching
+ *  translation keys to `src/i18n/resources/en-US/<namespace>.json`
+ *  (and all other locales via the i18n-translation pipeline). */
+export type ContentPartValidationReason =
+  | "unsupported-type"
+  | "missing-payload"
+  | "raw-local-path"
+  | "unsupported-format"
+  | "too-many-video-urls";
+
 export interface ContentPartValidationError {
+  /** Zero-based index of the offending part within the input array. `-1`
+   *  is reserved for aggregate errors that span the whole request
+   *  (e.g. the "too many video_url parts" limit). */
   partIndex: number;
-  reason:
-    | "unsupported-type"
-    | "missing-payload"
-    | "invalid-url"
-    | "raw-local-path"
-    | "unsupported-format"
-    | "too-many-video-urls";
-  message: string;
+  /** Stable machine-readable reason code. The renderer maps this to
+   *  the user-visible string via the i18n catalog. */
+  reason: ContentPartValidationReason;
+  /** Optional structured parameters for the i18n interpolation. */
+  params?: Record<string, string | number>;
 }
 
 /** True when the value looks like a raw absolute filesystem path
@@ -115,7 +138,9 @@ export function isSupportedFileData(fileData: string): boolean {
 }
 
 /** Validates a single ContentPart. Returns the structured error when the
- *  part is invalid; returns null on success. */
+ *  part is invalid; returns null on success. The returned error has no
+ *  English `message` — the renderer is responsible for translating the
+ *  `reason` via the i18n catalog. */
 export function validateContentPart(
   part: ContentPart,
   partIndex: number,
@@ -123,28 +148,15 @@ export function validateContentPart(
   switch (part.type) {
     case "text":
       if (typeof part.text !== "string" || part.text.length === 0) {
-        return {
-          partIndex,
-          reason: "missing-payload",
-          message: "text content part must include a non-empty `text` field",
-        };
+        return { partIndex, reason: "missing-payload" };
       }
       return null;
     case "image_url":
       if (typeof part.image_url?.url !== "string" || !part.image_url.url) {
-        return {
-          partIndex,
-          reason: "missing-payload",
-          message: "image_url content part must include a `url`",
-        };
+        return { partIndex, reason: "missing-payload" };
       }
       if (looksLikeLocalFilesystemPath(part.image_url.url)) {
-        return {
-          partIndex,
-          reason: "raw-local-path",
-          message:
-            "image_url.url must be a data URL or a public URL, never a local filesystem path",
-        };
+        return { partIndex, reason: "raw-local-path" };
       }
       return null;
     case "input_audio":
@@ -153,70 +165,33 @@ export function validateContentPart(
         !part.input_audio.data ||
         typeof part.input_audio.format !== "string"
       ) {
-        return {
-          partIndex,
-          reason: "missing-payload",
-          message:
-            "input_audio content part must include base64 `data` and a `format`",
-        };
+        return { partIndex, reason: "missing-payload" };
       }
       return null;
     case "file":
       if (!part.file?.file_data) {
-        return {
-          partIndex,
-          reason: "missing-payload",
-          message: "file content part must include `file.file_data`",
-        };
+        return { partIndex, reason: "missing-payload" };
       }
       if (looksLikeLocalFilesystemPath(part.file.file_data)) {
-        return {
-          partIndex,
-          reason: "raw-local-path",
-          message:
-            "file.file_data must be a data URL or a public http(s) URL, never a raw local filesystem path",
-        };
+        return { partIndex, reason: "raw-local-path" };
       }
       if (!isSupportedFileData(part.file.file_data)) {
-        return {
-          partIndex,
-          reason: "unsupported-format",
-          message:
-            "file.file_data must be a data URL with a supported MIME prefix or a public http(s) URL",
-        };
+        return { partIndex, reason: "unsupported-format" };
       }
       return null;
     case "video_url":
       if (!part.video_url?.url) {
-        return {
-          partIndex,
-          reason: "missing-payload",
-          message: "video_url content part must include a `url`",
-        };
+        return { partIndex, reason: "missing-payload" };
       }
       if (looksLikeLocalFilesystemPath(part.video_url.url)) {
-        return {
-          partIndex,
-          reason: "raw-local-path",
-          message:
-            "video_url.url must be a data URL or a public URL, never a local filesystem path",
-        };
+        return { partIndex, reason: "raw-local-path" };
       }
       if (!isSupportedVideoUrl(part.video_url.url)) {
-        return {
-          partIndex,
-          reason: "unsupported-format",
-          message:
-            "video_url.url must use one of the supported formats: mp4, mpeg, mov, webm (YouTube links are accepted for some providers)",
-        };
+        return { partIndex, reason: "unsupported-format" };
       }
       return null;
     default:
-      return {
-        partIndex,
-        reason: "unsupported-type",
-        message: `unknown content part type: ${String((part as { type?: unknown }).type)}`,
-      };
+      return { partIndex, reason: "unsupported-type" };
   }
 }
 
@@ -239,7 +214,7 @@ export function validateContentParts(
     errors.push({
       partIndex: -1,
       reason: "too-many-video-urls",
-      message: `at most ${MAX_VIDEO_URL_PARTS_PER_REQUEST} video_url parts are allowed per request (got ${videoCount})`,
+      params: { max: MAX_VIDEO_URL_PARTS_PER_REQUEST, actual: videoCount },
     });
   }
   return errors;

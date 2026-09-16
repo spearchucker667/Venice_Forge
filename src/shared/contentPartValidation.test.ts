@@ -8,6 +8,7 @@ import {
   MAX_VIDEO_URL_PARTS_PER_REQUEST,
   validateContentPart,
   validateContentParts,
+  type ContentPartValidationError,
 } from "./contentPartValidation";
 
 describe("looksLikeLocalFilesystemPath", () => {
@@ -153,5 +154,31 @@ describe("validateContentParts (Phase 6 video_url limit)", () => {
     expect(reasons).toContain("missing-payload");
     expect(reasons).toContain("raw-local-path");
     expect(reasons).toContain("too-many-video-urls");
+  });
+
+  it("the aggregate too-many-video-urls error carries interpolation params", () => {
+    const errors = validateContentParts(
+      Array.from({ length: MAX_VIDEO_URL_PARTS_PER_REQUEST + 2 }, () => ({
+        type: "video_url" as const,
+        video_url: { url: "https://example.com/clip.mp4" },
+      })),
+    );
+    const agg = errors.find((e) => e.reason === "too-many-video-urls");
+    expect(agg).toBeDefined();
+    expect((agg as ContentPartValidationError).params).toEqual({
+      max: MAX_VIDEO_URL_PARTS_PER_REQUEST,
+      actual: MAX_VIDEO_URL_PARTS_PER_REQUEST + 2,
+    });
+  });
+
+  it("the error type carries no English `message` field (i18n contract)", () => {
+    // The validator surfaces a stable reason code + structured params; the
+    // renderer is responsible for translating via the i18n catalog. Adding a
+    // hardcoded English `message` would break the
+    // `verify:i18n-hardcoded-regressions` gate and the AGENTS.md "translate
+    // presentation, not transport/state" rule.
+    const err = validateContentPart({ type: "file", file: { file_data: "/example/me/foo.pdf" } }, 0);
+    expect(err).toBeDefined();
+    expect((err as unknown as Record<string, unknown>).message).toBeUndefined();
   });
 });
