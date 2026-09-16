@@ -9,7 +9,12 @@ import {
   type StateStorage,
 } from "zustand/middleware";
 import { checkSystemPromptLimit } from "../shared/promptLimits";
-import type { ChatMessage, VeniceParameters } from "../types/venice";
+import type {
+  ChatMessage,
+  E2eeOverride,
+  PromptCacheRetention,
+  VeniceParameters,
+} from "../types/venice";
 import type { Conversation, ConversationMessage } from "../types/conversation";
 import type { ChatMediaReference } from "../types/conversationVault";
 import {
@@ -178,6 +183,12 @@ interface ChatState {
   activeConversationId: string | null;
   isStreaming: boolean;
   veniceParams: VeniceParameters;
+  /** Profile-level default E2EE override. Conversation-level
+   *  `metadata.privacy.e2eeOverride` wins when set. */
+  e2eeOverride: E2eeOverride;
+  /** Profile-level default prompt-cache retention. Conversation-level
+   *  `metadata.privacy.promptCacheRetention` wins when set. */
+  promptCacheRetention: PromptCacheRetention;
   systemPrompt: string;
   temperature: number;
   topP: number;
@@ -298,6 +309,8 @@ interface ChatState {
   toggleConversationArchived: (conversationId: string) => Promise<void>;
   setStreaming: (streaming: boolean) => void;
   setVeniceParams: (params: Partial<VeniceParameters>) => void;
+  setE2eeOverride: (override: E2eeOverride) => void;
+  setPromptCacheRetention: (retention: PromptCacheRetention) => void;
   setSystemPrompt: (prompt: string) => void;
   setTemperature: (t: number) => void;
   setTopP: (p: number) => void;
@@ -445,6 +458,8 @@ export const useChatStore = create<ChatState>()(
         enable_web_search: "off",
         enable_document_tools: false,
       },
+      e2eeOverride: "provider-default",
+      promptCacheRetention: "default",
       systemPrompt: "",
       temperature: 0.7,
       topP: 1,
@@ -1326,6 +1341,11 @@ export const useChatStore = create<ChatState>()(
       setVeniceParams: (params) =>
         set((s) => ({ veniceParams: { ...s.veniceParams, ...params } })),
 
+      setE2eeOverride: (override) => set({ e2eeOverride: override }),
+
+      setPromptCacheRetention: (retention) =>
+        set({ promptCacheRetention: retention }),
+
       setSystemPrompt: (prompt) => {
         const limitResult = checkSystemPromptLimit(prompt);
         if (limitResult.isOverLimit) {
@@ -1400,6 +1420,8 @@ export const useChatStore = create<ChatState>()(
         // DO NOT persist conversations to localStorage anymore. Handled by IPC.
         activeConversationId: state.activeConversationId,
         veniceParams: state.veniceParams,
+        e2eeOverride: state.e2eeOverride,
+        promptCacheRetention: state.promptCacheRetention,
         systemPrompt: state.systemPrompt,
         temperature: state.temperature,
         topP: state.topP,

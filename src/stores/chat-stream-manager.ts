@@ -18,6 +18,10 @@ import type { VeniceStreamDelta } from "../shared/veniceStreamDelta";
 import { useDocumentAgentStore } from "./document-agent-store";
 import * as logger from "../shared/logger";
 import { getModelById } from "../services/modelService";
+import {
+  resolveE2eeParam,
+  resolvePromptCacheRetention,
+} from "../utils/payloadBuilders";
 import { translateRuntime } from "../i18n/runtimeTranslator";
 import { SafetyGuardBlockedError } from "../shared/safety";
 
@@ -110,6 +114,21 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     }
   }
 
+  // VF-20260916-P1-001 — the Venice-primary body MUST carry the user's E2EE
+  // choice. Resolve the conversation override (falls back to the profile
+  // default) against the selected model's `supportsE2EE` capability. Never
+  // strip here: non-Venice fallback adapters sanitize their own clone via
+  // `cloneSanitizedForFallbackProvider` (shared) and
+  // `sanitizeProviderRequestBody` (Electron allowlist).
+  const privacy = conv.metadata?.privacy;
+  const e2eeParam = resolveE2eeParam(
+    modelInfo,
+    privacy?.e2eeOverride ?? state.e2eeOverride,
+  );
+  if (e2eeParam !== undefined) {
+    veniceParamsForRequest.enable_e2ee = e2eeParam;
+  }
+
   const baseBody: Record<string, unknown> = {
     model,
     messages: requestMessages,
@@ -120,6 +139,16 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     max_completion_tokens: compiled.maxTokens,
     venice_parameters: veniceParamsForRequest,
   };
+
+  // VF-FEAT-004 — `prompt_cache_retention` is a TOP-LEVEL Venice-only cache
+  // control (not a `venice_parameters` field). Conversation override wins over
+  // the profile default; `'default'`/unset omits the field entirely.
+  const cacheRetention = resolvePromptCacheRetention(
+    privacy?.promptCacheRetention ?? state.promptCacheRetention,
+  );
+  if (cacheRetention !== undefined) {
+    baseBody.prompt_cache_retention = cacheRetention;
+  }
 
   // P1-005: tool injection is gated on explicit runtime metadata only.
   const docAgentState = useDocumentAgentStore.getState();
@@ -134,26 +163,16 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     ...veniceParamsForRequest,
   };
   if (baseBody.venice_parameters && typeof baseBody.venice_parameters === "object") {
-    // Strip Venice-only `enable_document_tools` because non-Venice providers
-    // reject unknown fields; the existing code handles this single field. We
-    // additionally strip `enable_e2ee` for the same reason — it is a
-    // Venice-only privacy control that has no meaning on OpenAI/Google/etc.
-    // fallbacks. See Phase 4 of the 2026-09-16 feature-gap handoff for the
-    // "fallback-provider routes must strip Venice-only E2EE fields" rule.
+    // `enable_document_tools` is handled exclusively through the canonical
+    // `tools` array on this path, so the legacy boolean is dropped here
+    // (codified contract — see chat-stream-manager tests). NOTE: this is NOT
+    // a fallback-compatibility strip; the fallback chain sanitizes its own
+    // clone and never sees this body mutated. `enable_e2ee` must NOT be
+    // deleted here — that was the VF-20260916-P1-001 defect.
     const veniceParams = baseBody.venice_parameters as {
       enable_document_tools?: boolean;
-      enable_e2ee?: boolean;
     };
     delete veniceParams.enable_document_tools;
-    delete veniceParams.enable_e2ee;
-  }
-
-  // Phase 7 — `prompt_cache_retention` is a Venice-only cache control and
-  // must not be forwarded to non-Venice fallback providers. Strip at the
-  // same trust boundary as `venice_parameters.enable_*` so a future change
-  // cannot leak Venice-only cache semantics to OpenAI/Google/etc.
-  if ('prompt_cache_retention' in baseBody) {
-    delete (baseBody as Record<string, unknown>).prompt_cache_retention;
   }
 
   return applyVeniceApiSafeMode(

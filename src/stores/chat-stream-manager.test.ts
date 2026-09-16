@@ -43,6 +43,8 @@ function resetStores() {
     temperature: 0.7,
     topP: 1,
     maxTokens: 4096,
+    e2eeOverride: "provider-default",
+    promptCacheRetention: "default",
   });
 }
 
@@ -162,6 +164,137 @@ describe("chat-stream-manager", () => {
     expect(body.model).toBe("llama-3.3-70b");
     expect(body.stream).toBe(true);
     expect(body.messages).toEqual([{ role: "user", content: "Hello" }]);
+  });
+
+  // VF-20260916-P1-001 — the Venice-primary body must actually carry the
+  // user's E2EE choice. These tests assert against the real `startStream()`
+  // body sent to `veniceStreamChat`, not helper output.
+  describe("E2EE reaches the live Venice request body", () => {
+    const E2EE_MODEL = {
+      id: "e2ee-capable-model",
+      model_spec: { capabilities: { supportsE2EE: true } },
+    };
+
+    it("sends enable_e2ee: true when the profile override is 'on' and the model supports E2EE", async () => {
+      useChatStore.getState().setE2eeOverride("on");
+      const convId = useChatStore.getState().createConversation(E2EE_MODEL.id);
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockGetModelById.mockReturnValue(E2EE_MODEL);
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, E2EE_MODEL.id);
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(
+        (body.venice_parameters as { enable_e2ee?: boolean }).enable_e2ee,
+      ).toBe(true);
+    });
+
+    it("sends enable_e2ee: false when the override is 'off'", async () => {
+      useChatStore.getState().setE2eeOverride("off");
+      const convId = useChatStore.getState().createConversation(E2EE_MODEL.id);
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockGetModelById.mockReturnValue(E2EE_MODEL);
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, E2EE_MODEL.id);
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(
+        (body.venice_parameters as { enable_e2ee?: boolean }).enable_e2ee,
+      ).toBe(false);
+    });
+
+    it("omits enable_e2ee on provider-default", async () => {
+      const convId = useChatStore.getState().createConversation(E2EE_MODEL.id);
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockGetModelById.mockReturnValue(E2EE_MODEL);
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, E2EE_MODEL.id);
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(
+        (body.venice_parameters as { enable_e2ee?: boolean }).enable_e2ee,
+      ).toBeUndefined();
+    });
+
+    it("omits enable_e2ee for models without supportsE2EE even when 'on'", async () => {
+      useChatStore.getState().setE2eeOverride("on");
+      const convId = useChatStore.getState().createConversation("no-e2ee-model");
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockGetModelById.mockReturnValue({
+        id: "no-e2ee-model",
+        model_spec: { capabilities: { supportsE2EE: false } },
+      });
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, "no-e2ee-model");
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(
+        (body.venice_parameters as { enable_e2ee?: boolean }).enable_e2ee,
+      ).toBeUndefined();
+    });
+
+    it("conversation privacy override beats the profile default", async () => {
+      useChatStore.getState().setE2eeOverride("on");
+      const convId = useChatStore.getState().createConversation(E2EE_MODEL.id);
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      useChatStore
+        .getState()
+        .updateConversationMetadata(convId, { privacy: { e2eeOverride: "off" } });
+      mockGetModelById.mockReturnValue(E2EE_MODEL);
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, E2EE_MODEL.id);
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(
+        (body.venice_parameters as { enable_e2ee?: boolean }).enable_e2ee,
+      ).toBe(false);
+    });
+  });
+
+  // VF-FEAT-004 — prompt-cache retention is a top-level Venice-only field on
+  // the live request body.
+  describe("prompt-cache retention on the live Venice request body", () => {
+    it("sends prompt_cache_retention when the profile default is extended/24h", async () => {
+      useChatStore.getState().setPromptCacheRetention("24h");
+      const convId = useChatStore.getState().createConversation("cache-model");
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, "cache-model");
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.prompt_cache_retention).toBe("24h");
+    });
+
+    it("omits prompt_cache_retention on the 'default' profile setting", async () => {
+      const convId = useChatStore.getState().createConversation("cache-model");
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, "cache-model");
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.prompt_cache_retention).toBeUndefined();
+    });
+
+    it("conversation promptCacheRetention override beats the profile default", async () => {
+      const convId = useChatStore.getState().createConversation("cache-model");
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      useChatStore.getState().updateConversationMetadata(convId, {
+        privacy: { promptCacheRetention: "extended" },
+      });
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, "cache-model");
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.prompt_cache_retention).toBe("extended");
+    });
   });
 
   it("injects a global system prompt when one is configured", async () => {

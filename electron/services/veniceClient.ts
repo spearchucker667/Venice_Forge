@@ -11,6 +11,7 @@ import { redactErrorMessage } from "../../src/shared/redaction";
 import { validateVeniceIpcRequest } from "../ipc/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS, VENICE_API_STREAM_TIMEOUT_MS } from "../../src/shared/apiConfig";
 import { resolveProviderRoute, type ProviderRouteSelection } from "./providerAdapters";
+import { cloneSanitizedForFallbackProvider } from "../../src/shared/chatFallbackSanitizer";
 import { getProviderSettings } from "./providerSettingsStore";
 import {
   SseDecoder,
@@ -541,7 +542,10 @@ async function performSingleVeniceRequest(
         const bodyObj = request.body && typeof request.body === 'object' ? request.body as Record<string, unknown> : null;
         const requestBody = route && route.transformBody && bodyObj && typeof bodyObj.model === 'string'
             ? route.transformBody(
-                bodyObj,
+                // Defense-in-depth for Venice-only semantics (E2EE, prompt-cache
+                // retention): sanitize a CLONE before any fallback adapter sees
+                // the body. The primary Venice body is never mutated.
+                cloneSanitizedForFallbackProvider(bodyObj),
                 providerSelection?.model ?? bodyObj.model.split(':').slice(1).join(':'),
               )
             : request.body;

@@ -7,7 +7,19 @@ import type {
   MemoryFact,
 } from "./conversationVault";
 import type { CharacterSceneGenerationResult } from "./characterSceneGeneration";
-import type { ContentPart } from "./venice";
+import type {
+  ContentPart,
+  E2eeOverride,
+  PromptCacheRetention,
+} from "./venice";
+
+/** Per-conversation privacy overrides. Unset fields fall back to the
+ *  profile-level chat defaults (see `chat-store`). Persisted with the
+ *  conversation so the override survives restarts and profile switches. */
+export interface ConversationPrivacyOverrides {
+  e2eeOverride?: E2eeOverride;
+  promptCacheRetention?: PromptCacheRetention;
+}
 
 /** A single message within a conversation. */
 
@@ -97,6 +109,8 @@ export interface Conversation {
     memoryRetrievalEnabled?: boolean;
     includePriorConversationContext?: boolean;
     systemPromptMode?: "inherit" | "override" | "disabled";
+    /** Per-conversation privacy overrides (E2EE, prompt-cache retention). */
+    privacy?: ConversationPrivacyOverrides;
   };
   memory?: {
     summary: string;
