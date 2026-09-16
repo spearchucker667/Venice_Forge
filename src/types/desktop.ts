@@ -73,10 +73,12 @@ export interface VeniceForgeTts {
   clearCache(): Promise<{ ok: boolean; error?: string }>;
 }
 
-/** Describes a single request sent through the Electron IPC bridge. */
+/** Describes a single request sent through the Electron IPC bridge.
+ *  PUT/DELETE were added with the Phase 9 API-key administration surface
+ *  (`/api_keys/{id}`); the main-process validator gates them per endpoint. */
 export interface VeniceForgeRequest {
   endpoint: string;
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
   headers?: Record<string, string>;
   signalId?: string;

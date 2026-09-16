@@ -13,10 +13,12 @@ import {
   type VeniceStreamDelta,
 } from "../src/shared/veniceStreamDelta";
 
-/** Represents a Venice API request sent from the renderer to the main process. */
+/** Represents a Venice API request sent from the renderer to the main process.
+ *  PUT/DELETE are used by the API-key administration surface (`/api_keys/{id}`)
+ *  and are validated per endpoint in the main process. */
 type VeniceRequest = {
   endpoint: string;
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PUT" | "DELETE";
   body?: unknown;
   headers?: Record<string, string>;
   signalId?: string;

@@ -176,7 +176,7 @@ async function veniceFetchDesktop(
     retry: retryOption = undefined as boolean | undefined,
     timeoutMs = undefined as number | undefined,
   }: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "PUT" | "DELETE";
     body?: unknown;
     signal?: AbortSignal;
     dispatch?: AppDispatch;
@@ -314,7 +314,7 @@ async function _veniceFetch(
     retry: retryOption = undefined as boolean | undefined,
     timeoutMs = undefined as number | undefined,
   }: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "PUT" | "DELETE";
     body?: unknown;
     signal?: AbortSignal;
     dispatch?: AppDispatch;
@@ -508,7 +508,7 @@ async function _veniceFetch(
 export async function veniceFetch<T = unknown>(
   endpoint: string,
   options: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "PUT" | "DELETE";
     body?: unknown;
     signal?: AbortSignal;
     dispatch?: AppDispatch;

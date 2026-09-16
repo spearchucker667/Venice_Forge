@@ -536,7 +536,9 @@
     "about": "About & Legal",
     "updates": "Updates",
     "config": "Local Config",
-    "audioSpeech": "Audio & Speech"
+    "audioSpeech": "Audio & Speech",
+    "billing": "Billing & Usage",
+    "veniceApiKeys": "Venice API Keys"
   },
   "updatesPanel": {
     "title": "Application Updates",
@@ -560,5 +562,168 @@
     "default": "Default",
     "rangeValuetext": "{{pixels}} pixels, {{percent}} percent",
     "rangeValuetextDefault": "{{pixels}} pixels, {{percent}} percent, default"
+  },
+  "billing": {
+    "title": "Billing & Usage",
+    "description": "Review your Venice account balance, usage history, and per-model usage analytics. Billing data reflects the account behind your active Venice API key.",
+    "needsKey": "Add a Venice API key in the Venice API Key section to view balance and usage.",
+    "loading": "Loading…",
+    "errors": {
+      "auth": "Venice rejected the request (401). Check that your Venice API key in the Venice API Key section is valid.",
+      "loadFailed": "Failed to load billing balance.",
+      "analyticsFailed": "Failed to load usage analytics."
+    },
+    "balance": {
+      "heading": "Account Balance",
+      "refresh": "Refresh",
+      "updated": "Updated {{time}}",
+      "canConsume": "Can make API requests",
+      "cannotConsume": "Insufficient balance",
+      "consumptionCurrency": "Consumption currency: {{currency}}",
+      "diem": "DIEM balance",
+      "usd": "USD balance",
+      "diemEpoch": "{{used}}% of {{allocation}} epoch allocation used",
+      "noBalances": "No balance information is available for this account."
+    },
+    "history": {
+      "heading": "Usage History",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "currency": "Currency",
+      "currencyAll": "All",
+      "clearFilters": "Clear filters",
+      "empty": "No usage recorded for the selected period.",
+      "loadMore": "Load more",
+      "loadingMore": "Loading more…",
+      "columnTime": "Time",
+      "columnProduct": "Product",
+      "columnUnits": "Units",
+      "columnPrice": "Price / unit (USD)",
+      "columnAmount": "Amount",
+      "columnRequest": "Request ID"
+    },
+    "analytics": {
+      "heading": "Usage Analytics",
+      "lookbackLabel": "Lookback period",
+      "lookbackOption": "Last {{days}} days",
+      "byModel": "By model",
+      "byKey": "By API key",
+      "empty": "No usage recorded for the selected period.",
+      "columnModel": "Model",
+      "columnType": "Type",
+      "columnUnits": "Units",
+      "columnUsd": "USD",
+      "columnDiem": "DIEM",
+      "columnKey": "API key"
+    }
+  },
+  "veniceApiKeys": {
+    "title": "Venice API Keys",
+    "description": "Manage the API keys on your Venice account. Keys are created, updated, and revoked through the Venice API — Venice Forge never stores or displays full key material after creation.",
+    "needsAdminKey": "Add your Venice API key in the Venice API Key section to manage account keys. Key administration requires an API key with account access.",
+    "errors": {
+      "forbidden": "Venice denied key administration ({{status}}). The active API key may lack admin rights — check the key in the Venice API Key section.",
+      "loadFailed": "Failed to load API keys."
+    },
+    "list": {
+      "heading": "Active keys",
+      "loading": "Loading keys…",
+      "empty": "No active API keys on this account.",
+      "suffix": "…{{suffix}}",
+      "activeBadge": "Active key",
+      "created": "Created",
+      "lastUsed": "Last used",
+      "expires": "Expires",
+      "privacy": "Model privacy",
+      "limits": "Limits",
+      "noLimits": "None",
+      "limitSummary": "{{usd}} USD / {{diem}} DIEM per {{period}}",
+      "trailing7d": "Last 7 days",
+      "trailing7dSummary": "{{usd}} USD / {{diem}} DIEM",
+      "revoke": "Revoke"
+    },
+    "fields": {
+      "description": "Name (max 64 characters)",
+      "keyType": "Key type",
+      "modelPrivacy": "Model privacy",
+      "limitPeriod": "Limit reset period",
+      "expiresAt": "Expiration date (optional)",
+      "usdLimit": "USD limit (optional)",
+      "diemLimit": "DIEM limit (optional)"
+    },
+    "types": {
+      "inference": "Inference — can call inference endpoints",
+      "admin": "Admin — full account access"
+    },
+    "privacy": {
+      "all": "All models",
+      "privateText": "Private text/embedding models",
+      "privateOnly": "Private models only"
+    },
+    "periods": {
+      "epoch": "Daily (epoch)",
+      "month": "Monthly",
+      "lifetime": "Lifetime"
+    },
+    "create": {
+      "heading": "Create a new key",
+      "submit": "Create key",
+      "submitting": "Creating…",
+      "failed": "Failed to create API key.",
+      "secretTitle": "API key created",
+      "secretDescription": "Copy this key now and store it somewhere safe. For your security, it will not be shown again.",
+      "secretNameLabel": "Name",
+      "secretKeyLabel": "API key (shown once)",
+      "secretWarning": "Venice only displays this secret once. Venice Forge does not store it. If you lose it, you will need to create a new key.",
+      "copied": "API key copied to clipboard.",
+      "copyFailed": "Could not copy the API key. Select it and copy manually.",
+      "copyAgain": "Copy again"
+    },
+    "update": {
+      "success": "API key updated.",
+      "failed": "Failed to update API key."
+    },
+    "edit": {
+      "clearExpiryHint": "Clear the date to remove the expiration."
+    },
+    "delete": {
+      "title": "Revoke this API key?",
+      "description": "This permanently revokes the key. Applications using it will immediately lose access, and this cannot be undone.",
+      "confirmLabel": "Type \"{{description}}\" to confirm.",
+      "confirm": "Revoke key",
+      "activeKeyWarning": "This appears to be the key Venice Forge is currently using. Deleting it will stop Venice requests until you add a new key.",
+      "success": "API key revoked.",
+      "failed": "Failed to revoke API key.",
+      "deleting": "Revoking…"
+    },
+    "rateLimits": {
+      "heading": "Rate Limits",
+      "loadFailed": "Failed to load rate-limit details.",
+      "accessPermitted": "Inference access permitted",
+      "accessDenied": "Inference access blocked",
+      "tier": "Tier: {{tier}} ({{billing}})",
+      "charged": "pay per use",
+      "notCharged": "not charged",
+      "balances": "Balance: {{usd}} USD / {{diem}} DIEM",
+      "keyExpiration": "Key expiration",
+      "nextEpoch": "Next epoch begins",
+      "perModel": "Per-model limits",
+      "accountWide": "Account-wide",
+      "logHeading": "Recent rate-limit events",
+      "logEmpty": "No rate-limit events in the recent log.",
+      "logLoadFailed": "Failed to load rate-limit events.",
+      "columnModel": "Model",
+      "columnLimit": "Limit",
+      "columnTime": "Time",
+      "columnType": "Limit type",
+      "columnTier": "Tier",
+      "types": {
+        "rpm": "Requests per minute limit",
+        "tpm": "Tokens per minute limit",
+        "rpd": "Daily request limit",
+        "failedRequests": "Failed-request quota",
+        "unsupportedFeature": "Unsupported-feature request quota"
+      }
+    }
   }
 }

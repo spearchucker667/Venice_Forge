@@ -13,9 +13,11 @@ import { isElectron, desktopApiKey, desktopJinaApiKey, desktopUpdates, desktopCo
 import { redactErrorMessage } from "../../shared/redaction";
 import { reloadConfig } from "../../stores/config-store";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
-import { KeyIcon, CloudIcon, GlobeIcon } from "lucide-react";
+import { KeyIcon, CloudIcon, GlobeIcon, WalletIcon, KeyRoundIcon } from "lucide-react";
 import { LanguageRegionPanel } from "./LanguageRegionPanel";
 import { ApiKeysPanel } from "./ApiKeysPanel";
+import { BillingPanel } from "./BillingPanel";
+import { VeniceApiKeysPanel } from "./VeniceApiKeysPanel";
 import { ProvidersPanel } from "./ProvidersPanel";
 import { DefaultsPanel } from "./DefaultsPanel";
 import { SafetyPanel } from "./SafetyPanel";
@@ -378,6 +380,20 @@ export function SettingsView() {
             </div>
           </button>
 
+          <button onClick={() => setActiveSection("billing")} className={sectionButtonClass("billing")}>
+            <div className="flex items-center gap-2.5">
+              <WalletIcon className="w-4 h-4 opacity-75" />
+              <span className="font-medium">{t('settings:tabs.billing', 'Billing & Usage')}</span>
+            </div>
+          </button>
+
+          <button onClick={() => setActiveSection("venice-api-keys")} className={sectionButtonClass("venice-api-keys")}>
+            <div className="flex items-center gap-2.5">
+              <KeyRoundIcon className="w-4 h-4 opacity-75" />
+              <span className="font-medium">{t('settings:tabs.veniceApiKeys', 'Venice API Keys')}</span>
+            </div>
+          </button>
+
           <button onClick={() => setActiveSection("providers")} className={sectionButtonClass("providers")}>
             <div className="flex items-center gap-2.5">
               <CloudIcon className="w-4 h-4 opacity-75" />
@@ -452,6 +468,10 @@ export function SettingsView() {
               onTestJinaKey={handleTestJinaKey}
             />
           )}
+
+          {activeSection === "billing" && <BillingPanel />}
+
+          {activeSection === "venice-api-keys" && <VeniceApiKeysPanel />}
 
           {activeSection === "providers" && <ProvidersPanel />}
 

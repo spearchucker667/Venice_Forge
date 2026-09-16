@@ -536,7 +536,9 @@
     "about": "Acerca de y legal",
     "updates": "Actualizaciones",
     "config": "Configuración local",
-    "audioSpeech": "Audio y voz"
+    "audioSpeech": "Audio y voz",
+    "billing": "__MISSING__:tabs.billing",
+    "veniceApiKeys": "__MISSING__:tabs.veniceApiKeys"
   },
   "updatesPanel": {
     "title": "Actualizaciones de la aplicación",
@@ -560,5 +562,168 @@
     "default": "__MISSING__:font.default",
     "rangeValuetext": "__MISSING__:font.rangeValuetext {{pixels}} {{percent}}",
     "rangeValuetextDefault": "__MISSING__:font.rangeValuetextDefault {{pixels}} {{percent}}"
+  },
+  "billing": {
+    "title": "__MISSING__:billing.title",
+    "description": "__MISSING__:billing.description",
+    "needsKey": "__MISSING__:billing.needsKey",
+    "loading": "__MISSING__:billing.loading",
+    "errors": {
+      "auth": "__MISSING__:billing.errors.auth",
+      "loadFailed": "__MISSING__:billing.errors.loadFailed",
+      "analyticsFailed": "__MISSING__:billing.errors.analyticsFailed"
+    },
+    "balance": {
+      "heading": "__MISSING__:billing.balance.heading",
+      "refresh": "__MISSING__:billing.balance.refresh",
+      "updated": "__MISSING__:billing.balance.updated {{time}}",
+      "canConsume": "__MISSING__:billing.balance.canConsume",
+      "cannotConsume": "__MISSING__:billing.balance.cannotConsume",
+      "consumptionCurrency": "__MISSING__:billing.balance.consumptionCurrency {{currency}}",
+      "diem": "__MISSING__:billing.balance.diem",
+      "usd": "__MISSING__:billing.balance.usd",
+      "diemEpoch": "__MISSING__:billing.balance.diemEpoch {{used}} {{allocation}}",
+      "noBalances": "__MISSING__:billing.balance.noBalances"
+    },
+    "history": {
+      "heading": "__MISSING__:billing.history.heading",
+      "startDate": "__MISSING__:billing.history.startDate",
+      "endDate": "__MISSING__:billing.history.endDate",
+      "currency": "__MISSING__:billing.history.currency",
+      "currencyAll": "__MISSING__:billing.history.currencyAll",
+      "clearFilters": "__MISSING__:billing.history.clearFilters",
+      "empty": "__MISSING__:billing.history.empty",
+      "loadMore": "__MISSING__:billing.history.loadMore",
+      "loadingMore": "__MISSING__:billing.history.loadingMore",
+      "columnTime": "__MISSING__:billing.history.columnTime",
+      "columnProduct": "__MISSING__:billing.history.columnProduct",
+      "columnUnits": "__MISSING__:billing.history.columnUnits",
+      "columnPrice": "__MISSING__:billing.history.columnPrice",
+      "columnAmount": "__MISSING__:billing.history.columnAmount",
+      "columnRequest": "__MISSING__:billing.history.columnRequest"
+    },
+    "analytics": {
+      "heading": "__MISSING__:billing.analytics.heading",
+      "lookbackLabel": "__MISSING__:billing.analytics.lookbackLabel",
+      "lookbackOption": "__MISSING__:billing.analytics.lookbackOption {{days}}",
+      "byModel": "__MISSING__:billing.analytics.byModel",
+      "byKey": "__MISSING__:billing.analytics.byKey",
+      "empty": "__MISSING__:billing.analytics.empty",
+      "columnModel": "__MISSING__:billing.analytics.columnModel",
+      "columnType": "__MISSING__:billing.analytics.columnType",
+      "columnUnits": "__MISSING__:billing.analytics.columnUnits",
+      "columnUsd": "__MISSING__:billing.analytics.columnUsd",
+      "columnDiem": "__MISSING__:billing.analytics.columnDiem",
+      "columnKey": "__MISSING__:billing.analytics.columnKey"
+    }
+  },
+  "veniceApiKeys": {
+    "title": "__MISSING__:veniceApiKeys.title",
+    "description": "__MISSING__:veniceApiKeys.description",
+    "needsAdminKey": "__MISSING__:veniceApiKeys.needsAdminKey",
+    "errors": {
+      "forbidden": "__MISSING__:veniceApiKeys.errors.forbidden {{status}}",
+      "loadFailed": "__MISSING__:veniceApiKeys.errors.loadFailed"
+    },
+    "list": {
+      "heading": "__MISSING__:veniceApiKeys.list.heading",
+      "loading": "__MISSING__:veniceApiKeys.list.loading",
+      "empty": "__MISSING__:veniceApiKeys.list.empty",
+      "suffix": "__MISSING__:veniceApiKeys.list.suffix {{suffix}}",
+      "activeBadge": "__MISSING__:veniceApiKeys.list.activeBadge",
+      "created": "__MISSING__:veniceApiKeys.list.created",
+      "lastUsed": "__MISSING__:veniceApiKeys.list.lastUsed",
+      "expires": "__MISSING__:veniceApiKeys.list.expires",
+      "privacy": "__MISSING__:veniceApiKeys.list.privacy",
+      "limits": "__MISSING__:veniceApiKeys.list.limits",
+      "noLimits": "__MISSING__:veniceApiKeys.list.noLimits",
+      "limitSummary": "__MISSING__:veniceApiKeys.list.limitSummary {{usd}} {{diem}} {{period}}",
+      "trailing7d": "__MISSING__:veniceApiKeys.list.trailing7d",
+      "trailing7dSummary": "__MISSING__:veniceApiKeys.list.trailing7dSummary {{usd}} {{diem}}",
+      "revoke": "__MISSING__:veniceApiKeys.list.revoke"
+    },
+    "fields": {
+      "description": "__MISSING__:veniceApiKeys.fields.description",
+      "keyType": "__MISSING__:veniceApiKeys.fields.keyType",
+      "modelPrivacy": "__MISSING__:veniceApiKeys.fields.modelPrivacy",
+      "limitPeriod": "__MISSING__:veniceApiKeys.fields.limitPeriod",
+      "expiresAt": "__MISSING__:veniceApiKeys.fields.expiresAt",
+      "usdLimit": "__MISSING__:veniceApiKeys.fields.usdLimit",
+      "diemLimit": "__MISSING__:veniceApiKeys.fields.diemLimit"
+    },
+    "types": {
+      "inference": "__MISSING__:veniceApiKeys.types.inference",
+      "admin": "__MISSING__:veniceApiKeys.types.admin"
+    },
+    "privacy": {
+      "all": "__MISSING__:veniceApiKeys.privacy.all",
+      "privateText": "__MISSING__:veniceApiKeys.privacy.privateText",
+      "privateOnly": "__MISSING__:veniceApiKeys.privacy.privateOnly"
+    },
+    "periods": {
+      "epoch": "__MISSING__:veniceApiKeys.periods.epoch",
+      "month": "__MISSING__:veniceApiKeys.periods.month",
+      "lifetime": "__MISSING__:veniceApiKeys.periods.lifetime"
+    },
+    "create": {
+      "heading": "__MISSING__:veniceApiKeys.create.heading",
+      "submit": "__MISSING__:veniceApiKeys.create.submit",
+      "submitting": "__MISSING__:veniceApiKeys.create.submitting",
+      "failed": "__MISSING__:veniceApiKeys.create.failed",
+      "secretTitle": "__MISSING__:veniceApiKeys.create.secretTitle",
+      "secretDescription": "__MISSING__:veniceApiKeys.create.secretDescription",
+      "secretNameLabel": "__MISSING__:veniceApiKeys.create.secretNameLabel",
+      "secretKeyLabel": "__MISSING__:veniceApiKeys.create.secretKeyLabel",
+      "secretWarning": "__MISSING__:veniceApiKeys.create.secretWarning",
+      "copied": "__MISSING__:veniceApiKeys.create.copied",
+      "copyFailed": "__MISSING__:veniceApiKeys.create.copyFailed",
+      "copyAgain": "__MISSING__:veniceApiKeys.create.copyAgain"
+    },
+    "update": {
+      "success": "__MISSING__:veniceApiKeys.update.success",
+      "failed": "__MISSING__:veniceApiKeys.update.failed"
+    },
+    "edit": {
+      "clearExpiryHint": "__MISSING__:veniceApiKeys.edit.clearExpiryHint"
+    },
+    "delete": {
+      "title": "__MISSING__:veniceApiKeys.delete.title",
+      "description": "__MISSING__:veniceApiKeys.delete.description",
+      "confirmLabel": "__MISSING__:veniceApiKeys.delete.confirmLabel {{description}}",
+      "confirm": "__MISSING__:veniceApiKeys.delete.confirm",
+      "activeKeyWarning": "__MISSING__:veniceApiKeys.delete.activeKeyWarning",
+      "success": "__MISSING__:veniceApiKeys.delete.success",
+      "failed": "__MISSING__:veniceApiKeys.delete.failed",
+      "deleting": "__MISSING__:veniceApiKeys.delete.deleting"
+    },
+    "rateLimits": {
+      "heading": "__MISSING__:veniceApiKeys.rateLimits.heading",
+      "loadFailed": "__MISSING__:veniceApiKeys.rateLimits.loadFailed",
+      "accessPermitted": "__MISSING__:veniceApiKeys.rateLimits.accessPermitted",
+      "accessDenied": "__MISSING__:veniceApiKeys.rateLimits.accessDenied",
+      "tier": "__MISSING__:veniceApiKeys.rateLimits.tier {{tier}} {{billing}}",
+      "charged": "__MISSING__:veniceApiKeys.rateLimits.charged",
+      "notCharged": "__MISSING__:veniceApiKeys.rateLimits.notCharged",
+      "balances": "__MISSING__:veniceApiKeys.rateLimits.balances {{usd}} {{diem}}",
+      "keyExpiration": "__MISSING__:veniceApiKeys.rateLimits.keyExpiration",
+      "nextEpoch": "__MISSING__:veniceApiKeys.rateLimits.nextEpoch",
+      "perModel": "__MISSING__:veniceApiKeys.rateLimits.perModel",
+      "accountWide": "__MISSING__:veniceApiKeys.rateLimits.accountWide",
+      "logHeading": "__MISSING__:veniceApiKeys.rateLimits.logHeading",
+      "logEmpty": "__MISSING__:veniceApiKeys.rateLimits.logEmpty",
+      "logLoadFailed": "__MISSING__:veniceApiKeys.rateLimits.logLoadFailed",
+      "columnModel": "__MISSING__:veniceApiKeys.rateLimits.columnModel",
+      "columnLimit": "__MISSING__:veniceApiKeys.rateLimits.columnLimit",
+      "columnTime": "__MISSING__:veniceApiKeys.rateLimits.columnTime",
+      "columnType": "__MISSING__:veniceApiKeys.rateLimits.columnType",
+      "columnTier": "__MISSING__:veniceApiKeys.rateLimits.columnTier",
+      "types": {
+        "rpm": "__MISSING__:veniceApiKeys.rateLimits.types.rpm",
+        "tpm": "__MISSING__:veniceApiKeys.rateLimits.types.tpm",
+        "rpd": "__MISSING__:veniceApiKeys.rateLimits.types.rpd",
+        "failedRequests": "__MISSING__:veniceApiKeys.rateLimits.types.failedRequests",
+        "unsupportedFeature": "__MISSING__:veniceApiKeys.rateLimits.types.unsupportedFeature"
+      }
+    }
   }
 }
