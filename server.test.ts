@@ -1586,3 +1586,74 @@ describe("server.ts typed safety provenance serialization (VF-20260916-P1-002)",
     expect((upstream.messages as Array<{ content: string }>)[0].content).toBe("hi");
   });
 });
+
+describe("server.ts FSM media collector integration (VF-20260916-P1-003)", () => {
+  function minimalPng(width = 100, height = 100): Buffer {
+    // 8-byte signature + IHDR chunk (length 13, type IHDR, 13 data bytes, 4 CRC).
+    const png = Buffer.alloc(8 + 4 + 4 + 13 + 4);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(png, 0);
+    png.writeUInt32BE(13, 8);
+    png.write("IHDR", 12, "ascii");
+    png.writeUInt32BE(width, 16);
+    png.writeUInt32BE(height, 20);
+    png[24] = 8; // bit depth
+    png[25] = 2; // color type truecolor
+    return png;
+  }
+
+  function mockBinaryUpstream(body: Buffer, contentType: string) {
+    const upstream = new EventEmitter() as EventEmitter & {
+      statusCode: number;
+      headers: Record<string, string>;
+      pause: ReturnType<typeof vi.fn>;
+      resume: ReturnType<typeof vi.fn>;
+      destroy: ReturnType<typeof vi.fn>;
+    };
+    upstream.statusCode = 200;
+    upstream.headers = {
+      "content-type": contentType,
+      "content-length": String(body.length),
+    };
+    upstream.pause = vi.fn();
+    upstream.resume = vi.fn();
+    upstream.destroy = vi.fn();
+    proxyMocks.proxyResponse = () => {
+      setImmediate(() => {
+        upstream.emit("data", body);
+        upstream.emit("end");
+      });
+      return upstream;
+    };
+    return upstream;
+  }
+
+  it("screens and delivers a structurally valid generated image", async () => {
+    const png = minimalPng();
+    const upstream = mockBinaryUpstream(png, "image/png");
+    const response = await request(createServerApp())
+      .post("/api/venice/image/generate")
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .send({ prompt: "a cat" });
+
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toContain("image/png");
+    expect(Buffer.compare(response.body as Buffer, png)).toBe(0);
+    expect(upstream.destroy).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized declared image response before buffering", async () => {
+    const upstream = mockBinaryUpstream(Buffer.alloc(0), "image/png");
+    upstream.headers["content-length"] = String(64 * 1024 * 1024);
+    const response = await request(createServerApp())
+      .post("/api/venice/image/generate")
+      .send({ prompt: "a cat" });
+
+    expect(response.status).toBe(413);
+    expect(upstream.destroy).toHaveBeenCalled();
+  });
+});

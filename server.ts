@@ -37,7 +37,16 @@ import {
 } from "./src/services/ingestion/xmlEscape";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./src/shared/urlSecurity";
-import { JINA_MAX_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES } from "./src/shared/limits";
+import { createReadStream } from "node:fs";
+import { open as fsOpen } from "node:fs/promises";
+import { JINA_MAX_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES, FSM_MEDIA_STRUCTURAL_PREFIX_BYTES } from "./src/shared/limits";
+import {
+  collectFsmMediaResponse,
+  resolveFsmMediaCapBytes,
+  type FsmMediaArtifact,
+  type FsmMediaBlockResult,
+  type FsmMediaScreenResult,
+} from "./src/services/fsmMediaCollector";
 import { SafetyGatedSse } from "./src/services/safetyGatedSse";
 import { startSafetyGatedSsePump } from "./src/services/safetyGatedSsePump";
 
@@ -468,6 +477,9 @@ export function createServerApp() {
   // Rate-limit Venice requests before any validation so every request counts
   // toward the limit (matches the original wiring where the rate limiter was
   // attached to the first /api/venice middleware).
+  app.use("/api/venice", (req, _res, next) => {
+    next();
+  });
   app.use("/api/venice", veniceRateLimiter);
 
   const MAX_PROXY_BODY_BYTES = AppConfig.MAX_PROXY_BODY_BYTES;
@@ -533,87 +545,119 @@ export function createServerApp() {
     applyCircuitFromStatus(proxyRes.statusCode);
   };
 
-  const screenAndWriteFsmMedia = async (
+  /** Screens a fully-held media buffer (memory artifact or bounded file
+   *  read). Size enforcement lives in the collector — this only classifies. */
+  const screenFsmMediaBuffer = async (
     buffer: Buffer,
-    proxyRes: http.IncomingMessage,
-    res: express.Response,
-  ): Promise<void> => {
-    const out: Buffer = buffer;
-    if (buffer.length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
-      res.statusCode = 413;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: "Response too large to screen under Family Safe Mode." }));
-      return;
-    }
-    if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
-      const contentType = String(proxyRes.headers["content-type"] || "");
-      if (contentType.includes("application/json")) {
-        const bodyStr = buffer.toString("utf8");
-        try {
-          const parsed = JSON.parse(bodyStr) as Record<string, unknown>;
-          const keys = ["dataBase64", "image", "images", "dataUrl", "audio", "video"];
-          for (const key of keys) {
-            const val = parsed[key];
-            if (val === undefined || val === null) continue;
-            const items = Array.isArray(val) ? val : [val];
-            for (const item of items) {
-              let base64String = "";
-              if (typeof item === "string" && item.length > 0) base64String = item;
-              else if (typeof item === "object" && item !== null && typeof (item as { b64_json?: string }).b64_json === "string") {
-                base64String = (item as { b64_json: string }).b64_json;
-              } else if (typeof item === "object" && item !== null && typeof (item as { url?: string }).url === "string") {
-                base64String = (item as { url: string }).url;
-              }
-              if (base64String) {
-                const mediaScreen = await identifyAndValidateGeneratedMedia(base64String, "application/octet-stream", true);
-                if (!mediaScreen.allowed) {
-                  res.statusCode = 451;
-                  res.setHeader("Content-Type", "application/json");
-                  res.end(JSON.stringify({
+    contentType: string,
+    statusOk: boolean,
+  ): Promise<FsmMediaScreenResult | FsmMediaBlockResult> => {
+    if (statusOk && contentType.includes("application/json")) {
+      const bodyStr = buffer.toString("utf8");
+      try {
+        const parsed = JSON.parse(bodyStr) as Record<string, unknown>;
+        const keys = ["dataBase64", "image", "images", "dataUrl", "audio", "video"];
+        for (const key of keys) {
+          const val = parsed[key];
+          if (val === undefined || val === null) continue;
+          const items = Array.isArray(val) ? val : [val];
+          for (const item of items) {
+            let base64String = "";
+            if (typeof item === "string" && item.length > 0) base64String = item;
+            else if (typeof item === "object" && item !== null && typeof (item as { b64_json?: string }).b64_json === "string") {
+              base64String = (item as { b64_json: string }).b64_json;
+            } else if (typeof item === "object" && item !== null && typeof (item as { url?: string }).url === "string") {
+              base64String = (item as { url: string }).url;
+            }
+            if (base64String) {
+              const mediaScreen = await identifyAndValidateGeneratedMedia(base64String, "application/octet-stream", true);
+              if (!mediaScreen.allowed) {
+                return {
+                  allowed: false,
+                  blockBody: {
                     error: mediaScreen.userMessage || "Media blocked by safety filter",
                     reasonCode: mediaScreen.reasonCode,
                     category: mediaScreen.category,
                     severity: "HIGH",
-                  }));
-                  return;
-                }
+                  },
+                };
               }
             }
           }
-        } catch {
-          res.statusCode = 451;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({
+        }
+      } catch {
+        return {
+          allowed: false,
+          blockBody: {
             error: "Media response could not be screened. Blocked under Family Safe Mode.",
             reasonCode: "CLASSIFIER_UNAVAILABLE",
             category: "HARM_CATEGORY_DANGEROUS_CONTENT",
             severity: "HIGH",
-          }));
-          return;
-        }
-      } else if (contentType.startsWith("video/") || contentType.startsWith("audio/") || contentType.startsWith("image/")) {
-        const mediaScreen = await identifyAndValidateGeneratedMedia(buffer, contentType, true);
-        if (!mediaScreen.allowed) {
-          res.statusCode = 451;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({
+          },
+        };
+      }
+    } else if (
+      statusOk &&
+      (contentType.startsWith("video/") || contentType.startsWith("audio/") || contentType.startsWith("image/"))
+    ) {
+      const mediaScreen = await identifyAndValidateGeneratedMedia(buffer, contentType, true);
+      if (!mediaScreen.allowed) {
+        return {
+          allowed: false,
+          blockBody: {
             error: mediaScreen.userMessage || "Media blocked by safety filter",
             reasonCode: mediaScreen.reasonCode,
             category: mediaScreen.category,
             severity: "HIGH",
-          }));
-          return;
-        }
+          },
+        };
       }
     }
-    copyProxyResponseHeaders(proxyRes, res);
-    res.setHeader("content-length", Buffer.byteLength(out));
-    res.end(out);
+    return { allowed: true };
+  };
+
+  /** Screens a collected artifact. Spooled files are read in bounded slices:
+   *  audio/video structural screening needs only a prefix; images and JSON
+   *  envelopes need the full artifact (bounded by the modality cap). */
+  const screenFsmMediaArtifact = async (
+    artifact: FsmMediaArtifact,
+    contentType: string,
+    statusOk: boolean,
+  ): Promise<FsmMediaScreenResult | FsmMediaBlockResult> => {
+    try {
+      if (artifact.kind === "memory") {
+        return await screenFsmMediaBuffer(artifact.buffer, contentType, statusOk);
+      }
+      const sizeBytes = artifact.sizeBytes;
+      const isAudioOrVideo =
+        contentType.startsWith("video/") || contentType.startsWith("audio/");
+      const readBytes = isAudioOrVideo
+        ? Math.min(sizeBytes, FSM_MEDIA_STRUCTURAL_PREFIX_BYTES)
+        : sizeBytes;
+      const handle = await fsOpen(artifact.filePath, "r");
+      try {
+        const buffer = Buffer.alloc(readBytes);
+        await handle.read(buffer, 0, readBytes, 0);
+        return await screenFsmMediaBuffer(buffer, contentType, statusOk);
+      } finally {
+        await handle.close();
+      }
+    } catch {
+      return {
+        allowed: false,
+        blockBody: {
+          error: "Media response could not be screened. Blocked under Family Safe Mode.",
+          reasonCode: "CLASSIFIER_UNAVAILABLE",
+          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+          severity: "HIGH",
+        },
+      };
+    }
   };
 
   const fsmMediaProxyRes = (
     proxyRes: http.IncomingMessage,
-    _req: express.Request,
+    req: express.Request,
     res: express.Response,
   ): void => {
     applyRetryAfterHeaders(proxyRes, res);
@@ -622,60 +666,60 @@ export function createServerApp() {
       applyCircuitFromStatus(proxyRes.statusCode);
       return;
     }
+    const proxyResStatusOk =
+      typeof proxyRes.statusCode === "number" &&
+      proxyRes.statusCode >= 200 &&
+      proxyRes.statusCode < 300;
 
-    const contentLength = proxyRes.headers["content-length"];
-    if (contentLength) {
-      const declared = Number(contentLength);
-      if (Number.isFinite(declared) && declared > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
-        proxyRes.destroy();
+    collectFsmMediaResponse({
+      upstream: proxyRes,
+      downstream: res,
+      maxBytes: resolveFsmMediaCapBytes(String(proxyRes.headers["content-type"] || "")),
+      screen: (artifact, contentType) =>
+        screenFsmMediaArtifact(artifact, contentType, proxyResStatusOk),
+      writeTooLarge: () => {
         applyCircuitFromStatus(proxyRes.statusCode);
         if (!res.headersSent) {
           res.statusCode = 413;
           res.setHeader("Content-Type", "application/json");
           res.end(FSM_MEDIA_TOO_LARGE_JSON);
         }
-        return;
-      }
-    }
-
-    const chunks: Buffer[] = [];
-    let length = 0;
-    let exceeded = false;
-
-    proxyRes.on("data", (chunk: Buffer | string) => {
-      if (exceeded) return;
-      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      length += buf.length;
-      if (length > VENICE_PROXY_MAX_FSM_RESPONSE_BYTES) {
-        exceeded = true;
-        chunks.length = 0;
-        proxyRes.destroy();
-        if (!res.headersSent) {
-          res.statusCode = 413;
-          res.setHeader("Content-Type", "application/json");
-          res.end(FSM_MEDIA_TOO_LARGE_JSON);
-        }
-        return;
-      }
-      chunks.push(buf);
-    });
-
-    proxyRes.on("end", () => {
-      if (exceeded || res.headersSent) {
+      },
+      writeBlocked: (blockBody) => {
         applyCircuitFromStatus(proxyRes.statusCode);
-        return;
-      }
-      applyCircuitFromStatus(proxyRes.statusCode);
-      void screenAndWriteFsmMedia(Buffer.concat(chunks, length), proxyRes, res);
-    });
-
-    proxyRes.on("error", () => {
-      if (exceeded) return;
-      if (!res.headersSent) {
-        res.statusCode = 502;
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ error: "Proxy error" }));
-      }
+        if (!res.headersSent) {
+          res.statusCode = 451;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(blockBody));
+        }
+      },
+      writeUpstreamError: () => {
+        if (!res.headersSent) {
+          res.statusCode = 502;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Proxy error" }));
+        }
+      },
+      writeAccepted: async (artifact) => {
+        applyCircuitFromStatus(proxyRes.statusCode);
+        if (artifact.kind === "memory") {
+          copyProxyResponseHeaders(proxyRes, res);
+          res.setHeader("content-length", Buffer.byteLength(artifact.buffer));
+          res.end(artifact.buffer);
+          return;
+        }
+        // Spooled artifact: stream the temp file to the client. The
+        // collector owns temp-file cleanup (including this success path).
+        copyProxyResponseHeaders(proxyRes, res);
+        res.setHeader("content-length", artifact.sizeBytes);
+        await new Promise<void>((resolve) => {
+          const fileStream = createReadStream(artifact.filePath);
+          res.on("finish", () => resolve());
+          res.on("close", () => resolve());
+          fileStream.on("error", () => resolve());
+          fileStream.pipe(res);
+        });
+      },
     });
   };
 
