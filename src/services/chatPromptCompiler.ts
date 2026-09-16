@@ -2,6 +2,12 @@ import { translateRuntime } from "../i18n/runtimeTranslator";
 import type { Conversation } from "../types/conversation";
 import type { ChatMessage, ModelInfo, ContentPart } from "../types/venice";
 import {
+  SAFETY_PROVENANCE_VERSION,
+  type SafetyPromptSegment,
+  type SafetyProvenanceMessage,
+  type SafetyProvenancePayload,
+} from "../shared/safety/promptSegments";
+import {
   calculateChatContextBudget,
   estimateMessageTokens,
   estimateTokenCount,
@@ -9,6 +15,14 @@ import {
 import { notify } from "./notification-service";
 import { parseCharacterSceneRequest } from "./characterSceneRequestParser";
 import { resolveEffectiveChatPromptContext } from "./effectiveChatPrompt";
+
+/** Internal carrier for typed safety provenance (VF-20260916-P1-002). Tagged
+ *  on compiled messages during construction so budget passes (which splice
+ *  and shrink the array) keep segments glued to their message; reconciled
+ *  into a {@link SafetyProvenancePayload} and stripped before returning. */
+type CompiledMessage = ChatMessage & {
+  _safetySegments?: SafetyPromptSegment[];
+};
 
 export type ChatPromptSegment = {
   id: string;
@@ -84,7 +98,16 @@ export function compileChatPrompt(
   modelInfo: ModelInfo | undefined,
   maxTokens: number,
   includeVeniceSystemPrompt = true,
-): { messages: ChatMessage[]; systemPrompt: string; maxTokens: number } {
+): {
+  messages: ChatMessage[];
+  systemPrompt: string;
+  maxTokens: number;
+  /** Typed safety provenance for the outgoing body, when any compiled
+   *  message carries attachment segments. The caller attaches this to the
+   *  request body under `_safetyProvenance`; the transport boundary
+   *  serializes envelopes and strips the field before upstream delivery. */
+  safetyProvenance?: SafetyProvenancePayload;
+} {
   // 1. Compile System Prompt Segments (shared resolver)
   const promptCtx = resolveEffectiveChatPromptContext(conv, globalSystemPrompt);
   const isHostedCharacter = promptCtx.hostedCharacter;
@@ -166,7 +189,16 @@ export function compileChatPrompt(
         // markers so later model turns cannot detect or imitate the helper.
         content = parseCharacterSceneRequest(content).displayText;
       }
-      return { role: m.role, content };
+      const compiled: CompiledMessage = { role: m.role, content };
+      // Carry typed attachment provenance (see SelectedAttachmentContext in
+      // use-chat.ts) through budget passes; reconciled after compaction.
+      const sourceSegments = (
+        m.metadata as { safetySegments?: SafetyPromptSegment[] } | undefined
+      )?.safetySegments;
+      if (sourceSegments && sourceSegments.length > 0) {
+        compiled._safetySegments = sourceSegments;
+      }
+      return compiled;
     });
 
   if (effectiveSystemPrompt && !isHostedCharacter) {
@@ -394,9 +426,51 @@ export function compileChatPrompt(
     });
   }
 
+  // 4. Reconcile typed safety provenance against the FINAL compiled messages.
+  // Instruction segments are authored here (the compiler owns injected-context
+  // prepends and context-window shrinking) so the guard's coverage check can
+  // verify the payload text exactly. The internal per-message tag is stripped
+  // before returning — wire messages never carry it.
+  const provenanceMessages: SafetyProvenanceMessage[] = [];
+  requestMessages.forEach((message, index) => {
+    const sourceSegments = (message as CompiledMessage)._safetySegments;
+    if (!sourceSegments || sourceSegments.length === 0) return;
+    const segments: SafetyPromptSegment[] = [];
+    if (typeof message.content === "string") {
+      segments.push({
+        kind: "instruction",
+        text: message.content,
+        source: `messages[${index}].content`,
+      });
+    } else if (Array.isArray(message.content)) {
+      message.content.forEach((part, partIndex) => {
+        if (part.type === "text" && typeof part.text === "string") {
+          segments.push({
+            kind: "instruction",
+            text: part.text,
+            source: `messages[${index}].content[${partIndex}].text`,
+          });
+        }
+      });
+    }
+    segments.push(...sourceSegments);
+    provenanceMessages.push({ index, segments });
+  });
+  requestMessages.forEach((message) => {
+    delete (message as CompiledMessage)._safetySegments;
+  });
+
   return {
     messages: requestMessages,
     systemPrompt: effectiveSystemPrompt,
     maxTokens: effectiveMaxTokens,
+    ...(provenanceMessages.length > 0
+      ? {
+          safetyProvenance: {
+            version: SAFETY_PROVENANCE_VERSION,
+            messages: provenanceMessages,
+          } satisfies SafetyProvenancePayload,
+        }
+      : {}),
   };
 }

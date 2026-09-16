@@ -561,11 +561,16 @@ export const providerAdapters: Record<string, AdapterFn> = {
     const config = extractGoogleVertexConfig(credential)
     const isStream = !!originalBody.stream
     const host = buildVertexHost()
-    const path = `/v1/publishers/google/models/${encodeURIComponent(model)}:${isStream ? 'streamGenerateContent' : 'generateContent'}?key=${encodeURIComponent(config.apiKey)}`
+    const path = `/v1/publishers/google/models/${encodeURIComponent(model)}:${isStream ? 'streamGenerateContent' : 'generateContent'}`
     return {
       host,
       path,
-      headers: { 'Content-Type': 'application/json' },
+      // Google Cloud REST API-key auth supports the x-goog-api-key header; the
+      // ?key= query form would expose the credential in URLs (logs, telemetry).
+      headers: {
+        'x-goog-api-key': config.apiKey,
+        'Content-Type': 'application/json'
+      },
       transformBody: geminiTransformBody,
       transformResponse: geminiTransformResponse,
       extractStreamDelta: geminiExtractStreamDelta

@@ -1367,6 +1367,77 @@ describe("registerIpcHandlers", () => {
     });
   });
 
+  // VF-20260916-P3-001: jinaApiKey:test must enforce the same timeout and
+  // bounded-body discipline as jina:request so a hung or oversized probe
+  // cannot pin the handler open.
+  describe("jinaApiKey:test timeout and body bounds", () => {
+    const ctx = () =>
+      ({ sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it("aborts a hanging probe and returns a localized timeout result", async () => {
+      vi.useFakeTimers();
+      let observedSignal: AbortSignal | undefined;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn((_url: string, init?: RequestInit) => {
+          observedSignal = init?.signal ?? undefined;
+          return new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener("abort", () => {
+              const err = new Error("This operation was aborted");
+              err.name = "AbortError";
+              reject(err);
+            });
+          });
+        }),
+      );
+
+      const pending = invoke<JinaConnectionResult>("jinaApiKey:test", ctx());
+      await vi.advanceTimersByTimeAsync(15_000);
+      const result = await pending;
+
+      expect(observedSignal?.aborted).toBe(true);
+      expect(result).toEqual({ ok: false, status: 0, message: "Jina connection test timed out." });
+    });
+
+    it("keeps the timeout result distinct from ordinary network failures", async () => {
+      vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("fetch failed"))));
+
+      const result = await invoke<JinaConnectionResult>("jinaApiKey:test", ctx());
+
+      expect(result).toMatchObject({ ok: false, status: 0 });
+      expect(result.message).toMatch(/fetch failed/i);
+      expect(result.message).not.toMatch(/timed out/i);
+    });
+
+    it("cancels an over-limit probe body and still reports the response status", async () => {
+      let cancelled = false;
+      const chunk = new Uint8Array(64 * 1024);
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(chunk);
+          controller.enqueue(chunk);
+        },
+        cancel() {
+          cancelled = true;
+        },
+      });
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response(body, { status: 200, headers: { "content-type": "text/plain" } })),
+      );
+
+      const result = await invoke<JinaConnectionResult>("jinaApiKey:test", ctx());
+
+      expect(result).toEqual({ ok: true, status: 200, message: "Jina connection successful" });
+      expect(cancelled).toBe(true);
+    });
+  });
+
   // Audit 2026-07-08 #2: default profile cannot be password-locked (Option A).
   describe("audit 2026-07-08: default profile lock policy", () => {
     const ctx = () =>

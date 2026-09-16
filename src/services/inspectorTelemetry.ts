@@ -1,6 +1,7 @@
 /** @fileoverview Redacted per-call telemetry helpers for the Traffic Inspector. */
 
 import { redactErrorMessage, redactSecrets } from "../shared/redaction";
+import { SAFETY_PROVENANCE_FIELD } from "../shared/safety/promptSegments";
 
 /**
  * Structured metadata describing the local Family Safe Mode decision for a
@@ -211,6 +212,12 @@ export function sanitizeInspectorPayload(body: unknown): unknown {
 
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record)) {
+    if (key === SAFETY_PROVENANCE_FIELD) {
+      // Internal typed safety provenance — duplicates quoted attachment text
+      // and must never appear in telemetry.
+      sanitized[key] = "[redacted safety provenance]";
+      continue;
+    }
     if (PROMPT_FIELD_NAMES.has(key)) {
       if (key === "messages" && Array.isArray(value)) {
         sanitized.messages = value.map(sanitizeMessage);

@@ -4,7 +4,10 @@ import {
   escapeXmlText,
   buildExternalAttachmentEnvelope,
   neutralizeEnvelopeTagsInBody,
+  serializeSafetyProvenanceIntoPayload,
 } from "./xmlEscape";
+import { SAFETY_PROVENANCE_FIELD } from "../../shared/safety/promptSegments";
+import { splitExternalAttachmentSegments } from "../../shared/safety/childExploitationGuard";
 
 describe("escapeXmlAttribute", () => {
   it("escapes XML metacharacters used in attribute values", () => {
@@ -165,5 +168,103 @@ describe("neutralizeEnvelopeTagsInBody", () => {
 
   it("is a no-op when no envelope tags are present", () => {
     expect(neutralizeEnvelopeTagsInBody("plain text content")).toBe("plain text content");
+  });
+});
+
+describe("serializeSafetyProvenanceIntoPayload (VF-20260916-P1-002)", () => {
+  const provenanceBody = (content: unknown, index = 0) => ({
+    model: "m",
+    messages: [{ role: "user", content }],
+    [SAFETY_PROVENANCE_FIELD]: {
+      version: 1,
+      messages: [
+        {
+          index,
+          segments: [
+            {
+              kind: "instruction",
+              text: typeof content === "string" ? content : "",
+              source: `messages[${index}].content`,
+            },
+            {
+              kind: "attachment",
+              attachmentId: "a1",
+              name: "doc.txt",
+              mimeType: "text/plain",
+              text: "quoted attachment body",
+              trust: "untrusted-quoted-data",
+            },
+          ],
+        },
+      ],
+    },
+  });
+
+  it("appends the canonical envelope to string content and strips the internal field", () => {
+    const body = provenanceBody("summarize this");
+    const serialized = serializeSafetyProvenanceIntoPayload(body);
+
+    expect(serialized).not.toHaveProperty(SAFETY_PROVENANCE_FIELD);
+    const content = (serialized.messages as Array<{ content: string }>)[0].content;
+    expect(content).toContain("summarize this");
+    expect(content).toContain("<external_attachment");
+    expect(content).toContain('id="a1"');
+    expect(content).toContain("quoted attachment body");
+    // Input is not mutated.
+    expect(body).toHaveProperty(SAFETY_PROVENANCE_FIELD);
+    expect((body.messages as Array<{ content: string }>)[0].content).toBe("summarize this");
+  });
+
+  it("appends the envelope to the text part of array content", () => {
+    const parts = [{ type: "text", text: "look at this" }];
+    const body = provenanceBody(parts);
+    // Instruction segment text matches the text part for array content.
+    (body as Record<string, unknown>)[SAFETY_PROVENANCE_FIELD] = {
+      version: 1,
+      messages: [
+        {
+          index: 0,
+          segments: [
+            { kind: "instruction", text: "look at this", source: "messages[0].content[0].text" },
+            {
+              kind: "attachment",
+              attachmentId: "a1",
+              name: "doc.txt",
+              mimeType: "text/plain",
+              text: "quoted attachment body",
+              trust: "untrusted-quoted-data",
+            },
+          ],
+        },
+      ],
+    };
+    const serialized = serializeSafetyProvenanceIntoPayload(body);
+    const outParts = (serialized.messages as Array<{ content: Array<{ type: string; text: string }> }>)[0].content;
+    expect(outParts[0].text).toContain("look at this");
+    expect(outParts[0].text).toContain("<external_attachment");
+    expect(serialized).not.toHaveProperty(SAFETY_PROVENANCE_FIELD);
+  });
+
+  it("passes bodies without provenance through untouched", () => {
+    const body = { model: "m", messages: [{ role: "user", content: "hi" }] };
+    const serialized = serializeSafetyProvenanceIntoPayload(body);
+    expect(serialized).toEqual(body);
+    expect(serialized).not.toBe(body);
+  });
+
+  it("throws (fail closed) when the provenance index does not resolve to a message", () => {
+    const body = provenanceBody("hi", 7);
+    expect(() => serializeSafetyProvenanceIntoPayload(body)).toThrow();
+  });
+
+  it("serialized output round-trips through the legacy guard split with identical provenance", () => {
+    const body = provenanceBody("Please summarize this file.");
+    const serialized = serializeSafetyProvenanceIntoPayload(body);
+    const content = (serialized.messages as Array<{ content: string }>)[0].content;
+    const { instructionText, quotedSegments } = splitExternalAttachmentSegments(content);
+    expect(quotedSegments).toHaveLength(1);
+    expect(quotedSegments[0]).toContain("quoted attachment body");
+    expect(instructionText).toContain("Please summarize this file.");
+    expect(instructionText).not.toContain("quoted attachment body");
   });
 });

@@ -570,7 +570,13 @@ export function useChat() {
       // is NOT appended to the persistent content field.
       const imageParts: ContentPart[] = [];
       const attachmentRefs: ChatAttachmentRef[] = [];
-      let providerContextText = "";
+      /** Typed safety provenance segments for this message. Travel through
+       *  message metadata to the compiler, which reconciles them against the
+       *  final compiled text and attaches them to the outgoing body for the
+       *  safety guard (VF-20260916-P1-002). Replaces the serialized
+       *  `providerContext` envelope text for new messages; legacy messages
+       *  with `metadata.providerContext` keep the serialized path. */
+      let safetySegments: import("../shared/safety/promptSegments").SafetyPromptSegment[] = [];
       let contextTruncated = false;
       let selectedTextAttachmentIds = new Set<string>();
       let omittedTextAttachmentIds = new Set<string>();
@@ -598,7 +604,7 @@ export function useChat() {
           ? selectAttachmentContext(attachments, attachmentAllowance.allowanceTokens)
           : null;
         if (knownModelSelection) {
-          providerContextText = knownModelSelection.providerContextText;
+          safetySegments = [...knownModelSelection.safetySegments];
           selectedTextAttachmentIds = knownModelSelection.selectedAttachmentIds;
           omittedTextAttachmentIds = knownModelSelection.omittedAttachmentIds;
           contextUnitsUsed = knownModelSelection.usedTokens;
@@ -618,7 +624,11 @@ export function useChat() {
             omittedByContext =
               contextUnitsUsed + attUnits > attachmentAllowance.allowanceBytes;
             if (!omittedByContext) {
-              providerContextText += `\n\n${selectAttachmentContext([att], Number.MAX_SAFE_INTEGER).providerContextText}`;
+              const fallbackSelection = selectAttachmentContext(
+                [att],
+                Number.MAX_SAFE_INTEGER,
+              );
+              safetySegments = [...safetySegments, ...fallbackSelection.safetySegments];
               contextUnitsUsed += attUnits;
             } else {
               contextTruncated = true;
@@ -680,11 +690,10 @@ export function useChat() {
       const fullMetadata = {
         ...metadata,
         ...(attachmentRefs.length > 0 ? { attachmentRefs } : {}),
-        // providerContext is built from attachment text for the compiler;
-        // it is NOT displayed in the transcript.
-        ...(providerContextText
-          ? { providerContext: providerContextText }
-          : {}),
+        // Typed safety provenance for the compiler + guard. The serialized
+        // envelope text is produced at the transport boundary from these
+        // segments — it is NOT duplicated into persisted metadata.
+        ...(safetySegments.length > 0 ? { safetySegments } : {}),
       };
 
       const pendingMetadata = {

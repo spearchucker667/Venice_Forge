@@ -27,6 +27,8 @@ import {
   identifyAndValidateGeneratedMedia,
 } from "../../src/shared/safety";
 import type { SafetyGuardInput } from "../../src/shared/safety";
+import { extractSafetyProvenance } from "../../src/shared/safety/promptSegments";
+import { serializeSafetyProvenanceIntoPayload } from "../../src/services/ingestion/xmlEscape";
 import { performVeniceRequest } from "./veniceClient";
 import {
   getRuntimeLocalFamilySafeModeEnabled,
@@ -144,6 +146,20 @@ export type GuardedVeniceResult =
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Serializes typed safety provenance for dispatch: envelope text is appended
+ *  to message content and the internal `_safetyProvenance` field is removed.
+ *  No-op for requests without provenance. Never mutates the input. */
+function serializeProvenanceForDispatch(rawRequest: unknown): unknown {
+  if (!isRecord(rawRequest)) return rawRequest;
+  const body = rawRequest.body;
+  if (!isRecord(body)) return rawRequest;
+  if (!extractSafetyProvenance(body)) return rawRequest;
+  return {
+    ...rawRequest,
+    body: serializeSafetyProvenanceIntoPayload(body),
+  };
 }
 
 function withFamilySafeProviderOverride(rawRequest: unknown, endpoint: string): unknown {
@@ -304,6 +320,10 @@ export async function performGuardedVeniceRequest(
     if (block) return { kind: "blocked", block };
     let requestForDispatch = withFamilySafeProviderOverride(rawRequest, endpoint);
     requestForDispatch = composeTrustedRequest(requestForDispatch);
+    // VF-20260916-P1-002 — the guard consumed the typed provenance segments;
+    // serialize the canonical envelopes into message content and strip the
+    // internal field so no provider route (Venice or fallback) ever sees it.
+    requestForDispatch = serializeProvenanceForDispatch(requestForDispatch);
 
     const callerOnDelta = options.onDelta;
     const withholdDeltas = Boolean(callerOnDelta) && getRuntimeLocalFamilySafeModeEnabled();

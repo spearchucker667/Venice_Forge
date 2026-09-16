@@ -47,7 +47,7 @@ const DENY_FIELD_NAMES = new Set<string>([
 /** Max characters per extracted field. Must cover the normalizer's head +
  *  middle + tail windows so a pre-slice cannot hide a tail/middle signal
  *  (VF-AUD-20260912-GSS-P2-003). */
-const MAX_FIELD_CHARS = MAX_SCAN_CHARS + TAIL_SCAN_CHARS + MIDDLE_SCAN_CHARS;
+export const MAX_FIELD_CHARS = MAX_SCAN_CHARS + TAIL_SCAN_CHARS + MIDDLE_SCAN_CHARS;
 
 /** Matches the maximum request-body size enforced at the proxy boundaries. */
 const MAX_JSON_BODY_CHARS = 10 * 1024 * 1024;

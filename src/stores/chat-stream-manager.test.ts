@@ -12,6 +12,8 @@ import { useChatStore } from "./chat-store";
 import { useCharacterStore } from "./character-store";
 import { useDocumentAgentStore } from "./document-agent-store";
 import { veniceStreamChat } from "../services/veniceClient";
+import { assessChildExploitationSafety } from "../shared/safety/childExploitationGuard";
+import { extractSafetyProvenance } from "../shared/safety/promptSegments";
 
 vi.mock("../services/veniceClient", () => ({
   veniceStreamChat: vi.fn(),
@@ -849,5 +851,120 @@ describe("persona isolation (VF-20260720-001)", () => {
     const payload = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
     expect(payload.max_completion_tokens).toBe(2048);
     expect(payload.max_tokens).toBeUndefined();
+  });
+});
+
+describe("typed safety provenance on the live stream body (VF-20260916-P1-002)", () => {
+  beforeEach(() => {
+    stopStream();
+    useChatStore.setState({
+      conversations: [],
+      activeConversationId: null,
+      isStreaming: false,
+      pendingContext: null,
+      veniceParams: {
+        include_venice_system_prompt: true,
+        enable_web_search: "off",
+      },
+      systemPrompt: "",
+      temperature: 0.7,
+      topP: 1,
+      maxTokens: 4096,
+      e2eeOverride: "provider-default",
+      promptCacheRetention: "default",
+    });
+    vi.clearAllMocks();
+    mockGetModelById.mockReturnValue(undefined);
+  });
+
+  afterEach(() => {
+    stopStream();
+  });
+
+  it("attaches _safetyProvenance with reconciled instruction text when a message carries attachment segments", async () => {
+    const convId = useChatStore.getState().createConversation("provenance-model");
+    useChatStore.getState().addMessage(convId, {
+      role: "user",
+      content: "Please summarize this file.",
+      metadata: {
+        safetySegments: [
+          {
+            kind: "attachment",
+            attachmentId: "att-1",
+            name: "doc.txt",
+            mimeType: "text/plain",
+            text: "case study mentions a 12 year old naked in a research context",
+            trust: "untrusted-quoted-data",
+          },
+        ],
+      },
+    } as never);
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "provenance-model");
+
+    const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+    const provenance = extractSafetyProvenance(body);
+    expect(provenance).toBeDefined();
+    expect(provenance!.messages).toHaveLength(1);
+    const entry = provenance!.messages[0];
+    const instruction = entry.segments.find((s) => s.kind === "instruction");
+    expect(instruction).toMatchObject({
+      kind: "instruction",
+      text: "Please summarize this file.",
+      source: `messages[${entry.index}].content`,
+    });
+    expect(entry.segments.filter((s) => s.kind === "attachment")).toHaveLength(1);
+    // The raw wire message content is instruction-only; envelopes are added
+    // at the transport boundary.
+    const msg = (body.messages as Array<{ content: string }>)[entry.index];
+    expect(msg.content).toBe("Please summarize this file.");
+    expect(msg.content).not.toContain("external_attachment");
+  });
+
+  it("the guard consumes the typed provenance (youth signal in attachment stays quoted)", async () => {
+    const convId = useChatStore.getState().createConversation("provenance-guard-model");
+    useChatStore.getState().addMessage(convId, {
+      role: "user",
+      content: "Please summarize this file.",
+      metadata: {
+        safetySegments: [
+          {
+            kind: "attachment",
+            attachmentId: "att-1",
+            name: "doc.txt",
+            mimeType: "text/plain",
+            text: "the archive labels the folder 'loli'",
+            trust: "untrusted-quoted-data",
+          },
+        ],
+      },
+    } as never);
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "provenance-guard-model");
+
+    const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+    const decision = assessChildExploitationSafety({
+      endpoint: "/chat/completions",
+      method: "POST",
+      payload: body,
+      source: "chat",
+    });
+    // Hard CSAM category inside a typed quoted segment still blocks.
+    expect(decision.allow).toBe(false);
+    expect(decision.category).toBe("csam_request");
+  });
+
+  it("omits _safetyProvenance when no message carries attachment segments", async () => {
+    const convId = useChatStore.getState().createConversation("plain-model");
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "plain-model");
+
+    const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+    expect(extractSafetyProvenance(body)).toBeUndefined();
+    expect(body).not.toHaveProperty("_safetyProvenance");
   });
 });

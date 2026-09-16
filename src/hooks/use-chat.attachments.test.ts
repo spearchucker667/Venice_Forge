@@ -10,6 +10,7 @@ import { getModelById } from "../services/modelService";
 import { desktopConversations } from "../services/desktopBridge";
 import { stopStream } from "../stores/chat-stream-manager";
 import { MAX_TOTAL_CONTEXT_BYTES } from "../services/ingestion/ingestionLimits";
+import { serializeSafetyProvenanceIntoPayload } from "../services/ingestion/xmlEscape";
 import { toast } from "../stores/toast-store";
 
 vi.mock("../services/veniceClient", () => ({
@@ -117,6 +118,15 @@ describe("use-chat attachment context budget", () => {
     return call[0] as Record<string, unknown>;
   }
 
+  /** Applies the transport-boundary serializer so assertions observe the
+   *  provider-facing body (envelopes serialized from typed provenance, the
+   *  internal `_safetyProvenance` field stripped). */
+  function extractProviderFacingPayload(): Record<string, unknown> | null {
+    const payload = extractPayloadFromCall();
+    if (!payload) return null;
+    return serializeSafetyProvenanceIntoPayload(payload);
+  }
+
   // VERIFY-063: attachment context admission is bounded by the selected
   // model's remaining token budget (not a fixed byte ceiling).
   it("omits attachments that exceed the selected model's remaining token budget", async () => {
@@ -133,7 +143,7 @@ describe("use-chat attachment context budget", () => {
       await result.current.send("Hello", "llama-3.3-70b", [att1, att2]);
     });
 
-    const body = extractPayloadFromCall();
+    const body = extractProviderFacingPayload();
     expect(body).not.toBeNull();
     const messages = body!.messages as Array<{ role: string; content: string }>;
     const userMessage = messages.find((m) => m.role === "user");
@@ -165,7 +175,7 @@ describe("use-chat attachment context budget", () => {
       await small.result.current.send("Hello", "llama-3.3-70b", makePayloads());
     });
     const smallContent = (
-      extractPayloadFromCall()!.messages as Array<{ role: string; content: string }>
+      extractProviderFacingPayload()!.messages as Array<{ role: string; content: string }>
     ).filter((m) => m.role === "user").at(-1)!.content as string;
     expect(smallContent).not.toContain("att2");
     mockedVeniceStreamChat.mockClear();
@@ -180,7 +190,7 @@ describe("use-chat attachment context budget", () => {
       await large.result.current.send("Hello", "llama-3.3-70b", makePayloads());
     });
     const largeContent = (
-      extractPayloadFromCall()!.messages as Array<{ role: string; content: string }>
+      extractProviderFacingPayload()!.messages as Array<{ role: string; content: string }>
     ).filter((m) => m.role === "user").at(-1)!.content as string;
     expect(largeContent).toContain("att1");
     expect(largeContent).toContain("att2");
@@ -222,7 +232,7 @@ describe("use-chat attachment context budget", () => {
       await result.current.send("Hello", "llama-3.3-70b", [att1, att2]);
     });
 
-    const body = extractPayloadFromCall();
+    const body = extractProviderFacingPayload();
     const messages = body!.messages as Array<{ role: string; content: string }>;
     const userMessage = messages.find((m) => m.role === "user");
     const content = userMessage!.content as string;

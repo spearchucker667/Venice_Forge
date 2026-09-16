@@ -22,6 +22,7 @@ import {
   resolveE2eeParam,
   resolvePromptCacheRetention,
 } from "../utils/payloadBuilders";
+import { SAFETY_PROVENANCE_FIELD } from "../shared/safety/promptSegments";
 import { translateRuntime } from "../i18n/runtimeTranslator";
 import { SafetyGuardBlockedError } from "../shared/safety";
 
@@ -139,6 +140,14 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     max_completion_tokens: compiled.maxTokens,
     venice_parameters: veniceParamsForRequest,
   };
+
+  // VF-20260916-P1-002 — typed safety provenance. The guard consumes these
+  // segments directly (no serialized-envelope regex on this path); the
+  // transport boundary serializes envelopes and strips this internal field
+  // before anything leaves the app.
+  if (compiled.safetyProvenance) {
+    baseBody[SAFETY_PROVENANCE_FIELD] = compiled.safetyProvenance;
+  }
 
   // VF-FEAT-004 — `prompt_cache_retention` is a TOP-LEVEL Venice-only cache
   // control (not a `venice_parameters` field). Conversation override wins over

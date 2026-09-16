@@ -420,7 +420,7 @@ describe('providerAdapters', () => {
       expect(result?.error).toMatch(/invalid/i)
     })
 
-    it('resolves the correct route for Google Vertex Express Mode and embeds API key in path', () => {
+    it('resolves the correct route for Google Vertex Express Mode and carries the API key in the header, not the URL', () => {
       const request = {
         endpoint: '/chat/completions',
         body: { model: 'google_vertex:gemini-2.5-flash', messages: [] }
@@ -428,10 +428,26 @@ describe('providerAdapters', () => {
       const result = resolveProviderRoute(request)
       expect(result?.error).toBeUndefined()
       expect(result?.route?.host).toBe('aiplatform.googleapis.com')
-      expect(result?.route?.path).toBe('/v1/publishers/google/models/gemini-2.5-flash:generateContent?key=fake-vertex-key')
+      expect(result?.route?.path).toBe('/v1/publishers/google/models/gemini-2.5-flash:generateContent')
+      // VF-20260916-P2-004: the credential must never travel in the request
+      // URL where logs/diagnostics/telemetry can capture it.
+      expect(result?.route?.path).not.toContain('fake-vertex-key')
+      expect(result?.route?.host).not.toContain('fake-vertex-key')
+      expect(result?.route?.headers).toMatchObject({ 'x-goog-api-key': 'fake-vertex-key' })
 
       const transformedBody = transformBody(result ?? {}, request.body, 'gemini-2.5-flash')
       expect(transformedBody).toHaveProperty('contents')
+    })
+
+    it('keeps the Vertex Express streaming URL free of the API key', () => {
+      const result = resolveProviderRoute({
+        endpoint: '/chat/completions',
+        body: { model: 'google_vertex:gemini-2.5-flash', messages: [], stream: true }
+      })
+      expect(result?.error).toBeUndefined()
+      expect(result?.route?.path).toBe('/v1/publishers/google/models/gemini-2.5-flash:streamGenerateContent')
+      expect(`${result?.route?.host}${result?.route?.path}`).not.toContain('fake-vertex-key')
+      expect(result?.route?.headers).toMatchObject({ 'x-goog-api-key': 'fake-vertex-key' })
     })
 
     it('uses the configured deployment name as the authoritative routing identity', () => {

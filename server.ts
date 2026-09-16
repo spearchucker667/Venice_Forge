@@ -29,6 +29,12 @@ import {
   identifyAndValidateGeneratedMedia,
 } from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
+import {
+  extractSafetyProvenance,
+} from "./src/shared/safety/promptSegments";
+import {
+  serializeSafetyProvenanceIntoPayload,
+} from "./src/services/ingestion/xmlEscape";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./src/shared/urlSecurity";
 import { JINA_MAX_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES } from "./src/shared/limits";
@@ -1065,6 +1071,27 @@ export function createServerApp() {
           severity: decision.guardDecision.severity,
         });
         return;
+      }
+
+      // VF-20260916-P1-002 — typed safety provenance: the guard consumed the
+      // typed segments; now serialize the canonical envelopes into message
+      // content and strip the internal field before the body is proxied
+      // upstream. Bodies without provenance pass through untouched.
+      if (body instanceof Buffer) {
+        try {
+          const parsedBody = JSON.parse(body.toString("utf8")) as unknown;
+          if (extractSafetyProvenance(parsedBody)) {
+            req.body = Buffer.from(
+              JSON.stringify(serializeSafetyProvenanceIntoPayload(parsedBody)),
+              "utf8",
+            );
+          }
+        } catch (parseError) {
+          if (!(parseError instanceof SyntaxError)) {
+            throw parseError;
+          }
+          // Malformed JSON: the proxy path owns malformed-JSON handling.
+        }
       }
       next();
     },

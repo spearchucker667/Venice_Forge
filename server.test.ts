@@ -9,6 +9,7 @@ import { EventEmitter } from "node:events";
 // Configurable proxy mock status for circuit-breaker tests.
 const proxyMocks = vi.hoisted(() => ({
   statusCode: 200,
+  lastRequestBody: null as unknown,
   proxyResponse: null as (() => EventEmitter & {
     statusCode: number;
     headers: Record<string, string>;
@@ -23,6 +24,7 @@ const proxyMocks = vi.hoisted(() => ({
 // behaviour (403/405 gating), not upstream responses.
 vi.mock("http-proxy-middleware", () => ({
   createProxyMiddleware: (options: any) => (req: any, res: any) => {
+    if (req.body !== undefined) proxyMocks.lastRequestBody = req.body;
     const status = proxyMocks.statusCode;
     if (status >= 500 && options.on?.error) {
       options.on.error(new Error("upstream error"), req, res);
@@ -106,6 +108,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  proxyMocks.lastRequestBody = null;
   vi.restoreAllMocks();
   for (const appInstance of activeApps) {
     if (typeof appInstance.cleanupIntervals === "function") {
@@ -1518,5 +1521,68 @@ describe("server.ts scrape proxy error handling", () => {
       expect(response.status).toBe(502);
       expect(response.body.error).toMatch(/Scrape failed|Content-Type not allowed/i);
     });
+  });
+});
+
+describe("server.ts typed safety provenance serialization (VF-20260916-P1-002)", () => {
+  it("serializes _safetyProvenance envelopes into message content and strips the internal field before upstream", async () => {
+    proxyMocks.statusCode = 200;
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({
+        model: "test",
+        stream: false,
+        messages: [{ role: "user", content: "Please summarize this file." }],
+        _safetyProvenance: {
+          version: 1,
+          messages: [
+            {
+              index: 0,
+              segments: [
+                {
+                  kind: "instruction",
+                  text: "Please summarize this file.",
+                  source: "messages[0].content",
+                },
+                {
+                  kind: "attachment",
+                  attachmentId: "a1",
+                  name: "doc.txt",
+                  mimeType: "text/plain",
+                  text: "quoted attachment body",
+                  trust: "untrusted-quoted-data",
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+    expect(response.status).toBe(200);
+    expect(proxyMocks.lastRequestBody).not.toBeNull();
+    const upstream = JSON.parse(
+      Buffer.from(proxyMocks.lastRequestBody as Buffer).toString("utf8"),
+    ) as Record<string, unknown>;
+    // Internal field stripped; canonical envelope serialized into content.
+    expect(upstream).not.toHaveProperty("_safetyProvenance");
+    const content = (upstream.messages as Array<{ content: string }>)[0].content;
+    expect(content).toContain("Please summarize this file.");
+    expect(content).toContain("<external_attachment");
+    expect(content).toContain('id="a1"');
+    expect(content).toContain("quoted attachment body");
+  });
+
+  it("passes bodies without provenance through untouched", async () => {
+    proxyMocks.statusCode = 200;
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({ model: "test", stream: false, messages: [{ role: "user", content: "hi" }] });
+
+    expect(response.status).toBe(200);
+    const upstream = JSON.parse(
+      Buffer.from(proxyMocks.lastRequestBody as Buffer).toString("utf8"),
+    ) as Record<string, unknown>;
+    expect(upstream).not.toHaveProperty("_safetyProvenance");
+    expect((upstream.messages as Array<{ content: string }>)[0].content).toBe("hi");
   });
 });

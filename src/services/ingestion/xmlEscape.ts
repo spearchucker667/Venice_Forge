@@ -25,6 +25,10 @@
  */
 
 import { EXTERNAL_ATTACHMENT_TAG } from "../../shared/safety/childExploitationGuard";
+import {
+  extractSafetyProvenance,
+  stripSafetyProvenance,
+} from "../../shared/safety/promptSegments";
 
 /**
  * Escape a string for safe use inside an XML attribute value.
@@ -106,4 +110,90 @@ export function buildExternalAttachmentEnvelope(
     `${text}\n` +
     `</${EXTERNAL_ATTACHMENT_TAG}>`
   );
+}
+
+/** Serializes typed safety provenance into provider-facing envelope text and
+ *  strips the internal `_safetyProvenance` field. This is the single
+ *  transport-boundary conversion point (web proxy and Electron main both
+ *  call this after the safety guard has consumed the typed segments).
+ *
+ *  For every provenance message entry, the message's attachment segments are
+ *  serialized with the canonical envelope builder and appended to that
+ *  message's content (string content, or the first/last text part following
+ *  the compiler's own providerContext convention). Instruction segments are
+ *  NOT serialized — they already equal the message's compiled content.
+ *
+ *  Fail closed: a provenance entry whose `index` does not resolve to a
+ *  message with text content throws. Losing an attachment silently would
+ *  violate provenance coverage. Callers should treat the throw as a
+ *  request-prep failure (the request is never sent).
+ *
+ *  The input payload is never mutated; a clone is returned. */
+export function serializeSafetyProvenanceIntoPayload<T>(payload: T): T {
+  const provenance = extractSafetyProvenance(payload);
+  const withoutField = stripSafetyProvenance(payload);
+  if (!provenance) return withoutField;
+
+  const record = withoutField as Record<string, unknown>;
+  const messages = record.messages;
+  if (!Array.isArray(messages)) {
+    throw new Error("safety provenance present but payload has no messages array");
+  }
+
+  const messagesCopy = messages.map((m) =>
+    m && typeof m === "object" ? { ...(m as Record<string, unknown>) } : m,
+  ) as Array<Record<string, unknown>>;
+
+  for (const entry of provenance.messages) {
+    const msg = messagesCopy[entry.index];
+    if (!msg || typeof msg !== "object") {
+      throw new Error(
+        `safety provenance index ${entry.index} does not resolve to a message`,
+      );
+    }
+    const attachments = entry.segments.filter((s) => s.kind === "attachment");
+    if (attachments.length === 0) continue;
+
+    const envelopeText = attachments
+      .map((segment) =>
+        segment.kind === "attachment"
+          ? `\n\n${buildExternalAttachmentEnvelope({
+              id: segment.attachmentId,
+              name: segment.name,
+              mimeType: segment.mimeType,
+              text: segment.text,
+            })}`
+          : "",
+      )
+      .join("");
+
+    const content = msg.content;
+    if (typeof content === "string") {
+      msg.content = `${content}${envelopeText}`;
+    } else if (Array.isArray(content)) {
+      const parts = content.map((p) =>
+        p && typeof p === "object" ? { ...(p as Record<string, unknown>) } : p,
+      ) as Array<Record<string, unknown>>;
+      const textPartIndex = parts.findIndex(
+        (p) => p && p.type === "text" && typeof p.text === "string",
+      );
+      if (textPartIndex === -1) {
+        throw new Error(
+          `safety provenance index ${entry.index} message has no text part for envelope serialization`,
+        );
+      }
+      parts[textPartIndex] = {
+        ...parts[textPartIndex],
+        text: `${parts[textPartIndex].text}${envelopeText}`,
+      };
+      msg.content = parts;
+    } else {
+      throw new Error(
+        `safety provenance index ${entry.index} message content is not serializable`,
+      );
+    }
+  }
+
+  record.messages = messagesCopy;
+  return record as T;
 }

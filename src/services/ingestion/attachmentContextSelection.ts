@@ -1,4 +1,5 @@
 import type { IngestedAttachment } from "../../types/ingestion";
+import type { SafetyPromptSegment } from "../../shared/safety/promptSegments";
 import { estimateTokenCount } from "../chatContextBudget";
 import {
   selectAttachmentChunks,
@@ -8,6 +9,10 @@ import { buildExternalAttachmentEnvelope } from "./xmlEscape";
 
 export interface SelectedAttachmentContext {
   providerContextText: string;
+  /** Typed provenance segments (one attachment segment per selected chunk).
+   *  Consumed by the safety guard via the canonical payload provenance
+   *  field — no regex reconstructs the trust boundary on the typed path. */
+  safetySegments: SafetyPromptSegment[];
   selectedAttachmentIds: Set<string>;
   omittedAttachmentIds: Set<string>;
   omittedChunkCount: number;
@@ -45,6 +50,15 @@ export function selectAttachmentContext(
     if (selected < all) omittedIds.add(attachment.id);
   }
 
+  const safetySegments: SafetyPromptSegment[] = selection.chunks.map((chunk) => ({
+    kind: "attachment",
+    attachmentId: chunk.attachmentId,
+    name: chunk.provenance.name,
+    mimeType: chunk.provenance.mimeType,
+    text: chunk.text,
+    trust: "untrusted-quoted-data",
+  }));
+
   const providerContextText = selection.chunks
     .map((chunk) => `\n\n${buildExternalAttachmentEnvelope({
       id: chunk.attachmentId,
@@ -56,6 +70,7 @@ export function selectAttachmentContext(
 
   return {
     providerContextText,
+    safetySegments,
     selectedAttachmentIds: selectedIds,
     omittedAttachmentIds: omittedIds,
     omittedChunkCount: selection.omittedChunkCount,

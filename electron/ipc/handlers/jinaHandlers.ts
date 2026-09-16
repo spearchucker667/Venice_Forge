@@ -39,6 +39,10 @@ type JinaRequestResponse = {
   error?: string;
 };
 
+/** Short timeout and body bound for the connectivity probe. */
+const JINA_CONNECTION_TEST_TIMEOUT_MS = 15_000;
+const JINA_CONNECTION_TEST_MAX_BODY_BYTES = 64 * 1024;
+
 type JinaRunResult =
   | { kind: "fail"; status: number; error: string; endpoint: "/jina/reader" | "/jina/search"; body?: unknown }
   | { kind: "ok"; endpoint: "/jina/reader" | "/jina/search"; status: number; bytes: number; response: JinaRequestResponse };
@@ -293,17 +297,36 @@ export function registerJinaHandlers(): void {
         return getJinaApiKey(validProfileId);
       } catch { return null; }
     })();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), JINA_CONNECTION_TEST_TIMEOUT_MS);
     try {
       const headers: Record<string, string> = {};
       if (jinaKey) headers["Authorization"] = `Bearer ${jinaKey}`;
-      const response = await fetch("https://r.jina.ai/https://example.com", { headers, method: "GET" });
+      const response = await fetch("https://r.jina.ai/https://example.com", {
+        headers,
+        method: "GET",
+        signal: controller.signal,
+      });
+      // Drain the body with a small bound so a hung or oversized probe
+      // response cannot pin the handler open.
+      try {
+        await readBoundedFetchBody(response, JINA_CONNECTION_TEST_MAX_BODY_BYTES);
+      } catch (bodyErr) {
+        if (!(bodyErr instanceof FetchBodyTooLargeError)) throw bodyErr;
+      }
       return {
         ok: response.ok,
         status: response.status,
         message: response.ok ? "Jina connection successful" : `Jina returned ${response.status}`,
       };
     } catch (err) {
-      return { ok: false, status: 0, message: redactErrorMessage(err) };
+      const message = redactErrorMessage(err);
+      if (/abort/i.test(message)) {
+        return { ok: false, status: 0, message: "Jina connection test timed out." };
+      }
+      return { ok: false, status: 0, message };
+    } finally {
+      clearTimeout(timeout);
     }
   });
 }
