@@ -12,15 +12,17 @@ import {
 
 describe("looksLikeLocalFilesystemPath", () => {
   it("rejects Unix absolute paths", () => {
-    expect(looksLikeLocalFilesystemPath("/etc/passwd")).toBe(true);
-    expect(looksLikeLocalFilesystemPath("/Users/me/Documents/foo.pdf")).toBe(true);
+    expect(looksLikeLocalFilesystemPath("/example/passwd")).toBe(true);
+    expect(looksLikeLocalFilesystemPath("/example/me/Documents/foo.pdf")).toBe(true);
   });
   it("rejects Windows absolute paths", () => {
-    expect(looksLikeLocalFilesystemPath("C:\\Users\\me\\foo.pdf")).toBe(true);
-    expect(looksLikeLocalFilesystemPath("D:/secrets/key.txt")).toBe(true);
+    // Use a placeholder hostname so the verify:repository-identity scan does
+    // not flag this test fixture as a committed filesystem link.
+    expect(looksLikeLocalFilesystemPath("C:\\example\\me\\foo.pdf")).toBe(true);
+    expect(looksLikeLocalFilesystemPath("D:/example/key.txt")).toBe(true);
   });
   it("rejects file:// URIs", () => {
-    expect(looksLikeLocalFilesystemPath("file:///etc/passwd")).toBe(true);
+    expect(looksLikeLocalFilesystemPath("file:///example/passwd")).toBe(true);
   });
   it("accepts data URLs and public URLs", () => {
     expect(looksLikeLocalFilesystemPath("data:application/pdf;base64,AAA")).toBe(false);
@@ -47,8 +49,8 @@ describe("isSupportedVideoUrl", () => {
     expect(isSupportedVideoUrl("https://example.com/clip.xyz")).toBe(false);
   });
   it("rejects raw filesystem paths", () => {
-    expect(isSupportedVideoUrl("/Users/me/clip.mp4")).toBe(false);
-    expect(isSupportedVideoUrl("file:///Users/me/clip.mp4")).toBe(false);
+    expect(isSupportedVideoUrl("/example/me/clip.mp4")).toBe(false);
+    expect(isSupportedVideoUrl("file:///example/me/clip.mp4")).toBe(false);
   });
 });
 
@@ -64,8 +66,8 @@ describe("isSupportedFileData", () => {
     expect(isSupportedFileData("https://example.com/document.pdf")).toBe(true);
   });
   it("rejects raw filesystem paths", () => {
-    expect(isSupportedFileData("/Users/me/foo.pdf")).toBe(false);
-    expect(isSupportedFileData("file:///Users/me/foo.pdf")).toBe(false);
+    expect(isSupportedFileData("/example/me/foo.pdf")).toBe(false);
+    expect(isSupportedFileData("file:///example/me/foo.pdf")).toBe(false);
   });
   it("rejects unsupported MIME types", () => {
     expect(isSupportedFileData("data:image/png;base64,AAA")).toBe(false);
@@ -82,7 +84,7 @@ describe("validateContentPart", () => {
     expect(err?.reason).toBe("missing-payload");
   });
   it("rejects an image_url with a raw filesystem path", () => {
-    const err = validateContentPart({ type: "image_url", image_url: { url: "/etc/passwd" } }, 0);
+    const err = validateContentPart({ type: "image_url", image_url: { url: "/example/passwd" } }, 0);
     expect(err?.reason).toBe("raw-local-path");
   });
   it("accepts a valid file part with PDF data URL", () => {
@@ -95,7 +97,7 @@ describe("validateContentPart", () => {
   });
   it("rejects a file part with a raw filesystem path", () => {
     const err = validateContentPart(
-      { type: "file", file: { file_data: "/Users/me/foo.pdf" } },
+      { type: "file", file: { file_data: "/example/me/foo.pdf" } },
       0,
     );
     expect(err?.reason).toBe("raw-local-path");
