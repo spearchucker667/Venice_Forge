@@ -4,7 +4,6 @@ import { veniceFetch, veniceStreamChat } from "./veniceClient";
 import { useInspectorStore } from "../stores/inspector-store";
 import { useSettingsStore } from "../stores/settings-store";
 import * as safety from "../shared/safety";
-import { SafetyGuardBlockedError } from "../shared/safety";
 
 const originalFetch = globalThis.fetch;
 
@@ -379,55 +378,39 @@ describe("veniceClient web regressions", () => {
     } as unknown as Response);
   }
 
-  it("screens streamed web output and withholds deltas when Family Safe Mode blocks (VCS-P1-002)", async () => {
-    mockSseResponse([
-      'data: {"choices":[{"delta":{"content":"blocked-stream-text"}}]}\n\n',
-      "data: [DONE]\n\n",
-    ]);
-    const onDelta = vi.fn();
-    vi.spyOn(safety, "maybeRunLocalFamilyGuard").mockImplementation((input, enabled) => {
-      if (typeof input.text === "string") {
-        return {
-          allowed: false,
-          reason: "blocked",
-          userMessage: "Response blocked by Family Safe Mode.",
-          guardDecision: {
-            allow: false,
-            action: "block",
-            severity: "high",
-            category: "adult_sexual_content",
-            reasonCode: "RESPONSE_BLOCKED",
-            userMessage: "Response blocked by Family Safe Mode.",
-            developerMessage: "blocked",
-            normalizedChanged: false,
-            signals: [],
-            audit: {
-              decisionId: "test",
-              createdAt: "2026-01-01T00:00:00.000Z",
-              promptHash: "x",
-              promptLength: 0,
-              matchedFieldPaths: [],
-            },
-          },
-          category: "adult-content-blocked",
-          layer: "optional-family-policy",
+  it("delivers a server-approved delta before [DONE] under Family Safe Mode", async () => {
+    const encoder = new TextEncoder();
+    let releaseDone!: () => void;
+    const doneReady = new Promise<void>((resolve) => { releaseDone = resolve; });
+    let reads = 0;
+    const mockReader = {
+      read: async () => {
+        if (reads++ === 0) return {
+          done: false,
+          value: encoder.encode('data: {"choices":[{"delta":{"content":"hello"}}]}\n\n'),
         };
-      }
-      return {
-        allowed: true,
-        skipped: !enabled,
-        layer: "optional-family-policy",
-        category: "general",
-      };
-    });
-
-    await expect(
-      veniceStreamChat(
-        { model: "venice-uncensored", messages: [{ role: "user", content: "hi" }] },
-        { onDelta },
-      ),
-    ).rejects.toThrow(SafetyGuardBlockedError);
-    expect(onDelta).not.toHaveBeenCalled();
+        await doneReady;
+        return { done: false, value: encoder.encode("data: [DONE]\n\n") };
+      },
+      cancel: async () => undefined,
+      releaseLock: () => {},
+    };
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      body: { getReader: () => mockReader },
+    } as unknown as Response);
+    const onDelta = vi.fn();
+    const stream = veniceStreamChat(
+      { model: "venice-uncensored", messages: [{ role: "user", content: "hi" }] },
+      { onDelta },
+    );
+    await vi.waitFor(() => expect(onDelta).toHaveBeenCalledWith(expect.objectContaining({ content: "hello" })));
+    expect(reads).toBe(2);
+    releaseDone();
+    await stream;
+    expect(onDelta).toHaveBeenCalledTimes(1);
   });
 
   it("rejects a streamed response that ends before [DONE]", async () => {
@@ -449,7 +432,7 @@ describe("veniceClient web regressions", () => {
     expect(onDelta).toHaveBeenCalledWith(expect.objectContaining({ content: "partial" }));
   });
 
-  it("releases withheld streamed deltas after Family Safe Mode allows the body", async () => {
+  it("delivers streamed deltas once after Family Safe Mode allows the body", async () => {
     mockSseResponse([
       'data: {"choices":[{"delta":{"content":"hello"}}]}\n\n',
       "data: [DONE]\n\n",

@@ -69,60 +69,11 @@ export async function veniceStreamChat(
 
   let accumulatedContent = "";
   let accumulatedReasoning = "";
-  const fsmWithholdDeltas =
-    !isElectron() && useSettingsStore.getState().localFamilySafeModeEnabled;
-  const withheldDeltas: Parameters<typeof onDelta>[0][] = [];
 
   const wrappedOnDelta = (chunk: Parameters<typeof onDelta>[0]) => {
     accumulatedContent += chunk.content;
     accumulatedReasoning += chunk.reasoning;
-    if (fsmWithholdDeltas) {
-      withheldDeltas.push(chunk);
-    } else {
-      onDelta(chunk);
-    }
-  };
-
-  const screenWebStreamOutput = (): void => {
-    const serialized = JSON.stringify({
-      choices: [
-        {
-          message: {
-            role: "assistant",
-            content: accumulatedContent,
-            reasoning_content: accumulatedReasoning,
-          },
-        },
-      ],
-    });
-    const decision = maybeRunLocalFamilyGuard(
-      {
-        endpoint: "/chat/completions",
-        method: "POST",
-        text: serialized,
-        source: "venice-client",
-      },
-      useSettingsStore.getState().localFamilySafeModeEnabled,
-    );
-    if (!decision.allowed) {
-      useInspectorStore.getState().updateLog(
-        logId,
-        buildInspectorTelemetryPatch({
-          status: 451,
-          durationMs: Date.now() - startedAtTime,
-          previewDurationMs,
-          guardOutcome: "block",
-          error: decision.userMessage,
-        }),
-      );
-      throw new SafetyGuardBlockedError({
-        ...decision.guardDecision,
-        userMessage: decision.userMessage,
-      });
-    }
-    if (fsmWithholdDeltas) {
-      for (const chunk of withheldDeltas) onDelta(chunk);
-    }
+    onDelta(chunk);
   };
 
   const startedAt = nowIso();
@@ -391,11 +342,6 @@ export async function veniceStreamChat(
           `Venice stream completed with ${malformedFrameCount} malformed SSE frame(s).`,
         );
       }
-
-      // VF-AUD-20260912-VCS-P1-002: screen accumulated SSE text on the web
-      // transport. When Family Safe Mode is on, withheld deltas are released
-      // only after this screen allows.
-      screenWebStreamOutput();
 
       useInspectorStore.getState().updateLog(
         logId,

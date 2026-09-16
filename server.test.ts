@@ -230,6 +230,23 @@ describe("server.ts Family Safe Mode SSE lifecycle", () => {
     expect(upstream.destroy).toHaveBeenCalledOnce();
   });
 
+  it("blocks a choice delta whose unsafe text spans two SSE events", async () => {
+    const trigger = triggerInput("CSAM_EXPLICIT");
+    const parts = [trigger.slice(0, 2), trigger.slice(2)];
+    const events = parts.map((content) =>
+      `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content } }] })}\n\n`,
+    );
+    const upstream = mockSseResponse([events.join("")]);
+    const response = await request(createServerApp())
+      .post("/api/venice/chat/completions")
+      .send({ model: "test", messages: [] });
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain(events[0]);
+    expect(response.text).not.toContain(events[1]);
+    expect(upstream.destroy).toHaveBeenCalledOnce();
+  });
+
   it("returns 413 and destroys the upstream when the SSE queue overflows", async () => {
     const upstream = mockSseResponse([
       "data: first\n\n",

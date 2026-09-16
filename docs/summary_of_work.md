@@ -4,6 +4,8 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-16 Current-main deep-audit Phase 1 (baseline `59b61c43`).** Reproduced the SSE event-local screening gap and closed the source path for `VF-AUD-20260916-P1-001`: the web proxy now screens original SSE events and a bounded 16,384-character rolling assistant context per choice, including reasoning deltas, before release. The gate limits tracked choices to 16 and fails closed on invalid choice identity, window configuration, or classifier error. Route and unit regressions cover unsafe text split across events, independent choices, Unicode/network chunk boundaries, and cancellation. Closed the dependent `P2-003` client buffering path: web deltas arrive as soon as the server releases them; the duplicate withheld-delta queue and terminal aggregate replay are removed. The client still rejects missing `[DONE]`. `SECURITY.md` now describes current sender-frame and SSE contracts. The remaining audit findings and external acceptance are tracked in `docs/ROADMAP.md`. Validation and publication status are recorded in the matrix below.
+
 - **2026-09-15 Adversarial client/proxy SSE lifecycle correction (uncommitted).**
   - Exercised the real web client, Electron main-process request path, chat stream manager, and `/api/venice/chat/completions` route for normal completion, empty output, unsafe first/later events, overflow, upstream errors, disconnect cleanup, ordering, cancellation, and truncated streams.
   - Reproduced one concrete defect: a successful SSE response terminated without `[DONE]` was accepted as a successful completion by the web and Electron clients. The clients now return a sanitized retryable 502-style stream error when a 2xx SSE response reaches EOF without `[DONE]`; the Electron path preserves non-2xx terminal responses such as the existing 429 contract.
@@ -377,6 +379,14 @@ This is the active handoff and validation ledger. The canonical current-work led
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-16 — Current-main deep-audit safety streaming
+
+- Baseline: local `main` at `59b61c43`; pre-existing audit-record deletions and an untracked archived handoff were preserved untouched.
+- `VF-AUD-20260916-P1-001`: the server previously screened each SSE event without cross-event assistant context. `SafetyGatedSse` now decodes choice deltas into bounded per-choice content/reasoning windows, and the server screens each current event plus every updated window before release. The real proxy test proves a later event completing a split unsafe signal is withheld.
+- `VF-AUD-20260916-P2-003`: after server-side rolling screening, the web client now delivers approved deltas immediately instead of storing and replaying the whole output. A deferred-terminator test proves the first delta reaches the callback before `[DONE]`; the existing incomplete-stream error remains covered.
+- Current authority: corrected `SECURITY.md` sender-frame and response-screening descriptions. Other audit findings remain open in `docs/ROADMAP.md`.
+- Validation: see the 2026-09-16 matrix entry. External headed, funded-provider, signing, two-device, and native-language acceptance was not performed.
 
 ### 2026-09-15 — Light and Dark Theme Selection & Rendering Remediation
 
@@ -1935,6 +1945,8 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
+* **VF-AUD-20260916-CURRENT-MAIN** — Safety streaming `P1-001` and dependent web streaming `P2-003` are implemented and focused-tested. Broad validation/publication and the remaining source, capability, documentation, and external acceptance items are tracked in `docs/ROADMAP.md`.
+
 * **THEME-LIGHT-DARK-SELECTION-2026-09-15** — Light and dark theme selection, live preview switching, and rendering remediation complete on `main`. Fixed `ThemeMaker.tsx` `updatePreviewMode` to call `applyTheme(resolveTheme(draft, mode))` with unmount restore; fixed `getCanonicalMode(family)` using `BUILTIN_CANONICAL_MODES` so dark themes aren't forced into light mode; fixed palette card text color to `text-text-primary`; added `--color-vf-accent-glow-subtle` and mode-symmetric `--color-vf-control-hover` in `theme.css`; remediated companion variants across 39 built-in themes so all 86 theme variants pass WCAG AA contrast tests (119/119 in `src/theme/contrast.test.ts`). All validation (typecheck, eslint, theme-tokens, workspace-contracts, contracts, unit:theme, build, dist) PASS. Uncommitted on `main`, not pushed.
 
 * **VF-REFERENCE-UI-REDESIGN-PHASE-2-2026-09-14** — Reference UI Redesign Phase 2 (Global Shell Redesign) is COMPLETE on `main`. App.tsx, header.tsx, inspector-pane.tsx, sidebar.tsx, DiagnosticsDrawer.tsx, and TaskCenterDrawer.tsx redesigned with reference graphite background/border/panel styling and verified via new `tests/shell/referenceShell.test.tsx` (5/5 tests PASS). Local validation (`verify:theme-tokens`, `verify:i18n-hardcoded-regressions`, `verify:workspace-contracts`, `typecheck`, `lint:eslint`, 80/80 serial layout/status tests) green. Phases 3–10 (Chat family, Generate family, Build family, System/Settings, Overlays/Modals, Accessibility/RTL, Visual QA, Docs/Promotion) remain open.
@@ -1952,6 +1964,25 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-16 — Current-main deep-audit safety streaming
+
+- `npx vitest run src/services/safetyGatedSse.test.ts src/services/safetyGatedSsePump.test.ts src/services/veniceClient.web.test.ts server.test.ts --no-file-parallelism` — PASS (5 files, 138 tests in the final focused rerun).
+- `npm ci` — PASS (857 packages installed; 0 vulnerabilities reported).
+- `npm run lint:eslint` — PASS.
+- `npm run typecheck` — PASS (root, Electron, Electron test projects).
+- `npm test` — FAIL (543 files passed, 2 skipped; 6,217 tests passed, 4 skipped; one failure in `scripts/verify-markdown-links.test.ts`). The failure is caused by pre-existing, untouched deletions of the 2026-09-13 audit records: `docs/DOCS_INDEX.md:210` links to the now-missing audit `README.md`.
+- `npm run verify:markdown-links` — FAIL on the same pre-existing missing audit README (1 broken link across 417 Markdown files).
+- `npm run verify:contracts` and `npm run verify:release-readiness` — FAIL at the same Markdown-link gate before later contract/release checks could execute.
+- `npm run verify:safety-guard` — PASS (8 enforcement boundaries, no raw prompt logging or bypass pattern).
+- `npm run verify:theme-tokens` — PASS (185 files).
+- `npm run verify:i18n` — PASS with 935 existing missing-marker warnings.
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions across 541 files).
+- `npm run verify:superdesign-init` — PASS (source fingerprint `4326b8b6e1e699bd`).
+- `npm run build` — PASS (web, server, Electron).
+- `npm run verify:dist` — PASS.
+- `git diff --check` — PASS.
+- No headed, funded-provider, signing, or two-device acceptance was run in this tranche.
 
 ### 2026-09-15 — Adversarial SSE entry-point verification
 

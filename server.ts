@@ -766,14 +766,21 @@ export function createServerApp() {
     const eventGate = isSse
       ? new SafetyGatedSse({
           maxEventBytes: VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES,
-          classify: ({ data, done }) => {
+          classify: ({ data, done, semanticContexts }) => {
             if (done || !data.trim()) return { allowed: true };
-            const screen = screenResponseBody(
+            const currentEvent = screenResponseBody(
               JSON.stringify({ choices: [{ delta: { content: data } }] }),
               { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
               isLocalFamilySafeModeEnabled(req),
             );
-            return { allowed: screen.allowed };
+            if (!currentEvent.allowed) return { allowed: false };
+            return {
+              allowed: semanticContexts.every((text) => screenResponseBody(
+                text,
+                { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
+                isLocalFamilySafeModeEnabled(req),
+              ).allowed),
+            };
           },
           release: ({ raw }) => {
             initializeSseResponse();

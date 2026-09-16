@@ -85,7 +85,8 @@ Validation rules:
 - Loopback, link-local, RFC1918, and `file://localhost` origins are rejected.
 - Non-`file:` protocols (including `data:`, `http:`, and `https:`) are rejected
   in production.
-- `event.senderFrame.url` is preferred over `event.sender.getURL()`.
+- The initiating `event.senderFrame.url` is required. A missing or untrusted
+  initiating frame is rejected; the current top-level URL is not a fallback.
 - Untrusted frames receive an immediate error before rate-limit state or handler
   logic is touched.
 
@@ -132,7 +133,10 @@ Export is always user-mediated by a native save dialog. The model does not choos
   Venice-touching IPC handlers and the loopback bridge.
 - Web-mode authoritative enforcement:
   `server.ts`, which applies the local guard to supported request bodies and
-  response-body screening to Jina/scrape text responses.
+  response-body screening to Jina/scrape text responses. For Family Safe Mode
+  chat SSE, the proxy screens each event and bounded rolling text per choice
+  before releasing that event. The web client renders approved deltas as they
+  arrive and rejects a successful stream that ends without `[DONE]`.
 
 ### Privacy and logging guarantees
 

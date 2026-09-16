@@ -2,6 +2,8 @@ export interface GatedSseEvent {
   raw: string;
   data: string;
   done: boolean;
+  /** Bounded, per-choice assistant text including this event's delta. */
+  semanticContexts: string[];
 }
 
 export interface SafetyGateDecision {
@@ -10,8 +12,14 @@ export interface SafetyGateDecision {
 
 export interface GatedSseOptions {
   maxEventBytes: number;
+  maxSemanticChars?: number;
   classify: (event: GatedSseEvent) => SafetyGateDecision | Promise<SafetyGateDecision>;
   release: (event: GatedSseEvent) => void | Promise<void>;
+}
+
+function boundedUnicodeTail(text: string, limit: number): string {
+  const tail = text.slice(-limit);
+  return /^[\uDC00-\uDFFF]/.test(tail) ? tail.slice(1) : tail;
 }
 
 /** Incremental SSE parser/gate. It retains only the current event, decodes
@@ -22,8 +30,13 @@ export class SafetyGatedSse {
   private pending = "";
   private readonly options: GatedSseOptions;
   private closed = false;
+  private readonly choiceContexts = new Map<number, { content: string; reasoning: string }>();
 
   constructor(options: GatedSseOptions) {
+    if (options.maxSemanticChars !== undefined &&
+      (!Number.isSafeInteger(options.maxSemanticChars) || options.maxSemanticChars < 2)) {
+      throw new Error("Invalid bounded SSE semantic window size.");
+    }
     this.options = options;
   }
 
@@ -44,6 +57,47 @@ export class SafetyGatedSse {
   cancel(): void {
     this.closed = true;
     this.pending = "";
+    this.choiceContexts.clear();
+  }
+
+  private semanticContexts(data: string): string[] {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(data);
+    } catch {
+      return [data];
+    }
+    if (!parsed || typeof parsed !== "object" || !("choices" in parsed) || !Array.isArray(parsed.choices)) {
+      return [data];
+    }
+
+    const contexts: string[] = [];
+    for (const choice of parsed.choices) {
+      if (!choice || typeof choice !== "object") continue;
+      const record = choice as Record<string, unknown>;
+      const index = record.index ?? (parsed.choices.length === 1 ? 0 : undefined);
+      if (typeof index !== "number" || !Number.isSafeInteger(index) || index < 0) {
+        throw new Error("SSE choice has no valid index for bounded safety screening.");
+      }
+      const delta = record.delta;
+      if (!delta || typeof delta !== "object") continue;
+      const fields = delta as Record<string, unknown>;
+      const content = typeof fields.content === "string" ? fields.content : "";
+      const reasoning = typeof fields.reasoning_content === "string" ? fields.reasoning_content : "";
+      if (!content && !reasoning) continue;
+      if (!this.choiceContexts.has(index) && this.choiceContexts.size >= 16) {
+        throw new Error("SSE choices exceeded the bounded safety screening window.");
+      }
+      const previous = this.choiceContexts.get(index) ?? { content: "", reasoning: "" };
+      const limit = this.options.maxSemanticChars ?? 16_384;
+      const next = {
+        content: boundedUnicodeTail(previous.content + content, limit),
+        reasoning: boundedUnicodeTail(previous.reasoning + reasoning, limit),
+      };
+      this.choiceContexts.set(index, next);
+      contexts.push(JSON.stringify({ choices: [{ delta: next }] }));
+    }
+    return contexts.length > 0 ? contexts : [data];
   }
 
   private async drain(flush: boolean): Promise<void> {
@@ -90,10 +144,23 @@ export class SafetyGatedSse {
       .map((line) => line.slice(5).replace(/^ /, ""));
     const data = dataLines.join("\n");
     if (!data) return;
-    const event: GatedSseEvent = { raw, data, done: data === "[DONE]" };
-    const decision = await this.options.classify(event);
+    const done = data === "[DONE]";
+    let event: GatedSseEvent;
+    try {
+      event = { raw, data, done, semanticContexts: done ? [] : this.semanticContexts(data) };
+    } catch (error) {
+      this.cancel();
+      throw error;
+    }
+    let decision: SafetyGateDecision;
+    try {
+      decision = await this.options.classify(event);
+    } catch (error) {
+      this.cancel();
+      throw error;
+    }
     if (!decision.allowed) {
-      this.closed = true;
+      this.cancel();
       throw new Error("SSE event blocked by Family Safe Mode.");
     }
     await this.options.release(event);
