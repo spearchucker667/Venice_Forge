@@ -132,7 +132,10 @@ export function normalizeModelInfo(raw: unknown): ModelInfo {
  *
  *  Do NOT infer "uncensored" from model id keywords, captions, or any source
  *  other than the two signals above. Venice's classification is authoritative
- *  for both safety routing and the agent-model picker (VERIFY-2026-09-16-P1-001).
+ *  for both safety routing and the agent-model picker (see
+ *  `docs/audits/TODO/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md`
+ *  §6.1 and the `VF-VENICE-API-2026-09-16-FEATURE-GAP-FIRST-SLICE` item in
+ *  `docs/ROADMAP.md`).
  */
 export function resolveModelUncensored(model: ModelInfo | undefined | null): boolean {
   if (!model) return false;
