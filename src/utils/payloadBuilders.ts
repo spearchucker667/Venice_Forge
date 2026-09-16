@@ -1,4 +1,6 @@
 /** @fileoverview Shared payload builders for Venice API chat and image requests. */
+import type { E2eeOverride, VeniceModel } from "../types/venice";
+import { supportsE2EE } from "../shared/modelCapabilities";
 import { applyVeniceApiSafeMode } from "../shared/veniceSafeMode";
 
 /**
@@ -64,6 +66,13 @@ export interface ChatSettings {
    * so existing callers that don't pass it keep their current shape.
    */
   safeMode?: boolean;
+  /**
+   * User-facing E2EE override. Resolved at the canonical payload boundary
+   * by `resolveE2eeParam()` against the selected model's `supportsE2EE`
+   * capability. 'provider-default' omits the field so Venice applies its
+   * upstream default (currently `true` when E2EE headers are present).
+   */
+  e2eeOverride?: E2eeOverride;
 }
 
 /** Options that control streaming, character slugs, reasoning, and thinking output. */
@@ -71,6 +80,13 @@ export interface ChatPayloadOptions {
   stream?: boolean;
   characterSlug?: string;
   reasoningEffort?: string;
+  /**
+   * Optional lookup for the currently-selected model so capability gates
+   * (e.g. `supportsE2EE`) can be evaluated at payload assembly time. When
+   * omitted, the builder assumes Venice default and capability-omits
+   * E2EE-sensitive fields — fail-closed, never force-include.
+   */
+  modelInfo?: Pick<VeniceModel, 'model_spec'>;
   enableXSearch?: boolean;
   stripThinking?: boolean;
   disableThinking?: boolean;
@@ -148,6 +164,14 @@ export function buildChatPayload(
       disable_thinking: !!options.disableThinking,
     },
   };
+
+  // E2EE: capability-gated; emit only when the model supports E2EE AND the
+  // user has explicitly opted in. Resolution rules live in resolveE2eeParam
+  // and are mirrored in tests under payloadBuilders.test.ts.
+  const e2ee = resolveE2eeParam(options.modelInfo, settings.e2eeOverride);
+  if (e2ee !== undefined) {
+    (payload.venice_parameters as Record<string, unknown>).enable_e2ee = e2ee;
+  }
   if (options.stream) payload.stream = true;
   const slug = options.characterSlug?.trim();
   if (slug) (payload.venice_parameters as Record<string, unknown>).character_slug = slug;
@@ -159,6 +183,100 @@ export function buildChatPayload(
   }
   if (options.reasoningEffort) payload.reasoning = { effort: options.reasoningEffort };
   return applyVeniceApiSafeMode("/chat/completions", payload, settings.safeMode);
+}
+
+/**
+ * Resolves the user-facing `E2eeOverride` against the selected model's
+ * `supportsE2EE` capability and the upstream `enable_e2ee` field semantics.
+ *
+ * Contract rules:
+ *  - When the model does not advertise `supportsE2EE`, the field is omitted
+ *    from the wire payload. The provider either ignores it or rejects the
+ *    request; sending it speculatively would risk 4xx on non-E2EE models.
+ *  - When the override is `'provider-default'` (or unset), the field is
+ *    omitted so Venice applies its documented upstream default.
+ *  - When the override is `'on'`, emit `enable_e2ee: true` (E2EE mode).
+ *  - When the override is `'off'`, emit `enable_e2ee: false` (TEE-only mode
+ *    even when E2EE headers are present — verbatim from the Swagger
+ *    description for the `enable_e2ee` field).
+ *
+ * Never set the field merely because the model supports E2EE — the user's
+ * explicit opt-in is required. See `docs/audits/TODO/VENICE_API_2026-09-16_\
+ * FEATURE_GAP_AGENT_HANDOFF.md` §9 (Phase 4) for the source contract.
+ */
+export function resolveE2eeParam(
+  modelInfo: Pick<VeniceModel, 'model_spec'> | undefined,
+  override: E2eeOverride | undefined,
+): boolean | undefined {
+  if (!supportsE2EE(modelInfo)) return undefined;
+  switch (override) {
+    case 'on':
+      return true;
+    case 'off':
+      return false;
+    case 'provider-default':
+    case undefined:
+    default:
+      return undefined;
+  }
+}
+
+/** All TTS / music output formats currently documented for Venice. Kept in
+ *  sync with the canonical logical-request type
+ *  (`AudioSpeechLogicalRequest.responseFormat`). Used by
+ *  `resolveAudioResponseFormat` to validate persisted user selections when
+ *  switching models, and by tests to confirm the allowlist stays aligned
+ *  with the canonical type. */
+export const SUPPORTED_AUDIO_OUTPUT_FORMATS = [
+  'mp3',
+  'opus',
+  'aac',
+  'flac',
+  'wav',
+  'pcm',
+] as const;
+
+export type AudioOutputFormat = (typeof SUPPORTED_AUDIO_OUTPUT_FORMATS)[number];
+
+function isAudioOutputFormat(value: string): value is AudioOutputFormat {
+  return (SUPPORTED_AUDIO_OUTPUT_FORMATS as readonly string[]).includes(value);
+}
+
+/**
+ * Resolves the audio output format for a TTS / music request against the
+ * selected model's `supported_formats` allowlist and `default_format`.
+ *
+ * Resolution precedence:
+ *  1. `requested` — if the caller supplied a value AND it is in the model's
+ *     `supported_formats` allowlist, use it. If the model advertises an
+ *     allowlist but the requested value is not on it, fall through (this
+ *     keeps the rejected-by-upstream case from silently sending a value
+ *     that will 4xx).
+ *  2. `default_format` — when the model exposes one, use it.
+ *  3. `'mp3'` — Venice's documented fallback default.
+ *
+ * Pass `undefined` for `modelInfo` to skip per-model validation and rely
+ * on the conservative `'mp3'` fallback — used by code paths that have not
+ * yet loaded live `/models` data.
+ */
+export function resolveAudioResponseFormat(
+  modelInfo: Pick<VeniceModel, 'model_spec'> | undefined,
+  requested: string | undefined,
+): AudioOutputFormat {
+  const allowed = Array.isArray(modelInfo?.model_spec?.supported_formats)
+    ? modelInfo!.model_spec!.supported_formats!.filter(isAudioOutputFormat)
+    : undefined;
+  if (requested && isAudioOutputFormat(requested)) {
+    if (!allowed || allowed.length === 0 || allowed.includes(requested)) {
+      return requested;
+    }
+    // Requested format not supported by the model — fall through to default.
+  }
+  const upstreamDefault = modelInfo?.model_spec?.default_format;
+  if (upstreamDefault && isAudioOutputFormat(upstreamDefault)) {
+    return upstreamDefault;
+  }
+  return 'mp3';
 }
 
 /** Seed mode for image generation. */

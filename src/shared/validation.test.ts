@@ -42,6 +42,11 @@ describe("validation", () => {
         "/audio/speech",
         "/audio/voices",
         "/audio/transcriptions",
+        // Phase 2 — Billing & Usage center. /billing/usage-history is the
+        // canonical endpoint; /billing/usage-analytics is also read-only.
+        "/billing/balance",
+        "/billing/usage-history",
+        "/billing/usage-analytics",
       ]);
     });
   });
@@ -67,11 +72,21 @@ describe("validation", () => {
         "/models/traits",
         "/models/compatibility_mapping",
         "/image/styles",
+        // Phase 2 — billing endpoints are read-only.
+        "/billing/balance",
+        "/billing/usage-history",
+        "/billing/usage-analytics",
       ]);
       const postEndpoints = Object.entries(VENICE_ENDPOINT_METHODS).filter(
         ([ep, methods]) => !getOnlyEndpoints.has(ep) && methods.includes("POST")
       );
       expect(postEndpoints.length).toBe(ALLOWED_VENICE_ENDPOINTS.length - getOnlyEndpoints.size);
+    });
+
+    it("rejects POST on /billing/usage-history (Phase 2: read-only billing)", () => {
+      expect(isAllowedVeniceRequest("/billing/usage-history", "POST")).toBe(false);
+      expect(isAllowedVeniceRequest("/billing/balance", "POST")).toBe(false);
+      expect(isAllowedVeniceRequest("/billing/usage-analytics", "POST")).toBe(false);
     });
   });
 

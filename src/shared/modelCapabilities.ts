@@ -23,3 +23,24 @@ export function supportsVision(modelInfo: FunctionCallingCapableModel & {
 } | undefined): boolean {
   return modelInfo?.capabilities?.supportsVision === true;
 }
+
+/** True only when the model explicitly advertises end-to-end encryption.
+ *  Used to capability-gate `venice_parameters.enable_e2ee` so the field is
+ *  omitted for models that do not declare `supportsE2EE`. The Swagger field
+ *  is documented as nested under `model.model_spec.capabilities`, but
+ *  legacy normalized records may carry the boolean at the top of
+ *  `model_spec`. Both shapes are honored — absent/unspecified fails closed. */
+export function supportsE2EE(
+  modelInfo: {
+    model_spec?: {
+      supportsE2EE?: boolean;
+      capabilities?: { supportsE2EE?: boolean };
+    };
+  } | undefined,
+): boolean {
+  if (!modelInfo?.model_spec) return false;
+  if (typeof modelInfo.model_spec.supportsE2EE === 'boolean') {
+    return modelInfo.model_spec.supportsE2EE;
+  }
+  return modelInfo.model_spec.capabilities?.supportsE2EE === true;
+}

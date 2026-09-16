@@ -138,12 +138,30 @@ export interface VeniceModel {
      *  /image/generate (Swagger `model_spec.supportsStyleReferences`, only
      *  present for image models). Absent means unsupported — fail closed. */
     supportsStyleReferences?: boolean
+    /** Legacy / hoisted top-level E2EE flag. Swagger canonical location is
+     *  `capabilities.supportsE2EE`, but some legacy normalized records
+     *  hoist the boolean to the top of `model_spec`. The
+     *  `supportsE2EE()` capability gate in `src/shared/modelCapabilities.ts`
+     *  honors both shapes; this declaration is mirrored here so the
+     *  TypeScript type stays aligned with the runtime helper. */
+    supportsE2EE?: boolean
     /** Venice classification for the `uncensored` model set. Present and `true`
      *  when Venice tags the model as applying minimal content-based filtering;
      *  absent for every other model. Authoritative — overrides legacy
      *  `traits.includes('most_uncensored')` heuristics. Resolved through
      *  `resolveModelUncensored()` in `modelClassification.ts`. */
     uncensored?: boolean
+    /** Per-model TTS / music output audio formats. Swagger
+     *  `model_spec.supported_formats`. An explicit format outside this list
+     *  is rejected by the upstream generation endpoint, so the canonical
+     *  TTS builder resolves the requested format against this allowlist
+     *  and falls back to `default_format` (or `'mp3'`) when absent. */
+    supported_formats?: string[]
+    /** Per-model default output audio format. Swagger
+     *  `model_spec.default_format`. Used when the request omits a format
+     *  and as the fallback when the requested format is not in
+     *  `supported_formats`. */
+    default_format?: string
   }
 }
 
@@ -183,6 +201,14 @@ export interface ChatMessage {
   }
 }
 
+/** User-facing privacy override for the per-request E2EE control. Distinct
+ *  from the upstream `enable_e2ee` field because the renderer must store an
+ *  explicit tri-state — Venice does not differentiate "user opted out" from
+ *  "user never set a preference" once the field is included on the wire.
+ *  Resolved to a boolean only at the canonical payload boundary by
+ *  `resolveE2eeParam()`, which respects `supportsE2EE` capability gating. */
+export type E2eeOverride = 'provider-default' | 'on' | 'off'
+
 export interface VeniceParameters {
   include_venice_system_prompt?: boolean
   character_slug?: string
@@ -195,6 +221,13 @@ export interface VeniceParameters {
   enable_web_citations?: boolean
   include_search_results_in_stream?: boolean
   return_search_results_as_documents?: boolean
+  /** Enable end-to-end encryption for E2EE-capable models. Defaults upstream
+   *  to `true` when E2EE headers are present; explicit `false` forces
+   *  TEE-only mode. Only applicable when the model advertises
+   *  `supportsE2EE === true`; otherwise the canonical payload builder omits
+   *  the field. See Swagger `ChatCompletionRequest.venice_parameters.enable_e2ee`
+   *  and `TextModelCapabilities.supportsE2EE`. */
+  enable_e2ee?: boolean
 }
 
 export interface ChatCompletionRequest {

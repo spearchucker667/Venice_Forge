@@ -29,6 +29,15 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   "/audio/speech",
   "/audio/voices",
   "/audio/transcriptions",
+  // Phase 2 — Billing & Usage center. The canonical /billing/usage-history
+  // supersedes the deprecated /billing/usage; both endpoints are allowed
+  // here so existing read-only consumers keep working until migration
+  // completes. See docs/audits/TODO/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md
+  // §7 (Phase 2) for the "do not implement new UI against /billing/usage"
+  // rule. New code MUST prefer /billing/usage-history.
+  "/billing/balance",
+  "/billing/usage-history",
+  "/billing/usage-analytics",
 ] as const;
 
 /** HTTP methods permitted for Venice API requests. */
@@ -68,6 +77,13 @@ export const VENICE_ENDPOINT_METHODS: Record<VeniceIpcEndpoint, readonly VeniceI
   "/audio/speech": ["POST"],
   "/audio/voices": ["POST"],
   "/audio/transcriptions": ["POST"],
+  // Billing endpoints are read-only — GET only. Renderer cannot mutate
+  // billing state via the canonical Venice request path; that gate is
+  // enforced by VENICE_ENDPOINT_METHODS being the single source of truth
+  // for "is this method allowed on this endpoint".
+  "/billing/balance": ["GET"],
+  "/billing/usage-history": ["GET"],
+  "/billing/usage-analytics": ["GET"],
 };
 
 /** The bare /characters list endpoint. The character-slug variant is

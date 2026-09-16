@@ -8,7 +8,10 @@ import {
   clampSeed,
   normalizeImageDraft,
   randomSeed,
+  resolveAudioResponseFormat,
+  resolveE2eeParam,
   serializeSeed,
+  SUPPORTED_AUDIO_OUTPUT_FORMATS,
 } from "./payloadBuilders";
 
 /** Tests for the buildChatPayload helper. */
@@ -95,6 +98,132 @@ describe("buildChatPayload", () => {
       {},
     );
     expect(payload).not.toHaveProperty("prompt_cache_key");
+  });
+});
+
+describe("resolveE2eeParam (Phase 4: typed E2EE override)", () => {
+  const e2eeModel = {
+    model_spec: { capabilities: { supportsE2EE: true } },
+  };
+  const nonE2eeModel = {
+    model_spec: { capabilities: { supportsE2EE: false } },
+  };
+  const legacyTopLevelModel = {
+    // Some legacy normalized records hoist `supportsE2EE` to the top of
+    // `model_spec`. The resolver must honor that shape too — see the
+    // supportsE2EE() helper in src/shared/modelCapabilities.ts.
+    model_spec: { supportsE2EE: true },
+  };
+
+  it("omits the field when the model does not advertise supportsE2EE", () => {
+    expect(resolveE2eeParam(nonE2eeModel, "on")).toBeUndefined();
+    expect(resolveE2eeParam(nonE2eeModel, "off")).toBeUndefined();
+    expect(resolveE2eeParam(nonE2eeModel, "provider-default")).toBeUndefined();
+  });
+
+  it("omits the field when modelInfo is undefined (fail closed)", () => {
+    expect(resolveE2eeParam(undefined, "on")).toBeUndefined();
+  });
+
+  it("emits true when the override is 'on' and the model supports E2EE", () => {
+    expect(resolveE2eeParam(e2eeModel, "on")).toBe(true);
+  });
+
+  it("emits false when the override is 'off' and the model supports E2EE", () => {
+    expect(resolveE2eeParam(e2eeModel, "off")).toBe(false);
+  });
+
+  it("omits the field when override is 'provider-default' or unset", () => {
+    expect(resolveE2eeParam(e2eeModel, "provider-default")).toBeUndefined();
+    expect(resolveE2eeParam(e2eeModel, undefined)).toBeUndefined();
+  });
+
+  it("accepts the legacy top-level supportsE2EE shape (back-compat)", () => {
+    expect(resolveE2eeParam(legacyTopLevelModel, "on")).toBe(true);
+  });
+
+  it("is hooked into buildChatPayload (capability-gated wire field)", () => {
+    const payload = buildChatPayload(
+      "e2ee-capable",
+      [{ role: "user", content: "hi" }],
+      { e2eeOverride: "on" },
+      { modelInfo: e2eeModel },
+    );
+    expect((payload.venice_parameters as Record<string, unknown>).enable_e2ee).toBe(true);
+
+    const nonE2eePayload = buildChatPayload(
+      "non-e2ee",
+      [{ role: "user", content: "hi" }],
+      { e2eeOverride: "on" },
+      { modelInfo: nonE2eeModel },
+    );
+    expect((nonE2eePayload.venice_parameters as Record<string, unknown>).enable_e2ee).toBeUndefined();
+
+    const defaultPayload = buildChatPayload(
+      "e2ee-capable",
+      [{ role: "user", content: "hi" }],
+      { e2eeOverride: "provider-default" },
+      { modelInfo: e2eeModel },
+    );
+    expect((defaultPayload.venice_parameters as Record<string, unknown>).enable_e2ee).toBeUndefined();
+  });
+});
+
+describe("resolveAudioResponseFormat (Phase 5.5: per-model TTS formats)", () => {
+  const ttsModelMp3Wav = {
+    model_spec: { supported_formats: ["mp3", "wav"], default_format: "mp3" },
+  };
+  const ttsModelFlacOnly = {
+    model_spec: { supported_formats: ["flac"], default_format: "flac" },
+  };
+  const ttsModelNoAllowlist = { model_spec: { default_format: "opus" } };
+  const ttsModelEmptySpec = { model_spec: {} };
+
+  it("uses the requested format when it is on the model's allowlist", () => {
+    expect(resolveAudioResponseFormat(ttsModelMp3Wav, "wav")).toBe("wav");
+  });
+
+  it("falls back to default_format when requested format is not on allowlist", () => {
+    expect(resolveAudioResponseFormat(ttsModelMp3Wav, "opus")).toBe("mp3");
+    expect(resolveAudioResponseFormat(ttsModelFlacOnly, "mp3")).toBe("flac");
+  });
+
+  it("falls back to default_format when no format was requested", () => {
+    expect(resolveAudioResponseFormat(ttsModelMp3Wav, undefined)).toBe("mp3");
+    expect(resolveAudioResponseFormat(ttsModelFlacOnly, undefined)).toBe("flac");
+  });
+
+  it("uses the model's default_format when no allowlist and no requested value", () => {
+    expect(resolveAudioResponseFormat(ttsModelNoAllowlist, undefined)).toBe("opus");
+  });
+
+  it("honors an explicit requested value when no allowlist is provided", () => {
+    // When the model advertises no allowlist there is no validation to
+    // enforce, so the caller's explicit request wins over default_format.
+    // This matches the handoff §10.5 rule: live metadata gates the
+    // selector; absent metadata means "no validation, conservative default".
+    expect(resolveAudioResponseFormat(ttsModelNoAllowlist, "mp3")).toBe("mp3");
+  });
+
+  it("falls back to 'mp3' when model metadata is absent or invalid", () => {
+    expect(resolveAudioResponseFormat(undefined, undefined)).toBe("mp3");
+    expect(resolveAudioResponseFormat(ttsModelEmptySpec, undefined)).toBe("mp3");
+  });
+
+  it("ignores unrecognized requested formats rather than forwarding them", () => {
+    expect(resolveAudioResponseFormat(ttsModelMp3Wav, "mpeg-2")).toBe("mp3");
+  });
+
+  it("ignores non-canonical values inside supported_formats (defensive)", () => {
+    const dirty = { model_spec: { supported_formats: ["mp3", "fake-fmt", "wav"], default_format: "fake-fmt" } };
+    expect(resolveAudioResponseFormat(dirty, "wav")).toBe("wav");
+    expect(resolveAudioResponseFormat(dirty, undefined)).toBe("mp3");
+  });
+
+  it("the canonical SUPPORTED_AUDIO_OUTPUT_FORMATS list stays aligned with all six upstream values", () => {
+    expect(new Set(SUPPORTED_AUDIO_OUTPUT_FORMATS)).toEqual(
+      new Set(["mp3", "opus", "aac", "flac", "wav", "pcm"]),
+    );
   });
 });
 

@@ -134,7 +134,18 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     ...veniceParamsForRequest,
   };
   if (baseBody.venice_parameters && typeof baseBody.venice_parameters === "object") {
-    delete (baseBody.venice_parameters as { enable_document_tools?: boolean }).enable_document_tools;
+    // Strip Venice-only `enable_document_tools` because non-Venice providers
+    // reject unknown fields; the existing code handles this single field. We
+    // additionally strip `enable_e2ee` for the same reason — it is a
+    // Venice-only privacy control that has no meaning on OpenAI/Google/etc.
+    // fallbacks. See Phase 4 of the 2026-09-16 feature-gap handoff for the
+    // "fallback-provider routes must strip Venice-only E2EE fields" rule.
+    const veniceParams = baseBody.venice_parameters as {
+      enable_document_tools?: boolean;
+      enable_e2ee?: boolean;
+    };
+    delete veniceParams.enable_document_tools;
+    delete veniceParams.enable_e2ee;
   }
 
   return applyVeniceApiSafeMode(
