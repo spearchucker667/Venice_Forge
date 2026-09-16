@@ -1,7 +1,8 @@
 /** @fileoverview Unit tests for src/services/modelClassification.ts. */
 
 import { describe, it, expect } from "vitest";
-import { classifyModel, flattenModels } from "./modelClassification";
+import { classifyModel, flattenModels, normalizeModelInfo, resolveModelUncensored } from "./modelClassification";
+import type { VeniceModel } from "../types/venice";
 
 describe("classifyModel", () => {
   it("prefers explicit type over regex heuristics", () => {
@@ -45,6 +46,89 @@ describe("classifyModel", () => {
   it("returns 'unknown' when no heuristic matches", () => {
     expect(classifyModel({ id: "xyz-abc" })).toBe("unknown");
     expect(classifyModel({ id: "xyz-abc", type: "unrecognized" })).toBe("unknown");
+  });
+});
+
+describe("resolveModelUncensored", () => {
+  const baseModel: VeniceModel = {
+    id: "qwen-coder",
+    object: "model",
+    created: 0,
+    owned_by: "venice",
+    model_spec: { traits: [] },
+  };
+
+  it("prefers explicit model_spec.uncensored=true over any legacy trait signal", () => {
+    const m: VeniceModel = {
+      ...baseModel,
+      model_spec: {
+        traits: ["most_uncensored", "function_calling_default"],
+        uncensored: true,
+      },
+    };
+    expect(resolveModelUncensored(m)).toBe(true);
+  });
+
+  it("uses model_spec.uncensored=false even when the legacy trait is present", () => {
+    // This is the key precedence rule: an explicit `false` from Venice
+    // overrides the legacy trait heuristic. Without this guard a provider
+    // change to a model's classification could be silently reverted by a
+    // catalog stale enough to still carry `most_uncensored`.
+    const m: VeniceModel = {
+      ...baseModel,
+      model_spec: {
+        traits: ["most_uncensored"],
+        uncensored: false,
+      },
+    };
+    expect(resolveModelUncensored(m)).toBe(false);
+  });
+
+  it("falls back to the legacy `most_uncensored` trait when upstream did not set the flag", () => {
+    const m: VeniceModel = {
+      ...baseModel,
+      model_spec: { traits: ["most_uncensored"] },
+    };
+    expect(resolveModelUncensored(m)).toBe(true);
+  });
+
+  it("returns false when neither signal is present", () => {
+    expect(resolveModelUncensored({ ...baseModel, model_spec: { traits: ["function_calling_default"] } })).toBe(false);
+    expect(resolveModelUncensored({ ...baseModel, model_spec: {} })).toBe(false);
+    expect(resolveModelUncensored({ ...baseModel })).toBe(false);
+  });
+
+  it("returns false for null/undefined input rather than throwing", () => {
+    expect(resolveModelUncensored(undefined)).toBe(false);
+    expect(resolveModelUncensored(null)).toBe(false);
+  });
+});
+
+describe("normalizeModelInfo uncensored propagation", () => {
+  it("propagates model_spec.uncensored onto the normalized record", () => {
+    const raw = {
+      id: "venice-uncensored-llm",
+      object: "model",
+      created: 0,
+      owned_by: "venice",
+      type: "text",
+      model_spec: { traits: [], uncensored: true },
+    };
+    const out = normalizeModelInfo(raw);
+    expect(out.model_spec?.uncensored).toBe(true);
+  });
+
+  it("leaves model_spec.uncensored undefined when upstream omits it", () => {
+    const raw = {
+      id: "venice-standard-llm",
+      object: "model",
+      created: 0,
+      owned_by: "venice",
+      type: "text",
+      model_spec: { traits: ["function_calling_default"] },
+    };
+    const out = normalizeModelInfo(raw);
+    expect(out.model_spec?.uncensored).toBeUndefined();
   });
 });
 

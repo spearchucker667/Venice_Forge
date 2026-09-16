@@ -8,5 +8,11 @@
   "autosaveFailed": "Falha no salvamento automático: {{error}}",
   "fileReadError": "Falha ao ler o arquivo.",
   "invalidFormat": "Formato de arquivo inválido.",
-  "unknownError": "Ocorreu um erro inesperado."
+  "unknownError": "Ocorreu um erro inesperado.",
+  "rateLimitRpm": "Muitas requisições em pouco tempo. Aguarde antes de tentar novamente.",
+  "rateLimitRpd": "Cota diária de requisições atingida. Aguarde até amanhã ou faça upgrade do plano.",
+  "rateLimitTpm": "Limite de tokens por minuto atingido. Reduza a velocidade ou use um prompt mais curto.",
+  "rateLimitTpd": "Cota diária de tokens atingida. Aguarde até amanhã ou faça upgrade do plano.",
+  "rateLimitConcurrent": "Muitas requisições simultâneas. Aguarde as chamadas em andamento terminarem.",
+  "rateLimitGeneric": "Limite de taxa excedido. Aguarde antes de tentar novamente."
 }

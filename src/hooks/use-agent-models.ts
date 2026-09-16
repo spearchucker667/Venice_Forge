@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useModels } from './use-models'
 import type { ModelCapabilities, ModelTrait, VeniceModel } from '../types/venice'
+import { resolveModelUncensored } from '../services/modelClassification'
 
 export interface AgentModel {
   id: string
@@ -59,7 +60,11 @@ export function useAgentModels() {
           recommended: tier === 0,
           tier,
           reasoning: caps.supportsReasoning === true,
-          uncensored: traits.includes('most_uncensored'),
+          // Authoritative precedence: upstream `model_spec.uncensored` wins,
+          // legacy `traits.includes('most_uncensored')` is the fallback only
+          // for catalogs that predate the upstream field. See
+          // `resolveModelUncensored` for the full precedence rule.
+          uncensored: resolveModelUncensored(m),
         }
       })
       .sort((a, b) => {

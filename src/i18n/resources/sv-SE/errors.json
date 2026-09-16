@@ -8,5 +8,11 @@
   "autosaveFailed": "Automatiskt sparande misslyckades: {{error}}",
   "fileReadError": "Det gick inte att läsa filen.",
   "invalidFormat": "Ogiltigt filformat.",
-  "unknownError": "Ett oväntat fel inträffade."
+  "unknownError": "Ett oväntat fel inträffade.",
+  "rateLimitRpm": "För många förfrågningar på kort tid. Vänta innan du försöker igen.",
+  "rateLimitRpd": "Daglig kvot för förfrågningar nådd. Vänta till imorgon eller uppgradera din plan.",
+  "rateLimitTpm": "Token-per-minut-gräns nådd. Sakta ner eller använd en kortare prompt.",
+  "rateLimitTpd": "Daglig token-kvot nådd. Vänta till imorgon eller uppgradera din plan.",
+  "rateLimitConcurrent": "För många samtidiga förfrågningar. Vänta tills pågående anrop är klara.",
+  "rateLimitGeneric": "Hastighetsgräns överskriden. Vänta innan du försöker igen."
 }

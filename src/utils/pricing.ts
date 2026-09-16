@@ -1,10 +1,27 @@
 import type {
+  ChatCompletionCost,
+  ChatCompletionUsage,
   VeniceModel,
   VeniceModelPricing,
   VenicePricingAmount,
 } from "../types/venice";
 
 export type PricingProvenance = "live" | "cache" | "fallback" | "catalog" | string;
+
+/** Source of a returned cost value. Distinguishes caller-specific actual
+ *  cost (returned by Venice in `usage.cost`) from a pre-request estimate
+ *  derived from list pricing. UI must label these distinctly — they are not
+ *  interchangeable. */
+export type CostSource = "response" | "list-pricing-estimate";
+
+/** Caller-specific actual cost for a completed chat request. `source`
+ *  identifies whether the value came from the response (`usage.cost`,
+ *  authoritative) or was estimated from `model_spec.pricing` before send. */
+export interface ActualChatCost {
+  usd?: number;
+  diem?: number;
+  source: CostSource;
+}
 
 /** Shape accepted by model selectors after live/fallback normalization. */
 export interface PricingDisplayInput {
@@ -184,4 +201,44 @@ export function formatModelLabelWithCost(
           ? "Catalog: "
           : "";
   return `${name} (${prefix}${priceLabel})`;
+}
+
+/** Returns the caller-specific actual cost for a chat completion when the
+ *  response supplied one. Returns `null` when the response does not carry a
+ *  `usage.cost` block — callers must NOT silently substitute a list-price
+ *  estimate in that case, because that would mislabel a pre-request estimate
+ *  as the actual billed amount. Use `estimateChatCostFromListPricing()` only
+ *  when an estimate is explicitly acceptable. */
+export function extractChatResponseCost(
+  usage: ChatCompletionUsage | undefined | null,
+): ActualChatCost | null {
+  if (!usage) return null;
+  const raw = usage.cost as ChatCompletionCost | undefined;
+  if (!raw) return null;
+  const usd = typeof raw.usd === "number" && Number.isFinite(raw.usd) ? raw.usd : undefined;
+  const diem = typeof raw.diem === "number" && Number.isFinite(raw.diem) ? raw.diem : undefined;
+  if (usd === undefined && diem === undefined) return null;
+  return { usd, diem, source: "response" };
+}
+
+/** Pre-request cost estimate derived from list pricing. Marked with
+ *  `source: 'list-pricing-estimate'` so the UI labels it as an estimate,
+ *  not an actual billed amount. Intentionally not invoked by
+ *  `extractChatResponseCost()` to keep the two paths separate. */
+export function estimateChatCostFromListPricing(
+  model: PricingDisplayInput,
+  usage: { prompt_tokens: number; completion_tokens: number },
+): ActualChatCost | null {
+  const pricing = model.model_spec?.pricing;
+  if (!pricing) return null;
+  const input = finiteUsd(pricing.input);
+  const output = finiteUsd(pricing.output);
+  if (input === undefined && output === undefined) return null;
+  // Venice list pricing is per 1M tokens; convert to total USD.
+  const tokens = usage.prompt_tokens + usage.completion_tokens;
+  const usd =
+    (input !== undefined ? input * (usage.prompt_tokens / 1_000_000) : 0) +
+    (output !== undefined ? output * (usage.completion_tokens / 1_000_000) : 0);
+  if (!Number.isFinite(usd) || tokens <= 0) return null;
+  return { usd, source: "list-pricing-estimate" };
 }

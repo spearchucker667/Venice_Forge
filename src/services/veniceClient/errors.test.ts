@@ -4,7 +4,8 @@ import {
   normalizeError,
   readDesktopErrorBody,
   readWebErrorBody,
-  readVeniceErrorBody
+  readVeniceErrorBody,
+  extractRateLimitInfo,
 } from './errors';
 
 describe('VeniceClient Errors', () => {
@@ -88,5 +89,71 @@ describe('VeniceClient Errors', () => {
     it('should handle validation details', () => {
       expect(readVeniceErrorBody({ details: { field3: { _errors: ['Legacy field validation'] } } })).toBe('field3: Legacy field validation');
     });
+  });
+});
+
+describe('extractRateLimitInfo', () => {
+  it('classifies RPD reason from x-ratelimit-reason header', () => {
+    const info = extractRateLimitInfo(
+      { 'x-ratelimit-reason': 'requests_per_day', 'x-ratelimit-type': 'RPD' },
+      undefined,
+    );
+    expect(info.reason).toBe('requests_per_day');
+    expect(info.limitType).toBe('RPD');
+    expect(info.rawReason).toBe('requests_per_day');
+  });
+
+  it('normalizes the abbreviated "rpm" / "tpm" aliases', () => {
+    expect(extractRateLimitInfo({ 'x-ratelimit-reason': 'RPM' }, undefined).reason).toBe('requests_per_minute');
+    expect(extractRateLimitInfo({ 'x-ratelimit-reason': 'tpm' }, undefined).reason).toBe('tokens_per_minute');
+    expect(extractRateLimitInfo({ 'x-ratelimit-reason': 'concurrent' }, undefined).reason).toBe('concurrent_requests');
+  });
+
+  it('preserves unknown upstream reasons on rawReason without forcing a typed value', () => {
+    const info = extractRateLimitInfo({ 'x-ratelimit-reason': 'custom_tenant_quota' }, undefined);
+    expect(info.reason).toBe('unspecified');
+    expect(info.rawReason).toBe('custom_tenant_quota');
+  });
+
+  it('reads Retry-After (numeric seconds)', () => {
+    const info = extractRateLimitInfo({ 'retry-after': '17' }, undefined);
+    expect(info.retryAfterSeconds).toBe(17);
+  });
+
+  it('reads Retry-After (HTTP-date)', () => {
+    const futureMs = Date.now() + 30_000;
+    const info = extractRateLimitInfo({ 'retry-after': new Date(futureMs).toUTCString() }, undefined);
+    expect(info.retryAfterSeconds).toBeGreaterThanOrEqual(29);
+    expect(info.retryAfterSeconds).toBeLessThanOrEqual(31);
+  });
+
+  it('falls back to x-ratelimit-reset-requests when Retry-After is absent', () => {
+    const info = extractRateLimitInfo({ 'x-ratelimit-reset-requests': '45' }, undefined);
+    expect(info.retryAfterSeconds).toBe(45);
+  });
+
+  it('reads reason from the response body when headers do not carry it', () => {
+    const info = extractRateLimitInfo(
+      { 'retry-after': '5' },
+      { error: { code: 'requests_per_day', message: 'quota' } },
+    );
+    expect(info.reason).toBe('requests_per_day');
+    expect(info.rawReason).toBe('requests_per_day');
+    expect(info.retryAfterSeconds).toBe(5);
+  });
+
+  it('returns the unspecified fallback when nothing is present', () => {
+    const info = extractRateLimitInfo({}, undefined);
+    expect(info.reason).toBe('unspecified');
+    expect(info.rawReason).toBeUndefined();
+    expect(info.limitType).toBeUndefined();
+    expect(info.retryAfterSeconds).toBeUndefined();
+  });
+
+  it('does not throw on malformed header input', () => {
+    // Headers are passed as Record<string,string>; the extractor must guard
+    // against unknown shapes the IPC layer might surface during retries.
+    const info = extractRateLimitInfo(undefined as unknown as Record<string, string>, { weird: 'shape' });
+    expect(info.reason).toBe('unspecified');
   });
 });

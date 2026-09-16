@@ -8,5 +8,11 @@
   "autosaveFailed": "自动保存失败：{{error}}",
   "fileReadError": "无法read file.",
   "invalidFormat": "无效的文件格式。",
-  "unknownError": "发生意外错误。"
+  "unknownError": "发生意外错误。",
+  "rateLimitRpm": "短时间内请求过多。请稍候再试。",
+  "rateLimitRpd": "已达到每日请求配额。请等待至明天或升级套餐。",
+  "rateLimitTpm": "已达到每分钟令牌上限。请放慢速度或使用更短的提示。",
+  "rateLimitTpd": "已达到每日令牌配额。请等待至明天或升级套餐。",
+  "rateLimitConcurrent": "并发请求过多。请等待正在进行的调用完成。",
+  "rateLimitGeneric": "已超出速率限制。请稍后再试。"
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatModelLabelWithCost, type PricingDisplayInput } from "./pricing";
+import { formatModelLabelWithCost, type PricingDisplayInput, extractChatResponseCost, estimateChatCostFromListPricing } from "./pricing";
 import type { VeniceModel } from "../types/venice";
 
 function makeVeniceModel(
@@ -221,5 +221,64 @@ describe("formatModelLabelWithCost", () => {
     expect(formatModelLabelWithCost(model)).toBe(
       "Cached Image (Cached: $0.03/image)",
     );
+  });
+});
+
+describe("extractChatResponseCost", () => {
+  it("returns the caller-specific cost with source='response' when present", () => {
+    const out = extractChatResponseCost({
+      prompt_tokens: 12,
+      completion_tokens: 8,
+      total_tokens: 20,
+      cost: { usd: 0.0021, diem: 0.042 },
+    });
+    expect(out).toEqual({ usd: 0.0021, diem: 0.042, source: "response" });
+  });
+
+  it("returns null when usage has no cost block — does NOT silently substitute list pricing", () => {
+    expect(extractChatResponseCost({ prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 })).toBeNull();
+    expect(extractChatResponseCost(null)).toBeNull();
+    expect(extractChatResponseCost(undefined)).toBeNull();
+  });
+
+  it("returns null when the cost block is present but carries no finite values", () => {
+    expect(extractChatResponseCost({ prompt_tokens: 1, completion_tokens: 1, total_tokens: 2, cost: {} })).toBeNull();
+    expect(
+      extractChatResponseCost({ prompt_tokens: 1, completion_tokens: 1, total_tokens: 2, cost: { usd: NaN } }),
+    ).toBeNull();
+  });
+});
+
+describe("estimateChatCostFromListPricing", () => {
+  it("computes a per-1M-tokens estimate and labels it as an estimate", () => {
+    const model: PricingDisplayInput = {
+      id: "llm",
+      type: "text",
+      model_spec: {
+        pricing: {
+          input: { usd: 2 },
+          output: { usd: 8 },
+        },
+      },
+    };
+    const out = estimateChatCostFromListPricing(model, { prompt_tokens: 1000, completion_tokens: 500 });
+    expect(out).not.toBeNull();
+    expect(out!.source).toBe("list-pricing-estimate");
+    // (1000 / 1_000_000) * 2 + (500 / 1_000_000) * 8 = 0.002 + 0.004 = 0.006
+    expect(out!.usd).toBeCloseTo(0.006, 6);
+  });
+
+  it("returns null when no input/output pricing is configured", () => {
+    const model: PricingDisplayInput = { id: "llm", type: "text", model_spec: { pricing: {} } };
+    expect(estimateChatCostFromListPricing(model, { prompt_tokens: 100, completion_tokens: 100 })).toBeNull();
+  });
+
+  it("returns null when total tokens is zero", () => {
+    const model: PricingDisplayInput = {
+      id: "llm",
+      type: "text",
+      model_spec: { pricing: { input: { usd: 2 }, output: { usd: 8 } } },
+    };
+    expect(estimateChatCostFromListPricing(model, { prompt_tokens: 0, completion_tokens: 0 })).toBeNull();
   });
 });

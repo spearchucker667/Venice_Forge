@@ -4,6 +4,8 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ## Latest Session Summary
 
+- **2026-09-16 Venice API 2026-09-16 feature-gap handoff — First slice (Phases 0 + 1 + 3) on `main` (baseline `19c820ff`).** Scoped the user-requested "implement all changes" to the handoff's own prescribed first slice (§29), per the handoff's explicit "do not mechanically add every endpoint" rule. (a) **Phase 0** — synced `docs/reference/venice-api-upstream` (HEAD `1993429ec`, 2026-09-16 06:42 UTC) and confirmed `verify:venice-api-docs` and `verify:venice-contract-drift` both PASS with zero contract drift against the vendored Swagger. (b) **Phase 1** — added the canonical `model_spec.uncensored` field to `VeniceModel` and a `resolveModelUncensored()` precedence helper (`model_spec.uncensored` → legacy `most_uncensored` trait → `false`), rewired `useAgentModels()` to the helper, made the `/models` React Query key caller-scoped by appending `activeProfileId` (with regression test that switching profile invalidates the cached payload), and added `extractChatResponseCost()` + `estimateChatCostFromListPricing()` so caller-specific `usage.cost` overrides list pricing without ever being silently substituted by an estimate. (c) **Phase 3** — added the typed `VeniceRateLimitReason` / `VeniceRateLimitInfo` / `VeniceRateLimitType` enums, an `extractRateLimitInfo(headers, body)` extractor that preserves `Retry-After` semantics (header > `x-ratelimit-reset-requests`), and a pure `resolveRateLimitMessageKey()` UX mapper. The `fetch.ts` 429 path now attaches `rateLimit` to the thrown `VeniceApiError`. Six new `errors` namespace keys (RPM/RPD/TPM/TPD/Concurrent/Generic) translated across all 12 locales; `verify:i18n` passes (exit 0). **Deferred to subsequent sessions** (per handoff §29): Phases 2 (Billing), 4 (E2EE), 5 (Seedance/media delta), 6–10 (file/video inputs, cache controls, Responses API, API-key admin, x402), and 11–13 (Crypto RPC, character reviews, investigations). See `docs/ROADMAP.md` for the canonical item.
+
 - **2026-09-16 Current-main deep-audit Phase 1 (baseline `59b61c43`).** Reproduced the SSE event-local screening gap and closed the source path for `VF-AUD-20260916-P1-001`: the web proxy now screens original SSE events and a bounded 16,384-character rolling assistant context per choice, including reasoning deltas, before release. The gate limits tracked choices to 16 and fails closed on invalid choice identity, window configuration, or classifier error. Route and unit regressions cover unsafe text split across events, independent choices, Unicode/network chunk boundaries, and cancellation. Closed the dependent `P2-003` client buffering path: web deltas arrive as soon as the server releases them; the duplicate withheld-delta queue and terminal aggregate replay are removed. The client still rejects missing `[DONE]`. `SECURITY.md` now describes current sender-frame and SSE contracts. The remaining audit findings and external acceptance are tracked in `docs/ROADMAP.md`. Validation and publication status are recorded in the matrix below.
 
 - **2026-09-15 Adversarial client/proxy SSE lifecycle correction (uncommitted).**
@@ -1945,6 +1947,8 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
+* **VF-VENICE-API-2026-09-16-FEATURE-GAP-FIRST-SLICE** — Phase 0 (contract sync), Phase 1 (`model_spec.uncensored` precedence, caller/profile-scoped `/models`, caller-specific cost vs list pricing), and Phase 3 (typed `VeniceRateLimitReason` + `Retry-After` preservation + UX mapper) implemented and locally validated against `main` baseline `19c820ff`. Remaining phases from `docs/audits/TODO/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md` are sequenced for future sessions: Phase 2 (Billing/Usage), Phase 4 (E2EE), Phase 5 (Seedance/media delta), Phases 6–10 (file/video inputs, cache retention, Responses API, API-key admin, x402 wallet auth), and Phases 11–13 (Crypto RPC, character reviews, optional investigations). Publication: commit and push to `main`, then verify hosted CI/CodeQL green against the pushed SHA. Per handoff §31, do not mechanically add the remaining endpoints without per-phase contract verification.
+
 * **VF-AUD-20260916-CURRENT-MAIN** — Safety streaming `P1-001` and dependent web streaming `P2-003` are implemented and focused-tested. Broad validation/publication and the remaining source, capability, documentation, and external acceptance items are tracked in `docs/ROADMAP.md`.
 
 * **THEME-LIGHT-DARK-SELECTION-2026-09-15** — Light and dark theme selection, live preview switching, and rendering remediation complete on `main`. Fixed `ThemeMaker.tsx` `updatePreviewMode` to call `applyTheme(resolveTheme(draft, mode))` with unmount restore; fixed `getCanonicalMode(family)` using `BUILTIN_CANONICAL_MODES` so dark themes aren't forced into light mode; fixed palette card text color to `text-text-primary`; added `--color-vf-accent-glow-subtle` and mode-symmetric `--color-vf-control-hover` in `theme.css`; remediated companion variants across 39 built-in themes so all 86 theme variants pass WCAG AA contrast tests (119/119 in `src/theme/contrast.test.ts`). All validation (typecheck, eslint, theme-tokens, workspace-contracts, contracts, unit:theme, build, dist) PASS. Uncommitted on `main`, not pushed.
@@ -1964,6 +1968,25 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-16 — Venice API feature-gap first slice (Phases 0/1/3)
+
+- `npm run docs:venice:sync` — PASS (upstream HEAD `1993429ec`, 17/17 mandatory files verified).
+- `npm run verify:venice-api-docs` — PASS (provenance + schema contracts).
+- `npm run verify:venice-contract-drift` — PASS (every contract-drift check green; no new drift introduced).
+- `npm run verify:provider-adapters` — PASS (86 tests across 5 files).
+- `npm run verify:storage-privacy` — PASS (VERIFY-050 storage/privacy dashboard validation).
+- `npm run verify:contracts` — PASS (safety guard + upstream contract checks).
+- `npm run verify:i18n` — PASS (12 locales, 12 namespaces, sentinel/missing-marker/key-name-fallback aware).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions across 542 files).
+- `npm run lint:eslint` — PASS (--max-warnings=0, zero warnings).
+- `npm run typecheck` — PASS (root, Electron, and Electron test projects).
+- `npm run build:server` — PASS (`dist/server.cjs`, 137.0 kB).
+- `npx vitest run src/services/modelClassification.test.ts src/services/veniceClient/errors.test.ts src/services/veniceClient/rateLimitMessages.test.ts src/services/veniceClient/retry.test.ts src/utils/pricing.test.ts src/hooks/use-models.test.tsx src/hooks/use-agent-models.test.tsx src/i18n/i18n.test.ts src/types/venice.test.ts` — PASS (8 files, 96 tests).
+- `npm run test:server` — PASS (77 tests).
+- `npm run verify:markdown-links` — FAIL on the **pre-existing** `docs/DOCS_INDEX.md:210` broken link to `docs/audits/Records/venice-forge-exhaustive-audit-2026-09-13/README.md` (user-owned pending deletion, not introduced by this session). My diff does not touch `DOCS_INDEX.md`; the broken link will resolve once the user-owned deletion is committed alongside a `DOCS_INDEX.md` entry removal.
+- `npm run ci` — not run in full this session; equivalent gates covered above. Hosted CI/CodeQL acceptance deferred to publication step (next session task).
+- No headed, funded-provider, signing, or two-device acceptance was run in this tranche.
 
 ### 2026-09-16 — Current-main deep-audit safety streaming
 
@@ -2809,3 +2832,43 @@ Investigation only, then four targeted fixes based on the user-reported defects
 - **Scope:** Repository hygiene enforcement.
 - **Action:** Deleted `docs/audits/TODO/venice_forge_traffic_logs_1788307814290.json` (~14.6 MB) upon user confirmation.
 - **Reason:** The file contained raw base64 PNG payloads and complete provider HTTP responses, violating `AGENTS.md` Rule 6 (Secrets, Privacy, and Diagnostics) prohibiting the storage of raw generated binary bytes and complete provider responses.
+
+### 2026-09-16 — Venice API 2026-09-16 feature-gap first slice (Phases 0/1/3)
+
+- **Scope:** First slice from `docs/audits/TODO/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md` (baseline `19c820ff`). Phase 0 contract sync, Phase 1 model metadata/cost, Phase 3 typed rate-limit reason. Per handoff §29, deferred Phases 2/4–13 to subsequent sessions.
+- **Phase 0 — contract sync.** Synced `docs/reference/venice-api-upstream` (HEAD `1993429ec`, 2026-09-16 06:42 UTC). `verify:venice-api-docs` and `verify:venice-contract-drift` both PASS with zero contract drift.
+- **Phase 1 — model metadata, privacy, pricing, cache correctness.**
+  - `src/types/venice.ts`: Added `model_spec.uncensored?: boolean` and the typed `ChatCompletionCost`/`ChatCompletionUsage`/`ChatCompletionResponse.usage.cost` field (extracted `ChatCompletionUsage` as its own type).
+  - `src/services/modelClassification.ts`: `normalizeModelInfo` propagates `model_spec.uncensored`; added `resolveModelUncensored()` precedence helper (`model_spec.uncensored` → legacy `most_uncensored` trait → `false`); never infers from id keywords.
+  - `src/hooks/use-agent-models.ts`: Wired to `resolveModelUncensored`; legacy `traits.includes('most_uncensored')` heuristic removed from the picker path.
+  - `src/hooks/use-models.ts`: `/models` React Query key now includes `activeProfileId`; profile switch invalidates the cached payload so a result obtained under profile A cannot be served as authoritative state for profile B. `modelCatalogCache` confirmed in-memory only — no IDB persistence path.
+  - `src/utils/pricing.ts`: Added `extractChatResponseCost(usage)` (returns caller-specific cost with `source: 'response'`, or `null` when absent) and `estimateChatCostFromListPricing(model, usage)` (returns a `source: 'list-pricing-estimate'` value). The two paths are separate — caller-specific cost is never silently substituted by a list estimate.
+- **Phase 3 — typed rate-limit reason.**
+  - `src/types/venice.ts`: Added `VeniceRateLimitReason` (unspecified/RPM/RPD/TPM/TPD/concurrent), `VeniceRateLimitType` (RPM/RPD/TPM/TPD/CONCURRENT), `VeniceRateLimitInfo` (reason, rawReason, limitType, retryAfterSeconds).
+  - `src/services/veniceClient/errors.ts`: Added `extractRateLimitInfo(headers, body)` (reads `x-ratelimit-reason`/`x-venice-rate-limit-reason`/`x-ratelimit-type`, `Retry-After`, and body `error.code`/`error.reason`; preserves unknown upstream values on `rawReason`).
+  - `src/services/veniceClient/fetch.ts`: 429 path attaches `rateLimit` to the thrown `VeniceApiError`. `Retry-After`/`x-ratelimit-reset-requests` semantics preserved.
+  - `src/services/veniceClient/rateLimitMessages.ts` (new): Pure `resolveRateLimitMessageKey()` UX mapper. Routes reason → i18n key with `limitType` fallback and `retryAfterSeconds` propagation. Module deliberately has no i18next dependency so it stays usable from main-process paths.
+  - `src/i18n/resources/{12 locales}/errors.json`: Six new keys (`rateLimitRpm/Rpd/Tpm/Tpd/Concurrent/Generic`) added to all 12 locales; `verify:i18n` passes (exit 0). Non-English locales remain `isProductionComplete: false` until qualified native reviewers replace the first-pass translations.
+- **Tests added/updated:**
+  - `src/services/modelClassification.test.ts`: 6 new tests covering `resolveModelUncensored` precedence (explicit true/false over legacy trait, trait fallback, null/undefined input) and `normalizeModelInfo` `uncensored` propagation.
+  - `src/services/veniceClient/errors.test.ts`: 9 new tests covering `extractRateLimitInfo` for typed/unknown reasons, `Retry-After` (numeric + HTTP-date), `x-ratelimit-reset-requests` fallback, body-source reason, and malformed input safety.
+  - `src/services/veniceClient/rateLimitMessages.test.ts` (new file): 7 tests covering reason → key mapping, `limitType` fallback, `retryAfterSeconds` propagation, and "every emitted key has a fallback" invariant.
+  - `src/utils/pricing.test.ts`: 6 new tests covering `extractChatResponseCost` (present, missing, NaN) and `estimateChatCostFromListPricing` (correct math, no-pricing null, zero-tokens null).
+  - `src/hooks/use-models.test.tsx`: Updated existing assertion for the new key shape, added a profile-switch regression that verifies cache invalidation and a fresh `/models` call under the new credential profile.
+- **Commands executed (locally):**
+  - `npm run docs:venice:sync` — PASS.
+  - `npm run verify:venice-api-docs` — PASS.
+  - `npm run verify:venice-contract-drift` — PASS.
+  - `npm run verify:provider-adapters` — PASS (86 tests).
+  - `npm run verify:storage-privacy` — PASS.
+  - `npm run verify:contracts` — PASS.
+  - `npm run verify:i18n` — PASS.
+  - `npm run verify:i18n-hardcoded-regressions` — PASS.
+  - `npm run lint:eslint` — PASS (zero warnings).
+  - `npm run typecheck` — PASS (root + Electron + Electron test).
+  - `npm run build:server` — PASS.
+  - `npx vitest run <8 focused files>` — PASS (96 tests).
+  - `npm run test:server` — PASS (77 tests).
+  - `npm run verify:markdown-links` — FAIL on pre-existing `docs/DOCS_INDEX.md:210` link to `audits/Records/venice-forge-exhaustive-audit-2026-09-13/README.md` (user-owned pending deletion; this session does not modify `DOCS_INDEX.md` or the pending deletions).
+- **Result:** First slice implemented and locally validated on `main`. Ready to commit and push; hosted CI/CodeQL acceptance follows publication.
+- **Blockers / deferred work:** Phases 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 from the feature-gap handoff remain open; sequenced per handoff §29 for future sessions. The user-owned `DOCS_INDEX.md:210` broken link needs to be closed (either by removing the link entry or by reverting the pending deletion of the linked audit folder) before `verify:markdown-links` is fully green on `main`.

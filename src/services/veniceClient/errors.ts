@@ -1,11 +1,16 @@
 /** @fileoverview Error normalization and extraction for Venice API responses. */
 
 import type { DiagnosticsEntry } from "../../types/venice";
+import type { VeniceRateLimitInfo } from "../../types/venice";
 
 /** Custom error structure for Venice client requests. */
 export interface VeniceApiError extends Error {
   status?: number | null;
   diagnostics?: Partial<DiagnosticsEntry>;
+  /** Typed rate-limit metadata when the response status is 429. Present only
+   *  when the upstream surface emitted enough information to populate it —
+   *  older or opaque 429 responses may carry `status` but no `rateLimit`. */
+  rateLimit?: VeniceRateLimitInfo;
 }
 
 /** Custom error thrown by the legacy Venice client surface. */
@@ -16,6 +21,114 @@ export class VeniceAPIError extends Error {
     this.name = "VeniceAPIError";
     this.status = status;
   }
+}
+
+/** Map of known upstream rate-limit reason strings to the typed
+ *  `VeniceRateLimitReason` enum. The mapping is intentionally narrow and
+ *  additive — unknown values flow through `rawReason` on the extracted
+ *  info so we can extend this table without breaking existing callers. */
+const KNOWN_RATE_LIMIT_REASONS: Record<string, string> = {
+  "requests_per_minute": "requests_per_minute",
+  "rpm": "requests_per_minute",
+  "requests_per_day": "requests_per_day",
+  "rpd": "requests_per_day",
+  "tokens_per_minute": "tokens_per_minute",
+  "tpm": "tokens_per_minute",
+  "tokens_per_day": "tokens_per_day",
+  "tpd": "tokens_per_day",
+  "concurrent_requests": "concurrent_requests",
+  "concurrent": "concurrent_requests",
+};
+
+const KNOWN_LIMIT_TYPES = new Set(["RPM", "RPD", "TPM", "TPD", "CONCURRENT"]);
+
+/** Extracts a typed `VeniceRateLimitInfo` from a 429 response. Reads
+ *  `Retry-After` and `x-ratelimit-reset-*` headers (preserving existing
+ *  semantics), and additionally looks for reason/limit-type metadata in
+ *  `x-ratelimit-reason`, `x-venice-rate-limit-reason`, `x-ratelimit-type`,
+ *  and the response body's `error.code` / `error.reason` fields. Unknown
+ *  upstream values are preserved on `rawReason` for diagnostics rather than
+ *  being dropped. */
+export function extractRateLimitInfo(
+  headers: Record<string, string> | undefined,
+  body: unknown,
+): VeniceRateLimitInfo {
+  const info: VeniceRateLimitInfo = { reason: "unspecified" };
+
+  if (headers && typeof headers === "object") {
+    const rawReason = headers["x-ratelimit-reason"]
+      ?? headers["x-venice-rate-limit-reason"]
+      ?? headers["x-rate-limit-reason"];
+    if (typeof rawReason === "string" && rawReason.trim()) {
+      const normalized = rawReason.trim().toLowerCase();
+      const typed = KNOWN_RATE_LIMIT_REASONS[normalized];
+      if (typed) {
+        info.reason = typed as VeniceRateLimitInfo["reason"];
+      }
+      info.rawReason = rawReason.trim();
+    }
+
+    const rawType = headers["x-ratelimit-type"] ?? headers["x-venice-rate-limit-type"];
+    if (typeof rawType === "string") {
+      const upper = rawType.trim().toUpperCase();
+      if (KNOWN_LIMIT_TYPES.has(upper)) {
+        info.limitType = upper as VeniceRateLimitInfo["limitType"];
+      }
+    }
+
+    const retryAfter = headers["retry-after"];
+    if (retryAfter) {
+      const n = Number(retryAfter);
+      if (Number.isFinite(n) && n >= 0) {
+        info.retryAfterSeconds = Math.floor(n);
+      } else {
+        const parsed = Date.parse(retryAfter);
+        if (Number.isFinite(parsed)) {
+          const seconds = Math.max(0, Math.floor((parsed - Date.now()) / 1000));
+          info.retryAfterSeconds = seconds;
+        }
+      }
+    }
+    // Existing `x-ratelimit-reset-requests` semantics are preserved — only
+    // used when `Retry-After` is absent.
+    if (info.retryAfterSeconds === undefined) {
+      const reset = headers["x-ratelimit-reset-requests"];
+      if (reset) {
+        const n = Number(reset);
+        if (Number.isFinite(n) && n >= 0 && n < 86400) {
+          info.retryAfterSeconds = Math.floor(n);
+        }
+      }
+    }
+  }
+
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>;
+    const errorField = record.error;
+    const errorObj = errorField && typeof errorField === "object"
+      ? errorField as Record<string, unknown>
+      : undefined;
+    const candidates = [
+      record.code,
+      record.reason,
+      errorObj?.code,
+      errorObj?.reason,
+      errorObj?.type,
+    ];
+    for (const candidate of candidates) {
+      if (typeof candidate !== "string") continue;
+      const trimmed = candidate.trim();
+      if (!trimmed) continue;
+      if (!info.rawReason) info.rawReason = trimmed;
+      const typed = KNOWN_RATE_LIMIT_REASONS[trimmed.toLowerCase()];
+      if (typed && info.reason === "unspecified") {
+        info.reason = typed as VeniceRateLimitInfo["reason"];
+      }
+      break;
+    }
+  }
+
+  return info;
 }
 
 /**

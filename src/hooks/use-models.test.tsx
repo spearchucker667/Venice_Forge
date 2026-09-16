@@ -11,6 +11,7 @@ vi.mock("../config/provider-models", () => ({
 
 import { useModels } from "./use-models";
 import { useSettingsStore } from "../stores/settings-store";
+import { useProfileStore } from "../stores/profile-store";
 import { useModelCatalogRuntimeStore } from "../stores/model-catalog-runtime-store";
 
 // VERIFY-138 regression guard: catalog health, auth hydration, query identity,
@@ -28,6 +29,7 @@ describe("useModels canonical catalog lifecycle", () => {
     veniceMock.mockReset();
     useModelCatalogRuntimeStore.getState().reset();
     useSettingsStore.setState({ enabledProviders: { zebra: true, alpha: true, disabled: false } });
+    useProfileStore.setState({ activeProfileId: "default" });
   });
 
   it("uses a deterministic primitive query key and counts only live Venice models", async () => {
@@ -42,7 +44,11 @@ describe("useModels canonical catalog lifecycle", () => {
     const { result } = renderHook(() => useModels("chat"), { wrapper: createWrapper(client) });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(client.getQueryCache().getAll()[0].queryKey).toEqual(["models", "text", "alpha,zebra"]);
+    // Profile id is appended to the queryKey so a /models payload observed
+    // under credential/profile A cannot be reused as authoritative state
+    // for profile B. See §6.2 of the 2026-09-16 Venice API feature-gap
+    // handoff.
+    expect(client.getQueryCache().getAll()[0].queryKey).toEqual(["models", "text", "alpha,zebra", "default"]);
     expect(result.current.data?.map((model) => model.id)).toEqual(["fallback-model", "live"]);
     expect(useModelCatalogRuntimeStore.getState()).toMatchObject({
       status: "ready",
@@ -53,6 +59,33 @@ describe("useModels canonical catalog lifecycle", () => {
       loadedTypes: ["text"],
       modelsByType: { text: ["live"] },
     });
+  });
+
+  it("invalidates the cached catalog when the active profile id changes", async () => {
+    veniceMock.mockResolvedValue({
+      object: "list",
+      data: [{ id: "profile-a-live", object: "model", created: 0, owned_by: "venice" }],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const first = renderHook(() => useModels("text"), { wrapper: createWrapper(client) });
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
+    expect(client.getQueryCache().getAll()[0].queryKey).toEqual(["models", "text", "alpha,zebra", "default"]);
+    expect(client.getQueryCache().getAll()[0].state.data).toBeDefined();
+
+    // Switch profile — the cache must drop the previous result so a fresh
+    // /models call is made under the new credential profile.
+    useProfileStore.setState({ activeProfileId: "work-profile" });
+    veniceMock.mockResolvedValue({
+      object: "list",
+      data: [{ id: "profile-b-live", object: "model", created: 0, owned_by: "venice" }],
+    });
+    const second = renderHook(() => useModels("text"), { wrapper: createWrapper(client) });
+    await waitFor(() => expect(second.result.current.isSuccess).toBe(true));
+
+    const keys = client.getQueryCache().getAll().map((q) => q.queryKey);
+    expect(keys).toContainEqual(["models", "text", "alpha,zebra", "default"]);
+    expect(keys).toContainEqual(["models", "text", "alpha,zebra", "work-profile"]);
+    expect(veniceMock).toHaveBeenCalledTimes(2);
   });
 
   it("preserves typed catalog metadata across modality loads", async () => {

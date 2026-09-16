@@ -113,8 +113,37 @@ export function normalizeModelInfo(raw: unknown): ModelInfo {
       anonymousInference: isAnonymous,
       source: 'derived'
     },
-    fidelity
+    fidelity,
+    // Preserve the canonical Venice `model_spec.uncensored` flag so
+    // downstream consumers (agent picker, privacy gates, safety heuristics)
+    // can read it without re-running the legacy trait fallback. The boolean
+    // is left undefined when Venice did not emit it, instead of coercing to
+    // false — see `resolveModelUncensored()` for the canonical precedence.
+    uncensored: typeof modelSpec?.uncensored === 'boolean' ? modelSpec.uncensored : undefined
   } as ModelInfo;
+}
+
+/** Canonical Venice "uncensored model set" gate. Resolution precedence:
+ *
+ *  1. `model.model_spec.uncensored` (the explicit upstream flag)
+ *  2. Legacy `traits.includes('most_uncensored')` for catalogs that predate
+ *     the upstream field
+ *  3. `false` when neither signal is present
+ *
+ *  Do NOT infer "uncensored" from model id keywords, captions, or any source
+ *  other than the two signals above. Venice's classification is authoritative
+ *  for both safety routing and the agent-model picker (VERIFY-2026-09-16-P1-001).
+ */
+export function resolveModelUncensored(model: ModelInfo | undefined | null): boolean {
+  if (!model) return false;
+  if (typeof model.model_spec?.uncensored === 'boolean') {
+    return model.model_spec.uncensored;
+  }
+  const traits = model.model_spec?.traits;
+  if (Array.isArray(traits) && traits.includes('most_uncensored')) {
+    return true;
+  }
+  return false;
 }
 
 /** Normalizes a raw model list into grouped categories. */

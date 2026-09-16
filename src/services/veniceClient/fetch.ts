@@ -17,7 +17,7 @@ import {
 import { useInspectorStore } from "../../stores/inspector-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { sleep, createTimeoutSignal } from "../../utils/timeout";
-import { VeniceAPIError, VeniceApiError, normalizeError, readDesktopErrorBody, readWebErrorBody, readVeniceErrorBody } from "./errors";
+import { VeniceAPIError, VeniceApiError, normalizeError, readDesktopErrorBody, readWebErrorBody, readVeniceErrorBody, extractRateLimitInfo } from "./errors";
 import { extractModelName, parseDiagnosticsHeaders, safeInspectorError, summarizeDiagnostics, nowIso } from "./diagnostics";
 import { serializeFormData, dedupeKey } from "./serialization";
 import { calculateBackoff, computeRateLimitWait, deleteInFlight, getInFlight, hasInFlight, isRetryableStatusCode, resolveRetryEnabled, resolveTimeoutMs, setInFlight } from "./retry";
@@ -245,6 +245,11 @@ async function veniceFetchDesktop(
         const error: VeniceApiError = new Error(errorMsg);
         error.status = response.status;
         error.diagnostics = diag; // marks as already dispatched
+        // Attach typed rate-limit metadata for 429 responses so UI/analytics
+        // can distinguish reasons without re-parsing headers everywhere.
+        if (response.status === 429) {
+          error.rateLimit = extractRateLimitInfo(diagHeaders, response.body);
+        }
         throw error;
       }
 

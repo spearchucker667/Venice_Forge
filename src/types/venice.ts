@@ -138,6 +138,12 @@ export interface VeniceModel {
      *  /image/generate (Swagger `model_spec.supportsStyleReferences`, only
      *  present for image models). Absent means unsupported — fail closed. */
     supportsStyleReferences?: boolean
+    /** Venice classification for the `uncensored` model set. Present and `true`
+     *  when Venice tags the model as applying minimal content-based filtering;
+     *  absent for every other model. Authoritative — overrides legacy
+     *  `traits.includes('most_uncensored')` heuristics. Resolved through
+     *  `resolveModelUncensored()` in `modelClassification.ts`. */
+    uncensored?: boolean
   }
 }
 
@@ -232,6 +238,27 @@ export interface ChatCompletionChunk {
   }>
 }
 
+/** Optional caller-specific cost returned with the chat completion response.
+ *  When present, this represents the actual amount billed to the *current*
+ *  caller for the response — it overrides any cost derived from the public
+ *  list pricing in `VeniceModel.model_spec.pricing`. `diem` is the
+ *  platform-internal credit unit; `usd` is the cash equivalent when the
+ *  provider exposes it. Use `extractChatResponseCost()` rather than computing
+ *  cost from list pricing whenever the response carries this block. */
+export interface ChatCompletionCost {
+  usd?: number
+  diem?: number
+}
+
+export interface ChatCompletionUsage {
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  /** Caller-specific actual cost for this completion. Authoritative over
+   *  any cost computed from `model_spec.pricing`. */
+  cost?: ChatCompletionCost
+}
+
 export interface ChatCompletionResponse {
   id: string
   object: string
@@ -242,7 +269,39 @@ export interface ChatCompletionResponse {
     message: { role: string; content: string }
     finish_reason: string
   }>
-  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }
+  usage?: ChatCompletionUsage
+}
+
+/** Documented Venice rate-limit reason categories surfaced to the UI.
+ *  Unknown upstream values flow through `VeniceRateLimitInfo.rawReason` so
+ *  analytics can track new reasons before they are typed here. */
+export type VeniceRateLimitReason =
+  | 'unspecified'
+  | 'requests_per_minute'
+  | 'requests_per_day'
+  | 'tokens_per_minute'
+  | 'tokens_per_day'
+  | 'concurrent_requests'
+
+/** Time-window category for the rate limit that fired. Mirrors the
+ *  `rateLimitType` enum from upstream `/api_keys/rate_limits`. */
+export type VeniceRateLimitType = 'RPM' | 'RPD' | 'TPM' | 'TPD' | 'CONCURRENT'
+
+/** Typed rate-limit payload extracted from a 429 response. `Retry-After`
+ *  semantics remain unchanged; existing `computeRateLimitWait()` callers keep
+ *  working with the `retryAfterSeconds` field below. */
+export interface VeniceRateLimitInfo {
+  /** Typed reason classification. Always present (defaults to `unspecified`).
+   *  Drives UX message selection and metrics tagging. */
+  reason: VeniceRateLimitReason
+  /** Raw upstream reason string, preserved when upstream emits a value that
+   *  does not yet map to a typed `VeniceRateLimitReason`. */
+  rawReason?: string
+  /** Time-window category for the exceeded limit, when upstream reports it. */
+  limitType?: VeniceRateLimitType
+  /** Resolved retry-after in seconds. Source priority is identical to
+   *  `computeRateLimitWait`: `Retry-After` header > `x-ratelimit-reset-*`. */
+  retryAfterSeconds?: number
 }
 
 // Image types

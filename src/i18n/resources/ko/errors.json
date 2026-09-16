@@ -8,5 +8,11 @@
   "autosaveFailed": "자동 저장 실패: {{error}}",
   "fileReadError": "파일을 읽지 못했습니다.",
   "invalidFormat": "잘못된 파일 형식입니다.",
-  "unknownError": "예기치 않은 오류가 발생했습니다."
+  "unknownError": "예기치 않은 오류가 발생했습니다.",
+  "rateLimitRpm": "짧은 시간에 너무 많은 요청. 재시도하기 전에 잠시 기다려 주세요.",
+  "rateLimitRpd": "일일 요청 한도에 도달했습니다. 내일까지 기다리거나 플랜을 업그레이드하세요.",
+  "rateLimitTpm": "분당 토큰 한도 도달. 속도를 줄이거나 더 짧은 프롬프트를 사용해 주세요.",
+  "rateLimitTpd": "일일 토큰 한도 도달. 내일까지 기다리거나 플랜을 업그레이드하세요.",
+  "rateLimitConcurrent": "동시 요청이 너무 많습니다. 진행 중인 호출이 끝날 때까지 기다려 주세요.",
+  "rateLimitGeneric": "요청 한도를 초과했습니다. 재시도하기 전에 잠시 기다려 주세요."
 }

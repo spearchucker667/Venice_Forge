@@ -5,6 +5,7 @@ import type { ProviderModel } from '../types/provider'
 import { getEnabledProviderModels } from '../config/provider-models'
 
 import { useSettingsStore } from '../stores/settings-store'
+import { useProfileStore } from '../stores/profile-store'
 import { useModelCatalogRuntimeStore } from '../stores/model-catalog-runtime-store'
 import { mergeCanonicalModels, replaceCanonicalModels } from '../services/modelCatalogCache'
 import { flattenModels, normalizeModelInfo } from '../services/modelClassification'
@@ -53,6 +54,15 @@ async function refreshHuggingFaceModelsIfEnabled(enabledProviders: Record<string
 
 export function useModels(type?: string, options: UseModelsOptions = {}) {
   const enabledProviders = useSettingsStore(s => s.enabledProviders)
+  // /models responses are caller-specific/non-cacheable across credential
+  // profiles: visibility, pricing, and negotiated rate limits differ per
+  // active API key. Including `activeProfileId` in the queryKey forces
+  // React Query to drop the cached payload when the user switches profiles,
+  // so a result obtained under profile A is never served as authoritative
+  // state for profile B. The `modelCatalogCache` itself remains in-memory
+  // only — there is no IndexedDB persistence path for live /models data,
+  // which keeps the profile boundary clean across restarts too.
+  const activeProfileId = useProfileStore((s) => s.activeProfileId)
   const normalizedType = type === 'chat' ? 'text' : type === 'embeddings' ? 'embedding' : type;
   const enabledProviderKey = Object.entries(enabledProviders)
     .filter(([, enabled]) => enabled)
@@ -61,7 +71,7 @@ export function useModels(type?: string, options: UseModelsOptions = {}) {
     .join(',')
 
   return useQuery({
-    queryKey: ['models', normalizedType ?? 'all', enabledProviderKey],
+    queryKey: ['models', normalizedType ?? 'all', enabledProviderKey, activeProfileId],
     enabled: options.enabled ?? true,
     queryFn: async () => {
       const runtime = useModelCatalogRuntimeStore.getState()

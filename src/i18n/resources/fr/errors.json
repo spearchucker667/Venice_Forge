@@ -8,5 +8,11 @@
   "autosaveFailed": "Échec de la sauvegarde automatique : {{error}}",
   "fileReadError": "Échec de read file.",
   "invalidFormat": "Format de fichier invalide.",
-  "unknownError": "Une erreur inattendue s'est produite."
+  "unknownError": "Une erreur inattendue s'est produite.",
+  "rateLimitRpm": "Trop de requêtes en peu de temps. Veuillez patienter avant de réessayer.",
+  "rateLimitRpd": "Quota quotidien de requêtes atteint. Veuillez patienter jusqu'à demain ou passer à une offre supérieure.",
+  "rateLimitTpm": "Limite de tokens par minute atteinte. Veuillez ralentir ou utiliser un prompt plus court.",
+  "rateLimitTpd": "Quota quotidien de tokens atteint. Veuillez patienter jusqu'à demain ou passer à une offre supérieure.",
+  "rateLimitConcurrent": "Trop de requêtes simultanées. Veuillez attendre que les appels en cours se terminent.",
+  "rateLimitGeneric": "Limite de requêtes dépassée. Veuillez patienter avant de réessayer."
 }

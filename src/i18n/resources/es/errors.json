@@ -8,5 +8,11 @@
   "autosaveFailed": "Error de autoguardado: {{error}}",
   "fileReadError": "No se pudo read file.",
   "invalidFormat": "Formato de archivo no válido.",
-  "unknownError": "Se ha producido un error inesperado."
+  "unknownError": "Se ha producido un error inesperado.",
+  "rateLimitRpm": "Demasiadas solicitudes en poco tiempo. Espere antes de reintentar.",
+  "rateLimitRpd": "Cuota diaria de solicitudes alcanzada. Espere hasta mañana o actualice su plan.",
+  "rateLimitTpm": "Límite de tokens por minuto alcanzado. Reduzca la velocidad o use un prompt más corto.",
+  "rateLimitTpd": "Cuota diaria de tokens alcanzada. Espere hasta mañana o actualice su plan.",
+  "rateLimitConcurrent": "Demasiadas solicitudes simultáneas. Espere a que terminen las llamadas en curso.",
+  "rateLimitGeneric": "Se ha excedido el límite de frecuencia. Espere antes de reintentar."
 }

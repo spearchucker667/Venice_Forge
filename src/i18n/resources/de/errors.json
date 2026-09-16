@@ -8,5 +8,11 @@
   "autosaveFailed": "Automatisches Speichern fehlgeschlagen: {{error}}",
   "fileReadError": "Fehlgeschlagen: read file.",
   "invalidFormat": "Ungültiges Dateiformat.",
-  "unknownError": "Ein unerwarteter Fehler ist aufgetreten."
+  "unknownError": "Ein unerwarteter Fehler ist aufgetreten.",
+  "rateLimitRpm": "Zu viele Anfragen in kurzer Zeit. Bitte warten Sie, bevor Sie es erneut versuchen.",
+  "rateLimitRpd": "Tägliche Anfragenzahl erreicht. Bitte warten Sie bis morgen oder upgraden Sie Ihren Tarif.",
+  "rateLimitTpm": "Token-pro-Minute-Limit erreicht. Bitte verlangsamen Sie oder verwenden Sie eine kürzere Eingabe.",
+  "rateLimitTpd": "Tägliches Token-Kontingent erreicht. Bitte warten Sie bis morgen oder upgraden Sie Ihren Tarif.",
+  "rateLimitConcurrent": "Zu viele gleichzeitige Anfragen. Bitte warten Sie, bis laufende Aufrufe abgeschlossen sind.",
+  "rateLimitGeneric": "Ratenlimit überschritten. Bitte warten Sie, bevor Sie es erneut versuchen."
 }
