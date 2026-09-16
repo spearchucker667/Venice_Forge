@@ -25,7 +25,7 @@ The local ruleset helper `scripts/enforce-github-rules.sh` will be updated so th
 - `electron-smoke-windows`
 - `electron-smoke-linux`
 
-`docs/reports/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md` and `docs/summary_of_work.md` will record that the live GitHub Rules01 ruleset must be synchronized with this helper by a repository administrator.
+`docs/reports/historical/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md` and `docs/summary_of_work.md` will record that the live GitHub Rules01 ruleset must be synchronized with this helper by a repository administrator.
 
 ### 2. Tag/version parity gate
 

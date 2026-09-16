@@ -281,7 +281,7 @@ function verifyMarkdownLinks(rootDir, options = {}) {
         const canonical = trackedIndex.get(relativeCandidate.toLowerCase());
         if (canonical && canonical !== relativeCandidate) {
           errors.push({
-            source: sourcePath,
+            sourcePath,
             line,
             destination,
             reason: `path case mismatch: Git tracks "${canonical}", not "${relativeCandidate}"`,

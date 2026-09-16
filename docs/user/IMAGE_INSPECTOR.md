@@ -77,4 +77,4 @@ Venice Forge does not place raw image bytes, base64 data, complete prompts, API 
 - Direct source-image web matching cannot be enabled until a supported provider and credential/privacy design are implemented.
 - Paid-provider PNG, JPEG, and WebP acceptance remains part of release manual verification.
 
-For implementation and security details, see [Image Inspector Architecture](../developer/image-inspector-architecture.md).
+For implementation and security details, see [Image Inspector Architecture](../DEVELOPMENT/image-inspector-architecture.md).

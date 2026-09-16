@@ -104,9 +104,9 @@ For specific notices, licenses, disclaimers, and attributions, see the following
 
 Before a public release:
 
-- Confirm README, [SECURITY.md](SECURITY.md), [release checklist](docs/RELEASE/release.md), and this document match the machine-readable version in `package.json`.
+- Confirm README, [SECURITY.md](SECURITY.md), [release checklist](docs/release/release.md), and this document match the machine-readable version in `package.json`.
 - Confirm [SECURITY.md](SECURITY.md)'s CodeQL snapshot and suppression line numbers reflect the live Security → Code Scanning view.
 - Confirm no API keys, tokens, certificates, or generated `.env` files are committed.
-- Run the full release verification in [RELEASE.md](docs/RELEASE/release.md).
+- Run the full release verification in [release.md](docs/release/release.md).
 - State whether Windows artifacts are signed or unsigned in release notes.
 - Include SHA-256 checksums for all `.exe` artifacts.

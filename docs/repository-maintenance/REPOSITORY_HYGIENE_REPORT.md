@@ -1,27 +1,35 @@
 # Venice Forge — Repository Hygiene, Organization, File Hygiene & Gitignore Overhaul Report
 
-> **Latest revalidation:** `362c912a2b82e1b829c6d36e18f0e9ca3a492857` on `main` (2026-09-15)
+> **Latest revalidation working tree:** 2026-09-16 hygiene continuation on `main` (baseline `bd070918ae9aaefac681f68743882c195f8c3778`; commit SHA pending publication)
 > **Historical baseline for the original overhaul:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
-> **Package Version:** `3.0.0-beta.3`  
-> **Branch:** `main`  
-> **Date:** 2026-09-14  
-> **Authority:** Principal Repository Maintainer, Documentation Architect & Release Engineer  
+> **Package Version:** `3.0.0-beta.3`
+> **Branch:** `main`
+> **Date:** 2026-09-16
+> **Authority:** Principal Repository Maintainer, Documentation Architect & Release Engineer
 
 ---
 
-## Current Revalidation — 2026-09-15
+## Current Revalidation — 2026-09-16
 
-- The checked-out `main` is at `362c912a2b82e1b829c6d36e18f0e9ca3a492857`, with `origin/main` at the same SHA; this session began with unrelated uncommitted remediation changes that were preserved.
-- Tracked root files remain the intended 29-file governance/configuration/entrypoint perimeter. Local root-only artifacts (`.DS_Store`, the design reference screenshot, two Kimi session exports, `.env`, and generated directories) are untracked and ignored or locally excluded; the screenshot pattern is now documented in `.gitignore` rather than relying only on `.git/info/exclude`.
-- No safe file move, rename, or deletion was established by the current revalidation. Existing manifests below retain the historical execution record and are not rewritten as if those older findings were current.
-- Current source-of-truth documentation remains `docs/DOCS_INDEX.md`, `docs/ROADMAP.md`, and `docs/summary_of_work.md`; audit packages and old work orders remain historical evidence.
+- The checked-out `main` baseline is `bd070918ae9aaefac681f68743882c195f8c3778`, matching `origin/main` at session start. Pre-existing dirty hygiene edits were preserved; `docs/i18n/translation-status.json` was restored to HEAD because it is verifier output, not a hygiene change.
+- Root `AGENT_REINITIALIZATION.md` is no longer at the repository root; it lives at `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md`. Root `PRODUCT.md` and `server.ts` / `server.test.ts` remain because they are live governance and package-script contracts.
+- `docs/DEVELOPMENT/` casing is retained because `scripts/verify-agent-docs.cjs` and `scripts/verify-release-packaging-hardening.cjs` require it. `docs/RELEASE/` is normalized to `docs/release/`.
+- Four dated reports moved from `docs/reports/` into `docs/reports/historical/` with the required `Historical snapshot.` banner. Active markdown handoffs under `docs/audits/TODO/` are now unignored and indexed. `docs/audits/README.md` documents the TODO / Records / repo-management split.
+- Local root-only artifacts (`kimi-export-session_*.md`, `Screenshot_*.png`, `scratch/`, `artifacts/`, `venice-media-output/`, `.env`) remain user-owned and ignored. No tracked file was deleted.
+- Current source-of-truth documentation remains `docs/DOCS_INDEX.md`, `docs/ROADMAP.md`, and `docs/summary_of_work.md`.
+
+## Prior Revalidation — 2026-09-15
+
+- The checked-out `main` was at `362c912a2b82e1b829c6d36e18f0e9ca3a492857`, with `origin/main` at the same SHA; that session began with unrelated uncommitted remediation changes that were preserved.
+- Tracked root files remained the intended governance/configuration/entrypoint perimeter. Local root-only artifacts were untracked and ignored.
+- No safe file move, rename, or deletion was established by that revalidation. Later 2026-09-16 work superseded the “no moves” conclusion.
 
 ## 1. Executive Summary
 
 An exhaustive repository hygiene, documentation architecture, file organization, and git configuration overhaul was conducted across Venice Forge. The audit evaluated all 1,974 tracked files, root-level entry points, documentation hierarchies, `.gitignore` coverage, `.gitattributes` text/binary classifications, `.editorconfig` development standards, and internal reference integrity.
 
 ### Key Outcomes
-1. **Root-Directory Cleanliness:** Verified that the repository root strictly contains only canonical governance docs (`README.md`, `AGENTS.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `LEGAL.md`, `PRIVACY.md`, `SUPPORT.md`, `PRODUCT.md`, `CODE_OF_CONDUCT.md`), build/tool configurations (`package.json`, `package-lock.json`, `tsconfig*.json`, `vite.config.ts`, `vitest.config.ts`, `electron-builder.config.cjs`, `eslint.config.mjs`, `.editorconfig`, `.gitattributes`, `.gitignore`, `.nvmrc`, `.cursorrules`), application entry points (`index.html`, `server.ts`, `server.test.ts`), and the canonical reinitialization guide (`AGENT_REINITIALIZATION.md`). Exactly 29 files occupy the root; no temporary scratch files, debug logs, or ad-hoc test scripts pollute the root.
+1. **Root-Directory Cleanliness:** The repository root contains canonical governance docs (`README.md`, `AGENTS.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `LEGAL.md`, `PRIVACY.md`, `SUPPORT.md`, `PRODUCT.md`, `CODE_OF_CONDUCT.md`), build/tool configurations (`package.json`, `package-lock.json`, `tsconfig*.json`, `vite.config.ts`, `vitest.config.ts`, `electron-builder.config.cjs`, `eslint.config.mjs`, `.editorconfig`, `.gitattributes`, `.gitignore`, `.nvmrc`, `.cursorrules`), and application entry points (`index.html`, `server.ts`, `server.test.ts`). The canonical reinitialization guide now lives at `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md`. Local ignored transients may still exist on disk and are not tracked.
 2. **Naming Convention & POSIX Hygiene:** All documentation, test suites, scripts, and audit packages strictly adhere to kebab-case or canonical existing conventions. No filenames contain non-ASCII characters, em-dashes, or quote-escaped characters in Git or POSIX tooling (`git ls-files | grep -E '[^a-zA-Z0-9._/-]'` returns 0 results).
 3. **`.gitignore` Full Modernization & Zero Tracked Conflicts:** Resolved a pattern gap where 13 tracked files in `docs/audits/venice-forge-exhaustive-audit-2026-09-13/` were covered by a blanket audit ignore rule. Added explicit unignore patterns for the 2026-09-13 audit package. Verified that exactly 0 tracked files are ignored by `.gitignore` (`git ls-files -c -i --exclude-standard` is empty). Confirmed that all local, generated, and private artifacts (`.env`, `.config/*.local.yaml`, `.agent-backups/`, `.agents/`, `.design-captures/`, `.freebuff/`, `.impeccable/`, `.playwright-cli/`, `.superpowers/`, `artifacts/`, `coverage/`, `dist/`, `dist-electron/`, `node_modules/`, `scratch/`, `venice-media-output/`) are reliably ignored.
 4. **Accidental Scratch File Cleanup:** Removed stale uncommitted backup artifact `docs/ROADMAP.md.clean` (37 KB) from the working tree per Section 27.
@@ -80,7 +88,7 @@ The `.gitignore` configuration is structured into distinct, well-documented func
 - **Application Artifacts & Output:** `/artifacts/`, `/venice-media-output/`, `/.local-reports/`, `/audit-output/`, `/debug-output/`.
 - **Design & Dev Tooling:** `/.design-captures/`, `/.impeccable/`, `/.superpowers/`, `/.freebuff/`, `/.playwright-cli/`, `/scripts/dev-tools/venice-styles.json`.
 - **Local Config & Credentials:** `.env*` (whitelisting `!.env.example`), `/.config/*.yaml` (whitelisting `!.config/*.example.yaml`), `/.config/*.local.yaml`.
-- **Documentation (Local Only):** `/docs/AGENTS/`, `/docs/HQE_AUDIT_REPORT.md`, `/docs/reference/venice-api-upstream/`.
+- **Documentation (Local Only):** `/docs/HQE_AUDIT_REPORT.md`, `/docs/reference/venice-api-upstream/`. The former `/docs/AGENTS/` ignore was removed because that directory no longer exists.
 - **Audits:** Explicit unignore rules for approved audit suites (`2026-07-14`, `2026-08-15`, `2026-09-10`, `2026-09-11`, `2026-09-12`, `2026-09-12-c6d9bed`, `2026-09-12-current-main`, and newly added `2026-09-13`).
 - **Scratch & Local AI:** `/scratch/`, `/tmp/`, `/.local/`, `/.agents/`, `/.agent/`, `/.cursor/`, `/.claude/`.
 - **OS & Editor Artifacts:** `.DS_Store`, `Thumbs.db`, `desktop.ini`, `.idea/`, `.vscode/*.log`.
@@ -109,7 +117,9 @@ The `.gitignore` configuration is structured into distinct, well-documented func
 
 ---
 
-## 6. Validation Matrix
+## 6. Historical Validation Matrix (2026-09-14)
+
+The table below is retained as the 2026-09-14 overhaul record. It is **not** current-session evidence. The 2026-09-16 continuation records commands actually executed in `docs/summary_of_work.md`.
 
 | Check | Command | Result | Notes |
 |---|---|:---:|---|

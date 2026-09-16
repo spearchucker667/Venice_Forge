@@ -279,7 +279,7 @@ jobs:
           # Verify the portable Windows executable if shipped as a signed
           # production artifact. The portable is currently an unauthenticated
           # wrapper; we still verify the Setup.exe, but the portable is
-          # explicitly documented in docs/RELEASE/SIGNED_ARTIFACT_EVIDENCE.md.
+          # explicitly documented in docs/release/SIGNED_ARTIFACT_EVIDENCE.md.
           $portables = Get-ChildItem -Path ".\release\Venice-Forge-*-x64-Portable.exe" -ErrorAction SilentlyContinue
           foreach ($file in $portables) {
             $sig = Get-AuthenticodeSignature $file.FullName

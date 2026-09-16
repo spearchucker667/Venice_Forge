@@ -144,8 +144,8 @@ The release pipeline is protected by a single-source-of-truth audit at `scripts/
 | CI workflow | Runs `verify:dist` + `npm run typecheck` + `npm test` + `npm run build` before packaging |
 | Release workflow | Runs `verify:dist:*` + `checksum:release` + archive hygiene after every platform packaging job; the publish job runs `verify:dist:release` and creates a draft release for maintainer review |
 | Electron builder | `electron-builder.config.cjs` declares `appId`, `directories`, `asar: true`, excludes `.map` source maps, and enables `mac.notarize` only when Apple signing credentials are present |
-| Docs present | `docs/RELEASE/release.md`, `docs/RELEASE/signing-and-notarization.md`, `docs/DEVELOPMENT/building.md`, `docs/DEVELOPMENT/platform-support.md`, `docs/DEVELOPMENT/troubleshooting.md` |
-| Repository settings | `docs/RELEASE/repository-settings.md` documents branch protection, security automation, and signing secret requirements |
+| Docs present | `docs/release/release.md`, `docs/release/signing-and-notarization.md`, `docs/DEVELOPMENT/building.md`, `docs/DEVELOPMENT/platform-support.md`, `docs/DEVELOPMENT/troubleshooting.md` |
+| Repository settings | `docs/release/repository-settings.md` documents branch protection, security automation, and signing secret requirements |
 | `.gitignore` | Excludes `node_modules/`, `.node22/`, `/dist/`, `/dist-electron/`, `/release/`, `/coverage/`, `.env*` (allowlisting `.env.example`), `.config/*.yaml` (allowlisting `.config/*.example.yaml`) |
 | Archive hygiene | `git ls-files` contains no `node_modules/`, `.node22/`, `dist/`, `dist-electron/`, `release/`, `coverage/`, `.env*` (non-example), `.config/*.local.yaml`, `*.db`, `*.log`, `chat-history/`, `docs/AGENTS/`, etc. (delegates to `scripts/verify-archive-clean.cjs` `BAD_PATTERNS`) |
 | Icon assets | `build/icon.{ico,icns,png}` are tracked |

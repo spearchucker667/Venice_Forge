@@ -43,7 +43,7 @@ const BAD_PATTERNS = [
   /(^|\/)\.node22\//,
   /(^|\/)dist\//,
   /(^|\/)dist-electron\//,
-  /(^|\/)release\//,
+  /^release\//,
   /(^|\/)coverage\//,
   /(^|\/)\.integration-src\//,
   /(^|\/)\.vite\//,

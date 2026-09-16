@@ -1,5 +1,7 @@
 # Venice Forge — Post-August-24 Provider-Update Audit & Remediation Report
 
+> **Historical snapshot.** Retained evidence only; the live repository, `docs/ROADMAP.md`, and `docs/summary_of_work.md` are authoritative.
+
 > [!NOTE]  
 > **IMMUTABLE HISTORICAL RECORD**  
 > This report is a point-in-time snapshot of the repository state as of August 25, 2026 (commit `d13150ef...`). It is preserved for historical context and is not updated to track current `main`.
@@ -293,7 +295,7 @@ No locally actionable P0/P1 items remain. The following items are intentionally 
 - `SECURITY.md` — mandatory-vs-optional safety layers, bounded response-body windows, and IPC sender-validation rules documented.
 - `docs/security/security-model.md` — IPC sender validation summarized.
 - `docs/DOCS_INDEX.md` — this report registered under Historical Reports.
-- This report: `docs/reports/VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md`.
+- This report: `docs/reports/historical/VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md`.
 
 Historical records (`docs/reports/historical/DEFERRED_WORK_DECISION_RECORD.md`, `docs/audits/`) were not edited to change past conclusions.
 

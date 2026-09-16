@@ -61,7 +61,7 @@ Solution:
 1. Run `node scripts/verify-archive-clean.cjs` and read the printed list of contaminants.
 2. If they are tracked, run `git rm -r --cached <path>` and confirm `.gitignore` covers the path so they are not re-added.
 3. Re-run `node scripts/verify-archive-clean.cjs` to confirm clean.
-4. If you are zipping the repo to share with a third party (including a GPT context drop), use the safe-ZIP command in [docs/RELEASE/release.md](../RELEASE/release.md#safe-gpt--source-zip-command).
+4. If you are zipping the repo to share with a third party (including a GPT context drop), use the safe-ZIP command in [docs/release/release.md](../release/release.md#safe-gpt--source-zip-command).
 
 ## Dist Verification Failures
 
@@ -86,7 +86,7 @@ Solution:
 `npm run verify:release-packaging-hardening` (VERIFY-052) is the single-source-of-truth audit for release/packaging hygiene. The most common failure modes are:
 
 1. A new `package.json` script was added that doesn't match the expected string in the audit. Fix by updating the expected string in `scripts/verify-release-packaging-hardening.cjs` and documenting the change in `AGENTS.md`.
-2. A new docs file was added under `docs/DEVELOPMENT/` or `docs/RELEASE/` but is not in the `requiredFiles` list. Add it.
+2. A new docs file was added under `docs/DEVELOPMENT/` or `docs/release/` but is not in the `requiredFiles` list. Add it.
 3. A forbidden archive contaminant is tracked in git. See "Archive Hygiene Failures" above.
 4. `.gitignore` is missing a token. Re-add the missing token (the audit prints the exact missing token).
 5. The GitHub workflow was edited without re-pinning `node-version: 22`. Re-pin to 22.

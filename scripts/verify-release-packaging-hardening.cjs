@@ -111,9 +111,9 @@ const requiredFiles = [
   "scripts/verify-icon.cjs",
   "scripts/verify-release-packaging-hardening.cjs",
   "scripts/verify-release-packaging-hardening.test.ts",
-  "docs/RELEASE/release.md",
-  "docs/RELEASE/signing-and-notarization.md",
-  "docs/RELEASE/repository-settings.md",
+  "docs/release/release.md",
+  "docs/release/signing-and-notarization.md",
+  "docs/release/repository-settings.md",
   "docs/DEVELOPMENT/building.md",
   "docs/DEVELOPMENT/platform-support.md",
   "docs/DEVELOPMENT/troubleshooting.md",
@@ -603,8 +603,8 @@ if (isGitWorktree) {
     ".github/ISSUE_TEMPLATE/config.yml",
     ".github/workflows/ci.yml",
     ".github/workflows/release.yml",
-    "docs/RELEASE/release.md",
-    "docs/RELEASE/signing-and-notarization.md",
+    "docs/release/release.md",
+    "docs/release/signing-and-notarization.md",
   ];
 
   for (const rel of activeRepoMetadataFiles) {

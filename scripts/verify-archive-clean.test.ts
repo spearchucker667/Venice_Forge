@@ -82,7 +82,7 @@ describe("verify-archive-clean (P1 hygiene guard)", () => {
     expect(BAD_PATTERNS.some((re: RegExp) => re.test(".env.example"))).toBe(false);
     // Real source files must remain allowed
     expect(BAD_PATTERNS.some((re: RegExp) => re.test("src/main.ts"))).toBe(false);
-    expect(BAD_PATTERNS.some((re: RegExp) => re.test("docs/RELEASE/release.md"))).toBe(false);
+    expect(BAD_PATTERNS.some((re: RegExp) => re.test("docs/release/release.md"))).toBe(false);
     expect(BAD_PATTERNS.some((re: RegExp) => re.test("scripts/verify-archive-clean.cjs"))).toBe(false);
   });
 

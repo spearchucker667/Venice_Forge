@@ -253,7 +253,7 @@ Open a GitHub issue using the bug report template. Include:
 - [README.md](../README.md) — Setup and usage
 - [ABOUT.md](ABOUT.md) — Architecture and goals
 - [BUILDING.md](DEVELOPMENT/building.md) — Development and packaging commands
-- [RELEASE.md](RELEASE/release.md) — Release checklist
+- [release.md](release/release.md) — Release checklist
 - [SECURITY.md](../SECURITY.md) — Full security model
 - [LEGAL.md](../LEGAL.md) — Legal and TOS coverage
 - [PLATFORM_SUPPORT.md](DEVELOPMENT/platform-support.md) — Supported platforms

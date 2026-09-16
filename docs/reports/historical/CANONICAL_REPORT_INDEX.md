@@ -33,10 +33,14 @@ Only the first four rows are current operational authorities. Dated evidence row
 | [`historical/VENICE_UI_PARITY_REFERENCE.md`](VENICE_UI_PARITY_REFERENCE.md) | Historical UI reference | Reference-only; not a current implementation contract. |
 | [`historical/audit-validation-report-022-051.md`](audit-validation-report-022-051.md) | Historical validation report | Keep for evidence only. |
 | [`historical/audit_report.yaml`](audit_report.yaml) | Historical machine-readable audit input | Keep for traceability; not a current execution ledger. |
+| [`historical/VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md`](VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md) | Historical 2026-08-25 provider-update audit | Relocated from `docs/reports/` on 2026-09-16; evidence only. |
+| [`historical/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md`](FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md) | Historical 2026-08-26 CI-repair and repository audit | Relocated from `docs/reports/` on 2026-09-16; evidence only. |
+| [`historical/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md`](MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md) | Historical 2026-07-26 Traffic Inspector remediation | Relocated from `docs/reports/` on 2026-09-16; evidence only. |
+| [`historical/MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md`](MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md) | Historical 2026-07-28 Media Studio Save As audit | Relocated from `docs/reports/` on 2026-09-16; evidence only. |
 
 ## Rules For New Reports
 
 1. Do not create new root-level audit or TODO files.
 2. Prefer updating [`../summary_of_work.md`](../../summary_of_work.md) and [`../ROADMAP.md`](../../ROADMAP.md).
-3. If a durable report is still needed, place it under `docs/reports/` and add it to this index plus [`../DOCS_INDEX.md`](../../DOCS_INDEX.md).
+3. If a durable historical report is still needed, place it under `docs/reports/historical/` with a `Historical snapshot.` banner in the first 14 lines, then register it here and in [`../DOCS_INDEX.md`](../../DOCS_INDEX.md).
 4. If a report is historical, keep a clear banner in the report itself or list it here as historical evidence only.

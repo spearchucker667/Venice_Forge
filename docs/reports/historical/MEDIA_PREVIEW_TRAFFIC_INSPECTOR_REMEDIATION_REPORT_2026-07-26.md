@@ -1,5 +1,7 @@
 # Media Preview and Traffic Inspector Remediation — 2026-07-26
 
+> **Historical snapshot.** Retained evidence only; the live repository, `docs/ROADMAP.md`, and `docs/summary_of_work.md` are authoritative.
+
 > [!NOTE]
 > **IMMUTABLE HISTORICAL RECORD**
 > This report is a point-in-time snapshot of the repository state as of July 26, 2026. It is preserved for historical context and is not updated to track current `main`.
@@ -121,7 +123,7 @@ src/i18n/resources/en-US/navigation.json                     Phase D (preserved)
 docs/summary_of_work.md                                      Session handoff
 docs/ROADMAP.md                                              Cross-process telemetry follow-up row
 docs/DOCS_INDEX.md                                           Document index entry
-docs/reports/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md   This report
+docs/reports/historical/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md   This report
 ```
 
 ## 6. Tests Added or Updated

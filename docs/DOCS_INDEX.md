@@ -48,8 +48,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Release
 
-- [RELEASE/release.md](RELEASE/release.md) — Release requirements, versioning, and publishing checklist.
-- [RELEASE/signing-and-notarization.md](RELEASE/signing-and-notarization.md) — Set up certificates and resolve macOS app quarantine.
+- [release/release.md](release/release.md) — Release requirements, versioning, and publishing checklist.
+- [release/signing-and-notarization.md](release/signing-and-notarization.md) — Set up certificates and resolve macOS app quarantine.
 
 ### Translation
 
@@ -73,8 +73,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 ### Formats & Compatibility
 
 - [reference/CHARACTER_CARD_V2_COMPATIBILITY.md](reference/CHARACTER_CARD_V2_COMPATIBILITY.md) — Supported Tavern/CCv2 formats, mappings, limits, and runtime semantics.
-- [developer/CHARACTER_CARD_CODEC.md](developer/CHARACTER_CARD_CODEC.md) — Character Card V2 PNG codec limits, verification, and chunk contract.
-- [developer/CHARACTER_CARD_MAPPINGS.md](developer/CHARACTER_CARD_MAPPINGS.md) — Tavern/V2 DTO to internal card and character-book mappings.
+- [DEVELOPMENT/CHARACTER_CARD_CODEC.md](DEVELOPMENT/CHARACTER_CARD_CODEC.md) — Character Card V2 PNG codec limits, verification, and chunk contract.
+- [DEVELOPMENT/CHARACTER_CARD_MAPPINGS.md](DEVELOPMENT/CHARACTER_CARD_MAPPINGS.md) — Tavern/V2 DTO to internal card and character-book mappings.
 - [testing/CHARACTER_CARD_FIXTURES.md](testing/CHARACTER_CARD_FIXTURES.md) — Synthetic fixture policy and validation commands.
 - [architecture/data-export-format.md](architecture/data-export-format.md) — Authenticated `.vfbackup` envelope, portability, and compatibility contract.
 - [design/LOADING_AND_SURFACE_CONTRACT.md](design/LOADING_AND_SURFACE_CONTRACT.md) — Semantic loading, reduced-motion, mesh structure, and interactive-border rules.
@@ -95,7 +95,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [DEVELOPMENT/image-model-capabilities.md](DEVELOPMENT/image-model-capabilities.md) — Image model capability registry and Seedream model reference.
 - [DEVELOPMENT/sync-architecture.md](DEVELOPMENT/sync-architecture.md) — Main/renderer trust boundary, packet lifecycle, conflicts, tombstones, and recovery.
 - [DEVELOPMENT/sync-provider-interface.md](DEVELOPMENT/sync-provider-interface.md) — Fail-closed contract for deferred WebDAV/S3-compatible transports.
-- [developer/image-inspector-architecture.md](developer/image-inspector-architecture.md) — Image Inspector ingestion, IPC, structured analysis, error and privacy contracts.
+- [DEVELOPMENT/image-inspector-architecture.md](DEVELOPMENT/image-inspector-architecture.md) — Image Inspector ingestion, IPC, structured analysis, error and privacy contracts.
 - [design/MEDIA_STUDIO.md](design/MEDIA_STUDIO.md) — Media Studio command center actions, visual diffs, and lineage trees.
 
 ### Threat Models & Security
@@ -112,9 +112,9 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Release & Legal
 
-- [RELEASE/SIGNED_ARTIFACT_EVIDENCE.md](RELEASE/SIGNED_ARTIFACT_EVIDENCE.md) — Cryptographic verification hashes of released binaries.
-- [RELEASE/repository-settings.md](RELEASE/repository-settings.md) — GitHub environments and branch protections.
-- [RELEASE/ST_CARD_STUDIO_MIGRATION.md](RELEASE/ST_CARD_STUDIO_MIGRATION.md) — Character schema, draft, import/export, sync, and compatibility migration notes.
+- [release/SIGNED_ARTIFACT_EVIDENCE.md](release/SIGNED_ARTIFACT_EVIDENCE.md) — Cryptographic verification hashes of released binaries.
+- [release/repository-settings.md](release/repository-settings.md) — GitHub environments and branch protections.
+- [release/ST_CARD_STUDIO_MIGRATION.md](release/ST_CARD_STUDIO_MIGRATION.md) — Character schema, draft, import/export, sync, and compatibility migration notes.
 - [legal/PRIVACY.md](legal/PRIVACY.md) — Detailed technical privacy and local credential storage model.
 - [legal/DISCLAIMER.md](legal/DISCLAIMER.md) — Liability exclusions and warranty waivers.
 - [legal/NOTICE.md](legal/NOTICE.md) — Copyright attributions and third-party notices.
@@ -191,7 +191,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — Branch conventions, validation commands, and PR checklist.
 - [AGENTS.md](../AGENTS.md) — Instructions for AI coding agents and session handoffs.
 - [.cursorrules](../.cursorrules) — Thin pointer to AGENTS.md for Cursor-compatible agents.
-- [AGENT_REINITIALIZATION.md](../AGENT_REINITIALIZATION.md) — Agent re-initialization protocol. Supplementary agent notes under `docs/AGENTS/` are local-only and gitignored.
+- [DEVELOPMENT/agents/AGENT_REINITIALIZATION.md](DEVELOPMENT/agents/AGENT_REINITIALIZATION.md) — Agent re-initialization protocol.
 - [DEVELOPMENT/BUG_HUNTING_AGENT_PROMPT.md](DEVELOPMENT/BUG_HUNTING_AGENT_PROMPT.md) — Reusable bug-hunt and exhaustive security audit agent system prompt template.
 - [../scripts/dev-tools/README.md](../scripts/dev-tools/README.md) — Internal development-tool inventory.
 
@@ -207,6 +207,9 @@ This is the canonical source-of-truth navigation map for all documentation in th
 ### Audit Evidence
 
 - [audits/Records/venice-forge-hqe-audit-2026-09-14/README.md](audits/Records/venice-forge-hqe-audit-2026-09-14/README.md) — **Latest.** 2026-09-14 canonical HQE Protocol v5.0.0 codebase health audit across 1,951+ tracked files (baseline `c2279276`). Overall Health Score: 8/10 (Solid). Remediated and verified sidebar pointer drag persistence regression (`HQE-BUG-001`). Identified release gate blocker on missing i18n placeholders (`HQE-DOC-001`). All test suites (unit, electron, contracts, UI, ingestion, workflow, character cards) 100% green. See `HQE_FINDINGS.json`, `HQE_RUN_MANIFEST.json`, `RISK_REGISTER.md`, `REMEDIATION_PLAN.md`.
+- [audits/README.md](audits/README.md) — Audit directory policy: active work orders in `TODO/`, immutable evidence in `Records/`.
+- [audits/TODO/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md](audits/TODO/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md) — Active Venice API feature-gap work order cited by `docs/ROADMAP.md` and current source comments.
+- [audits/TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md](audits/TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md) — Active 2026-09-16 current-main deep-audit handoff; remaining work is tracked in `docs/ROADMAP.md`.
 - [audits/Records/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-14.md](audits/Records/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-14.md) — 2026-09-14 current-main deep-audit handoff (replaces the archived `venice-forge-exhaustive-audit-2026-09-13` package). Source-of-truth remediation work order; tracked in `docs/ROADMAP.md` under `VF-AUD-20260916-CURRENT-MAIN`.
 - [audits/Records/venice-forge-exhaustive-audit-2026-09-12-c6d9bed/README.md](audits/Records/venice-forge-exhaustive-audit-2026-09-12-c6d9bed/README.md) — 2026-09-12/13 audit of `main` @ `c6d9bed3` (post-remediation). All local validation green; re-verified all prior 13 P1 fixes. Remediated and verified on hosted CI in `067dca58` / `2f67268`. See `EXECUTIVE_SUMMARY.md`, `FINDINGS.md`, `CI_REVIEW.md`, `RUNTIME_TEST_RESULTS.md`.
 - [audits/Records/venice-forge-exhaustive-audit-2026-09-12/README.md](audits/Records/venice-forge-exhaustive-audit-2026-09-12/README.md) — 2026-09-12 exhaustive multi-agent audit package (SHA `c1aa891b`). Re-verification confirms 19/19 prior findings (4 P1, 6 P2, 5 P3, 2 DR, 3 TG) and 7 re-pass findings (N1..N7) fully remediated, verified, committed, and published to `main`. See `FINDINGS.md`, `VALIDATION_RESULTS.md`, and `summary_of_work.md`.
@@ -231,10 +234,10 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [reports/historical/README.md](reports/historical/README.md) — Guideline for audit history and historical report rules.
 - [reports/historical/remediation-report-2026-09-01.md](reports/historical/remediation-report-2026-09-01.md) — 2026-09-01 Code Health, Performance & Security Remediation Report.
 - [reports/historical/CANONICAL_REPORT_INDEX.md](reports/historical/CANONICAL_REPORT_INDEX.md) — Navigator for past validation audits.
-- [reports/VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md](reports/VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md) — 2026-08-25 Post-August-24 provider-update audit and remediation report.
-- [reports/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md](reports/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md) — 2026-08-26 Current-main CI repair, exhaustive repository audit, and remediation report.
-- [reports/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md](reports/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md) — 2026-07-26 Traffic Inspector emitter wiring remediation report.
-- [reports/MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md](reports/MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md) — 2026-07-28 Media Studio Save As pipeline audit report.
+- [reports/historical/VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md](reports/historical/VENICE_FORGE_POST_AUGUST_24_AUDIT_REPORT.md) — 2026-08-25 Post-August-24 provider-update audit and remediation report.
+- [reports/historical/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md](reports/historical/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md) — 2026-08-26 Current-main CI repair, exhaustive repository audit, and remediation report.
+- [reports/historical/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md](reports/historical/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md) — 2026-07-26 Traffic Inspector emitter wiring remediation report.
+- [reports/historical/MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md](reports/historical/MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md) — 2026-07-28 Media Studio Save As pipeline audit report.
 - [reports/historical/FINAL_ACCEPTANCE_REPORT.md](reports/historical/FINAL_ACCEPTANCE_REPORT.md) — 2026-08-23 Final acceptance and release readiness report.
 - [reports/historical/DEFERRED_WORK_DECISION_RECORD.md](reports/historical/DEFERRED_WORK_DECISION_RECORD.md) — 2026-08-23 Engineering decisions for deferred roadmap items.
 - [archives/README.md](archives/README.md) — Archive policy and non-authoritative historical-material boundary.

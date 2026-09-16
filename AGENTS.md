@@ -80,7 +80,7 @@ cd "$ACTUAL_ROOT"
 test -f package.json
 test -f package-lock.json
 test -f AGENTS.md
-test -f AGENT_REINITIALIZATION.md
+test -f docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md
 test -d src
 test -d electron
 test -d docs
@@ -134,7 +134,7 @@ git diff
 
 Before substantive work, read:
 
-1. `AGENT_REINITIALIZATION.md`
+1. `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md`
 2. `docs/summary_of_work.md`
 3. `docs/DOCS_INDEX.md`
 4. `docs/ROADMAP.md`

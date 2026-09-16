@@ -1,5 +1,7 @@
 # Media Save Pipeline Audit — 2026-07-28
 
+> **Historical snapshot.** Retained evidence only; the live repository, `docs/ROADMAP.md`, and `docs/summary_of_work.md` are authoritative.
+
 > [!NOTE]
 > **IMMUTABLE HISTORICAL RECORD**
 > This report is a point-in-time snapshot of the repository state as of July 28, 2026. It is preserved for historical context and is not updated to track current `main`.

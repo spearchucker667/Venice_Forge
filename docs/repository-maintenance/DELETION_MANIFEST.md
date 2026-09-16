@@ -1,13 +1,17 @@
 # Venice Forge — Deletion & Retirement Manifest
 
-**Latest revalidation commit:** `362c912a2b82e1b829c6d36e18f0e9ca3a492857` on `main` (2026-09-15)
+**Latest revalidation working tree:** 2026-09-16 hygiene continuation on `main` (baseline `bd070918ae9aaefac681f68743882c195f8c3778`; commit SHA pending publication)
 **Historical overhaul baseline:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
-**Date:** 2026-09-14  
-**Scope:** Repository Hygiene & Organization Overhaul  
+**Date:** 2026-09-16
+**Scope:** Repository Hygiene & Organization Overhaul
 
 ---
 
-## 0. Current Revalidation — 2026-09-15
+## 0. Current Revalidation — 2026-09-16
+
+No tracked file was deleted in this continuation. Four dated reports were relocated into `docs/reports/historical/` rather than removed. Local-only artifacts (`kimi-export-session_*.md`, `Screenshot_*.png`, `scratch/`, `artifacts/`, `venice-media-output/`, `.env`) remain user-owned and ignored. `docs/audits/TODO/.DS_Store` remains ignored.
+
+## 0.1 Prior Revalidation — 2026-09-15
 
 No tracked file was deleted. Local-only artifacts remain user-owned and were not removed; their ignore coverage was verified, with a root screenshot pattern added to `.gitignore`.
 

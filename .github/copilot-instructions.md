@@ -436,4 +436,4 @@ Copy `.env.example` to `.env` for web-mode dev:
 - `.github/copilot-instructions.md` (this file) — the Copilot CLI auto-loaded variant. Mirror changes from `AGENTS.md` that affect a Copilot session's working contract (run, test, commit, review). `verify:agent-docs` enforces parity.
 
 **Updated rarely, on relevant scope change**:
-- `SECURITY.md`, `docs/ABOUT.md`, `docs/FAQ.md`, `docs/RELEASE/release.md`, `LEGAL.md`, `CONTRIBUTING.md`.
+- `SECURITY.md`, `docs/ABOUT.md`, `docs/FAQ.md`, `docs/release/release.md`, `LEGAL.md`, `CONTRIBUTING.md`.

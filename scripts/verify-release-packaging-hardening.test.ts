@@ -26,7 +26,7 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
   const root = mkdtempSync(join(tmpdir(), prefix));
   mkdirSync(join(root, "scripts"), { recursive: true });
   mkdirSync(join(root, ".github/workflows"), { recursive: true });
-  mkdirSync(join(root, "docs/RELEASE"), { recursive: true });
+  mkdirSync(join(root, "docs/release"), { recursive: true });
   mkdirSync(join(root, "docs/DEVELOPMENT"), { recursive: true });
   mkdirSync(join(root, "build"), { recursive: true });
 
@@ -142,9 +142,9 @@ function createMinimalValidRepo(prefix: string, opts: { releaseYml?: string } = 
   writeFileSync(join(root, "LEGAL.md"), "x");
 
   for (const doc of [
-    "docs/RELEASE/release.md",
-    "docs/RELEASE/signing-and-notarization.md",
-    "docs/RELEASE/repository-settings.md",
+    "docs/release/release.md",
+    "docs/release/signing-and-notarization.md",
+    "docs/release/repository-settings.md",
     "docs/DEVELOPMENT/building.md",
     "docs/DEVELOPMENT/platform-support.md",
     "docs/DEVELOPMENT/troubleshooting.md",

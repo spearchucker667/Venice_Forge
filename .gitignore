@@ -89,7 +89,6 @@ pnpm-debug.log*
 # Documentation: local/generated only
 # -----------------------------------------------------------------------------
 
-/docs/AGENTS/
 /docs/HQE_AUDIT_REPORT.md
 /docs/reference/venice-api-upstream/
 
@@ -189,11 +188,15 @@ pnpm-debug.log*
 /docs/audits/*
 
 !/docs/audits/Records/
-!/docs/audits/active/
+!/docs/audits/TODO/
 !/docs/audits/repo-management/
 !/docs/audits/*.md
 !/docs/audits/*.yaml
 !/docs/audits/*.yml
+
+# Active work-order handoffs (markdown only; keep .DS_Store ignored)
+/docs/audits/TODO/*
+!/docs/audits/TODO/*.md
 
 # Machine-generated inventories
 /docs/audits/file-inventory.tsv
@@ -268,10 +271,6 @@ pnpm-debug.log*
 # Generated audit directories outside docs/audits/
 /Venice_Forge-audit-*/
 /*-audit-*/
-
-# Privacy/forensic data
-/docs/AGENTS/venice-forge-privacy-summary-*.json
-
 
 # -----------------------------------------------------------------------------
 # Scratch directories and local tooling
