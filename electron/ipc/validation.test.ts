@@ -256,4 +256,71 @@ describe("Electron IPC validation", () => {
       ).toThrow(/method/i);
     });
   });
+
+  describe("Phase 8 — Crypto RPC IPC validation", () => {
+    it("allows valid public /crypto/rpc/networks through IPC", () => {
+      const result = validateVeniceIpcRequest({
+        endpoint: "/crypto/rpc/networks",
+        method: "GET",
+      });
+      expect(result).toMatchObject({
+        endpoint: "/crypto/rpc/networks",
+        method: "GET",
+      });
+    });
+
+    it("allows valid POST /crypto/rpc/{network} with Idempotency-Key header through IPC", () => {
+      const result = validateVeniceIpcRequest({
+        endpoint: "/crypto/rpc/ethereum-mainnet",
+        method: "POST",
+        headers: {
+          "Idempotency-Key": "tx-12345-abcde",
+          "SIGN-IN-WITH-X": "siwx_sample_token",
+        },
+        body: {
+          jsonrpc: "2.0",
+          method: "eth_blockNumber",
+          params: [],
+          id: 1,
+        },
+      });
+      expect(result).toMatchObject({
+        endpoint: "/crypto/rpc/ethereum-mainnet",
+        method: "POST",
+      });
+      expect(result.headers?.["Idempotency-Key"]).toBe("tx-12345-abcde");
+      expect(result.headers?.["SIGN-IN-WITH-X"]).toBe("siwx_sample_token");
+    });
+
+    it("rejects invalid methods or slugs on Crypto RPC through IPC", () => {
+      expect(() =>
+        validateVeniceIpcRequest({
+          endpoint: "/crypto/rpc/networks",
+          method: "POST",
+        }),
+      ).toThrow(/method/i);
+
+      expect(() =>
+        validateVeniceIpcRequest({
+          endpoint: "/crypto/rpc/ethereum-mainnet",
+          method: "GET",
+        }),
+      ).toThrow(/method/i);
+
+      expect(() =>
+        validateVeniceIpcRequest({
+          endpoint: "/crypto/rpc/INVALID-SLUG",
+          method: "POST",
+        }),
+      ).toThrow(/not allowed/i);
+
+      expect(() =>
+        validateVeniceIpcRequest({
+          endpoint: "/crypto/rpc/networks",
+          method: "GET",
+          body: { extra: true },
+        }),
+      ).toThrow(/GET Venice requests cannot include a body/i);
+    });
+  });
 });

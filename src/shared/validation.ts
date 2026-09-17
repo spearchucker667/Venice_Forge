@@ -57,6 +57,12 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   "/x402/top-up",
   "/x402/balance/{walletAddress}",
   "/x402/transactions/{walletAddress}",
+  // Phase 8 — Crypto RPC (blockchain node access).
+  // /crypto/rpc/networks is GET (public network slug discovery).
+  // Parameterized /crypto/rpc/{network} is POST (JSON-RPC 2.0 proxy).
+  // Resolves via isAllowedCryptoRpcRequest().
+  "/crypto/rpc/networks",
+  "/crypto/rpc/{network}",
 ] as const;
 
 /** HTTP methods permitted for Venice API requests. PUT and DELETE were
@@ -129,6 +135,9 @@ export const VENICE_ENDPOINT_METHODS: Record<string, readonly VeniceIpcMethod[]>
   "/x402/top-up": ["POST"],
   "/x402/balance/{walletAddress}": ["GET"],
   "/x402/transactions/{walletAddress}": ["GET"],
+  // Phase 8 — Crypto RPC.
+  "/crypto/rpc/networks": ["GET"],
+  "/crypto/rpc/{network}": ["POST"],
 };
 
 /** The bare /characters list endpoint. The character-slug variant is
@@ -340,6 +349,59 @@ export function extractWalletAddressFromX402Path(pathname: string): string | nul
   return address;
 }
 
+/** Phase 8 — base constants for the Venice Crypto RPC surface. */
+export const CRYPTO_RPC_NETWORKS_ENDPOINT = "/crypto/rpc/networks" as const;
+export const CRYPTO_RPC_PREFIX = "/crypto/rpc/" as const;
+
+/** Network slug regex: lowercase alphanumeric and hyphens, 1..64 characters. */
+export const VENICE_NETWORK_SLUG_PATTERN = /^[a-z0-9-]{1,64}$/;
+
+/**
+ * Checks whether a path matches any recognized Crypto RPC endpoint structure.
+ */
+export function isAllowedCryptoRpcEndpoint(pathname: string): boolean {
+  if (pathname === CRYPTO_RPC_NETWORKS_ENDPOINT) return true;
+  if (pathname.startsWith(CRYPTO_RPC_PREFIX)) {
+    const slug = pathname.slice(CRYPTO_RPC_PREFIX.length);
+    return slug.length > 0 && !slug.includes("/") && VENICE_NETWORK_SLUG_PATTERN.test(slug);
+  }
+  return false;
+}
+
+/**
+ * Checks whether a path + method pair matches the Venice Crypto RPC endpoints (Phase 8).
+ *
+ * Accepts:
+ *   - `/crypto/rpc/networks` (GET)
+ *   - `/crypto/rpc/{network}` (POST)
+ *
+ * Rejects:
+ *   - other nested paths
+ *   - invalid network slug formats
+ *   - methods not permitted for the specific endpoint
+ */
+export function isAllowedCryptoRpcRequest(pathname: string, method: string): boolean {
+  if (pathname === CRYPTO_RPC_NETWORKS_ENDPOINT) {
+    return method === "GET";
+  }
+  if (pathname.startsWith(CRYPTO_RPC_PREFIX)) {
+    if (method !== "POST") return false;
+    const slug = pathname.slice(CRYPTO_RPC_PREFIX.length);
+    return slug.length > 0 && !slug.includes("/") && VENICE_NETWORK_SLUG_PATTERN.test(slug);
+  }
+  return false;
+}
+
+/** Extracts the network slug from a `/crypto/rpc/{network}` pathname. Returns null when not matched. */
+export function extractNetworkSlugFromCryptoRpcPath(pathname: string): string | null {
+  if (!pathname.startsWith(CRYPTO_RPC_PREFIX)) return null;
+  const slug = pathname.slice(CRYPTO_RPC_PREFIX.length);
+  if (!slug || slug === "networks" || slug.includes("/") || !VENICE_NETWORK_SLUG_PATTERN.test(slug)) {
+    return null;
+  }
+  return slug;
+}
+
 /**
  * Checks whether an HTTP method is valid for an allowed Venice endpoint.
  * @param endpoint The parsed Venice endpoint pathname.
@@ -354,5 +416,7 @@ export function isAllowedVeniceRequest(endpoint: string, method: string): boolea
   // literal-path lookup table only carries `/api_keys/{id}` as a template.
   if (isAllowedApiKeysRequest(endpoint, method)) return true;
   // Phase 7 — parameterized `/x402/balance/{walletAddress}` and `/x402/transactions/{walletAddress}`
-  return isAllowedX402Request(endpoint, method);
+  if (isAllowedX402Request(endpoint, method)) return true;
+  // Phase 8 — parameterized `/crypto/rpc/{network}` and `/crypto/rpc/networks`
+  return isAllowedCryptoRpcRequest(endpoint, method);
 }

@@ -13,6 +13,7 @@ import {
 } from './x402Service'
 import { veniceFetch } from './veniceClient/fetch'
 import type { VeniceApiError } from './veniceClient/errors'
+import type { X402BalanceData, X402TopUpData, X402TransactionsData } from '../types/x402'
 
 function createVeniceApiError(message: string, status: number, responseBody?: unknown): VeniceApiError {
   const error = new Error(message) as VeniceApiError
@@ -112,9 +113,10 @@ describe('x402Service', () => {
           success: true,
           data: mockBalanceData,
         },
-        status: 200,
         headers: {},
-      })
+        response: {} as Response,
+        diagnostics: {},
+      } as any)
 
       const result = await getX402Balance(validEvmAddress, sampleSiwxToken)
       expect(result).toEqual(mockBalanceData)
@@ -160,9 +162,10 @@ describe('x402Service', () => {
       }
       vi.mocked(veniceFetch).mockResolvedValueOnce({
         data: mockRequirements,
-        status: 200,
         headers: {},
-      })
+        response: {} as Response,
+        diagnostics: {},
+      } as any)
 
       const result = await getX402PaymentRequirements()
       expect(result).toEqual(mockRequirements)
@@ -194,11 +197,12 @@ describe('x402Service', () => {
           success: true,
           data: mockTopUpData,
         },
-        status: 200,
         headers: {
           'payment-response': 'sig_resp_xyz987',
         },
-      })
+        response: {} as Response,
+        diagnostics: {},
+      } as any)
 
       const result = await submitX402TopUp('sig_client_payload_123')
       expect(result.data).toEqual(mockTopUpData)
@@ -250,9 +254,10 @@ describe('x402Service', () => {
           success: true,
           data: mockTransactionsData,
         },
-        status: 200,
         headers: {},
-      })
+        response: {} as Response,
+        diagnostics: {},
+      } as any)
 
       const result = await getX402Transactions(validEvmAddress, sampleSiwxToken, {
         limit: 10,

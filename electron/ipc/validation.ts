@@ -15,6 +15,7 @@ import {
   VeniceIpcMethod,
   isAllowedVeniceRequest,
   isAllowedX402Endpoint,
+  isAllowedCryptoRpcEndpoint,
 } from "../../src/shared/validation";
 import { VENICE_API_HOST } from "../../src/shared/apiConfig";
 import type { MutationOrigin } from "../../src/types/sync";
@@ -228,7 +229,8 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
   const isApiKeys = endpoint.pathname === API_KEYS_ENDPOINT ||
     endpoint.pathname.startsWith(`${API_KEYS_ENDPOINT}/`);
   const isX402 = isAllowedX402Endpoint(endpoint.pathname);
-  if (!isStatic && !isCharacters && !isApiKeys && !isX402) {
+  const isCryptoRpc = isAllowedCryptoRpcEndpoint(endpoint.pathname);
+  if (!isStatic && !isCharacters && !isApiKeys && !isX402 && !isCryptoRpc) {
     throw new Error(`Venice endpoint ${endpoint.pathname} is not allowed.`);
   }
 

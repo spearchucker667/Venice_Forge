@@ -20,6 +20,8 @@ import {
   isAllowedApiKeysRequest,
   isAllowedX402Endpoint,
   isAllowedX402Request,
+  isAllowedCryptoRpcEndpoint,
+  isAllowedCryptoRpcRequest,
 } from "./src/shared/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
 import { AppConfig } from "./src/shared/configSchema";
@@ -1039,7 +1041,8 @@ export function createServerApp() {
       const isCharacters = isAllowedCharactersRequest(req.path, "GET");
       const isApiKeys = isAllowedApiKeysRequest(req.path, "GET") || isAllowedApiKeysRequest(req.path, "POST") || isAllowedApiKeysRequest(req.path, "PUT") || isAllowedApiKeysRequest(req.path, "DELETE");
       const isX402 = isAllowedX402Endpoint(req.path);
-      const status = isStatic || isCharacters || isApiKeys || isX402 ? 405 : 403;
+      const isCryptoRpc = isAllowedCryptoRpcEndpoint(req.path);
+      const status = isStatic || isCharacters || isApiKeys || isX402 || isCryptoRpc ? 405 : 403;
       const message =
         status === 405
           ? `Method ${method} not allowed for endpoint ${req.path}`
@@ -1060,6 +1063,14 @@ export function createServerApp() {
   app.use("/api/venice", (req, res, next) => {
     // Phase 7: x402 endpoints authenticate via SIWX / payment signatures, not API key.
     if (isAllowedX402Request(req.path, req.method)) {
+      return next();
+    }
+    // Phase 8: /crypto/rpc/networks is public; /crypto/rpc/{network} can authenticate via SIWX.
+    if (req.path === "/crypto/rpc/networks" && req.method === "GET") {
+      return next();
+    }
+    const hasSiwx = Boolean(req.headers["sign-in-with-x"] || req.headers["x-sign-in-with-x"]);
+    if (isAllowedCryptoRpcRequest(req.path, req.method) && hasSiwx) {
       return next();
     }
     if (!AppConfig.VENICE_API_KEY && !isDevSessionConfigured(devSessionVeniceApiKey) && AppConfig.NODE_ENV !== "test") {

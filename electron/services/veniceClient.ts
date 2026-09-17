@@ -21,7 +21,7 @@ import {
   type StreamDelta as SharedStreamDelta,
 } from "../../src/shared/sseStreamDecoder";
 import { applyResponsesSseEvent } from "../../src/shared/veniceResponses";
-import { isAllowedX402Request } from "../../src/shared/validation";
+import { isAllowedX402Request, isAllowedCryptoRpcRequest } from "../../src/shared/validation";
 
 /** Maximum non-streaming Venice response body size we will buffer in memory. */
 const MAX_VENICE_RESPONSE_BYTES = 25 * 1024 * 1024;
@@ -510,9 +510,16 @@ async function performSingleVeniceRequest(
   const route = fallbackRouteResult?.route;
   const isFallback = !!route;
 
-  const isX402 = isAllowedX402Request(request.endpoint.split("?")[0], request.method);
+  const endpointPath = request.endpoint.split("?")[0];
+  const isX402 = isAllowedX402Request(endpointPath, request.method);
+  const isCryptoNetworks = endpointPath === "/crypto/rpc/networks" && request.method === "GET";
+  const hasSiwxHeader = request.headers
+    ? Boolean(request.headers["SIGN-IN-WITH-X"] || request.headers["sign-in-with-x"] || request.headers["X-Sign-In-With-X"] || request.headers["x-sign-in-with-x"])
+    : false;
+  const isCryptoRpcWithSiwx = isAllowedCryptoRpcRequest(endpointPath, request.method) && hasSiwxHeader;
+
   const apiKey = isFallback ? undefined : getApiKey(request.profileId);
-  if (!isFallback && !apiKey && !isX402) {
+  if (!isFallback && !apiKey && !isX402 && !isCryptoNetworks && !isCryptoRpcWithSiwx) {
     return {
       ok: false,
       status: 401,

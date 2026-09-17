@@ -21,6 +21,12 @@ import {
   VENICE_ENDPOINT_METHODS,
   VENICE_WALLET_ADDRESS_PATTERN,
   X402_TOP_UP_ENDPOINT,
+  CRYPTO_RPC_NETWORKS_ENDPOINT,
+  CRYPTO_RPC_PREFIX,
+  VENICE_NETWORK_SLUG_PATTERN,
+  isAllowedCryptoRpcEndpoint,
+  isAllowedCryptoRpcRequest,
+  extractNetworkSlugFromCryptoRpcPath,
 } from "./validation";
 
 describe("validation", () => {
@@ -71,6 +77,9 @@ describe("validation", () => {
         "/x402/top-up",
         "/x402/balance/{walletAddress}",
         "/x402/transactions/{walletAddress}",
+        // Phase 8 — Crypto RPC.
+        "/crypto/rpc/networks",
+        "/crypto/rpc/{network}",
       ]);
     });
   });
@@ -111,6 +120,8 @@ describe("validation", () => {
         // Phase 7 — read-only x402 balance and transactions.
         "/x402/balance/{walletAddress}",
         "/x402/transactions/{walletAddress}",
+        // Phase 8 — read-only network discovery.
+        "/crypto/rpc/networks",
       ]);
       const nonGetOnlyExceptParameterized = new Set([
         ...getOnlyEndpoints,
@@ -426,6 +437,75 @@ describe("validation", () => {
       expect(isAllowedVeniceRequest(`/x402/balance/${validEvmAddress}`, "GET")).toBe(true);
       expect(isAllowedVeniceRequest(`/x402/transactions/${validSolanaAddress}`, "GET")).toBe(true);
       expect(isAllowedVeniceRequest("/x402/unknown", "GET")).toBe(false);
+    });
+  });
+
+  describe("Phase 8 — Crypto RPC endpoints and validation", () => {
+    it("validates network slug pattern", () => {
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("ethereum-mainnet")).toBe(true);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("base-sepolia")).toBe(true);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("solana-mainnet")).toBe(true);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("arbitrum-one")).toBe(true);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("polygon-amoy")).toBe(true);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("")).toBe(false);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("Ethereum-Mainnet")).toBe(false);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("has.dot")).toBe(false);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("has_underscore")).toBe(false);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("has/slash")).toBe(false);
+      expect(VENICE_NETWORK_SLUG_PATTERN.test("a".repeat(65))).toBe(false);
+    });
+
+    it("allows GET on /crypto/rpc/networks and rejects other methods", () => {
+      expect(isAllowedCryptoRpcRequest(CRYPTO_RPC_NETWORKS_ENDPOINT, "GET")).toBe(true);
+      expect(isAllowedCryptoRpcRequest(CRYPTO_RPC_NETWORKS_ENDPOINT, "POST")).toBe(false);
+      expect(isAllowedCryptoRpcRequest(CRYPTO_RPC_NETWORKS_ENDPOINT, "PUT")).toBe(false);
+      expect(isAllowedCryptoRpcRequest(CRYPTO_RPC_NETWORKS_ENDPOINT, "DELETE")).toBe(false);
+    });
+
+    it("constant matches the documented prefix", () => {
+      expect(CRYPTO_RPC_PREFIX).toBe("/crypto/rpc/");
+      expect(CRYPTO_RPC_NETWORKS_ENDPOINT).toBe("/crypto/rpc/networks");
+    });
+
+    it("allows POST on /crypto/rpc/{network} with valid slug and rejects other methods", () => {
+      expect(isAllowedCryptoRpcRequest("/crypto/rpc/ethereum-mainnet", "POST")).toBe(true);
+      expect(isAllowedCryptoRpcRequest("/crypto/rpc/base-sepolia", "POST")).toBe(true);
+      expect(isAllowedCryptoRpcRequest("/crypto/rpc/solana-mainnet", "POST")).toBe(true);
+      expect(isAllowedCryptoRpcRequest("/crypto/rpc/ethereum-mainnet", "GET")).toBe(false);
+      expect(isAllowedCryptoRpcRequest("/crypto/rpc/ethereum-mainnet", "PUT")).toBe(false);
+      expect(isAllowedCryptoRpcRequest("/crypto/rpc/ethereum-mainnet", "DELETE")).toBe(false);
+    });
+
+    it("rejects malformed network slugs or nested paths", () => {
+      expect(isAllowedCryptoRpcRequest("/crypto/rpc/INVALID-UPPER", "POST")).toBe(false);
+      expect(isAllowedCryptoRpcRequest("/crypto/rpc/ethereum-mainnet/nested", "POST")).toBe(false);
+      expect(isAllowedCryptoRpcRequest("/crypto/rpc/", "POST")).toBe(false);
+      expect(isAllowedCryptoRpcRequest("/crypto/other", "POST")).toBe(false);
+    });
+
+    it("extracts network slug correctly from valid paths", () => {
+      expect(extractNetworkSlugFromCryptoRpcPath("/crypto/rpc/ethereum-mainnet")).toBe("ethereum-mainnet");
+      expect(extractNetworkSlugFromCryptoRpcPath("/crypto/rpc/base-sepolia")).toBe("base-sepolia");
+      expect(extractNetworkSlugFromCryptoRpcPath("/crypto/rpc/networks")).toBeNull();
+      expect(extractNetworkSlugFromCryptoRpcPath("/crypto/rpc/INVALID")).toBeNull();
+      expect(extractNetworkSlugFromCryptoRpcPath("/crypto/rpc/ethereum-mainnet/extra")).toBeNull();
+      expect(extractNetworkSlugFromCryptoRpcPath("/other/path")).toBeNull();
+    });
+
+    it("checks isAllowedCryptoRpcEndpoint structure", () => {
+      expect(isAllowedCryptoRpcEndpoint("/crypto/rpc/networks")).toBe(true);
+      expect(isAllowedCryptoRpcEndpoint("/crypto/rpc/ethereum-mainnet")).toBe(true);
+      expect(isAllowedCryptoRpcEndpoint("/crypto/rpc/solana-mainnet")).toBe(true);
+      expect(isAllowedCryptoRpcEndpoint("/crypto/rpc/INVALID_UPPER")).toBe(false);
+      expect(isAllowedCryptoRpcEndpoint("/crypto/other")).toBe(false);
+    });
+
+    it("isAllowedVeniceRequest routes Crypto RPC requests correctly", () => {
+      expect(isAllowedVeniceRequest("/crypto/rpc/networks", "GET")).toBe(true);
+      expect(isAllowedVeniceRequest("/crypto/rpc/networks", "POST")).toBe(false);
+      expect(isAllowedVeniceRequest("/crypto/rpc/ethereum-mainnet", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/crypto/rpc/ethereum-mainnet", "GET")).toBe(false);
+      expect(isAllowedVeniceRequest("/crypto/rpc/unknown.slug", "POST")).toBe(false);
     });
   });
 });
