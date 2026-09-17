@@ -17,6 +17,52 @@
  */
 
 import type { IngestedAttachmentKind, IngestionExtractionRoute } from './ingestion';
+import type { IngestedAttachment } from './ingestion';
+
+/** How a composer attachment reaches the provider (FEAT-006).
+ *
+ *  - `context` — the existing local extraction / Documents pipeline
+ *    (default; extracted text competes for the model context window).
+ *  - `native-file` — the original file bytes are sent as a provider-native
+ *    `file` content part (`file_data` data URL or public https URL).
+ *  - `native-video` — a validated https/video URL is sent as a provider-
+ *    native `video_url` content part. */
+export type ChatAttachmentSendMode = 'context' | 'native-file' | 'native-video';
+
+/** Composer-level extension of the ingestion pipeline's attachment record.
+ *  These fields exist only in the composer's runtime state (and the send
+ *  path) — they are NEVER persisted into conversation records. The durable
+ *  message keeps only {@link NativeContentPartRef} records and expands the
+ *  actual parts from the runtime registry at send time. */
+export interface ComposerAttachment extends IngestedAttachment {
+  /** Selected transport mode; omitted means `context`. */
+  sendMode?: ChatAttachmentSendMode;
+  /** Runtime-only native file payload (data URL or https URL). */
+  nativeFileDataUrl?: string;
+  /** Runtime-only video URL for `video_url` parts. */
+  nativeVideoUrl?: string;
+  /** Localized per-attachment validation annotation (runtime-only). */
+  validationError?: string;
+}
+
+/** Durable, path-free reference to a provider-native content part
+ *  (`file` / `video_url`). Persisted in
+ *  `ConversationMessage.metadata.nativeParts`. The actual part payload
+ *  (e.g. a base64 data URL) lives ONLY in the renderer runtime registry
+ *  (`src/services/nativeContentPartRegistry.ts`) and is expanded into the
+ *  outgoing request at compile time; after an app restart the reference
+ *  remains for display but the part is omitted from new requests. */
+export interface NativeContentPartRef {
+  /** Stable id matching the runtime-registry entry at send time. */
+  id: string;
+  type: 'file' | 'video_url';
+  /** Original filename for `file` parts (display only). */
+  filename?: string;
+  /** Byte size of the original file (display only). */
+  sizeBytes?: number;
+  /** MIME type of the original file (display only). */
+  mimeType?: string;
+}
 
 export interface ChatAttachmentRef {
   /** Stable attachment ID (matches the IngestedAttachment.id at send time). */

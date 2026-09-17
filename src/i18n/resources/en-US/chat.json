@@ -75,5 +75,24 @@
   },
   "stream": {
     "retryingFromCheckpoint": "Stream dropped. Retrying from checkpoint"
+  },
+  "privacy": {
+    "e2eeLabel": "End-to-end encryption",
+    "e2eeUnavailable": "The selected model doesn't advertise E2EE support.",
+    "e2eeEffective": "Effective for this chat: {{value}}",
+    "conversationOverride": "conversation override",
+    "retentionLabel": "Prompt cache retention",
+    "retentionHint": "Venice-only cache hint. Fallback providers ignore it.",
+    "fallbackNotice": "Fallback providers are enabled. They cannot preserve E2EE — a chat routed to a fallback provider is sent without E2EE.",
+    "e2eeOptions": {
+      "provider-default": "Provider default",
+      "on": "On",
+      "off": "Off"
+    },
+    "retentionOptions": {
+      "default": "Default",
+      "extended": "Extended",
+      "24h": "24h"
+    }
   }
 }

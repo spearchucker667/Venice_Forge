@@ -109,7 +109,7 @@ All 1,974 tracked files occupy their canonical locations under the established D
 - **→ NEW PATH:** `docs/release/ST_CARD_STUDIO_MIGRATION.md`
 - **Reason:** Normalized directory casing to lowercase.
 - **References updated:** All scripts, workflows, and docs (see above).
-- **Validation result:** Recorded by the earlier 2026-09-16 dirty pass; re-run in the continuation session before publication.
+- **Validation result:** Re-run in the continuation session before publication. The actual `git mv` rename was executed on 2026-09-16 in the FEAT-003/004 continuation session via a two-step rename through a temporary `docs/RELEASE_TMP/` directory (required on case-insensitive APFS volumes where `docs/RELEASE` and `docs/release` share an inode). The earlier entry recorded the documentation updates but did not run `git mv`, leaving the Git index tracking `docs/RELEASE/`. After the rename: `verify:markdown-links` PASS (0 issues in 415 files), `verify:contracts` PASS (104/104), `verify:repo-handoff-hygiene` PASS.
 
 ### Entry 8: Historical report archive and active audit-handoff tracking
 - **OLD PATH:** `docs/reports/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md`

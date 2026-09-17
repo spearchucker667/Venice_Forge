@@ -75,5 +75,24 @@
   },
   "stream": {
     "retryingFromCheckpoint": "انقطع البث. إعادة المحاولة من نقطة التحقق"
+  },
+  "privacy": {
+    "e2eeLabel": "__MISSING__:privacy.e2eeLabel",
+    "e2eeUnavailable": "__MISSING__:privacy.e2eeUnavailable",
+    "e2eeEffective": "__MISSING__:privacy.e2eeEffective {{value}}",
+    "conversationOverride": "__MISSING__:privacy.conversationOverride",
+    "retentionLabel": "__MISSING__:privacy.retentionLabel",
+    "retentionHint": "__MISSING__:privacy.retentionHint",
+    "fallbackNotice": "__MISSING__:privacy.fallbackNotice",
+    "e2eeOptions": {
+      "provider-default": "__MISSING__:privacy.e2eeOptions.provider-default",
+      "on": "__MISSING__:privacy.e2eeOptions.on",
+      "off": "__MISSING__:privacy.e2eeOptions.off"
+    },
+    "retentionOptions": {
+      "default": "__MISSING__:privacy.retentionOptions.default",
+      "extended": "__MISSING__:privacy.retentionOptions.extended",
+      "24h": "__MISSING__:privacy.retentionOptions.24h"
+    }
   }
 }

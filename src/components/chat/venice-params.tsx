@@ -12,6 +12,7 @@ import {
 import { Trans, useTranslation } from "react-i18next";
 import { supportsFunctionCalling } from "../../shared/modelCapabilities";
 import { getModelById } from "../../services/modelService";
+import { PrivacyControls } from "./privacy-controls";
 
 export function VeniceParams() {
   const { t } = useTranslation("chat");
@@ -305,6 +306,12 @@ export function VeniceParams() {
               onChange={(v) => setVeniceParams({ strip_thinking_response: v })}
             />
           </div>
+
+          {/* FEAT-003 / FEAT-004 — per-conversation E2EE override and
+              prompt-cache retention. Conversation override wins over the
+              profile default; the canonical wire fields are emitted by the
+              chat-stream-manager payload builder. */}
+          <PrivacyControls />
         </div>
       )}
     </div>
