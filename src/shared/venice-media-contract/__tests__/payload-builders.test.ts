@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   buildCanonicalImageGeneratePayload,
   buildCanonicalImageEditPayload,
@@ -227,6 +229,144 @@ describe('Canonical Payload Builders', () => {
         queue_id: 'vid-q-123',
         delete_media_on_completion: false,
       });
+    });
+
+    // Phase 5 (2026-09-17) — Seedance `bitrate_mode` parity.
+    // Evidence: upstream guides/media/seedance-2-0.mdx ("Output bitrate"
+    // section) + guides/media/video-generation.mdx queue parameter table.
+    // Values "standard" (default, same as omitting) | "high"; Seedance 2.0
+    // (incl. Fast) / 2.5 only; queue-only — `/video/quote` rejects the field.
+    it('emits queue bitrate_mode "high" and omits the default "standard"', () => {
+      const high = buildCanonicalVideoQueuePayload({
+        model: 'seedance-2-0-text-to-video-basic',
+        prompt: 'a cinematic portrait video',
+        duration: '5s',
+        bitrateMode: 'high',
+      });
+      expect(high.bitrate_mode).toBe('high');
+
+      const standard = buildCanonicalVideoQueuePayload({
+        model: 'seedance-2-0-text-to-video-basic',
+        prompt: 'a cinematic portrait video',
+        duration: '5s',
+        bitrateMode: 'standard',
+      });
+      expect((standard as unknown as Record<string, unknown>).bitrate_mode).toBeUndefined();
+    });
+
+    it('drops bitrate_mode values outside the documented enum', () => {
+      const queue = buildCanonicalVideoQueuePayload({
+        model: 'seedance-2-0-text-to-video-basic',
+        prompt: 'a cinematic portrait video',
+        duration: '5s',
+        bitrateMode: 'lossless' as never,
+      });
+      expect((queue as unknown as Record<string, unknown>).bitrate_mode).toBeUndefined();
+    });
+
+    it('never places bitrate_mode on the quote payload', () => {
+      const quote = buildCanonicalVideoQuotePayload({
+        model: 'seedance-2-0-text-to-video-basic',
+        duration: '5s',
+      });
+      expect((quote as unknown as Record<string, unknown>).bitrate_mode).toBeUndefined();
+    });
+
+    // Source-matched Seedance values: swagger QueueVideoRequest documents
+    // `duration: "-1"/"auto"` and `aspect_ratio: "adaptive"/"auto"` as
+    // requiring reference_video_urls on the queue.
+    it('rejects source-matched queue duration/aspect without reference videos', () => {
+      expect(() =>
+        buildCanonicalVideoQueuePayload({
+          model: 'seedance-2-5-reference-to-video-basic',
+          prompt: 'Strictly edit <Video 1>',
+          duration: 'auto',
+          referenceVideoUrls: ['https://example.com/clip.mp4'],
+        }),
+      ).not.toThrow();
+      expect(() =>
+        buildCanonicalVideoQueuePayload({
+          model: 'seedance-2-5-reference-to-video-basic',
+          prompt: 'Strictly edit <Video 1>',
+          duration: 'auto',
+        }),
+      ).toThrow(/referenceVideoUrls/);
+      expect(() =>
+        buildCanonicalVideoQueuePayload({
+          model: 'seedance-2-0-reference-to-video-basic',
+          prompt: 'Strictly edit <Video 1>',
+          duration: '5s',
+          aspectRatio: 'adaptive',
+        }),
+      ).toThrow(/referenceVideoUrls/);
+      // Fixed values remain unaffected by the pairing requirement.
+      expect(() =>
+        buildCanonicalVideoQueuePayload({
+          model: 'wan-2.6-text-to-video',
+          prompt: 'a running horse',
+          duration: '5s',
+          aspectRatio: '16:9',
+        }),
+      ).not.toThrow();
+    });
+
+    // QuoteVideoRequest documents reference_video_total_duration as REQUIRED
+    // when quoting source-matched duration or aspect ratio.
+    it('rejects source-matched quote values without referenceVideoTotalDuration', () => {
+      expect(() =>
+        buildCanonicalVideoQuotePayload({
+          model: 'seedance-2-5-reference-to-video-basic',
+          duration: 'auto',
+          aspectRatio: 'adaptive',
+          referenceVideoTotalDuration: 5.2,
+        }),
+      ).not.toThrow();
+      expect(() =>
+        buildCanonicalVideoQuotePayload({
+          model: 'seedance-2-5-reference-to-video-basic',
+          duration: 'auto',
+          aspectRatio: 'adaptive',
+        }),
+      ).toThrow(/referenceVideoTotalDuration/);
+      expect(() =>
+        buildCanonicalVideoQuotePayload({
+          model: 'seedance-2-5-reference-to-video-basic',
+          duration: '-1',
+        }),
+      ).toThrow(/referenceVideoTotalDuration/);
+    });
+  });
+
+  // Cross-assert the source-matched wire values against the committed,
+  // vendored OpenAPI spec (docs/reference/Venice_swagger_api.yaml). The
+  // upstream mirror carrying the Seedance guides is a local, gitignored
+  // sync, so CI-stable evidence lives in the vendored spec.
+  describe('Video wire enums vs vendored swagger', () => {
+    it('vendored swagger declares the source-matched queue/quote values', () => {
+      const swagger = readFileSync(
+        join(process.cwd(), 'docs', 'reference', 'Venice_swagger_api.yaml'),
+        'utf8',
+      );
+
+      const queueSection = swagger
+        .split('QueueVideoRequest:')[1]
+        .split('QuoteVideoRequest:')[0];
+      // QueueVideoRequest duration enum includes the source-matched tokens.
+      expect(queueSection).toContain('- "-1"');
+      expect(queueSection).toContain('- auto');
+      // QueueVideoRequest aspect_ratio enum includes the source-matched tokens.
+      expect(queueSection).toContain('- adaptive');
+
+      const quoteSection = swagger
+        .split('QuoteVideoRequest:')[1]
+        .split('CompleteVideoRequest:')[0];
+      // Quote schema carries reference_video_total_duration (required for
+      // source-matched quotes) and declares the source-matched enums.
+      expect(quoteSection).toContain('reference_video_total_duration:');
+      // bitrate_mode is guide-level evidence only: neither schema declares it,
+      // and the quote path must never carry it.
+      expect(queueSection).not.toContain('bitrate_mode');
+      expect(quoteSection).not.toContain('bitrate_mode');
     });
   });
 

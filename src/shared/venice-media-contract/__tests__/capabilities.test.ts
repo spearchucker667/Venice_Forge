@@ -6,6 +6,7 @@ import {
   isAudioMusicModel,
   isAudioTtsModel,
   resolveModelSizingMode,
+  supportsVideoBitrateMode,
 } from '../capabilities';
 
 describe('Model Capabilities', () => {
@@ -56,6 +57,40 @@ describe('Model Capabilities', () => {
       expect(isAudioTtsModel('tts-kokoro')).toBe(true);
       expect(isAudioTtsModel({ id: 'custom-voice', type: 'tts' })).toBe(true);
       expect(isAudioTtsModel('stable-audio')).toBe(false);
+    });
+  });
+
+  // Phase 5 (2026-09-17) — `bitrate_mode` is documented for the public
+  // Seedance 2.0 (incl. Fast) and 2.5 families only; every other family
+  // fails closed.
+  describe('supportsVideoBitrateMode', () => {
+    it('accepts the documented Seedance 2.0/2.5 public model families', () => {
+      expect(supportsVideoBitrateMode('seedance-2-0-text-to-video-basic')).toBe(true);
+      expect(supportsVideoBitrateMode('seedance-2-0-image-to-video-basic')).toBe(true);
+      expect(supportsVideoBitrateMode('seedance-2-0-reference-to-video-basic')).toBe(true);
+      expect(supportsVideoBitrateMode('seedance-2-0-fast-text-to-video-basic')).toBe(true);
+      expect(supportsVideoBitrateMode('seedance-2-0-fast-reference-to-video-basic')).toBe(true);
+      expect(supportsVideoBitrateMode('seedance-2-5-text-to-video-basic')).toBe(true);
+      expect(supportsVideoBitrateMode('seedance-2-5-reference-to-video-basic')).toBe(true);
+    });
+
+    it('accepts model records and rejects other video families', () => {
+      expect(
+        supportsVideoBitrateMode({ id: 'seedance-2-5-image-to-video-basic' }),
+      ).toBe(true);
+      expect(supportsVideoBitrateMode('wan-2.6-text-to-video')).toBe(false);
+      expect(supportsVideoBitrateMode('kling-o3-pro-reference-to-video')).toBe(false);
+      expect(supportsVideoBitrateMode('grok-imagine-image-to-video-private')).toBe(false);
+      expect(supportsVideoBitrateMode('topaz-video-upscale')).toBe(false);
+    });
+
+    it('fails closed for other Seedance generations and unknown input', () => {
+      expect(supportsVideoBitrateMode('seedance-1-0-text-to-video-basic')).toBe(false);
+      expect(supportsVideoBitrateMode('seedance-3-0-text-to-video-basic')).toBe(false);
+      expect(supportsVideoBitrateMode('')).toBe(false);
+      expect(supportsVideoBitrateMode(undefined)).toBe(false);
+      expect(supportsVideoBitrateMode(null)).toBe(false);
+      expect(supportsVideoBitrateMode({})).toBe(false);
     });
   });
 

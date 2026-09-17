@@ -128,6 +128,37 @@ export interface VideoQuoteLogicalRequest {
   referenceVideoTotalDuration?: number;
 }
 
+/** Seedance 2.0 (incl. Fast) / 2.5 output encode bitrate per upstream
+ *  guides/media/seedance-2-0.mdx — "standard" (default) or "high".
+ *  Queue-only: `/video/quote` does not accept the field. */
+export type VideoBitrateMode = 'standard' | 'high';
+
+export const VIDEO_BITRATE_MODES: readonly VideoBitrateMode[] = ['standard', 'high'];
+
+/** Queue `aspect_ratio` tokens that make Seedance 2.x R2V output match the
+ *  source clip instead of a fixed ratio (swagger QueueVideoRequest enum;
+ *  requires reference_video_urls). */
+export const VIDEO_SOURCE_MATCHED_ASPECT_VALUES = ['adaptive', 'auto'] as const;
+
+/** Queue `duration` tokens that make Seedance 2.5 R2V edit output match the
+ *  source clip length instead of a fixed duration (swagger QueueVideoRequest
+ *  enum; requires reference_video_urls, source must be 4–30s). */
+export const VIDEO_SOURCE_MATCHED_DURATION_VALUES = ['-1', 'auto', 'Auto'] as const;
+
+export function isVideoSourceMatchedAspectRatio(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    (VIDEO_SOURCE_MATCHED_ASPECT_VALUES as readonly string[]).includes(value)
+  );
+}
+
+export function isVideoSourceMatchedDuration(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    (VIDEO_SOURCE_MATCHED_DURATION_VALUES as readonly string[]).includes(value)
+  );
+}
+
 export interface VideoQueueLogicalRequest {
   model: string;
   prompt: string;
@@ -135,7 +166,7 @@ export interface VideoQueueLogicalRequest {
   /** Required by QueueVideoRequest; e.g. "5s", "10s". */
   duration: string;
   resolution?: string; // "720p", "1080p"
-  aspectRatio?: string; // "16:9", "9:16"
+  aspectRatio?: string; // "16:9", "9:16", "adaptive" (Seedance 2.x R2V, requires referenceVideoUrls)
   upscaleFactor?: 1 | 2 | 4;
   audio?: boolean;
   imageUrl?: string;
@@ -146,6 +177,8 @@ export interface VideoQueueLogicalRequest {
   referenceVideoUrls?: string[];
   referenceAudioUrls?: string[];
   sceneImageUrls?: string[];
+  /** Seedance 2.0/2.5 only. "standard" equals omitting the field. */
+  bitrateMode?: VideoBitrateMode;
   consents?: {
     seedance?: SeedanceConsentObject;
   };
@@ -287,6 +320,9 @@ export interface VideoQueueWirePayload {
       confirmed_screening_acknowledged: boolean;
     };
   };
+  /** Seedance 2.0/2.5 only; queue-only encoding option, does not change price.
+   *  "standard" is the upstream default and is omitted from the wire. */
+  bitrate_mode?: VideoBitrateMode;
 }
 
 export interface VideoRetrieveWirePayload {

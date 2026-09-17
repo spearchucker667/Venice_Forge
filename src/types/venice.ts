@@ -547,6 +547,9 @@ export interface VideoQueueRequest {
   video_url?: string
   reference_image_urls?: string[]
   scene_image_urls?: string[]
+  /** Seedance 2.0/2.5 only, queue-only. "standard" is the upstream default
+   *  and is omitted; only "high" is sent. */
+  bitrate_mode?: "standard" | "high"
 }
 
 export interface VideoQueueResponse {

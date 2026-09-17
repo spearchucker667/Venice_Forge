@@ -31,6 +31,7 @@ import type {
   VideoRetrieveLogicalRequest,
   VideoRetrieveWirePayload,
 } from './types';
+import { isVideoSourceMatchedAspectRatio, isVideoSourceMatchedDuration } from './types';
 
 // Hard limits per upstream swagger.yaml
 export const MIN_IMAGE_DIMENSION = 64;
@@ -261,6 +262,21 @@ export function buildCanonicalVideoQuotePayload(
     payload.reference_video_total_duration = req.referenceVideoTotalDuration;
   }
 
+  // Source-matched Seedance values (`duration: "-1"/"auto"`,
+  // `aspect_ratio: "adaptive"/"auto") REQUIRE reference_video_total_duration
+  // on the quote — upstream bills ceil(reference_video_total_duration)
+  // seconds and the swagger marks the field required for these values.
+  // Quoting without it would silently return the no-reference baseline.
+  if (
+    (isVideoSourceMatchedDuration(duration) ||
+      isVideoSourceMatchedAspectRatio(payload.aspect_ratio)) &&
+    payload.reference_video_total_duration === undefined
+  ) {
+    throw new Error(
+      'Source-matched video duration/aspect requires referenceVideoTotalDuration for the quote.',
+    );
+  }
+
   return payload;
 }
 
@@ -293,6 +309,14 @@ export function buildCanonicalVideoQueuePayload(
   }
 
   if (req.audio !== undefined) payload.audio = !!req.audio;
+
+  // `bitrate_mode` is Seedance 2.0/2.5-only, queue-only, and does not change
+  // price (upstream seedance-2-0 guide). "standard" is the upstream default
+  // and is omitted from the wire; anything outside the documented enum is
+  // dropped rather than propagated to a provider that would reject it.
+  if (req.bitrateMode === 'high') {
+    payload.bitrate_mode = 'high';
+  }
 
   const imageUrl = cleanString(req.imageUrl);
   if (imageUrl) payload.image_url = imageUrl;
@@ -337,6 +361,21 @@ export function buildCanonicalVideoQueuePayload(
         },
       };
     }
+  }
+
+  // Source-matched Seedance values (`duration: "-1"/"auto"`,
+  // `aspect_ratio: "adaptive"/"auto") REQUIRE reference_video_urls on the
+  // queue per the swagger QueueVideoRequest descriptions. Fail locally
+  // instead of dispatching a body the provider must reject.
+  if (
+    (isVideoSourceMatchedDuration(duration) ||
+      isVideoSourceMatchedAspectRatio(payload.aspect_ratio)) &&
+    (!Array.isArray(payload.reference_video_urls) ||
+      payload.reference_video_urls.length === 0)
+  ) {
+    throw new Error(
+      'Source-matched video duration/aspect requires referenceVideoUrls on the queue request.',
+    );
   }
 
   return payload;

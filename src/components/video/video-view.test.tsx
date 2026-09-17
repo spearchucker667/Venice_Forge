@@ -117,6 +117,38 @@ vi.mock('../../hooks/use-models', () => ({
         },
         sets: [],
       },
+      {
+        name: 'Seedance Group',
+        textModel: {
+          id: 'seedance-2-0-text-to-video-basic',
+          model_spec: {
+            name: 'Seedance 2.0 T2V',
+            constraints: {
+              model_type: 'text-to-video',
+              durations: ['5s', '10s'],
+              resolutions: ['720p', '1080p'],
+              aspect_ratios: ['16:9', '9:16'],
+            },
+          },
+        },
+        sets: [],
+      },
+      {
+        name: 'Seedance R2V Group',
+        textModel: {
+          id: 'seedance-2-5-reference-to-video-basic',
+          model_spec: {
+            name: 'Seedance 2.5 R2V',
+            constraints: {
+              model_type: 'video',
+              durations: ['5s', 'auto', '-1'],
+              resolutions: ['720p', '1080p'],
+              aspect_ratios: ['16:9', 'adaptive'],
+            },
+          },
+        },
+        sets: [],
+      },
     ],
     isLoading: false,
   }),
@@ -430,5 +462,104 @@ describe('VideoView prompt character limit (VF-20260916-P2-006)', () => {
     const meter = await screen.findByTestId('video-prompt-meter')
     expect(meter).toHaveTextContent('2,501/2,500')
     expect(meter).toHaveAttribute('data-over-limit', 'true')
+  })
+})
+
+describe('VideoView Seedance bitrate_mode (Phase 5, 2026-09-17)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    queueMock.mockReset()
+    mockUseVideoQuote.mockReturnValue({ data: undefined, isLoading: false })
+    useSettingsStore.setState({ selectedVideoMode: 'text', selectedVideoModelGroup: undefined, selectedVideoModelId: undefined })
+  })
+
+  const selectGroup = (label: string) => {
+    const modelButton = screen.getByRole('button', { name: 'Model' })
+    fireEvent.click(modelButton)
+    const option = screen
+      .getAllByRole('option')
+      .find((o) => o.textContent?.includes(label))
+    expect(option).toBeDefined()
+    if (option) fireEvent.click(option)
+  }
+
+  it('shows the Output bitrate control only for Seedance 2.0/2.5 models', () => {
+    render(<VideoView />)
+    // Default group is non-Seedance — no bitrate control.
+    expect(screen.queryByRole('button', { name: 'Output bitrate' })).toBeNull()
+
+    selectGroup('Seedance 2.0 T2V')
+    expect(screen.getByRole('button', { name: 'Output bitrate' })).toBeInTheDocument()
+
+    selectGroup('Priced Text-to-Video')
+    expect(screen.queryByRole('button', { name: 'Output bitrate' })).toBeNull()
+  })
+
+  it('sends bitrate_mode "high" on generate when High is selected', () => {
+    useSettingsStore.setState({ selectedVideoModelGroup: 'Seedance Group' })
+    render(<VideoView />)
+
+    fireEvent.change(screen.getByPlaceholderText(/Cinematic drone shot/i), {
+      target: { value: 'a dog running' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Output bitrate' }))
+    const highOption = screen
+      .getAllByRole('option')
+      .find((o) => o.textContent === 'High')
+    expect(highOption).toBeDefined()
+    if (highOption) fireEvent.click(highOption)
+
+    fireEvent.click(screen.getByRole('button', { name: /Generate Video/i }))
+    expect(queueMock).toHaveBeenCalledTimes(1)
+    expect(queueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'seedance-2-0-text-to-video-basic',
+        bitrate_mode: 'high',
+      }),
+    )
+  })
+
+  it('omits bitrate_mode when Standard is selected (upstream default)', () => {
+    useSettingsStore.setState({ selectedVideoModelGroup: 'Seedance Group' })
+    render(<VideoView />)
+
+    fireEvent.change(screen.getByPlaceholderText(/Cinematic drone shot/i), {
+      target: { value: 'a dog running' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Generate Video/i }))
+    expect(queueMock).toHaveBeenCalledTimes(1)
+    expect(queueMock.mock.calls[0][0]).not.toHaveProperty('bitrate_mode')
+  })
+
+  it('never sends bitrate_mode for non-Seedance models', () => {
+    useSettingsStore.setState({ selectedVideoModelGroup: 'Priced Group' })
+    render(<VideoView />)
+
+    fireEvent.change(screen.getByPlaceholderText(/Cinematic drone shot/i), {
+      target: { value: 'a dog running' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Generate Video/i }))
+    expect(queueMock).toHaveBeenCalledTimes(1)
+    expect(queueMock.mock.calls[0][0]).not.toHaveProperty('bitrate_mode')
+  })
+
+  // Source-matched Seedance tokens require reference videos on the queue;
+  // this interactive view never attaches reference videos, so the tokens are
+  // filtered from the pickers (they remain supported at the contract layer).
+  it('filters source-matched duration/aspect tokens from the pickers', () => {
+    useSettingsStore.setState({ selectedVideoModelGroup: 'Seedance R2V Group' })
+    render(<VideoView />)
+
+    expect(screen.queryByRole('radio', { name: 'auto' })).toBeNull()
+    expect(screen.queryByRole('radio', { name: '-1' })).toBeNull()
+    expect(screen.getByRole('radio', { name: '5s' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Aspect/i }))
+    const aspectLabels = screen
+      .getAllByRole('option')
+      .map((o) => o.textContent)
+    expect(aspectLabels).toContain('16:9')
+    expect(aspectLabels).not.toContain('adaptive')
+    expect(aspectLabels).not.toContain('auto')
   })
 })

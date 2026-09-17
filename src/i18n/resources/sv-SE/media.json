@@ -172,5 +172,12 @@
     "notification": {
       "formatRepaired": "__MISSING__:audioStudio.notification.formatRepaired {{format}}"
     }
+  },
+  "videoStudio": {
+    "bitrateMode": {
+      "label": "__MISSING__:videoStudio.bitrateMode.label",
+      "standard": "__MISSING__:videoStudio.bitrateMode.standard",
+      "high": "__MISSING__:videoStudio.bitrateMode.high"
+    }
   }
 }

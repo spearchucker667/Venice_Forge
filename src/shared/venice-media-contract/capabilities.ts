@@ -111,6 +111,33 @@ export function isVideoModel(model: ModelMetadataLike | string): boolean {
   return id.includes('video') || id.includes('seedance') || id.includes('wan-') || id.includes('kling');
 }
 
+/** Model ID family pattern for the public Seedance 2.0 (including Fast) and
+ *  2.5 models. Upstream documents `bitrate_mode` for exactly these families
+ *  (guides/media/seedance-2-0.mdx; api-reference/endpoint/video/queue.mdx)
+ *  and states other families (Wan, Kling, LTX, …) do not support the field.
+ *  The upstream Swagger exposes no `bitrate_mode` capability flag in the
+ *  video model constraints, so the documented model family is the only
+ *  available discriminator. Fail closed: anything outside the family gets no
+ *  control and the field is never sent. */
+const SEEDANCE_BITRATE_CAPABLE_PATTERN = /^seedance-2-(?:0|5)-/i;
+
+/** True only when the model belongs to the documented Seedance 2.0/2.5
+ *  family that accepts the queue-only `bitrate_mode` field. Accepts a model
+ *  record (reads `id`) or a bare model ID string; unknown/absent IDs fail
+ *  closed. */
+export function supportsVideoBitrateMode(
+  model: { id?: string } | string | null | undefined,
+): boolean {
+  const id =
+    typeof model === 'string'
+      ? model.trim()
+      : typeof model?.id === 'string'
+        ? model.id.trim()
+        : '';
+  if (!id) return false;
+  return SEEDANCE_BITRATE_CAPABLE_PATTERN.test(id);
+}
+
 /** Returns true if a model is an audio / music generation model */
 export function isAudioMusicModel(model: ModelMetadataLike | string): boolean {
   if (typeof model === 'string') {

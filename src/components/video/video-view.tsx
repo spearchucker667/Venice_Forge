@@ -35,15 +35,22 @@ import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndic
 import { ManagedVideoPlayer } from "../media/ManagedVideoPlayer";
 import { PromptLimitMeter } from "../ui/prompt-limit";
 import { resolvePromptCharacterLimit } from "../../utils/payloadBuilders";
+import {
+  isVideoSourceMatchedAspectRatio,
+  isVideoSourceMatchedDuration,
+  supportsVideoBitrateMode,
+} from "../../shared/venice-media-contract";
 import { Trans, useTranslation } from "react-i18next";
 
 export function VideoView() {
   const { t: tRuntime } = useTranslation("common");
+  const { t: tMedia } = useTranslation("media");
   const promptId = useId();
   const negativePromptId = useId();
   const modelId = useId();
   const resolutionId = useId();
   const aspectId = useId();
+  const bitrateId = useId();
   const hasVeniceKey = useAuthStore(selectHasVeniceKey);
   const { groups, isLoading: modelsLoading } = useVideoModels();
   const selectedGroup = useSettingsStore((s) => s.selectedVideoModelGroup);
@@ -60,6 +67,7 @@ export function VideoView() {
   const [duration, setDuration] = useState("");
   const [resolution, setResolution] = useState("");
   const [aspect, setAspect] = useState("");
+  const [bitrateMode, setBitrateMode] = useState<"standard" | "high">("standard");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageName, setImageName] = useState("");
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -125,9 +133,18 @@ export function VideoView() {
   const hasImageMode = !!group?.imageModel;
   const hasTextMode = !!group?.textModel;
 
-  // Build option lists from constraints
+  // Build option lists from constraints. Source-matched tokens (`adaptive` /
+  // `auto` aspect, `-1` / `auto` duration) are filtered out: upstream
+  // documents them as Seedance 2.x R2V values that REQUIRE reference videos
+  // on the queue (and reference_video_total_duration on the quote), and this
+  // interactive view never attaches reference videos — offering them would
+  // guarantee a provider 400. They remain supported at the contract/builder
+  // layer for callers that do supply reference videos.
   const durationOpts = useMemo(
-    () => (constraints?.durations || []).map((d) => ({ value: d, label: d })),
+    () =>
+      (constraints?.durations || [])
+        .filter((d) => !isVideoSourceMatchedDuration(d))
+        .map((d) => ({ value: d, label: d })),
     [constraints],
   );
   const resolutionOpts = useMemo(
@@ -136,9 +153,27 @@ export function VideoView() {
   );
   const aspectOpts = useMemo(
     () =>
-      (constraints?.aspect_ratios || []).map((a) => ({ value: a, label: a })),
+      (constraints?.aspect_ratios || [])
+        .filter((a) => !isVideoSourceMatchedAspectRatio(a))
+        .map((a) => ({ value: a, label: a })),
     [constraints],
   );
+
+  // `bitrate_mode` is documented for the public Seedance 2.0 (incl. Fast) and
+  // 2.5 families only; other families must never receive the field.
+  const bitrateCapable = supportsVideoBitrateMode(activeModel);
+  const bitrateOpts = [
+    {
+      value: "standard",
+      label: tMedia("videoStudio.bitrateMode.standard", {
+        defaultValue: "Standard",
+      }),
+    },
+    {
+      value: "high",
+      label: tMedia("videoStudio.bitrateMode.high", { defaultValue: "High" }),
+    },
+  ];
 
   // Ensure selected values are valid for current model
   const effectiveDuration = durationOpts.some((o) => o.value === duration)
@@ -276,6 +311,12 @@ export function VideoView() {
       ...(effectiveDuration ? { duration: effectiveDuration } : {}),
       ...(effectiveResolution ? { resolution: effectiveResolution } : {}),
       ...(effectiveAspect ? { aspect_ratio: effectiveAspect } : {}),
+      // Seedance-only queue encoding option; never sent to /video/quote
+      // (upstream rejects it there). "standard" is the upstream default and
+      // is omitted from the wire — identical semantics per the Seedance guide.
+      ...(bitrateCapable && bitrateMode === "high"
+        ? { bitrate_mode: "high" as const }
+        : {}),
     };
     if (mode === "image" && imageUrl) {
       req.image_url = imageUrl;
@@ -313,6 +354,7 @@ export function VideoView() {
             setDuration("");
             setResolution("");
             setAspect("");
+            setBitrateMode("standard");
           }}
           options={groupOptions}
           searchable
@@ -539,6 +581,23 @@ export function VideoView() {
           </div>
         )}
       </div>
+
+      {/* Output bitrate — Seedance 2.0/2.5 only (queue-only, no price change) */}
+      {bitrateCapable && (
+        <div>
+          <Label htmlFor={bitrateId}>
+            {tMedia("videoStudio.bitrateMode.label", {
+              defaultValue: "Output bitrate",
+            })}
+          </Label>
+          <Select
+            id={bitrateId}
+            value={bitrateMode}
+            onChange={(v) => setBitrateMode(v === "high" ? "high" : "standard")}
+            options={bitrateOpts}
+          />
+        </div>
+      )}
 
       {/* Audio toggle */}
       {constraints?.audio && constraints.audio_configurable && (

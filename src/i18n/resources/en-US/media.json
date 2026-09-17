@@ -3,6 +3,13 @@
   "imageStudio": "Image Studio",
   "gallery": "Gallery",
   "video": "Video",
+  "videoStudio": {
+    "bitrateMode": {
+      "label": "Output bitrate",
+      "standard": "Standard",
+      "high": "High"
+    }
+  },
   "audio": "Audio",
   "music": "Music",
   "promptPlaceholder": "Describe the image you want to generate...",
