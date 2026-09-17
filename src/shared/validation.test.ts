@@ -10,12 +10,17 @@ import {
   extractApiKeyId,
   extractCharacterSlug,
   extractCharacterSlugFromReviewsPath,
+  extractWalletAddressFromX402Path,
   isAllowedApiKeysRequest,
   isAllowedCharactersRequest,
   isAllowedVeniceRequest,
+  isAllowedX402Endpoint,
+  isAllowedX402Request,
   VENICE_API_KEY_ID_PATTERN,
   VENICE_CHARACTER_SLUG_PATTERN,
   VENICE_ENDPOINT_METHODS,
+  VENICE_WALLET_ADDRESS_PATTERN,
+  X402_TOP_UP_ENDPOINT,
 } from "./validation";
 
 describe("validation", () => {
@@ -62,6 +67,10 @@ describe("validation", () => {
         "/api_keys/rate_limits/log",
         // Phase 8 — Responses API (alpha). Experimental, opt-in; POST-only.
         "/responses",
+        // Phase 7 — x402 keyless wallet authentication and payment rail.
+        "/x402/top-up",
+        "/x402/balance/{walletAddress}",
+        "/x402/transactions/{walletAddress}",
       ]);
     });
   });
@@ -99,6 +108,9 @@ describe("validation", () => {
         // Phase 9 — read-only rate-limit sub-paths.
         "/api_keys/rate_limits",
         "/api_keys/rate_limits/log",
+        // Phase 7 — read-only x402 balance and transactions.
+        "/x402/balance/{walletAddress}",
+        "/x402/transactions/{walletAddress}",
       ]);
       const nonGetOnlyExceptParameterized = new Set([
         ...getOnlyEndpoints,
@@ -355,6 +367,65 @@ describe("validation", () => {
       expect(VENICE_API_KEY_ID_PATTERN.test("")).toBe(false);
       expect(VENICE_API_KEY_ID_PATTERN.test("a/b")).toBe(false);
       expect(VENICE_API_KEY_ID_PATTERN.test("a.b")).toBe(false);
+    });
+  });
+
+  describe("Phase 7 — x402 endpoints and validation", () => {
+    const validEvmAddress = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+    const validSolanaAddress = "8qUL23aSj7mDWdoLMXGHFvnVCT9wd7jXcysiekroADEL";
+    const invalidAddress = "0xInvalidShort";
+
+    it("validates wallet address pattern for EVM and Solana", () => {
+      expect(VENICE_WALLET_ADDRESS_PATTERN.test(validEvmAddress)).toBe(true);
+      expect(VENICE_WALLET_ADDRESS_PATTERN.test(validSolanaAddress)).toBe(true);
+      expect(VENICE_WALLET_ADDRESS_PATTERN.test(invalidAddress)).toBe(false);
+      expect(VENICE_WALLET_ADDRESS_PATTERN.test("")).toBe(false);
+      expect(VENICE_WALLET_ADDRESS_PATTERN.test("0x" + "g".repeat(40))).toBe(false);
+    });
+
+    it("allows POST on /x402/top-up and rejects other methods", () => {
+      expect(isAllowedX402Request(X402_TOP_UP_ENDPOINT, "POST")).toBe(true);
+      expect(isAllowedX402Request(X402_TOP_UP_ENDPOINT, "GET")).toBe(false);
+      expect(isAllowedX402Request(X402_TOP_UP_ENDPOINT, "PUT")).toBe(false);
+      expect(isAllowedX402Request(X402_TOP_UP_ENDPOINT, "DELETE")).toBe(false);
+    });
+
+    it("allows GET on /x402/balance/{walletAddress} with valid address", () => {
+      expect(isAllowedX402Request(`/x402/balance/${validEvmAddress}`, "GET")).toBe(true);
+      expect(isAllowedX402Request(`/x402/balance/${validSolanaAddress}`, "GET")).toBe(true);
+      expect(isAllowedX402Request(`/x402/balance/${validEvmAddress}`, "POST")).toBe(false);
+      expect(isAllowedX402Request(`/x402/balance/${invalidAddress}`, "GET")).toBe(false);
+      expect(isAllowedX402Request(`/x402/balance/${validEvmAddress}/nested`, "GET")).toBe(false);
+    });
+
+    it("allows GET on /x402/transactions/{walletAddress} with valid address", () => {
+      expect(isAllowedX402Request(`/x402/transactions/${validEvmAddress}`, "GET")).toBe(true);
+      expect(isAllowedX402Request(`/x402/transactions/${validSolanaAddress}`, "GET")).toBe(true);
+      expect(isAllowedX402Request(`/x402/transactions/${validEvmAddress}`, "POST")).toBe(false);
+      expect(isAllowedX402Request(`/x402/transactions/${invalidAddress}`, "GET")).toBe(false);
+      expect(isAllowedX402Request(`/x402/transactions/${validEvmAddress}/extra`, "GET")).toBe(false);
+    });
+
+    it("extracts wallet address from x402 paths", () => {
+      expect(extractWalletAddressFromX402Path(`/x402/balance/${validEvmAddress}`)).toBe(validEvmAddress);
+      expect(extractWalletAddressFromX402Path(`/x402/transactions/${validSolanaAddress}`)).toBe(validSolanaAddress);
+      expect(extractWalletAddressFromX402Path(`/x402/balance/${invalidAddress}`)).toBeNull();
+      expect(extractWalletAddressFromX402Path("/x402/top-up")).toBeNull();
+    });
+
+    it("checks isAllowedX402Endpoint structure", () => {
+      expect(isAllowedX402Endpoint("/x402/top-up")).toBe(true);
+      expect(isAllowedX402Endpoint(`/x402/balance/${validEvmAddress}`)).toBe(true);
+      expect(isAllowedX402Endpoint(`/x402/transactions/${validSolanaAddress}`)).toBe(true);
+      expect(isAllowedX402Endpoint("/x402/other")).toBe(false);
+    });
+
+    it("isAllowedVeniceRequest routes x402 requests correctly", () => {
+      expect(isAllowedVeniceRequest("/x402/top-up", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/x402/top-up", "GET")).toBe(false);
+      expect(isAllowedVeniceRequest(`/x402/balance/${validEvmAddress}`, "GET")).toBe(true);
+      expect(isAllowedVeniceRequest(`/x402/transactions/${validSolanaAddress}`, "GET")).toBe(true);
+      expect(isAllowedVeniceRequest("/x402/unknown", "GET")).toBe(false);
     });
   });
 });

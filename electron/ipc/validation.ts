@@ -9,10 +9,12 @@ export const MAX_VENICE_IPC_BODY_BYTES = VENICE_MAX_BODY_BYTES;
 import {
   ALLOWED_VENICE_ENDPOINTS,
   ALLOWED_VENICE_METHODS,
+  API_KEYS_ENDPOINT,
   CHARACTERS_ENDPOINT,
   VeniceIpcEndpoint,
   VeniceIpcMethod,
   isAllowedVeniceRequest,
+  isAllowedX402Endpoint,
 } from "../../src/shared/validation";
 import { VENICE_API_HOST } from "../../src/shared/apiConfig";
 import type { MutationOrigin } from "../../src/types/sync";
@@ -223,7 +225,10 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
   const isStatic = ALLOWED_VENICE_ENDPOINTS.includes(endpoint.pathname as VeniceIpcEndpoint);
   const isCharacters = endpoint.pathname === CHARACTERS_ENDPOINT ||
     endpoint.pathname.startsWith(`${CHARACTERS_ENDPOINT}/`);
-  if (!isStatic && !isCharacters) {
+  const isApiKeys = endpoint.pathname === API_KEYS_ENDPOINT ||
+    endpoint.pathname.startsWith(`${API_KEYS_ENDPOINT}/`);
+  const isX402 = isAllowedX402Endpoint(endpoint.pathname);
+  if (!isStatic && !isCharacters && !isApiKeys && !isX402) {
     throw new Error(`Venice endpoint ${endpoint.pathname} is not allowed.`);
   }
 
@@ -252,7 +257,7 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
       const lower = key.toLowerCase();
       if (BLOCKED_VENICE_HEADERS.has(lower)) continue;
       if (lower.startsWith("x-forwarded-")) continue;
-      if (typeof value === "string" && value.length <= 512) headers[key] = value;
+      if (typeof value === "string" && value.length <= 4096) headers[key] = value;
     }
   }
 

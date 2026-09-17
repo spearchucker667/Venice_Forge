@@ -11,6 +11,8 @@ export interface VeniceApiError extends Error {
    *  when the upstream surface emitted enough information to populate it —
    *  older or opaque 429 responses may carry `status` but no `rateLimit`. */
   rateLimit?: VeniceRateLimitInfo;
+  /** Parsed response payload when available (e.g. 402 payment requirements). */
+  responseBody?: unknown;
 }
 
 /** Custom error thrown by the legacy Venice client surface. */

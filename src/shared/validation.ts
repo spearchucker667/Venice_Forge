@@ -50,6 +50,13 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   // POST-only per the upstream contract (docs/reference/Venice_swagger_api.yaml
   // :7095). Never a silent replacement for /chat/completions.
   "/responses",
+  // Phase 7 — x402 keyless wallet authentication and payment rail.
+  // /x402/top-up is POST (empty body discovers payment options, header tops up).
+  // Parameterized /x402/balance/{walletAddress} and /x402/transactions/{walletAddress}
+  // resolve via isAllowedX402Request().
+  "/x402/top-up",
+  "/x402/balance/{walletAddress}",
+  "/x402/transactions/{walletAddress}",
 ] as const;
 
 /** HTTP methods permitted for Venice API requests. PUT and DELETE were
@@ -118,6 +125,10 @@ export const VENICE_ENDPOINT_METHODS: Record<string, readonly VeniceIpcMethod[]>
   // Phase 8 — Responses API (alpha). POST only; the upstream contract
   // documents no other method on /responses.
   "/responses": ["POST"],
+  // Phase 7 — x402 wallet authentication & payment rail.
+  "/x402/top-up": ["POST"],
+  "/x402/balance/{walletAddress}": ["GET"],
+  "/x402/transactions/{walletAddress}": ["GET"],
 };
 
 /** The bare /characters list endpoint. The character-slug variant is
@@ -260,6 +271,75 @@ export function extractApiKeyId(pathname: string): string | null {
   return VENICE_API_KEY_ID_PATTERN.test(tail) ? tail : null;
 }
 
+/** Phase 7 — base constants for the x402 keyless wallet authentication surface. */
+export const X402_TOP_UP_ENDPOINT = "/x402/top-up" as const;
+export const X402_BALANCE_PREFIX = "/x402/balance/" as const;
+export const X402_TRANSACTIONS_PREFIX = "/x402/transactions/" as const;
+
+/** Regex used to validate EVM (0x + 40 hex) or Solana (base58 32..44 chars) wallet addresses. */
+export const VENICE_WALLET_ADDRESS_PATTERN = /^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$/;
+
+/**
+ * Checks whether a path matches any recognized x402 endpoint structure.
+ */
+export function isAllowedX402Endpoint(pathname: string): boolean {
+  if (pathname === X402_TOP_UP_ENDPOINT) return true;
+  if (pathname.startsWith(X402_BALANCE_PREFIX)) {
+    const address = pathname.slice(X402_BALANCE_PREFIX.length);
+    return address.length > 0 && !address.includes("/") && VENICE_WALLET_ADDRESS_PATTERN.test(address);
+  }
+  if (pathname.startsWith(X402_TRANSACTIONS_PREFIX)) {
+    const address = pathname.slice(X402_TRANSACTIONS_PREFIX.length);
+    return address.length > 0 && !address.includes("/") && VENICE_WALLET_ADDRESS_PATTERN.test(address);
+  }
+  return false;
+}
+
+/**
+ * Checks whether a path + method pair matches the Venice `/x402` endpoints (Phase 7).
+ *
+ * Accepts:
+ *   - `/x402/top-up` (POST)
+ *   - `/x402/balance/{walletAddress}` (GET)
+ *   - `/x402/transactions/{walletAddress}` (GET)
+ *
+ * Rejects:
+ *   - other nested paths
+ *   - invalid wallet address formats
+ *   - methods not permitted for the specific endpoint
+ */
+export function isAllowedX402Request(pathname: string, method: string): boolean {
+  if (pathname === X402_TOP_UP_ENDPOINT) {
+    return method === "POST";
+  }
+  if (pathname.startsWith(X402_BALANCE_PREFIX)) {
+    if (method !== "GET") return false;
+    const address = pathname.slice(X402_BALANCE_PREFIX.length);
+    return address.length > 0 && !address.includes("/") && VENICE_WALLET_ADDRESS_PATTERN.test(address);
+  }
+  if (pathname.startsWith(X402_TRANSACTIONS_PREFIX)) {
+    if (method !== "GET") return false;
+    const address = pathname.slice(X402_TRANSACTIONS_PREFIX.length);
+    return address.length > 0 && !address.includes("/") && VENICE_WALLET_ADDRESS_PATTERN.test(address);
+  }
+  return false;
+}
+
+/** Extracts the wallet address from a `/x402/balance/{walletAddress}` or
+ *  `/x402/transactions/{walletAddress}` pathname. Returns null when not matched. */
+export function extractWalletAddressFromX402Path(pathname: string): string | null {
+  let address: string | null = null;
+  if (pathname.startsWith(X402_BALANCE_PREFIX)) {
+    address = pathname.slice(X402_BALANCE_PREFIX.length);
+  } else if (pathname.startsWith(X402_TRANSACTIONS_PREFIX)) {
+    address = pathname.slice(X402_TRANSACTIONS_PREFIX.length);
+  }
+  if (!address || address.includes("/") || !VENICE_WALLET_ADDRESS_PATTERN.test(address)) {
+    return null;
+  }
+  return address;
+}
+
 /**
  * Checks whether an HTTP method is valid for an allowed Venice endpoint.
  * @param endpoint The parsed Venice endpoint pathname.
@@ -272,5 +352,7 @@ export function isAllowedVeniceRequest(endpoint: string, method: string): boolea
   if (isAllowedCharactersRequest(endpoint, method)) return true;
   // Phase 9 — parameterized `/api_keys/{id}` is matched here because the
   // literal-path lookup table only carries `/api_keys/{id}` as a template.
-  return isAllowedApiKeysRequest(endpoint, method);
+  if (isAllowedApiKeysRequest(endpoint, method)) return true;
+  // Phase 7 — parameterized `/x402/balance/{walletAddress}` and `/x402/transactions/{walletAddress}`
+  return isAllowedX402Request(endpoint, method);
 }

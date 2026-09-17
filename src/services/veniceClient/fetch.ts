@@ -245,6 +245,7 @@ async function veniceFetchDesktop(
         const error: VeniceApiError = new Error(errorMsg);
         error.status = response.status;
         error.diagnostics = diag; // marks as already dispatched
+        error.responseBody = response.body;
         // Attach typed rate-limit metadata for 429 responses so UI/analytics
         // can distinguish reasons without re-parsing headers everywhere.
         if (response.status === 429) {
@@ -447,6 +448,7 @@ async function _veniceFetch(
         const error: VeniceApiError = new Error(normalized);
         error.status = response.status;
         error.diagnostics = diag;
+        error.responseBody = parsed;
         throw error;
       }
 

@@ -17,6 +17,9 @@ import {
   VeniceIpcMethod,
   isAllowedCharactersRequest,
   isAllowedVeniceRequest,
+  isAllowedApiKeysRequest,
+  isAllowedX402Endpoint,
+  isAllowedX402Request,
 } from "./src/shared/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
 import { AppConfig } from "./src/shared/configSchema";
@@ -169,7 +172,9 @@ export function applyVeniceProxyHeaders(
     proxyReq.removeHeader(header);
   }
 
-  proxyReq.setHeader("Authorization", `Bearer ${apiKey}`);
+  if (apiKey) {
+    proxyReq.setHeader("Authorization", `Bearer ${apiKey}`);
+  }
   proxyReq.setHeader("Host", VENICE_API_HOST);
 
   if (req.method !== "GET" && req.body) {
@@ -1032,7 +1037,9 @@ export function createServerApp() {
       // (b) an unknown / malformed path — emit 403
       const isStatic = (ALLOWED_VENICE_ENDPOINTS as readonly string[]).includes(req.path);
       const isCharacters = isAllowedCharactersRequest(req.path, "GET");
-      const status = isStatic || isCharacters ? 405 : 403;
+      const isApiKeys = isAllowedApiKeysRequest(req.path, "GET") || isAllowedApiKeysRequest(req.path, "POST") || isAllowedApiKeysRequest(req.path, "PUT") || isAllowedApiKeysRequest(req.path, "DELETE");
+      const isX402 = isAllowedX402Endpoint(req.path);
+      const status = isStatic || isCharacters || isApiKeys || isX402 ? 405 : 403;
       const message =
         status === 405
           ? `Method ${method} not allowed for endpoint ${req.path}`
@@ -1051,6 +1058,10 @@ export function createServerApp() {
   // status regardless of key state; only requests that would actually reach
   // the upstream are gated on key presence.
   app.use("/api/venice", (req, res, next) => {
+    // Phase 7: x402 endpoints authenticate via SIWX / payment signatures, not API key.
+    if (isAllowedX402Request(req.path, req.method)) {
+      return next();
+    }
     if (!AppConfig.VENICE_API_KEY && !isDevSessionConfigured(devSessionVeniceApiKey) && AppConfig.NODE_ENV !== "test") {
       return res.status(401).json({ error: "VENICE_API_KEY is not configured on the server." });
     }

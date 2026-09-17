@@ -72,6 +72,13 @@ const SENSITIVE_HEADERS = new Set([
   "x-refresh-token",
   "x-jina-api-key",
   "x-venice-api-key",
+  // Phase 7 — x402 SIWX authentication and payment signature headers
+  "sign-in-with-x",
+  "x-sign-in-with-x",
+  "payment-signature",
+  "x-402-payment",
+  "x-payment",
+  "payment-response",
 ]);
 
 const PROMPT_FIELD_NAMES = new Set([

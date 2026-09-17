@@ -21,6 +21,7 @@ import {
   type StreamDelta as SharedStreamDelta,
 } from "../../src/shared/sseStreamDecoder";
 import { applyResponsesSseEvent } from "../../src/shared/veniceResponses";
+import { isAllowedX402Request } from "../../src/shared/validation";
 
 /** Maximum non-streaming Venice response body size we will buffer in memory. */
 const MAX_VENICE_RESPONSE_BYTES = 25 * 1024 * 1024;
@@ -509,8 +510,9 @@ async function performSingleVeniceRequest(
   const route = fallbackRouteResult?.route;
   const isFallback = !!route;
 
+  const isX402 = isAllowedX402Request(request.endpoint.split("?")[0], request.method);
   const apiKey = isFallback ? undefined : getApiKey(request.profileId);
-  if (!isFallback && !apiKey) {
+  if (!isFallback && !apiKey && !isX402) {
     return {
       ok: false,
       status: 401,
@@ -565,7 +567,7 @@ async function performSingleVeniceRequest(
     const headers: Record<string, string | number> = {
       ...request.headers,
       ...(route ? route.headers : {
-        Authorization: `Bearer ${apiKey}`
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       }),
       "User-Agent": `VeniceForge/${app.getVersion()}`,
     };

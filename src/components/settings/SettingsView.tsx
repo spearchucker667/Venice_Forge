@@ -13,10 +13,11 @@ import { isElectron, desktopApiKey, desktopJinaApiKey, desktopUpdates, desktopCo
 import { redactErrorMessage } from "../../shared/redaction";
 import { reloadConfig } from "../../stores/config-store";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
-import { KeyIcon, CloudIcon, GlobeIcon, WalletIcon, KeyRoundIcon } from "lucide-react";
+import { KeyIcon, CloudIcon, GlobeIcon, WalletIcon, KeyRoundIcon, CoinsIcon } from "lucide-react";
 import { LanguageRegionPanel } from "./LanguageRegionPanel";
 import { ApiKeysPanel } from "./ApiKeysPanel";
 import { BillingPanel } from "./BillingPanel";
+import { WalletPanel } from "./WalletPanel";
 import { VeniceApiKeysPanel } from "./VeniceApiKeysPanel";
 import { ProvidersPanel } from "./ProvidersPanel";
 import { DefaultsPanel } from "./DefaultsPanel";
@@ -395,6 +396,13 @@ export function SettingsView() {
             </div>
           </button>
 
+          <button onClick={() => setActiveSection("wallet")} className={sectionButtonClass("wallet")}>
+            <div className="flex items-center gap-2.5">
+              <CoinsIcon className="w-4 h-4 opacity-75" />
+              <span className="font-medium">{t('settings:tabs.wallet', 'Wallet & x402')}</span>
+            </div>
+          </button>
+
           <button onClick={() => setActiveSection("providers")} className={sectionButtonClass("providers")}>
             <div className="flex items-center gap-2.5">
               <CloudIcon className="w-4 h-4 opacity-75" />
@@ -476,6 +484,8 @@ export function SettingsView() {
           {activeSection === "billing" && <BillingPanel />}
 
           {activeSection === "venice-api-keys" && <VeniceApiKeysPanel />}
+
+          {activeSection === "wallet" && <WalletPanel />}
 
           {activeSection === "providers" && <ProvidersPanel />}
 

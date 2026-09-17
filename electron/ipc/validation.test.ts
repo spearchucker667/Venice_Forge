@@ -212,4 +212,48 @@ describe("Electron IPC validation", () => {
       ).toThrow();
     });
   });
+
+  describe("Phase 7 — x402 IPC validation", () => {
+    const validEvmAddress = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+
+    it("allows valid x402 balance and top-up requests through IPC", () => {
+      const balanceReq = validateVeniceIpcRequest({
+        endpoint: `/x402/balance/${validEvmAddress}`,
+        method: "GET",
+        headers: { "SIGN-IN-WITH-X": "a".repeat(1000) },
+      });
+      expect(balanceReq).toMatchObject({
+        endpoint: `/x402/balance/${validEvmAddress}`,
+        method: "GET",
+      });
+      expect(balanceReq.headers?.["SIGN-IN-WITH-X"]).toBe("a".repeat(1000));
+
+      expect(
+        validateVeniceIpcRequest({
+          endpoint: "/x402/top-up",
+          method: "POST",
+          headers: { "PAYMENT-SIGNATURE": "b".repeat(1000) },
+        }),
+      ).toMatchObject({
+        endpoint: "/x402/top-up",
+        method: "POST",
+      });
+    });
+
+    it("rejects invalid x402 endpoints or methods through IPC", () => {
+      expect(() =>
+        validateVeniceIpcRequest({
+          endpoint: "/x402/balance/invalid_address",
+          method: "GET",
+        }),
+      ).toThrow(/not allowed/i);
+
+      expect(() =>
+        validateVeniceIpcRequest({
+          endpoint: "/x402/top-up",
+          method: "DELETE",
+        }),
+      ).toThrow(/method/i);
+    });
+  });
 });
