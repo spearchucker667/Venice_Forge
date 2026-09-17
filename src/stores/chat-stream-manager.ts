@@ -5,7 +5,7 @@
  *  response. Only an explicit `stopStream()` aborts the signal.
  */
 
-import { veniceStreamChat } from "../services/veniceClient";
+import { veniceStreamChat, veniceStreamResponses } from "../services/veniceClient";
 import { compileChatPrompt } from "../services/chatPromptCompiler";
 import { flushConversationSaveNow, useChatStore, type AssistantStreamDelta } from "./chat-store";
 import { useSettingsStore } from "./settings-store";
@@ -18,12 +18,18 @@ import type { VeniceStreamDelta } from "../shared/veniceStreamDelta";
 import { useDocumentAgentStore } from "./document-agent-store";
 import * as logger from "../shared/logger";
 import { getModelById } from "../services/modelService";
+import type { ModelInfo } from "../types/venice";
 import { resolveReasoningEffort } from "../shared/modelCapabilities";
 import {
   resolveE2eeParam,
   resolvePromptCacheRetention,
 } from "../utils/payloadBuilders";
-import { SAFETY_PROVENANCE_FIELD } from "../shared/safety/promptSegments";
+import {
+  modelSupportsResponsesApi,
+  type ResponsesInputItem,
+  type ResponsesVeniceParameters,
+} from "../shared/veniceResponses";
+import { SAFETY_PROVENANCE_FIELD, type SafetyProvenancePayload } from "../shared/safety/promptSegments";
 import { translateRuntime } from "../i18n/runtimeTranslator";
 import { SafetyGuardBlockedError } from "../shared/safety";
 import { resolveNativePartRef } from "../services/nativeContentPartRegistry";
@@ -81,7 +87,20 @@ export function resolveCharacterSlug(conv: Conversation | undefined): string | n
   return binding.kind === "hosted-character" ? binding.slug : null;
 }
 
-function buildStreamBody(convId: string, model: string): Record<string, unknown> {
+/** Shared per-request compile step used by BOTH chat-completions and
+ *  Responses (alpha) body builders. Extracting it guarantees the two
+ *  transports see the same compiled messages, character resolution, and
+ *  Venice parameter resolution; the chat body itself is assembled unchanged
+ *  below so the default path stays byte-identical when the experimental
+ *  toggle is off. */
+interface SharedChatContext {
+  conv: Conversation;
+  modelInfo: ModelInfo | undefined;
+  compiled: ReturnType<typeof compileChatPrompt>;
+  veniceParamsForRequest: VeniceParameters;
+}
+
+function compileSharedChatContext(convId: string, model: string): SharedChatContext {
   const state = useChatStore.getState();
   const conv = state.conversations.find((c) => c.id === convId);
   if (!conv) throw new Error(`Conversation ${convId} not found`);
@@ -95,8 +114,6 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     state.veniceParams.include_venice_system_prompt !== false,
     { resolveNativePart: (ref) => resolveNativePartRef(ref) },
   );
-
-  const requestMessages = compiled.messages as ChatMessage[];
 
   const characterSlug = resolveCharacterSlug(conv as unknown as Conversation);
   const veniceParamsForRequest: VeniceParameters = { ...state.veniceParams };
@@ -133,6 +150,15 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     veniceParamsForRequest.enable_e2ee = e2eeParam;
   }
 
+  return { conv: conv as unknown as Conversation, modelInfo, compiled, veniceParamsForRequest };
+}
+
+function buildStreamBody(convId: string, model: string): Record<string, unknown> {
+  const state = useChatStore.getState();
+  const { conv, compiled, modelInfo, veniceParamsForRequest } = compileSharedChatContext(convId, model);
+
+  const requestMessages = compiled.messages as ChatMessage[];
+
   const baseBody: Record<string, unknown> = {
     model,
     messages: requestMessages,
@@ -156,7 +182,7 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
   // control (not a `venice_parameters` field). Conversation override wins over
   // the profile default; `'default'`/unset omits the field entirely.
   const cacheRetention = resolvePromptCacheRetention(
-    privacy?.promptCacheRetention ?? state.promptCacheRetention,
+    conv.metadata?.privacy?.promptCacheRetention ?? state.promptCacheRetention,
   );
   if (cacheRetention !== undefined) {
     baseBody.prompt_cache_retention = cacheRetention;
@@ -204,6 +230,188 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     baseBody,
     useSettingsStore.getState().veniceApiSafeMode,
   );
+}
+
+/** True when a new chat message should use the experimental Responses API
+ *  transport for the selected model. The toggle must be explicitly on AND
+ *  the model must be confirmed non-E2EE (swagger :7105 — E2EE-capable models
+ *  are not supported on /responses). Absent model metadata fails closed. */
+export function shouldUseResponsesTransport(
+  modelInfo: ModelInfo | undefined,
+  responsesApiEnabled: boolean,
+): boolean {
+  return responsesApiEnabled === true && modelSupportsResponsesApi(modelInfo);
+}
+
+/** Venice parameters whitelist for POST /responses — only the keys the
+ *  upstream ResponsesRequest `venice_parameters` object documents
+ *  (swagger :2385-2415). Fields the chat path may carry but the Responses
+ *  schema does not declare (`strip_thinking_response`, `disable_thinking`,
+ *  `enable_x_search`, …) are dropped so the alpha endpoint never receives
+ *  unknown keys. `enable_e2ee` is NEVER forwarded: E2EE models are rejected
+ *  by the capability gate before this builder runs. */
+function pickResponsesVeniceParameters(
+  params: VeniceParameters,
+): ResponsesVeniceParameters {
+  const picked: ResponsesVeniceParameters = {};
+  if (typeof params.character_slug === "string") picked.character_slug = params.character_slug;
+  if (params.enable_web_search === "auto" || params.enable_web_search === "off" || params.enable_web_search === "on") {
+    picked.enable_web_search = params.enable_web_search;
+  }
+  if (typeof params.enable_web_scraping === "boolean") picked.enable_web_scraping = params.enable_web_scraping;
+  if (typeof params.enable_web_citations === "boolean") picked.enable_web_citations = params.enable_web_citations;
+  if (typeof params.include_venice_system_prompt === "boolean") {
+    picked.include_venice_system_prompt = params.include_venice_system_prompt;
+  }
+  return picked;
+}
+
+/** Builds the experimental POST /responses body for a conversation turn.
+ *
+ *  Returns `null` when the conversation contains content the documented
+ *  Responses input union cannot represent losslessly (native audio/file/video
+ *  content parts); the caller then falls back to the default chat
+ *  completions transport unchanged.
+ *
+ *  Typed safety provenance is remapped from `messages[i]` to `input[i]`
+ *  paths (the builder tracks compiled-message → input-item positions) so the
+ *  mandatory guard's coverage verification keeps working on this path.
+ *
+ *  Documented limitation (alpha slice): the bounded agent tool loop is not
+ *  wired to Responses — function-call blocks the model emits are streamed to
+ *  the UI and persisted, not executed. History tool turns are also
+ *  unavailable here: compileChatPrompt (shared with chat) does not carry
+ *  `tool_calls`/`tool_call_id` on outgoing messages, so a conversation
+ *  containing tool turns cannot be replayed as function_call items and this
+ *  builder returns null, routing the turn through /chat/completions.
+ *  `prompt_cache_retention` (Phase 7) is chat-only; the ResponsesRequest
+ *  schema does not declare it, so it is omitted here. */
+export function buildResponsesBody(
+  convId: string,
+  model: string,
+): Record<string, unknown> | null {
+  const state = useChatStore.getState();
+  const { compiled, modelInfo, veniceParamsForRequest } = compileSharedChatContext(convId, model);
+
+  const input: ResponsesInputItem[] = [];
+  // Compiled message index → input item index, for provenance remapping.
+  const positionByCompiledIndex = new Map<number, number>();
+
+  for (let i = 0; i < compiled.messages.length; i++) {
+    const m = compiled.messages[i] as ChatMessage;
+    positionByCompiledIndex.set(i, input.length);
+
+    if (m.role === "tool") {
+      if (!m.tool_call_id) return null;
+      const output = typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? "");
+      input.push({ type: "function_call_output", call_id: m.tool_call_id, output });
+      continue;
+    }
+    if (m.role !== "system" && m.role !== "user" && m.role !== "assistant") {
+      return null;
+    }
+
+    let content: string | Array<{ type: "input_text"; text: string } | { type: "input_image"; image_url: { url: string } }>;
+    if (typeof m.content === "string") {
+      content = m.content;
+    } else {
+      const parts: Array<{ type: "input_text"; text: string } | { type: "input_image"; image_url: { url: string } }> = [];
+      for (const part of m.content) {
+        if (part.type === "text" && typeof part.text === "string") {
+          parts.push({ type: "input_text", text: part.text });
+        } else if (part.type === "image_url" && typeof part.image_url?.url === "string" && part.image_url.url) {
+          parts.push({ type: "input_image", image_url: { url: part.image_url.url } });
+        } else {
+          // input_audio / file / video_url are not in the documented
+          // Responses input union — the caller falls back to chat.
+          return null;
+        }
+      }
+      content = parts;
+    }
+
+    const hasText = typeof content === "string" ? content.length > 0 : content.length > 0;
+    if (hasText || m.role === "system") {
+      input.push({ type: "message", role: m.role, content });
+    }
+
+    if (m.role === "assistant" && m.tool_calls && m.tool_calls.length > 0) {
+      for (const call of m.tool_calls) {
+        input.push({
+          type: "function_call",
+          call_id: call.id,
+          name: call.function?.name ?? "",
+          arguments: call.function?.arguments ?? "",
+        });
+      }
+    }
+  }
+
+  const baseBody: Record<string, unknown> = {
+    model,
+    input,
+    stream: true,
+    temperature: state.temperature,
+    top_p: state.topP,
+    max_output_tokens: compiled.maxTokens,
+    venice_parameters: pickResponsesVeniceParameters(veniceParamsForRequest),
+  };
+
+  if (compiled.safetyProvenance) {
+    const remapped: SafetyProvenancePayload = {
+      ...compiled.safetyProvenance,
+      messages: compiled.safetyProvenance.messages.map((entry) => {
+        const remappedIndex = positionByCompiledIndex.get(entry.index);
+        if (remappedIndex === undefined) {
+          // A provenance-bearing message did not map to an input item; drop
+          // the claim so the guard fails closed on the raw text instead of
+          // trusting an unresolvable index.
+          return null;
+        }
+        return {
+          ...entry,
+          index: remappedIndex,
+          segments: entry.segments.map((segment) =>
+            segment.kind === "instruction" && typeof segment.source === "string"
+              ? { ...segment, source: segment.source.replace(/^messages\[/, "input[") }
+              : segment,
+          ),
+        };
+      }).filter((entry): entry is NonNullable<typeof entry> => entry !== null),
+    };
+    baseBody[SAFETY_PROVENANCE_FIELD] = remapped;
+  }
+
+  // Reasoning effort (same resolver/gating as chat; nested `reasoning.effort`
+  // is documented on ResponsesRequest, swagger :2178).
+  const reasoningEffort = resolveReasoningEffort(modelInfo, state.reasoningEffort);
+  if (reasoningEffort !== undefined) {
+    baseBody.reasoning = { effort: reasoningEffort };
+  }
+
+  return applyVeniceApiSafeMode(
+    "/responses",
+    baseBody,
+    useSettingsStore.getState().veniceApiSafeMode,
+  );
+}
+
+/** Builds the request body and picks the transport for a new chat turn.
+ *  The default chat-completions body is byte-identical to the pre-Responses
+ *  behavior whenever the experimental toggle is off or the model is not
+ *  eligible; the Responses body is used only when it can be built. */
+export function buildStreamRequest(
+  convId: string,
+  model: string,
+): { body: Record<string, unknown>; transport: "chat" | "responses" } {
+  const responsesEnabled = useSettingsStore.getState().responsesApiEnabled === true;
+  if (shouldUseResponsesTransport(getModelById(model), responsesEnabled)) {
+    const responsesBody = buildResponsesBody(convId, model);
+    if (responsesBody) {
+      return { body: responsesBody, transport: "responses" };
+    }
+  }
+  return { body: buildStreamBody(convId, model), transport: "chat" };
 }
 
 let activeController: AbortController | null = null;
@@ -391,9 +599,14 @@ export async function startStream(
     
     while (attempts <= MAX_STREAM_RETRIES) {
       try {
-        const body = buildStreamBody(convId, model);
+        // The body (and therefore the transport) is rebuilt per attempt so
+        // retried turns pick up the latest conversation state, matching the
+        // pre-Responses behavior.
+        const { body, transport } = buildStreamRequest(convId, model);
         const docAgentState = useDocumentAgentStore.getState();
-        await veniceStreamChat(body, {
+        const streamFn =
+          transport === "responses" ? veniceStreamResponses : veniceStreamChat;
+        await streamFn(body, {
           signal: controller.signal,
           agentSessionId: docAgentState.agentSessionId,
           onDelta: (chunk: StreamChunk) => {

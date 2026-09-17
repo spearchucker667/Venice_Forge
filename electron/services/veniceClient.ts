@@ -20,6 +20,7 @@ import {
   type SseEvent,
   type StreamDelta as SharedStreamDelta,
 } from "../../src/shared/sseStreamDecoder";
+import { applyResponsesSseEvent } from "../../src/shared/veniceResponses";
 
 /** Maximum non-streaming Venice response body size we will buffer in memory. */
 const MAX_VENICE_RESPONSE_BYTES = 25 * 1024 * 1024;
@@ -614,9 +615,43 @@ async function performSingleVeniceRequest(
         let streamFinished = false;
 
         const onDelta = options.onDelta;
+        // Phase 8 — Responses API (alpha): the stateless /responses stream
+        // uses the OpenAI-compatible Responses event contract (typed events
+        // terminated by response.completed / [DONE]), not the chat chunk
+        // contract. Selection is by validated endpoint, so a renderer can
+        // never influence which applier runs.
+        const isResponsesEndpoint = request.endpoint.split("?")[0] === "/responses";
         const consumeSseEvents = (events: SseEvent[]) => {
           if (!onDelta) return;
           for (const event of events) {
+            if (isResponsesEndpoint) {
+              const outcome = applyResponsesSseEvent(event.data);
+              if (outcome.text || outcome.reasoning || outcome.toolCalls || outcome.usage) {
+                onDelta({
+                  content: outcome.text,
+                  reasoning: outcome.reasoning,
+                  tool_calls: outcome.toolCalls,
+                  usage: outcome.usage,
+                  finish_reason: null,
+                });
+              }
+              streamText += outcome.text;
+              if (outcome.done) streamFinished = true;
+              if (outcome.malformed) {
+                // SECURITY: redact any leaked secret-like values before
+                // logging; the raw frame never reaches the renderer.
+                const redacted = redactErrorMessage(
+                  outcome.errorMessage || outcome.rawData || "unknown frame",
+                );
+                logError("Malformed SSE frame from Venice Responses upstream", {
+                  raw: redacted,
+                });
+                if (outcome.errorMessage && !streamTerminalError) {
+                  streamTerminalError = outcome.errorMessage;
+                }
+              }
+              continue;
+            }
             const outcome = applyStreamSseEvent(event, {
               onDelta,
               ...(route?.extractStreamDelta
@@ -707,7 +742,11 @@ async function performSingleVeniceRequest(
               status: 502,
               statusText: "Bad Gateway",
               headers: responseHeaders,
-              body: { error: "Venice stream ended before the [DONE] terminator." },
+              body: {
+                error: isResponsesEndpoint
+                  ? "Venice Responses stream ended before the terminal event."
+                  : "Venice stream ended before the [DONE] terminator.",
+              },
               contentType,
             });
             return;

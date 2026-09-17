@@ -17,6 +17,7 @@ import { extractSafetyProvenance } from "../shared/safety/promptSegments";
 
 vi.mock("../services/veniceClient", () => ({
   veniceStreamChat: vi.fn(),
+  veniceStreamResponses: vi.fn(),
   veniceFetch: vi.fn(),
 }));
 

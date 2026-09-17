@@ -267,4 +267,92 @@ describe("serializeSafetyProvenanceIntoPayload (VF-20260916-P1-002)", () => {
     expect(instructionText).toContain("Please summarize this file.");
     expect(instructionText).not.toContain("quoted attachment body");
   });
+
+  it("Phase 8 — serializes provenance into Responses `input` arrays (string content)", () => {
+    const body = {
+      model: "m",
+      input: [{ type: "message", role: "user", content: "summarize this" }],
+      [SAFETY_PROVENANCE_FIELD]: {
+        version: 1,
+        messages: [
+          {
+            index: 0,
+            segments: [
+              { kind: "instruction", text: "summarize this", source: "input[0].content" },
+              {
+                kind: "attachment",
+                attachmentId: "a1",
+                name: "doc.txt",
+                mimeType: "text/plain",
+                text: "quoted attachment body",
+                trust: "untrusted-quoted-data",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const serialized = serializeSafetyProvenanceIntoPayload(body);
+
+    expect(serialized).not.toHaveProperty(SAFETY_PROVENANCE_FIELD);
+    const content = (serialized.input as Array<{ content: string }>)[0].content;
+    expect(content).toContain("summarize this");
+    expect(content).toContain("<external_attachment");
+    expect(content).toContain("quoted attachment body");
+  });
+
+  it("Phase 8 — serializes provenance into Responses input_text parts", () => {
+    const body = {
+      model: "m",
+      input: [
+        {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: "look at this" }],
+        },
+      ],
+      [SAFETY_PROVENANCE_FIELD]: {
+        version: 1,
+        messages: [
+          {
+            index: 0,
+            segments: [
+              { kind: "instruction", text: "look at this", source: "input[0].content[0].text" },
+              {
+                kind: "attachment",
+                attachmentId: "a1",
+                name: "doc.txt",
+                mimeType: "text/plain",
+                text: "quoted attachment body",
+                trust: "untrusted-quoted-data",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const serialized = serializeSafetyProvenanceIntoPayload(body);
+    const outParts = (serialized.input as Array<{ content: Array<{ type: string; text: string }> }>)[0].content;
+    expect(outParts[0].text).toContain("look at this");
+    expect(outParts[0].text).toContain("<external_attachment");
+    expect(serialized).not.toHaveProperty(SAFETY_PROVENANCE_FIELD);
+  });
+
+  it("Phase 8 — fails closed when a Responses payload has provenance but no input/messages array", () => {
+    const body = {
+      model: "m",
+      [SAFETY_PROVENANCE_FIELD]: {
+        version: 1,
+        messages: [
+          {
+            index: 0,
+            segments: [
+              { kind: "instruction", text: "x", source: "input[0].content" },
+            ],
+          },
+        ],
+      },
+    };
+    expect(() => serializeSafetyProvenanceIntoPayload(body)).toThrow(/no messages\/input array/);
+  });
 });

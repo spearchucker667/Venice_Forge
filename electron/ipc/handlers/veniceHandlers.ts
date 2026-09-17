@@ -76,8 +76,12 @@ export function registerVeniceHandlers(): void {
       const request = validateVeniceIpcRequest(
         withSessionProfile(input, getProfileSessionId(event.sender)),
       );
-      if (request.endpoint !== "/chat/completions" || request.method !== "POST") {
-        throw new Error("Streaming is only available for POST /chat/completions.");
+      // Phase 8 — Responses API (alpha): POST /responses is an explicit,
+      // opt-in streaming transport alongside POST /chat/completions. It is
+      // validated by the shared allowlist (POST-only) like every endpoint.
+      const isResponsesStream = request.endpoint === "/responses";
+      if ((!isResponsesStream && request.endpoint !== "/chat/completions") || request.method !== "POST") {
+        throw new Error("Streaming is only available for POST /chat/completions and POST /responses.");
       }
 
       if (!request.signalId) {
@@ -89,6 +93,45 @@ export function registerVeniceHandlers(): void {
 
       const profileId = getProfileSessionId(event.sender);
       const agentSessionId = typeof request.agentSessionId === "string" ? request.agentSessionId : undefined;
+
+      // One shared, serializable envelope (P1-006): every agent-appended
+      // message (tool results with generated-media/document metadata) is
+      // forwarded explicitly; never reconstruct a subset of fields here.
+      const forwardDelta = (chunk: {
+        content?: string;
+        reasoning?: string;
+        providerRequestId?: string;
+        usage?: Record<string, unknown>;
+        tool_calls?: VeniceStreamDeltaEnvelope["tool_calls"];
+        appendedMessages?: VeniceStreamDeltaEnvelope["appendedMessages"];
+        finish_reason?: string | null;
+      }) => {
+        const envelope: VeniceStreamDeltaEnvelope = {
+          signalId: request.signalId!,
+          delta: chunk.content ?? "",
+          reasoning: chunk.reasoning,
+          providerRequestId: chunk.providerRequestId,
+          usage: chunk.usage as VeniceStreamDeltaEnvelope["usage"],
+          tool_calls: chunk.tool_calls,
+          appendedMessages: chunk.appendedMessages,
+          finish_reason: chunk.finish_reason,
+        };
+        safeSendToRenderer(event.sender, "venice:streamDelta", envelope, event.senderFrame);
+      };
+
+      // Responses API (alpha) is a STATELESS single-turn transport. The
+      // bounded chat agent tool loop is chat-shaped (it appends `messages`
+      // between turns), so it is not applied here: function-call blocks are
+      // normalized and streamed to the renderer, but never auto-executed on
+      // this path. The same guarded dispatcher still runs the mandatory
+      // safety pipeline and withholds/ screens streamed deltas under Family
+      // Safe Mode before release.
+      if (isResponsesStream) {
+        const result = await performGuardedVeniceRequest(request, { onDelta: forwardDelta });
+        if (result.kind === "blocked") return result.block;
+        return result.response;
+      }
+
       // The legacy renderer field is accepted by validation for wire
       // compatibility but never participates in authorization.
       const preset: AgentPermissionPreset = getEffectiveAgentPermissionPreset(
@@ -108,22 +151,7 @@ export function registerVeniceHandlers(): void {
         workspaceGrant,
       });
 
-      const result = await runChatAgentLoop(request, toolExecutionContext, (chunk) => {
-        // One shared, serializable envelope (P1-006): every agent-appended
-        // message (tool results with generated-media/document metadata) is
-        // forwarded explicitly; never reconstruct a subset of fields here.
-        const envelope: VeniceStreamDeltaEnvelope = {
-          signalId: request.signalId!,
-          delta: chunk.content ?? "",
-          reasoning: chunk.reasoning,
-          providerRequestId: chunk.providerRequestId,
-          usage: chunk.usage as VeniceStreamDeltaEnvelope["usage"],
-          tool_calls: chunk.tool_calls,
-          appendedMessages: chunk.appendedMessages,
-          finish_reason: chunk.finish_reason,
-        };
-        safeSendToRenderer(event.sender, "venice:streamDelta", envelope, event.senderFrame);
-      });
+      const result = await runChatAgentLoop(request, toolExecutionContext, forwardDelta);
       if (result.kind === "blocked") return result.block;
       return result.response;
     } catch (err) {

@@ -29,6 +29,7 @@ import { ProfilePanel } from "./ProfilePanel";
 import { BackupSyncPanel } from "./BackupSyncPanel";
 import { AudioSpeechPanel } from "./AudioSpeechPanel";
 import { FontSettingsPanel } from "./FontSettingsPanel";
+import { DeveloperPanel } from "./DeveloperPanel";
 import type { PendingConfirm } from "./types";
 import { modelSupportsEdit } from "../../constants/venice";
 
@@ -438,6 +439,9 @@ export function SettingsView() {
           <button onClick={() => setActiveSection("audio-speech")} className={sectionButtonClass("audio-speech")}>
             {t('settings:tabs.audioSpeech', 'Audio & Speech')}
           </button>
+          <button onClick={() => setActiveSection("developer")} className={sectionButtonClass("developer")}>
+            {t('settings:tabs.developer', 'Developer')}
+          </button>
         </div>
 
         {/* Content panel */}
@@ -537,6 +541,8 @@ export function SettingsView() {
           {activeSection === "config" && isElectron() && <ConfigPanel />}
 
           {activeSection === "audio-speech" && <AudioSpeechPanel />}
+
+          {activeSection === "developer" && <DeveloperPanel />}
         </div>
       </div>
 

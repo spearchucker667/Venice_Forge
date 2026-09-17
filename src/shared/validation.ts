@@ -46,6 +46,10 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   "/api_keys/{id}",
   "/api_keys/rate_limits",
   "/api_keys/rate_limits/log",
+  // Phase 8 — Responses API (alpha). Experimental, opt-in transport only;
+  // POST-only per the upstream contract (docs/reference/Venice_swagger_api.yaml
+  // :7095). Never a silent replacement for /chat/completions.
+  "/responses",
 ] as const;
 
 /** HTTP methods permitted for Venice API requests. PUT and DELETE were
@@ -111,6 +115,9 @@ export const VENICE_ENDPOINT_METHODS: Record<string, readonly VeniceIpcMethod[]>
   "/api_keys/{id}": ["GET", "PUT", "DELETE"],
   "/api_keys/rate_limits": ["GET"],
   "/api_keys/rate_limits/log": ["GET"],
+  // Phase 8 — Responses API (alpha). POST only; the upstream contract
+  // documents no other method on /responses.
+  "/responses": ["POST"],
 };
 
 /** The bare /characters list endpoint. The character-slug variant is

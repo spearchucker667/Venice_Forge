@@ -538,7 +538,8 @@
     "config": "Local Config",
     "audioSpeech": "Audio & Speech",
     "billing": "Billing & Usage",
-    "veniceApiKeys": "Venice API Keys"
+    "veniceApiKeys": "Venice API Keys",
+    "developer": "Developer"
   },
   "updatesPanel": {
     "title": "Application Updates",
@@ -723,6 +724,20 @@
         "rpd": "Daily request limit",
         "failedRequests": "Failed-request quota",
         "unsupportedFeature": "Unsupported-feature request quota"
+      }
+    }
+  },
+  "developer": {
+    "experimentalBadge": "Experimental",
+    "responsesApi": {
+      "title": "Responses API (Alpha)",
+      "description": "Use Venice's alpha Responses API (POST /responses) as the chat transport for new messages. Stateless: the full conversation is sent with every request. Streaming, typed output blocks, and reasoning blocks are supported. Family Safe Mode and mandatory safety protections still apply to every request.",
+      "on": "ON: Responses API",
+      "off": "OFF: Chat Completions (default)",
+      "modelGate": "Only models confirmed as non-E2EE are eligible; E2EE-capable models and models without capability metadata automatically keep using /chat/completions. Fallback providers are never routed through Responses.",
+      "support": {
+        "eligible": "Current chat model ({{model}}) is eligible for the Responses transport.",
+        "ineligible": "Current chat model ({{model}}) is not eligible; it will keep using /chat/completions."
       }
     }
   }

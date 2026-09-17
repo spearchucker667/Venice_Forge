@@ -60,6 +60,8 @@ describe("validation", () => {
         "/api_keys/{id}",
         "/api_keys/rate_limits",
         "/api_keys/rate_limits/log",
+        // Phase 8 — Responses API (alpha). Experimental, opt-in; POST-only.
+        "/responses",
       ]);
     });
   });
@@ -134,6 +136,20 @@ describe("validation", () => {
       expect(isAllowedVeniceRequest("/audio/retrieve", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/audio/speech", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/audio/transcriptions", "POST")).toBe(true);
+    });
+
+    it("Phase 8 — allows POST only on /responses (alpha)", () => {
+      expect(isAllowedVeniceRequest("/responses", "POST")).toBe(true);
+      expect(VENICE_ENDPOINT_METHODS["/responses"]).toEqual(["POST"]);
+    });
+
+    it("Phase 8 — rejects non-POST methods and sub-paths on /responses", () => {
+      expect(isAllowedVeniceRequest("/responses", "GET")).toBe(false);
+      expect(isAllowedVeniceRequest("/responses", "PUT")).toBe(false);
+      expect(isAllowedVeniceRequest("/responses", "DELETE")).toBe(false);
+      // No wildcard/nested routing.
+      expect(isAllowedVeniceRequest("/responses/anything", "POST")).toBe(false);
+      expect(isAllowedVeniceRequest("/responses/input", "POST")).toBe(false);
     });
 
     it("returns false for wrong method", () => {

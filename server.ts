@@ -49,6 +49,10 @@ import {
 } from "./src/services/fsmMediaCollector";
 import { SafetyGatedSse } from "./src/services/safetyGatedSse";
 import { startSafetyGatedSsePump } from "./src/services/safetyGatedSsePump";
+import {
+  extractResponsesBodyScreenText,
+  extractResponsesEventScreenText,
+} from "./src/shared/veniceResponses";
 
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "./src/shared/readBoundedFetchBody";
 import { checkSystemPromptMessages } from "./src/shared/promptLimits";
@@ -805,6 +809,14 @@ export function createServerApp() {
       return;
     }
 
+    // Phase 8 — Responses API (alpha): this FSM stream gate covers both
+    // /chat/completions and /responses (path-scoped by the route below).
+    // The Responses SSE contract uses typed events instead of chat chunks,
+    // so per-event screening extracts the assistant text from the event
+    // rather than wrapping the raw frame in a chat envelope.
+    const isResponses = req.path === "/responses";
+    const screenEndpoint = isResponses ? "/responses" : "/chat/completions";
+
     const contentType = String(proxyRes.headers["content-type"] || "");
     const isSse = contentType.includes("text/event-stream");
     const initializeSseResponse = (): void => {
@@ -818,16 +830,28 @@ export function createServerApp() {
           maxEventBytes: VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES,
           classify: ({ data, done, semanticContexts }) => {
             if (done || !data.trim()) return { allowed: true };
+            if (isResponses) {
+              // Screen the assistant-visible text carried by the Responses
+              // event (deltas, .done echoes, completed output blocks).
+              const screenText = extractResponsesEventScreenText(data);
+              if (!screenText.trim()) return { allowed: true };
+              const currentEvent = screenResponseBody(
+                screenText,
+                { endpoint: screenEndpoint, method: "POST", source: "web-proxy" },
+                isLocalFamilySafeModeEnabled(req),
+              );
+              return { allowed: currentEvent.allowed };
+            }
             const currentEvent = screenResponseBody(
               JSON.stringify({ choices: [{ delta: { content: data } }] }),
-              { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
+              { endpoint: screenEndpoint, method: "POST", source: "web-proxy" },
               isLocalFamilySafeModeEnabled(req),
             );
             if (!currentEvent.allowed) return { allowed: false };
             return {
               allowed: semanticContexts.every((text) => screenResponseBody(
                 text,
-                { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
+                { endpoint: screenEndpoint, method: "POST", source: "web-proxy" },
                 isLocalFamilySafeModeEnabled(req),
               ).allowed),
             };
@@ -905,11 +929,15 @@ export function createServerApp() {
         if (res.headersSent) return;
 
         const buffer = Buffer.concat(chunks, length);
-        const text = extractChatCompletionText(buffer.toString("utf8"), contentType);
+        const text = isResponses
+          ? extractResponsesBodyScreenText(buffer.toString("utf8"))
+          : extractChatCompletionText(buffer.toString("utf8"), contentType);
         if (proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300 && text.trim()) {
           const screen = screenResponseBody(
-            JSON.stringify({ choices: [{ message: { role: "assistant", content: text } }] }),
-            { endpoint: "/chat/completions", method: "POST", source: "web-proxy" },
+            isResponses
+              ? text
+              : JSON.stringify({ choices: [{ message: { role: "assistant", content: text } }] }),
+            { endpoint: screenEndpoint, method: "POST", source: "web-proxy" },
             isLocalFamilySafeModeEnabled(req),
           );
           if (!screen.allowed) {
@@ -1146,6 +1174,15 @@ export function createServerApp() {
         return fsmMediaVeniceProxy(req, res, next);
       }
       if (req.path === "/chat/completions" && isLocalFamilySafe) {
+        return fsmChatStreamProxy(req, res, next);
+      }
+      // Phase 8 — Responses API (alpha): the opt-in /responses stream goes
+      // through the same mandatory FSM SSE gate as chat. The gate screens
+      // the typed Responses events (see fsmChatStreamProxyRes). When Family
+      // Safe Mode is off the standard proxy still runs the request-body
+      // guard above; the response screen is an FSM-only layer, identical to
+      // chat.
+      if (req.path === "/responses" && isLocalFamilySafe) {
         return fsmChatStreamProxy(req, res, next);
       }
       return standardVeniceProxy(req, res, next);

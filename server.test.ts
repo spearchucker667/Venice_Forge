@@ -316,6 +316,204 @@ describe("server.ts Family Safe Mode SSE lifecycle", () => {
   });
 });
 
+describe("server.ts Responses API (alpha) FSM lifecycle", () => {
+  const responsesDelta = (delta: string) =>
+    `data: ${JSON.stringify({ type: "response.output_text.delta", output_index: 0, content_index: 0, delta })}\n\n`;
+  const responsesCompleted =
+    `data: ${JSON.stringify({ type: "response.completed", response: { id: "resp_1", status: "completed" } })}\n\n`;
+
+  it("allows POST /responses (allowlist gate, POST-only)", async () => {
+    const response = await request(createServerApp())
+      .post("/api/venice/responses")
+      .send({ model: "test", input: "hello" });
+    // The mocked standard proxy answers 200 for allowlisted POSTs.
+    expect(response.status).toBe(200);
+  });
+
+  it("rejects GET /responses with 405 (method gate)", async () => {
+    const response = await request(createServerApp())
+      .get("/api/venice/responses");
+    expect(response.status).toBe(405);
+  });
+
+  it("rejects nested /responses paths with 403 (no wildcard routing)", async () => {
+    const response = await request(createServerApp())
+      .post("/api/venice/responses/extra")
+      .send({ model: "test", input: "hello" });
+    expect(response.status).toBe(403);
+  });
+
+  it("blocks CSAM payloads in the Responses input array (request guard)", async () => {
+    const response = await request(createServerApp())
+      .post("/api/venice/responses")
+      .send({
+        model: "test",
+        input: [{ type: "message", role: "user", content: triggerInput("LOLI_TERM") }],
+      });
+    expect(response.status).toBe(451);
+  });
+
+  it("blocks CSAM payloads in a string Responses input", async () => {
+    const response = await request(createServerApp())
+      .post("/api/venice/responses")
+      .send({ model: "test", input: triggerInput("CSAM_EXPLICIT") });
+    expect(response.status).toBe(451);
+  });
+
+  it("releases a safe Responses SSE stream end-to-end", async () => {
+    // Events arrive in ONE upstream chunk: the FSM SSE queue is bounded and
+    // multiple synchronous chunks would trip the overflow guard (same
+    // constraint as the chat stream tests).
+    const upstream = mockSseResponse([
+      [
+        responsesDelta("Hello "),
+        responsesDelta("world"),
+        responsesCompleted,
+        "data: [DONE]\n\n",
+      ].join(""),
+    ]);
+    const response = await request(createServerApp())
+      .post("/api/venice/responses")
+      .send({ model: "test", input: "hi" });
+
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toMatch(/^text\/event-stream/);
+    expect(response.text).toContain("response.output_text.delta");
+    expect(response.text).toContain("data: [DONE]");
+    expect(upstream.destroy).not.toHaveBeenCalled();
+  });
+
+  it("blocks an unsafe Responses text delta before sending response headers", async () => {
+    const upstream = mockSseResponse([responsesDelta(triggerInput("CSAM_EXPLICIT"))]);
+    const response = await request(createServerApp())
+      .post("/api/venice/responses")
+      .send({ model: "test", input: "hi" });
+
+    expect(response.status).toBe(451);
+    expect(upstream.destroy).toHaveBeenCalledOnce();
+    expect(response.text).not.toContain(triggerInput("CSAM_EXPLICIT"));
+  });
+
+  it("ends a partially released Responses stream when a later delta is unsafe", async () => {
+    const upstream = mockSseResponse([
+      [
+        responsesDelta("safe start "),
+        responsesDelta(triggerInput("CSAM_EXPLICIT")),
+        responsesCompleted,
+      ].join(""),
+    ]);
+    const response = await request(createServerApp())
+      .post("/api/venice/responses")
+      .send({ model: "test", input: "hi" });
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain("safe start");
+    expect(response.text).not.toContain(triggerInput("CSAM_EXPLICIT"));
+    expect(upstream.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("blocks unsafe text carried only by a response.completed output block", async () => {
+    const completedWithText = `data: ${JSON.stringify({
+      type: "response.completed",
+      response: {
+        id: "resp_1",
+        status: "completed",
+        output: [
+          { type: "message", id: "m1", status: "completed", role: "assistant",
+            content: [{ type: "output_text", text: triggerInput("CSAM_EXPLICIT") }] },
+        ],
+      },
+    })}\n\n`;
+    const upstream = mockSseResponse([completedWithText]);
+    const response = await request(createServerApp())
+      .post("/api/venice/responses")
+      .send({ model: "test", input: "hi" });
+
+    expect(response.status).toBe(451);
+    expect(upstream.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("screens a non-streaming Responses JSON body (FSM buffered path)", async () => {
+    const upstream = new EventEmitter() as EventEmitter & {
+      statusCode: number;
+      headers: Record<string, string>;
+      pause: ReturnType<typeof vi.fn>;
+      resume: ReturnType<typeof vi.fn>;
+      destroy: ReturnType<typeof vi.fn>;
+    };
+    upstream.statusCode = 200;
+    upstream.headers = { "content-type": "application/json" };
+    upstream.pause = vi.fn();
+    upstream.resume = vi.fn();
+    upstream.destroy = vi.fn();
+    proxyMocks.proxyResponse = () => {
+      setImmediate(() => {
+        upstream.emit(
+          "data",
+          Buffer.from(
+            JSON.stringify({
+              id: "resp_1",
+              object: "response",
+              status: "completed",
+              output: [
+                { type: "message", id: "m1", status: "completed", role: "assistant",
+                  content: [{ type: "output_text", text: triggerInput("CSAM_EXPLICIT") }] },
+              ],
+            }),
+          ),
+        );
+        upstream.emit("end");
+      });
+      return upstream;
+    };
+
+    const response = await request(createServerApp())
+      .post("/api/venice/responses")
+      .send({ model: "test", input: "hi", stream: false });
+
+    expect(response.status).toBe(451);
+    expect(response.body.error).toBeTruthy();
+  });
+
+  it("passes a safe non-streaming Responses JSON body through", async () => {
+    const upstream = new EventEmitter() as EventEmitter & {
+      statusCode: number;
+      headers: Record<string, string>;
+      pause: ReturnType<typeof vi.fn>;
+      resume: ReturnType<typeof vi.fn>;
+      destroy: ReturnType<typeof vi.fn>;
+    };
+    upstream.statusCode = 200;
+    upstream.headers = { "content-type": "application/json" };
+    upstream.pause = vi.fn();
+    upstream.resume = vi.fn();
+    upstream.destroy = vi.fn();
+    const body = JSON.stringify({
+      id: "resp_1",
+      object: "response",
+      status: "completed",
+      output: [
+        { type: "message", id: "m1", status: "completed", role: "assistant",
+          content: [{ type: "output_text", text: "safe answer" }] },
+      ],
+    });
+    proxyMocks.proxyResponse = () => {
+      setImmediate(() => {
+        upstream.emit("data", Buffer.from(body));
+        upstream.emit("end");
+      });
+      return upstream;
+    };
+
+    const response = await request(createServerApp())
+      .post("/api/venice/responses")
+      .send({ model: "test", input: "hi", stream: false });
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain("safe answer");
+  });
+});
+
 describe("server.ts health endpoint", () => {
   it("should return 200 and status ok on /health", async () => {
     const app = createServerApp();

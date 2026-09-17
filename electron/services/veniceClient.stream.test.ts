@@ -382,3 +382,145 @@ describe("performVeniceRequest streaming safety", () => {
     expect(lastDestroyMessage).toBe("Request aborted");
   });
 });
+
+describe("performVeniceRequest Responses API (alpha) streaming", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const COMPLETED = `data: ${JSON.stringify({
+    type: "response.completed",
+    response: { id: "resp_1", status: "completed" },
+  })}\n\n`;
+
+  function mockResponsesUpstream(events: string[]): void {
+    const requestMock = https.request as unknown as HttpsRequestMock;
+    requestMock.mockImplementation((_options, callback) => {
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn();
+      req.destroy = (error?: Error) => {
+        req.emit("error", error || new Error("destroyed"));
+        req.emit("close");
+      };
+      req.end = vi.fn(() => {
+        const res = new EventEmitter() as MockResponse;
+        res.headers = { "content-type": "text/event-stream" };
+        res.statusCode = 200;
+        res.statusMessage = "OK";
+        callback(res);
+        for (const event of events) {
+          res.emit("data", Buffer.from(event));
+        }
+        res.emit("end");
+      });
+      return req;
+    });
+  }
+
+  it("parses Responses SSE events and terminates on response.completed", async () => {
+    mockResponsesUpstream([
+      `data: ${JSON.stringify({ type: "response.output_text.delta", output_index: 0, content_index: 0, delta: "Hello " })}\n\n`,
+      `data: ${JSON.stringify({ type: "response.output_text.delta", output_index: 0, content_index: 0, delta: "world" })}\n\n`,
+      COMPLETED,
+    ]);
+    const onDelta = vi.fn();
+
+    const response = await performVeniceRequest(
+      { endpoint: "/responses", method: "POST", body: { model: "m", input: "hi", stream: true } },
+      { onDelta },
+    );
+
+    expect(response.ok).toBe(true);
+    const contents = onDelta.mock.calls
+      .map((c) => (c[0] as { content?: string }).content ?? "")
+      .join("");
+    expect(contents).toBe("Hello world");
+  });
+
+  it("treats [DONE] as the Responses terminator", async () => {
+    mockResponsesUpstream([
+      `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "x" })}\n\n`,
+      "data: [DONE]\n\n",
+    ]);
+
+    const response = await performVeniceRequest(
+      { endpoint: "/responses", method: "POST", body: { model: "m", input: "hi", stream: true } },
+      { onDelta: vi.fn() },
+    );
+    expect(response.ok).toBe(true);
+  });
+
+  it("returns 502 when a Responses stream ends without the terminal event", async () => {
+    mockResponsesUpstream([
+      `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "partial" })}\n\n`,
+    ]);
+    const onDelta = vi.fn();
+
+    const response = await performVeniceRequest(
+      { endpoint: "/responses", method: "POST", body: { model: "m", input: "hi", stream: true } },
+      { onDelta },
+    );
+
+    expect(response).toMatchObject({
+      ok: false,
+      status: 502,
+      body: { error: "Venice Responses stream ended before the terminal event." },
+    });
+    expect(onDelta).toHaveBeenCalledWith(expect.objectContaining({ content: "partial" }));
+  });
+
+  it("returns 502 with the provider message on response.failed", async () => {
+    mockResponsesUpstream([
+      `data: ${JSON.stringify({
+        type: "response.failed",
+        response: { id: "resp_1", status: "failed", error: { code: "E", message: "provider exploded" } },
+      })}\n\n`,
+    ]);
+
+    const response = await performVeniceRequest(
+      { endpoint: "/responses", method: "POST", body: { model: "m", input: "hi", stream: true } },
+      { onDelta: vi.fn() },
+    );
+
+    expect(response).toMatchObject({
+      ok: false,
+      status: 502,
+      body: { error: "provider exploded" },
+    });
+  });
+
+  it("normalizes function-call fragments from Responses events", async () => {
+    mockResponsesUpstream([
+      `data: ${JSON.stringify({
+        type: "response.output_item.added",
+        output_index: 0,
+        item: { type: "function_call", id: "fc_1", call_id: "call_1", name: "get_weather", arguments: "" },
+      })}\n\n`,
+      `data: ${JSON.stringify({ type: "response.function_call_arguments.delta", output_index: 0, item_id: "fc_1", delta: "{\"city\":" })}\n\n`,
+      COMPLETED,
+    ]);
+    const onDelta = vi.fn();
+
+    await performVeniceRequest(
+      { endpoint: "/responses", method: "POST", body: { model: "m", input: "hi", stream: true } },
+      { onDelta },
+    );
+
+    const fragments = onDelta.mock.calls
+      .map((c) => (c[0] as { tool_calls?: unknown }).tool_calls)
+      .filter(Boolean)
+      .flat() as Array<Record<string, unknown>>;
+    expect(fragments).toContainEqual({
+      index: 0,
+      id: "fc_1",
+      type: "function",
+      function: { name: "get_weather" },
+    });
+    expect(fragments).toContainEqual({
+      index: 0,
+      id: "fc_1",
+      type: "function",
+      function: { arguments: "{\"city\":" },
+    });
+  });
+});

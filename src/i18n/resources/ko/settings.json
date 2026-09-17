@@ -538,7 +538,8 @@
     "config": "로컬 설정",
     "audioSpeech": "오디오 및 음성",
     "billing": "__MISSING__:tabs.billing",
-    "veniceApiKeys": "__MISSING__:tabs.veniceApiKeys"
+    "veniceApiKeys": "__MISSING__:tabs.veniceApiKeys",
+    "developer": "__MISSING__:tabs.developer"
   },
   "updatesPanel": {
     "title": "애플리케이션 업데이트",
@@ -723,6 +724,20 @@
         "rpd": "__MISSING__:veniceApiKeys.rateLimits.types.rpd",
         "failedRequests": "__MISSING__:veniceApiKeys.rateLimits.types.failedRequests",
         "unsupportedFeature": "__MISSING__:veniceApiKeys.rateLimits.types.unsupportedFeature"
+      }
+    }
+  },
+  "developer": {
+    "experimentalBadge": "__MISSING__:developer.experimentalBadge",
+    "responsesApi": {
+      "title": "__MISSING__:developer.responsesApi.title",
+      "description": "__MISSING__:developer.responsesApi.description",
+      "on": "__MISSING__:developer.responsesApi.on",
+      "off": "__MISSING__:developer.responsesApi.off",
+      "modelGate": "__MISSING__:developer.responsesApi.modelGate",
+      "support": {
+        "eligible": "__MISSING__:developer.responsesApi.support.eligible {{model}}",
+        "ineligible": "__MISSING__:developer.responsesApi.support.ineligible {{model}}"
       }
     }
   }

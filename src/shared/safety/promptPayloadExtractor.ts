@@ -23,6 +23,10 @@ export interface ExtractedField {
  */
 const ENDPOINT_FIELDS: Record<string, readonly string[]> = {
   "/chat/completions": ["prompt", "system", "messages"],
+  // Phase 8 — Responses API (alpha). The stateless request carries the
+  // conversation in `input` (string or message array) instead of `messages`;
+  // the guard must screen it with the same coverage as chat.
+  "/responses": ["input"],
   "/image/generate": ["prompt", "negative_prompt"],
   "/image/upscale": ["prompt"],
   "/augment/search": ["query", "question"],
@@ -198,6 +202,13 @@ function extractFromObject(
     // Chat messages array: newest + first messages are always extracted
     // (VF-AUD-20260912-GSS-P1-002) so long histories cannot skip the latest turn.
     if (key === "messages" && Array.isArray(val)) {
+      appendFieldsWithBudget(results, extractChatMessages(val, path));
+      continue;
+    }
+
+    // Responses API input array (Phase 8): same message-shape coverage as
+    // `messages` — the newest and first turns are always screened.
+    if (key === "input" && Array.isArray(val)) {
       appendFieldsWithBudget(results, extractChatMessages(val, path));
       continue;
     }

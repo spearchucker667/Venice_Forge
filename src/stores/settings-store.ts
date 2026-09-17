@@ -56,6 +56,7 @@ export type SettingsSection =
   | 'config'
   | 'providers'
   | 'audio-speech'
+  | 'developer'
 
 const VALID_SETTINGS_SECTIONS = new Set<SettingsSection>([
   'language',
@@ -71,6 +72,7 @@ const VALID_SETTINGS_SECTIONS = new Set<SettingsSection>([
   'updates',
   'config',
   'audio-speech',
+  'developer',
 ])
 
 /** Defensive coercion: returns null when the value is not a known
@@ -204,6 +206,12 @@ interface SettingsState {
   setLocalFamilySafeModeEnabled: (enabled: boolean) => void
   veniceApiSafeMode: boolean
   setVeniceApiSafeMode: (enabled: boolean) => void
+  /** Phase 8 — Responses API (alpha). Explicit, opt-in, experimental chat
+   *  transport. Off by default; when off (or when the selected model is not
+   *  confirmed non-E2EE) the chat path is unchanged. Never affects
+   *  fallback-provider routing. */
+  responsesApiEnabled: boolean
+  setResponsesApiEnabled: (enabled: boolean) => void
   showInspector: boolean
   inspectorWidth: number
   setShowInspector: (show: boolean) => void
@@ -388,6 +396,9 @@ export const useSettingsStore = create<SettingsState>()(
       setLocalFamilySafeModeEnabled: (enabled) => set({ localFamilySafeModeEnabled: enabled }),
       veniceApiSafeMode: false,
       setVeniceApiSafeMode: (enabled) => set({ veniceApiSafeMode: enabled }),
+      // Phase 8 — Responses API (alpha): experimental transport, off by default.
+      responsesApiEnabled: false,
+      setResponsesApiEnabled: (enabled) => set({ responsesApiEnabled: enabled }),
       showInspector: false,
       inspectorWidth: 480,
       setShowInspector: (show) => set({ showInspector: show }),
@@ -462,7 +473,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'venice-settings',
-      version: 17,
+      version: 18,
       storage: createJSONStorage(() => createSafeStorage()),
       partialize: (state) => {
         const { pendingSettingsSection: _pendingSettingsSection, ...persisted } = state;
@@ -487,6 +498,9 @@ export const useSettingsStore = create<SettingsState>()(
           // setting and remains active in every mode.
           localFamilySafeModeEnabled: state.localFamilySafeModeEnabled ?? false,
           veniceApiSafeMode: state.veniceApiSafeMode ?? false,
+          // v18 (Phase 8 — Responses API alpha): experimental chat transport
+          // defaults off. Explicit persisted on-state is preserved.
+          responsesApiEnabled: state.responsesApiEnabled === true,
           // v3: normalise legacy tab aliases (e.g. 'gallery' → 'media').
           activeTab: safeNormaliseTab(state.activeTab) as Tab,
           // v4 (workspace): ensure activeProjectId exists for Project switcher.

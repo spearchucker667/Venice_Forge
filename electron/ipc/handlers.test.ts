@@ -173,6 +173,26 @@ vi.mock("../services/veniceClient", () => ({
   readResponseError: vi.fn(() => "error"),
 }));
 
+// Phase 8 — spy (not replace) the guarded dispatcher and the chat agent loop
+// so Responses-transport tests can prove /responses routes through the
+// single-turn guarded path while /chat/completions keeps the bounded tool
+// loop. Real implementations are preserved.
+vi.mock("../services/guardPipeline", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/guardPipeline")>();
+  return {
+    ...actual,
+    performGuardedVeniceRequest: vi.fn(actual.performGuardedVeniceRequest),
+  };
+});
+
+vi.mock("../agent/runtime/chat-agent-runner", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../agent/runtime/chat-agent-runner")>();
+  return {
+    ...actual,
+    runChatAgentLoop: vi.fn(actual.runChatAgentLoop),
+  };
+});
+
 // Default the runtime snapshot to ON (Family Safe Mode). Tests that need
 // Adult Mode can flip the vi.fn() return value via mockReturnValueOnce(false)
 // or use the exported setter directly. The real module's state is a module-
@@ -943,6 +963,89 @@ describe("registerIpcHandlers", () => {
       expectErrorResult(result);
       expectRecord(result.body);
       expect(result.body.error).toMatch(/streaming is only available/i);
+    });
+
+    it("Phase 8 — /responses streams through the guarded single-turn path (no agent tool loop)", async () => {
+      const { performGuardedVeniceRequest } = await import("../services/guardPipeline");
+      const { runChatAgentLoop } = await import("../agent/runtime/chat-agent-runner");
+      const guardedSpy = vi.mocked(performGuardedVeniceRequest);
+      const agentLoopSpy = vi.mocked(runChatAgentLoop);
+      guardedSpy.mockClear();
+      agentLoopSpy.mockClear();
+
+      const result = await invoke<VeniceHandlerResult>(
+        "venice:streamChat",
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        {
+          endpoint: "/responses",
+          method: "POST",
+          body: { model: "test-model", input: "hello" },
+        }
+      );
+
+      expect(result).toMatchObject({ ok: true, status: 200 });
+      expect(guardedSpy).toHaveBeenCalledTimes(1);
+      expect(agentLoopSpy).not.toHaveBeenCalled();
+    });
+
+    it("Phase 8 — /chat/completions still uses the bounded agent tool loop", async () => {
+      const { performGuardedVeniceRequest } = await import("../services/guardPipeline");
+      const { runChatAgentLoop } = await import("../agent/runtime/chat-agent-runner");
+      const guardedSpy = vi.mocked(performGuardedVeniceRequest);
+      const agentLoopSpy = vi.mocked(runChatAgentLoop);
+      guardedSpy.mockClear();
+      agentLoopSpy.mockClear();
+
+      await invoke<VeniceHandlerResult>(
+        "venice:streamChat",
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        {
+          endpoint: "/chat/completions",
+          method: "POST",
+          body: { model: "test-model", messages: [{ role: "user", content: "hello" }] },
+        }
+      );
+
+      expect(agentLoopSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("Phase 8 — the safety guard blocks /responses payloads before dispatch", async () => {
+      const { runChatAgentLoop } = await import("../agent/runtime/chat-agent-runner");
+      const agentLoopSpy = vi.mocked(runChatAgentLoop);
+      agentLoopSpy.mockClear();
+
+      const result = await invoke<VeniceHandlerResult>(
+        "venice:streamChat",
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        {
+          endpoint: "/responses",
+          method: "POST",
+          body: {
+            model: "test-model",
+            input: [{ type: "message", role: "user", content: "loli" }],
+          },
+        }
+      );
+
+      expect(result).toMatchObject({ ok: false, status: 451 });
+      expect(agentLoopSpy).not.toHaveBeenCalled();
+    });
+
+    it("Phase 8 — rejects non-POST methods on /responses (validator method gate)", async () => {
+      const result = await invoke<VeniceHandlerResult>(
+        "venice:streamChat",
+        { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents },
+        {
+          endpoint: "/responses",
+          method: "GET",
+        }
+      );
+
+      expect(result).toMatchObject({ ok: false, statusText: "Local transport error" });
+      expectRecord(result.body);
+      // The shared endpoint/method validator rejects GET on the POST-only
+      // /responses entry before the streaming handler runs.
+      expect(result.body.error).toMatch(/not allowed for endpoint \/responses/i);
     });
   });
 

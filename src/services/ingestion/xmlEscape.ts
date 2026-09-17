@@ -123,6 +123,11 @@ export function buildExternalAttachmentEnvelope(
  *  the compiler's own providerContext convention). Instruction segments are
  *  NOT serialized — they already equal the message's compiled content.
  *
+ *  The conversation array is `messages` on /chat/completions and `input` on
+ *  the Responses API (alpha); text parts are `text` (chat) or `input_text`
+ *  (Responses). Both shapes share this single serializer so the two
+ *  transports cannot drift.
+ *
  *  Fail closed: a provenance entry whose `index` does not resolve to a
  *  message with text content throws. Losing an attachment silently would
  *  violate provenance coverage. Callers should treat the throw as a
@@ -135,10 +140,18 @@ export function serializeSafetyProvenanceIntoPayload<T>(payload: T): T {
   if (!provenance) return withoutField;
 
   const record = withoutField as Record<string, unknown>;
-  const messages = record.messages;
-  if (!Array.isArray(messages)) {
-    throw new Error("safety provenance present but payload has no messages array");
+  // Responses API (alpha) carries the conversation in `input`; chat
+  // completions carries it in `messages`. Exactly one must be present when
+  // provenance exists.
+  const conversationKey = Array.isArray(record.messages)
+    ? "messages"
+    : Array.isArray(record.input)
+      ? "input"
+      : null;
+  if (!conversationKey) {
+    throw new Error("safety provenance present but payload has no messages/input array");
   }
+  const messages = (record[conversationKey] as unknown[]) ?? [];
 
   const messagesCopy = messages.map((m) =>
     m && typeof m === "object" ? { ...(m as Record<string, unknown>) } : m,
@@ -175,7 +188,10 @@ export function serializeSafetyProvenanceIntoPayload<T>(payload: T): T {
         p && typeof p === "object" ? { ...(p as Record<string, unknown>) } : p,
       ) as Array<Record<string, unknown>>;
       const textPartIndex = parts.findIndex(
-        (p) => p && p.type === "text" && typeof p.text === "string",
+        (p) =>
+          p &&
+          (p.type === "text" || p.type === "input_text") &&
+          typeof p.text === "string",
       );
       if (textPartIndex === -1) {
         throw new Error(
@@ -194,6 +210,6 @@ export function serializeSafetyProvenanceIntoPayload<T>(payload: T): T {
     }
   }
 
-  record.messages = messagesCopy;
+  record[conversationKey] = messagesCopy;
   return record as T;
 }
