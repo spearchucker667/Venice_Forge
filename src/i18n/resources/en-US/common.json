@@ -165,6 +165,14 @@
       "label": {
         "sort": "Sort",
         "model": "Model"
+      },
+      "reviews": {
+        "heading": "Reviews",
+        "loadingReviews": "Loading reviews…",
+        "failedToLoadReviews": "Failed to load reviews.",
+        "noReviewsYet": "No reviews yet.",
+        "loadMoreReviews": "Load more reviews",
+        "ratingOutOfFiveStars": "{{rating}} out of 5 stars"
       }
     },
     "componentsDiagnosticspreview": {

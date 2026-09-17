@@ -118,6 +118,15 @@ export interface AudioPreferences {
     stopOnNewReply: boolean;
     cacheEnabled: boolean;
   };
+
+  /** Audio Studio (TTS tab) persisted choices. `ttsFormat` is the user's
+   *  output-format selection; `undefined` means "follow the selected
+   *  model's default". The Audio Studio view repairs it against the
+   *  model's `supported_formats` metadata whenever the selection is not
+   *  valid for the newly selected model. */
+  audioStudio: {
+    ttsFormat: string | undefined;
+  };
 }
 
 export const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = {
@@ -136,6 +145,9 @@ export const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = {
     skipUrls: true,
     stopOnNewReply: true,
     cacheEnabled: true,
+  },
+  audioStudio: {
+    ttsFormat: undefined,
   },
 }
 
@@ -242,6 +254,7 @@ interface SettingsState {
   setAudioPreferences: (prefs: Partial<AudioPreferences>) => void
   setUiSoundPreferences: (prefs: Partial<AudioPreferences['uiSounds']>) => void
   setChatTtsPreferences: (prefs: Partial<AudioPreferences['chatTts']>) => void
+  setAudioStudioPreferences: (prefs: Partial<AudioPreferences['audioStudio']>) => void
   
   // Localization
   uiLocale: LocaleSetting
@@ -436,6 +449,12 @@ export const useSettingsStore = create<SettingsState>()(
           chatTts: { ...s.audioPreferences.chatTts, ...prefs }
         }
       })),
+      setAudioStudioPreferences: (prefs) => set((s) => ({
+        audioPreferences: {
+          ...s.audioPreferences,
+          audioStudio: { ...s.audioPreferences.audioStudio, ...prefs }
+        }
+      })),
       // Phase 9: prompt opt-in defaults off — copy diagnostic bundle
       // strips raw prompt text unless the user ticks the toggle.
       diagnosticsIncludePrompts: false,
@@ -443,7 +462,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'venice-settings',
-      version: 16,
+      version: 17,
       storage: createJSONStorage(() => createSafeStorage()),
       partialize: (state) => {
         const { pendingSettingsSection: _pendingSettingsSection, ...persisted } = state;
@@ -499,6 +518,13 @@ export const useSettingsStore = create<SettingsState>()(
             chatTts: {
               ...DEFAULT_AUDIO_PREFERENCES.chatTts,
               ...(state.audioPreferences?.chatTts ?? {}),
+            },
+            // v17 (audio studio): persisted Audio Studio TTS output format.
+            // Old records predate the sub-section; an explicit persisted
+            // choice is preserved, otherwise the model default applies.
+            audioStudio: {
+              ...DEFAULT_AUDIO_PREFERENCES.audioStudio,
+              ...(state.audioPreferences?.audioStudio ?? {}),
             }
           },
           // v10 (VERIFY-130): backup/sync media opt-in defaults to off. We

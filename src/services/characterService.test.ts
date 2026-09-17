@@ -4,12 +4,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   buildListQueryString,
   getCharacter,
+  getCharacterReviews,
   isValidCharacterSlug,
   listCharacters,
   normalizeCharacter,
+  normalizeCharacterReviews,
   resolveCharacterShareUrl,
 } from "./characterService";
 import { venice, VeniceAPIError } from "../lib/venice-client";
+import { isAllowedCharactersRequest } from "../shared/validation";
 
 vi.mock("../lib/venice-client", () => ({
   venice: vi.fn(),
@@ -258,6 +261,179 @@ describe("characterService", () => {
     it("throws a VeniceAPIError on malformed records", async () => {
       mockedVenice.mockResolvedValueOnce({ data: { name: "No slug" } });
       await expect(getCharacter("alan-watts")).rejects.toBeInstanceOf(VeniceAPIError);
+    });
+  });
+
+  describe("getCharacterReviews", () => {
+    it("rejects an invalid slug before hitting the network", async () => {
+      await expect(getCharacterReviews("has/slash")).rejects.toThrow(/invalid/i);
+      expect(mockedVenice).not.toHaveBeenCalled();
+    });
+
+    it("issues GET /characters/{slug}/reviews — the single allowlisted nested route", async () => {
+      mockedVenice.mockResolvedValueOnce({
+        data: [],
+        object: "list",
+        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+        summary: { averageRating: 0, totalReviews: 0 },
+      });
+      await getCharacterReviews("alan-watts");
+      const [endpoint, opts] = mockedVenice.mock.calls[0];
+      expect(endpoint).toBe("/characters/alan-watts/reviews?page=1&pageSize=20");
+      expect(opts).toMatchObject({ method: "GET" });
+      // The exact path requested must pass the shared validation gate that
+      // both the Electron IPC layer and the Express proxy enforce.
+      expect(isAllowedCharactersRequest(endpoint as string, "GET")).toBe(false);
+      expect(
+        isAllowedCharactersRequest(
+          (endpoint as string).split("?")[0],
+          "GET",
+        ),
+      ).toBe(true);
+    });
+
+    it("normalizes the documented envelope shape", async () => {
+      mockedVenice.mockResolvedValueOnce({
+        data: [
+          {
+            characterId: "char-1",
+            createdAt: "2025-02-09T03:23:53.708Z",
+            id: "rev-1",
+            isOwner: false,
+            locale: "en",
+            message: "Thoughtful and grounded.",
+            rating: 5,
+            userAvatarUrl: null,
+            username: "product_user_42",
+          },
+        ],
+        object: "list",
+        pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+        summary: { averageRating: 5, totalReviews: 1 },
+      });
+      const result = await getCharacterReviews("alan-watts", { page: 1, pageSize: 20 });
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]).toMatchObject({
+        id: "rev-1",
+        username: "product_user_42",
+        rating: 5,
+        message: "Thoughtful and grounded.",
+      });
+      expect(result.pagination).toEqual({ page: 1, pageSize: 20, total: 1, totalPages: 1 });
+      expect(result.summary).toEqual({ averageRating: 5, totalReviews: 1 });
+    });
+
+    it("accepts a bare-array response shape", async () => {
+      mockedVenice.mockResolvedValueOnce([
+        {
+          characterId: "char-1",
+          createdAt: "2025-02-09T03:23:53.708Z",
+          id: "rev-1",
+          isOwner: true,
+          locale: null,
+          message: null,
+          rating: 4,
+          userAvatarUrl: null,
+          username: "anon",
+        },
+      ]);
+      const result = await getCharacterReviews("alan-watts");
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].message).toBeNull();
+      expect(result.data[0].isOwner).toBe(true);
+    });
+
+    it("drops malformed review entries without throwing", async () => {
+      mockedVenice.mockResolvedValueOnce({
+        data: [
+          {
+            characterId: "char-1",
+            createdAt: "2025-02-09T03:23:53.708Z",
+            id: "rev-1",
+            isOwner: false,
+            locale: null,
+            message: null,
+            rating: 3,
+            userAvatarUrl: null,
+            username: "ok",
+          },
+          { id: "missing-fields" },
+          null,
+          "not-an-object",
+        ],
+        object: "list",
+        pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+        summary: { averageRating: 3, totalReviews: 1 },
+      });
+      const result = await getCharacterReviews("alan-watts");
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe("rev-1");
+    });
+
+    it("clamps page and pageSize to the documented ranges", async () => {
+      mockedVenice.mockResolvedValueOnce({
+        data: [],
+        object: "list",
+        pagination: { page: 1, pageSize: 100, total: 0, totalPages: 1 },
+        summary: { averageRating: 0, totalReviews: 0 },
+      });
+      await getCharacterReviews("alan-watts", { page: 0, pageSize: 9999 });
+      const [endpoint] = mockedVenice.mock.calls[0];
+      const params = new URLSearchParams((endpoint as string).split("?")[1]);
+      expect(params.get("page")).toBe("1");
+      expect(params.get("pageSize")).toBe("100");
+    });
+
+    it("URL-encodes the slug segment", async () => {
+      mockedVenice.mockResolvedValueOnce({
+        data: [],
+        object: "list",
+        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+        summary: { averageRating: 0, totalReviews: 0 },
+      });
+      await getCharacterReviews("Dolores_42");
+      expect(mockedVenice.mock.calls[0][0]).toMatch(/^\/characters\/Dolores_42\/reviews\?/);
+    });
+
+    it("forwards the AbortSignal to the venice client", async () => {
+      mockedVenice.mockResolvedValueOnce({
+        data: [],
+        object: "list",
+        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+        summary: { averageRating: 0, totalReviews: 0 },
+      });
+      const controller = new AbortController();
+      await getCharacterReviews("alan-watts", {}, controller.signal);
+      const [, opts] = mockedVenice.mock.calls[0];
+      expect(opts?.signal).toBe(controller.signal);
+    });
+  });
+
+  describe("normalizeCharacterReviews", () => {
+    it("fills safe defaults for missing pagination and summary", () => {
+      const result = normalizeCharacterReviews({});
+      expect(result.data).toEqual([]);
+      expect(result.pagination).toEqual({ page: 1, pageSize: 20, total: 0, totalPages: 1 });
+      expect(result.summary).toEqual({ averageRating: 0, totalReviews: 0 });
+    });
+
+    it("clamps out-of-range ratings to 1–5", () => {
+      const result = normalizeCharacterReviews({
+        data: [
+          {
+            characterId: "c",
+            createdAt: "2025-02-09T03:23:53.708Z",
+            id: "high",
+            isOwner: false,
+            locale: null,
+            message: null,
+            rating: 9,
+            userAvatarUrl: null,
+            username: "u",
+          },
+        ],
+      });
+      expect(result.data[0].rating).toBe(5);
     });
   });
 });

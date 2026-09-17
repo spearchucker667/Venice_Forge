@@ -318,6 +318,31 @@ describe('settings-store', () => {
       expect(merged.sidebarOpen).toBe(true)
     })
 
+    it('v17: gives persisted audio preferences an audioStudio section defaulting to the model default', () => {
+      const migrate = useSettingsStore.persist.getOptions().migrate as (persistedState: unknown, version: number) => any
+
+      const legacy = migrate({
+        audioPreferences: {
+          uiSounds: { enabled: true, packId: 'glass', volume: 0.5 },
+          chatTts: { showMessageControls: false, speed: 1.5, volume: 1, skipCodeBlocks: true, skipUrls: true, stopOnNewReply: true, cacheEnabled: true },
+        },
+      }, 16)
+
+      expect(legacy.audioPreferences.uiSounds.packId).toBe('glass')
+      expect(legacy.audioPreferences.chatTts.speed).toBe(1.5)
+      expect(legacy.audioPreferences.audioStudio).toEqual({ ttsFormat: undefined })
+
+      const explicit = migrate({
+        audioPreferences: {
+          uiSounds: { enabled: false, packId: 'soft', volume: 0.35 },
+          chatTts: { showMessageControls: true, speed: 1, volume: 1, skipCodeBlocks: true, skipUrls: true, stopOnNewReply: true, cacheEnabled: true },
+          audioStudio: { ttsFormat: 'flac' },
+        },
+      }, 17)
+
+      expect(explicit.audioPreferences.audioStudio.ttsFormat).toBe('flac')
+    })
+
     it('migrates legacy custom themes without code config to derived code config', () => {
       const migrate = useSettingsStore.persist.getOptions().migrate as (persistedState: unknown, version: number) => any
       const legacyTheme = makeTheme('legacy', 'Legacy Theme', 'dark', 'dracula')

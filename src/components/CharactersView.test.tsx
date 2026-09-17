@@ -6,6 +6,8 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { Avatar, CharactersView } from "./CharactersView";
 import { useCharacterImage } from "../hooks/useCharacterImage";
 import type { VeniceCharacter } from "../types/characters";
@@ -18,9 +20,22 @@ vi.mock("../hooks/useCharacterImage");
 vi.mock("../services/characterService", () => ({
   listCharacters: vi.fn().mockResolvedValue([]),
   getCharacter: vi.fn(),
+  getCharacterReviews: vi.fn().mockResolvedValue({
+    data: [],
+    pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+    summary: { averageRating: 0, totalReviews: 0 },
+  }),
+  CHARACTER_REVIEWS_PAGE_SIZE_DEFAULT: 20,
 }));
 
 const mockedUseCharacterImage = vi.mocked(useCharacterImage);
+
+function wrapper({ children }: { children: ReactNode }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
 
 const CHARACTER: VeniceCharacter = {
   id: "char-1",
@@ -97,7 +112,7 @@ describe('CharactersView hosted hub adapters', () => {
     useSettingsStore.setState({ favoriteHostedCharacterSlugs: [] })
     useChatStore.setState({ conversations: [], createCharacterConversation: vi.fn() })
 
-    render(<CharactersView />)
+    render(<CharactersView />, { wrapper })
 
     fireEvent.click(screen.getByRole('button', { name: 'Favorite' }))
     expect(useSettingsStore.getState().favoriteHostedCharacterSlugs).toEqual(['alan-watts'])

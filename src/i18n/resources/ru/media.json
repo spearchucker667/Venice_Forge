@@ -167,5 +167,10 @@
     "count": "__MISSING__:promptLimit.count {{current}} {{limit}}",
     "overTitle": "__MISSING__:promptLimit.overTitle",
     "overDetail": "__MISSING__:promptLimit.overDetail {{limit}}"
+  },
+  "audioStudio": {
+    "notification": {
+      "formatRepaired": "__MISSING__:audioStudio.notification.formatRepaired {{format}}"
+    }
   }
 }

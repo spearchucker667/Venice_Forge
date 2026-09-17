@@ -23,6 +23,7 @@ import { useCharacterCardStore } from "../stores/character-card-store";
 import { startNormalChatForCharacter } from "../services/rpHelpers";
 import { avatarDataUri } from "./rp-studio/_shared";
 import { CharacterAvatar } from "./characters/CharacterAvatar";
+import { CharacterReviews } from "./characters/CharacterReviews";
 import { createBlankCharacterCardDraft } from "../services/characterCards/characterCardStudioHandoff";
 import { desktopCharacterCards } from "../services/desktopBridge";
 import { validateCharacterCardAuthoring } from "../types/character-card-spec";
@@ -805,6 +806,7 @@ export function CharactersView() {
             <Trans i18nKey="common:surface.componentsCharactersview.action.duplicateLocally" />
           </button>
         </div>
+        <CharacterReviews key={hostedDetail.slug} slug={hostedDetail.slug} />
       </div>
     </AccessibleDialog>
   ) : null;

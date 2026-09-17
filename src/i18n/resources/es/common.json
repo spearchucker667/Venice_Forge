@@ -147,6 +147,14 @@
       },
       "description": {
         "browseHostedAndLocallyAuthoredCharactersIn": "Explorar caracteres alojados y creados localmente en un centro."
+      },
+      "reviews": {
+        "heading": "__MISSING__:surface.componentsCharactersview.reviews.heading",
+        "loadingReviews": "__MISSING__:surface.componentsCharactersview.reviews.loadingReviews",
+        "failedToLoadReviews": "__MISSING__:surface.componentsCharactersview.reviews.failedToLoadReviews",
+        "noReviewsYet": "__MISSING__:surface.componentsCharactersview.reviews.noReviewsYet",
+        "loadMoreReviews": "__MISSING__:surface.componentsCharactersview.reviews.loadMoreReviews",
+        "ratingOutOfFiveStars": "__MISSING__:surface.componentsCharactersview.reviews.ratingOutOfFiveStars {{rating}}"
       }
     },
     "componentsStatusview": {

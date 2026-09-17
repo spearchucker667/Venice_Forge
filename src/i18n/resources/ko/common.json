@@ -147,6 +147,14 @@
       },
       "description": {
         "browseHostedAndLocallyAuthoredCharactersIn": "하나의 허브에서 호스트 및 로컬로 작성된 문자를 찾아보세요."
+      },
+      "reviews": {
+        "heading": "__MISSING__:surface.componentsCharactersview.reviews.heading",
+        "loadingReviews": "__MISSING__:surface.componentsCharactersview.reviews.loadingReviews",
+        "failedToLoadReviews": "__MISSING__:surface.componentsCharactersview.reviews.failedToLoadReviews",
+        "noReviewsYet": "__MISSING__:surface.componentsCharactersview.reviews.noReviewsYet",
+        "loadMoreReviews": "__MISSING__:surface.componentsCharactersview.reviews.loadMoreReviews",
+        "ratingOutOfFiveStars": "__MISSING__:surface.componentsCharactersview.reviews.ratingOutOfFiveStars {{rating}}"
       }
     },
     "componentsStatusview": {

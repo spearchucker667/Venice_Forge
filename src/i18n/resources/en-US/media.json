@@ -167,5 +167,10 @@
     "count": "{{current}}/{{limit}}",
     "overTitle": "Prompt too long",
     "overDetail": "Shorten the prompt to {{limit}} characters or fewer for the selected model."
+  },
+  "audioStudio": {
+    "notification": {
+      "formatRepaired": "Output format reset to {{format}} — the selected model does not support your previous choice."
+    }
   }
 }

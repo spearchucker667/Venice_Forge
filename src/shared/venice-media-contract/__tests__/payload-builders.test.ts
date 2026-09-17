@@ -288,6 +288,18 @@ describe('Canonical Payload Builders', () => {
       });
     });
 
+    it('forwards an explicit resolved responseFormat to the wire payload (Phase 4C)', () => {
+      // The Audio Studio selector persists a user choice, repairs it through
+      // `resolveAudioResponseFormat`, and passes the resolved value here — the
+      // wire payload must carry it verbatim.
+      const tts = buildCanonicalAudioSpeechPayload({
+        model: 'tts-kokoro',
+        input: 'Format on the wire',
+        responseFormat: 'wav',
+      });
+      expect(tts.response_format).toBe('wav');
+    });
+
     it('defaults voice to af_sky for Kokoro models when voice is omitted', () => {
       const tts = buildCanonicalAudioSpeechPayload({
         model: 'kokoro-v1',

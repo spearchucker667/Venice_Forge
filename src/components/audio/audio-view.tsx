@@ -1,4 +1,4 @@
-import { useState, useRef, useId, useEffect } from "react";
+import { useState, useRef, useId, useEffect, useMemo } from "react";
 import { useSettingsStore } from "../../stores/settings-store";
 import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
 import { useModels } from "../../hooks/use-models";
@@ -23,14 +23,31 @@ import { DEFAULT_TTS_MODEL } from "../../constants/venice";
 import { DEFAULT_TTS_VOICE, TTS_FALLBACK_VOICES } from "../../constants/tts";
 import { Trans, useTranslation } from "react-i18next";
 import { desktopMedia } from "../../services/desktopBridge";
+import {
+  resolveAudioResponseFormat,
+  SUPPORTED_AUDIO_OUTPUT_FORMATS,
+  type AudioOutputFormat,
+} from "../../utils/payloadBuilders";
 
-const FORMATS = ["mp3", "opus", "aac", "flac", "wav"] as const;
+/** Formats offered when the selected model's `supported_formats` metadata
+ *  is unavailable (models still loading, or the catalog entry omits it).
+ *  Mirrors the historic Audio Studio selector. When live metadata exists,
+ *  the selector is driven by the model's own allowlist instead. */
+const FALLBACK_FORMATS: readonly AudioOutputFormat[] = [
+  "mp3",
+  "opus",
+  "aac",
+  "flac",
+  "wav",
+];
+
 const MIME_BY_FORMAT: Record<string, string> = {
   mp3: "audio/mpeg",
   opus: "audio/opus",
   aac: "audio/aac",
   flac: "audio/flac",
   wav: "audio/wav",
+  pcm: "audio/pcm",
 };
 
 export function AudioView() {
@@ -51,7 +68,12 @@ export function AudioView() {
   );
   const [voice, setVoice] = useState(DEFAULT_TTS_VOICE);
   const [speed, setSpeed] = useState(1);
-  const [format, setFormat] = useState<string>("mp3");
+  const ttsFormatPref = useSettingsStore(
+    (s) => s.audioPreferences.audioStudio.ttsFormat,
+  );
+  const setAudioStudioPreferences = useSettingsStore(
+    (s) => s.setAudioStudioPreferences,
+  );
   const [audioUrl, setAudioBlob] = useBlobUrl();
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -72,13 +94,40 @@ export function AudioView() {
     if (result.status === "failed") toast.error(tRuntime("mediaSave.failed"), result.error);
   };
 
+  const modelInfo = useMemo(
+    () => models?.find((candidate) => candidate.id === model),
+    [models, model],
+  );
+
+  /** Effective output format — the persisted user choice when the selected
+   *  model advertises it in `supported_formats`, otherwise the model's
+   *  `default_format` (or the conservative 'mp3' fallback). This is the
+   *  value that reaches the wire payload. */
+  const format = resolveAudioResponseFormat(modelInfo, ttsFormatPref);
+
+  // Repair an explicit persisted choice the newly selected model does not
+  // advertise (upstream rejects unsupported formats with HTTP 400). Never
+  // blocks the model switch: the persisted value is reset to the model
+  // default and a small non-blocking toast explains the repair.
+  useEffect(() => {
+    if (!modelInfo || !ttsFormatPref) return;
+    const resolved = resolveAudioResponseFormat(modelInfo, ttsFormatPref);
+    if (resolved === ttsFormatPref) return;
+    setAudioStudioPreferences({ ttsFormat: resolved });
+    toast.info(
+      tRuntime("media:audioStudio.notification.formatRepaired", {
+        defaultValue:
+          "Output format reset to {{format}} — the selected model does not support your previous choice.",
+        format: resolved.toUpperCase(),
+      }),
+    );
+  }, [modelInfo, ttsFormatPref, setAudioStudioPreferences, tRuntime]);
+
   useEffect(() => {
     if (!audioUrl) setPlaybackError(null);
   }, [audioUrl]);
 
-  const selectedModelVoices = models?.find(
-    (candidate) => candidate.id === model,
-  )?.model_spec?.voices;
+  const selectedModelVoices = modelInfo?.model_spec?.voices;
   const voices = selectedModelVoices?.length
     ? selectedModelVoices
     : TTS_FALLBACK_VOICES;
@@ -113,7 +162,21 @@ export function AudioView() {
       : v;
     return { value: v, label: display };
   });
-  const formatOptions = FORMATS.map((f) => ({
+  // Selector options come from live model metadata when the model
+  // advertises `supported_formats`; the static list is only a fallback for
+  // unloaded/unknown catalogs. Never claim a capability the metadata does
+  // not advertise (upstream 400s on unsupported formats).
+  const supportedFormats = useMemo(() => {
+    const advertised = modelInfo?.model_spec?.supported_formats;
+    const filtered = Array.isArray(advertised)
+      ? advertised.filter((f): f is AudioOutputFormat =>
+          (SUPPORTED_AUDIO_OUTPUT_FORMATS as readonly string[]).includes(f),
+        )
+      : [];
+    return filtered.length > 0 ? filtered : FALLBACK_FORMATS;
+  }, [modelInfo]);
+
+  const formatOptions = supportedFormats.map((f) => ({
     value: f,
     label: f.toUpperCase(),
   }));
@@ -128,7 +191,7 @@ export function AudioView() {
         input: text.trim(),
         voice,
         speed,
-        response_format: format as (typeof FORMATS)[number],
+        response_format: format,
       },
       {
         onSuccess: (blob) => setAudioBlob(blob),
@@ -205,7 +268,9 @@ export function AudioView() {
               <Select
                 id={formatId}
                 value={format}
-                onChange={setFormat}
+                onChange={(value) =>
+                  setAudioStudioPreferences({ ttsFormat: value })
+                }
                 options={formatOptions}
               />
             </div>

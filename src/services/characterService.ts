@@ -3,19 +3,28 @@
  *  Talks to the official Venice endpoints:
  *    GET /api/v1/characters
  *    GET /api/v1/characters/{slug}
+ *    GET /api/v1/characters/{slug}/reviews   (preview API — read-only)
  *
  *  Never calls `fetch()` directly — routes through the existing
  *  `venice<T>()` helper which forwards to the Electron IPC bridge
- *  (and the IPC safety guard in the main process).
+ *  (and the IPC safety guard in the main process). The reviews route is
+ *  the single allowlisted nested path under `/characters`
+ *  (`CHARACTER_REVIEWS_SUFFIX` in `src/shared/validation.ts`); the IPC and
+ *  Express-proxy validation layers both route it through
+ *  `isAllowedCharactersRequest`.
  */
 
 import { venice, VeniceAPIError } from "../lib/venice-client";
 import { resolveCharacterImageUrl } from "../utils/characterImageResolver";
 import type {
+  CharacterReviewsPagination,
+  CharacterReviewsResult,
+  CharacterReviewsSummary,
   GetCharacterResponse,
   ListCharactersRequest,
   ListCharactersResponse,
   VeniceCharacter,
+  VeniceCharacterReview,
 } from "../types/characters";
 
 /** Venice supports a maximum of 100 items per list call. */
@@ -232,4 +241,98 @@ export async function getCharacter(
     throw new VeniceAPIError("Venice returned a malformed character record.", 502);
   }
   return char;
+}
+
+/** Maximum reviews per page documented by the preview API. */
+export const CHARACTER_REVIEWS_PAGE_SIZE_MAX = 100;
+/** Default reviews page size — matches the upstream default. */
+export const CHARACTER_REVIEWS_PAGE_SIZE_DEFAULT = 20;
+
+/** Clamps an arbitrary value to the inclusive integer range [min, max]. */
+function clampReviewInt(value: unknown, min: number, max: number, fallback: number): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
+/** Normalizes a single review record. Returns null when the record is too
+ *  malformed to display (missing id/username/createdAt or a non-numeric
+ *  rating). */
+export function normalizeCharacterReview(raw: unknown): VeniceCharacterReview | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const id = typeof r.id === "string" ? r.id.trim() : "";
+  const characterId = typeof r.characterId === "string" ? r.characterId.trim() : "";
+  const username = typeof r.username === "string" && r.username.trim() ? r.username.trim() : "";
+  const createdAt = typeof r.createdAt === "string" && r.createdAt.trim() ? r.createdAt.trim() : "";
+  const rating = typeof r.rating === "number" && Number.isFinite(r.rating) ? Math.round(r.rating) : NaN;
+  if (!id || !characterId || !createdAt || !username || !Number.isFinite(rating)) return null;
+  return {
+    id,
+    characterId,
+    username,
+    rating: Math.max(1, Math.min(5, rating)),
+    message: typeof r.message === "string" && r.message.trim() ? r.message : null,
+    createdAt,
+    locale: typeof r.locale === "string" && r.locale.trim() ? r.locale : null,
+    userAvatarUrl: typeof r.userAvatarUrl === "string" && r.userAvatarUrl.trim() ? r.userAvatarUrl : null,
+    isOwner: r.isOwner === true,
+  };
+}
+
+/** Normalizes the reviews response envelope. Accepts the documented
+ *  `{ data, object, pagination, summary }` shape plus a bare review array
+ *  so the UI degrades gracefully on partial upstream responses. */
+export function normalizeCharacterReviews(raw: unknown): CharacterReviewsResult {
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const list = Array.isArray(r.data) ? r.data : Array.isArray(raw) ? raw : [];
+  const data = list
+    .map(normalizeCharacterReview)
+    .filter((review): review is VeniceCharacterReview => review !== null);
+  const p = r.pagination && typeof r.pagination === "object"
+    ? (r.pagination as Record<string, unknown>)
+    : {};
+  const pagination: CharacterReviewsPagination = {
+    page: clampReviewInt(p.page, 1, Number.MAX_SAFE_INTEGER, 1),
+    pageSize: clampReviewInt(p.pageSize, 1, CHARACTER_REVIEWS_PAGE_SIZE_MAX, CHARACTER_REVIEWS_PAGE_SIZE_DEFAULT),
+    total: clampReviewInt(p.total, 0, Number.MAX_SAFE_INTEGER, data.length),
+    totalPages: clampReviewInt(p.totalPages, 0, Number.MAX_SAFE_INTEGER, 1),
+  };
+  const s = r.summary && typeof r.summary === "object"
+    ? (r.summary as Record<string, unknown>)
+    : {};
+  const summary: CharacterReviewsSummary = {
+    averageRating: typeof s.averageRating === "number" && Number.isFinite(s.averageRating) ? s.averageRating : 0,
+    totalReviews: clampReviewInt(s.totalReviews, 0, Number.MAX_SAFE_INTEGER, data.length),
+  };
+  return { data, pagination, summary };
+}
+
+/** Fetches public reviews for a hosted character (preview API — GET-only).
+ *  @param slug The Venice character slug.
+ *  @param options Optional pagination (`page` 1-based, `pageSize` 1–100).
+ *  @param signal Optional AbortSignal to cancel the request.
+ *  @returns The normalized reviews result.
+ *  @throws Error if the slug is invalid or the API call fails.
+ */
+export async function getCharacterReviews(
+  slug: string,
+  options: { page?: number; pageSize?: number } = {},
+  signal?: AbortSignal,
+): Promise<CharacterReviewsResult> {
+  if (!isValidCharacterSlug(slug)) {
+    throw new Error("Invalid character slug.");
+  }
+  const page = clampReviewInt(options.page, 1, Number.MAX_SAFE_INTEGER, 1);
+  const pageSize = clampReviewInt(
+    options.pageSize,
+    1,
+    CHARACTER_REVIEWS_PAGE_SIZE_MAX,
+    CHARACTER_REVIEWS_PAGE_SIZE_DEFAULT,
+  );
+  const body = await venice<unknown>(
+    `/characters/${encodeURIComponent(slug)}/reviews?page=${page}&pageSize=${pageSize}`,
+    { method: "GET", signal },
+  );
+  return normalizeCharacterReviews(body);
 }

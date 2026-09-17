@@ -147,6 +147,14 @@
       },
       "description": {
         "browseHostedAndLocallyAuthoredCharactersIn": "Durchsuchen Sie gehostete und lokal erstellte Charaktere in einem Hub."
+      },
+      "reviews": {
+        "heading": "__MISSING__:surface.componentsCharactersview.reviews.heading",
+        "loadingReviews": "__MISSING__:surface.componentsCharactersview.reviews.loadingReviews",
+        "failedToLoadReviews": "__MISSING__:surface.componentsCharactersview.reviews.failedToLoadReviews",
+        "noReviewsYet": "__MISSING__:surface.componentsCharactersview.reviews.noReviewsYet",
+        "loadMoreReviews": "__MISSING__:surface.componentsCharactersview.reviews.loadMoreReviews",
+        "ratingOutOfFiveStars": "__MISSING__:surface.componentsCharactersview.reviews.ratingOutOfFiveStars {{rating}}"
       }
     },
     "componentsThememaker": {

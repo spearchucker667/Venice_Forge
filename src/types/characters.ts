@@ -3,6 +3,7 @@
  * Endpoints used (official Venice API, no scraping):
  *   GET /api/v1/characters
  *   GET /api/v1/characters/{slug}
+ *   GET /api/v1/characters/{slug}/reviews   (preview API — read-only)
  *
  *  Character chat is initiated by sending:
  *    venice_parameters.character_slug = "<slug>"
@@ -99,6 +100,52 @@ export interface ListCharactersResponse {
 /** Single-character response envelope. */
 export interface GetCharacterResponse {
   data: VeniceCharacter;
+}
+
+/** A single public review for a hosted character, as returned by
+ *  `GET /characters/{slug}/reviews`. Normalized defensively: every
+ *  optional field defaults to a safe empty value so consumers never
+ *  guard against `undefined` at access sites. */
+export interface VeniceCharacterReview {
+  /** Unique ID of the review. */
+  id: string;
+  /** Unique ID of the reviewed character. */
+  characterId: string;
+  /** Display name chosen by the reviewer. */
+  username: string;
+  /** Star rating for the character (1–5). */
+  rating: number;
+  /** Optional written review message. */
+  message?: string | null;
+  /** ISO timestamp for when the review was created. */
+  createdAt: string;
+  /** Locale reported by the reviewer when available. */
+  locale?: string | null;
+  /** Avatar URL for the reviewer when available. */
+  userAvatarUrl?: string | null;
+  /** Whether the authenticated user authored this review. */
+  isOwner?: boolean;
+}
+
+/** Pagination envelope for `GET /characters/{slug}/reviews`. */
+export interface CharacterReviewsPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+/** Aggregate summary for `GET /characters/{slug}/reviews`. */
+export interface CharacterReviewsSummary {
+  averageRating: number;
+  totalReviews: number;
+}
+
+/** Normalized result of `GET /characters/{slug}/reviews`. */
+export interface CharacterReviewsResult {
+  data: VeniceCharacterReview[];
+  pagination: CharacterReviewsPagination;
+  summary: CharacterReviewsSummary;
 }
 
 /** Persisted model preference for hosted character chats.
