@@ -162,5 +162,10 @@
     "saveToMediaStudio": "Spara till Media Studio",
     "revealInFinder": "Visa i Finder",
     "removeFromChat": "Ta bort från chatten"
+  },
+  "promptLimit": {
+    "count": "__MISSING__:promptLimit.count {{current}} {{limit}}",
+    "overTitle": "__MISSING__:promptLimit.overTitle",
+    "overDetail": "__MISSING__:promptLimit.overDetail {{limit}}"
   }
 }

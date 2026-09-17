@@ -12,6 +12,7 @@ import type {
   E2eeOverride,
   PromptCacheRetention,
 } from "./venice";
+import type { NativeContentPartRef } from "./chatAttachment";
 
 /** Per-conversation privacy overrides. Unset fields fall back to the
  *  profile-level chat defaults (see `chat-store`). Persisted with the
@@ -56,6 +57,11 @@ export interface ConversationMessage {
     generatedMedia?: ChatMediaReference[];
     /** When true, message is UI-only until main-process safety accepts the turn. */
     safetyPending?: boolean;
+    /** Durable references to provider-native content parts (`file` /
+     *  `video_url`). The actual payloads live only in the renderer runtime
+     *  registry and are expanded into the outgoing request at compile time;
+     *  the giant base64 data is never persisted here. */
+    nativeParts?: NativeContentPartRef[];
     usage?: {
       promptTokens?: number;
       completionTokens?: number;

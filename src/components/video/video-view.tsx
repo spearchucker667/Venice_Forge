@@ -33,6 +33,8 @@ import { formatModelLabelWithCost, formatUsd } from "../../utils/pricing";
 import { desktopMedia } from "../../services/desktopBridge";
 import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
 import { ManagedVideoPlayer } from "../media/ManagedVideoPlayer";
+import { PromptLimitMeter } from "../ui/prompt-limit";
+import { resolvePromptCharacterLimit } from "../../utils/payloadBuilders";
 import { Trans, useTranslation } from "react-i18next";
 
 export function VideoView() {
@@ -101,6 +103,15 @@ export function VideoView() {
       : group?.textModel || group?.imageModel;
   const constraints = activeModel?.model_spec?.constraints as
     VideoConstraints | undefined;
+
+  // VF-20260916-P2-006 — enforce the per-model prompt character limit in the
+  // interactive UI: count vs limit is shown by PromptLimitMeter and Generate
+  // is blocked (never silently truncated) while over limit.
+  const promptLimit = resolvePromptCharacterLimit(activeModel, "video");
+  const negativePromptLimit = resolvePromptCharacterLimit(activeModel, "video");
+  const promptOverLimit = prompt.length > promptLimit;
+  const negativePromptOverLimit =
+    negativePrompt.length > negativePromptLimit;
 
   const setSelectedModelId = useSettingsStore((s) => s.setSelectedVideoModelId);
   useEffect(() => {
@@ -232,6 +243,21 @@ export function VideoView() {
 
   const handleGenerate = () => {
     if (!prompt.trim() || !activeModel) return;
+    // VF-20260916-P2-006 — block over-limit prompts instead of silently
+    // truncating them (legacy stored drafts keep the builder slice).
+    if (prompt.length > promptLimit || negativePrompt.length > negativePromptLimit) {
+      toast.warn(
+        tRuntime("media:promptLimit.overTitle", {
+          defaultValue: "Prompt too long",
+        }),
+        tRuntime("media:promptLimit.overDetail", {
+          limit: promptLimit.toLocaleString(),
+          defaultValue:
+            "Shorten the prompt to {{limit}} characters or fewer for the selected model.",
+        }),
+      );
+      return;
+    }
     // P0: the swagger QueueVideoRequest requires `duration`. If the model
     // advertises duration options we MUST send one; refuse to submit a
     // request that would 400. The useEffect above pre-selects the first
@@ -354,6 +380,11 @@ export function VideoView() {
           )}
           rows={4}
         />
+        <PromptLimitMeter
+          current={prompt.length}
+          limit={promptLimit}
+          testId="video-prompt-meter"
+        />
       </div>
 
       <div>
@@ -368,6 +399,11 @@ export function VideoView() {
             "runtimeGenerated.components.video.videoView.attribute.lowQualityBlurry",
           )}
           rows={2}
+        />
+        <PromptLimitMeter
+          current={negativePrompt.length}
+          limit={negativePromptLimit}
+          testId="video-negative-prompt-meter"
         />
       </div>
 
@@ -571,7 +607,9 @@ export function VideoView() {
           !activeModel ||
           isQueueing ||
           isProcessing ||
-          (mode === "image" && !imageUrl)
+          (mode === "image" && !imageUrl) ||
+          promptOverLimit ||
+          negativePromptOverLimit
         }
         loading={isQueueing || isProcessing}
       >

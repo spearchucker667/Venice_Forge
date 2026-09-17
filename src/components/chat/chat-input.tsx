@@ -9,7 +9,20 @@ import { cn } from "../../lib/utils";
 import { isImeCompositionEvent } from "../../lib/keyboard";
 import { toast } from "../../stores/toast-store";
 import { redactErrorMessage } from "../../shared/redaction";
-import { IngestedAttachment } from "../../types/ingestion";
+import type {
+  ChatAttachmentSendMode,
+  ComposerAttachment,
+} from "../../types/chatAttachment";
+import type { ContentPart } from "../../types/venice";
+import {
+  validateContentParts,
+  type ContentPartValidationError,
+} from "../../shared/contentPartValidation";
+import { describeContentPartValidationError } from "../../shared/contentPartErrorText";
+import {
+  NativeFileInputError,
+  readFileAsNativeFileDataUrl,
+} from "../../services/nativeFileInput";
 import { processFileAttachment } from "../../services/ingestion/attachmentAssembler";
 import { registerAttachment } from "../../services/attachmentService";
 import { MAX_ATTACHMENTS_PER_MESSAGE } from "../../services/ingestion/ingestionLimits";
@@ -20,7 +33,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { IconButton } from "../ui/primitives";
 
 interface ChatInputProps {
-  onSend: (message: string, attachments?: IngestedAttachment[]) => void;
+  onSend: (message: string, attachments?: ComposerAttachment[]) => void;
   onStop: () => void;
   isStreaming: boolean;
   disabled?: boolean;
@@ -110,11 +123,14 @@ export function ChatInput({
 }: ChatInputProps) {
   const { t } = useTranslation("chat");
   const [value, setValue] = useState("");
-  const [attachments, setAttachments] = useState<IngestedAttachment[]>([]);
+  const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const previousDisableImageAttach = useRef(disableImageAttach);
+  /** Original Files retained per attachment id so "Native file" mode can
+   *  re-read the raw bytes at switch time (runtime-only; never persisted). */
+  const fileHandlesRef = useRef(new Map<string, File>());
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -129,7 +145,7 @@ export function ChatInput({
     );
   }, [t, visionUnsupportedModelId]);
 
-  const handlePromoteAttachment = useCallback(async (att: IngestedAttachment) => {
+  const handlePromoteAttachment = useCallback(async (att: ComposerAttachment) => {
     if (!att.attachmentId) {
       toast.error(t("composer.attachmentFailed"), t("composer.attachmentNotRegistered"));
       return;
@@ -150,6 +166,200 @@ export function ChatInput({
     }
   }, [t]);
 
+  // ---- FEAT-006 — per-attachment source/mode choice -----------------------
+  // `context` (default) keeps the existing local extraction / Documents
+  // pipeline. `native-file` uploads the original bytes as a provider-native
+  // `file` content part; `native-video` sends a validated video URL as a
+  // `video_url` content part. No runtime model-capability flag exists for
+  // native file/video inputs (see modelCapabilities.ts), so both modes are
+  // offered for every model and the canonical validator is the gatekeeper.
+
+  const describePartError = useCallback(
+    (
+      error: ContentPartValidationError,
+      partType: ContentPart["type"] | undefined,
+    ) =>
+      describeContentPartValidationError(
+        error,
+        partType,
+        (key, defaultValue, values) => t(key, { defaultValue, ...values }),
+        "composer.nativeErrors",
+      ),
+    [t],
+  );
+
+  const patchAttachment = useCallback(
+    (id: string, patch: Partial<ComposerAttachment>) => {
+      setAttachments((prev) =>
+        prev.map((att) => (att.id === id ? { ...att, ...patch } : att)),
+      );
+    },
+    [],
+  );
+
+  const validateAttachmentPart = useCallback(
+    (att: ComposerAttachment, part: ContentPart): string | undefined => {
+      const errors = validateContentParts([part]);
+      if (errors.length === 0) return undefined;
+      return describePartError(errors[0], part.type);
+    },
+    [describePartError],
+  );
+
+  const switchAttachmentMode = useCallback(
+    async (att: ComposerAttachment, mode: ChatAttachmentSendMode) => {
+      if (mode === "context") {
+        patchAttachment(att.id, {
+          sendMode: "context",
+          nativeFileDataUrl: undefined,
+          nativeVideoUrl: undefined,
+          validationError: undefined,
+        });
+        return;
+      }
+      if (mode === "native-video") {
+        const part: ContentPart = {
+          type: "video_url",
+          video_url: { url: att.nativeVideoUrl ?? "" },
+        };
+        patchAttachment(att.id, {
+          sendMode: "native-video",
+          nativeFileDataUrl: undefined,
+          validationError: validateAttachmentPart(att, part),
+        });
+        return;
+      }
+      // native-file — the original File is required to build the data URL.
+      const file = fileHandlesRef.current.get(att.id);
+      if (!file) {
+        patchAttachment(att.id, {
+          sendMode: "native-file",
+          validationError: t("composer.nativeErrors.fileUnavailable", {
+            defaultValue:
+              "The original file is no longer available — re-attach it to send it as a native file.",
+          }),
+        });
+        return;
+      }
+      try {
+        const dataUrl = await readFileAsNativeFileDataUrl(file);
+        const part: ContentPart = {
+          type: "file",
+          file: { file_data: dataUrl, filename: att.name },
+        };
+        patchAttachment(att.id, {
+          sendMode: "native-file",
+          nativeFileDataUrl: dataUrl,
+          nativeVideoUrl: undefined,
+          validationError: validateAttachmentPart(att, part),
+        });
+      } catch (err) {
+        if (err instanceof NativeFileInputError && err.reason === "too-large") {
+          patchAttachment(att.id, {
+            sendMode: "native-file",
+            validationError: t("composer.nativeErrors.tooLarge", {
+              defaultValue:
+                "This file is too large to upload as a native file. Use “Local context” instead — it extracts the text into the conversation.",
+            }),
+          });
+          return;
+        }
+        const part: ContentPart = {
+          type: "file",
+          file: { file_data: "", filename: att.name },
+        };
+        patchAttachment(att.id, {
+          sendMode: "native-file",
+          validationError:
+            err instanceof NativeFileInputError && err.reason === "unsupported-type"
+              ? describePartError(
+                  { partIndex: 0, reason: "unsupported-format" },
+                  "file",
+                )
+              : validateAttachmentPart(att, part) ??
+                t("composer.nativeErrors.readFailed", {
+                  defaultValue: "Couldn't read this file as a native input.",
+                }),
+        });
+      }
+    },
+    [describePartError, patchAttachment, t, validateAttachmentPart],
+  );
+
+  const handleVideoUrlChange = useCallback(
+    (att: ComposerAttachment, url: string) => {
+      const part: ContentPart = { type: "video_url", video_url: { url } };
+      patchAttachment(att.id, {
+        nativeVideoUrl: url,
+        name: url.trim() || att.name,
+        validationError: url.trim()
+          ? validateAttachmentPart(att, part)
+          : undefined,
+      });
+    },
+    [patchAttachment, validateAttachmentPart],
+  );
+
+  const addVideoUrlDraft = useCallback(() => {
+    if (attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE) {
+      toast.warn(
+        t("composer.attachmentLimitTitle"),
+        t("composer.attachmentLimitDetail", {
+          max: MAX_ATTACHMENTS_PER_MESSAGE,
+        }),
+      );
+      return;
+    }
+    const id = crypto.randomUUID();
+    setAttachments((prev) => [
+      ...prev,
+      {
+        id,
+        kind: "url",
+        name: t("composer.nativeVideoDraft", { defaultValue: "Video URL" }),
+        extension: "",
+        mimeType: "text/uri-list",
+        sizeBytes: 0,
+        createdAt: new Date().toISOString(),
+        extraction: {
+          route: "unsupported",
+          local: false,
+          truncated: false,
+          warnings: [],
+          errors: [],
+        },
+        modelRequirements: { requiresVision: false, canFallbackToText: true },
+        security: {
+          untrusted: true as const,
+          macrosExecuted: false as const,
+          scriptsExecuted: false as const,
+          htmlSanitized: true as const,
+        },
+        sendMode: "native-video",
+        nativeVideoUrl: "",
+      },
+    ]);
+  }, [attachments.length, t]);
+
+  /** Builds the prospective outgoing parts for one attachment (native modes
+   *  only — context-mode attachments flow through the local extraction
+   *  pipeline in use-chat). */
+  const buildNativePart = useCallback(
+    (att: ComposerAttachment): ContentPart | null => {
+      if (att.sendMode === "native-file") {
+        return {
+          type: "file",
+          file: { file_data: att.nativeFileDataUrl ?? "", filename: att.name },
+        };
+      }
+      if (att.sendMode === "native-video") {
+        return { type: "video_url", video_url: { url: att.nativeVideoUrl ?? "" } };
+      }
+      return null;
+    },
+    [],
+  );
+
   useEffect(() => {
     const switchedToNonVision =
       !previousDisableImageAttach.current && disableImageAttach;
@@ -166,7 +376,56 @@ export function ChatInput({
     const trimmed = value.trim();
     if (disabled) return;
     if (!trimmed && attachments.length === 0) return;
+
+    // FEAT-006 — validate every prospective outgoing part (text + vision
+    // images + native file/video) BEFORE handing off to the send pipeline.
+    // Invalid parts block the send and annotate the offending attachments.
+    // The text part is omitted when empty so image-only turns are not
+    // misreported as missing payload.
+    const prospectiveParts: ContentPart[] = [
+      ...(trimmed ? [{ type: "text", text: trimmed } as ContentPart] : []),
+    ];
+    const partOwners: Array<string | null> = [null];
+    for (const att of attachments) {
+      if (att.kind === "image" && att.dataUrl) {
+        prospectiveParts.push({
+          type: "image_url",
+          image_url: { url: att.dataUrl },
+        });
+        partOwners.push(att.id);
+        continue;
+      }
+      const nativePart = buildNativePart(att);
+      if (nativePart) {
+        prospectiveParts.push(nativePart);
+        partOwners.push(att.id);
+      }
+    }
+    const validationErrors = validateContentParts(prospectiveParts);
+    if (validationErrors.length > 0) {
+      const first = validationErrors[0];
+      for (const error of validationErrors) {
+        const ownerId =
+          error.partIndex >= 0 ? partOwners[error.partIndex] : undefined;
+        if (!ownerId) continue;
+        patchAttachment(ownerId, {
+          validationError: describePartError(
+            error,
+            prospectiveParts[error.partIndex]?.type,
+          ),
+        });
+      }
+      toast.error(
+        t("composer.nativeErrors.title", {
+          defaultValue: "Attachment can't be sent",
+        }),
+        describePartError(first, prospectiveParts[first.partIndex]?.type),
+      );
+      return;
+    }
+
     onSend(trimmed, attachments.length > 0 ? attachments : undefined);
+    fileHandlesRef.current.clear();
     setValue("");
     setAttachments([]);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
@@ -222,6 +481,7 @@ export function ChatInput({
         if (disableImageAttach && attachment.modelRequirements.requiresVision) {
           warnVisionUnsupported();
         }
+        fileHandlesRef.current.set(attachment.id, file);
         setAttachments((prev) => [...prev, attachment]);
         if (attachment.extraction.warnings.length > 0) {
           attachment.extraction.warnings.forEach((w) =>
@@ -289,29 +549,61 @@ export function ChatInput({
                   </div>
                 );
               }
-              // Document/text attachment card
+              // Document/text attachment card — FEAT-006 adds the per-attachment
+              // source/mode choice (local context / native file / native video)
+              // plus inline validation annotation.
+              const sendMode = att.sendMode ?? "context";
               return (
                 <div
                   key={att.id}
-                  className="relative group shrink-0 flex items-center gap-2 h-16 px-3 bg-vf-panel-bg border border-vf-panel-border rounded-lg max-w-vf-narrow"
+                  className="relative group shrink-0 flex flex-col justify-center gap-1 px-3 py-2 bg-vf-panel-bg border border-vf-panel-border rounded-lg w-64"
                   title={att.name}
                 >
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <span className="vf-meta font-medium text-text-primary truncate">
-                      {att.name}
-                    </span>
-                    <span className="vf-tag text-text-muted">
-                      {att.kind}
-                    </span>
-                  </div>
-                  {att.attachmentId && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="vf-meta font-medium text-text-primary truncate">
+                        {att.name}
+                      </span>
+                      <span className="vf-tag text-text-muted">
+                        {att.kind}
+                      </span>
+                    </div>
+                    {att.attachmentId && (
+                      <IconButton
+                        size="sm"
+                        tone="accent"
+                        onClick={() => handlePromoteAttachment(att)}
+                        ariaLabel={t("composer.saveToDocuments", { name: att.name })}
+                        title={t("composer.saveToDocuments", { name: att.name })}
+                        className="shrink-0"
+                        icon={
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.75"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                            <polyline points="17 21 17 13 7 13 7 21" />
+                            <polyline points="7 3 7 8 15 8" />
+                          </svg>
+                        }
+                      />
+                    )}
                     <IconButton
                       size="sm"
-                      tone="accent"
-                      onClick={() => handlePromoteAttachment(att)}
-                      ariaLabel={t("composer.saveToDocuments", { name: att.name })}
-                      title={t("composer.saveToDocuments", { name: att.name })}
-                      className="shrink-0"
+                      tone="danger"
+                      onClick={() =>
+                        setAttachments((prev) => prev.filter((_, j) => j !== i))
+                      }
+                      ariaLabel={t("composer.removeAttachment", {
+                        name: att.name,
+                      })}
+                      className="shrink-0 -mr-1"
                       icon={
                         <svg
                           width="14"
@@ -323,39 +615,69 @@ export function ChatInput({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         >
-                          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                          <polyline points="17 21 17 13 7 13 7 21" />
-                          <polyline points="7 3 7 8 15 8" />
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                       }
                     />
-                  )}
-                  <IconButton
-                    size="sm"
-                    tone="danger"
-                    onClick={() =>
-                      setAttachments((prev) => prev.filter((_, j) => j !== i))
-                    }
-                    ariaLabel={t("composer.removeAttachment", {
+                  </div>
+                  <select
+                    aria-label={t("composer.attachmentMode", {
                       name: att.name,
+                      defaultValue: "Source for {{name}}",
                     })}
-                    className="shrink-0 -mr-1"
-                    icon={
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.75"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
+                    data-testid={`attachment-mode-${att.id}`}
+                    className="vf-meta bg-vf-panel-bg-raised border border-vf-panel-border rounded px-1.5 py-0.5 text-text-muted outline-none hover:text-text-secondary transition-colors cursor-pointer disabled:cursor-not-allowed"
+                    value={sendMode}
+                    onChange={(e) =>
+                      void switchAttachmentMode(
+                        att,
+                        e.target.value as ChatAttachmentSendMode,
+                      )
                     }
-                  />
+                  >
+                    <option value="context">
+                      {t("composer.attachmentModes.context", {
+                        defaultValue: "Local context",
+                      })}
+                    </option>
+                    <option value="native-file">
+                      {t("composer.attachmentModes.nativeFile", {
+                        defaultValue: "Native file",
+                      })}
+                    </option>
+                    <option value="native-video">
+                      {t("composer.attachmentModes.nativeVideo", {
+                        defaultValue: "Native video",
+                      })}
+                    </option>
+                  </select>
+                  {sendMode === "native-video" && (
+                    <input
+                      type="url"
+                      value={att.nativeVideoUrl ?? ""}
+                      onChange={(e) => handleVideoUrlChange(att, e.target.value)}
+                      placeholder={t("composer.videoUrlPlaceholder", {
+                        defaultValue:
+                          "https://…/video.mp4 or YouTube link",
+                      })}
+                      aria-label={t("composer.videoUrlLabel", {
+                        name: att.name,
+                        defaultValue: "Video URL for {{name}}",
+                      })}
+                      data-testid={`attachment-video-url-${att.id}`}
+                      className="vf-meta bg-vf-panel-bg-inset border border-vf-panel-border rounded px-1.5 py-0.5 text-text-secondary outline-none focus:border-vf-panel-border-strong placeholder:text-text-muted/40"
+                    />
+                  )}
+                  {att.validationError && (
+                    <p
+                      role="alert"
+                      data-testid={`attachment-error-${att.id}`}
+                      className="vf-tag text-danger"
+                    >
+                      {att.validationError}
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -448,6 +770,32 @@ export function ChatInput({
                   strokeLinejoin="round"
                 >
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                </svg>
+              </button>
+              <button
+                onClick={addVideoUrlDraft}
+                disabled={attachDisabled}
+                aria-label={t("composer.addVideoUrl", {
+                  defaultValue: "Add video URL",
+                })}
+                title={t("composer.addVideoUrl", {
+                  defaultValue: "Add video URL",
+                })}
+                data-testid="composer-add-video-url"
+                className="flex items-center gap-1.5 px-2 py-1.5 vf-meta text-text-muted hover:text-text-primary transition-colors rounded-md hover:bg-vf-control-hover disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polygon points="23 7 16 12 23 17 23 7" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" />
                 </svg>
               </button>
               <MemoryStatusIndicator status={memoryStatus} />

@@ -251,6 +251,10 @@ export interface ChatMessage {
     injectedContext?: string
     injectedContextSource?: "memory" | "prior_context" | "approved_context" | "mixed"
     sceneGeneration?: CharacterSceneGenerationResult
+    /** Durable references to provider-native content parts (`file` /
+     *  `video_url`). Expanded from the renderer runtime registry at compile
+     *  time; payloads are never persisted on the message. */
+    nativeParts?: import("./chatAttachment").NativeContentPartRef[]
     [key: string]: unknown
   }
 }

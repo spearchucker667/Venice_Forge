@@ -22,6 +22,8 @@ import { ModelSelect } from "../ModelSelect";
 import type { ModelInfo } from "../../types/venice";
 import { Trans, useTranslation } from "react-i18next";
 import { desktopMedia } from "../../services/desktopBridge";
+import { PromptLimitMeter } from "../ui/prompt-limit";
+import { resolvePromptCharacterLimit } from "../../utils/payloadBuilders";
 
 // Model capabilities
 interface MusicModelConfig {
@@ -224,6 +226,11 @@ export function MusicView() {
   const [instrumental, setInstrumental] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
 
+  // VF-20260916-P2-006 — enforce the per-model prompt character limit in the
+  // interactive UI (block Generate; never silently truncate new input).
+  const promptLimit = resolvePromptCharacterLimit(modelInfo, "music");
+  const promptOverLimit = prompt.length > promptLimit;
+
   const {
     queue,
     isQueueing,
@@ -269,6 +276,21 @@ export function MusicView() {
 
   const handleGenerate = () => {
     if (!prompt.trim()) return;
+    // VF-20260916-P2-006 — block over-limit prompts instead of silently
+    // truncating them (legacy stored drafts keep the builder slice).
+    if (prompt.length > promptLimit) {
+      toast.warn(
+        tRuntime("media:promptLimit.overTitle", {
+          defaultValue: "Prompt too long",
+        }),
+        tRuntime("media:promptLimit.overDetail", {
+          limit: promptLimit.toLocaleString(),
+          defaultValue:
+            "Shorten the prompt to {{limit}} characters or fewer for the selected model.",
+        }),
+      );
+      return;
+    }
     setPlaybackError(null);
     const req: MusicQueueRequest = {
       model,
@@ -321,6 +343,7 @@ export function MusicView() {
           )}
           rows={4}
         />
+        <PromptLimitMeter current={prompt.length} limit={promptLimit} />
       </div>
 
       {config.lyrics && (
@@ -436,7 +459,8 @@ export function MusicView() {
           !hasVeniceKey ||
           isQueueing ||
           isProcessing ||
-          (config.lyricsRequired && !lyrics.trim())
+          (config.lyricsRequired && !lyrics.trim()) ||
+          promptOverLimit
         }
         loading={isQueueing || isProcessing}
         size="lg"

@@ -39,7 +39,29 @@
     "saveToDocuments": "{{name}}을(를) 문서에 저장",
     "promotedToDocuments": "문서에 저장됨",
     "attachmentNotRegistered": "첨부 파일이 승격용으로 등록되지 않았습니다.",
-    "promotionFailed": "승격에 실패했습니다."
+    "promotionFailed": "승격에 실패했습니다.",
+    "addVideoUrl": "__MISSING__:composer.addVideoUrl",
+    "nativeVideoDraft": "__MISSING__:composer.nativeVideoDraft",
+    "videoUrlPlaceholder": "__MISSING__:composer.videoUrlPlaceholder",
+    "videoUrlLabel": "__MISSING__:composer.videoUrlLabel {{name}}",
+    "attachmentMode": "__MISSING__:composer.attachmentMode {{name}}",
+    "attachmentModes": {
+      "context": "__MISSING__:composer.attachmentModes.context",
+      "nativeFile": "__MISSING__:composer.attachmentModes.nativeFile",
+      "nativeVideo": "__MISSING__:composer.attachmentModes.nativeVideo"
+    },
+    "nativeErrors": {
+      "title": "__MISSING__:composer.nativeErrors.title",
+      "unsupportedType": "__MISSING__:composer.nativeErrors.unsupportedType",
+      "missingPayload": "__MISSING__:composer.nativeErrors.missingPayload",
+      "rawLocalPath": "__MISSING__:composer.nativeErrors.rawLocalPath",
+      "unsupportedFileFormat": "__MISSING__:composer.nativeErrors.unsupportedFileFormat",
+      "unsupportedVideoFormat": "__MISSING__:composer.nativeErrors.unsupportedVideoFormat",
+      "tooManyVideoUrls": "__MISSING__:composer.nativeErrors.tooManyVideoUrls {{max}} {{actual}}",
+      "tooLarge": "__MISSING__:composer.nativeErrors.tooLarge",
+      "fileUnavailable": "__MISSING__:composer.nativeErrors.fileUnavailable",
+      "readFailed": "__MISSING__:composer.nativeErrors.readFailed"
+    }
   },
   "memory": {
     "disabledLabel": "메모리 꺼짐",

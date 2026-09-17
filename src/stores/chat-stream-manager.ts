@@ -25,6 +25,7 @@ import {
 import { SAFETY_PROVENANCE_FIELD } from "../shared/safety/promptSegments";
 import { translateRuntime } from "../i18n/runtimeTranslator";
 import { SafetyGuardBlockedError } from "../shared/safety";
+import { resolveNativePartRef } from "../services/nativeContentPartRegistry";
 
 /** Safe, non-disclosing error text appended to assistant messages when a
  *  chat stream fails. Never include raw exception text, paths, or secrets. */
@@ -91,6 +92,7 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
     modelInfo,
     state.maxTokens,
     state.veniceParams.include_venice_system_prompt !== false,
+    { resolveNativePart: (ref) => resolveNativePartRef(ref) },
   );
 
   const requestMessages = compiled.messages as ChatMessage[];

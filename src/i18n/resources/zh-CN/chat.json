@@ -39,7 +39,29 @@
     "saveToDocuments": "将 {{name}} 保存到“文档”",
     "promotedToDocuments": "已保存到“文档”",
     "attachmentNotRegistered": "附件尚未注册，无法提升。",
-    "promotionFailed": "提升失败。"
+    "promotionFailed": "提升失败。",
+    "addVideoUrl": "__MISSING__:composer.addVideoUrl",
+    "nativeVideoDraft": "__MISSING__:composer.nativeVideoDraft",
+    "videoUrlPlaceholder": "__MISSING__:composer.videoUrlPlaceholder",
+    "videoUrlLabel": "__MISSING__:composer.videoUrlLabel {{name}}",
+    "attachmentMode": "__MISSING__:composer.attachmentMode {{name}}",
+    "attachmentModes": {
+      "context": "__MISSING__:composer.attachmentModes.context",
+      "nativeFile": "__MISSING__:composer.attachmentModes.nativeFile",
+      "nativeVideo": "__MISSING__:composer.attachmentModes.nativeVideo"
+    },
+    "nativeErrors": {
+      "title": "__MISSING__:composer.nativeErrors.title",
+      "unsupportedType": "__MISSING__:composer.nativeErrors.unsupportedType",
+      "missingPayload": "__MISSING__:composer.nativeErrors.missingPayload",
+      "rawLocalPath": "__MISSING__:composer.nativeErrors.rawLocalPath",
+      "unsupportedFileFormat": "__MISSING__:composer.nativeErrors.unsupportedFileFormat",
+      "unsupportedVideoFormat": "__MISSING__:composer.nativeErrors.unsupportedVideoFormat",
+      "tooManyVideoUrls": "__MISSING__:composer.nativeErrors.tooManyVideoUrls {{max}} {{actual}}",
+      "tooLarge": "__MISSING__:composer.nativeErrors.tooLarge",
+      "fileUnavailable": "__MISSING__:composer.nativeErrors.fileUnavailable",
+      "readFailed": "__MISSING__:composer.nativeErrors.readFailed"
+    }
   },
   "memory": {
     "disabledLabel": "内存关闭",

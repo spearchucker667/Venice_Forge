@@ -162,5 +162,10 @@
     "saveToMediaStudio": "حفظ في Media Studio",
     "revealInFinder": "إظهار في Finder",
     "removeFromChat": "إزالة من المحادثة"
+  },
+  "promptLimit": {
+    "count": "__MISSING__:promptLimit.count {{current}} {{limit}}",
+    "overTitle": "__MISSING__:promptLimit.overTitle",
+    "overDetail": "__MISSING__:promptLimit.overDetail {{limit}}"
   }
 }

@@ -162,5 +162,10 @@
     "saveToMediaStudio": "मीडिया स्टूडियो में सहेजें",
     "revealInFinder": "Finder में दिखाएँ",
     "removeFromChat": "चैट से हटाएँ"
+  },
+  "promptLimit": {
+    "count": "__MISSING__:promptLimit.count {{current}} {{limit}}",
+    "overTitle": "__MISSING__:promptLimit.overTitle",
+    "overDetail": "__MISSING__:promptLimit.overDetail {{limit}}"
   }
 }

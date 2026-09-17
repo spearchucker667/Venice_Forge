@@ -53,6 +53,7 @@ import {
   clampSeed,
   IMAGE_PROMPT_MAX_CHARS,
   randomSeed,
+  resolvePromptCharacterLimit,
   type ImageSeedState,
 } from "../../utils/payloadBuilders";
 import { useConfigStore } from "../../stores/config-store";
@@ -61,6 +62,7 @@ import {
   type ImageGenerateHandoff,
 } from "../../stores/image-workspace-store";
 import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndicator";
+import { PromptLimitMeter } from "../ui/prompt-limit";
 
 import { DEFAULT_IMAGE_MODEL } from "../../constants/venice";
 import { Trans, useTranslation } from "react-i18next";
@@ -216,10 +218,12 @@ export function ImageView() {
     !!dimOptions.aspectRatios?.length;
   const maxSteps = constraints?.steps?.max || 50;
   const defaultSteps = constraints?.steps?.default || 20;
-  const promptLimit = Math.min(
-    constraints?.promptCharacterLimit || IMAGE_PROMPT_MAX_CHARS,
-    IMAGE_PROMPT_MAX_CHARS,
-  );
+  // VF-20260916-P2-006 — canonical per-model prompt limit (upstream
+  // `model_spec.prompt_character_limit` wins; 7500 app-level default). New
+  // interactive input is never silently truncated: the PromptLimitMeter shows
+  // count vs limit and Generate is blocked while over limit. Gallery drafts
+  // are imported/stored data and keep the legacy compatibility slice below.
+  const promptLimit = resolvePromptCharacterLimit(modelData, "image");
 
   const [prompt, setPrompt] = useState("");
   const setPromptClamped = useCallback(
@@ -619,10 +623,10 @@ export function ImageView() {
   ]);
 
   const applyEnhancedPrompt = useCallback(() => {
-    if (enhancedPrompt) setPromptClamped(enhancedPrompt);
+    if (enhancedPrompt) setPrompt(enhancedPrompt);
     setShowEnhanceReview(false);
     setEnhancedPrompt(null);
-  }, [enhancedPrompt, setPromptClamped]);
+  }, [enhancedPrompt]);
 
   const cancelEnhanceReview = useCallback(() => {
     setShowEnhanceReview(false);
@@ -755,11 +759,16 @@ export function ImageView() {
 
     const currentPrompt =
       enhancedPrompt && showEnhanceReview ? enhancedPrompt : prompt.trim();
-    if (currentPrompt.length > IMAGE_PROMPT_MAX_CHARS) {
+    // VF-20260916-P2-006 — block over-limit prompts instead of silently
+    // truncating them. The effective limit is the per-model
+    // `prompt_character_limit` (or the 7500 app-level default).
+    if (currentPrompt.length > promptLimit) {
       toast.warn(
-        t("imageStudioRuntime.promptTooLong"),
-        t("imageStudioRuntime.promptTooLongDetail", {
-          max: IMAGE_PROMPT_MAX_CHARS,
+        t("promptLimit.overTitle", { defaultValue: "Prompt too long" }),
+        t("promptLimit.overDetail", {
+          limit: promptLimit.toLocaleString(),
+          defaultValue:
+            "Shorten the prompt to {{limit}} characters or fewer for the selected model.",
         }),
       );
       return;
@@ -1074,7 +1083,7 @@ export function ImageView() {
       </div>
       <div>
         <div className="flex flex-col gap-1.5 mb-1.5">
-          <Label htmlFor={promptId} hint={`${prompt.length}/${promptLimit}`}>
+          <Label htmlFor={promptId}>
             <Trans i18nKey="common:surface.componentsImageImageView.text.prompt" />
           </Label>
           <div className="flex flex-wrap items-center gap-2">
@@ -1152,11 +1161,11 @@ export function ImageView() {
         <TextArea
           id={promptId}
           value={prompt}
-          onChange={setPromptClamped}
-          maxLength={promptLimit}
+          onChange={setPrompt}
           placeholder={t("imageStudioRuntime.promptPlaceholder")}
           ariaLabel={t("imageStudioRuntime.imagePrompt")}
         />
+        <PromptLimitMeter current={prompt.length} limit={promptLimit} />
       </div>
 
       {/* Enhance prompt review flow */}
@@ -1241,7 +1250,7 @@ export function ImageView() {
                 )
                   return;
                 if (previewTemplate.positiveText)
-                  setPromptClamped((prev) =>
+                  setPrompt((prev) =>
                     appendTemplateText(prev, previewTemplate.positiveText!),
                   );
                 if (previewTemplate.negativeText)
@@ -1266,7 +1275,7 @@ export function ImageView() {
                 )
                   return;
                 if (previewTemplate.positiveText)
-                  setPromptClamped(
+                  setPrompt(
                     previewTemplate.positiveText.replace(/^, /, ""),
                   );
                 if (previewTemplate.negativeText)
@@ -1733,7 +1742,7 @@ export function ImageView() {
         <div className="flex items-center justify-center h-full">
           <ExamplePrompts
             items={starters}
-            onPick={setPromptClamped}
+            onPick={setPrompt}
             onShuffle={() =>
               setStarters(getPromptStartersForCategory("image", 4))
             }

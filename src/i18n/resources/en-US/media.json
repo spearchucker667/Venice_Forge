@@ -162,5 +162,10 @@
     "generatedNumber": "Generated {{number}}",
     "saveBeforeCard": "Save the image to Media Studio before creating a card.",
     "characterCreatorLaunched": "AI Character Creator launched"
+  },
+  "promptLimit": {
+    "count": "{{current}}/{{limit}}",
+    "overTitle": "Prompt too long",
+    "overDetail": "Shorten the prompt to {{limit}} characters or fewer for the selected model."
   }
 }

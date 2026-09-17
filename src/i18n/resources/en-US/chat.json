@@ -39,7 +39,48 @@
     "messageInput": "Message input",
     "attachFile": "Attach file",
     "stopGenerating": "Stop generating",
-    "sendMessage": "Send message"
+    "sendMessage": "Send message",
+    "addVideoUrl": "Add video URL",
+    "nativeVideoDraft": "Video URL",
+    "videoUrlPlaceholder": "https://example.com/video.mp4 or a YouTube link",
+    "videoUrlLabel": "Video URL for {{name}}",
+    "attachmentMode": "Source for {{name}}",
+    "attachmentModes": {
+      "context": "Local context",
+      "nativeFile": "Native file",
+      "nativeVideo": "Native video"
+    },
+    "nativeErrors": {
+      "title": "Attachment can't be sent",
+      "unsupportedType": "This attachment type can't be sent as a native input.",
+      "missingPayload": "This attachment is missing its content.",
+      "rawLocalPath": "Local file paths can't be sent. Attach the file itself or use a public https:// URL.",
+      "unsupportedFileFormat": "Unsupported file type for native input. Allowed: PDF, EPUB, DOCX, PPTX, XLSX, XLS, TXT, Markdown, CSV, or JSON. Choose “Local context” instead.",
+      "unsupportedVideoFormat": "Unsupported video URL. Use a direct mp4/mpeg/mov/webm link or a YouTube URL.",
+      "tooManyVideoUrls": "At most {{max}} video inputs per message (this message has {{actual}}).",
+      "tooLarge": "This file is too large to upload as a native file. Use “Local context” instead — it extracts the text into the conversation.",
+      "fileUnavailable": "The original file is no longer available — re-attach it to send it as a native file.",
+      "readFailed": "Couldn't read this file as a native input."
+    }
+  },
+  "privacy": {
+    "e2eeLabel": "End-to-end encryption",
+    "e2eeUnavailable": "The selected model doesn't advertise E2EE support.",
+    "e2eeEffective": "Effective for this chat: {{value}}",
+    "conversationOverride": "conversation override",
+    "retentionLabel": "Prompt cache retention",
+    "retentionHint": "Venice-only cache hint. Fallback providers ignore it.",
+    "fallbackNotice": "Fallback providers are enabled. They cannot preserve E2EE — a chat routed to a fallback provider is sent without E2EE.",
+    "e2eeOptions": {
+      "provider-default": "Provider default",
+      "on": "On",
+      "off": "Off"
+    },
+    "retentionOptions": {
+      "default": "Default",
+      "extended": "Extended",
+      "24h": "24h"
+    }
   },
   "memory": {
     "disabledLabel": "Memory off",
@@ -75,24 +116,5 @@
   },
   "stream": {
     "retryingFromCheckpoint": "Stream dropped. Retrying from checkpoint"
-  },
-  "privacy": {
-    "e2eeLabel": "End-to-end encryption",
-    "e2eeUnavailable": "The selected model doesn't advertise E2EE support.",
-    "e2eeEffective": "Effective for this chat: {{value}}",
-    "conversationOverride": "conversation override",
-    "retentionLabel": "Prompt cache retention",
-    "retentionHint": "Venice-only cache hint. Fallback providers ignore it.",
-    "fallbackNotice": "Fallback providers are enabled. They cannot preserve E2EE — a chat routed to a fallback provider is sent without E2EE.",
-    "e2eeOptions": {
-      "provider-default": "Provider default",
-      "on": "On",
-      "off": "Off"
-    },
-    "retentionOptions": {
-      "default": "Default",
-      "extended": "Extended",
-      "24h": "24h"
-    }
   }
 }

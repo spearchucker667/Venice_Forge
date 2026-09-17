@@ -27,7 +27,7 @@ import { useCharacterCardStore } from "../../stores/character-card-store";
 import { useCharacterStore } from "../../stores/character-store";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
-import { IngestedAttachment } from "../../types/ingestion";
+import type { ComposerAttachment } from "../../types/chatAttachment";
 import { VeniceParams } from "./venice-params";
 import { VeniceLogo } from "../ui/logo";
 import { CharacterAvatar } from "../characters/CharacterAvatar";
@@ -207,7 +207,7 @@ export function ChatView() {
   );
 
   const handleSend = useCallback(
-    (message: string, attachments?: IngestedAttachment[]) => {
+    (message: string, attachments?: ComposerAttachment[]) => {
       const requiresVision =
         attachments?.some((att) => att.modelRequirements.requiresVision) ??
         false;

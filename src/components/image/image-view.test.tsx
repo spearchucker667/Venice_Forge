@@ -665,7 +665,9 @@ describe("ImageView model-aware payloads", () => {
     expect(prompt).toHaveValue("Original prompt");
   });
 
-  it("hard-stops the image prompt at 7500 characters when typing over the limit", () => {
+  // VF-20260916-P2-006: interactive input is never silently truncated. Over-
+  // limit input is preserved, the meter flags it, and Generate is blocked.
+  it("blocks Generate instead of truncating when typing over the limit", () => {
     render(<ImageView />);
     fireEvent.change(
       screen.getByPlaceholderText(/serene mountain landscape/i),
@@ -674,12 +676,14 @@ describe("ImageView model-aware payloads", () => {
       },
     );
 
-    expect(screen.getByText("7500/7500")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Generate" })).not.toBeDisabled();
+    const meter = screen.getByTestId("prompt-limit-meter");
+    expect(meter).toHaveTextContent("7,501/7,500");
+    expect(meter).toHaveAttribute("data-over-limit", "true");
+    expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();
     expect(mutate).not.toHaveBeenCalled();
   });
 
-  it("hard-stops pasted input at 7500 characters", () => {
+  it("keeps pasted input intact past the limit and flags it for trimming", () => {
     render(<ImageView />);
     const textarea = screen.getByPlaceholderText(/serene mountain landscape/i);
     fireEvent.paste(textarea, {
@@ -687,7 +691,12 @@ describe("ImageView model-aware payloads", () => {
     });
     fireEvent.change(textarea, { target: { value: "a".repeat(8000) } });
 
-    expect(screen.getByText("7500/7500")).toBeInTheDocument();
+    // Nothing is silently dropped — the full paste survives for the user to
+    // trim, with the meter surfacing the over-limit state.
+    expect(textarea).toHaveValue("a".repeat(8000));
+    const meter = screen.getByTestId("prompt-limit-meter");
+    expect(meter).toHaveTextContent("8,000/7,500");
+    expect(meter).toHaveAttribute("data-over-limit", "true");
   });
 
   it("passes selected downstream context and requires explicit preview acceptance", async () => {

@@ -1,6 +1,7 @@
 import { translateRuntime } from "../i18n/runtimeTranslator";
 import type { Conversation } from "../types/conversation";
 import type { ChatMessage, ModelInfo, ContentPart } from "../types/venice";
+import type { NativeContentPartRef } from "../types/chatAttachment";
 import {
   SAFETY_PROVENANCE_VERSION,
   type SafetyPromptSegment,
@@ -30,6 +31,16 @@ export type ChatPromptSegment = {
   content: string;
   priority: number; // lower is higher priority (kept first)
 };
+
+/** Optional compile-time collaborators (FEAT-006). */
+export interface CompileChatPromptOptions {
+  /** Expands durable native-part refs (`metadata.nativeParts`) into
+   *  provider-native content parts (`file` / `video_url`). The payloads live
+   *  only in the renderer runtime registry; return null when a payload is
+   *  unavailable (evicted / app restarted) and the part is omitted from the
+   *  outgoing request. */
+  resolveNativePart?: (ref: NativeContentPartRef) => ContentPart | null;
+}
 
 const TRUNCATION_MARKER = "\n\n[... content truncated to fit the context window]";
 const MIN_PRESERVED_MESSAGE_TOKENS = 16;
@@ -98,6 +109,7 @@ export function compileChatPrompt(
   modelInfo: ModelInfo | undefined,
   maxTokens: number,
   includeVeniceSystemPrompt = true,
+  options: CompileChatPromptOptions = {},
 ): {
   messages: ChatMessage[];
   systemPrompt: string;
@@ -181,6 +193,32 @@ export function compileChatPrompt(
                 : part;
             });
           }
+        }
+      }
+      // FEAT-006 — expand provider-native content parts (file / video_url).
+      // The durable message persists only lightweight `metadata.nativeParts`
+      // refs; the payloads live in the renderer runtime registry and are
+      // appended here, provider-facing only, so the giant base64 data never
+      // enters the persisted transcript. Refs that no longer resolve (evicted
+      // or app restarted) are omitted — history text is unaffected.
+      const nativeRefs = (
+        m.metadata as { nativeParts?: NativeContentPartRef[] } | undefined
+      )?.nativeParts;
+      if (
+        m.role === "user" &&
+        nativeRefs &&
+        nativeRefs.length > 0 &&
+        options.resolveNativePart
+      ) {
+        const expanded: ContentPart[] = [];
+        for (const ref of nativeRefs) {
+          const part = options.resolveNativePart(ref);
+          if (part) expanded.push(part);
+        }
+        if (expanded.length > 0) {
+          content = Array.isArray(content)
+            ? [...content, ...expanded]
+            : [{ type: "text", text: content }, ...expanded];
         }
       }
       if (m.role === "assistant" && typeof content === "string") {

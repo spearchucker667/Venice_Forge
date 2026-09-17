@@ -13,11 +13,15 @@ import { venice } from "../lib/venice-client";
 import { desktopConversations } from "../services/desktopBridge";
 import type { ChatMessage, ContentPart } from "../types/venice";
 import type { ChatAttachmentRef } from "../types/chatAttachment";
+import type { ComposerAttachment } from "../types/chatAttachment";
+import type { NativeContentPartRef } from "../types/chatAttachment";
+import { validateContentParts } from "../shared/contentPartValidation";
+import { describeContentPartValidationError } from "../shared/contentPartErrorText";
+import { registerNativePart } from "../services/nativeContentPartRegistry";
 import { generateCharacterScene } from "../services/characterSceneGenerationService";
 import { parseCharacterSceneRequest } from "../services/characterSceneRequestParser";
 import { CharacterSceneRateLimiter } from "../services/characterSceneRateLimiter";
 import type { CharacterSceneGenerationResult } from "../types/characterSceneGeneration";
-import type { IngestedAttachment } from "../types/ingestion";
 import {
   computeAttachmentTextAllowance,
 } from "../services/chatContextBudget";
@@ -142,6 +146,19 @@ function joinInjectedContexts(...contexts: Array<string | undefined>): string {
     .map((context) => context?.trim())
     .filter(Boolean)
     .join("\n\n");
+}
+
+/** Builds the provider-native content part for a composer attachment in a
+ *  native send mode. A missing payload is represented as an empty string so
+ *  the canonical validator reports `missing-payload` (fail closed). */
+function buildComposerNativePart(att: ComposerAttachment): ContentPart {
+  if (att.sendMode === "native-video") {
+    return { type: "video_url", video_url: { url: att.nativeVideoUrl ?? "" } };
+  }
+  return {
+    type: "file",
+    file: { file_data: att.nativeFileDataUrl ?? "", filename: att.name },
+  };
 }
 
 export type ChatMemoryStatus =
@@ -406,10 +423,43 @@ export function useChat() {
     async (
       userMessage: string,
       model: string,
-      attachments?: IngestedAttachment[],
+      attachments?: ComposerAttachment[],
       explicitContext?: string,
       memoryDecision: ChatMemoryDecision = { mode: "auto", source: "global" },
     ) => {
+      // FEAT-006 — validate provider-native parts BEFORE any state mutation
+      // (conversation creation, memory pulls, persistence). The composer
+      // validates too; this guards every other caller of `send`. The full
+      // text+image+native validation below remains the authoritative gate.
+      const earlyNativeParts: ContentPart[] = [];
+      for (const att of attachments ?? []) {
+        if (att.sendMode === "native-file" || att.sendMode === "native-video") {
+          earlyNativeParts.push(buildComposerNativePart(att));
+        }
+      }
+      if (earlyNativeParts.length > 0) {
+        const earlyErrors = validateContentParts(earlyNativeParts);
+        if (earlyErrors.length > 0) {
+          const firstError = earlyErrors[0];
+          toast.error(
+            translateRuntime(
+              "runtimeGenerated.hooks.useChat.notification.nativePartInvalidTitle",
+              "Attachment can't be sent",
+            ),
+            describeContentPartValidationError(
+              firstError,
+              firstError.partIndex >= 0
+                ? earlyNativeParts[firstError.partIndex]?.type
+                : undefined,
+              (key, defaultValue, values) =>
+                translateRuntime(key, defaultValue, values ?? {}),
+              "runtimeGenerated.hooks.useChat.notification.nativePart",
+            ),
+          );
+          return;
+        }
+      }
+
       let convId = useChatStore.getState().activeConversationId;
       if (!convId) {
         convId = createConversation(model);
@@ -569,6 +619,14 @@ export function useChat() {
       // Attachment text/context is built separately as provider-only metadata and
       // is NOT appended to the persistent content field.
       const imageParts: ContentPart[] = [];
+      /** FEAT-006 — provider-native parts (`file` / `video_url`) assembled
+       *  alongside their source attachment. Validated below before any state
+       *  is written; payloads are registered in the runtime registry and are
+       *  never persisted into the durable message content. */
+      const nativePartDrafts: Array<{
+        part: ContentPart;
+        attachment: ComposerAttachment;
+      }> = [];
       const attachmentRefs: ChatAttachmentRef[] = [];
       /** Typed safety provenance segments for this message. Travel through
        *  message metadata to the compiler, which reconciles them against the
@@ -613,7 +671,15 @@ export function useChat() {
 
         for (const att of attachments) {
           let omittedByContext = false;
-          if (att.kind === "image" && att.dataUrl) {
+          if (att.sendMode === "native-file" || att.sendMode === "native-video") {
+            // FEAT-006 — provider-native transport. The local extraction /
+            // Documents path is skipped entirely; the original bytes (native
+            // file data URL) or the validated video URL ride as native parts.
+            nativePartDrafts.push({
+              part: buildComposerNativePart(att),
+              attachment: att,
+            });
+          } else if (att.kind === "image" && att.dataUrl) {
             // Image content parts go into the provider payload as vision input.
             imageParts.push({
               type: "image_url",
@@ -686,10 +752,65 @@ export function useChat() {
         }
       }
 
+      // FEAT-006 — validate EVERY outgoing content part (text, images, native
+      // file/video) before the message is persisted or streamed. On failure:
+      // localized structured error and the send is blocked; nothing is added
+      // to the conversation. The text part is omitted when empty so
+      // image-only turns are not misreported as missing payload.
+      const nativeParts: ContentPart[] = nativePartDrafts.map((d) => d.part);
+      const outgoingParts: ContentPart[] = [
+        ...(userMessage
+          ? [{ type: "text", text: userMessage } as ContentPart]
+          : []),
+        ...imageParts,
+        ...nativeParts,
+      ];
+      const partValidationErrors = validateContentParts(outgoingParts);
+      if (partValidationErrors.length > 0) {
+        const firstError = partValidationErrors[0];
+        const offendingPart =
+          firstError.partIndex >= 0
+            ? outgoingParts[firstError.partIndex]
+            : undefined;
+        toast.error(
+          translateRuntime(
+            "runtimeGenerated.hooks.useChat.notification.nativePartInvalidTitle",
+            "Attachment can't be sent",
+          ),
+          describeContentPartValidationError(
+            firstError,
+            offendingPart?.type,
+            (key, defaultValue, values) =>
+              translateRuntime(key, defaultValue, values ?? {}),
+            "runtimeGenerated.hooks.useChat.notification.nativePart",
+          ),
+        );
+        return;
+      }
+
+      // Register validated native payloads in the renderer runtime registry.
+      // The durable message persists only lightweight refs (expanded at
+      // compile time); the giant base64 data never enters conversation state.
+      const nativeRefs: NativeContentPartRef[] = nativePartDrafts.map(
+        ({ part, attachment }) => {
+          const ref = registerNativePart(
+            `${convId}:${attachment.id}:${generateId()}`,
+            part,
+          );
+          ref.sizeBytes = attachment.sizeBytes;
+          ref.mimeType = attachment.mimeType;
+          if (part.type === "file" && !ref.filename) {
+            ref.filename = attachment.name;
+          }
+          return ref;
+        },
+      );
+
       // Merge attachment context into the base metadata.
       const fullMetadata = {
         ...metadata,
         ...(attachmentRefs.length > 0 ? { attachmentRefs } : {}),
+        ...(nativeRefs.length > 0 ? { nativeParts: nativeRefs } : {}),
         // Typed safety provenance for the compiler + guard. The serialized
         // envelope text is produced at the transport boundary from these
         // segments — it is NOT duplicated into persisted metadata.

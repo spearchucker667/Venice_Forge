@@ -100,6 +100,23 @@ vi.mock('../../hooks/use-models', () => ({
         },
         sets: [],
       },
+      {
+        name: 'Limited Group',
+        textModel: {
+          id: 'limited-text-to-video',
+          model_spec: {
+            name: 'Limited Text-to-Video',
+            prompt_character_limit: 10,
+            constraints: {
+              model_type: 'text-to-video',
+              durations: ['4s'],
+              resolutions: ['480p'],
+              aspect_ratios: ['16:9'],
+            },
+          },
+        },
+        sets: [],
+      },
     ],
     isLoading: false,
   }),
@@ -363,5 +380,55 @@ describe('VideoView accessibility', () => {
       suggestedName: 'venice-video.mp4',
     }))
     expect(toast.success).toHaveBeenCalled()
+  })
+})
+
+describe('VideoView prompt character limit (VF-20260916-P2-006)', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({
+      selectedVideoMode: 'text',
+      selectedVideoModelGroup: 'Limited Group',
+      selectedVideoModelId: undefined,
+    })
+  })
+
+  it('blocks Generate while the prompt exceeds the per-model limit instead of truncating', async () => {
+    render(<VideoView />)
+
+    const promptInput = screen.getByPlaceholderText(/Cinematic drone shot/i)
+    // Model advertises prompt_character_limit: 10 — 11 characters is over.
+    fireEvent.change(promptInput, { target: { value: 'a'.repeat(11) } })
+
+    const meter = await screen.findByTestId('video-prompt-meter')
+    expect(meter).toHaveAttribute('data-over-limit', 'true')
+    expect(meter).toHaveAttribute('role', 'alert')
+    expect(screen.getByRole('button', { name: /Generate Video/i })).toBeDisabled()
+    expect(queueMock).not.toHaveBeenCalled()
+  })
+
+  it('allows Generate once the prompt fits the per-model limit', async () => {
+    render(<VideoView />)
+
+    const promptInput = screen.getByPlaceholderText(/Cinematic drone shot/i)
+    fireEvent.change(promptInput, { target: { value: 'fit-in-ten' } })
+
+    const meter = await screen.findByTestId('video-prompt-meter')
+    expect(meter).not.toHaveAttribute('data-over-limit')
+    expect(screen.getByRole('button', { name: /Generate Video/i })).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: /Generate Video/i }))
+    expect(queueMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses the Swagger default (2500) when the model advertises no limit', async () => {
+    useSettingsStore.setState({ selectedVideoModelGroup: 'Priced Group' })
+    render(<VideoView />)
+
+    const promptInput = screen.getByPlaceholderText(/Cinematic drone shot/i)
+    fireEvent.change(promptInput, { target: { value: 'x'.repeat(2501) } })
+
+    const meter = await screen.findByTestId('video-prompt-meter')
+    expect(meter).toHaveTextContent('2,501/2,500')
+    expect(meter).toHaveAttribute('data-over-limit', 'true')
   })
 })

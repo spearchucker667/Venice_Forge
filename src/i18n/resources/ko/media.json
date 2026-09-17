@@ -162,5 +162,10 @@
     "saveToMediaStudio": "Media Studio에 저장",
     "revealInFinder": "Finder에서 보기",
     "removeFromChat": "채팅에서 제거"
+  },
+  "promptLimit": {
+    "count": "__MISSING__:promptLimit.count {{current}} {{limit}}",
+    "overTitle": "__MISSING__:promptLimit.overTitle",
+    "overDetail": "__MISSING__:promptLimit.overDetail {{limit}}"
   }
 }
