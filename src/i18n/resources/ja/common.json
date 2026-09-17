@@ -1820,7 +1820,11 @@
         "highFidelity": "高忠実度",
         "standard": "標準",
         "anon": "あのん",
-        "private": "プライベート"
+        "private": "プライベート",
+        "deprecated": "__MISSING__:surface.componentsModelselect.text.deprecated",
+        "deprecatedWarning": "__MISSING__:surface.componentsModelselect.text.deprecatedWarning",
+        "deprecatedWarningWithDate": "__MISSING__:surface.componentsModelselect.text.deprecatedWarningWithDate {{date}}",
+        "deprecatedReplacement": "__MISSING__:surface.componentsModelselect.text.deprecatedReplacement {{model}}"
       }
     },
     "componentsCharacterCreatorCharactercreatorcompleted": {
@@ -2282,7 +2286,9 @@
           "highFidelity": "高忠実度",
           "standardFidelity": "標準忠実度",
           "anonymousInference": "匿名推論",
-          "privateInference": "私的推論"
+          "privateInference": "私的推論",
+          "deprecatedTitle": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitle",
+          "deprecatedTitleWithDate": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitleWithDate {{date}}"
         },
         "text": {
           "value1K": "{{value1}} k"

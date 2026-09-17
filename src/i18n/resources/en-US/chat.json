@@ -116,5 +116,22 @@
   },
   "stream": {
     "retryingFromCheckpoint": "Stream dropped. Retrying from checkpoint"
+  },
+  "reasoningEffort": {
+    "label": "Reasoning effort",
+    "providerDefault": "Provider default",
+    "hint": "Higher effort means deeper reasoning, more tokens, and more latency.",
+    "unsupported": "The selected model doesn't advertise reasoning-effort support.",
+    "unknownMetadata": "Model capabilities aren't available, so reasoning effort won't be sent.",
+    "repaired": "“{{effort}}” isn't supported by {{model}} — reset to {{resetTo}}.",
+    "options": {
+      "none": "none",
+      "minimal": "minimal",
+      "low": "low",
+      "medium": "medium",
+      "high": "high",
+      "xhigh": "xhigh",
+      "max": "max"
+    }
   }
 }

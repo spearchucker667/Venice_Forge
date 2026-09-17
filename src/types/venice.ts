@@ -1,5 +1,6 @@
 import type { CharacterSceneGenerationResult } from "./characterSceneGeneration";
 import type { ProviderModelLifecycle } from "./provider";
+import type { ReasoningEffort } from "../shared/modelCapabilities";
 
 export type ModelType = 'text' | 'image' | 'audio' | 'tts' | 'video' | 'music' | 'embedding' | 'upscale' | 'inpaint' | 'asr' | 'code'
 
@@ -43,6 +44,15 @@ export interface ModelCapabilities {
   supportsMultipleImages?: boolean
   supportsReasoning?: boolean
   supportsReasoningEffort?: boolean
+  /** Per-model allowlist of valid `reasoning_effort` values (Swagger
+   *  `TextModelCapabilities.reasoningEffortOptions`). Only present when
+   *  `supportsReasoningEffort` is true; absent means the full documented
+   *  enum is accepted. */
+  reasoningEffortOptions?: ReasoningEffort[]
+  /** Per-model default used when the request omits `reasoning_effort`
+   *  (Swagger `TextModelCapabilities.defaultReasoningEffort`). Only present
+   *  when `supportsReasoningEffort` is true. */
+  defaultReasoningEffort?: ReasoningEffort
   supportsResponseSchema?: boolean
   supportsTeeAttestation?: boolean
   supportsE2EE?: boolean
@@ -50,6 +60,26 @@ export interface ModelCapabilities {
   supportsVision?: boolean
   supportsWebSearch?: boolean
   supportsXSearch?: boolean
+}
+
+/** Swagger `ModelResponse.model_spec.deprecation` — only present for models
+ *  scheduled for retirement. See upstream overview/deprecations.mdx. */
+export interface ModelDeprecation {
+  /** When true, Venice may automatically remap API requests for this model
+   *  ID to `replacementModelId` instead of returning an error. */
+  autoRemap: boolean
+  /** Legacy ISO 8601 instant aligned with the deprecation sunset used in
+   *  response headers (`x-venice-model-deprecation-date`). Prefer
+   *  `startsAt` / `removesAt` for new integrations. */
+  date: string
+  /** ISO 8601 instant when this model ID is omitted from public
+   *  GET /models listings. */
+  removesAt: string
+  /** Suggested public API model ID to migrate to, when one exists. */
+  replacementModelId?: string
+  /** ISO 8601 instant when deprecation warnings should be considered
+   *  active for this model. */
+  startsAt?: string
 }
 
 export interface VenicePricingAmount {
@@ -122,6 +152,10 @@ export interface VeniceModel {
     offline?: boolean
     name?: string
     description?: string
+    /** Deprecation schedule — Swagger `model_spec.deprecation`, only
+     *  present for models scheduled to be retired. Normalized for UI use by
+     *  `resolveModelDeprecation()` in `src/shared/modelCapabilities.ts`. */
+    deprecation?: ModelDeprecation
     constraints?: VideoConstraints | ImageConstraints
     model_sets?: string[]
     voices?: string[]

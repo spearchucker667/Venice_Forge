@@ -1820,7 +1820,11 @@
         "highFidelity": "高保真度",
         "standard": "标准",
         "anon": "匿名",
-        "private": "私有"
+        "private": "私有",
+        "deprecated": "__MISSING__:surface.componentsModelselect.text.deprecated",
+        "deprecatedWarning": "__MISSING__:surface.componentsModelselect.text.deprecatedWarning",
+        "deprecatedWarningWithDate": "__MISSING__:surface.componentsModelselect.text.deprecatedWarningWithDate {{date}}",
+        "deprecatedReplacement": "__MISSING__:surface.componentsModelselect.text.deprecatedReplacement {{model}}"
       }
     },
     "componentsCharacterCreatorCharactercreatorcompleted": {
@@ -2282,7 +2286,9 @@
           "highFidelity": "高保真度",
           "standardFidelity": "标准保真度",
           "anonymousInference": "匿名推理",
-          "privateInference": "私人推论"
+          "privateInference": "私人推论",
+          "deprecatedTitle": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitle",
+          "deprecatedTitleWithDate": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitleWithDate {{date}}"
         },
         "text": {
           "value1K": "{{value1}} k"

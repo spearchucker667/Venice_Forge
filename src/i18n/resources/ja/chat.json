@@ -116,5 +116,22 @@
       "extended": "__MISSING__:privacy.retentionOptions.extended",
       "24h": "__MISSING__:privacy.retentionOptions.24h"
     }
+  },
+  "reasoningEffort": {
+    "label": "__MISSING__:reasoningEffort.label",
+    "providerDefault": "__MISSING__:reasoningEffort.providerDefault",
+    "hint": "__MISSING__:reasoningEffort.hint",
+    "unsupported": "__MISSING__:reasoningEffort.unsupported",
+    "unknownMetadata": "__MISSING__:reasoningEffort.unknownMetadata",
+    "repaired": "__MISSING__:reasoningEffort.repaired {{effort}} {{model}} {{resetTo}}",
+    "options": {
+      "none": "__MISSING__:reasoningEffort.options.none",
+      "minimal": "__MISSING__:reasoningEffort.options.minimal",
+      "low": "__MISSING__:reasoningEffort.options.low",
+      "medium": "__MISSING__:reasoningEffort.options.medium",
+      "high": "__MISSING__:reasoningEffort.options.high",
+      "xhigh": "__MISSING__:reasoningEffort.options.xhigh",
+      "max": "__MISSING__:reasoningEffort.options.max"
+    }
   }
 }

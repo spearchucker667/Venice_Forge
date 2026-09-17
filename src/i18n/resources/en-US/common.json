@@ -198,7 +198,11 @@
         "highFidelity": "High Fidelity",
         "standard": "Standard",
         "anon": "Anon",
-        "private": "Private"
+        "private": "Private",
+        "deprecated": "Deprecated",
+        "deprecatedWarning": "This model is scheduled for retirement. It may stop working without further notice.",
+        "deprecatedWarningWithDate": "This model is scheduled for retirement on {{date}}. It may stop working after that date.",
+        "deprecatedReplacement": "Suggested replacement: {{model}}."
       }
     },
     "componentsStatusview": {
@@ -2300,7 +2304,9 @@
           "highFidelity": "High Fidelity",
           "standardFidelity": "Standard Fidelity",
           "anonymousInference": "Anonymous Inference",
-          "privateInference": "Private Inference"
+          "privateInference": "Private Inference",
+          "deprecatedTitle": "Scheduled for retirement",
+          "deprecatedTitleWithDate": "Scheduled for retirement on {{date}}"
         },
         "text": {
           "value1K": "{{value1}}k"

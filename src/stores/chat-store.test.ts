@@ -551,4 +551,12 @@ describe('chat-store desktopBridge routing', () => {
     const mod = await import('./chat-store')
     await vi.runAllTimersAsync()
   })
+
+  // Phase 4C.2 — reasoning-effort preference state.
+  it('sets and clears the reasoning-effort preference', () => {
+    useChatStore.getState().setReasoningEffort('high')
+    expect(useChatStore.getState().reasoningEffort).toBe('high')
+    useChatStore.getState().setReasoningEffort(undefined)
+    expect(useChatStore.getState().reasoningEffort).toBeUndefined()
+  })
 })

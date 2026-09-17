@@ -1820,7 +1820,11 @@
         "highFidelity": "고성능",
         "standard": "표준",
         "anon": "어논",
-        "private": "비공개"
+        "private": "비공개",
+        "deprecated": "__MISSING__:surface.componentsModelselect.text.deprecated",
+        "deprecatedWarning": "__MISSING__:surface.componentsModelselect.text.deprecatedWarning",
+        "deprecatedWarningWithDate": "__MISSING__:surface.componentsModelselect.text.deprecatedWarningWithDate {{date}}",
+        "deprecatedReplacement": "__MISSING__:surface.componentsModelselect.text.deprecatedReplacement {{model}}"
       }
     },
     "componentsCharacterCreatorCharactercreatorcompleted": {
@@ -2282,7 +2286,9 @@
           "highFidelity": "높은 충실도",
           "standardFidelity": "표준 충실도",
           "anonymousInference": "익명 추론",
-          "privateInference": "사적인 추론"
+          "privateInference": "사적인 추론",
+          "deprecatedTitle": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitle",
+          "deprecatedTitleWithDate": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitleWithDate {{date}}"
         },
         "text": {
           "value1K": "{{value1}} k"

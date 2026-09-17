@@ -18,6 +18,7 @@ import type { VeniceStreamDelta } from "../shared/veniceStreamDelta";
 import { useDocumentAgentStore } from "./document-agent-store";
 import * as logger from "../shared/logger";
 import { getModelById } from "../services/modelService";
+import { resolveReasoningEffort } from "../shared/modelCapabilities";
 import {
   resolveE2eeParam,
   resolvePromptCacheRetention,
@@ -159,6 +160,18 @@ function buildStreamBody(convId: string, model: string): Record<string, unknown>
   );
   if (cacheRetention !== undefined) {
     baseBody.prompt_cache_retention = cacheRetention;
+  }
+
+  // Reasoning effort (Phase 4C.2) — nested `reasoning.effort` request field
+  // (the nested form accepted per upstream reasoning-models.mdx, matching
+  // the existing buildChatPayload option shape), validated against the
+  // selected model's advertised `reasoningEffortOptions`. The resolver
+  // repairs/drops values the model does not support so an unsupported
+  // effort never reaches the wire (Venice returns 400 and does not
+  // auto-map).
+  const reasoningEffort = resolveReasoningEffort(modelInfo, state.reasoningEffort);
+  if (reasoningEffort !== undefined) {
+    baseBody.reasoning = { effort: reasoningEffort };
   }
 
   // P1-005: tool injection is gated on explicit runtime metadata only.

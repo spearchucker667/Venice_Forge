@@ -1820,7 +1820,11 @@
         "highFidelity": "Alta fidelidad",
         "standard": "Estándar",
         "anon": "Anónimo",
-        "private": "Privado"
+        "private": "Privado",
+        "deprecated": "__MISSING__:surface.componentsModelselect.text.deprecated",
+        "deprecatedWarning": "__MISSING__:surface.componentsModelselect.text.deprecatedWarning",
+        "deprecatedWarningWithDate": "__MISSING__:surface.componentsModelselect.text.deprecatedWarningWithDate {{date}}",
+        "deprecatedReplacement": "__MISSING__:surface.componentsModelselect.text.deprecatedReplacement {{model}}"
       }
     },
     "componentsCharacterCreatorCharactercreatorcompleted": {
@@ -2282,7 +2286,9 @@
           "highFidelity": "Alta fidelidad",
           "standardFidelity": "Fidelidad estándar",
           "anonymousInference": "Inferencia anónima",
-          "privateInference": "Inferencia privada"
+          "privateInference": "Inferencia privada",
+          "deprecatedTitle": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitle",
+          "deprecatedTitleWithDate": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitleWithDate {{date}}"
         },
         "text": {
           "value1K": "{{value1}} k"

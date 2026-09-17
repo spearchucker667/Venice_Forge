@@ -15,6 +15,7 @@ import type {
   PromptCacheRetention,
   VeniceParameters,
 } from "../types/venice";
+import type { ReasoningEffort } from "../shared/modelCapabilities";
 import type { Conversation, ConversationMessage } from "../types/conversation";
 import type { ChatMediaReference } from "../types/conversationVault";
 import {
@@ -189,6 +190,13 @@ interface ChatState {
   /** Profile-level default prompt-cache retention. Conversation-level
    *  `metadata.privacy.promptCacheRetention` wins when set. */
   promptCacheRetention: PromptCacheRetention;
+  /** Profile-level reasoning-effort preference for chat requests. Undefined
+   *  means "provider default" — the canonical payload boundary omits
+   *  `reasoning_effort` so Venice applies the model's own default. The value
+   *  is validated against the selected model's advertised
+   *  `reasoningEffortOptions` before it reaches the wire; an invalid value
+   *  is repaired, never sent (see `resolveReasoningEffort`). */
+  reasoningEffort?: ReasoningEffort;
   systemPrompt: string;
   temperature: number;
   topP: number;
@@ -311,6 +319,7 @@ interface ChatState {
   setVeniceParams: (params: Partial<VeniceParameters>) => void;
   setE2eeOverride: (override: E2eeOverride) => void;
   setPromptCacheRetention: (retention: PromptCacheRetention) => void;
+  setReasoningEffort: (effort: ReasoningEffort | undefined) => void;
   setSystemPrompt: (prompt: string) => void;
   setTemperature: (t: number) => void;
   setTopP: (p: number) => void;
@@ -1346,6 +1355,8 @@ export const useChatStore = create<ChatState>()(
       setPromptCacheRetention: (retention) =>
         set({ promptCacheRetention: retention }),
 
+      setReasoningEffort: (effort) => set({ reasoningEffort: effort }),
+
       setSystemPrompt: (prompt) => {
         const limitResult = checkSystemPromptLimit(prompt);
         if (limitResult.isOverLimit) {
@@ -1422,6 +1433,7 @@ export const useChatStore = create<ChatState>()(
         veniceParams: state.veniceParams,
         e2eeOverride: state.e2eeOverride,
         promptCacheRetention: state.promptCacheRetention,
+        reasoningEffort: state.reasoningEffort,
         systemPrompt: state.systemPrompt,
         temperature: state.temperature,
         topP: state.topP,

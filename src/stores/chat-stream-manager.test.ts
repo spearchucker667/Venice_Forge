@@ -47,6 +47,7 @@ function resetStores() {
     maxTokens: 4096,
     e2eeOverride: "provider-default",
     promptCacheRetention: "default",
+    reasoningEffort: undefined,
   });
 }
 
@@ -296,6 +297,89 @@ describe("chat-stream-manager", () => {
 
       const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
       expect(body.prompt_cache_retention).toBe("extended");
+    });
+  });
+
+  // Phase 4C.2 — reasoning_effort is validated against the selected model's
+  // advertised options before it reaches the wire; invalid values are
+  // repaired (model default) or dropped, never sent (Venice returns 400).
+  describe("reasoning effort on the live Venice request body", () => {
+    const EFFORT_MODEL = {
+      id: "effort-model",
+      model_spec: {
+        capabilities: {
+          supportsReasoningEffort: true,
+          reasoningEffortOptions: ["low", "medium", "high"],
+          defaultReasoningEffort: "medium",
+        },
+      },
+    };
+
+    it("sends reasoning.effort when the model supports the requested value", async () => {
+      useChatStore.getState().setReasoningEffort("high");
+      const convId = useChatStore.getState().createConversation(EFFORT_MODEL.id);
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockGetModelById.mockReturnValue(EFFORT_MODEL);
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, EFFORT_MODEL.id);
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.reasoning).toEqual({ effort: "high" });
+    });
+
+    it("omits reasoning when the preference is unset (provider default)", async () => {
+      const convId = useChatStore.getState().createConversation(EFFORT_MODEL.id);
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockGetModelById.mockReturnValue(EFFORT_MODEL);
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, EFFORT_MODEL.id);
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.reasoning).toBeUndefined();
+    });
+
+    it("repairs an invalid preference to the model default instead of sending it", async () => {
+      useChatStore.getState().setReasoningEffort("max");
+      const convId = useChatStore.getState().createConversation(EFFORT_MODEL.id);
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockGetModelById.mockReturnValue(EFFORT_MODEL);
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, EFFORT_MODEL.id);
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.reasoning).toEqual({ effort: "medium" });
+    });
+
+    it("drops the parameter for models without advertised support", async () => {
+      useChatStore.getState().setReasoningEffort("high");
+      const convId = useChatStore.getState().createConversation("no-effort-model");
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockGetModelById.mockReturnValue({
+        id: "no-effort-model",
+        model_spec: { capabilities: { supportsReasoningEffort: false } },
+      });
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, "no-effort-model");
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.reasoning).toBeUndefined();
+    });
+
+    it("fails closed when model metadata is missing", async () => {
+      useChatStore.getState().setReasoningEffort("high");
+      const convId = useChatStore.getState().createConversation("unknown-model");
+      useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+      mockGetModelById.mockReturnValue(undefined);
+      mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+      await startStream(convId, "unknown-model");
+
+      const body = mockedVeniceStreamChat.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.reasoning).toBeUndefined();
     });
   });
 

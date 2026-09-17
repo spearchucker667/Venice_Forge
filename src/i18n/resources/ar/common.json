@@ -1820,7 +1820,11 @@
         "highFidelity": "دقة عالية",
         "standard": "قياسي",
         "anon": "حالا",
-        "private": "خاص"
+        "private": "خاص",
+        "deprecated": "__MISSING__:surface.componentsModelselect.text.deprecated",
+        "deprecatedWarning": "__MISSING__:surface.componentsModelselect.text.deprecatedWarning",
+        "deprecatedWarningWithDate": "__MISSING__:surface.componentsModelselect.text.deprecatedWarningWithDate {{date}}",
+        "deprecatedReplacement": "__MISSING__:surface.componentsModelselect.text.deprecatedReplacement {{model}}"
       }
     },
     "componentsCharacterCreatorCharactercreatorcompleted": {
@@ -2282,7 +2286,9 @@
           "highFidelity": "دقة عالية",
           "standardFidelity": "الإخلاص القياسي",
           "anonymousInference": "الاستدلال المجهول",
-          "privateInference": "الاستدلال الخاص"
+          "privateInference": "الاستدلال الخاص",
+          "deprecatedTitle": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitle",
+          "deprecatedTitleWithDate": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitleWithDate {{date}}"
         },
         "text": {
           "value1K": "{{value1}} ك"

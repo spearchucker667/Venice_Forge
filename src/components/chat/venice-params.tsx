@@ -13,6 +13,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { supportsFunctionCalling } from "../../shared/modelCapabilities";
 import { getModelById } from "../../services/modelService";
 import { PrivacyControls } from "./privacy-controls";
+import { ReasoningEffortControl } from "./reasoning-effort-control";
 
 export function VeniceParams() {
   const { t } = useTranslation("chat");
@@ -312,6 +313,12 @@ export function VeniceParams() {
               profile default; the canonical wire fields are emitted by the
               chat-stream-manager payload builder. */}
           <PrivacyControls />
+
+          {/* Phase 4C.2 — model-aware reasoning-effort selector. The offered
+              options come from the selected model's advertised
+              `reasoningEffortOptions`; the canonical wire field is emitted
+              (validated) by the chat-stream-manager payload builder. */}
+          <ReasoningEffortControl />
         </div>
       )}
     </div>

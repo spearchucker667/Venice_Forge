@@ -1779,7 +1779,11 @@
         "highFidelity": "Hög kvalitet",
         "standard": "Standard",
         "anon": "Anon",
-        "private": "Privat"
+        "private": "Privat",
+        "deprecated": "__MISSING__:surface.componentsModelselect.text.deprecated",
+        "deprecatedWarning": "__MISSING__:surface.componentsModelselect.text.deprecatedWarning",
+        "deprecatedWarningWithDate": "__MISSING__:surface.componentsModelselect.text.deprecatedWarningWithDate {{date}}",
+        "deprecatedReplacement": "__MISSING__:surface.componentsModelselect.text.deprecatedReplacement {{model}}"
       }
     },
     "componentsStatusview": {
@@ -2282,7 +2286,9 @@
           "highFidelity": "Hi-fi",
           "standardFidelity": "Standardåtergivning",
           "anonymousInference": "Anonym slutsats",
-          "privateInference": "Privat slutledning"
+          "privateInference": "Privat slutledning",
+          "deprecatedTitle": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitle",
+          "deprecatedTitleWithDate": "__MISSING__:runtimeGenerated.components.modelselect.attribute.deprecatedTitleWithDate {{date}}"
         },
         "text": {
           "value1K": "{{value1}} k"
