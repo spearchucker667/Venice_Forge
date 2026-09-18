@@ -19,6 +19,21 @@ describe("serializeError", () => {
     expect(s.stack).toBeDefined();
   });
 
+  it("redacts credentials and local paths from error messages and primitive strings", () => {
+    const token = "vn-abcdef1234567890";
+    const privatePath = "/Users/example/Projects/app/file.ts";
+    const message = `request failed with Bearer ${token} at ${privatePath}`;
+
+    const error = serializeError(new Error(message));
+    const primitive = serializeError(message);
+    for (const serialized of [error, primitive]) {
+      expect(serialized.message).not.toContain(token);
+      expect(serialized.message).not.toContain(privatePath);
+      expect(serialized.message).toContain("[REDACTED]");
+      expect(serialized.message).toContain("[REDACTED-PATH]");
+    }
+  });
+
   it("serializes Error subclasses with custom fields", () => {
     class CustomError extends Error {
       code = "E_FOO";

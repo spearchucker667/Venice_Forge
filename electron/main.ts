@@ -22,7 +22,7 @@ import {
 import { startBridgeServer, stopBridgeServer, validateHeadlessBridgeToken } from "./services/bridgeServer";
 import { stopSyncWatcher } from "./services/syncFolderWatcher";
 import { isValidBridgeHost } from "./utils/bridgeHost";
-import { getCharacterImageCacheDir, ALLOWED_CONTENT_TYPES } from "./services/characterImageCache";
+import { detectImageFormat, getCharacterImageCacheDir } from "./services/characterImageCache";
 import {
   auditGeneratedMediaIntegrity,
   createGeneratedMediaResponse,
@@ -493,7 +493,7 @@ if (!gotLock) {
       // Descriptor-safe read: validation (fstat) and consumption (readFile) share
       // the same open descriptor, closing the TOCTOU window that existed between
       // the previous `fs.promises.stat(dp)` and `fs.createReadStream(dp)` calls.
-      // Character image entries are bounded to MAX_CHARACTER_IMAGE_BYTES (2 MiB)
+      // Character image entries are bounded to 4 MiB
       // by the cache writer, so reading the whole entry into memory is safe.
       let bytes: Buffer;
       try {
@@ -502,35 +502,16 @@ if (!gotLock) {
         return new Response("Not found", { status: 404 });
       }
 
-      // Schema-check the metadata sidecar before using its contentType as a
-      // response header. The metadata read is also descriptor-safe.
-      let metaContentType = "application/octet-stream";
-      try {
-        const metaPath = path.join(cacheDir, `${key}.meta.json`);
-        const metaBuffer = await readRegularFileNoFollow(metaPath);
-        const parsed: unknown = JSON.parse(metaBuffer.toString("utf-8"));
-        if (
-          parsed &&
-          typeof parsed === "object" &&
-          "contentType" in parsed &&
-          typeof (parsed as { contentType?: unknown }).contentType === "string"
-        ) {
-          const candidate = (parsed as { contentType: string }).contentType;
-          if (ALLOWED_CONTENT_TYPES.has(candidate)) {
-            metaContentType = candidate;
-          }
-        }
-      } catch {
-        // Fallback to octet-stream if meta missing or invalid
-      }
-
-      if (!ALLOWED_CONTENT_TYPES.has(metaContentType)) {
+      // Determine the response type from the bytes, not the untrusted upstream
+      // header or a potentially stale metadata sidecar.
+      const contentType = detectImageFormat(bytes);
+      if (!contentType) {
         return new Response("Unsupported Media Type", { status: 415 });
       }
 
       return new Response(bytes, {
         headers: {
-          "Content-Type": metaContentType,
+          "Content-Type": contentType,
           "Cache-Control": "private, max-age=604800",
           ...buildCorsHeaders(accessDecision),
         },

@@ -51,7 +51,6 @@ const TARGET_LOCALES = [
 // (e.g. theme editor category / contrast names) into the i18n key path.
 const MISSING_PATTERN = /^__MISSING__:(.+?)(\s+\{\{[^}]+\}\}.*)?$/;
 const MISSING_PATTERN_LOOSE = /__MISSING__:/;
-const INTERPOLATION_PATTERN = /(\s+\{\{[^}]+\}\}.*)$/;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf-8"));

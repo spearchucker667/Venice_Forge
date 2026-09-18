@@ -8,9 +8,7 @@ import { veniceBlob } from "../lib/venice-client";
 import { toast } from "../stores/toast-store";
 import { redactErrorMessage } from "../shared/redaction";
 import {
-  type SpeechFailureCode,
   type SpeechResult,
-  mapHttpStatusToFailureCode,
   speechResultFail,
   speechResultOk,
 } from "../shared/ttsContract";
@@ -143,9 +141,8 @@ class ChatTtsControllerImpl {
 
         if (!result.ok) {
           speech = speechResultFail(
-            mapHttpStatusToFailureCode(result.status),
+            "PROVIDER_HTTP_ERROR",
             result.error || "TTS synthesis failed",
-            { status: result.status, providerCode: result.providerCode },
           );
         } else if (result.audioBase64) {
           try {

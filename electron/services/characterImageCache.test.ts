@@ -241,12 +241,12 @@ describe("characterImageCache", () => {
     // trip before the persist cap, preventing memory bloat.
     const mockedFetch = vi.mocked(globalThis.fetch);
     let resolveStream!: (resp: Response) => void;
-    mockedFetch.mockImplementationOnce(
-      () =>
-        new Promise<Response>((resolve) => {
-          resolveStream = resolve;
-        }),
-    );
+
+    const fetchPromise = new Promise<Response>((resolve) => {
+      resolveStream = resolve;
+    });
+
+    mockedFetch.mockImplementationOnce(() => fetchPromise);
 
     const promise = getCachedCharacterImage(OFFICIAL_URL);
     const oversized = new Response(new ReadableStream<Uint8Array>({

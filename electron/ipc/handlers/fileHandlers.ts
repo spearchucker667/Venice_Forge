@@ -510,7 +510,7 @@ export function registerFileHandlers(): void {
           /* keep stable URL if issue fails; protocol will 403 originless */
         }
       }
-      return { ok: true, url: playableUrl, contentType: result.contentType, bytes: result.bytes };
+      return { ok: true, url: playableUrl, contentType: result.detectedFormat, bytes: result.bytes };
     } catch (err) {
       return { ok: false, error: redactErrorMessage(err) };
     }

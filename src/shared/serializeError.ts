@@ -25,7 +25,7 @@
  * causing recursive failures.
  */
 
-import { redactSecrets } from "./redaction";
+import { redactSecrets, sanitizeErrorText } from "./redaction";
 
 /** Maximum cause-chain depth to avoid pathological recursion. */
 export const MAX_CAUSE_DEPTH = 8;
@@ -111,7 +111,7 @@ function isSerializedError(value: unknown): value is SerializedError {
 
 function safeString(value: unknown): string {
   if (value === null || value === undefined) return "";
-  if (typeof value === "string") return value;
+  if (typeof value === "string") return sanitizeErrorText(value);
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   if (isSerializedError(value)) {
     return renderSerializedHeadline(value);
@@ -125,7 +125,7 @@ function safeString(value: unknown): string {
       const keys = Object.keys(obj).slice(0, 3).join(",");
       return `[object Object keys=${keys || "(none)"}]`;
     }
-    return s;
+    return sanitizeErrorText(s);
   } catch {
     return "[Unstringifiable]";
   }
@@ -215,7 +215,7 @@ export function serializeError(value: unknown, depth = 0): SerializedError {
       name: value.name,
       message: safeString(value.message),
     };
-    if (value.stack) out.stack = value.stack;
+    if (value.stack) out.stack = sanitizeErrorText(value.stack);
     if (isAggregateErrorLike(value)) {
       out.errors = (value.errors ?? []).map((e) => serializeError(e, depth + 1));
     }
@@ -233,7 +233,7 @@ export function serializeError(value: unknown, depth = 0): SerializedError {
       name: value.name,
       message: safeString(value.message),
       code: value.code,
-      stack: value.stack,
+      stack: value.stack ? sanitizeErrorText(value.stack) : undefined,
     };
   }
 

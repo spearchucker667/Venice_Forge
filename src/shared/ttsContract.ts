@@ -83,7 +83,7 @@ export function speechResultFail(
   code: SpeechFailureCode,
   message: string,
   extra: { status?: number; providerCode?: string; retryable?: boolean } = {},
-): SpeechResult {
+): Extract<SpeechResult, { ok: false }> {
   return {
     ok: false,
     failure: {

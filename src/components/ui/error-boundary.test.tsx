@@ -78,7 +78,7 @@ describe('ErrorBoundary — T-092: logging must not leak raw secrets or paths', 
     expect(loggedPayload).not.toContain('http://localhost:5173/src/thrower.tsx')
     expect(loggedPayload).toContain('[REDACTED]')
     expect(loggedPayload).toContain('[REDACTED-PATH]')
-    expect(logArgs[2]).toEqual(
+    expect(logArgs[4]).toEqual(
       expect.objectContaining({
         componentStack: expect.stringContaining('[REDACTED-PATH]'),
       }),
