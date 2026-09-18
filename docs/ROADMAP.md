@@ -5,17 +5,17 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 1c0360f8 (application commit before this docs-only successor)
-application_code_sha: 1c0360f8
-verified_against_sha: 1c0360f8
+repository_head_sha: b0f9f6a5 (docs-only successor after ee6ade04)
+application_code_sha: ee6ade04
+verified_against_sha: b0f9f6a5
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
 working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
-ci_status:           pending for f6d60ca3 (run 35354120265)
-codeql_status:       in_progress for f6d60ca3 (run 35354120344)
+ci_status:           in_progress for b0f9f6a5 (run 35354226083)
+codeql_status:       success for b0f9f6a5 (run 35354226071)
 open_findings:       VF-20260918-P2-016, VF-20260918-P3-020
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -24,6 +24,15 @@ external_acceptance_outstanding:
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
   - VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (commit 1c0360f8) Local Family Safe Mode disabled-state contract aligned across renderer, Electron, web proxy, RP/import, response screening, diagnostics, tests, and active documentation
+  - VF-20260918-P1-005 (commit e34f292a) Fuzzy-only safety collisions downgraded to warning-only signals; benign corpus coverage added
+  - VF-20260918-P2-008 (commit 07222274) Shared ContextMenu viewport bounds, keyboard movement, disabled-item skip, and focus restoration
+  - VF-20260918-P2-009 (commit 57efe436) Sidebar chat-options menu migrated to shared ContextMenu
+  - VF-20260918-P2-010 (commit 72fdff4b) History folder menu migrated to shared ContextMenu
+  - VF-20260918-P2-011, P2-012, P2-013 (commit 4ce828f6) Shared Select active-descendant IDs, filter bounds, and viewport placement
+  - VF-20260918-P2-014, P2-015 (commit 7bf1defa) Responsive sidebar labels and Character Library action rows
+  - VF-20260918-P3-019 (commit 5eca2e45) ContextMenu added to Superdesign governance with refreshed fingerprint
+  - VF-20260918-P2-017 (commit 80fb45b1) Hosted Rules01 governance verified (13 required contexts)
+  - VF-20260918-P3-018 (commit ee6ade04) Current-state docs lag with separate code/verified SHAs
   - VF-AUD-20260916-P2-004 (commit 1c2bfe1d)  Google API-key query-string + redaction gap
   - VF-AUD-20260916-P2-005 (no new commit)   Family-safe media heap pressure (verified closed by VF-20260916-P1-003)
   - VF-AUD-20260916-P3-002 (commit 6d577eba) Current-authority docs reconciliation
@@ -34,10 +43,30 @@ recently_closed_in_session_2026-09-18:
 
 ## 2026-09-18 Audit Work Order
 
-The active 2026-09-18 handoff is under `docs/audits/TODO/`. Its findings are evidence to recheck on the current source. Completed findings leave this open-work list and receive closure evidence in `docs/summary_of_work.md`. The following segments are ordered by dependency:
+The 2026-09-18 current-`main` exhaustive review and remediation handoff is closed and now lives at `docs/audits/Records/VENICE_FORGE_CURRENT_MAIN_EXHAUSTIVE_REVIEW_AGENT_HANDOFF_2026-09-18.md` (published `main` HEAD `b0f9f6a5`). All 18 actionable findings were repaired in commits `07222274` through `ee6ade04`:
 
-1. **Headed and localization acceptance (P2-016, P3-020):** Capture direct evidence for the canonical tabs and overlays, plus qualified native-language review. Record actual coverage without inferring it from static tests. Current-state metadata (P3-018) and Superdesign ContextMenu governance (P3-019) are complete.
-2. **Hosted governance:** Ruleset `Rules01` is active and enforces the required review and 13 status checks; P2-017 is closed by live API evidence.
+| Finding | Source commit |
+|---|---|
+| `VF-20260918-P0-001` | `1c0360f8` |
+| `VF-20260918-P1-002` | `1c0360f8` |
+| `VF-20260918-P1-003` | `1c0360f8` |
+| `VF-20260918-P1-004` | `1c0360f8` |
+| `VF-20260918-P1-005` | `e34f292a` |
+| `VF-20260918-P1-006` | `1c0360f8` |
+| `VF-20260918-P2-007` | `1c0360f8` |
+| `VF-20260918-P2-008` | `07222274` |
+| `VF-20260918-P2-009` | `57efe436` |
+| `VF-20260918-P2-010` | `72fdff4b` |
+| `VF-20260918-P2-011` | `4ce828f6` |
+| `VF-20260918-P2-012` | `4ce828f6` |
+| `VF-20260918-P2-013` | `4ce828f6` |
+| `VF-20260918-P2-014` | `7bf1defa` |
+| `VF-20260918-P2-015` | `7bf1defa` |
+| `VF-20260918-P2-017` | `80fb45b1` |
+| `VF-20260918-P3-018` | `ee6ade04` |
+| `VF-20260918-P3-019` | `5eca2e45` |
+
+Two findings (`P2-016` headed visual/accessibility QA and `P3-020` qualified native-language review) require external human acceptance and remain blocked. Hosted CI/CodeQL must be confirmed green against the published SHA before this tranche is treated as fully closed.
 
 ## Current Work
 

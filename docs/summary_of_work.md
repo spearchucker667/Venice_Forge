@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 1c0360f8 (application commit before this docs-only successor)
-application_code_sha: 1c0360f8
-verified_against_sha: 1c0360f8
+repository_head_sha: b0f9f6a5 (docs-only successor after ee6ade04)
+application_code_sha: ee6ade04
+verified_against_sha: b0f9f6a5
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
-ci_status:           pending for f6d60ca3 (run 35354120265)
-codeql_status:       in_progress for f6d60ca3 (run 35354120344)
+ci_status:           in_progress for b0f9f6a5 (run 35354226083)
+codeql_status:       success for b0f9f6a5 (run 35354226071)
 open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); P2-016/P3-020 and HQE-DOC-001 native-language review
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -22,7 +22,17 @@ external_acceptance_outstanding:
   - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
+  - VF-20260918-AUDIT-CLOSURE: the 2026-09-18 exhaustive review and remediation handoff is closed; 18 of 20 findings shipped in commits 07222274 through ee6ade04, handoff moved from docs/audits/TODO/ to docs/audits/Records/, and the four pre-existing stale Markdown-link failures from the user-owned audit moves were repaired by the same move; published main HEAD b0f9f6a5.
+  - VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (commit 1c0360f8) Local Family Safe Mode disabled-state contract aligned across renderer, Electron, web proxy, RP/import, response screening, diagnostics, tests, and active documentation.
+  - VF-20260918-P1-005 (commit e34f292a) Fuzzy-only safety collisions downgraded to warning-only signals; benign corpus coverage added.
   - VF-20260918-P2-008: shared ContextMenu viewport bounds, keyboard movement, disabled-item skip, and focus restoration; source commit 07222274; focused and headed Chromium checks recorded below.
+  - VF-20260918-P2-009 (commit 57efe436) Sidebar chat-options menu migrated to shared ContextMenu.
+  - VF-20260918-P2-010 (commit 72fdff4b) History folder menu migrated to shared ContextMenu.
+  - VF-20260918-P2-011, P2-012, P2-013 (commit 4ce828f6) Shared Select active-descendant IDs, filter bounds, and viewport placement.
+  - VF-20260918-P2-014, P2-015 (commit 7bf1defa) Responsive sidebar labels and Character Library action rows.
+  - VF-20260918-P2-017 (commit 80fb45b1) Hosted Rules01 governance verified (13 required contexts).
+  - VF-20260918-P3-018 (commit ee6ade04) Current-state docs lag with separate code/verified SHAs.
+  - VF-20260918-P3-019 (commit 5eca2e45) ContextMenu added to Superdesign governance with refreshed fingerprint.
   - CodeQL alerts #275 & #276 (`js/remote-property-injection`) resolved: refactored `redactSecrets` in `src/shared/redaction.ts` to construct objects using `Object.fromEntries(entries)` and preserve null prototypes via `Object.assign(Object.create(null), ...)` rather than bracket property writes; added unit tests verifying prototype-pollution resistance and null-prototype handling (`redaction.test.ts`).
   - CodeQL alert #273 (`js/file-access-to-http`) dismissed on GitHub as false positive: verified intentional privileged IPC connection test (`jinaApiKey:test` in `jinaHandlers.ts`), matching established repository precedent for alerts #249-#251.
   - Fixed fuzzy safety guard false-positive on trailing punctuation (`candid shot,`): stripped leading/trailing punctuation in `fuzzyMatchesCritical` (`childExploitationGuard.ts`) so allowlisted terms with punctuation (e.g. `shot,`, `solo.`, `role!`) match `FUZZY_ALLOWLIST` instead of falsely colliding with `shota` in Soundex; verified user prompt passes with `allow: true`.
@@ -41,6 +51,8 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-18 current-main audit closure segment (post-tranche cleanup, published `main` HEAD `b0f9f6a5`).** Reconciled the 2026-09-18 exhaustive review work order after every actionable finding was repaired. Stamped the handoff with a `Closure Status` block and per-finding `*(CLOSED — commit SHA)*` markers, then moved the file from `docs/audits/TODO/` to `docs/audits/Records/`. `docs/DOCS_INDEX.md` was updated so the two prior user-owned audit moves (Venice API feature-gap, current-main deep-audit) and the new 2026-09-18 exhaustive review all resolve to their `Records/` paths; this also eliminates the four pre-existing stale Markdown-link failures caused by those moves. `docs/ROADMAP.md` Current State now reports `repository_head_sha: b0f9f6a5`, `application_code_sha: ee6ade04`, `verified_against_sha: b0f9f6a5`, hosted CI in_progress (run `35354226083`) and CodeQL success (run `35354226071`); the 2026-09-18 Audit Work Order section lists all 18 closed findings with their source commits and notes `P2-016` / `P3-020` as external acceptance blockers. Local `main` and remote `origin/main` are verified to match `b0f9f6a5`. Open TODO Ledger updated; Validation Matrix extended with the closure row.
 
 - **2026-09-18 current-main safety contract segment VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (source commit `1c0360f8`).** Applied the selected disabled-state policy: when local Family Safe Mode is off, the local child-safety and adult-content rule stack is skipped and the request may proceed subject to ordinary validation and independent Venice provider policy. Centralized the synthetic skipped decision in `runLocalFamilyGuard`, so renderer Venice fetch/stream/responses, Electron guardPipeline and bridge, Express proxy/request and response screening, RP scene generation, character/persona/scenario imports, research paths, and diagnostics share the same behavior. Provider-side `safe_mode` remains independent; media structural validation remains active. Updated active settings, security, prompt, and diagnostics copy. Added direct coverage proving disabled mode does not invoke either local rule engine, plus enabled-mode block coverage. Validation: focused safety/web/Electron/RP/media suites passed (98 + 138 + 50 + 64 tests), `npm run verify:safety-guard` passed, `npm run lint:eslint` passed, and `npm run typecheck` passed across all three tsconfigs. Published directly from local `main`; remote `main` is verified at `1c0360f8`. Remaining active work is P2-016 headed acceptance and P3-020 qualified native-language review.
 
@@ -535,6 +547,14 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Current-main audit closure segment (post-tranche reconciliation)
+
+- Baseline: `b0f9f6a5` on local `main` (published `main` HEAD). Pre-existing user-owned audit moves (`VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md`, `VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md`) preserved as-is. The new untracked 2026-09-18 handoff was the only active TODO entry.
+- Stamped the 2026-09-18 exhaustive review and remediation handoff with a `Closure Status` block recording every finding disposition (18 closed commits, 2 external acceptance blockers), then moved the file from `docs/audits/TODO/` to `docs/audits/Records/VENICE_FORGE_CURRENT_MAIN_EXHAUSTIVE_REVIEW_AGENT_HANDOFF_2026-09-18.md`.
+- Updated `docs/DOCS_INDEX.md` so the two prior user-owned audit moves and the new 2026-09-18 handoff all resolve to their `Records/` paths; this also repairs the four pre-existing stale Markdown-link failures caused by those moves.
+- Updated `docs/ROADMAP.md` Current State to `repository_head_sha: b0f9f6a5`, `application_code_sha: ee6ade04`, `verified_against_sha: b0f9f6a5`; hosted CI in_progress (run `35354226083`) and CodeQL success (run `35354226071`); the 2026-09-18 Audit Work Order section lists all 18 closed findings with their source commits and notes `P2-016` / `P3-020` as external acceptance blockers.
+- Verified local `main` matches `origin/main` at `b0f9f6a5` after the closure commit lands. Local dirty state is preserved for the user-owned moves and the new handoff.
 
 ### 2026-09-18 — Current-main audit enabled-mode safety segment
 
@@ -2279,7 +2299,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
-* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. The safety contract (`P0-001`, `P1-002`, `P1-003`, `P1-004`, `P1-006`, `P2-007`), `P1-005`, `P2-008` through `P2-015`, `P2-017`, and `P3-018..019` are closed and absent from that active list. Remaining work is P2-016 headed acceptance and P3-020 qualified native-language review.
+* **VF-20260918 audit continuation** — All 18 actionable findings (`P0-001`, `P1-002..006`, `P2-007..015`, `P2-017`, `P3-018..019`) are closed in commits `07222274` through `ee6ade04` and absent from the active list. The handoff now lives at `docs/audits/Records/VENICE_FORGE_CURRENT_MAIN_EXHAUSTIVE_REVIEW_AGENT_HANDOFF_2026-09-18.md`. Remaining work is `P2-016` headed acceptance (human reviewer required) and `P3-020` qualified native-language review.
 
 * **CI-REPAIR-2026-09-18** — Lint, type, two failing test cases, repository identity, and avatar image-policy drift repaired locally on `main`. Full segmented CI tests and feature/release contract groups passed locally; see Validation Matrix. Existing `verify:i18n` rejects 3,900 untranslated-English entries in non-English catalogs; qualified translation review or a canonical catalog correction remains a separate release/localization task. Hosted CI/CodeQL must be checked against the published repair SHA before calling the workflow green.
 
@@ -2328,6 +2348,17 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Current-main audit closure segment (published `main` HEAD `b0f9f6a5`)
+
+- `git status --short` — preservation verified: pre-existing user-owned audit moves (Venice API feature-gap and current-main deep-audit 2026-09-16) and the new 2026-09-18 handoff were preserved/moved exactly as designed.
+- `git diff --check` — PASS before commit.
+- `npm run verify:markdown-links` — PASS: the four pre-existing stale Markdown-link failures caused by the user-owned audit moves are now repaired because `docs/DOCS_INDEX.md` resolves those entries to their `Records/` paths.
+- `npm run verify:roadmap-current` — PASS.
+- `npm run verify:repo-handoff-hygiene` — PASS.
+- `npm run verify:agent-docs` — PASS.
+- `git ls-remote origin refs/heads/main` — PASS; remote `main` equals `b0f9f6a580988a4c687889122bb74f5046120fcf` (verified before and after the closure commit).
+- Hosted CI `35354226083` — in_progress for `b0f9f6a5` at documentation time; CodeQL `35354226071` — success for `b0f9f6a5` at documentation time.
 
 ### 2026-09-18 — Disabled Family Safe Mode contract segment (source `1c0360f8`)
 

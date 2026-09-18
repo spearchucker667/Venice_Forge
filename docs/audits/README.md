@@ -14,10 +14,7 @@ Current unfinished work still belongs in [`docs/ROADMAP.md`](../ROADMAP.md). Ses
 
 ## Active work orders
 
-- [`TODO/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md`](TODO/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md) — Venice API feature-gap implementation work order.
-- [`TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md`](TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md) — Current-main deep-audit handoff.
-
-Remaining open items from those handoffs are tracked in `docs/ROADMAP.md`. Do not execute a historical handoff as if it were current fact; reproduce each claim against the checked-out tree.
+As of the 2026-09-18 closure pass, `TODO/` holds no active work orders. The previously active 2026-09-16 Venice API feature-gap handoff, 2026-09-16 current-main deep-audit handoff, and 2026-09-18 current-main exhaustive review handoff have all been moved to `Records/` after their actionable findings were closed on `main`. Open items from those handoffs (notably `P2-016` headed visual/accessibility QA and `P3-020` qualified native-language review) remain tracked in `docs/ROADMAP.md`. Do not execute a historical handoff as if it were current fact; reproduce each claim against the checked-out tree.
 
 ## Ignore policy
 
