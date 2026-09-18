@@ -13,8 +13,8 @@ package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
-ci_status:           pending for 1c0360f8 (run 35353807341)
-codeql_status:       in_progress for 1c0360f8 (run 35353807393)
+ci_status:           pending for f6d60ca3 (run 35354120265)
+codeql_status:       in_progress for f6d60ca3 (run 35354120344)
 open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); P2-016/P3-020 and HQE-DOC-001 native-language review
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -2340,7 +2340,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 - `npm run typecheck` — PASS (`TYPECHECK_OK`; root, Electron, and Electron-test tsconfigs).
 - `git diff --check` — PASS before commit.
 - `git ls-remote origin refs/heads/main` — PASS; remote `main` equals `1c0360f8da6e282cdaa31afa6fcb2eaecc456ea5`.
-- Hosted CI `35353807341` — pending at documentation time; CodeQL `35353807393` — in progress at documentation time.
+- Hosted CI `35354120265` — pending at documentation time for docs successor `f6d60ca3`; CodeQL `35354120344` — in progress at documentation time.
 
 ### 2026-09-18 — Enabled-mode safety segment (baseline `80fb45b1`)
 

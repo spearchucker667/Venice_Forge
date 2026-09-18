@@ -14,8 +14,8 @@ node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
 working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
-ci_status:           pending for 1c0360f8 (run 35353807341)
-codeql_status:       in_progress for 1c0360f8 (run 35353807393)
+ci_status:           pending for f6d60ca3 (run 35354120265)
+codeql_status:       in_progress for f6d60ca3 (run 35354120344)
 open_findings:       VF-20260918-P2-016, VF-20260918-P3-020
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
