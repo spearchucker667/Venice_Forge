@@ -1,6 +1,6 @@
 # Venice Forge — Components (source-grounded init)
 
-> Generated for baseline `07ad9ee6ec6e4249f2ea2a27dc794fa148bd96e8`. Implementation source is authoritative; this bundle is context, not a second registry.
+> Generated for application baseline `7bf1defa`. The repository head may advance with docs-only successors; implementation source is authoritative.
 
 ## Canonical source map
 
@@ -14,6 +14,7 @@
 | `Input` | `src/components/ui/primitives.tsx` | Theme-aware input with adornments | `tone`, `inputSize`, `leading`, `trailing` |
 | `AccessibleDialog` | `src/components/ui/AccessibleDialog.tsx` | Focus-trapped modal with Escape and restore semantics | `title`, `description`, `children`, `onClose`, `initialFocusRef`, `headerAction`, `panelRef`, `panelClassName`, `closeOnBackdrop`, `zIndexClassName` |
 | `Select` | `src/components/ui/select.tsx` | Searchable keyboard-accessible portal select | `value`, `onChange`, `options`, `placeholder`, `searchable`, `className`, `id`, `ariaLabel`, `labelledBy`, `disabled`, `data-testid` |
+| `ContextMenu` | `src/components/ui/ContextMenu.tsx` | Viewport-bounded portaled menu with roving keyboard focus and focus restoration | `position`, `items`, `onClose`, `ariaLabel`, `minWidth` |
 | `Meteocon` | `src/components/ui/Meteocon.tsx` | CSP-safe weather/icon system | `name`, `size`, `className` |
 
 ## Shared primitive source (`src/components/ui/primitives.tsx`)

@@ -66,13 +66,13 @@ export function useContextMenu(): UseContextMenuResult {
   return { menu, openAt, close };
 }
 
-type ContextMenuProps = {
+interface ContextMenuProps {
   position: MenuPosition | null;
   items: ContextMenuItem[];
   onClose: () => void;
   ariaLabel?: string;
   minWidth?: number;
-};
+}
 
 function clampPosition(
   x: number,

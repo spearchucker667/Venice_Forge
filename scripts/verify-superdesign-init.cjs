@@ -30,6 +30,7 @@ const REQUIRED_COMPONENT_SOURCES = [
   "src/components/ui/primitives.tsx",
   "src/components/ui/AccessibleDialog.tsx",
   "src/components/ui/select.tsx",
+  "src/components/ui/ContextMenu.tsx",
   "src/components/ui/Meteocon.tsx",
 ];
 const KEY_PAGE_PATHS = [

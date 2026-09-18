@@ -6,7 +6,9 @@ logging, diagnostics, and API-key handling model.
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        8f0bb828
+repository_head_sha: 7bf1defa (application commit before this docs-only successor)
+application_code_sha: 7bf1defa
+verified_against_sha: 7bf1defa
 verified_at:         2026-09-17 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0

@@ -28,6 +28,7 @@ Every candidate must record:
 | `Card` | `src/components/ui/primitives.tsx` | panel | Semantic elevation surface | `elevation`, `tone`, `padded` | none |
 | `EmptyState` | `src/components/ui/primitives.tsx` | status | Headline/helper/action empty state | `eyebrow`, `headline`, `helper`, `illustration`, `action` | visible text supplied by caller and must be localized |
 | `AccessibleDialog` | `src/components/ui/AccessibleDialog.tsx` | overlay | Focus trap, Escape, restore | `title`, `description`, `children`, `onClose`, `initialFocusRef`, `headerAction`, `panelRef`, `panelClassName`, `closeOnBackdrop`, `zIndexClassName` | none |
+| `ContextMenu` | `src/components/ui/ContextMenu.tsx` | overlay | Viewport bounds, roving focus, Escape/Tab close, focus restoration | `position`, `items`, `onClose`, `ariaLabel`, `minWidth` | none |
 | `Toolbar` | `src/components/ui/primitives.tsx` | action | Shared action grouping | `size`, `bare`, `align`, `asToolbar` | none |
 
 ## Do not extract blindly

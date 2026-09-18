@@ -5,7 +5,9 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        07222274
+repository_head_sha: 7bf1defa (application commit before this docs-only successor)
+application_code_sha: 7bf1defa
+verified_against_sha: 7bf1defa
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
@@ -40,6 +42,7 @@ recently_closed_in_session_2026-09-18:
 
 ## Latest Session Summary
 
+- **2026-09-18 current-main audit segment VF-20260918-P3-018..019 (baseline `7bf1defa`).** Clarified current-state metadata in ROADMAP, summary, and SECURITY with separate repository head, application code, and verification SHAs. Added ContextMenu to the Superdesign source inventory, documented its viewport/keyboard/focus contract and props, converted its props declaration to verifier-readable interface form, and refreshed the source fingerprint. `verify:superdesign-init` passed, focused ContextMenu/Select tests passed (22/22), ESLint and typecheck passed. The four stale Markdown links from the pre-existing user-owned audit moves remain the known repository-link failure.
 - **2026-09-18 current-main audit segment VF-20260918-P2-014..015 (baseline `4ce828f6`).** Hardened responsive labels in the expanded Sidebar and RP Character Library cards. Navigation icons now remain fixed while labels occupy a truncating flex slot with full-title access; group headings truncate safely. Character actions wrap within narrow cards, text buttons truncate with titles, and export controls remain reachable at narrow widths and zoom. Focused Sidebar/CharacterLibrary tests passed (26/26); ESLint and typecheck passed. The four stale Markdown links from the pre-existing user-owned audit moves remain the known repository-link failure.
 - **2026-09-18 current-main audit segment VF-20260918-P2-011..013 (baseline `72fdff4b`).** Repaired the shared Select primitive's active-descendant IDs so they match rendered option IDs for both searchable and non-searchable modes, clamped highlights when filtering shrinks the result set, and constrained the portaled list to the viewport with the shared context-menu layer token. Focused Select tests passed (18/18); ESLint, typecheck, build, and dist verification passed. The four stale Markdown links from the pre-existing user-owned audit moves remain the known repository-link failure.
 - **2026-09-18 current-main audit segment VF-20260918-P2-010 (baseline `57efe436`).** Migrated History folder actions from the bespoke portaled menu and global listeners to the shared ContextMenu. Added a keyboard-visible folder options trigger and retained privacy gate, rename, delete, export, and import actions with their existing store and modal flows. Focused History/ContextMenu tests passed (19/19); ESLint, typecheck, build, dist, roadmap, agent-doc, and handoff-hygiene checks passed. The four stale Markdown links from the pre-existing user-owned audit moves remain the only known repository-link failure.
@@ -528,6 +531,12 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Current-main audit docs and Superdesign segment
+
+- Baseline: `7bf1defa` on local `main`; findings `VF-20260918-P3-018` and `P3-019`.
+- Split current-state metadata into repository head, application code, and verified-against fields. Added ContextMenu to `.superdesign/init` component/extractable inventories and required source fingerprints; refreshed the init fingerprint after the source contract update.
+- `npm run verify:superdesign-init` passed; focused ContextMenu/Select tests passed (22/22); ESLint and typecheck passed.
 
 ### 2026-09-18 — Current-main audit responsive surfaces segment
 
@@ -2248,7 +2257,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
-* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. `P2-008` through `P2-015` are closed in this session and absent from that active list. Safety disabled-state semantics await resolution of the new handoff's conflict with the existing mandatory child-safety contract; remaining UI, headed acceptance, localization, and governance findings stay open.
+* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. `P2-008` through `P2-015` and `P3-018..019` are closed in this session and absent from that active list. Safety disabled-state semantics await resolution of the new handoff's conflict with the existing mandatory child-safety contract; remaining headed acceptance, localization, and hosted governance findings stay open.
 
 * **CI-REPAIR-2026-09-18** — Lint, type, two failing test cases, repository identity, and avatar image-policy drift repaired locally on `main`. Full segmented CI tests and feature/release contract groups passed locally; see Validation Matrix. Existing `verify:i18n` rejects 3,900 untranslated-English entries in non-English catalogs; qualified translation review or a canonical catalog correction remains a separate release/localization task. Hosted CI/CodeQL must be checked against the published repair SHA before calling the workflow green.
 
@@ -2297,6 +2306,13 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Docs and Superdesign governance segment (baseline `7bf1defa`)
+
+- `npm run verify:superdesign-init` — PASS (source fingerprint `40f9f5f68a9227f3`).
+- `npx vitest run src/components/ui/ContextMenu.test.tsx src/components/ui/select.test.tsx` — PASS (22/22 tests).
+- `npm run lint:eslint` — PASS (zero errors/warnings).
+- `npm run typecheck` — PASS (all three tsconfigs).
 
 ### 2026-09-18 — Responsive surfaces segment (baseline `4ce828f6`)
 
