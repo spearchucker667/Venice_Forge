@@ -5,21 +5,22 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        ba9a86a2
+baseline_sha:        07222274
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        clean
-ci_status:           hosted_in_progress (run 35343769763 in progress, 5/7 jobs passed; prior run 35339868411 11/11 passed)
-codeql_status:       clean (0 open alerts; alerts #275 & #276 verified FIXED by CodeQL run 35343769941; alert #273 DISMISSED as false positive)
-open_findings:       P2-007 (headed accessibility/visual QA); HQE-DOC-001 (native-language review of 12 non-English catalogs)
+working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
+ci_status:           not_checked_for_current_remediation_sha
+codeql_status:       not_checked_for_current_remediation_sha
+open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); HQE-DOC-001 native-language review
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-007)
   - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
+  - VF-20260918-P2-008: shared ContextMenu viewport bounds, keyboard movement, disabled-item skip, and focus restoration; source commit 07222274; focused and headed Chromium checks recorded below.
   - CodeQL alerts #275 & #276 (`js/remote-property-injection`) resolved: refactored `redactSecrets` in `src/shared/redaction.ts` to construct objects using `Object.fromEntries(entries)` and preserve null prototypes via `Object.assign(Object.create(null), ...)` rather than bracket property writes; added unit tests verifying prototype-pollution resistance and null-prototype handling (`redaction.test.ts`).
   - CodeQL alert #273 (`js/file-access-to-http`) dismissed on GitHub as false positive: verified intentional privileged IPC connection test (`jinaApiKey:test` in `jinaHandlers.ts`), matching established repository precedent for alerts #249-#251.
   - Fixed fuzzy safety guard false-positive on trailing punctuation (`candid shot,`): stripped leading/trailing punctuation in `fuzzyMatchesCritical` (`childExploitationGuard.ts`) so allowlisted terms with punctuation (e.g. `shot,`, `solo.`, `role!`) match `FUZZY_ALLOWLIST` instead of falsely colliding with `shota` in Soundex; verified user prompt passes with `allow: true`.
@@ -38,6 +39,8 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-18 current-main audit segment VF-20260918-P2-008 (baseline `23963e02`, source commit `07222274`).** The new 2026-09-18 TODO handoff conflicts with the existing mandatory child-safety contract on disabled-state semantics; that question remains open. Independently hardened `src/components/ui/ContextMenu.tsx`: viewport-constrained width/height, internal scrolling, resize/scroll placement, RTL alignment, enabled-item roving focus, Arrow/Home/End navigation, Escape/Tab close, and focus return. Added `ContextMenu.test.tsx` and a shared menu layer token in `src/styles/theme.css`. Final focused tests passed (45/45 across ContextMenu, Sidebar, and History); ESLint, typecheck, theme-token verification, lockfile verification, build, and dist verification passed. A headed Chromium check at 320×240 confirmed a 30-item menu fits the viewport, scrolls to the last item, skips a disabled item, and restores focus after Escape. `verify:contracts` stops at four pre-existing broken Markdown links caused by the two user-owned audit moves already present at turn start; their files were left untouched. Full `npm test` finished with 6,768 passed, four skipped, and two failures: the same Markdown-link issue and an unchanged web chat-store IndexedDB assertion, which also fails when its file runs alone. Hosted checks are pending publication. Remaining 2026-09-18 findings are ordered in `docs/ROADMAP.md`.
 
 - **2026-09-18 CodeQL code scanning audit and remediation on `main` (baseline `917ba97d`).**
   - **Audit & Triage:** Reviewed all 3 open CodeQL alerts on GitHub (`spearchucker667/Venice_Forge`).
@@ -519,6 +522,14 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Current-main audit shared ContextMenu segment
+
+- Baseline: `23963e02` on local `main`; source commit: `07222274`. The two pre-existing TODO-to-Records audit moves and the new untracked handoff were preserved.
+- Finding `VF-20260918-P2-008`: the menu measured its height but had no max height or scrolling; `role="menu"` lacked Arrow/Home/End navigation and reliable focus return. Added viewport sizing and clipping, resize/scroll placement, RTL alignment, keyboard navigation, disabled-item skipping, and explicit focus restoration before portal close.
+- Added four focused ContextMenu tests; 45/45 tests across ContextMenu, Sidebar, and History passed. A headed Chromium component harness confirmed viewport geometry, internal scrolling, keyboard focus, and Escape focus return; the temporary harness and browser session were removed afterward.
+- `verify:markdown-links` and the dependent `verify:contracts` gate fail on four stale links to the two user-owned moved handoffs. No unrelated move or index repair was staged as part of this menu segment.
+- Full `npm test` finished with 6,768 passed, four skipped, and two failures: Markdown-link repository validation and the unchanged web chat-store persistence assertion at `src/stores/chat-store.web.test.ts:93`. The latter failed again in an isolated file run (one failed, two passed). Neither file nor chat persistence source was modified for this segment.
 
 ### 2026-09-18 — CodeQL code scanning audit, alert #273 dismissal, and alerts #275/#276 remediation
 
@@ -2207,6 +2218,8 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
+* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. `P2-008` is closed in this session and is absent from that active list. Safety disabled-state semantics await resolution of the new handoff's conflict with the existing mandatory child-safety contract; remaining UI, headed acceptance, localization, and governance findings stay open.
+
 * **CI-REPAIR-2026-09-18** — Lint, type, two failing test cases, repository identity, and avatar image-policy drift repaired locally on `main`. Full segmented CI tests and feature/release contract groups passed locally; see Validation Matrix. Existing `verify:i18n` rejects 3,900 untranslated-English entries in non-English catalogs; qualified translation review or a canonical catalog correction remains a separate release/localization task. Hosted CI/CodeQL must be checked against the published repair SHA before calling the workflow green.
 
 * **AUDIT-TRANCHE-2026-09-17 — Six current-main deep-audit findings closed on `main` head `0dcd97a3`.** P2-004 (commit `1c2bfe1d`), P2-005 (verified closed by `e7abe910` — no new commit), P3-002 (commit `6d577eba`), P2-002 (commit `59a6bf7c`), P2-001 (commit `a64e5a7d`), P2-006 (commit `0dcd97a3`). Only P2-007 remains open as a separate release task (headed a11y/visual QA, requires human reviewer). External acceptance still outstanding: hosted CI/CodeQL against the published SHA, native-language translation review of the 12 non-English catalogs (incl. the new P2-001/P2-006 keys), funded-provider verification of the Responses / x402 / Crypto RPC paths. **All commits local on `main`, not pushed** (AGENTS.md §5).
@@ -2254,6 +2267,26 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Shared ContextMenu audit segment (baseline `23963e02`)
+
+- `npx vitest run src/components/ui/ContextMenu.test.tsx` — PASS (3/3 initial tests).
+- `npx vitest run src/components/ui/ContextMenu.test.tsx src/components/layout/sidebar.test.tsx src/components/chat/HistoryView.test.tsx src/components/chat/HistoryView.multiSelect.test.tsx` — PASS (45/45 tests on final source; 44/44 on the earlier pass).
+- `npm run lint:eslint` — PASS on final source (zero errors/warnings).
+- `npm run typecheck` — PASS on final source (all three tsconfigs).
+- `npm run verify:theme-tokens` — PASS (199 files scanned).
+- `npm run verify:lockfile` — PASS.
+- `npm run verify:markdown-links` — FAIL (four broken links in `docs/DOCS_INDEX.md` and `docs/audits/README.md` to the two user-owned handoffs already moved out of TODO at turn start).
+- `npm run verify:contracts` — FAIL at its Markdown-link stage for those same four links; preceding lockfile, identity, roadmap, release metadata, bundle budget, and safety guard checks passed.
+- `npm test` — FAIL (6,768 passed, four skipped, two failed across 574 files): Markdown-link repository test and unchanged web chat-store IndexedDB assertion.
+- `npx vitest run src/stores/chat-store.web.test.ts` — FAIL (one failed, two passed): same IndexedDB assertion at line 93.
+- `npm run build` — PASS on final source (web, server, Electron).
+- `npm run verify:dist` — PASS against the final build.
+- `npm run verify:i18n` — PASS with 3,916 existing missing-marker warnings across non-English catalogs.
+- `npm run verify:i18n-hardcoded-regressions` — PASS (zero regressions).
+- `npm run verify:superdesign-init` — PASS; it does not fingerprint ContextMenu yet (`VF-20260918-P3-019` remains open).
+- `npm run verify:roadmap-current`, `npm run verify:agent-docs`, and `npm run verify:repo-handoff-hygiene` — PASS after the documentation update.
+- Headed Chromium component harness at 320×240 — PASS for menu geometry (`top 8`, `bottom 232`, `scrollHeight 968`, `clientHeight 222`), disabled-item skip, End scrolling to item 30, and Escape focus return to opener. The harness was removed after testing.
 
 ### 2026-09-18 — CodeQL Code Scanning Remediation (baseline `917ba97d`)
 
