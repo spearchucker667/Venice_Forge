@@ -5,17 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        9723a177
+baseline_sha:        a232c22e
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        dirty (ready for review/commit)
-ci_status:           all_local_suites_green (verify:contracts, verify:i18n, lint:eslint, typecheck, build, test:ci, verify:safety-guard, verify:markdown-links, verify:dist, verify:bundle-budget all pass)
-codeql_status:       remediated (alerts #271, #272, #274, #275, #276, #277 resolved in code; alert #273 assessed as false positive)
+working_tree:        clean
+ci_status:           hosted_green (run 35339868411, 11/11 jobs passed including unit-and-integration, coverage, smoke macos/windows/linux)
+codeql_status:       hosted_green (run 35339868405, 2/2 jobs passed)
 open_findings:       P2-007 (headed accessibility/visual QA); HQE-DOC-001 (native-language review of 12 non-English catalogs)
 external_acceptance_outstanding:
-  - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-007)
   - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
@@ -2250,6 +2249,8 @@ Investigation only, then four targeted fixes based on the user-reported defects
 - `npm run build` — PASS (vite web, esbuild server, electron main/preload bundled).
 - `npm run verify:bundle-budget` — PASS (all chunks within budget).
 - `npm run verify:dist` — PASS (production build outputs verified).
+- Hosted CI run `35339868411` on commit `a232c22e`: PASS (11/11 jobs passed: `unit-and-integration-tests` [12m7s], `coverage` [15m40s], `windows-sensitive-tests` [3m8s], `lint-and-typecheck` [1m37s], `contracts` [3m10s], `macos-sensitive-tests` [2m29s], `script-coverage` [1m12s], `build` [29s], `electron-smoke-windows` [4m6s], `electron-smoke-macos` [1m47s], `electron-smoke-linux` [5m36s]).
+- Hosted CodeQL run `35339868405` on commit `a232c22e`: PASS (2/2 jobs passed: `Analyze actions` [39s], `Analyze javascript-typescript` [3m21s]).
 
 ### 2026-09-18 — Capability Mock Alignment & Full test:ci Sweep (baseline `43888f71`)
 
