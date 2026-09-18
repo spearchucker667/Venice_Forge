@@ -5,7 +5,7 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        8f0bb828
+baseline_sha:        0dcd97a3
 verified_at:         2026-09-17 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
@@ -13,15 +13,24 @@ branch:              main
 working_tree:        clean
 ci_status:           not_rerun_this_session (last observed green per audit; rerun against published SHA outstanding)
 codeql_status:       not_rerun_this_session (rerun against published SHA outstanding)
-open_findings:       P2-001, P2-002, P2-006, P3-002 (in-progress), P2-007
+open_findings:       P2-007
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-007)
-  - native-language translation review of the 12 non-English catalogs
+  - native-language translation review of the 12 non-English catalogs (incl. the new P2-001/P2-006 keys)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
+recently_closed_in_session_2026-09-17:
+  - VF-AUD-20260916-P2-004 (1c2bfe1d)  Google API-key query-string + redaction gap
+  - VF-AUD-20260916-P2-005 (no new commit)   Family-safe media heap pressure (verified closed by VF-20260916-P1-003)
+  - VF-AUD-20260916-P3-002 (6d577eba) Current-authority docs reconciliation
+  - VF-AUD-20260916-P2-002 (59a6bf7c) Selector↔compiler envelope-overhead invariant
+  - VF-AUD-20260916-P2-001 (a64e5a7d) Superdesign source drift verifier + init refresh
+  - VF-AUD-20260916-P2-006 (0dcd97a3) Truthful media-classifier capability surfaced to Status
 ```
 
 ## Latest Session Summary
+
+- **2026-09-17 Audit-tranche 2026-09-17 — Six current-main deep-audit findings closed on `main` (baseline `c8fa1a5e`, head `0dcd97a3`).** Per `docs/audits/TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md`, this single audit-tranche session closed six of seven remaining findings; P2-007 is a separate headed-a11y release task. Closed in order: **VF-AUD-20260916-P2-004** Google API-key query-string + redaction gap (commit `1c2bfe1d`); **VF-AUD-20260916-P2-005** family-safe media heap pressure (no new commit — verified closed by `VF-20260916-P1-003` `e7abe910`); **VF-AUD-20260916-P3-002** current-authority docs reconciliation (commit `6d577eba`); **VF-AUD-20260916-P2-002** selector↔compiler envelope-overhead invariant (commit `59a6bf7c`); **VF-AUD-20260916-P2-001** Superdesign source-drift verifier + init refresh (commit `a64e5a7d`); **VF-AUD-20260916-P2-006** truthful media-classifier capability surfaced to Status (commit `0dcd97a3`). All six closures include code, tests, and (where applicable) i18n + verifier updates; non-English locales carry `__MISSING__:` placeholders pending qualified native-language review. Remaining open finding: **VF-AUD-20260916-P2-007** direct headed a11y/visual QA — separate release task (see ROADMAP). Validation across the tranche: `npm run lint:eslint` 0/0, `npm run typecheck` 3/3 tsconfigs, `npm run verify:i18n` PASS, `npm run verify:i18n-hardcoded-regressions` PASS (0 regressions), `npm run verify:markdown-links` PASS (415 files), `node scripts/verify-superdesign-init.cjs` PASS (source fingerprint `59d449a17737d341`), focused vitest 21/21 (P2-006), broader vitest 401/401 across 48 files. **All six commits on `main`, not pushed** (per AGENTS.md §5 publication requires explicit authorization). Full session entries below under Session History; Open TODO Ledger updated.
 
 - **2026-09-17 VF-AUD-20260916-P2-004 — Closed Google API-key query-string + redaction gap on `main` (baseline `c8fa1a5e`, commit `1c2bfe1d`).** Per `docs/audits/TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md` finding §VF-AUD-20260916-P2-004. Two surfaces fixed. **(a) URL credential leakage** — `electron/ipc/handlers/apiKeyHandlers.ts` `buildProviderTestRequest()` no longer embeds the Gemini or Vertex Express API key as `?key=...` in the test URL; both now carry the credential in the `x-goog-api-key` header (matches the documented Gemini REST contract and mirrors `electron/services/providerAdapters.ts` for the request transport). Vertex's inline comment explains the rationale so the next reviewer does not revert to the query form. The previously-bare `apiKey: ""` case now emits an empty headers object instead of a `?key=` query, preserving the no-credential path. **(b) Redaction gap** — `src/shared/redaction.ts` `redactUrl()` now masks `key`, `apiKey`, `api_key`, `api-key`, and `x-goog-api-key` query parameter values via the new `SENSITIVE_URL_QUERY_NAMES` set (case-insensitive). Lookup is intentionally NOT generalized to "every field named `key` is secret" per audit guidance; the test suite asserts an ordinary `?page_key=p1` survives unchanged. `sanitizeErrorText` propagates the fix via `redactPaths` → `redactUrl`. **Tests added**: new `electron/ipc/handlers/apiKeyHandlers.connection.test.ts` (5 tests: Gemini + Vertex Express + Anthropic/Azure bearer-header sanity); `src/shared/redaction.test.ts` gains a 9-test `redactUrl` suite. `buildProviderTestRequest` is exported with a JSDoc note explaining the unit-test contract (same pattern as `isReservedCredentialName`). **Validation**: `npm run lint:eslint` 0/0, `npm run typecheck` 3/3 tsconfigs, focused vitest 31/31, broader vitest 189/189 across 16 files (`src/shared` + `electron/ipc`). **Committed on `main`, not pushed.**
 
@@ -2044,6 +2053,8 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
+* **AUDIT-TRANCHE-2026-09-17 — Six current-main deep-audit findings closed on `main` head `0dcd97a3`.** P2-004 (commit `1c2bfe1d`), P2-005 (verified closed by `e7abe910` — no new commit), P3-002 (commit `6d577eba`), P2-002 (commit `59a6bf7c`), P2-001 (commit `a64e5a7d`), P2-006 (commit `0dcd97a3`). Only P2-007 remains open as a separate release task (headed a11y/visual QA, requires human reviewer). External acceptance still outstanding: hosted CI/CodeQL against the published SHA, native-language translation review of the 12 non-English catalogs (incl. the new P2-001/P2-006 keys), funded-provider verification of the Responses / x402 / Crypto RPC paths. **All commits local on `main`, not pushed** (AGENTS.md §5).
+
 * **VF-AUD-20260916-P3-002-CLOSED-2026-09-17** — Current-authority docs reconciliation closed on `main` baseline `8f0bb828`, commit `6d577eba`. Added machine-readable `Current State` metadata block to `docs/ROADMAP.md`, `docs/summary_of_work.md`, and `SECURITY.md` (baseline_sha, verified_at, package_version, node_engine, branch/working_tree, ci/codeql status, open_findings, external_acceptance_outstanding — per audit: "do not build a brittle prose parser"). `SECURITY.md` also receives two prose fixes (stale `electron/ipc/handlers.ts` reference → `electron/ipc/handlers/` with back-compat barrel noted; explicit sender-validation contract line replacing the older "preferring senderFrame over sender.getURL()" wording). Validation: `npm run lint:eslint` PASS, `npm run verify:markdown-links` PASS (415 files). **Committed on `main`, not pushed.**
 
 * **VF-AUD-20260916-P2-005-CLOSED-2026-09-17** — Family-safe media heap pressure closed (verified this session). Prior closure commit `e7abe910 fix(fsm): bound Family Safe Mode media buffering with modality caps + temp-file spool (VF-20260916-P1-003)` covers every audit requirement: per-modality caps (`src/shared/limits.ts`), `src/services/fsmMediaCollector.ts` temp-file spooling with bounded cleanup, 64 KiB structural-prefix validation, 8 MiB in-memory threshold yielding to disk-spool above the cap, CSAM hard-block invariant preserved (screening policy unchanged). All eight required test cases covered by `src/services/fsmMediaCollector.test.ts` (13/13 pass). **No new commit required** — the finding was closed by a sibling session and this verification closes the "to verify on next pass" note in the prior ROADMAP entry.
@@ -2087,6 +2098,18 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-17 — Audit-tranche 2026-09-17 (six audit-finding closures in one session)
+
+- `npm run lint:eslint` — PASS (0/0).
+- `npm run typecheck` — PASS (3/3 tsconfigs).
+- `npm run verify:i18n` — PASS (12 locales × 12 namespaces).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+- `npm run verify:markdown-links` — PASS (415 files).
+- `node scripts/verify-superdesign-init.cjs` — PASS (source fingerprint `59d449a17737d341`).
+- `npx vitest run src/shared/safety/mediaScreener` — PASS (21/21).
+- Broader vitest sweep (48 files across `scripts/`, `src/services/ingestion`, `src/shared/redaction`, etc.) — PASS (401/401).
+- Not run (out of scope for this isolated audit-fix tranche): hosted CI/CodeQL against the published SHA, full `npm test`, `npm run build`, headed accessibility/visual QA (P2-007), native-language review of the non-English catalog placeholders, funded-provider requests.
 
 ### 2026-09-17 — VF-AUD-20260916-P3-002 + P2-005 verification
 

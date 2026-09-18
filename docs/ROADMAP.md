@@ -5,7 +5,7 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        8f0bb828
+baseline_sha:        0dcd97a3
 verified_at:         2026-09-17 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
@@ -14,15 +14,24 @@ branch:              main
 working_tree:        clean
 ci_status:           not_rerun_this_session (last observed green per audit; rerun against published SHA outstanding)
 codeql_status:       not_rerun_this_session (rerun against published SHA outstanding)
-open_findings:       P2-001, P2-002, P2-006, P3-002 (in-progress), P2-007
+open_findings:       P2-007
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-007)
-  - native-language translation review of the 12 non-English catalogs
+  - native-language translation review of the 12 non-English catalogs (incl. the new P2-001/P2-006 keys)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
+recently_closed_in_session_2026-09-17:
+  - VF-AUD-20260916-P2-004 (commit 1c2bfe1d)  Google API-key query-string + redaction gap
+  - VF-AUD-20260916-P2-005 (no new commit)   Family-safe media heap pressure (verified closed by VF-20260916-P1-003)
+  - VF-AUD-20260916-P3-002 (commit 6d577eba) Current-authority docs reconciliation
+  - VF-AUD-20260916-P2-002 (commit 59a6bf7c) Selector↔compiler envelope-overhead invariant
+  - VF-AUD-20260916-P2-001 (commit a64e5a7d) Superdesign source drift verifier + init refresh
+  - VF-AUD-20260916-P2-006 (commit 0dcd97a3) Truthful media-classifier capability surfaced to Status
 ```
 
 ## Current Work
+
+`VF-AUD-20260916-P2-007 — Direct headed a11y/visual QA remains a separate release task (no commit).` Per `docs/audits/TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md` §VF-AUD-20260916-P2-007, the audit requires headed Chromium accessibility / visual QA with screen-reader and visual confirmation across **15 canonical tabs without direct dedicated surface evidence**: `character-chats, history, image-inspector, prompts, scenes, audio, music, video, embeddings, search, characters, character-creator, rp-studio, privacy, playground`. The existing reference-redesign evidence captures 36 sessions across 9 surface families, 4 presets, and 5 viewport categories — useful but not per-tab. **Not executable from the current headless environment**: this agent session has no headed browser, no screen reader, and no manual visual review capability. The audit's required repair is a separate release-time task that needs a human reviewer running Venice Forge in headed mode and recording per-tab acceptance evidence under `docs/design/reference-ui-redesign-evidence/`. **No code change in this commit** — the audit entry remains `P2-007` in `open_findings` until that evidence is recorded. All other audit findings from the 2026-09-16 deep audit handoff are now closed (P2-001, P2-002, P2-004, P2-005, P2-006, P3-002) on `main` baseline `0dcd97a3`.
 
 `VF-AUD-20260916-P2-004 — Closed the Google API-key query-string + redaction gap on `main` baseline `c8fa1a5e` (audit-tranche 2026-09-17 session, commit `1c2bfe1d`).` Per `docs/audits/TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md` finding §VF-AUD-20260916-P2-004. Two distinct surfaces fixed. **(a) URL credential leakage** — `electron/ipc/handlers/apiKeyHandlers.ts` `buildProviderTestRequest()` no longer embeds the Gemini or Vertex Express API key as `?key=...` in the test URL; both now carry the credential in the `x-goog-api-key` header (matches the documented Gemini REST contract and mirrors `electron/services/providerAdapters.ts` for the request transport). The Vertex branch's inline comment explains the rationale so the next reviewer does not revert to the query form. The previously-bare `apiKey: ""` case now emits an empty headers object instead of a `?key=` query, preserving the no-credential path. **(b) Redaction gap** — `src/shared/redaction.ts` `redactUrl()` now masks `key`, `apiKey`, `api_key`, `api-key`, and `x-goog-api-key` query parameter values via the new `SENSITIVE_URL_QUERY_NAMES` set (case-insensitive lookup). Lookup is NOT generalized to "every field named `key` is secret" — that path is explicitly rejected per audit guidance, and the test suite asserts an ordinary `?page_key=p1` survives unchanged. `sanitizeErrorText` automatically propagates the fix via `redactPaths` → `redactUrl`. **Tests added**: new `electron/ipc/handlers/apiKeyHandlers.connection.test.ts` (5 tests covering Gemini + Vertex Express + bearer-header sanity for Anthropic/Azure); `src/shared/redaction.test.ts` gains a 9-test `redactUrl` suite (each credential query name masked, non-credential params preserved, fragment stripped, embedded credentials redacted, narrow-by-design verified, end-to-end diagnostic-string path). `buildProviderTestRequest` is now exported with a JSDoc note explaining the unit-test contract (same pattern as `isReservedCredentialName`). **Validation**: `npm run lint:eslint` 0/0, `npm run typecheck` 3/3 tsconfigs, focused vitest 31/31, broader vitest 189/189 across 16 files (`src/shared` + `electron/ipc`). **Remaining audit work (unchanged)**: `P2-001` Superdesign source drift, `P2-002` attachment envelope budgeting, `P2-005` family-safe media heap (likely closed by `VF-20260916-P1-003` — to verify on next pass), `P3-002` current-authority docs, `P2-006` semantic media-safety capability, `P2-007` direct headed visual/a11y acceptance (separate release task). 
 
