@@ -8,9 +8,10 @@ Current unfinished work still belongs in [`docs/ROADMAP.md`](../ROADMAP.md). Ses
 
 | Path | Role |
 |---|---|
-| [`TODO/`](TODO/) | Active, git-tracked markdown work-order handoffs cited by the live roadmap, source comments, or current session ledger. |
 | [`Records/`](Records/) | Immutable historical audit packages and evidence. Do not rewrite findings to match later code. |
 | [`repo-management/`](repo-management/) | Historical August 2026 repository-hygiene planning only. |
+
+The `TODO/` directory was retired after the 2026-09-18 closure pass. Active work orders are tracked in `docs/ROADMAP.md` only; once a work order is fully closed it is moved into `Records/` and the original `TODO/` path is removed. Do not recreate `TODO/` without an active work order cited by the roadmap.
 
 ## Active work orders
 
