@@ -25,7 +25,7 @@ vi.mock('../../hooks/use-video', () => ({
   }),
 }))
 
-vi.mock('../../services/desktopBridge', () => ({ desktopMedia: { saveMediaAs } }))
+vi.mock('../../services/desktopBridge', () => ({ isElectron: () => false, desktopMedia: { saveMediaAs } }))
 
 const mockUseVideoQuote = vi.fn<(...args: any[]) => { data?: { costUsd: number } | null; isLoading: boolean }>(() => ({
   data: undefined,

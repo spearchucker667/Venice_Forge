@@ -5,7 +5,7 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        43888f71
+baseline_sha:        9723a177
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
@@ -20,6 +20,8 @@ external_acceptance_outstanding:
   - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
+  - Fixed fuzzy safety guard false-positive on trailing punctuation (`candid shot,`): stripped leading/trailing punctuation in `fuzzyMatchesCritical` (`childExploitationGuard.ts`) so allowlisted terms with punctuation (e.g. `shot,`, `solo.`, `role!`) match `FUZZY_ALLOWLIST` instead of falsely colliding with `shota` in Soundex; verified user prompt passes with `allow: true`.
+  - Hardened `playableMediaUrl.ts` against partial/unexported `desktopBridge` mocks and provided `isElectron` in `video-view.test.tsx` mock, eliminating 9 unhandled mock rejections in coverage suites.
   - Aligned chatTtsController test mock with capability URL requirement: updated `desktopMedia.resolveUrl` mock and expected `audioSources` in `src/services/chatTtsController.test.ts` to return `?cap=test-token`, satisfying the fail-closed custom protocol capability boundary in `resolvePlayableMediaUrl` (VF-IMGINS-P2-003).
   - Image Inspector 403 / media rendering regression repaired: resolved broken thumbnail and primary preview in `ImageInspectorView.tsx` by integrating canonical `ResolvedMediaImg` / `useResolvedMediaUrl` pipeline.
   - Capability URL resolver hardening (VF-IMGINS-P2-003): hardened `resolvePlayableMediaUrl` in `src/services/playableMediaUrl.ts` to fail closed to `""` for custom-protocol schemes when resolution fails, throws, or lacks a valid capability token.
@@ -34,6 +36,19 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-18 Fuzzy safety guard punctuation false-positive remediation and mock resilience on `main` (baseline `9723a177`).**
+  - **Root Cause Analysis (Fuzzy Safety Guard):** A user reported that a benign adult image generation prompt (`"...candid shot, high resolution, photorealistic, 8k, shot on iPhone..."`) was blocked by mandatory child-safety protection with `obfuscated_minor_sexualization` / `FUZZY_CRITICAL_TERM_MATCH`. Investigation revealed that while `shot` is explicitly in `FUZZY_ALLOWLIST`, `normStitch.split(/\s+/)` did not strip trailing punctuation, yielding the token `shot,`. Because `shot,` is not in the allowlist, it was processed by Soundex (`S300`, length 5), which matched the restricted genre label `shota` (`S300`, length 5, length delta 0).
+  - **Root Cause Analysis (Video View Mock Rejections):** In hosted CI run `35337128587`, the `coverage` job failed due to 9 unhandled rejections originating from `src/components/video/video-view.test.tsx`: `resolvePlayableMediaUrl` imported `isElectron` from `./desktopBridge`, but `video-view.test.tsx` line 28 mocked `desktopBridge` with only `desktopMedia: { saveMediaAs }` without exporting `isElectron`, causing Vitest module mocker to reject.
+  - **Remediation:**
+    - Updated `fuzzyMatchesCritical` in `src/shared/safety/childExploitationGuard.ts` to strip leading and trailing punctuation from tokens via `rawToken.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")` before checking length, `FUZZY_ALLOWLIST`, and Soundex.
+    - Added a regression test in `src/shared/safety/childExploitationGuard.test.ts` verifying that allowlisted words with surrounding punctuation like `candid shot,` pass without being blocked.
+    - Updated `src/services/playableMediaUrl.ts` to import `* as desktopBridge` and safely check `typeof desktopBridge.isElectron === "function" ? desktopBridge.isElectron() : false` and `desktopBridge.desktopMedia?.resolveUrl`, preventing unhandled exceptions when components are mounted under partial module mocks.
+    - Updated `src/components/video/video-view.test.tsx` mock to explicitly provide `isElectron: () => false`.
+  - **Validation:**
+    - Focused tests: `src/shared/safety/childExploitationGuard.test.ts` (177/177 PASS), `tests/safety/adult-content-boundary.test.ts` (19/19 PASS), `tests/safety/guardPipeline.test.ts` (41/41 PASS), `src/components/video/video-view.test.tsx` (24/24 PASS with 0 errors, down from 9 errors).
+    - Full test suite: `npm run test:ci` — PASS (all shards, 100% pass).
+    - Repository gates: `npm run lint:eslint` (PASS, 0 errors, 0 warnings), `npm run typecheck` (PASS, 3/3 tsconfigs), `npm run verify:safety-guard` (PASS), `npm run verify:contracts` (PASS, 104/104 checks), `npm run build` (PASS), `npm run verify:dist` (PASS), `npm run verify:bundle-budget` (PASS).
 
 - **2026-09-18 Capability mock alignment in `chatTtsController.test.ts` and full CI validation on `main` (baseline `43888f71`).**
   - **Root Cause Analysis:** In `src/services/chatTtsController.ts`, line 180 calls `await resolvePlayableMediaUrl("venice-tts://${result.profileId}/${result.id}.mp3")`. Under the hardened capability URL policy (VF-IMGINS-P2-003), any custom-protocol URL (`venice-media://`, `venice-character-cache://`, `venice-tts://`) that resolves without a `?cap=` token fails closed to `""`. In `src/services/chatTtsController.test.ts`, the mock for `desktopMedia.resolveUrl` was returning a tokenless URL (`input.resourceUrl ?? ...`), causing `resolvePlayableMediaUrl` to fail closed to `""`, resulting in `new Audio("")` and `audioSources = [""]` instead of the synthesized URL.
@@ -496,6 +511,25 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Fuzzy safety guard punctuation false-positive remediation and mock resilience
+
+- Baseline: `9723a177` on `main`.
+- Diagnosed user image generation block on adult prompt containing `"candid shot, high resolution, photorealistic, 8k, shot on iPhone"`.
+- Root cause: `fuzzyMatchesCritical` in `src/shared/safety/childExploitationGuard.ts` split on `\s+` without stripping trailing punctuation. The token `"shot,"` missed `FUZZY_ALLOWLIST` (which contains `"shot"`), and its Soundex code `S300` matched the restricted term `"shota"` (`S300`), triggering false-positive `obfuscated_minor_sexualization` / `FUZZY_CRITICAL_TERM_MATCH`.
+- Diagnosed hosted CI coverage failure: `src/components/video/video-view.test.tsx` threw 9 unhandled mock rejections when `resolvePlayableMediaUrl` imported `isElectron` from `desktopBridge`.
+- Remediation:
+  - Updated `fuzzyMatchesCritical` in `src/shared/safety/childExploitationGuard.ts` to strip leading and trailing non-alphanumeric punctuation via `rawToken.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")` before allowlist matching and Soundex checking.
+  - Added regression test to `src/shared/safety/childExploitationGuard.test.ts`.
+  - Updated `src/services/playableMediaUrl.ts` to import `* as desktopBridge` and guard against missing bridge exports.
+  - Added `isElectron: () => false` to `src/components/video/video-view.test.tsx` mock.
+- Validation:
+  - `npm run test:ci` — PASS (all 6 segments).
+  - `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+  - `npm run typecheck` — PASS (3/3 tsconfigs).
+  - `npm run verify:safety-guard` — PASS.
+  - `npm run verify:contracts` — PASS (104/104 checks).
+  - `npm run build`, `npm run verify:dist`, `npm run verify:bundle-budget` — PASS.
 
 ### 2026-09-18 — Capability mock alignment in chatTtsController.test.ts and test:ci full validation
 
@@ -2204,6 +2238,18 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Fuzzy Safety Guard Punctuation Fix & Mock Resilience (baseline `9723a177`)
+
+- Focused tests: `src/shared/safety/childExploitationGuard.test.ts` (177/177 PASS), `src/components/video/video-view.test.tsx` (24/24 PASS with 0 errors).
+- `npm run test:ci` — PASS (100% passed across all test shards: server, electron, ingestion, unit:stores, unit:services, unit:hooks, unit:lib, unit:shared, unit:utils, unit:theme, unit:scripts, unit:types, unit:config, unit:agent, unit:constants, unit:research, test:i18n, ui:layout, ui:chat, ui:media, ui:research, ui:settings, test:contracts).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run typecheck` — PASS (all 3 tsconfigs: root, electron, electron.test).
+- `npm run verify:safety-guard` — PASS.
+- `npm run verify:contracts` — PASS (104/104 checks).
+- `npm run build` — PASS (vite web, esbuild server, electron main/preload bundled).
+- `npm run verify:bundle-budget` — PASS (all chunks within budget).
+- `npm run verify:dist` — PASS (production build outputs verified).
 
 ### 2026-09-18 — Capability Mock Alignment & Full test:ci Sweep (baseline `43888f71`)
 

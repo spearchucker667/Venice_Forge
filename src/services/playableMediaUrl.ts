@@ -1,5 +1,5 @@
 /** Resolves stored custom-protocol media URLs into short-lived capability URLs. */
-import { desktopMedia, isElectron } from "./desktopBridge";
+import * as desktopBridge from "./desktopBridge";
 
 // The id may be followed by an optional path slash: URL serialization of
 // `venice-media://<hash>` normalizes the empty path to `/`, and persisted
@@ -14,7 +14,8 @@ export async function resolvePlayableMediaUrl(url: string): Promise<string> {
   if (url.includes("cap=")) return url;
   if (!CUSTOM_MEDIA_PROTOCOL_RE.test(url)) return url;
 
-  if (!isElectron()) return "";
+  const isElectron = typeof desktopBridge.isElectron === "function" ? desktopBridge.isElectron() : false;
+  if (!isElectron) return "";
 
   try {
     // Canonical base for the issued capability URL — strip any serialized
@@ -22,6 +23,9 @@ export async function resolvePlayableMediaUrl(url: string): Promise<string> {
     // `scheme://<id>/`.
     const base = url.split("?")[0].replace(/\/+$/, "");
     let resolved: string | undefined;
+
+    const desktopMedia = desktopBridge.desktopMedia;
+    if (!desktopMedia || typeof desktopMedia.resolveUrl !== "function") return "";
 
     if (MEDIA_RE.test(url)) {
       const objectId = MEDIA_RE.exec(url)?.[1];
