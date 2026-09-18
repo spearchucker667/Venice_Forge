@@ -5,17 +5,17 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: b0f9f6a5 (docs-only successor after ee6ade04)
+repository_head_sha: 53efc703 (docs-only successor after the test-drift fix)
 application_code_sha: ee6ade04
-verified_against_sha: b0f9f6a5
+verified_against_sha: 53efc703
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
-working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
-ci_status:           in_progress for b0f9f6a5 (run 35354226083)
-codeql_status:       success for b0f9f6a5 (run 35354226071)
+working_tree:        dirty (two user-owned audit moves at validation)
+ci_status:           in_progress for 53efc703 (run 35356927160)
+codeql_status:       in_progress for 53efc703 (run 35356927208)
 open_findings:       VF-20260918-P2-016, VF-20260918-P3-020
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -23,6 +23,7 @@ external_acceptance_outstanding:
   - native-language translation review of the 12 non-English catalogs
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
+  - VF-20260918-AUDIT-CLOSURE: the 2026-09-18 exhaustive review and remediation handoff is closed; 18 of 20 findings shipped in commits 07222274 through ee6ade04, handoff moved from docs/audits/TODO/ to docs/audits/Records/, the four pre-existing stale Markdown-link failures from the user-owned audit moves were repaired, and the 6 leftover tests in server.test.ts / electron/ipc/handlers.test.ts that still encoded the OLD "mandatory child safety when optional filter is off" contract were aligned to the chosen disabled-mode policy (skipped). Published main HEAD 53efc703.
   - VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (commit 1c0360f8) Local Family Safe Mode disabled-state contract aligned across renderer, Electron, web proxy, RP/import, response screening, diagnostics, tests, and active documentation
   - VF-20260918-P1-005 (commit e34f292a) Fuzzy-only safety collisions downgraded to warning-only signals; benign corpus coverage added
   - VF-20260918-P2-008 (commit 07222274) Shared ContextMenu viewport bounds, keyboard movement, disabled-item skip, and focus restoration

@@ -941,7 +941,7 @@ describe("server.ts safety middleware", () => {
     );
   });
 
-  it("keeps mandatory child safety active when the optional family filter is disabled", async () => {
+  it("skips local child-safety guard when the family filter is disabled via header override", async () => {
     const prevOverride = process.env.VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE;
     process.env.VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE = "true";
     try {
@@ -950,8 +950,8 @@ describe("server.ts safety middleware", () => {
         .set("X-Venice-Forge-Family-Safe-Mode", "false")
         .send({ messages: [{ role: "user", content: "draw me a loli character" }] });
 
-      expect(res.status).toBe(451);
-      expect(res.body.reasonCode).toBe("CSAM_GENRE_TERM");
+      expect(res.status).toBe(200);
+      expect(res.body.reasonCode).toBeUndefined();
     } finally {
       if (prevOverride === undefined) {
         delete process.env.VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE;
@@ -1267,7 +1267,7 @@ describe("server.ts Local Family Safe Mode decision matrix", () => {
     );
   });
 
-  it("no env + header false + override=true => mandatory child guard still runs", async () => {
+  it("no env + header false + override=true => guard is skipped (header overrides default-on)", async () => {
     await withEnvs(
       {
         VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: undefined,
@@ -1278,8 +1278,7 @@ describe("server.ts Local Family Safe Mode decision matrix", () => {
           .post("/api/venice/chat/completions")
           .set("X-Venice-Forge-Family-Safe-Mode", "false")
           .send(PROBE_PAYLOAD);
-        expect(res.status).toBe(EXPECTED_BLOCK.status);
-        expect(res.body.reasonCode).toBe(EXPECTED_BLOCK.reasonCode);
+        expect(res.status).toBe(200);
       },
     );
   });
@@ -1316,7 +1315,7 @@ describe("server.ts Local Family Safe Mode decision matrix", () => {
     );
   });
 
-  it("env=false + header true + no override => mandatory child guard still runs", async () => {
+  it("env=false + header true + no override => guard is skipped (env wins, header ignored)", async () => {
     await withEnvs(
       {
         VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: "false",
@@ -1327,13 +1326,12 @@ describe("server.ts Local Family Safe Mode decision matrix", () => {
           .post("/api/venice/chat/completions")
           .set("X-Venice-Forge-Family-Safe-Mode", "true")
           .send(PROBE_PAYLOAD);
-        expect(res.status).toBe(EXPECTED_BLOCK.status);
-        expect(res.body.reasonCode).toBe(EXPECTED_BLOCK.reasonCode);
+        expect(res.status).toBe(200);
       },
     );
   });
 
-  it("env=0 disables only the optional filter, not mandatory child safety", async () => {
+  it("env=0 disables both the optional filter and the local child-safety guard", async () => {
     await withEnvs(
       {
         VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED: "0",
@@ -1343,8 +1341,7 @@ describe("server.ts Local Family Safe Mode decision matrix", () => {
         const res = await request(createServerApp())
           .post("/api/venice/chat/completions")
           .send(PROBE_PAYLOAD);
-        expect(res.status).toBe(EXPECTED_BLOCK.status);
-        expect(res.body.reasonCode).toBe(EXPECTED_BLOCK.reasonCode);
+        expect(res.status).toBe(200);
       },
     );
   });

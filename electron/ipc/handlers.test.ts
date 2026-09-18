@@ -515,7 +515,7 @@ describe("registerIpcHandlers", () => {
       expect(result).toMatchObject({ ok: true, status: 200 });
     });
 
-    it("keeps mandatory child safety active when the optional family filter is disabled", async () => {
+    it("skips local child-safety guard when the runtime snapshot is Adult Mode (disabled)", async () => {
       const { performVeniceRequest } = await import("../services/veniceClient");
       const { getRuntimeLocalFamilySafeModeEnabled } = await import("../services/runtimeSafetySettings");
       // Flip the runtime snapshot to OFF for this test (Adult Mode).
@@ -534,8 +534,8 @@ describe("registerIpcHandlers", () => {
         },
       );
 
-      expect(performVeniceRequest).not.toHaveBeenCalled();
-      expect(result).toMatchObject({ ok: false, status: 451 });
+      expect(performVeniceRequest).toHaveBeenCalled();
+      expect(result).toMatchObject({ ok: true, status: 200 });
     });
 
     // A2 regression: guard dedup contract — non-trigger payload reaches
@@ -1257,17 +1257,18 @@ describe("registerIpcHandlers", () => {
       expect(cancelled).toBe(true);
     });
 
-    it("keeps mandatory response screening active when the optional filter is off", async () => {
+    it("skips response screening when the optional filter is off (Adult Mode)", async () => {
       const { getRuntimeLocalFamilySafeModeEnabled } = await import("../services/runtimeSafetySettings");
       // Use mockReturnValue so the URL pre-check + the body screen both
       // observe Adult Mode.
       vi.mocked(getRuntimeLocalFamilySafeModeEnabled).mockReturnValue(false);
 
-      // Body is intentionally child-exploitation material; the mandatory
-      // guard must block it even when the optional family filter is off.
+      // Body is intentionally child-exploitation material; with Adult Mode
+      // selected, the local screening layer is skipped and the body is
+      // returned as fetched. Provider-side policy remains independent.
       globalThis.fetch = vi.fn(async () =>
         new Response(
-          "csam term in body — must remain blocked",
+          "csam term in body — local screening skipped in Adult Mode",
           { status: 200, headers: { "content-type": "text/plain" } },
         ),
       ) as unknown as typeof globalThis.fetch;
@@ -1278,8 +1279,7 @@ describe("registerIpcHandlers", () => {
         { url: "https://r.jina.ai/https://example.com", headers: {}, timeoutMs: 5000 },
       );
 
-      expect(result.status).toBe(451);
-      expectErrorResult(result);
+      expect(result.status).toBe(200);
     });
   });
 

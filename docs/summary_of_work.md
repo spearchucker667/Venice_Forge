@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: b0f9f6a5 (docs-only successor after ee6ade04)
+repository_head_sha: 53efc703 (docs-only successor after the test-drift fix)
 application_code_sha: ee6ade04
-verified_against_sha: b0f9f6a5
+verified_against_sha: 53efc703
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
-ci_status:           in_progress for b0f9f6a5 (run 35354226083)
-codeql_status:       success for b0f9f6a5 (run 35354226071)
+working_tree:        dirty (two user-owned audit moves at validation)
+ci_status:           in_progress for 53efc703 (run 35356927160)
+codeql_status:       in_progress for 53efc703 (run 35356927208)
 open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); P2-016/P3-020 and HQE-DOC-001 native-language review
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -22,7 +22,7 @@ external_acceptance_outstanding:
   - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
-  - VF-20260918-AUDIT-CLOSURE: the 2026-09-18 exhaustive review and remediation handoff is closed; 18 of 20 findings shipped in commits 07222274 through ee6ade04, handoff moved from docs/audits/TODO/ to docs/audits/Records/, and the four pre-existing stale Markdown-link failures from the user-owned audit moves were repaired by the same move; published main HEAD b0f9f6a5.
+  - VF-20260918-AUDIT-CLOSURE: the 2026-09-18 exhaustive review and remediation handoff is closed; 18 of 20 findings shipped in commits 07222274 through ee6ade04, handoff moved from docs/audits/TODO/ to docs/audits/Records/, the four pre-existing stale Markdown-link failures from the user-owned audit moves were repaired, and the 6 leftover tests in server.test.ts / electron/ipc/handlers.test.ts that still encoded the OLD "mandatory child safety when optional filter is off" contract were aligned to the chosen disabled-mode policy (skipped); published main HEAD 53efc703.
   - VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (commit 1c0360f8) Local Family Safe Mode disabled-state contract aligned across renderer, Electron, web proxy, RP/import, response screening, diagnostics, tests, and active documentation.
   - VF-20260918-P1-005 (commit e34f292a) Fuzzy-only safety collisions downgraded to warning-only signals; benign corpus coverage added.
   - VF-20260918-P2-008: shared ContextMenu viewport bounds, keyboard movement, disabled-item skip, and focus restoration; source commit 07222274; focused and headed Chromium checks recorded below.
@@ -52,7 +52,7 @@ recently_closed_in_session_2026-09-18:
 
 ## Latest Session Summary
 
-- **2026-09-18 current-main audit closure segment (post-tranche cleanup, published `main` HEAD `b0f9f6a5`).** Reconciled the 2026-09-18 exhaustive review work order after every actionable finding was repaired. Stamped the handoff with a `Closure Status` block and per-finding `*(CLOSED — commit SHA)*` markers, then moved the file from `docs/audits/TODO/` to `docs/audits/Records/`. `docs/DOCS_INDEX.md` was updated so the two prior user-owned audit moves (Venice API feature-gap, current-main deep-audit) and the new 2026-09-18 exhaustive review all resolve to their `Records/` paths; this also eliminates the four pre-existing stale Markdown-link failures caused by those moves. `docs/ROADMAP.md` Current State now reports `repository_head_sha: b0f9f6a5`, `application_code_sha: ee6ade04`, `verified_against_sha: b0f9f6a5`, hosted CI in_progress (run `35354226083`) and CodeQL success (run `35354226071`); the 2026-09-18 Audit Work Order section lists all 18 closed findings with their source commits and notes `P2-016` / `P3-020` as external acceptance blockers. Local `main` and remote `origin/main` are verified to match `b0f9f6a5`. Open TODO Ledger updated; Validation Matrix extended with the closure row.
+- **2026-09-18 current-main audit closure segment + leftover test-drift alignment (published `main` HEAD `53efc703`).** Reconciled the 2026-09-18 exhaustive review work order after every actionable finding was repaired. Stamped the handoff with a `Closure Status` block and per-finding `*(CLOSED — commit SHA)*` markers, then moved the file from `docs/audits/TODO/` to `docs/audits/Records/`. `docs/DOCS_INDEX.md` was updated so the two prior user-owned audit moves (Venice API feature-gap, current-main deep-audit) and the new 2026-09-18 exhaustive review all resolve to their `Records/` paths; this also eliminates the four pre-existing stale Markdown-link failures caused by those moves. `docs/audits/README.md` updated to reflect that `TODO/` is empty. After pushing the closure commit `53efc703`, hosted CI run `35354226083` for `b0f9f6a5` was observed to fail in `server.test.ts` (4) and `electron/ipc/handlers.test.ts` (2): 6 tests still encoded the OLD "mandatory child safety when optional filter is off" contract. Aligned them with the user's chosen disabled-mode policy (skipped): renamed assertions to expect status `200` (not `451`) and to expect the handler invoked downstream when the runtime snapshot is OFF / header is `false` / env is `false` / env is `0`. No source code was changed. `docs/ROADMAP.md` Current State now reports `repository_head_sha: 53efc703`, `application_code_sha: ee6ade04`, `verified_against_sha: 53efc703`, hosted CI in_progress (run `35356927160`) and CodeQL in_progress (run `35356927208`). Local `main` and remote `origin/main` are verified to match `53efc703`. Validation: `server.test.ts` (121/121), `electron/ipc/handlers.test.ts` (89/89), `tests/safety` (166/166), `src/shared/safety` (266/266), ESLint zero errors/warnings, three-tsconfig typecheck clean, `npm run verify:safety-guard` green.
 
 - **2026-09-18 current-main safety contract segment VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (source commit `1c0360f8`).** Applied the selected disabled-state policy: when local Family Safe Mode is off, the local child-safety and adult-content rule stack is skipped and the request may proceed subject to ordinary validation and independent Venice provider policy. Centralized the synthetic skipped decision in `runLocalFamilyGuard`, so renderer Venice fetch/stream/responses, Electron guardPipeline and bridge, Express proxy/request and response screening, RP scene generation, character/persona/scenario imports, research paths, and diagnostics share the same behavior. Provider-side `safe_mode` remains independent; media structural validation remains active. Updated active settings, security, prompt, and diagnostics copy. Added direct coverage proving disabled mode does not invoke either local rule engine, plus enabled-mode block coverage. Validation: focused safety/web/Electron/RP/media suites passed (98 + 138 + 50 + 64 tests), `npm run verify:safety-guard` passed, `npm run lint:eslint` passed, and `npm run typecheck` passed across all three tsconfigs. Published directly from local `main`; remote `main` is verified at `1c0360f8`. Remaining active work is P2-016 headed acceptance and P3-020 qualified native-language review.
 
@@ -547,6 +547,14 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Current-main audit closure segment + leftover test-drift alignment
+
+- Baseline: `53efc703` (closure commit) on local `main` after the prior reconciliation pushed `b0f9f6a5` and the docs-only successors.
+- Observed that hosted CI run `35354226083` for `b0f9f6a5` reported 6 failures (4 in `server.test.ts`, 2 in `electron/ipc/handlers.test.ts`). Root cause: 6 tests still encoded the OLD "mandatory child safety when optional filter is off" contract and contradicted the user's chosen disabled-mode policy from `1c0360f8`. The implementation was correct; the tests had not been updated.
+- Updated all 6 tests to assert the new contract: when the runtime snapshot is OFF, the header is `false`, env is `false`, or env is `0`, the local child-safety guard is SKIPPED and the request returns status `200` (not `451`). The handler in `electron/ipc/handlers.test.ts` is now expected to invoke `performVeniceRequest`.
+- Updated `docs/ROADMAP.md` Current State to `repository_head_sha: 53efc703`, `application_code_sha: ee6ade04`, `verified_against_sha: 53efc703`; the 2026-09-18 Audit Work Order section now lists `VF-20260918-AUDIT-CLOSURE` covering the closure plus test-drift alignment. Hosted CI for `53efc703` is in_progress (run `35356927160`); CodeQL is in_progress (run `35356927208`).
+- Verified local `main` matches `origin/main` at `53efc703` (only the previous closure commit was pushed). Local dirty state continues to preserve the user-owned audit moves.
 
 ### 2026-09-18 — Current-main audit closure segment (post-tranche reconciliation)
 
@@ -2348,6 +2356,25 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Current-main audit closure segment + leftover test-drift alignment (published `main` HEAD `53efc703`)
+
+- `git status --short` — preservation verified: pre-existing user-owned audit moves (Venice API feature-gap and current-main deep-audit 2026-09-16) are still preserved/moved exactly as designed.
+- `git diff --check` — PASS before commit.
+- `npx vitest run server.test.ts` — PASS (121/121).
+- `npx vitest run electron/ipc/handlers.test.ts` — PASS (89/89).
+- `npx vitest run tests/safety` — PASS (166/166).
+- `npx vitest run src/shared/safety` — PASS (266/266).
+- `npm run lint:eslint` — PASS (zero errors/warnings).
+- `npm run typecheck` — PASS (root, Electron, and Electron-test tsconfigs).
+- `npm run verify:safety-guard` — PASS.
+- `npm run verify:markdown-links` — PASS: the four pre-existing stale Markdown-link failures are now repaired.
+- `npm run verify:roadmap-current` — PASS.
+- `npm run verify:repo-handoff-hygiene` — PASS.
+- `npm run verify:agent-docs` — PASS.
+- `git ls-remote origin refs/heads/main` — PASS; remote `main` equals `53efc703` (verified before and after the closure commit).
+- Hosted CI `35356927160` — in_progress for `53efc703` at documentation time; CodeQL `35356927208` — in_progress for `53efc703` at documentation time.
+- Note: hosted CI run `35354226083` for `b0f9f6a5` reported the test-drift failure (4 + 2 tests encoding the OLD mandatory contract); the drift is now repaired in this segment.
 
 ### 2026-09-18 — Current-main audit closure segment (published `main` HEAD `b0f9f6a5`)
 
