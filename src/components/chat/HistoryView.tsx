@@ -1,6 +1,5 @@
 import React from "react";
-import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useState, useMemo, useEffect } from "react";
 import { useChatStore } from "../../stores/chat-store";
 import { useSettingsStore } from "../../stores/settings-store";
 import { useChatFolderStore } from "../../stores/chat-folder-store";
@@ -26,6 +25,7 @@ import {
   Unlock,
   Download,
   Upload,
+  MoreHorizontal,
 } from "lucide-react";
 import { Meteocon } from "../ui/Meteocon";
 import { toast } from "../../stores/toast-store";
@@ -36,6 +36,7 @@ import { getConversationDisplayTitle } from "../../utils/conversationDisplayTitl
 import { CharacterAvatar } from "../characters/CharacterAvatar";
 import { getConversationKind } from "../../utils/conversationKind";
 import { Trans, useTranslation } from "react-i18next";
+import { ContextMenu, useContextMenu, type ContextMenuItem } from "../ui/ContextMenu";
 
 function formatRelativeTime(date: number): string {
   const now = Date.now();
@@ -100,59 +101,12 @@ export default function HistoryView() {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
-  const [folderContextMenu, setFolderContextMenu] = useState<{
-    folderId: string;
-    x: number;
-    y: number;
-  } | null>(null);
+  const folderMenu = useContextMenu();
+  const [folderMenuId, setFolderMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoaded) loadFolders();
   }, [isLoaded, loadFolders]);
-
-  useEffect(() => {
-    if (!folderContextMenu) return;
-    const handleClick = () => setFolderContextMenu(null);
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setFolderContextMenu(null);
-      }
-    };
-    window.addEventListener("click", handleClick);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("click", handleClick);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [folderContextMenu]);
-
-  const folderMenuRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const el = folderMenuRef.current;
-    if (!el || !folderContextMenu) return;
-    const rect = el.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const menuWidth = rect.width || 180;
-    const menuHeight = rect.height || 220;
-
-    const clampedX = Math.max(
-      8,
-      Math.min(folderContextMenu.x, viewportWidth - menuWidth - 8),
-    );
-    const clampedY = Math.max(
-      8,
-      Math.min(folderContextMenu.y, viewportHeight - menuHeight - 8),
-    );
-
-    el.style.setProperty("position", "fixed");
-    el.style.setProperty("top", `${clampedY}px`);
-    el.style.setProperty("left", `${clampedX}px`);
-    el.style.setProperty("z-index", "9999");
-
-    const firstBtn = el.querySelector<HTMLButtonElement>("button");
-    firstBtn?.focus();
-  }, [folderContextMenu]);
 
   const handleImportFolder = async () => {
     const selected = await pickImportFile();
@@ -501,6 +455,102 @@ export default function HistoryView() {
   const isAllVisibleSelected =
     filtered.length > 0 && filtered.every((c) => selectedIds.includes(c.id));
 
+  const selectedFolder = folders.find((folder) => folder.id === folderMenuId);
+  const isSelectedFolderLocked = selectedFolder?.lockState === "locked";
+  const folderMenuItems: ContextMenuItem[] = selectedFolder ? [
+    {
+      key: "privacy",
+      label: tRuntime(isSelectedFolderLocked
+        ? "surface.componentsChatHistoryview.action.openPrivacyGate"
+        : "surface.componentsChatHistoryview.action.enablePrivacyGate"),
+      icon: isSelectedFolderLocked ? <Unlock size={14} /> : <Lock size={14} />,
+      onSelect: async () => {
+        const folderId = selectedFolder.id;
+        if (isSelectedFolderLocked) {
+          const passphrase = await askSecret({
+            title: tRuntime("runtimeGenerated.components.chat.historyview.metadata.openPrivacyGate"),
+            detail: tRuntime("runtimeGenerated.components.chat.historyview.detail.openPrivacyGate"),
+            minLength: 8,
+            autocomplete: "current-password",
+          });
+          if (!passphrase) return;
+          const result = await unlockFolder({ folderId, passphrase });
+          if (!result.ok) {
+            const retryDetail = result.retryAfter
+              ? tRuntime("runtimeGenerated.components.chat.historyview.detail.tryAgainAfter", {
+                time: new Date(result.retryAfter).toLocaleTimeString(),
+              })
+              : result.error ?? tRuntime("runtimeGenerated.components.chat.historyview.detail.privacyGateCouldNotBeOpened");
+            toast.warn(
+              tRuntime("runtimeGenerated.components.chat.historyview.notification.privacyGateRemainsClosed"),
+              retryDetail,
+            );
+          }
+          return;
+        }
+        const passphrase = await askSecret({
+          title: tRuntime("runtimeGenerated.components.chat.historyview.metadata.enableFolderPrivacyGate"),
+          detail: tRuntime("runtimeGenerated.components.chat.historyview.detail.enablePrivacyGate"),
+          confirm: true,
+          minLength: 8,
+          autocomplete: "new-password",
+        });
+        if (!passphrase) return;
+        const result = await lockFolder({ folderId, passphrase });
+        if (!result.ok) {
+          toast.error(
+            tRuntime("runtimeGenerated.components.chat.historyview.notification.privacyGateWasNotEnabled"),
+            result.error ?? tRuntime("runtimeGenerated.components.chat.historyview.notification.unknownError"),
+          );
+        }
+      },
+    },
+    {
+      key: "rename",
+      label: tRuntime("surface.componentsChatHistoryview.action.rename"),
+      icon: <Edit2 size={14} />,
+      onSelect: () => {
+        setEditingFolderId(selectedFolder.id);
+        setEditingFolderName(selectedFolder.name);
+      },
+    },
+    {
+      key: "delete",
+      label: tRuntime("surface.componentsChatHistoryview.action.delete"),
+      icon: <Trash2 size={14} />,
+      destructive: true,
+      onSelect: () => deleteFolder(selectedFolder.id, false),
+    },
+    { kind: "separator", key: "backup-separator" },
+    {
+      key: "export",
+      label: tRuntime("surface.componentsChatHistoryview.action.export"),
+      icon: <Download size={14} />,
+      onSelect: async () => {
+        const passphrase = await askSecret({
+          title: tRuntime("runtimeGenerated.components.chat.historyview.metadata.exportFolder"),
+          detail: tRuntime("runtimeGenerated.components.chat.historyview.detail.exportFolder"),
+          confirm: true,
+          minLength: 8,
+          autocomplete: "new-password",
+        });
+        if (!passphrase) return;
+        await exportFolderBackup({
+          folderId: selectedFolder.id,
+          includeMedia: false,
+          passphrase,
+          passphraseConfirmed: true,
+        });
+      },
+    },
+    {
+      key: "import",
+      label: tRuntime("surface.componentsChatHistoryview.action.import"),
+      icon: <Upload size={14} />,
+      onSelect: () => { void handleImportFolder(); },
+    },
+  ] : [];
+
   return (
     <div className="flex flex-col h-full bg-vf-panel-bg">
       <div className="flex items-center justify-between px-6 py-4 border-b border-vf-panel-border bg-vf-shell-bg shrink-0">
@@ -714,13 +764,9 @@ export default function HistoryView() {
                       }))
                     }
                     onContextMenu={(e) => {
-                      e.preventDefault();
                       e.stopPropagation();
-                      setFolderContextMenu({
-                        folderId: folder.id,
-                        x: e.clientX,
-                        y: e.clientY,
-                      });
+                      setFolderMenuId(folder.id);
+                      folderMenu.openAt(e);
                     }}
                   >
                     <div className="flex items-center gap-2">
@@ -793,6 +839,29 @@ export default function HistoryView() {
                     </div>
 
                     <div className="flex items-center gap-2 opacity-0 group-hover/folder:opacity-100 group-focus-within/folder:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        aria-label={tRuntime(
+                          "runtimeGenerated.components.chat.historyview.attribute.folderOptions",
+                          `Folder options for ${folder.name}`,
+                          { folderName: folder.name },
+                        )}
+                        aria-haspopup="menu"
+                        aria-expanded={folderMenu.menu !== null && folderMenuId === folder.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setFolderMenuId(folder.id);
+                          folderMenu.openAt({
+                            clientX: rect.right,
+                            clientY: rect.bottom,
+                            currentTarget: e.currentTarget,
+                          });
+                        }}
+                        className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-vf-control-hover"
+                      >
+                        <MoreHorizontal size={14} aria-hidden="true" />
+                      </button>
                       <button
                         type="button"
                         disabled={folderOrderIndex <= 0}
@@ -1323,191 +1392,16 @@ export default function HistoryView() {
         </div>
       </div>
 
-      {folderContextMenu &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            ref={folderMenuRef}
-            role="menu"
-            aria-orientation="vertical"
-            tabIndex={-1}
-            className="bg-vf-shell-bg border border-vf-panel-border rounded-md shadow-2xl py-1 min-w-[160px] animate-in fade-in-0 zoom-in-95 outline-none"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setFolderContextMenu(null);
-              }
-            }}
-          >
-            {(() => {
-              // Note: lock-state is resolved lazily below in the onClick handlers.
-              // We can't await here (not in an async IIFE) without causing suspense issues,
-              // so we read the folder object's lockState directly.
-              const folder = folders.find(
-                (f) => f.id === folderContextMenu.folderId,
-              );
-              const isLocked = folder?.lockState === "locked";
-              return (
-                <>
-                  <button
-                    role="menuitem"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      const fid = folderContextMenu.folderId;
-                      setFolderContextMenu(null);
-                      if (isLocked) {
-                        const passphrase = await askSecret({
-                          title: tRuntime(
-                            "runtimeGenerated.components.chat.historyview.metadata.openPrivacyGate",
-                          ),
-                          detail:
-                            "Enter the passphrase to restore access. This gate restricts app access; it is not per-folder encryption at rest.",
-                          minLength: 8,
-                          autocomplete: "current-password",
-                        });
-                        if (passphrase) {
-                          const result = await unlockFolder({
-                            folderId: fid,
-                            passphrase,
-                          });
-                          if (!result.ok) {
-                            const retryDetail = result.retryAfter
-                              ? `Try again after ${new Date(result.retryAfter).toLocaleTimeString()}.`
-                              : (result.error ??
-                                "The privacy gate could not be opened.");
-                            toast.warn(
-                              tRuntime(
-                                "runtimeGenerated.components.chat.historyview.notification.privacyGateRemainsClosed",
-                              ),
-                              retryDetail,
-                            );
-                          }
-                        }
-                      } else {
-                        const passphrase = await askSecret({
-                          title: tRuntime(
-                            "runtimeGenerated.components.chat.historyview.metadata.enableFolderPrivacyGate",
-                          ),
-                          detail:
-                            "Create a passphrase for this access gate. It restricts app access but does not encrypt conversation files at rest.",
-                          confirm: true,
-                          minLength: 8,
-                          autocomplete: "new-password",
-                        });
-                        if (passphrase) {
-                          const result = await lockFolder({
-                            folderId: fid,
-                            passphrase,
-                          });
-                          if (!result.ok)
-                            toast.error(
-                              tRuntime(
-                                "runtimeGenerated.components.chat.historyview.notification.privacyGateWasNotEnabled",
-                              ),
-                              result.error ??
-                                tRuntime(
-                                  "runtimeGenerated.components.chat.historyview.notification.unknownError",
-                                ),
-                            );
-                        }
-                      }
-                    }}
-                    title={tRuntime(
-                      "runtimeGenerated.components.chat.historyview.attribute.privacyAccessGateNotPerFolderEncryptionAtRest",
-                    )}
-                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-vf-control-hover hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer"
-                  >
-                    {isLocked ? (
-                      <>
-                        <Unlock size={14} />{" "}
-                        <Trans i18nKey="common:surface.componentsChatHistoryview.action.openPrivacyGate" />
-                      </>
-                    ) : (
-                      <>
-                        <Lock size={14} />{" "}
-                        <Trans i18nKey="common:surface.componentsChatHistoryview.action.enablePrivacyGate" />
-                      </>
-                    )}
-                  </button>
-                  <button
-                    role="menuitem"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const f = folders.find(
-                        (f) => f.id === folderContextMenu.folderId,
-                      );
-                      if (f) {
-                        setEditingFolderId(f.id);
-                        setEditingFolderName(f.name);
-                      }
-                      setFolderContextMenu(null);
-                    }}
-                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-vf-control-hover hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer"
-                  >
-                    <Edit2 size={14} />{" "}
-                    <Trans i18nKey="common:surface.componentsChatHistoryview.action.rename" />
-                  </button>
-                  <button
-                    role="menuitem"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteFolder(folderContextMenu.folderId, false);
-                      setFolderContextMenu(null);
-                    }}
-                    className="w-full text-left px-3 py-2 text-[13px] text-danger hover:bg-danger/10 transition-colors flex items-center gap-2 cursor-pointer"
-                  >
-                    <Trash2 size={14} />{" "}
-                    <Trans i18nKey="common:surface.componentsChatHistoryview.action.delete" />
-                  </button>
-                  <div className="h-px bg-vf-panel-border my-1" />
-                  <button
-                    role="menuitem"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      const fid = folderContextMenu.folderId;
-                      setFolderContextMenu(null);
-                      const passphrase = await askSecret({
-                        title: tRuntime(
-                          "runtimeGenerated.components.chat.historyview.metadata.exportFolder",
-                        ),
-                        detail:
-                          "Create a passphrase to encrypt the backup. Record it — it cannot be recovered.",
-                        confirm: true,
-                        minLength: 8,
-                        autocomplete: "new-password",
-                      });
-                      if (passphrase) {
-                        await exportFolderBackup({
-                          folderId: fid,
-                          includeMedia: false,
-                          passphrase,
-                          passphraseConfirmed: true,
-                        });
-                      }
-                    }}
-                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-vf-control-hover hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer"
-                  >
-                    <Download size={14} />{" "}
-                    <Trans i18nKey="common:surface.componentsChatHistoryview.action.export" />
-                  </button>
-                  <button
-                    role="menuitem"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      setFolderContextMenu(null);
-                      await handleImportFolder();
-                    }}
-                    className="w-full text-left px-3 py-2 text-[13px] text-text-primary hover:bg-vf-control-hover hover:text-text-primary transition-colors flex items-center gap-2 cursor-pointer"
-                  >
-                    <Upload size={14} />{" "}
-                    <Trans i18nKey="common:surface.componentsChatHistoryview.action.import" />
-                  </button>
-                </>
-              );
-            })()}
-          </div>,
-          document.body,
-        )}
+      <ContextMenu
+        position={folderMenu.menu}
+        items={folderMenuItems}
+        onClose={() => {
+          folderMenu.close();
+          setFolderMenuId(null);
+        }}
+        ariaLabel={tRuntime("common.actions.more", "Folder actions")}
+      />
+
     </div>
   );
 }

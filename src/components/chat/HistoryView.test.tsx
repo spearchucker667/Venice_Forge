@@ -356,4 +356,20 @@ describe("HistoryView Component", () => {
     await waitFor(() => expect(reorderFolders).toHaveBeenCalledWith(["folder-2", "folder-1"], "standard"));
     expect(screen.getByRole("button", { name: "Move First folder up" })).toBeDisabled();
   });
+
+  it("provides a keyboard-accessible folder actions menu", async () => {
+    useChatFolderStore.setState({
+      folders: [
+        { id: "folder-1", profileId: "default", kind: "standard", name: "First", sortOrder: 1, createdAt: "now", updatedAt: "now", lockState: "unlocked", schemaVersion: 1 },
+      ],
+    });
+    render(<HistoryView />);
+    const actions = screen.getByRole("button", { name: "Folder options for First" });
+    await userEvent.click(actions);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Enable Privacy Gate" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Rename" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
 });
