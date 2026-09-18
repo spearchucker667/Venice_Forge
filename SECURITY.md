@@ -6,10 +6,10 @@ logging, diagnostics, and API-key handling model.
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 7bf1defa (application commit before this docs-only successor)
-application_code_sha: 7bf1defa
-verified_against_sha: 7bf1defa
-verified_at:         2026-09-17 (Pacific)
+repository_head_sha: 1c0360f8 (application commit before this docs-only successor)
+application_code_sha: 1c0360f8
+verified_against_sha: 1c0360f8
+verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 sender_validation:   electron/utils/validateIpcSender.ts fails closed when
@@ -22,7 +22,7 @@ fsm_authority:       electron/services/guardPipeline.ts via
                      screenResponseBody()
 endpoint_allowlist:  src/shared/validation.ts ALLOWED_VENICE_ENDPOINTS
                      (POST-only method gate; no wildcard routing)
-open_findings:       P2-001, P2-002, P2-006, P3-002 (in-progress), P2-007
+open_findings:       P2-016, P3-020
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA

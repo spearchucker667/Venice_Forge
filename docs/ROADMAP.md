@@ -5,24 +5,25 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: e34f292a (application commit before this docs-only successor)
-application_code_sha: e34f292a
-verified_against_sha: e34f292a
+repository_head_sha: 1c0360f8 (application commit before this docs-only successor)
+application_code_sha: 1c0360f8
+verified_against_sha: 1c0360f8
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
 working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
-ci_status:           pending for e34f292a (run 35351451925)
-codeql_status:       in_progress for e34f292a (run 35351452079)
-open_findings:       VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007, P2-016, P3-020
+ci_status:           pending for 1c0360f8 (run 35353807341)
+codeql_status:       in_progress for 1c0360f8 (run 35353807393)
+open_findings:       VF-20260918-P2-016, VF-20260918-P3-020
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
-  - headed accessibility/visual QA (per-tab acceptance, P2-007)
-  - native-language translation review of the 12 non-English catalogs (incl. the new P2-001/P2-006 keys)
+  - headed accessibility/visual QA (per-tab acceptance, P2-016)
+  - native-language translation review of the 12 non-English catalogs
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
-recently_closed_in_session_2026-09-17:
+recently_closed_in_session_2026-09-18:
+  - VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (commit 1c0360f8) Local Family Safe Mode disabled-state contract aligned across renderer, Electron, web proxy, RP/import, response screening, diagnostics, tests, and active documentation
   - VF-AUD-20260916-P2-004 (commit 1c2bfe1d)  Google API-key query-string + redaction gap
   - VF-AUD-20260916-P2-005 (no new commit)   Family-safe media heap pressure (verified closed by VF-20260916-P1-003)
   - VF-AUD-20260916-P3-002 (commit 6d577eba) Current-authority docs reconciliation
@@ -35,10 +36,8 @@ recently_closed_in_session_2026-09-17:
 
 The active 2026-09-18 handoff is under `docs/audits/TODO/`. Its findings are evidence to recheck on the current source. Completed findings leave this open-work list and receive closure evidence in `docs/summary_of_work.md`. The following segments are ordered by dependency:
 
-1. **Safety contract (P0-001, P1-002, P1-003, P1-004, P1-006, P2-007):** Resolve the conflict between the new handoff's disabled-state semantics and the current mandatory child-safety contract; then align common guards, Electron and web authority, RP/import paths, bootstrap state, diagnostics, tests, and documentation. Do not publish a partial transport-only safety change.
-2. **Safety contract (P0-001, P1-002, P1-003, P1-004, P1-006, P2-007):** Resolve the disabled-state policy conflict and align all safety authorities, transports, import paths, diagnostics, tests, and documentation. Enabled-mode false-positive handling (P1-005) is complete.
-3. **Headed and localization acceptance (P2-016, P3-020):** Capture direct evidence for the canonical tabs and overlays, plus qualified native-language review. Record actual coverage without inferring it from static tests. Current-state metadata (P3-018) and Superdesign ContextMenu governance (P3-019) are complete.
-4. **Hosted governance:** Ruleset `Rules01` is active and enforces the required review and 13 status checks; P2-017 is closed by live API evidence.
+1. **Headed and localization acceptance (P2-016, P3-020):** Capture direct evidence for the canonical tabs and overlays, plus qualified native-language review. Record actual coverage without inferring it from static tests. Current-state metadata (P3-018) and Superdesign ContextMenu governance (P3-019) are complete.
+2. **Hosted governance:** Ruleset `Rules01` is active and enforces the required review and 13 status checks; P2-017 is closed by live API evidence.
 
 ## Current Work
 

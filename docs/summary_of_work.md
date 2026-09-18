@@ -5,20 +5,20 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: e34f292a (application commit before this docs-only successor)
-application_code_sha: e34f292a
-verified_against_sha: e34f292a
+repository_head_sha: 1c0360f8 (application commit before this docs-only successor)
+application_code_sha: 1c0360f8
+verified_against_sha: 1c0360f8
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
-ci_status:           pending for e34f292a (run 35351451925)
-codeql_status:       in_progress for e34f292a (run 35351452079)
-open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); HQE-DOC-001 native-language review
+ci_status:           pending for 1c0360f8 (run 35353807341)
+codeql_status:       in_progress for 1c0360f8 (run 35353807393)
+open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); P2-016/P3-020 and HQE-DOC-001 native-language review
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
-  - headed accessibility/visual QA (per-tab acceptance, P2-007)
+  - headed accessibility/visual QA (per-tab acceptance, P2-016)
   - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
@@ -41,6 +41,8 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-18 current-main safety contract segment VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (source commit `1c0360f8`).** Applied the selected disabled-state policy: when local Family Safe Mode is off, the local child-safety and adult-content rule stack is skipped and the request may proceed subject to ordinary validation and independent Venice provider policy. Centralized the synthetic skipped decision in `runLocalFamilyGuard`, so renderer Venice fetch/stream/responses, Electron guardPipeline and bridge, Express proxy/request and response screening, RP scene generation, character/persona/scenario imports, research paths, and diagnostics share the same behavior. Provider-side `safe_mode` remains independent; media structural validation remains active. Updated active settings, security, prompt, and diagnostics copy. Added direct coverage proving disabled mode does not invoke either local rule engine, plus enabled-mode block coverage. Validation: focused safety/web/Electron/RP/media suites passed (98 + 138 + 50 + 64 tests), `npm run verify:safety-guard` passed, `npm run lint:eslint` passed, and `npm run typecheck` passed across all three tsconfigs. Published directly from local `main`; remote `main` is verified at `1c0360f8`. Remaining active work is P2-016 headed acceptance and P3-020 qualified native-language review.
 
 - **2026-09-18 current-main audit segment VF-20260918-P1-005 (baseline `80fb45b1`).** Reduced fuzzy Soundex similarity from a standalone hard-block decision to a warning-only diagnostic signal, preserving exact genre, explicit-pattern, grooming, sexualization, and age rules as authoritative blockers. Added a benign metamorphic corpus covering punctuation, case, Unicode punctuation, and emoji adjacency. Safety-focused suites passed 241/241; ESLint and typecheck passed. The four stale Markdown links from the pre-existing user-owned audit moves remain the known repository-link failure.
 - **2026-09-18 current-main audit segment VF-20260918-P2-017 (baseline `5eca2e45`).** Rechecked GitHub Ruleset `Rules01` through the live API. It is active for the branch and enforces linear history, pull-request review requirements, and 13 required status checks with strict policy. Branch protection's legacy required-status-check endpoint is not enabled, but the active ruleset is the governing mechanism. P2-017 is closed; no repository settings were changed. The remaining four stale Markdown links are pre-existing user-owned audit moves.
@@ -1026,6 +1028,13 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-12 Publication to Main (VF-AUD-20260912 & Re-pass Remediation).** Completed publication to `main` authorized by the user ("push to mAin"). Committed and pushed the full 2026-09-12 exhaustive audit remediation tranche (19 resolved findings: 4 P1, 6 P2, 5 P3, 2 DR, 3 TG) along with re-pass remediations N1..N7 (including automated IPC parity verifier, config atomicity edge cases, and bounds protections) to remote `main`. All local validation gates passed cleanly prior to push: `lint:eslint` (0/0), `typecheck` (3 tsconfigs), `npm test` (5,858 passed / 3 skipped, 516 files), `verify:contracts` (static, features, release - 104+ checks), `verify:safety-guard`, `verify:markdown-links` (335 files), `verify:ipc-parity`, `verify:dist`, and `build` (web, server, electron).
 
 ## Session History
+
+### 2026-09-18 — Disabled Family Safe Mode contract publication
+
+- **Published:** `1c0360f8` (`fix(safety): honor disabled Family Safe Mode policy`) directly from local `main`; `git ls-remote origin refs/heads/main` matches the local commit.
+- **Decision implemented:** policy 2 selected by the user. Local Family Safe Mode off skips local child-safety/adult-content screening across shared, renderer, Electron, web proxy, RP/import, response, research, and diagnostics paths. Provider-side Venice `safe_mode` and ordinary structural/request validation remain independent.
+- **Validation:** focused suites passed (98, 138, 50, and 64 tests across the affected safety/web/Electron/RP/media boundaries); `npm run verify:safety-guard` passed; `npm run lint:eslint` passed; `npm run typecheck` passed for root, Electron, and Electron-test configs. Hosted CI run `35353807341` was pending and CodeQL run `35353807393` was in progress at documentation time.
+- **Known repository state:** the two audit moves and the new active handoff remain user-owned and unstaged; Markdown-link verification is expected to continue reporting their stale references.
 
 ### 2026-09-13 — Publication of audit remediations + hosted CI restoration
 
@@ -2270,7 +2279,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
-* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. `P1-005`, `P2-008` through `P2-015`, `P2-017`, and `P3-018..019` are closed in this session and absent from that active list. The remaining safety contract, headed acceptance, and qualified native-language review remain open.
+* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. The safety contract (`P0-001`, `P1-002`, `P1-003`, `P1-004`, `P1-006`, `P2-007`), `P1-005`, `P2-008` through `P2-015`, `P2-017`, and `P3-018..019` are closed and absent from that active list. Remaining work is P2-016 headed acceptance and P3-020 qualified native-language review.
 
 * **CI-REPAIR-2026-09-18** — Lint, type, two failing test cases, repository identity, and avatar image-policy drift repaired locally on `main`. Full segmented CI tests and feature/release contract groups passed locally; see Validation Matrix. Existing `verify:i18n` rejects 3,900 untranslated-English entries in non-English catalogs; qualified translation review or a canonical catalog correction remains a separate release/localization task. Hosted CI/CodeQL must be checked against the published repair SHA before calling the workflow green.
 
@@ -2319,6 +2328,19 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Disabled Family Safe Mode contract segment (source `1c0360f8`)
+
+- `npx vitest run src/shared/safety/localFamilyGuardRules.test.ts src/shared/safety/localFamilySafeGuard.test.ts tests/safety/guardPipeline.test.ts tests/safety/adult-content-boundary.test.ts electron/services/bridgeServer.test.ts` — PASS (98/98 tests).
+- `npx vitest run tests/safety/enforcementBoundaries.test.ts tests/safety/inspectorPreview.test.ts src/services/veniceClient.web.test.ts electron/services/guardPipeline.test.ts src/services/veniceClient.responses.web.test.ts src/shared/safety/responsesGuard.test.ts src/shared/safety/characterImportSafety.test.ts src/services/rp/sceneGenerationService.test.ts src/services/characterSceneGenerationService.test.ts src/shared/safety/mediaScreener.test.ts` — PASS (138/138 tests).
+- `npx vitest run src/services/veniceClient.test.ts src/services/veniceClient.edge.test.ts` — PASS (50/50 tests).
+- `npx vitest run tests/safety/guardPipeline.test.ts src/shared/safety/responsesGuard.test.ts tests/safety/inspectorPreview.test.ts src/shared/safety/localFamilyGuardRules.test.ts` — PASS (64/64 tests).
+- `npm run verify:safety-guard` — PASS.
+- `npm run lint:eslint` — PASS (`ESLINT_OK`; zero errors/warnings).
+- `npm run typecheck` — PASS (`TYPECHECK_OK`; root, Electron, and Electron-test tsconfigs).
+- `git diff --check` — PASS before commit.
+- `git ls-remote origin refs/heads/main` — PASS; remote `main` equals `1c0360f8da6e282cdaa31afa6fcb2eaecc456ea5`.
+- Hosted CI `35353807341` — pending at documentation time; CodeQL `35353807393` — in progress at documentation time.
 
 ### 2026-09-18 — Enabled-mode safety segment (baseline `80fb45b1`)
 
