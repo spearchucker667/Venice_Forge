@@ -3,7 +3,77 @@ import fs from "node:fs/promises";
 import fssync from "node:fs";
 import path from "node:path";
 
-const WINDOWS_REPLACE_CODES = new Set(["EPERM", "EEXIST", "EACCES"]);
+/** Windows keeps file handles open longer than POSIX after the rename path,
+ *  so when two concurrent saves of the same record race on `copyFile`, the
+ *  second copy can briefly see EBUSY/EACCES while the first copy is still
+ *  flushing + releasing its handle. Retry the copy with exponential backoff
+ *  before throwing. Applies to both async and sync variants. */
+const WINDOWS_REPLACE_CODES = new Set(["EPERM", "EEXIST", "EACCES", "EBUSY"]);
+
+const COPY_RETRY_ATTEMPTS = 6;
+const COPY_RETRY_BASE_DELAY_MS = 10;
+
+function isWindowsReplaceCode(code: unknown): code is string {
+  return typeof code === "string" && WINDOWS_REPLACE_CODES.has(code);
+}
+
+function delaySync(ms: number): void {
+  const end = Date.now() + ms;
+  // Busy-wait is fine here: the sync path is called from main-process code
+  // that is already on the event-loop boundary; a few-millisecond backoff
+  // is well below any user-facing latency budget.
+  while (Date.now() < end) {
+    /* spin */
+  }
+}
+
+async function copyFileWithRetry(src: string, dest: string): Promise<void> {
+  for (let attempt = 0; attempt < COPY_RETRY_ATTEMPTS; attempt++) {
+    try {
+      await fs.copyFile(src, dest);
+      return;
+    } catch (err) {
+      if (
+        process.platform !== "win32" ||
+        !isWindowsReplaceCode(
+          err && typeof err === "object" && "code" in err
+            ? (err as NodeJS.ErrnoException).code
+            : undefined,
+        ) ||
+        attempt === COPY_RETRY_ATTEMPTS - 1
+      ) {
+        throw err;
+      }
+      // Exponential backoff: 10, 20, 40, 80, 160 ms (5 retries total).
+      const waitMs = COPY_RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+}
+
+function copyFileSyncWithRetry(src: string, dest: string): void {
+  for (let attempt = 0; attempt < COPY_RETRY_ATTEMPTS; attempt++) {
+    try {
+      fssync.copyFileSync(src, dest);
+      return;
+    } catch (err) {
+      if (
+        process.platform !== "win32" ||
+        !isWindowsReplaceCode(
+          err && typeof err === "object" && "code" in err
+            ? (err as NodeJS.ErrnoException).code
+            : undefined,
+        ) ||
+        attempt === COPY_RETRY_ATTEMPTS - 1
+      ) {
+        throw err;
+      }
+      // Exponential backoff (sync path): 10, 20, 40, 80, 160 ms.
+      const waitMs = COPY_RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+      delaySync(waitMs);
+    }
+  }
+}
 
 /** Opens the completed temp file and flushes it to stable storage before the
  *  replace. Failures are logged by callers that care; the replace itself stays
@@ -55,8 +125,8 @@ export async function atomicReplaceFile(
       const code = err && typeof err === "object" && "code" in err
         ? (err as NodeJS.ErrnoException).code
         : undefined;
-      if (process.platform === "win32" && code && WINDOWS_REPLACE_CODES.has(code)) {
-        await fs.copyFile(tmp, target);
+      if (process.platform === "win32" && isWindowsReplaceCode(code)) {
+        await copyFileWithRetry(tmp, target);
         return;
       }
       throw err;
@@ -87,8 +157,8 @@ export function atomicReplaceFileSync(
       const code = err && typeof err === "object" && "code" in err
         ? (err as NodeJS.ErrnoException).code
         : undefined;
-      if (process.platform === "win32" && code && WINDOWS_REPLACE_CODES.has(code)) {
-        fssync.copyFileSync(tmp, target);
+      if (process.platform === "win32" && isWindowsReplaceCode(code)) {
+        copyFileSyncWithRetry(tmp, target);
         return;
       }
       throw err;
