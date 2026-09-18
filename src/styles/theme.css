@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+:root {
+  /* Portaled menus sit above dialogs while using one shared layer value. */
+  --vf-z-context-menu: 1000;
+}
+
 @theme {
   --font-sans: var(--app-font-family, "MesloLGM Nerd Font", system-ui, sans-serif);
   --font-mono: "MesloLGS Nerd Font Mono", monospace;

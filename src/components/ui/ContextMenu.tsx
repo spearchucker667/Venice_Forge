@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 
 export type ContextMenuItem =
@@ -18,11 +18,11 @@ export type ContextMenuItem =
       key: string;
     };
 
-type MenuPosition = { x: number; y: number };
+type MenuPosition = { x: number; y: number; trigger?: HTMLElement | null };
 
 type UseContextMenuResult = {
   menu: MenuPosition | null;
-  openAt: (event: { clientX: number; clientY: number; preventDefault?: () => void }) => void;
+  openAt: (event: { clientX: number; clientY: number; currentTarget?: EventTarget | null; preventDefault?: () => void }) => void;
   close: () => void;
 };
 
@@ -30,9 +30,15 @@ export function useContextMenu(): UseContextMenuResult {
   const [menu, setMenu] = useState<MenuPosition | null>(null);
 
   const openAt = useCallback(
-    (event: { clientX: number; clientY: number; preventDefault?: () => void }) => {
+    (event: { clientX: number; clientY: number; currentTarget?: EventTarget | null; preventDefault?: () => void }) => {
       event.preventDefault?.();
-      setMenu({ x: event.clientX, y: event.clientY });
+      setMenu({
+        x: event.clientX,
+        y: event.clientY,
+        trigger: event.currentTarget instanceof HTMLElement
+          ? event.currentTarget
+          : document.activeElement instanceof HTMLElement ? document.activeElement : null,
+      });
     },
     [],
   );
@@ -84,6 +90,15 @@ function clampPosition(
   };
 }
 
+function restoreMenuFocus(target: HTMLElement | null, fallback: HTMLElement | null): void {
+  const destination = target?.isConnected ? target : fallback;
+  if (!destination?.isConnected) return;
+  const previousTabIndex = destination.getAttribute("tabindex");
+  if (destination.tabIndex < 0) destination.setAttribute("tabindex", "-1");
+  destination.focus({ preventScroll: true });
+  if (previousTabIndex === null) destination.removeAttribute("tabindex");
+}
+
 export function ContextMenu({
   position,
   items,
@@ -92,28 +107,94 @@ export function ContextMenu({
   minWidth = 200,
 }: ContextMenuProps): React.ReactNode {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!position || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    setSize({ width: rect.width, height: rect.height });
-  }, [position, items]);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const enabledItems = items.filter((item) => item.kind !== "separator" && !item.hidden && !item.disabled);
+  const enabledKeys = enabledItems.map((item) => item.key);
 
   useLayoutEffect(() => {
     if (!position || !ref.current) return;
     const el = ref.current;
-    const finalX = size ? clampPosition(position.x, position.y, size.width, size.height).x : position.x;
-    const finalY = size ? clampPosition(position.x, position.y, size.width, size.height).y : position.y;
-    el.style.setProperty("--context-menu-min-width", `${minWidth}px`);
-    el.style.setProperty("top", `${finalY}px`);
-    el.style.setProperty("left", `${finalX}px`);
-    if (!size) {
-      el.style.setProperty("visibility", "hidden");
+    const place = () => {
+      const padding = 8;
+      const availableWidth = Math.max(0, window.innerWidth - padding * 2);
+      el.style.minWidth = `${Math.min(minWidth, availableWidth)}px`;
+      el.style.maxWidth = `${availableWidth}px`;
+      el.style.maxHeight = `${Math.max(0, window.innerHeight - padding * 2)}px`;
+      const rect = el.getBoundingClientRect();
+      const rtl = document.documentElement.dir === "rtl";
+      const preferredX = rtl ? position.x - rect.width : position.x;
+      const next = clampPosition(preferredX, position.y, rect.width, rect.height, padding);
+      el.style.left = `${next.x}px`;
+      el.style.top = `${next.y}px`;
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [position, minWidth, items]);
+
+  useEffect(() => {
+    if (!position) return;
+    const menuElement = ref.current;
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    returnFocusRef.current = position.trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    const first = enabledKeys[0] ?? null;
+    setActiveKey(first);
+    if (first) {
+      Array.from(ref.current?.querySelectorAll<HTMLButtonElement>("[data-menu-key]") ?? [])
+        .find((button) => button.dataset.menuKey === first)?.focus();
     } else {
-      el.style.removeProperty("visibility");
+      ref.current?.focus();
     }
-  }, [position, size, minWidth]);
+    return () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active !== document.body && !menuElement?.contains(active)) {
+        return;
+      }
+      restoreMenuFocus(returnFocusRef.current, previousFocusRef.current);
+    };
+    // A new position represents a new opening; item changes are handled below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position]);
+
+  useEffect(() => {
+    if (!position || enabledKeys.length === 0) return;
+    if (activeKey && enabledKeys.includes(activeKey)) return;
+    const first = enabledKeys[0];
+    setActiveKey(first);
+    Array.from(ref.current?.querySelectorAll<HTMLButtonElement>("[data-menu-key]") ?? [])
+      .find((button) => button.dataset.menuKey === first)?.focus();
+  }, [position, activeKey, enabledKeys]);
+
+  const focusKey = (key: string) => {
+    setActiveKey(key);
+    Array.from(ref.current?.querySelectorAll<HTMLButtonElement>("[data-menu-key]") ?? [])
+      .find((button) => button.dataset.menuKey === key)?.focus();
+  };
+
+  const onMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape" || event.key === "Tab") {
+      event.preventDefault();
+      event.stopPropagation();
+      restoreMenuFocus(returnFocusRef.current, previousFocusRef.current);
+      onClose();
+      return;
+    }
+    if (!enabledKeys.length) return;
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = Math.max(0, enabledKeys.indexOf(activeKey ?? ""));
+    const next = event.key === "Home" ? 0
+      : event.key === "End" ? enabledKeys.length - 1
+        : event.key === "ArrowDown" ? (current + 1) % enabledKeys.length
+          : (current - 1 + enabledKeys.length) % enabledKeys.length;
+    focusKey(enabledKeys[next]);
+  };
 
   if (!position || typeof document === "undefined") return null;
 
@@ -123,14 +204,16 @@ export function ContextMenu({
     <div
       ref={ref}
       role="menu"
+      tabIndex={-1}
       aria-label={ariaLabel}
       data-context-menu-root="true"
+      onKeyDown={onMenuKeyDown}
       onClick={(event) => event.stopPropagation()}
       onContextMenu={(event) => {
         event.preventDefault();
         event.stopPropagation();
       }}
-      className="fixed z-[1000] min-w-[var(--context-menu-min-width)] rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised py-1 text-sm text-text shadow-xl animate-in fade-in-0 zoom-in-95"
+      className="fixed z-[var(--vf-z-context-menu)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised py-1 text-sm text-text shadow-xl animate-in fade-in-0 zoom-in-95"
     >
       {visibleItems.map((item) => {
         if (item.kind === "separator") {
@@ -151,13 +234,19 @@ export function ContextMenu({
             key={item.key}
             type="button"
             role="menuitem"
+            data-menu-key={item.key}
+            tabIndex={item.key === activeKey ? 0 : -1}
             disabled={item.disabled}
+            onMouseEnter={() => {
+              if (!item.disabled) setActiveKey(item.key);
+            }}
             onClick={(event) => {
               event.stopPropagation();
               if (item.disabled) return;
               try {
                 item.onSelect();
               } finally {
+                restoreMenuFocus(returnFocusRef.current, previousFocusRef.current);
                 onClose();
               }
             }}
