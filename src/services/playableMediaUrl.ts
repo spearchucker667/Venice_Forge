@@ -1,4 +1,16 @@
-/** Resolves stored custom-protocol media URLs into short-lived capability URLs. */
+/** Resolves stored custom-protocol media URLs into capability URLs.
+ *
+ * IMPORTANT: capability tokens have a TTL (5 min default, see
+ * DEFAULT_CAPABILITY_TOKEN_TTL_MS in electron/utils/customProtocolAccess.ts) and
+ * are tied to the renderer session + profile. Any URL that has been lying around
+ * in a renderer store may carry an expired or wrong-session token. The only
+ * safe contract is to ALWAYS re-issue a fresh token for any custom-protocol URL
+ * we are about to fetch or play. The previous "short-circuit when cap= is
+ * already present" optimization caused the gallery to return 403 on
+ * Save-As for any image older than the TTL, because Chromium's image cache
+ * continued to render the stale bytes but the fresh fetch saw the expired
+ * token (VF-REGRESSION-2026-09-18).
+ */
 import * as desktopBridge from "./desktopBridge";
 
 // The id may be followed by an optional path slash: URL serialization of
@@ -11,7 +23,10 @@ const CUSTOM_MEDIA_PROTOCOL_RE = /^venice-(?:media|character-cache|tts):\/\//i;
 
 export async function resolvePlayableMediaUrl(url: string): Promise<string> {
   if (!url || typeof url !== "string") return url;
-  if (url.includes("cap=")) return url;
+  // Always re-issue for custom-protocol URLs in Electron; the previous
+  // `if (url.includes("cap=")) return url;` short-circuit caused the
+  // "Media source returned 403" error when the renderer tried to Save As
+  // an image whose 5-minute capability token had expired.
   if (!CUSTOM_MEDIA_PROTOCOL_RE.test(url)) return url;
 
   const isElectron = typeof desktopBridge.isElectron === "function" ? desktopBridge.isElectron() : false;

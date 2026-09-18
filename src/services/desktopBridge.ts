@@ -1,4 +1,5 @@
 import { translateRuntime } from "../i18n/runtimeTranslator";
+import { resolvePlayableMediaUrl } from "./playableMediaUrl";
 
 /** @fileoverview Electron vs. web mode abstraction — never call window.veniceForge directly from modules. */
 
@@ -1104,7 +1105,27 @@ export const desktopMedia = {
       }
       if (!input.source) return { status: "failed", error: "No media source is available." };
 
-      const response = await fetch(input.source);
+      // Custom-protocol URLs (venice-media://, venice-character-cache://,
+      // venice-tts://) carry short-lived capability tokens (default TTL 5 min,
+      // see DEFAULT_CAPABILITY_TOKEN_TTL_MS) tied to the renderer session. The
+      // gallery's <img> cache continues to render a persisted URL well after the
+      // underlying token expires, but a fresh fetch on Save As would 403 the
+      // user. Refresh the capability token right before reading the bytes so
+      // the underlying IPC `app:media:issueCapabilityUrl` validates and re-issues.
+      // Falls back to the original `input.source` when running outside Electron
+      // or when the helper decides the URL is unrecognised (empty string).
+      let fetchSource = input.source;
+      if (isElectron()) {
+        try {
+          const refreshed = await resolvePlayableMediaUrl(input.source);
+          if (refreshed) fetchSource = refreshed;
+        } catch {
+          // Preserve original source; the downstream fetch will surface the
+          // underlying transport error (e.g. 403) with full diagnostic context.
+        }
+      }
+
+      const response = await fetch(fetchSource);
       if (response.ok === false) return { status: "failed", error: `Media source returned ${response.status}.` };
       let blob = await response.blob();
       if (blob.size === 0) return { status: "failed", error: "Media source was empty." };

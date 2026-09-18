@@ -1,12 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { desktopMedia } from "./desktopBridge";
 
+// `vi.mock` is hoisted; the shared mock state must be created via `vi.hoisted`
+// so it is initialised before the mock factory reads it.
+const mocks = vi.hoisted(() => ({
+  refreshCapabilityUrl: vi.fn(async (url: string) => {
+    if (!url || !url.startsWith("venice-media://")) return url;
+    return `${url.split("?")[0]}?cap=refreshed`;
+  }),
+}));
+
+vi.mock("./playableMediaUrl", () => ({
+  resolvePlayableMediaUrl: mocks.refreshCapabilityUrl,
+}));
+
 const saveGeneratedMedia = vi.fn();
 const saveMediaDataUrl = vi.fn();
 
 describe("desktopMedia.saveMediaAs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.refreshCapabilityUrl.mockClear();
     Object.defineProperty(window, "veniceForge", {
       configurable: true,
       value: {
@@ -49,6 +63,28 @@ describe("desktopMedia.saveMediaAs", () => {
       dataUrl: expect.stringMatching(/^data:image\/png;base64,/),
       suggestedName: "legacy.png",
     });
+  });
+
+  it("refreshes an expired venice-media capability URL before fetching", async () => {
+    // Regression for "Image save failed / Media source returned 403" when
+    // attempting Save As on an image whose 5-minute capability token has
+    // expired (DEFAULT_CAPABILITY_TOKEN_TTL_MS in customProtocolAccess.ts).
+    const id = "c".repeat(64);
+    const staleSource = `venice-media://${id}?cap=expired-token`;
+    mocks.refreshCapabilityUrl.mockResolvedValueOnce(`venice-media://${id}?cap=refreshed`);
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(new Blob(["bytes"], { type: "image/png" })),
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    saveMediaDataUrl.mockResolvedValue({ ok: true, canceled: false, filename: "image.png", bytes: 5 });
+
+    const result = await desktopMedia.saveMediaAs({ source: staleSource, suggestedName: "image.png" });
+    expect(result).toEqual({ status: "saved", filename: "image.png", bytes: 5 });
+    expect(mocks.refreshCapabilityUrl).toHaveBeenCalledWith(staleSource);
+    // fetch must be called with the refreshed URL, not the stale one.
+    expect(fetchSpy).toHaveBeenCalledWith(`venice-media://${id}?cap=refreshed`);
+    expect(fetchSpy).not.toHaveBeenCalledWith(staleSource);
   });
 
   it("treats native cancellation as a state-preserving outcome", async () => {

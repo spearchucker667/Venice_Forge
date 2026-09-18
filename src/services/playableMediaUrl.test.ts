@@ -88,11 +88,20 @@ describe("resolvePlayableMediaUrl", () => {
     expect(desktopMedia.resolveUrl).not.toHaveBeenCalled();
   });
 
-  it("leaves already-issued capability URLs alone", async () => {
+  it("always issues a fresh capability URL even when the input already has cap=", async () => {
+    // Fresh-cap contract: existing cap= tokens may carry an expired session-bound
+    // token (5-min TTL in DEFAULT_CAPABILITY_TOKEN_TTL_MS), so Save As and TTS
+    // playback must refresh on every call rather than short-circuit.
     const id = "b".repeat(64);
-    const existing = `venice-media://${id}?cap=existing`;
-    await expect(resolvePlayableMediaUrl(existing)).resolves.toBe(existing);
-    expect(desktopMedia.resolveUrl).not.toHaveBeenCalled();
+    const existing = `venice-media://${id}?cap=existing-token`;
+    const url = await resolvePlayableMediaUrl(existing);
+    expect(desktopMedia.resolveUrl).toHaveBeenCalledWith({
+      scheme: "venice-media",
+      objectId: id,
+      resourceUrl: `venice-media://${id}`,
+    });
+    expect(url).toContain("cap=token"); // mock returns "token"
+    expect(url).not.toContain("existing-token");
   });
 
   it("returns empty string for custom protocols when not running under Electron", async () => {
