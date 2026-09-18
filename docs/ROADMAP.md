@@ -16,7 +16,7 @@ branch:              main
 working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
 ci_status:           not_rerun_for_current_remediation
 codeql_status:       not_rerun_for_current_remediation
-open_findings:       VF-20260918-P0-001, P1-002..006, P2-007, P2-016, P3-020
+open_findings:       VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007, P2-016, P3-020
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-007)
@@ -36,7 +36,7 @@ recently_closed_in_session_2026-09-17:
 The active 2026-09-18 handoff is under `docs/audits/TODO/`. Its findings are evidence to recheck on the current source. Completed findings leave this open-work list and receive closure evidence in `docs/summary_of_work.md`. The following segments are ordered by dependency:
 
 1. **Safety contract (P0-001, P1-002, P1-003, P1-004, P1-006, P2-007):** Resolve the conflict between the new handoff's disabled-state semantics and the current mandatory child-safety contract; then align common guards, Electron and web authority, RP/import paths, bootstrap state, diagnostics, tests, and documentation. Do not publish a partial transport-only safety change.
-2. **Enabled-mode false positives (P1-005):** Build benign and synthetic restricted corpora, harden fuzzy matching with corroboration where justified, and benchmark the enabled path.
+2. **Safety contract (P0-001, P1-002, P1-003, P1-004, P1-006, P2-007):** Resolve the disabled-state policy conflict and align all safety authorities, transports, import paths, diagnostics, tests, and documentation. Enabled-mode false-positive handling (P1-005) is complete.
 3. **Headed and localization acceptance (P2-016, P3-020):** Capture direct evidence for the canonical tabs and overlays, plus qualified native-language review. Record actual coverage without inferring it from static tests. Current-state metadata (P3-018) and Superdesign ContextMenu governance (P3-019) are complete.
 4. **Hosted governance:** Ruleset `Rules01` is active and enforces the required review and 13 status checks; P2-017 is closed by live API evidence.
 
