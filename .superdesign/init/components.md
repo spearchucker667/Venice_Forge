@@ -12,8 +12,8 @@
 | `Card` | `src/components/ui/primitives.tsx` | Elevated grouped surface | `elevation`, `tone`, `padded` |
 | `EmptyState` | `src/components/ui/primitives.tsx` | Empty/zero-state composition | `eyebrow`, `headline`, `helper`, `illustration`, `action` |
 | `Input` | `src/components/ui/primitives.tsx` | Theme-aware input with adornments | `tone`, `inputSize`, `leading`, `trailing` |
-| `AccessibleDialog` | `src/components/ui/AccessibleDialog.tsx` | Focus-trapped modal with Escape and restore semantics | `open`, `onClose`, accessible title/description |
-| `Select` | `src/components/ui/select.tsx` | Searchable keyboard-accessible portal select | value/options/selection callbacks |
+| `AccessibleDialog` | `src/components/ui/AccessibleDialog.tsx` | Focus-trapped modal with Escape and restore semantics | `title`, `description`, `children`, `onClose`, `initialFocusRef`, `headerAction`, `panelRef`, `panelClassName`, `closeOnBackdrop`, `zIndexClassName` |
+| `Select` | `src/components/ui/select.tsx` | Searchable keyboard-accessible portal select | `value`, `onChange`, `options`, `placeholder`, `searchable`, `className`, `id`, `ariaLabel`, `labelledBy`, `disabled`, `data-testid` |
 | `Meteocon` | `src/components/ui/Meteocon.tsx` | CSP-safe weather/icon system | `name`, `size`, `className` |
 
 ## Shared primitive source (`src/components/ui/primitives.tsx`)

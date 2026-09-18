@@ -19,15 +19,15 @@ Every candidate must record:
 
 | Name | Source path | Category | Description | State/navigation props | Hardcoded elements |
 |---|---|---|---|---|---|
-| `ShellPanel` | `src/components/ui/primitives.tsx` | shell/panel | Framed raised or inset workspace panel | `inset`, children, ARIA attrs | none; consumes `--vf-*` classes |
-| `PanelHeader` | `src/components/ui/primitives.tsx` | panel | Compact title/action row | `title`, `actions`, children | none; title is caller-localized |
-| `UtilityRailSection` | `src/components/ui/primitives.tsx` | shell/status | Utility rail section with compact header | `title`, `actions`, children | none |
-| `DenseListRow` | `src/components/ui/primitives.tsx` | list | Selected/hoverable compact row | `selected`, leading/label/trailing, button handlers | none |
+| `ShellPanel` | `src/components/ui/primitives.tsx` | shell/panel | Framed raised or inset workspace panel | `inset` | none; consumes `--vf-*` classes |
+| `PanelHeader` | `src/components/ui/primitives.tsx` | panel | Compact title/action row | `title`, `actions` | none; title is caller-localized |
+| `UtilityRailSection` | `src/components/ui/primitives.tsx` | shell/status | Utility rail section with compact header | `title`, `actions` | none |
+| `DenseListRow` | `src/components/ui/primitives.tsx` | list | Selected/hoverable compact row | `selected`, `leading`, `label`, `trailing` | none |
 | `AccentProgress` | `src/components/ui/primitives.tsx` | status | Accessible accent progress bar | `value`, `label` | none; width uses CSP-safe CSS property |
-| `IconButton` | `src/components/ui/primitives.tsx` | form/action | Shared icon action semantics | `ariaLabel`, `tone`, `size`, disabled, onClick | no fixed visible copy |
+| `IconButton` | `src/components/ui/primitives.tsx` | form/action | Shared icon action semantics | `icon`, `ariaLabel`, `tone`, `size`, `filled`, `asPlainButton` | no fixed visible copy |
 | `Card` | `src/components/ui/primitives.tsx` | panel | Semantic elevation surface | `elevation`, `tone`, `padded` | none |
-| `EmptyState` | `src/components/ui/primitives.tsx` | status | Headline/helper/action empty state | `headline`, helper, action, illustration | visible text supplied by caller and must be localized |
-| `AccessibleDialog` | `src/components/ui/AccessibleDialog.tsx` | overlay | Focus trap, Escape, restore | `open`, `onClose`, title/description | none |
+| `EmptyState` | `src/components/ui/primitives.tsx` | status | Headline/helper/action empty state | `eyebrow`, `headline`, `helper`, `illustration`, `action` | visible text supplied by caller and must be localized |
+| `AccessibleDialog` | `src/components/ui/AccessibleDialog.tsx` | overlay | Focus trap, Escape, restore | `title`, `description`, `children`, `onClose`, `initialFocusRef`, `headerAction`, `panelRef`, `panelClassName`, `closeOnBackdrop`, `zIndexClassName` | none |
 | `Toolbar` | `src/components/ui/primitives.tsx` | action | Shared action grouping | `size`, `bare`, `align`, `asToolbar` | none |
 
 ## Do not extract blindly
