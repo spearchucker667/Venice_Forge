@@ -5,17 +5,17 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 53efc703 (docs-only successor after the test-drift fix)
+repository_head_sha: cb482ab4 (after completing the pre-existing TODO→Records moves)
 application_code_sha: ee6ade04
-verified_against_sha: 53efc703
+verified_against_sha: cb482ab4
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
-working_tree:        dirty (two user-owned audit moves at validation)
-ci_status:           in_progress for 53efc703 (run 35356927160)
-codeql_status:       in_progress for 53efc703 (run 35356927208)
+working_tree:        clean
+ci_status:           in_progress for cb482ab4 (run 35360954489)
+codeql_status:       in_progress for cb482ab4 (run 35360954322)
 open_findings:       VF-20260918-P2-016, VF-20260918-P3-020
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
