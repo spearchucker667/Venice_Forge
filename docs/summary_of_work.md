@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 7bf1defa (application commit before this docs-only successor)
-application_code_sha: 7bf1defa
-verified_against_sha: 7bf1defa
+repository_head_sha: e34f292a (application commit before this docs-only successor)
+application_code_sha: e34f292a
+verified_against_sha: e34f292a
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
-ci_status:           not_checked_for_current_remediation_sha
-codeql_status:       not_checked_for_current_remediation_sha
+ci_status:           pending for e34f292a (run 35351451925)
+codeql_status:       in_progress for e34f292a (run 35351452079)
 open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); HQE-DOC-001 native-language review
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
