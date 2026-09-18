@@ -168,6 +168,25 @@ export function redactErrorDetails(error: Error): { message: string; stack?: str
 }
 
 /**
+ * Additional credential-shaped URL query parameter names that are not
+ * matched by {@link SECRET_KEY_PATTERN}. Used by {@link redactUrl} to mask
+ * values such as `?key=...`, `?apiKey=...`, and `?x-goog-api-key=...`
+ * (VF-AUD-20260916-P2-004).
+ *
+ * Lookup is case-insensitive and intentionally narrow — this is NOT a
+ * general "every field named key is secret" rule (per audit: avoid blindly
+ * treating ordinary object fields named `key` as secret unless policy
+ * explicitly wants that).
+ */
+const SENSITIVE_URL_QUERY_NAMES = new Set<string>([
+  "key",
+  "apikey",
+  "api_key",
+  "api-key",
+  "x-goog-api-key",
+]);
+
+/**
  * Redacts query-string credentials, usernames, and fragments from a URL while
  * preserving the host and path for diagnostics.
  * @param value The raw URL string.
@@ -181,7 +200,8 @@ export function redactUrl(value: string): string {
       url.password = "[REDACTED]";
     }
     for (const [key] of url.searchParams) {
-      if (SECRET_KEY_PATTERN.test(key)) {
+      const lowered = key.toLowerCase();
+      if (SECRET_KEY_PATTERN.test(key) || SENSITIVE_URL_QUERY_NAMES.has(lowered)) {
         url.searchParams.set(key, "[REDACTED]");
       }
     }

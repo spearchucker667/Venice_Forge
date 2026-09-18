@@ -215,7 +215,15 @@ function isGoogleVertexConfig(credential: unknown): credential is GoogleVertexCo
   return false;
 }
 
-function buildProviderTestRequest(
+/**
+ * Builds the URL and headers used by the per-provider connection test.
+ *
+ * Exported for unit-test verification that the test request does not
+ * embed provider credentials in URL query parameters (logs / telemetry)
+ * and that supported providers carry the credential in the request
+ * headers instead (VF-AUD-20260916-P2-004).
+ */
+export function buildProviderTestRequest(
   providerId: ProviderId,
   credential: string | AzureOpenAiConfig | AwsBedrockConfig | GoogleVertexConfig,
 ): ProviderTestRequest | null {
@@ -238,9 +246,14 @@ function buildProviderTestRequest(
   if (providerId === "google_vertex") {
     if (!isGoogleVertexConfig(credential)) return null;
     if (credential.authMode === "express") {
+      // VF-AUD-20260916-P2-004: Google Cloud REST supports header auth via
+      // `x-goog-api-key`; the `?key=` query form would expose the credential
+      // in URLs (logs, telemetry). Mirror the request-path auth used by
+      // electron/services/providerAdapters.ts so the connection test does
+      // not disagree with the actual request transport.
       return {
-        url: `https://aiplatform.googleapis.com/v1/publishers/google/models?key=${encodeURIComponent(credential.apiKey)}`,
-        headers: {},
+        url: "https://aiplatform.googleapis.com/v1/publishers/google/models",
+        headers: { "x-goog-api-key": credential.apiKey },
       };
     }
     // Full Vertex OAuth/service-account mode is not implemented.
@@ -279,9 +292,12 @@ function buildProviderTestRequest(
       };
     case "google_gemini": {
       const apiKey = typeof credential === "string" ? credential : "";
+      // VF-AUD-20260916-P2-004: Gemini REST supports the `x-goog-api-key`
+      // header; sending the credential as `?key=` would surface it in URL
+      // logs and telemetry. Mirror electron/services/providerAdapters.ts.
       return {
-        url: `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
-        headers: {},
+        url: "https://generativelanguage.googleapis.com/v1beta/models",
+        headers: apiKey ? { "x-goog-api-key": apiKey } : {},
       };
     }
     default:
