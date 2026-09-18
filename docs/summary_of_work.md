@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: c6259193 (Windows EBUSY retry for concurrent atomicReplaceFile)
-application_code_sha: c6259193
-verified_against_sha: c6259193
+repository_head_sha: 8fa56281 (venice-media capability token refresh on Save As)
+application_code_sha: 8fa56281
+verified_against_sha: 8fa56281
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        clean
-ci_status:           success for c6259193 (run 35371089895 — 11/11 jobs)
-codeql_status:       success for c6259193 (run 35371089780)
+ci_status:           success for 8fa56281 (run 35391667110 — 11/11 jobs)
+codeql_status:       success for 8fa56281 (run 35391667137)
 open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); P2-016/P3-020 and HQE-DOC-001 native-language review
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -51,6 +51,8 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-18 Save-As 403 regression fix — refresh `venice-media://` capability tokens (published `main` HEAD `8fa56281`).** Bug report: gallery Save As returned "*Image save failed / Media source returned 403*" when the user tried to save an image whose 5-minute capability token had expired (Chromium's image cache kept rendering the stale bytes, but a fresh `fetch` saw the expired token and the protocol handler returned 403). Root cause: `src/services/playableMediaUrl.ts:14` short-circuited on `if (url.includes("cap=")) return url;` — the optimization preserved any embedded cap, even an expired one. Fix: removed the short-circuit so `resolvePlayableMediaUrl` always re-issues via the existing IPC `app:media:issueCapabilityUrl` (`electron/preload.ts:309` → `electron/ipc/handlers/fileHandlers.ts:88`). In `src/services/desktopBridge.ts` `saveMediaAs` (line 1107), inserted a `resolvePlayableMediaUrl(input.source)` refresh right before the fallback `fetch(input.source)` so the bytes fetch goes through the protocol handler with a non-expired token bound to the current renderer session. Falls back to the original `input.source` outside Electron. No security model regression: issuance is gated by `requireMainFrame: true`, 64-hex objectId validation, and the existing session+profile binding. Tests: updated `leaves already-issued capability URLs alone` to `always issues a fresh capability URL even when the input already has cap=` in `src/services/playableMediaUrl.test.ts`; added `refreshes an expired venice-media capability URL before fetching` to `src/services/desktopBridge.media-save.test.ts`; existing tests preserved. Validation: focused `src/services/playableMediaUrl.test.ts` + `src/services/desktopBridge.media-save.test.ts` + `src/services/chatTtsController.test.ts` 28/28 PASS; ESLint 0/0; typecheck 3/3 tsconfigs. Hosted CI run `35391667110` for `8fa56281` reported `success` on all 11 jobs; CodeQL `35391667137` reported `success`.
 
 - **2026-09-18 Windows EBUSY retry for concurrent `atomicReplaceFile` (published `main` HEAD `c6259193`).** Hosted CI run `35369311036` against the prior docs-only commit (`e04fa2f1`) reported `windows-sensitive-tests: failure` due to `[P2-006] concurrent saves of the same record use unique temps and leave valid JSON` hitting `EBUSY: resource busy or locked, copyfile`. Root cause: on Windows, two concurrent `store.save()` calls each create a unique temp dir + temp file, attempt `fs.rename` (which fails with EPERM/EEXIST/EACCES when the target exists), and the existing fallback `fs.copyFile(tmp, target)` race-collided with the other concurrent copy because the file handle was still being released, producing EBUSY. Fix: `electron/utils/atomicFileReplace.ts` now retries the Windows copy fallback with exponential backoff (10, 20, 40, 80, 160 ms; 6 attempts total = ~310 ms ceiling) for `EPERM | EEXIST | EACCES | EBUSY` on `process.platform === 'win32'`. Both async (`atomicReplaceFile`) and sync (`atomicReplaceFileSync`) variants are covered; sync uses a deliberate busy-wait because the sync path is on the event-loop boundary and the millisecond-scale backoff is below user-facing latency. After the fix: `npx vitest run electron/services/rpSingleFileStore.test.ts` PASS 10/10; `npx vitest run electron/utils/atomicFileReplace.test.ts` PASS 8/8 (both unaffected by the broader retry surface); ESLint 0/0; typecheck 3/3 tsconfigs. The 3 `electron/services/syncIdentity.test.ts` EPERM failures are pre-existing environmental (verified by re-running the suite on the prior commit without the fix). Hosted CI run `35371089895` for `c6259193` reported `success` on all 11 jobs; CodeQL run `35371089780` reported `success`.
 
