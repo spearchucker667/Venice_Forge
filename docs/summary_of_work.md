@@ -5,14 +5,14 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        917ba97d
+baseline_sha:        ba9a86a2
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        dirty (ready for review/commit)
-ci_status:           all_local_suites_green (verify:contracts, lint:eslint, typecheck, verify:safety-guard all pass)
-codeql_status:       remediated (alert #273 dismissed as false positive on GitHub; alerts #275 & #276 remediated in src/shared/redaction.ts via Object.fromEntries)
+working_tree:        clean
+ci_status:           hosted_in_progress (run 35343769763 in progress, 5/7 jobs passed; prior run 35339868411 11/11 passed)
+codeql_status:       clean (0 open alerts; alerts #275 & #276 verified FIXED by CodeQL run 35343769941; alert #273 DISMISSED as false positive)
 open_findings:       P2-007 (headed accessibility/visual QA); HQE-DOC-001 (native-language review of 12 non-English catalogs)
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -2263,6 +2263,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 - `npm run verify:safety-guard` — PASS.
 - `npm run verify:contracts` — PASS (104/104 release packaging hardening and static contract checks pass).
 - GitHub code scanning alert triage: Alert #273 dismissed via API as false positive.
+- Hosted CodeQL run `35343769941` on commit `ba9a86a2`: PASS (Analyze actions [45s], Analyze javascript-typescript [3m21s]); Alerts #275 & #276 verified automatically marked FIXED on GitHub (0 open alerts remaining).
 
 ### 2026-09-18 — Fuzzy Safety Guard Punctuation Fix & Mock Resilience (baseline `9723a177`)
 
