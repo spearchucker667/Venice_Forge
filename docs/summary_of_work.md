@@ -421,6 +421,18 @@ external_acceptance_outstanding:
 
 ## Session History
 
+### 2026-09-17 — VF-AUD-20260916-P3-002 + P2-005 verification (current-authority docs reconciliation + FSM heap spot-check)
+
+- Baseline: local `main` at `8f0bb828` (post P2-004 closure + doc session record); uncommitted worktree preserved.
+- Wire-format authority: `docs/audits/TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md` findings §VF-AUD-20260916-P3-002 and §VF-AUD-20260916-P2-005.
+- **P2-005 spot-check (no fix needed)** — verified the prior closure commit `e7abe910 fix(fsm): bound Family Safe Mode media buffering with modality caps + temp-file spool (VF-20260916-P1-003)` covers every audit requirement: per-modality caps in `src/shared/limits.ts` (image 32 MiB / audio 64 MiB / video 128 MiB / default 64 MiB), `src/services/fsmMediaCollector.ts` temp-file spooling with bounded cleanup, 64 KiB structural-prefix validation for audio/video containers, and the 8 MiB in-memory heap threshold for screening that yields to disk-spool above the cap. The CSAM hard-block invariant is preserved (screening policy unchanged). All eight required test cases are covered by `src/services/fsmMediaCollector.test.ts` (13 tests, all pass). P2-005 was already closed by a sibling session; this verification closes the "to verify on next pass" note in the prior ROADMAP entry.
+- **P3-002 closed** — added a small machine-readable `Current State` metadata block at the top of each of the three canonical authority docs (`docs/ROADMAP.md`, `docs/summary_of_work.md`, `SECURITY.md`). Per audit recommendation: "Optionally make only this small state block machine-readable to reduce drift; do not build a brittle prose parser." Each block records baseline_sha, verified_at, package_version, node_engine, branch/working_tree, ci_status (honest `not_rerun_this_session`), codeql_status (same), open_findings, and external_acceptance_outstanding.
+- `SECURITY.md` also receives two prose fixes:
+  1. Stale `electron/ipc/handlers.ts` reference rewritten as `electron/ipc/handlers/` (the live directory) with the back-compat barrel (`electron/ipc/handlers.ts`) noted.
+  2. New explicit sender-validation contract note in the Current State block: "fails closed when `event.senderFrame` is absent or untrusted; no `sender.getURL()` / `WebContents` top-level fallback" — matches the actual `electron/utils/validateIpcSender.ts` behavior and replaces the older "preferring senderFrame over sender.getURL()" wording the audit flagged.
+- Validation: `npm run lint:eslint` PASS; `npm run verify:markdown-links` PASS (415 files); focused `npx vitest run src/services/fsmMediaCollector.test.ts` PASS (13/13).
+- Not run (out of scope for this isolated audit-fix slice): hosted CI/CodeQL, full `npm test`, `npm run build`, headed a11y/visual QA, native-language review, funded-provider requests.
+
 ### 2026-09-17 — VF-AUD-20260916-P2-004 (Google API-key query-string + redaction gap)
 
 - Baseline: local `main` at `c8fa1a5e` (Crypto RPC, FEAT-018); uncommitted worktree preserved.
@@ -2032,6 +2044,10 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
+* **VF-AUD-20260916-P3-002-CLOSED-2026-09-17** — Current-authority docs reconciliation closed on `main` baseline `8f0bb828`, commit `6d577eba`. Added machine-readable `Current State` metadata block to `docs/ROADMAP.md`, `docs/summary_of_work.md`, and `SECURITY.md` (baseline_sha, verified_at, package_version, node_engine, branch/working_tree, ci/codeql status, open_findings, external_acceptance_outstanding — per audit: "do not build a brittle prose parser"). `SECURITY.md` also receives two prose fixes (stale `electron/ipc/handlers.ts` reference → `electron/ipc/handlers/` with back-compat barrel noted; explicit sender-validation contract line replacing the older "preferring senderFrame over sender.getURL()" wording). Validation: `npm run lint:eslint` PASS, `npm run verify:markdown-links` PASS (415 files). **Committed on `main`, not pushed.**
+
+* **VF-AUD-20260916-P2-005-CLOSED-2026-09-17** — Family-safe media heap pressure closed (verified this session). Prior closure commit `e7abe910 fix(fsm): bound Family Safe Mode media buffering with modality caps + temp-file spool (VF-20260916-P1-003)` covers every audit requirement: per-modality caps (`src/shared/limits.ts`), `src/services/fsmMediaCollector.ts` temp-file spooling with bounded cleanup, 64 KiB structural-prefix validation, 8 MiB in-memory threshold yielding to disk-spool above the cap, CSAM hard-block invariant preserved (screening policy unchanged). All eight required test cases covered by `src/services/fsmMediaCollector.test.ts` (13/13 pass). **No new commit required** — the finding was closed by a sibling session and this verification closes the "to verify on next pass" note in the prior ROADMAP entry.
+
 * **VF-AUD-20260916-P2-004-CLOSED-2026-09-17** — Google API-key query-string + redaction gap closed on `main` baseline `c8fa1a5e`, commit `1c2bfe1d`. (a) `buildProviderTestRequest()` in `electron/ipc/handlers/apiKeyHandlers.ts` no longer embeds the credential as `?key=...` for Gemini or Vertex Express — both now use the `x-goog-api-key` header (mirrors `electron/services/providerAdapters.ts`). (b) `src/shared/redaction.ts` `redactUrl()` masks `key` / `apiKey` / `api_key` / `api-key` / `x-goog-api-key` query parameters via the new `SENSITIVE_URL_QUERY_NAMES` set (case-insensitive, intentionally narrow — NOT a general "every field named `key` is secret" rule per audit guidance). Validation: `npm run lint:eslint` 0/0, `npm run typecheck` 3/3 tsconfigs, focused vitest 31/31, broader vitest 189/189 across 16 files. **Committed on `main`, not pushed** (parent agent owns publish). **Remaining audit work** (unchanged): `P2-001` Superdesign source drift, `P2-002` attachment envelope budgeting, `P2-005` family-safe media heap (likely closed by `VF-20260916-P1-003` — verify on next pass), `P3-002` current-authority docs, `P2-006` semantic media-safety capability, `P2-007` direct headed visual/a11y acceptance (separate release task).
 
 * **PHASE-4C-2-2026-09-17** — Dynamic reasoning-effort selector and model deprecation UX implemented on `main` baseline `5a45eb6c` against the 2026-09-17 synced Venice docs. Selector offers only model-advertised `reasoningEffortOptions` (full documented enum when unrestricted; fail-closed disable when unsupported/unknown), repairs invalid persisted values to the model default with a non-blocking notice, and the canonical payload boundary (`resolveReasoningEffort`) guarantees no invalid value reaches the wire. Deprecation UX surfaces `model_spec.deprecation` as a picker badge + selection warning (never swaps; catalog-removed models keep existing behavior); deprecation response headers were already captured by the diagnostics layer, so no new header plumbing was built. Open: native-language translation of the 13 `chat:reasoningEffort.*` + 6 `common:…modelselect…` deprecation keys (11 locales carry `__MISSING__:` placeholders), headed accessibility/visual QA, hosted CI/CodeQL green against the published SHA, and a funded-provider end-to-end check that a restricted model (e.g. per-upstream Grok) no longer 400s when an unsupported effort was previously persisted. **Uncommitted on `main`, not pushed.**
@@ -2071,6 +2087,13 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-17 — VF-AUD-20260916-P3-002 + P2-005 verification
+
+- `npm run lint:eslint` — PASS.
+- `npm run verify:markdown-links` — PASS (415 files).
+- `npx vitest run src/services/fsmMediaCollector.test.ts` — PASS (13/13).
+- Not run (out of scope for this isolated audit-fix slice): hosted CI/CodeQL, full `npm test`, `npm run build`, headed a11y/visual QA, native-language review, funded-provider requests.
 
 ### 2026-09-17 — VF-AUD-20260916-P2-004 (Google API-key query-string + redaction gap)
 
