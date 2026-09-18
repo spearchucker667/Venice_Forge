@@ -95,13 +95,33 @@ describe("resolvePlayableMediaUrl", () => {
     expect(desktopMedia.resolveUrl).not.toHaveBeenCalled();
   });
 
-  it("returns the input untouched when not running under Electron", async () => {
+  it("returns empty string for custom protocols when not running under Electron", async () => {
     vi.mocked(isElectron).mockReturnValue(false);
     const id = "0".repeat(64);
-    await expect(resolvePlayableMediaUrl(`venice-media://${id}`)).resolves.toBe(
-      `venice-media://${id}`,
+    await expect(resolvePlayableMediaUrl(`venice-media://${id}`)).resolves.toBe("");
+    await expect(resolvePlayableMediaUrl(`venice-character-cache://${id}`)).resolves.toBe("");
+    await expect(resolvePlayableMediaUrl(`venice-tts://voice/${id}.mp3`)).resolves.toBe("");
+    expect(desktopMedia.resolveUrl).not.toHaveBeenCalled();
+  });
+
+  it("leaves non-custom URLs untouched when not running under Electron", async () => {
+    vi.mocked(isElectron).mockReturnValue(false);
+    await expect(resolvePlayableMediaUrl("https://example.com/img.png")).resolves.toBe(
+      "https://example.com/img.png",
     );
     expect(desktopMedia.resolveUrl).not.toHaveBeenCalled();
+  });
+
+  it("returns empty string when desktopMedia.resolveUrl throws", async () => {
+    vi.mocked(desktopMedia.resolveUrl).mockRejectedValueOnce(new Error("IPC failed"));
+    const id = "1".repeat(64);
+    await expect(resolvePlayableMediaUrl(`venice-media://${id}`)).resolves.toBe("");
+  });
+
+  it("returns empty string when desktopMedia.resolveUrl returns a tokenless URL", async () => {
+    const id = "2".repeat(64);
+    vi.mocked(desktopMedia.resolveUrl).mockResolvedValueOnce(`venice-media://${id}`);
+    await expect(resolvePlayableMediaUrl(`venice-media://${id}`)).resolves.toBe("");
   });
 
   it("returns the input untouched for empty / nullish values", async () => {
@@ -123,10 +143,8 @@ describe("resolvePlayableMediaUrl", () => {
     expect(desktopMedia.resolveUrl).not.toHaveBeenCalled();
   });
 
-  it("does not issue a capability URL for a malformed venice-media id (wrong length)", async () => {
-    await expect(resolvePlayableMediaUrl("venice-media://abc123")).resolves.toBe(
-      "venice-media://abc123",
-    );
+  it("fails closed for a malformed venice-media id (wrong length)", async () => {
+    await expect(resolvePlayableMediaUrl("venice-media://abc123")).resolves.toBe("");
     expect(desktopMedia.resolveUrl).not.toHaveBeenCalled();
   });
 });

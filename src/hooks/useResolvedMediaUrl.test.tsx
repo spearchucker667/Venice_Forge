@@ -103,18 +103,14 @@ describe("useResolvedMediaUrl", () => {
     expect(resolvePlayableMediaUrl).not.toHaveBeenCalled();
   });
 
-  it("propagates whatever resolvePlayableMediaUrl returns, including a failure fallback", async () => {
-    // If the underlying resolver returns the same tokenless URL (e.g.,
-    // the protocol handler is unreachable or the URL doesn't match), the
-    // hook surfaces it verbatim. The element will then 403, but we
-    // deliberately do NOT block rendering — the previous (pre-fix)
-    // behavior was identical, and rendering nothing forever hides any
-    // future recovery (e.g., a renderer-side retry on `onError`).
-    vi.mocked(resolvePlayableMediaUrl).mockImplementation(async (url: string) => url);
+  it("surfaces empty string when resolvePlayableMediaUrl fails closed", async () => {
+    // Under VF-IMGINS-P2-003, resolvePlayableMediaUrl fails closed to ""
+    // rather than returning a tokenless custom protocol URL that triggers a 403.
+    vi.mocked(resolvePlayableMediaUrl).mockImplementation(async () => "");
     const url = `venice-media://${"d".repeat(64)}`;
     render(<Probe src={url} />);
     await waitFor(() => {
-      expect(screen.getByTestId("out").textContent).toBe(url);
+      expect(screen.getByTestId("out").textContent).toBe("");
     });
   });
 

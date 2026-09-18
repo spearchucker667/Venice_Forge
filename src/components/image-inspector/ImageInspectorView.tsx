@@ -28,6 +28,7 @@ import { GenerationLoadingIndicator } from "../generation/GenerationLoadingIndic
 import { askDecision } from "../ui/modal-requests";
 import type { VeniceModel } from "../../types/venice";
 import { Trans, useTranslation } from "react-i18next";
+import { ResolvedMediaImg } from "../media/ResolvedMediaImg";
 
 function formatUsdRate(value: number | undefined): string {
   if (value === undefined || !Number.isFinite(value)) return "—";
@@ -221,7 +222,7 @@ export function ImageInspectorView() {
                   >
                     <div className="w-10 h-10 rounded overflow-hidden bg-vf-panel-bg-muted flex-shrink-0 border border-vf-panel-border">
                       {s.inputs[0]?.uri && (
-                        <img
+                        <ResolvedMediaImg
                           src={s.inputs[0].uri}
                           className="w-full h-full object-cover"
                           alt=""
@@ -280,7 +281,7 @@ export function ImageInspectorView() {
             <div className="flex flex-col gap-6 w-full lg:w-[400px] flex-shrink-0">
               <div className="rounded-md border border-vf-panel-border overflow-hidden bg-vf-panel-bg-muted flex items-center justify-center min-h-[300px]">
                 {activeInput?.uri ? (
-                  <img
+                  <ResolvedMediaImg
                     src={activeInput.uri}
                     className="max-w-full max-h-[500px] object-contain"
                     alt={tRuntime(

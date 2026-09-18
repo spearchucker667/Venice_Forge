@@ -35,6 +35,20 @@ The matching preload and renderer types expose only those four operations. UI co
 
 `readMediaDataUrl` is intentionally narrow. It accepts one validated media ID, resolves app-managed storage in the main process, revalidates the stored MIME type, byte size, signature, and dimensions, and returns the data URL only for the immediate provider request. Session persistence retains the stable media ID and protocol URL, not the large base64 payload.
 
+## Media Rendering and Capability-URL Lifecycle
+
+Image Inspector persists durable `venice-media://${mediaId}` identifiers in session records and storage. Durable records must never persist short-lived capability tokens (`?cap=...`).
+
+Custom protocol handlers in the Electron main process enforce strict access control via `authorizeCustomProtocolCapability`: requests without a valid, unexpired capability token fail closed with HTTP 403 (Forbidden). Consequently, durable `venice-media://<sha256>` URIs must never be rendered directly into `<img>` elements.
+
+At the point of rendering, the UI uses `ResolvedMediaImg` (`src/components/media/ResolvedMediaImg.tsx`) or `useResolvedMediaUrl`:
+
+- The component requests a short-lived capability URL through `resolvePlayableMediaUrl()` (`src/services/playableMediaUrl.ts`), which delegates to `desktopMedia.resolveUrl` (`app:media:issueCapabilityUrl` IPC).
+- Main mints a time-bounded capability token bound to the media ID and returns `venice-media://${mediaId}?cap=<token>`.
+- While the capability URL is resolving, `ResolvedMediaImg` renders nothing so no tokenless request is emitted.
+- If capability resolution fails, throws, or returns no valid `cap=` token (including running in web mode), `resolvePlayableMediaUrl` fails closed to an empty string (`""`) rather than passing raw custom-protocol URIs to the DOM.
+- When an image element encounters an error because its capability token expired during display, `ResolvedMediaImg` triggers a one-shot `retry()` to obtain a fresh token and recover transparently.
+
 ## Model Selection and Analysis Request
 
 `src/components/image-inspector/ImageInspectorView.tsx` obtains the live model catalog and filters it through `modelSupportsVision()`. Live `model_spec.capabilities.supportsVision` metadata takes precedence over static fallback knowledge.
@@ -100,9 +114,11 @@ Focused coverage is provided by:
 - `src/services/imageInspectorAnalysis.test.ts`
 - `src/stores/image-inspector-store.test.ts`
 - `src/components/image-inspector/ImageInspectorView.test.tsx`
+- `src/services/playableMediaUrl.test.ts`
+- `src/hooks/useResolvedMediaUrl.test.tsx`
 - `src/services/inspectorTelemetry.test.ts`
 
-These suites cover signature/dimension validation, durable persistence, IPC registration and redaction, schema enforcement, preservation of provider-authored failure text, narrow media resolution, truthful source-discovery labels, and telemetry idempotence.
+These suites cover signature/dimension validation, durable persistence, IPC registration and redaction, schema enforcement, preservation of provider-authored failure text, narrow media resolution, capability-token resolution and fail-closed handling, truthful source-discovery labels, and telemetry idempotence.
 
 For the user workflow, see the [Image Inspector guide](../user/IMAGE_INSPECTOR.md).
 

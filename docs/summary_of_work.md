@@ -5,21 +5,26 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        ebf814a4
+baseline_sha:        7ef6d53f
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        dirty (ready for review/commit)
-ci_status:           all_local_suites_green (full vitest 571 files / 6758 tests pass; build clean; bundle budget ok)
+ci_status:           all_local_suites_green (verify:contracts, verify:i18n, lint, typecheck, build, test:unit:scripts, test:i18n all pass)
 codeql_status:       remediated (alerts #271, #272, #274, #275, #276, #277 resolved in code; alert #273 assessed as false positive)
 open_findings:       P2-007 (headed accessibility/visual QA); HQE-DOC-001 (native-language review of 12 non-English catalogs)
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-007)
-  - native-language translation review of the 12 non-English catalogs (3,900 placeholder entries)
+  - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
+  - Image Inspector 403 / media rendering regression repaired: resolved broken thumbnail and primary preview in `ImageInspectorView.tsx` by integrating canonical `ResolvedMediaImg` / `useResolvedMediaUrl` pipeline.
+  - Capability URL resolver hardening (VF-IMGINS-P2-003): hardened `resolvePlayableMediaUrl` in `src/services/playableMediaUrl.ts` to fail closed to `""` for custom-protocol schemes when resolution fails, throws, or lacks a valid capability token.
+  - Architecture documentation & preload comment reconciliation (VF-IMGINS-P3-004): updated `docs/DEVELOPMENT/image-inspector-architecture.md` with durable vs ephemeral capability lifecycle; reconciled `electron/preload.ts` comments to present tense.
+  - Regression coverage (VF-IMGINS-P2-002): comprehensive test coverage in `ImageInspectorView.test.tsx`, `playableMediaUrl.test.ts`, and `useResolvedMediaUrl.test.tsx`.
+  - CI unapproved untranslated English text in non-English locale files fixed: restored 44 locale catalogs to canonical `__MISSING__:` placeholders, reversing the erroneous `backfill-i18n-missing.cjs` run from commit `5970eef7`; removed `scripts/backfill-i18n-missing.cjs`; verified `npm run verify:contracts` and `npm run verify:i18n` pass cleanly.
   - Repository & documentation overhaul (100% active markdown docs indexed in DOCS_INDEX.md; 0 broken links in 417 files)
   - Showcase website & demo integration in README.md, docs/README.md, docs/ABOUT.md, docs/DOCS_INDEX.md
   - GitHub CodeQL code scanning remediation (Alerts #271, #272, #274, #275, #276, #277 resolved; #273 false positive assessed)
@@ -28,6 +33,38 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-18 Image Inspector 403 / media rendering regression repair and capability hardening on `main` (baseline `7ef6d53f`).**
+  - **Root Cause Analysis:** In `src/components/image-inspector/ImageInspectorView.tsx`, session thumbnails in the left pane and the primary preview image in the right pane were rendering raw `<img src={s.inputs[0].uri}>` and `<img src={activeInput.uri}>` elements. Because Image Inspector stores images as durable `venice-media://${mediaId}` protocol URIs, passing these directly to `<img>` caused Chromium to issue tokenless requests to the custom protocol handler (`electron/main.ts`), which correctly fails closed with HTTP 403 (Forbidden) via `authorizeCustomProtocolCapability`.
+  - **Remediation:**
+    - Integrated `ResolvedMediaImg` from `src/components/media/ResolvedMediaImg.tsx` into `src/components/image-inspector/ImageInspectorView.tsx` for both the session list thumbnail and the primary inspection preview. `ResolvedMediaImg` leverages `useResolvedMediaUrl` to issue short-lived capability tokens (`?cap=<token>`) asynchronously via `desktopMedia.resolveUrl` (`app:media:issueCapabilityUrl` IPC), rendering nothing until the token is minted (preventing tokenless requests) and transparently handling token expiration via `retry()`.
+    - Hardened `resolvePlayableMediaUrl` in `src/services/playableMediaUrl.ts` (VF-IMGINS-P2-003): for custom-protocol schemes (`venice-media://`, `venice-character-cache://`, `venice-tts://`), if resolution throws, fails, is invoked outside Electron, or returns no valid `cap=` token, it now fails closed to `""` rather than returning a raw tokenless custom-protocol URL to DOM media elements. Non-custom URLs (http, https, data, blob) and unknown schemes pass through untouched.
+    - Updated architecture documentation in `docs/DEVELOPMENT/image-inspector-architecture.md` (VF-IMGINS-P3-004) to detail the distinction between durable `venice-media://<sha256>` identifiers and ephemeral `?cap=` capability URLs, and updated the regression coverage list.
+    - Reconciled historical "Future VF-CAPABILITY-PROVENANCE" comments in `electron/preload.ts` to present tense referencing `issueCapabilityUrl`.
+    - Added comprehensive regression tests in `src/components/image-inspector/ImageInspectorView.test.tsx` (VF-IMGINS-P2-002) verifying: thumbnail and preview render capability-bearing URLs, no element renders tokenless `venice-media://`, non-custom URLs pass through synchronously, transparent recovery on `onError`, and fail-closed handling on resolution failure.
+    - Updated `src/services/playableMediaUrl.test.ts` and `src/hooks/useResolvedMediaUrl.test.tsx` to verify fail-closed resolution behavior.
+  - **Validation:**
+    - Focused Vitest: `ImageInspectorView.test.tsx` (10/10 PASS), `useResolvedMediaUrl.test.tsx` (18/18 PASS), `playableMediaUrl.test.ts` (15/15 PASS), `image-inspector-store.test.ts` (5/5 PASS), `imageInspectorInput.test.ts` (3/3 PASS), `imageInspectorHandlers.test.ts` (4/4 PASS), `customProtocolAccess.test.ts` (21/21 PASS), `generatedMediaStore.test.ts` (13/13 PASS). Total: 89/89 tests pass across 8 test suites.
+    - Repository gates: `npm run lint:eslint` (PASS, 0 errors, 0 warnings), `npm run typecheck` (PASS across 3 tsconfigs), `npm run verify:contracts` (PASS, 104/104 checks), `npm run verify:markdown-links` (PASS, 417 files), `npm run build` (PASS), `npm run verify:bundle-budget` (PASS), `npm run verify:dist` (PASS).
+    - No commit or push performed (local changes ready for review).
+
+- **2026-09-18 CI failure remediation: resolved unapproved untranslated English text in non-English locale files on `main` (baseline `7ef6d53f`).**
+  - **Root Cause Analysis:** In commit `5970eef7`, `scripts/backfill-i18n-missing.cjs` was executed to replace `__MISSING__:<keyPath>` placeholders across all 11 non-en-US locale catalogs with literal `en-US` text (3,916 keys total). This violated `scripts/verify-i18n.cjs` rule 489 (`contains unapproved untranslated English text: "${enVal}"`), which forbids copying untranslated English strings into non-English catalogs unless they are explicit allowable technical terms in `ALLOWLISTED_IDENTICAL` or `identical-value-allowlist.json`. Because `verify:contracts` runs `verify:i18n`, this broken state failed CI with 3,900 errors across all 11 non-English locales (and was falsely described in subsequent commit notes as "pre-existing catalog debt").
+  - **Remediation:**
+    - Restored the 44 non-English JSON catalogs under `src/i18n/resources/` (`ar`, `de`, `es`, `fr`, `hi`, `ja`, `ko`, `pt-BR`, `ru`, `sv-SE`, `zh-CN`) to their canonical `__MISSING__:` placeholder states. Under `npm run verify:i18n` (which uses `--allow-missing-markers --allow-key-name-fallbacks`), missing keys carrying `__MISSING__:` are recognized as pending qualified native review and emit non-blocking warnings rather than hard validation errors.
+    - Confirmed the runtime firewall in `src/i18n/resourceNormalizer.ts` (`normalizeResources` → `isUntranslatedCatalogValue`) already normalizes `__MISSING__:` values to `''` before registering with i18next (`returnEmptyString: false`, `fallbackLng: 'en-US'`), so the UI at runtime already cleanly and safely displays the canonical `en-US` fallback without ever rendering missing markers to end users.
+    - Removed the obsolete and dangerous script `scripts/backfill-i18n-missing.cjs` via `git rm`.
+  - **Validation:**
+    - `npm run verify:i18n` — PASS (12 locales, 12 namespaces; exit code 0).
+    - `npm run verify:contracts` — PASS (all static, feature, and release contract suites pass, 104/104 release packaging hardening checks).
+    - `npm run lint:eslint` — PASS (0 errors, 0 warnings across all files).
+    - `npm run typecheck` — PASS (root, electron, electron.test).
+    - `npm run test:i18n` — PASS (5 test files, 53/53 tests passed).
+    - `npm run test:unit:scripts` — PASS (36 test files, 286/286 tests passed).
+    - `npm run verify:safety-guard` and `npm run verify:markdown-links` — PASS.
+    - `npm run build`, `npm run verify:bundle-budget`, `npm run verify:dist` — PASS.
+    - `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+  - No push performed. Local changes staged for review.
 
 - **2026-09-18 Venice API knowledge-base refresh on `main` (baseline `ebf814a4`).** Reconciled Forge's tracked API reference with the maintained `veniceai/api-docs` mirror at `e787d6fe`, rather than downgrading to the supplied local checkout's older August Swagger. `Venice_swagger_api.yaml` now records schema version `20260916.135625`; `Venice_api_LLM_info.md` includes current voice-changer coverage; and `VENICE_API_SOURCE_MANIFEST.md` records the refreshed provenance and source inventory. `docs:venice:sync` now promotes the validated Swagger, LLM reference, and manifest into the tracked knowledge base, preventing mirror-only refreshes from leaving it stale. Validation: `npm run docs:venice:sync`, `npm run verify:venice-api-docs`, and `npm run verify:venice-contract-drift` passed. No commit or push performed.
 
@@ -450,6 +487,18 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Image Inspector 403 / media rendering repair & capability URL hardening
+
+- Baseline: local `main` at `7ef6d53f`; preserved worktree edits.
+- Diagnosed and repaired the Image Inspector media rendering regression where successfully imported local images were persisted as `venice-media://${mediaId}` protocol URIs, but thumbnails and active preview images broke with `GET venice-media://<sha256>/ 403 (Forbidden)`.
+- Root cause: `src/components/image-inspector/ImageInspectorView.tsx` directly rendered raw `<img src={s.inputs[0].uri}>` and `<img src={activeInput.uri}>` elements, bypassing the capability URL issuance protocol. The main-process protocol handler enforces strict access control (`authorizeCustomProtocolCapability`), failing closed with 403 for any request lacking an ephemeral capability token (`?cap=...`).
+- Integrated `ResolvedMediaImg` (`src/components/media/ResolvedMediaImg.tsx`) into `ImageInspectorView.tsx` for both session thumbnails and the primary preview. It resolves durable identifiers to time-bounded capability URLs asynchronously via `desktopMedia.resolveUrl` (`app:media:issueCapabilityUrl` IPC), rendering nothing until the token is minted (avoiding tokenless requests) and retrying on token expiration.
+- Hardened `src/services/playableMediaUrl.ts` (VF-IMGINS-P2-003): for custom-protocol schemes (`venice-media://`, `venice-character-cache://`, `venice-tts://`), if resolution fails, throws, is executed outside Electron, or returns no valid `cap=` token, it now fails closed to `""` rather than returning a raw tokenless custom-protocol URL to DOM elements. Non-custom URLs (http, https, data, blob) and unknown schemes pass through untouched.
+- Reconciled historical "Future VF-CAPABILITY-PROVENANCE" comments in `electron/preload.ts` to present tense referencing `issueCapabilityUrl`.
+- Updated `docs/DEVELOPMENT/image-inspector-architecture.md` (VF-IMGINS-P3-004) with the durable vs ephemeral capability-URL lifecycle and updated regression coverage list.
+- Added 10-test regression suite to `src/components/image-inspector/ImageInspectorView.test.tsx` (VF-IMGINS-P2-002) and updated `src/services/playableMediaUrl.test.ts` and `src/hooks/useResolvedMediaUrl.test.tsx`.
+- Validation: 89/89 tests passed across 8 focused test suites; full repository gates passed (`lint:eslint`, `typecheck`, `verify:contracts`, `verify:markdown-links`, `build`, `verify:bundle-budget`, `verify:dist`). No commit or push performed.
 
 ### 2026-09-18 — Venice API knowledge-base refresh
 
@@ -2138,6 +2187,35 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Image Inspector 403 / Media Rendering Repair & Capability Hardening (baseline `7ef6d53f`)
+
+- `npx vitest run src/components/image-inspector/ImageInspectorView.test.tsx src/hooks/useResolvedMediaUrl.test.tsx src/services/playableMediaUrl.test.ts` — PASS (43/43 tests pass across 3 suites).
+- `npx vitest run ...` (8 suites: ImageInspectorView, useResolvedMediaUrl, playableMediaUrl, image-inspector-store, imageInspectorInput, imageInspectorHandlers, customProtocolAccess, generatedMediaStore) — PASS (89/89 tests pass across 8 test suites).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run typecheck` — PASS (all 3 tsconfigs: root, electron, electron.test).
+- `npm run verify:contracts` — PASS (all static, feature, and release contract checks pass; 104/104 release packaging hardening checks pass).
+- `npm run verify:markdown-links` — PASS (417 Markdown files checked, 0 broken links).
+- `npm run build` — PASS (vite web in 1.43s, esbuild server in 17ms, electron main/preload bundled).
+- `npm run verify:bundle-budget` — PASS (all chunks within budget).
+- `npm run verify:dist` — PASS (production build outputs verified).
+- Not run: hosted CI/CodeQL against new commit (no commit or push authorized).
+
+### 2026-09-18 — CI failure remediation: unapproved untranslated English text in locale files (baseline `7ef6d53f`)
+
+- `npm run verify:i18n` — PASS (12 locales, 12 namespaces; 0 unapproved untranslated English text errors; missing-markers permitted as non-blocking warnings).
+- `npm run verify:contracts` — PASS (all static, feature, and release packaging hardening checks pass; 104/104 checks pass).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run typecheck` — PASS (all 3 tsconfigs: root, electron, electron.test).
+- `npm run test:i18n` — PASS (5 test files, 53/53 tests pass).
+- `npm run test:unit:scripts` — PASS (36 test files, 286/286 tests pass).
+- `npm run verify:safety-guard` — PASS (safety guard enforcement checks pass across 8 boundaries).
+- `npm run verify:markdown-links` — PASS (417 Markdown files checked, 0 broken links).
+- `npm run build` — PASS (vite web in 2.15s, esbuild server in 21ms, electron main/preload bundled).
+- `npm run verify:bundle-budget` — PASS (all chunks within budget).
+- `npm run verify:dist` — PASS (production build outputs verified).
+- Not run: full `npm run test:ci` full sweep (ran segmented scripts and i18n suites), hosted CI/CodeQL against new commit.
 
 ### 2026-09-18 — Venice API knowledge-base refresh (baseline `ebf814a4`)
 
