@@ -89,6 +89,23 @@ describe("redactSecrets", () => {
       self: "[Circular]",
     });
   });
+
+  it("prevents prototype pollution from untrusted keys and handles null prototype objects", () => {
+    const maliciousPayload = JSON.parse(
+      '{"__proto__":{"polluted":true},"constructor":{"polluted":true},"prototype":{"polluted":true},"safeKey":"value"}'
+    );
+    const redacted = redactSecrets(maliciousPayload);
+    expect(redacted).toEqual({ safeKey: "value" });
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+
+    const nullProto: Record<string, unknown> = Object.create(null);
+    nullProto.apiKey = "secret-val";
+    nullProto.label = "test";
+    const redactedNullProto = redactSecrets(nullProto);
+    expect(Object.getPrototypeOf(redactedNullProto)).toBeNull();
+    expect(redactedNullProto.apiKey).toBe("[REDACTED]");
+    expect(redactedNullProto.label).toBe("test");
+  });
 });
 
 describe("redactErrorMessage", () => {

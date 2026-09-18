@@ -5,20 +5,23 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        a232c22e
+baseline_sha:        917ba97d
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        clean
-ci_status:           hosted_green (run 35339868411, 11/11 jobs passed including unit-and-integration, coverage, smoke macos/windows/linux)
-codeql_status:       hosted_green (run 35339868405, 2/2 jobs passed)
+working_tree:        dirty (ready for review/commit)
+ci_status:           all_local_suites_green (verify:contracts, lint:eslint, typecheck, verify:safety-guard all pass)
+codeql_status:       remediated (alert #273 dismissed as false positive on GitHub; alerts #275 & #276 remediated in src/shared/redaction.ts via Object.fromEntries)
 open_findings:       P2-007 (headed accessibility/visual QA); HQE-DOC-001 (native-language review of 12 non-English catalogs)
 external_acceptance_outstanding:
+  - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-007)
   - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
+  - CodeQL alerts #275 & #276 (`js/remote-property-injection`) resolved: refactored `redactSecrets` in `src/shared/redaction.ts` to construct objects using `Object.fromEntries(entries)` and preserve null prototypes via `Object.assign(Object.create(null), ...)` rather than bracket property writes; added unit tests verifying prototype-pollution resistance and null-prototype handling (`redaction.test.ts`).
+  - CodeQL alert #273 (`js/file-access-to-http`) dismissed on GitHub as false positive: verified intentional privileged IPC connection test (`jinaApiKey:test` in `jinaHandlers.ts`), matching established repository precedent for alerts #249-#251.
   - Fixed fuzzy safety guard false-positive on trailing punctuation (`candid shot,`): stripped leading/trailing punctuation in `fuzzyMatchesCritical` (`childExploitationGuard.ts`) so allowlisted terms with punctuation (e.g. `shot,`, `solo.`, `role!`) match `FUZZY_ALLOWLIST` instead of falsely colliding with `shota` in Soundex; verified user prompt passes with `allow: true`.
   - Hardened `playableMediaUrl.ts` against partial/unexported `desktopBridge` mocks and provided `isElectron` in `video-view.test.tsx` mock, eliminating 9 unhandled mock rejections in coverage suites.
   - Aligned chatTtsController test mock with capability URL requirement: updated `desktopMedia.resolveUrl` mock and expected `audioSources` in `src/services/chatTtsController.test.ts` to return `?cap=test-token`, satisfying the fail-closed custom protocol capability boundary in `resolvePlayableMediaUrl` (VF-IMGINS-P2-003).
@@ -35,6 +38,12 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-18 CodeQL code scanning audit and remediation on `main` (baseline `917ba97d`).**
+  - **Audit & Triage:** Reviewed all 3 open CodeQL alerts on GitHub (`spearchucker667/Venice_Forge`).
+  - **Alert #273 (`js/file-access-to-http`, Medium):** Triaged `jinaApiKey:test` in `electron/ipc/handlers/jinaHandlers.ts:306`. Confirmed intentional API key verification sending the user's configured key to the official Jina Reader endpoint (`https://r.jina.ai/`). Dismissed on GitHub as `false positive` with comment matching precedent for alerts #249, #250, and #251.
+  - **Alerts #275 & #276 (`js/remote-property-injection`, High):** In `src/shared/redaction.ts:143,145`, dynamic property writes `redacted[key] = ...` on plain objects triggered CodeQL property injection warnings for untrusted error keys. Refactored object creation to collect entry tuples and build objects via `Object.fromEntries(entries)` (preserving null prototypes where applicable), removing the bracket assignment sink.
+  - **Validation:** Added dedicated unit tests in `src/shared/redaction.test.ts` (21/21 PASS), verified `npm run lint:eslint` (PASS, 0 errors, 0 warnings), `npm run typecheck` (PASS, 3/3 tsconfigs), `npm run verify:safety-guard` (PASS), `npm run verify:contracts` (PASS, 104/104 checks).
 
 - **2026-09-18 Fuzzy safety guard punctuation false-positive remediation and mock resilience on `main` (baseline `9723a177`).**
   - **Root Cause Analysis (Fuzzy Safety Guard):** A user reported that a benign adult image generation prompt (`"...candid shot, high resolution, photorealistic, 8k, shot on iPhone..."`) was blocked by mandatory child-safety protection with `obfuscated_minor_sexualization` / `FUZZY_CRITICAL_TERM_MATCH`. Investigation revealed that while `shot` is explicitly in `FUZZY_ALLOWLIST`, `normStitch.split(/\s+/)` did not strip trailing punctuation, yielding the token `shot,`. Because `shot,` is not in the allowlist, it was processed by Soundex (`S300`, length 5), which matched the restricted genre label `shota` (`S300`, length 5, length delta 0).
@@ -510,6 +519,14 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — CodeQL code scanning audit, alert #273 dismissal, and alerts #275/#276 remediation
+
+- Baseline: `917ba97d` on `main`.
+- Audited open GitHub CodeQL alerts for `spearchucker667/Venice_Forge`: #273, #275, #276.
+- Alert #273 (`js/file-access-to-http` in `electron/ipc/handlers/jinaHandlers.ts:306`): dismissed on GitHub via GitHub API as `false positive` (intentional API key verification to `https://r.jina.ai/`, matching precedent in alerts #249-#251).
+- Alerts #275 & #276 (`js/remote-property-injection` in `src/shared/redaction.ts:143,145`): replaced bracket property assignments on plain objects with `Object.fromEntries(entries)` (and null-prototype preservation), eliminating prototype pollution AST sinks. Added tests in `src/shared/redaction.test.ts`.
+- Validation: `src/shared/redaction.test.ts` (21/21 PASS), `npm run lint:eslint` (PASS, 0 errors, 0 warnings), `npm run typecheck` (PASS, 3/3 tsconfigs), `npm run verify:safety-guard` (PASS), `npm run verify:contracts` (PASS, 104/104 checks).
 
 ### 2026-09-18 — Fuzzy safety guard punctuation false-positive remediation and mock resilience
 
@@ -2237,6 +2254,15 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — CodeQL Code Scanning Remediation (baseline `917ba97d`)
+
+- `npx vitest run src/shared/redaction.test.ts` — PASS (21/21 tests pass).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run typecheck` — PASS (all 3 tsconfigs: root, electron, electron.test).
+- `npm run verify:safety-guard` — PASS.
+- `npm run verify:contracts` — PASS (104/104 release packaging hardening and static contract checks pass).
+- GitHub code scanning alert triage: Alert #273 dismissed via API as false positive.
 
 ### 2026-09-18 — Fuzzy Safety Guard Punctuation Fix & Mock Resilience (baseline `9723a177`)
 

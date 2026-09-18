@@ -134,18 +134,22 @@ export function redactSecrets<T>(value: T, ancestors: WeakSet<object> = new Weak
   if (Array.isArray(value)) {
     result = value.map((item) => redactSecrets(item, ancestors)) as T;
   } else {
-    const redacted: Record<string, unknown> = {};
+    const entries: [string, unknown][] = [];
     for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
       if (key === "__proto__" || key === "constructor" || key === "prototype") {
         continue;
       }
       if (SECRET_KEY_PATTERN.test(key)) {
-        redacted[key] = "[REDACTED]";
+        entries.push([key, "[REDACTED]"]);
       } else {
-        redacted[key] = redactSecrets(entry, ancestors);
+        entries.push([key, redactSecrets(entry, ancestors)]);
       }
     }
-    result = redacted as T;
+    result = (
+      Object.getPrototypeOf(value) === null
+        ? Object.assign(Object.create(null), Object.fromEntries(entries))
+        : Object.fromEntries(entries)
+    ) as T;
   }
 
   ancestors.delete(value as object);
