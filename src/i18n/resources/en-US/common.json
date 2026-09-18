@@ -211,18 +211,26 @@
         "runtime": "Runtime",
         "storage": "Storage",
         "safetyGuardAudit": "Safety guard audit",
-        "lastRequest": "Last request"
+        "lastRequest": "Last request",
+        "mediaClassifierCapabilities": "Media classifier capabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Aggregated runtime info for the current build. Open",
         "toInspectDetailedConsoleOutput": "to inspect detailed console output.",
-        "statusProvidesTransportStorageAuditAndRequest": "Status provides transport, storage, audit, and request diagnostics. Use the dedicated Library, Research, Settings, and workflow tabs for feature-specific controls."
+        "statusProvidesTransportStorageAuditAndRequest": "Status provides transport, storage, audit, and request diagnostics. Use the dedicated Library, Research, Settings, and workflow tabs for feature-specific controls.",
+        "mediaClassifierIsStructuralOnly": "Family Safe Mode currently performs STRUCTURAL validation only — no semantic content classification backend is registered. Generation requests are screened for protocol safety, payload shape, and attachment provenance; image / audio / video bytes are NOT semantically classified."
       },
       "text": {
         "logsFolder": "logs folder",
         "bySeverity": "By severity:",
         "lastError": "Last error:",
-        "noRequestsYetLastErrorBelowIf": "no requests yet (last error below if any)"
+        "noRequestsYetLastErrorBelowIf": "no requests yet (last error below if any)",
+        "image": "Image:",
+        "audio": "Audio:",
+        "video": "Video:",
+        "registeredBackend": "Registered backend:",
+        "yes": "yes",
+        "no": "no"
       }
     },
     "componentsThememaker": {

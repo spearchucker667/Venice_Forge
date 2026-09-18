@@ -163,18 +163,26 @@
         "runtime": "وقت التشغيل",
         "storage": "التخزين",
         "safetyGuardAudit": "تدقيق حراسة الأمان",
-        "lastRequest": "آخر طلب"
+        "lastRequest": "آخر طلب",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "معلومات وقت التشغيل المجمعة للإصدار الحالي. افتح مجلد السجلات",
         "toInspectDetailedConsoleOutput": "لفحص مخرجات وحدة التحكم التفصيلية.",
-        "statusProvidesTransportStorageAuditAndRequest": "توفر الحالة النقل والتخزين والتدقيق وتشخيص الطلب. استخدم علامات التبويب المكتبة والبحث والإعدادات وسير العمل المخصصة لعناصر التحكم الخاصة بالميزات."
+        "statusProvidesTransportStorageAuditAndRequest": "توفر الحالة النقل والتخزين والتدقيق وتشخيص الطلب. استخدم علامات التبويب المكتبة والبحث والإعدادات وسير العمل المخصصة لعناصر التحكم الخاصة بالميزات.",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "مجلد السجلات",
         "bySeverity": "حسب الخطورة:",
         "lastError": "الخطأ الأخير:",
-        "noRequestsYetLastErrorBelowIf": "لا توجد طلبات حتى الآن (الخطأ الأخير أدناه إن وجد)"
+        "noRequestsYetLastErrorBelowIf": "لا توجد طلبات حتى الآن (الخطأ الأخير أدناه إن وجد)",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThememaker": {

@@ -163,18 +163,26 @@
         "runtime": "रनटाइम",
         "storage": "स्टोरेज",
         "safetyGuardAudit": "सुरक्षा गार्ड ऑडिट",
-        "lastRequest": "अंतिम अनुरोध"
+        "lastRequest": "अंतिम अनुरोध",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "वर्तमान निर्माण के लिए एकत्रित रनटाइम जानकारी। विस्तृत कंसोल आउटपुट का निरीक्षण करने के लिए",
         "toInspectDetailedConsoleOutput": "खोलें।",
-        "statusProvidesTransportStorageAuditAndRequest": "स्थिति परिवहन, भंडारण, ऑडिट और अनुरोध निदान प्रदान करती है। सुविधा-विशिष्ट नियंत्रणों के लिए समर्पित लाइब्रेरी, अनुसंधान, सेटिंग्स और वर्कफ़्लो टैब का उपयोग करें।"
+        "statusProvidesTransportStorageAuditAndRequest": "स्थिति परिवहन, भंडारण, ऑडिट और अनुरोध निदान प्रदान करती है। सुविधा-विशिष्ट नियंत्रणों के लिए समर्पित लाइब्रेरी, अनुसंधान, सेटिंग्स और वर्कफ़्लो टैब का उपयोग करें।",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "लॉग फ़ोल्डर",
         "bySeverity": "गंभीरता से:",
         "lastError": "अंतिम त्रुटि:",
-        "noRequestsYetLastErrorBelowIf": "अभी तक कोई अनुरोध नहीं (यदि कोई हो तो नीचे अंतिम त्रुटि)"
+        "noRequestsYetLastErrorBelowIf": "अभी तक कोई अनुरोध नहीं (यदि कोई हो तो नीचे अंतिम त्रुटि)",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThememaker": {

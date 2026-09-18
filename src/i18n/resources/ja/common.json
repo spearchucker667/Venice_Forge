@@ -163,18 +163,26 @@
         "runtime": "ランタイム",
         "storage": "ストレージ",
         "safetyGuardAudit": "安全ガード監査",
-        "lastRequest": "最後のリクエスト"
+        "lastRequest": "最後のリクエスト",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "現在のビルドの集約されたランタイム情報。",
         "toInspectDetailedConsoleOutput": "を開いて、詳細なコンソール出力を調べます。",
-        "statusProvidesTransportStorageAuditAndRequest": "ステータスは、トランスポート、ストレージ、監査、およびリクエストの診断を提供します。機能固有のコントロールには、専用の [ライブラリ]、[リサーチ]、[設定]、および [ワークフロー] タブを使用します。"
+        "statusProvidesTransportStorageAuditAndRequest": "ステータスは、トランスポート、ストレージ、監査、およびリクエストの診断を提供します。機能固有のコントロールには、専用の [ライブラリ]、[リサーチ]、[設定]、および [ワークフロー] タブを使用します。",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "ログ フォルダー",
         "bySeverity": "重大度別:",
         "lastError": "最後のエラー:",
-        "noRequestsYetLastErrorBelowIf": "まだリクエストがありません (最後のエラーがある場合は以下にあります)"
+        "noRequestsYetLastErrorBelowIf": "まだリクエストがありません (最後のエラーがある場合は以下にあります)",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThememaker": {

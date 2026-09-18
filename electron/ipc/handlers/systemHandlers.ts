@@ -22,6 +22,7 @@ import {
   screenResponseBody,
   safetyBlockBodyFromResponseScreen,
 } from "../../../src/shared/safety";
+import { getClassifierCapabilities } from "../../../src/shared/safety/mediaScreener";
 import { checkLocalFamilyGuard } from "../../services/guardPipeline";
 import { getRuntimeLocalFamilySafeModeEnabled } from "../../services/runtimeSafetySettings";
 import { redactErrorMessage } from "../../../src/shared/redaction";
@@ -260,6 +261,10 @@ export function registerSystemHandlers(): void {
       apiKeyConfigured: isApiKeyConfigured(),
       transport: "direct-ipc",
       lastApiError: getLastApiError() ? redactErrorMessage(getLastApiError()) : "",
+      // VF-AUD-20260916-P2-006 — truthful Family Safe Mode media-classifier
+      // capability state. The Status view renders this so users see whether
+      // classification is "structural validation" or "semantic content screening".
+      mediaClassifierCapabilities: getClassifierCapabilities(),
     };
   });
 

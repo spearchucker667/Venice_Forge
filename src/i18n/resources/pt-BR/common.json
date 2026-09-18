@@ -1792,18 +1792,26 @@
         "runtime": "Tempo de execução",
         "storage": "Armazenamento",
         "safetyGuardAudit": "Auditoria de segurança",
-        "lastRequest": "Última solicitação"
+        "lastRequest": "Última solicitação",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Informações agregadas de tempo de execução para a compilação atual. Abra a pasta de logs",
         "toInspectDetailedConsoleOutput": "para inspecionar a saída detalhada do console.",
-        "statusProvidesTransportStorageAuditAndRequest": "O status fornece transporte, armazenamento, auditoria e diagnóstico de solicitação. Use as guias dedicadas Biblioteca, Pesquisa, Configurações e fluxo de trabalho para controles específicos de recursos."
+        "statusProvidesTransportStorageAuditAndRequest": "O status fornece transporte, armazenamento, auditoria e diagnóstico de solicitação. Use as guias dedicadas Biblioteca, Pesquisa, Configurações e fluxo de trabalho para controles específicos de recursos.",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "pasta de registros",
         "bySeverity": "Por gravidade:",
         "lastError": "Último erro:",
-        "noRequestsYetLastErrorBelowIf": "nenhuma solicitação ainda (último erro abaixo, se houver)"
+        "noRequestsYetLastErrorBelowIf": "nenhuma solicitação ainda (último erro abaixo, se houver)",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThemepreview": {

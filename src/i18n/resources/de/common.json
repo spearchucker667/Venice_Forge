@@ -1765,18 +1765,26 @@
         "runtime": "Laufzeit",
         "storage": "Speicher",
         "safetyGuardAudit": "Sicherheitsüberwachungsprüfung",
-        "lastRequest": "Letzte Anfrage"
+        "lastRequest": "Letzte Anfrage",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Aggregierte Laufzeitinformationen für den aktuellen Build. Öffnen Sie den Protokollordner",
         "toInspectDetailedConsoleOutput": ", um die detaillierte Konsolenausgabe zu überprüfen.",
-        "statusProvidesTransportStorageAuditAndRequest": "Der Status bietet Transport-, Speicher-, Audit- und Anfragediagnosen. Verwenden Sie die speziellen Registerkarten „Bibliothek“, „Recherche“, „Einstellungen“ und „Workflow“ für funktionsspezifische Steuerelemente."
+        "statusProvidesTransportStorageAuditAndRequest": "Der Status bietet Transport-, Speicher-, Audit- und Anfragediagnosen. Verwenden Sie die speziellen Registerkarten „Bibliothek“, „Recherche“, „Einstellungen“ und „Workflow“ für funktionsspezifische Steuerelemente.",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "Logs-Ordner",
         "bySeverity": "Nach Schweregrad:",
         "lastError": "Letzter Fehler:",
-        "noRequestsYetLastErrorBelowIf": "noch keine Anfragen (letzter Fehler unten, falls vorhanden)"
+        "noRequestsYetLastErrorBelowIf": "noch keine Anfragen (letzter Fehler unten, falls vorhanden)",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThemepreview": {

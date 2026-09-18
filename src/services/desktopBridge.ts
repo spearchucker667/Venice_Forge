@@ -527,6 +527,15 @@ export const desktopApp = {
         secureStorageAvailable: false,
         apiKeyConfigured: false,
         transport: "web-proxy",
+        // VF-AUD-20260916-P2-006 — web-mode fallback reports truthful
+        // structural-only state (no semantic ML backend is registered in
+        // the renderer-shared screener either).
+        mediaClassifierCapabilities: {
+          semanticImageClassifier: "unavailable",
+          semanticAudioClassifier: "unavailable",
+          semanticVideoClassifier: "unavailable",
+          hasRegisteredBackend: false,
+        },
       });
     }
     return window.veniceForge!.app.getDiagnostics();

@@ -163,18 +163,26 @@
         "runtime": "运行时",
         "storage": "存储",
         "safetyGuardAudit": "安全防护审核",
-        "lastRequest": "最后请求"
+        "lastRequest": "最后请求",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "当前构建的聚合运行时信息。打开",
         "toInspectDetailedConsoleOutput": "以检查详细的控制台输出。",
-        "statusProvidesTransportStorageAuditAndRequest": "状态提供传输、存储、审核和请求诊断。使用专用的库、研究、设置和工作流程选项卡进行特定功能的控制。"
+        "statusProvidesTransportStorageAuditAndRequest": "状态提供传输、存储、审核和请求诊断。使用专用的库、研究、设置和工作流程选项卡进行特定功能的控制。",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "日志文件夹",
         "bySeverity": "按严重性：",
         "lastError": "最后一个错误：",
-        "noRequestsYetLastErrorBelowIf": "尚无请求（下面的最后一个错误（如果有））"
+        "noRequestsYetLastErrorBelowIf": "尚无请求（下面的最后一个错误（如果有））",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThememaker": {

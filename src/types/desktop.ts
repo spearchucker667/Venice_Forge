@@ -108,6 +108,25 @@ export interface VeniceForgeVenice {
   abort(signalId: string): Promise<{ ok: boolean }>;
 }
 
+/**
+ * VF-AUD-20260916-P2-006 — truthful Family Safe Mode media-classifier
+ * capability state. The descriptor mirrors `getClassifierCapabilities()` in
+ * `src/shared/safety/mediaScreener.ts` and is surfaced through the
+ * diagnostics payload so the Status view (and any future release-time
+ * surfaces) can show the user the actual classification regime. The
+ * production build reports all three modalities as `"unavailable"` and
+ * relies on structural validation; do NOT silently widen this to `"local"`
+ * or `"provider"` without a tested backend implementation.
+ */
+export type ClassifierModality = "unavailable" | "local" | "provider";
+
+export interface MediaClassifierCapabilities {
+  semanticImageClassifier: ClassifierModality;
+  semanticAudioClassifier: ClassifierModality;
+  semanticVideoClassifier: ClassifierModality;
+  hasRegisteredBackend: boolean;
+}
+
 /** Diagnostic metadata about the desktop application environment. */
 export interface VeniceForgeDiagnostics {
   isDesktop: boolean;
@@ -124,6 +143,12 @@ export interface VeniceForgeDiagnostics {
   apiKeyConfigured: boolean;
   transport: "direct-ipc" | "web-proxy";
   lastApiError?: string;
+  /**
+   * VF-AUD-20260916-P2-006 — truthful Family Safe Mode media-classifier
+   * capability state. The Status view renders this so users can see whether
+   * classification is "structural validation" or "semantic content screening".
+   */
+  mediaClassifierCapabilities: MediaClassifierCapabilities;
 }
 
 /** Runtime status of the encrypted sync engine in the main process. */

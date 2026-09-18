@@ -163,18 +163,26 @@
         "runtime": "Время выполнения",
         "storage": "Хранение",
         "safetyGuardAudit": "Аудит системы безопасности",
-        "lastRequest": "Последний запрос"
+        "lastRequest": "Последний запрос",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Совокупная информация о времени выполнения для текущей сборки. Откройте папку журналов",
         "toInspectDetailedConsoleOutput": ", чтобы просмотреть подробные выходные данные консоли.",
-        "statusProvidesTransportStorageAuditAndRequest": "Статус обеспечивает транспортировку, хранение, аудит и диагностику запросов. Используйте специальные вкладки «Библиотека», «Исследования», «Настройки» и «Рабочий процесс» для управления конкретными функциями."
+        "statusProvidesTransportStorageAuditAndRequest": "Статус обеспечивает транспортировку, хранение, аудит и диагностику запросов. Используйте специальные вкладки «Библиотека», «Исследования», «Настройки» и «Рабочий процесс» для управления конкретными функциями.",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "папка журналов",
         "bySeverity": "По серьезности:",
         "lastError": "Последняя ошибка:",
-        "noRequestsYetLastErrorBelowIf": "запросов пока нет (последняя ошибка указана ниже, если таковые имеются)."
+        "noRequestsYetLastErrorBelowIf": "запросов пока нет (последняя ошибка указана ниже, если таковые имеются).",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThememaker": {

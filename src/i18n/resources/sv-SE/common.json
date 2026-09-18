@@ -1792,18 +1792,26 @@
         "runtime": "Körtid",
         "storage": "Lagring",
         "safetyGuardAudit": "Säkerhetsvaktsrevision",
-        "lastRequest": "Senaste begäran"
+        "lastRequest": "Senaste begäran",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Sammanlagd körtidsinformation för det aktuella bygget. Öppna",
         "toInspectDetailedConsoleOutput": "för att inspektera detaljerad konsolutgång.",
-        "statusProvidesTransportStorageAuditAndRequest": "Status tillhandahåller transport, lagring, revision och begäran om diagnostik. Använd flikarna Bibliotek, Forskning, Inställningar och arbetsflöde för funktionsspecifika kontroller."
+        "statusProvidesTransportStorageAuditAndRequest": "Status tillhandahåller transport, lagring, revision och begäran om diagnostik. Använd flikarna Bibliotek, Forskning, Inställningar och arbetsflöde för funktionsspecifika kontroller.",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "loggmappen",
         "bySeverity": "Efter svårighetsgrad:",
         "lastError": "Senaste fel:",
-        "noRequestsYetLastErrorBelowIf": "inga förfrågningar ännu (senaste felet nedan om något)"
+        "noRequestsYetLastErrorBelowIf": "inga förfrågningar ännu (senaste felet nedan om något)",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThemepreview": {

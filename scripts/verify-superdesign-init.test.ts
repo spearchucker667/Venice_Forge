@@ -3,13 +3,23 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-// @ts-expect-error CJS verifier
-import {
+import cjsVerifier from "./verify-superdesign-init.cjs";
+
+const {
   verifySuperdesignInit,
   REQUIRED_FILES,
   REQUIRED_SOURCE_PATHS,
   REQUIRED_COMPONENT_SOURCES,
-} from "./verify-superdesign-init.cjs";
+} = cjsVerifier as unknown as {
+  verifySuperdesignInit: (root: string) => {
+    passed: boolean;
+    errors: string[];
+    fingerprint: string;
+  };
+  REQUIRED_FILES: readonly string[];
+  REQUIRED_SOURCE_PATHS: readonly string[];
+  REQUIRED_COMPONENT_SOURCES: readonly string[];
+};
 
 const roots: string[] = [];
 

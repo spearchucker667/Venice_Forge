@@ -178,7 +178,7 @@ function extractComponentPropsFromSource(source, componentName) {
     return null;
   }
   // No target: return the first interface found (any `*Props` interface).
-  const anyRe = /(?:^|\n)\s*(?:export\s+)?interface\s+([A-Z]\w*Props)\b[^\{]*\{/g;
+  const anyRe = /(?:^|\n)\s*(?:export\s+)?interface\s+([A-Z]\w*Props)\b[^{}]*\{/g;
   const m = anyRe.exec(source);
   if (m) {
     const ifaceBody = findInterfaceBody(source, m[1]);

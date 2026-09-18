@@ -163,18 +163,26 @@
         "runtime": "Exécution",
         "storage": "Stockage",
         "safetyGuardAudit": "Audit des agents de sécurité",
-        "lastRequest": "Dernière demande"
+        "lastRequest": "Dernière demande",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Informations d'exécution agrégées pour la version actuelle. Ouvrez le dossier de journaux",
         "toInspectDetailedConsoleOutput": "pour inspecter la sortie détaillée de la console.",
-        "statusProvidesTransportStorageAuditAndRequest": "L'état fournit des diagnostics de transport, de stockage, d'audit et de demande. Utilisez les onglets dédiés Bibliothèque, Recherche, Paramètres et Flux de travail pour les contrôles spécifiques aux fonctionnalités."
+        "statusProvidesTransportStorageAuditAndRequest": "L'état fournit des diagnostics de transport, de stockage, d'audit et de demande. Utilisez les onglets dédiés Bibliothèque, Recherche, Paramètres et Flux de travail pour les contrôles spécifiques aux fonctionnalités.",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "dossier des journaux",
         "bySeverity": "Par gravité :",
         "lastError": "Dernière erreur :",
-        "noRequestsYetLastErrorBelowIf": "aucune demande pour l'instant (dernière erreur ci-dessous le cas échéant)"
+        "noRequestsYetLastErrorBelowIf": "aucune demande pour l'instant (dernière erreur ci-dessous le cas échéant)",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThememaker": {

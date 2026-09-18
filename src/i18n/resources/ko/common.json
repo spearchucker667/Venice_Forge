@@ -163,18 +163,26 @@
         "runtime": "런타임",
         "storage": "스토리지",
         "safetyGuardAudit": "안전 가드 감사",
-        "lastRequest": "마지막 요청"
+        "lastRequest": "마지막 요청",
+        "mediaClassifierCapabilities": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierCapabilities"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "현재 빌드에 대해 집계된 런타임 정보입니다. 자세한 콘솔 출력을 검사하려면",
         "toInspectDetailedConsoleOutput": "를 엽니다.",
-        "statusProvidesTransportStorageAuditAndRequest": "상태는 전송, 저장, 감사 및 요청 진단을 제공합니다. 기능별 제어를 위해 전용 라이브러리, 연구, 설정 및 워크플로 탭을 사용하세요."
+        "statusProvidesTransportStorageAuditAndRequest": "상태는 전송, 저장, 감사 및 요청 진단을 제공합니다. 기능별 제어를 위해 전용 라이브러리, 연구, 설정 및 워크플로 탭을 사용하세요.",
+        "mediaClassifierIsStructuralOnly": "__MISSING__:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly"
       },
       "text": {
         "logsFolder": "로그 폴더",
         "bySeverity": "심각도별:",
         "lastError": "마지막 오류:",
-        "noRequestsYetLastErrorBelowIf": "아직 요청이 없습니다(있는 경우 아래 마지막 오류)."
+        "noRequestsYetLastErrorBelowIf": "아직 요청이 없습니다(있는 경우 아래 마지막 오류).",
+        "image": "__MISSING__:surface.componentsStatusview.text.image",
+        "audio": "__MISSING__:surface.componentsStatusview.text.audio",
+        "video": "__MISSING__:surface.componentsStatusview.text.video",
+        "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
+        "yes": "__MISSING__:surface.componentsStatusview.text.yes",
+        "no": "__MISSING__:surface.componentsStatusview.text.no"
       }
     },
     "componentsThememaker": {

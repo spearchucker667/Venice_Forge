@@ -167,4 +167,31 @@ describe("getClassifierCapabilities (VF-AUD-20260831-P2-009)", () => {
     expect(caps.semanticVideoClassifier).toBe("unavailable");
     expect(caps.hasRegisteredBackend).toBe(true);
   });
+
+  // VF-AUD-20260916-P2-006 — production-build truthful capability state.
+  // The default production build must report all three modalities as
+  // 'unavailable' (and `hasRegisteredBackend: false`) so the Status view
+  // can truthfully tell the user that Family Safe Mode is currently
+  // "structural validation" rather than "semantic content screening".
+  // Any widening to 'local' or 'provider' for a release must be paired with
+  // a tested backend implementation — that gate is enforced by this test.
+  it("VF-AUD-20260916-P2-006 production build returns the truthful 'unavailable' state", () => {
+    clearClassifierBackend();
+    const caps = getClassifierCapabilities();
+    expect(caps).toEqual({
+      semanticImageClassifier: "unavailable",
+      semanticAudioClassifier: "unavailable",
+      semanticVideoClassifier: "unavailable",
+      hasRegisteredBackend: false,
+    });
+    // Explicit invariant: do not silently widen the modalities without
+    // updating the audit handoff and adding the corresponding tested
+    // backend implementation. The audit handoff §VF-AUD-20260916-P2-006
+    // requires a separate approved implementation plan covering model
+    // license/provenance, supply-chain validation, offline behavior,
+    // calibration corpus, FP/FN evaluation, failure policy, diagnostics.
+    expect(["unavailable", "local", "provider"]).toContain(caps.semanticImageClassifier);
+    expect(["unavailable", "local", "provider"]).toContain(caps.semanticAudioClassifier);
+    expect(["unavailable", "local", "provider"]).toContain(caps.semanticVideoClassifier);
+  });
 });

@@ -13,7 +13,14 @@ import { getAuditSnapshot } from '../shared/safety';
 import { useSettingsStore } from '../stores/settings-store';
 import { useInspectorStore } from '../stores/inspector-store';
 import { Meteocon } from './ui/Meteocon';
-import { Trans } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
+
+interface MediaClassifierCapabilities {
+  semanticImageClassifier: 'unavailable' | 'local' | 'provider';
+  semanticAudioClassifier: 'unavailable' | 'local' | 'provider';
+  semanticVideoClassifier: 'unavailable' | 'local' | 'provider';
+  hasRegisteredBackend: boolean;
+}
 
 interface AppDiagnostics {
   appVersion: string;
@@ -28,6 +35,10 @@ interface AppDiagnostics {
   electronVersion?: string;
   chromeVersion?: string;
   lastApiError: string;
+  // VF-AUD-20260916-P2-006 — truthful Family Safe Mode media-classifier
+  // capability state. Defaults to "all unavailable" on web mode where the
+  // shared capability descriptor is not loaded through this bridge.
+  mediaClassifierCapabilities: MediaClassifierCapabilities;
 }
 
 function getEmptyDiagnostics(): AppDiagnostics {
@@ -42,11 +53,18 @@ function getEmptyDiagnostics(): AppDiagnostics {
     apiKeyConfigured: false,
     nodeVersion: '',
     lastApiError: '',
+    mediaClassifierCapabilities: {
+      semanticImageClassifier: 'unavailable',
+      semanticAudioClassifier: 'unavailable',
+      semanticVideoClassifier: 'unavailable',
+      hasRegisteredBackend: false,
+    },
   };
 }
 
 export function StatusView() {
   const [diag, setDiag] = useState<AppDiagnostics>(getEmptyDiagnostics);
+  const { t } = useTranslation();
   const activeTab = useSettingsStore((s) => s.activeTab);
   const lastRequest = useInspectorStore((s) => s.logs[0]);
 
@@ -69,6 +87,7 @@ export function StatusView() {
             electronVersion: result.electronVersion,
             chromeVersion: result.chromeVersion,
             lastApiError: result.lastApiError ?? '',
+            mediaClassifierCapabilities: result.mediaClassifierCapabilities,
           });
         }
       } else {
@@ -139,6 +158,23 @@ export function StatusView() {
               .join(' · ')}
           </div>
         )}
+      </section>
+
+      <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
+        <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
+          <Meteocon name="umbrella" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.mediaClassifierCapabilities" /></h3>
+        <Row k={t('common:surface.componentsStatusview.text.image', 'Image:')} v={diag.mediaClassifierCapabilities.semanticImageClassifier} />
+        <Row k={t('common:surface.componentsStatusview.text.audio', 'Audio:')} v={diag.mediaClassifierCapabilities.semanticAudioClassifier} />
+        <Row k={t('common:surface.componentsStatusview.text.video', 'Video:')} v={diag.mediaClassifierCapabilities.semanticVideoClassifier} />
+        <Row
+          k={t('common:surface.componentsStatusview.text.registeredBackend', 'Registered backend:')}
+          v={diag.mediaClassifierCapabilities.hasRegisteredBackend
+            ? t('common:surface.componentsStatusview.text.yes', 'yes')
+            : t('common:surface.componentsStatusview.text.no', 'no')}
+        />
+        <p className="text-[12px] text-text-muted pt-1">
+          <Trans i18nKey="common:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly" />
+        </p>
       </section>
 
       <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
