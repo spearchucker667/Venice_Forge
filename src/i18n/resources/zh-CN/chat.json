@@ -40,27 +40,27 @@
     "promotedToDocuments": "已保存到“文档”",
     "attachmentNotRegistered": "附件尚未注册，无法提升。",
     "promotionFailed": "提升失败。",
-    "addVideoUrl": "Add video URL",
-    "nativeVideoDraft": "Video URL",
-    "videoUrlPlaceholder": "https://example.com/video.mp4 or a YouTube link",
-    "videoUrlLabel": "Video URL for {{name}}",
-    "attachmentMode": "Source for {{name}}",
+    "addVideoUrl": "__MISSING__:composer.addVideoUrl",
+    "nativeVideoDraft": "__MISSING__:composer.nativeVideoDraft",
+    "videoUrlPlaceholder": "__MISSING__:composer.videoUrlPlaceholder",
+    "videoUrlLabel": "__MISSING__:composer.videoUrlLabel {{name}}",
+    "attachmentMode": "__MISSING__:composer.attachmentMode {{name}}",
     "attachmentModes": {
-      "context": "Local context",
-      "nativeFile": "Native file",
-      "nativeVideo": "Native video"
+      "context": "__MISSING__:composer.attachmentModes.context",
+      "nativeFile": "__MISSING__:composer.attachmentModes.nativeFile",
+      "nativeVideo": "__MISSING__:composer.attachmentModes.nativeVideo"
     },
     "nativeErrors": {
-      "title": "Attachment can't be sent",
-      "unsupportedType": "This attachment type can't be sent as a native input.",
-      "missingPayload": "This attachment is missing its content.",
-      "rawLocalPath": "Local file paths can't be sent. Attach the file itself or use a public https:// URL.",
-      "unsupportedFileFormat": "Unsupported file type for native input. Allowed: PDF, EPUB, DOCX, PPTX, XLSX, XLS, TXT, Markdown, CSV, or JSON. Choose “Local context” instead.",
-      "unsupportedVideoFormat": "Unsupported video URL. Use a direct mp4/mpeg/mov/webm link or a YouTube URL.",
-      "tooManyVideoUrls": "At most {{max}} video inputs per message (this message has {{actual}}).",
-      "tooLarge": "This file is too large to upload as a native file. Use “Local context” instead — it extracts the text into the conversation.",
-      "fileUnavailable": "The original file is no longer available — re-attach it to send it as a native file.",
-      "readFailed": "Couldn't read this file as a native input."
+      "title": "__MISSING__:composer.nativeErrors.title",
+      "unsupportedType": "__MISSING__:composer.nativeErrors.unsupportedType",
+      "missingPayload": "__MISSING__:composer.nativeErrors.missingPayload",
+      "rawLocalPath": "__MISSING__:composer.nativeErrors.rawLocalPath",
+      "unsupportedFileFormat": "__MISSING__:composer.nativeErrors.unsupportedFileFormat",
+      "unsupportedVideoFormat": "__MISSING__:composer.nativeErrors.unsupportedVideoFormat",
+      "tooManyVideoUrls": "__MISSING__:composer.nativeErrors.tooManyVideoUrls {{max}} {{actual}}",
+      "tooLarge": "__MISSING__:composer.nativeErrors.tooLarge",
+      "fileUnavailable": "__MISSING__:composer.nativeErrors.fileUnavailable",
+      "readFailed": "__MISSING__:composer.nativeErrors.readFailed"
     }
   },
   "memory": {
@@ -99,39 +99,39 @@
     "retryingFromCheckpoint": "数据流中断。正在从检查点重试"
   },
   "privacy": {
-    "e2eeLabel": "End-to-end encryption",
-    "e2eeUnavailable": "The selected model doesn't advertise E2EE support.",
-    "e2eeEffective": "Effective for this chat: {{value}}",
-    "conversationOverride": "conversation override",
-    "retentionLabel": "Prompt cache retention",
-    "retentionHint": "Venice-only cache hint. Fallback providers ignore it.",
-    "fallbackNotice": "Fallback providers are enabled. They cannot preserve E2EE — a chat routed to a fallback provider is sent without E2EE.",
+    "e2eeLabel": "__MISSING__:privacy.e2eeLabel",
+    "e2eeUnavailable": "__MISSING__:privacy.e2eeUnavailable",
+    "e2eeEffective": "__MISSING__:privacy.e2eeEffective {{value}}",
+    "conversationOverride": "__MISSING__:privacy.conversationOverride",
+    "retentionLabel": "__MISSING__:privacy.retentionLabel",
+    "retentionHint": "__MISSING__:privacy.retentionHint",
+    "fallbackNotice": "__MISSING__:privacy.fallbackNotice",
     "e2eeOptions": {
-      "provider-default": "Provider default",
-      "on": "On",
-      "off": "Off"
+      "provider-default": "__MISSING__:privacy.e2eeOptions.provider-default",
+      "on": "__MISSING__:privacy.e2eeOptions.on",
+      "off": "__MISSING__:privacy.e2eeOptions.off"
     },
     "retentionOptions": {
-      "default": "Default",
-      "extended": "Extended",
-      "24h": "24h"
+      "default": "__MISSING__:privacy.retentionOptions.default",
+      "extended": "__MISSING__:privacy.retentionOptions.extended",
+      "24h": "__MISSING__:privacy.retentionOptions.24h"
     }
   },
   "reasoningEffort": {
-    "label": "Reasoning effort",
-    "providerDefault": "Provider default",
-    "hint": "Higher effort means deeper reasoning, more tokens, and more latency.",
-    "unsupported": "The selected model doesn't advertise reasoning-effort support.",
-    "unknownMetadata": "Model capabilities aren't available, so reasoning effort won't be sent.",
-    "repaired": "“{{effort}}” isn't supported by {{model}} — reset to {{resetTo}}.",
+    "label": "__MISSING__:reasoningEffort.label",
+    "providerDefault": "__MISSING__:reasoningEffort.providerDefault",
+    "hint": "__MISSING__:reasoningEffort.hint",
+    "unsupported": "__MISSING__:reasoningEffort.unsupported",
+    "unknownMetadata": "__MISSING__:reasoningEffort.unknownMetadata",
+    "repaired": "__MISSING__:reasoningEffort.repaired {{effort}} {{model}} {{resetTo}}",
     "options": {
-      "none": "none",
-      "minimal": "minimal",
-      "low": "low",
-      "medium": "medium",
-      "high": "high",
-      "xhigh": "xhigh",
-      "max": "max"
+      "none": "__MISSING__:reasoningEffort.options.none",
+      "minimal": "__MISSING__:reasoningEffort.options.minimal",
+      "low": "__MISSING__:reasoningEffort.options.low",
+      "medium": "__MISSING__:reasoningEffort.options.medium",
+      "high": "__MISSING__:reasoningEffort.options.high",
+      "xhigh": "__MISSING__:reasoningEffort.options.xhigh",
+      "max": "__MISSING__:reasoningEffort.options.max"
     }
   }
 }

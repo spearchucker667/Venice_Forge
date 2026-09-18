@@ -164,20 +164,20 @@
     "removeFromChat": "إزالة من المحادثة"
   },
   "promptLimit": {
-    "count": "{{current}}/{{limit}}",
-    "overTitle": "Prompt too long",
-    "overDetail": "Shorten the prompt to {{limit}} characters or fewer for the selected model."
+    "count": "__MISSING__:promptLimit.count {{current}} {{limit}}",
+    "overTitle": "__MISSING__:promptLimit.overTitle",
+    "overDetail": "__MISSING__:promptLimit.overDetail {{limit}}"
   },
   "audioStudio": {
     "notification": {
-      "formatRepaired": "Output format reset to {{format}} — the selected model does not support your previous choice."
+      "formatRepaired": "__MISSING__:audioStudio.notification.formatRepaired {{format}}"
     }
   },
   "videoStudio": {
     "bitrateMode": {
-      "label": "Output bitrate",
-      "standard": "Standard",
-      "high": "High"
+      "label": "__MISSING__:videoStudio.bitrateMode.label",
+      "standard": "__MISSING__:videoStudio.bitrateMode.standard",
+      "high": "__MISSING__:videoStudio.bitrateMode.high"
     }
   }
 }
