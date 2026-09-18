@@ -8,7 +8,7 @@ vi.mock("./desktopBridge", () => ({
   desktopTts: { synthesize, clearCache: vi.fn() },
   desktopMedia: {
     resolveUrl: vi.fn(async (input: { resourceUrl?: string; scheme: string; objectId: string }) =>
-      input.resourceUrl ?? `${input.scheme}://${input.objectId}`,
+      `${input.resourceUrl ?? `${input.scheme}://${input.objectId}`}?cap=test-token`,
     ),
   },
 }));
@@ -79,7 +79,7 @@ describe("chatTtsController", () => {
     resolveFirst({ ok: true, id: "a".repeat(64), profileId: "default", cacheMode: "disk" });
     await firstPlay;
 
-    expect(audioSources).toEqual([`venice-tts://default/${"b".repeat(64)}.mp3`]);
+    expect(audioSources).toEqual([`venice-tts://default/${"b".repeat(64)}.mp3?cap=test-token`]);
     expect(chatTtsController.getCurrentMessageId()).toBe("m2");
   });
 

@@ -5,13 +5,13 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        7ef6d53f
+baseline_sha:        43888f71
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        dirty (ready for review/commit)
-ci_status:           all_local_suites_green (verify:contracts, verify:i18n, lint, typecheck, build, test:unit:scripts, test:i18n all pass)
+ci_status:           all_local_suites_green (verify:contracts, verify:i18n, lint:eslint, typecheck, build, test:ci, verify:safety-guard, verify:markdown-links, verify:dist, verify:bundle-budget all pass)
 codeql_status:       remediated (alerts #271, #272, #274, #275, #276, #277 resolved in code; alert #273 assessed as false positive)
 open_findings:       P2-007 (headed accessibility/visual QA); HQE-DOC-001 (native-language review of 12 non-English catalogs)
 external_acceptance_outstanding:
@@ -20,6 +20,7 @@ external_acceptance_outstanding:
   - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-18:
+  - Aligned chatTtsController test mock with capability URL requirement: updated `desktopMedia.resolveUrl` mock and expected `audioSources` in `src/services/chatTtsController.test.ts` to return `?cap=test-token`, satisfying the fail-closed custom protocol capability boundary in `resolvePlayableMediaUrl` (VF-IMGINS-P2-003).
   - Image Inspector 403 / media rendering regression repaired: resolved broken thumbnail and primary preview in `ImageInspectorView.tsx` by integrating canonical `ResolvedMediaImg` / `useResolvedMediaUrl` pipeline.
   - Capability URL resolver hardening (VF-IMGINS-P2-003): hardened `resolvePlayableMediaUrl` in `src/services/playableMediaUrl.ts` to fail closed to `""` for custom-protocol schemes when resolution fails, throws, or lacks a valid capability token.
   - Architecture documentation & preload comment reconciliation (VF-IMGINS-P3-004): updated `docs/DEVELOPMENT/image-inspector-architecture.md` with durable vs ephemeral capability lifecycle; reconciled `electron/preload.ts` comments to present tense.
@@ -33,6 +34,14 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-18 Capability mock alignment in `chatTtsController.test.ts` and full CI validation on `main` (baseline `43888f71`).**
+  - **Root Cause Analysis:** In `src/services/chatTtsController.ts`, line 180 calls `await resolvePlayableMediaUrl("venice-tts://${result.profileId}/${result.id}.mp3")`. Under the hardened capability URL policy (VF-IMGINS-P2-003), any custom-protocol URL (`venice-media://`, `venice-character-cache://`, `venice-tts://`) that resolves without a `?cap=` token fails closed to `""`. In `src/services/chatTtsController.test.ts`, the mock for `desktopMedia.resolveUrl` was returning a tokenless URL (`input.resourceUrl ?? ...`), causing `resolvePlayableMediaUrl` to fail closed to `""`, resulting in `new Audio("")` and `audioSources = [""]` instead of the synthesized URL.
+  - **Remediation:** Updated `desktopMedia.resolveUrl` mock in `src/services/chatTtsController.test.ts` to append `?cap=test-token`, matching production IPC `app:media:issueCapabilityUrl` behavior and canonical test mock patterns (`ImageInspectorView.test.tsx`, `playableMediaUrl.test.ts`). Updated assertion on line 82 to expect the capability-bearing URL `venice-tts://default/${"b".repeat(64)}.mp3?cap=test-token`.
+  - **Validation:**
+    - Focused Vitest: `npx vitest run src/services/chatTtsController.test.ts` — PASS (3/3 tests).
+    - Full repository test suite: `npm run test:ci` — PASS (100% of tests passed across all 6 segments: server, electron, ingestion, unit [stores, services, hooks, lib, shared, utils, theme, scripts, types, config, agent, constants, research, i18n], ui [layout, chat, media, research, settings], contracts).
+    - Repository gates: `npm run lint:eslint` (PASS, 0 errors, 0 warnings), `npm run typecheck` (PASS, all 3 configs), `npm run verify:safety-guard` (PASS), `npm run verify:markdown-links` (PASS), `npm run verify:contracts` (PASS, 104/104 checks), `npm run build` (PASS), `npm run verify:dist` (PASS), `npm run verify:bundle-budget` (PASS).
 
 - **2026-09-18 Image Inspector 403 / media rendering regression repair and capability hardening on `main` (baseline `7ef6d53f`).**
   - **Root Cause Analysis:** In `src/components/image-inspector/ImageInspectorView.tsx`, session thumbnails in the left pane and the primary preview image in the right pane were rendering raw `<img src={s.inputs[0].uri}>` and `<img src={activeInput.uri}>` elements. Because Image Inspector stores images as durable `venice-media://${mediaId}` protocol URIs, passing these directly to `<img>` caused Chromium to issue tokenless requests to the custom protocol handler (`electron/main.ts`), which correctly fails closed with HTTP 403 (Forbidden) via `authorizeCustomProtocolCapability`.
@@ -487,6 +496,14 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Capability mock alignment in chatTtsController.test.ts and test:ci full validation
+
+- Baseline: `43888f71` on `main`.
+- Diagnosed hosted CI failure on `unit-and-integration-tests` (run 35334950902): `src/services/chatTtsController.test.ts > chatTtsController > ignores a stale synthesis response after a newer play request` failed with `expected [ '' ] to deeply equal [ Array(1) ]`.
+- Root cause: `chatTtsController.ts` calls `await resolvePlayableMediaUrl("venice-tts://${result.profileId}/${result.id}.mp3")`. Under hardened capability security (VF-IMGINS-P2-003), `resolvePlayableMediaUrl` fails closed to `""` for custom protocol schemes unless a valid `?cap=` token is returned by `desktopMedia.resolveUrl`. The test's mock returned a tokenless URL, causing `sourceUrl` to resolve to `""`.
+- Remediation: Updated `desktopMedia.resolveUrl` mock in `src/services/chatTtsController.test.ts` to return `?cap=test-token`, matching IPC `app:media:issueCapabilityUrl` behavior. Updated test expectation to match the capability-bearing URL.
+- Validation: Focused test passed (3/3), full segmented CI suite `npm run test:ci` passed (100% across all 6 segments), `npm run lint:eslint`, `npm run typecheck`, `npm run verify:safety-guard`, `npm run verify:markdown-links`, `npm run verify:contracts` (104/104), `npm run build`, `npm run verify:dist`, `npm run verify:bundle-budget` all passed.
 
 ### 2026-09-18 — Image Inspector 403 / media rendering repair & capability URL hardening
 
@@ -2187,6 +2204,20 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Capability Mock Alignment & Full test:ci Sweep (baseline `43888f71`)
+
+- `npx vitest run src/services/chatTtsController.test.ts` — PASS (3/3 tests).
+- `npm run test:ci` — PASS (100% passed across all test shards: server, electron, ingestion, unit:stores, unit:services, unit:hooks, unit:lib, unit:shared, unit:utils, unit:theme, unit:scripts, unit:types, unit:config, unit:agent, unit:constants, unit:research, test:i18n, ui:layout, ui:chat, ui:media, ui:research, ui:settings, test:contracts).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run typecheck` — PASS (all 3 tsconfigs: root, electron, electron.test).
+- `npm run verify:safety-guard` — PASS.
+- `npm run verify:markdown-links` — PASS (417 Markdown files, 0 broken links).
+- `npm run verify:contracts` — PASS (all static, feature, and release contract checks pass; 104/104 release packaging hardening checks pass).
+- `npm run build` — PASS (vite web in 1.39s, esbuild server in 16ms, electron main/preload bundled).
+- `npm run verify:bundle-budget` — PASS (all chunks within budget).
+- `npm run verify:dist` — PASS (production build outputs verified).
+- Hosted CI & CodeQL: inspected on commit `43888f71` (CodeQL run 35334950901 PASSED; CI run 35334950902 had 1 failing test in `chatTtsController.test.ts` due to tokenless mock URL; remediated here).
 
 ### 2026-09-18 — Image Inspector 403 / Media Rendering Repair & Capability Hardening (baseline `7ef6d53f`)
 
