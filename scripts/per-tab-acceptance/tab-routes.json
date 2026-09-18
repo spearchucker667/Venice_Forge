@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "description": "Canonical tab-id → default route + initial focus target mapping for the per-tab headed acceptance harness. Keep in lockstep with src/App.tsx views: Record<TabId, …>.",
+  "tabs": [
+    {
+      "id": "character-chats",
+      "route": "/character-chats",
+      "initialFocus": "[data-tab-heading='character-chats']",
+      "primaryAction": "[data-testid='character-chats-new']"
+    },
+    {
+      "id": "history",
+      "route": "/history",
+      "initialFocus": "[data-tab-heading='history']",
+      "primaryAction": "[data-testid='history-search-input']"
+    },
+    {
+      "id": "image-inspector",
+      "route": "/image-inspector",
+      "initialFocus": "[data-tab-heading='image-inspector']",
+      "primaryAction": "[data-testid='image-inspector-toolbar']"
+    },
+    {
+      "id": "prompts",
+      "route": "/prompts",
+      "initialFocus": "[data-tab-heading='prompts']",
+      "primaryAction": "[data-testid='prompts-new']"
+    },
+    {
+      "id": "scenes",
+      "route": "/scenes",
+      "initialFocus": "[data-tab-heading='scenes']",
+      "primaryAction": "[data-testid='scenes-new']"
+    },
+    {
+      "id": "audio",
+      "route": "/audio",
+      "initialFocus": "[data-tab-heading='audio']",
+      "primaryAction": "[data-testid='audio-new']"
+    },
+    {
+      "id": "music",
+      "route": "/music",
+      "initialFocus": "[data-tab-heading='music']",
+      "primaryAction": "[data-testid='music-new']"
+    },
+    {
+      "id": "video",
+      "route": "/video",
+      "initialFocus": "[data-tab-heading='video']",
+      "primaryAction": "[data-testid='video-new']"
+    },
+    {
+      "id": "embeddings",
+      "route": "/embeddings",
+      "initialFocus": "[data-tab-heading='embeddings']",
+      "primaryAction": "[data-testid='embeddings-new']"
+    },
+    {
+      "id": "search",
+      "route": "/search",
+      "initialFocus": "[data-tab-heading='search']",
+      "primaryAction": "[data-testid='search-input']"
+    },
+    {
+      "id": "characters",
+      "route": "/characters",
+      "initialFocus": "[data-tab-heading='characters']",
+      "primaryAction": "[data-testid='characters-new']"
+    },
+    {
+      "id": "character-creator",
+      "route": "/character-creator",
+      "initialFocus": "[data-tab-heading='character-creator']",
+      "primaryAction": "[data-testid='character-creator-submit']"
+    },
+    {
+      "id": "rp-studio",
+      "route": "/rp-studio",
+      "initialFocus": "[data-tab-heading='rp-studio']",
+      "primaryAction": "[data-testid='rp-studio-toolbar']"
+    },
+    {
+      "id": "privacy",
+      "route": "/privacy",
+      "initialFocus": "[data-tab-heading='privacy']",
+      "primaryAction": "[data-testid='privacy-clear-storage']"
+    },
+    {
+      "id": "playground",
+      "route": "/playground",
+      "initialFocus": "[data-tab-heading='playground']",
+      "primaryAction": "[data-testid='playground-run']"
+    }
+  ]
+}

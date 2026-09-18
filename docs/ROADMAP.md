@@ -67,7 +67,25 @@ The 2026-09-18 current-`main` exhaustive review and remediation handoff is close
 | `VF-20260918-P3-018` | `ee6ade04` |
 | `VF-20260918-P3-019` | `5eca2e45` |
 
-Two findings (`P2-016` headed visual/accessibility QA and `P3-020` qualified native-language review) require external human acceptance and remain blocked. Hosted CI/CodeQL must be confirmed green against the published SHA before this tranche is treated as fully closed.
+Two findings (`P2-016` headed visual/accessibility QA and `P3-020` qualified native-language review) require external human acceptance and remain blocked. **Scaffolding + tooling only** has been prepared to make the human review tractable:
+
+- `VF-20260918-P2-016` tooling (published `main` HEAD `b6618b6f`):
+  - `docs/design/per-tab-acceptance/README.md` (canonical surface + coverage math)
+  - `docs/design/per-tab-acceptance/CHECKLIST.md` (per-tab reviewer checklist)
+  - `docs/design/per-tab-acceptance/EVIDENCE_MANIFEST.template.json` (JSON schema with reviewer.signature + contact)
+  - `scripts/per-tab-acceptance/tab-routes.json` (15 tabs × route + initial focus + primary action)
+  - `scripts/per-tab-acceptance/runner.sh` (idempotent Playwright stub generator via the local Codex skill wrapper)
+  - `scripts/verify-per-tab-acceptance.cjs` (verifier; exits non-zero until every required tuple has a signed manifest + non-empty notes.md)
+  - `npm run verify:per-tab-acceptance`
+- `VF-20260918-P3-020` tooling (published `main` HEAD `b6618b6f`):
+  - `docs/i18n/review-pack/README.md` (per-locale scaffolding + policy)
+  - `docs/i18n/review-pack/PLACEHOLDER-INVENTORY.json` (machine-readable; 3,916 placeholders across 11 non-English locales × 12 namespaces)
+  - `docs/i18n/review-pack/PER-LOCALE/<locale>.md` × 11 (per-locale checklist)
+  - `scripts/generate-i18n-review-pack.cjs` (regenerator)
+  - `scripts/verify-i18n-review-status.cjs` (verifier; refuses to mark a locale human-reviewed while placeholders remain)
+  - `npm run generate:i18n-review-pack` and `npm run verify:i18n-review-status`
+
+Both findings remain `OPEN` in `open_findings`; closure requires out-of-band human work and the verifier-driven evidence described above.
 
 ## Current Work
 
