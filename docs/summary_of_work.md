@@ -2,6 +2,25 @@
 
 This is the active handoff and validation ledger. The canonical current-work ledger is `docs/ROADMAP.md`; historical reports belong under `docs/reports/historical/`.
 
+## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
+
+```text
+baseline_sha:        8f0bb828
+verified_at:         2026-09-17 (Pacific)
+package_version:     3.0.0-beta.3
+node_engine:         >=22.15.0 <23.0.0
+branch:              main
+working_tree:        clean
+ci_status:           not_rerun_this_session (last observed green per audit; rerun against published SHA outstanding)
+codeql_status:       not_rerun_this_session (rerun against published SHA outstanding)
+open_findings:       P2-001, P2-002, P2-006, P3-002 (in-progress), P2-007
+external_acceptance_outstanding:
+  - hosted CI/CodeQL against the published SHA
+  - headed accessibility/visual QA (per-tab acceptance, P2-007)
+  - native-language translation review of the 12 non-English catalogs
+  - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
+```
+
 ## Latest Session Summary
 
 - **2026-09-17 VF-AUD-20260916-P2-004 — Closed Google API-key query-string + redaction gap on `main` (baseline `c8fa1a5e`, commit `1c2bfe1d`).** Per `docs/audits/TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md` finding §VF-AUD-20260916-P2-004. Two surfaces fixed. **(a) URL credential leakage** — `electron/ipc/handlers/apiKeyHandlers.ts` `buildProviderTestRequest()` no longer embeds the Gemini or Vertex Express API key as `?key=...` in the test URL; both now carry the credential in the `x-goog-api-key` header (matches the documented Gemini REST contract and mirrors `electron/services/providerAdapters.ts` for the request transport). Vertex's inline comment explains the rationale so the next reviewer does not revert to the query form. The previously-bare `apiKey: ""` case now emits an empty headers object instead of a `?key=` query, preserving the no-credential path. **(b) Redaction gap** — `src/shared/redaction.ts` `redactUrl()` now masks `key`, `apiKey`, `api_key`, `api-key`, and `x-goog-api-key` query parameter values via the new `SENSITIVE_URL_QUERY_NAMES` set (case-insensitive). Lookup is intentionally NOT generalized to "every field named `key` is secret" per audit guidance; the test suite asserts an ordinary `?page_key=p1` survives unchanged. `sanitizeErrorText` propagates the fix via `redactPaths` → `redactUrl`. **Tests added**: new `electron/ipc/handlers/apiKeyHandlers.connection.test.ts` (5 tests: Gemini + Vertex Express + Anthropic/Azure bearer-header sanity); `src/shared/redaction.test.ts` gains a 9-test `redactUrl` suite. `buildProviderTestRequest` is exported with a JSDoc note explaining the unit-test contract (same pattern as `isReservedCredentialName`). **Validation**: `npm run lint:eslint` 0/0, `npm run typecheck` 3/3 tsconfigs, focused vitest 31/31, broader vitest 189/189 across 16 files (`src/shared` + `electron/ipc`). **Committed on `main`, not pushed.**

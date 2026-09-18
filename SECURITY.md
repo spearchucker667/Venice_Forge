@@ -3,6 +3,31 @@
 This file is the source of truth for Venice Forge's security, local safety,
 logging, diagnostics, and API-key handling model.
 
+## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
+
+```text
+baseline_sha:        8f0bb828
+verified_at:         2026-09-17 (Pacific)
+package_version:     3.0.0-beta.3
+node_engine:         >=22.15.0 <23.0.0
+sender_validation:   electron/utils/validateIpcSender.ts fails closed when
+                     event.senderFrame is absent or untrusted; no
+                     sender.getURL() / WebContents top-level fallback
+fsm_authority:       electron/services/guardPipeline.ts via
+                     performGuardedVeniceRequest() / checkLocalFamilyGuard()
+                     in Electron main; server.ts applies the local guard in
+                     web mode and screens Jina/scrape response bodies via
+                     screenResponseBody()
+endpoint_allowlist:  src/shared/validation.ts ALLOWED_VENICE_ENDPOINTS
+                     (POST-only method gate; no wildcard routing)
+open_findings:       P2-001, P2-002, P2-006, P3-002 (in-progress), P2-007
+external_acceptance_outstanding:
+  - hosted CI/CodeQL against the published SHA
+  - headed accessibility/visual QA
+  - native-language translation review
+  - funded-provider verification of safety-screened paths
+```
+
 ## Reporting a Vulnerability
 
 Do not include exploit details, API keys, tokens, or private user data in a public issue.
@@ -170,7 +195,8 @@ Export is always user-mediated by a native save dialog. The model does not choos
 
 Safety-guard enforcement is verified by `scripts/verify-safety-guard.cjs`,
 which checks the core enforcement boundaries (`src/services/veniceClient.ts`,
-`electron/ipc/handlers.ts`, `server.ts`) plus current research/Jina dispatch
+`electron/ipc/handlers/` (registered via the back-compat barrel
+`electron/ipc/handlers.ts`), `server.ts`) plus current research/Jina dispatch
 paths (`src/components/search/SearchScrapeView.tsx`,
 `src/research/agent/researchRunner.ts`, `src/research/providers/veniceResearchProvider.ts`,
 `src/research/providers/jinaResearchProvider.ts`) as a CI gate. Run it with:
