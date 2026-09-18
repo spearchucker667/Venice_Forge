@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 0a93b95b (scaffolding + tooling for P2-016 / P3-020 external acceptance)
-application_code_sha: ee6ade04
-verified_against_sha: 0a93b95b
+repository_head_sha: c6259193 (Windows EBUSY retry for concurrent atomicReplaceFile)
+application_code_sha: c6259193
+verified_against_sha: c6259193
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        clean
-ci_status:           success for 0a93b95b (run 35366321380 — 11/11 jobs)
-codeql_status:       success for 0a93b95b (run 35366321482)
+ci_status:           success for c6259193 (run 35371089895 — 11/11 jobs)
+codeql_status:       success for c6259193 (run 35371089780)
 open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); P2-016/P3-020 and HQE-DOC-001 native-language review
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -51,6 +51,8 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-18 Windows EBUSY retry for concurrent `atomicReplaceFile` (published `main` HEAD `c6259193`).** Hosted CI run `35369311036` against the prior docs-only commit (`e04fa2f1`) reported `windows-sensitive-tests: failure` due to `[P2-006] concurrent saves of the same record use unique temps and leave valid JSON` hitting `EBUSY: resource busy or locked, copyfile`. Root cause: on Windows, two concurrent `store.save()` calls each create a unique temp dir + temp file, attempt `fs.rename` (which fails with EPERM/EEXIST/EACCES when the target exists), and the existing fallback `fs.copyFile(tmp, target)` race-collided with the other concurrent copy because the file handle was still being released, producing EBUSY. Fix: `electron/utils/atomicFileReplace.ts` now retries the Windows copy fallback with exponential backoff (10, 20, 40, 80, 160 ms; 6 attempts total = ~310 ms ceiling) for `EPERM | EEXIST | EACCES | EBUSY` on `process.platform === 'win32'`. Both async (`atomicReplaceFile`) and sync (`atomicReplaceFileSync`) variants are covered; sync uses a deliberate busy-wait because the sync path is on the event-loop boundary and the millisecond-scale backoff is below user-facing latency. After the fix: `npx vitest run electron/services/rpSingleFileStore.test.ts` PASS 10/10; `npx vitest run electron/utils/atomicFileReplace.test.ts` PASS 8/8 (both unaffected by the broader retry surface); ESLint 0/0; typecheck 3/3 tsconfigs. The 3 `electron/services/syncIdentity.test.ts` EPERM failures are pre-existing environmental (verified by re-running the suite on the prior commit without the fix). Hosted CI run `35371089895` for `c6259193` reported `success` on all 11 jobs; CodeQL run `35371089780` reported `success`.
 
 - **2026-09-18 external-acceptance scaffolding for `VF-20260918-P2-016` and `VF-20260918-P3-020` (published `main` HEAD `0a93b95b`).** Both findings explicitly require out-of-band human acceptance (headed visual/accessibility QA across 15 tabs × 5 viewports × 4 themes × 3 locales × 3 states; qualified native-language review for 11 non-English catalogs × 356 placeholders each). The headless agent environment cannot perform the human reviews; this segment prepared the scaffolding and tooling that a human reviewer uses. For `P2-016`: `docs/design/per-tab-acceptance/{README,CHECKLIST,EVIDENCE_MANIFEST.template}.md|json`, `scripts/per-tab-acceptance/{runner.sh,tab-routes.json}`, `scripts/verify-per-tab-acceptance.cjs`, and `npm run verify:per-tab-acceptance`. The harness is idempotent and never overwrites signed entries; the verifier refuses to accept unsigned manifests. For `P3-020`: `docs/i18n/review-pack/{README.md,PLACEHOLDER-INVENTORY.json,PER-LOCALE/<locale>.md × 11}`, `scripts/generate-i18n-review-pack.cjs`, `scripts/verify-i18n-review-status.cjs`, and `npm run {generate,verify}:i18n-review-pack`. Inventory reports 3,916 outstanding `__MISSING__:` placeholders across 11 non-English locales × 12 namespaces (only `chat`, `common`, `media`, `settings` carry placeholders; the other 8 namespaces are already complete for every non-English locale). The status verifier refuses to mark a locale human-reviewed while placeholders remain, refuses to register a locale without a catalog (and vice versa), and emits a warning when a first-pass-machine locale's catalog is empty. No locale was promoted. `docs/ROADMAP.md` 2026-09-18 section updated to record the scaffolding. Hosted CI run `35366321380` reported `success` on all 11 jobs (contracts, macos-sensitive, lint-and-typecheck, unit-and-integration-tests, windows-sensitive, coverage, script-coverage, build, electron-smoke-macos/linux/windows); CodeQL run `35366321482` reported `success`. Local `main` and remote `origin/main` both at `0a93b95b`. Both findings remain in `open_findings` until human review completes.
 
@@ -550,7 +552,17 @@ recently_closed_in_session_2026-09-18:
 
 ## Session History
 
-### 2026-09-18 — External-acceptance scaffolding for VF-20260918-P2-016 and VF-20260918-P3-020
+### 2026-09-18 — Windows EBUSY retry for concurrent atomicReplaceFile (post-scaffolding CI fix)
+
+- Baseline: `e04fa2f1` on local `main` (the prior docs-only successor). Hosted CI run `35369311036` reported `windows-sensitive-tests: failure`.
+- Diagnosed: hosted Windows runner reported `EBUSY: resource busy or locked, copyfile` for `[P2-006] concurrent saves of the same record use unique temps and leave valid JSON`. The test's `vi.spyOn(fs, "writeFile")` delays writes by 15 ms to ensure both saves run concurrently; both `store.save()` calls allocate unique `.vf-replace-<uuid>` directories (test verified on lines 144, 159–162) but the Windows fallback path (`fs.copyFile` in `atomicFileReplace.ts`) had no retry on `EBUSY`, while POSIX `rename` would overwrite and silently serialize. Added `EBUSY` to the Windows replace-code set and wrapped both async and sync copy fallbacks in exponential-backoff retry (`10, 20, 40, 80, 160 ms` × 6 attempts = ~310 ms ceiling).
+- Validation:
+  - `npx vitest run electron/services/rpSingleFileStore.test.ts` — PASS (10/10; P2-006 inclusive).
+  - `npx vitest run electron/utils/atomicFileReplace.test.ts` — PASS (8/8; the existing atomic-replace contract is unchanged, only the broader Windows retry surface is added).
+  - `npm run lint:eslint` — PASS (0/0).
+  - `npm run typecheck` — PASS (3/3 tsconfigs).
+  - The 3 `electron/services/syncIdentity.test.ts` EPERM failures are pre-existing environmental (verified by `git stash` + re-run on the prior commit without the fix); they are unrelated to atomic-file-replace.
+- Hosted CI run `35371089895` for `c6259193` reported `success` on all 11 jobs; CodeQL run `35371089780` reported `success`. Local `main` matches remote `origin/main` at `c6259193`.
 
 - Baseline: `b6618b6f` on local `main` (last commit before this segment). Working tree clean.
 - The 2026-09-18 handoff's two remaining open findings are external acceptance tasks that this headless agent environment cannot perform: `P2-016` requires a human reviewer running headed Chromium across 15 canonical tabs × 5 viewports × 4 themes × 3 locales × 3 states; `P3-020` requires 11 qualified native-language translators (3,916 outstanding `__MISSING__:` placeholders total). Per the user's explicit scope choice, this segment prepared the **scaffolding + tooling only** that a human reviewer uses, without fabricating completion evidence for either finding.

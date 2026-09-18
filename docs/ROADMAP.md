@@ -5,17 +5,17 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 0a93b95b (scaffolding + tooling for P2-016 / P3-020 external acceptance)
-application_code_sha: ee6ade04
-verified_against_sha: 0a93b95b
+repository_head_sha: c6259193 (Windows EBUSY retry for concurrent atomicReplaceFile)
+application_code_sha: c6259193
+verified_against_sha: c6259193
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
 working_tree:        clean
-ci_status:           success for 0a93b95b (run 35366321380 — 11/11 jobs: contracts, macos-sensitive, lint-and-typecheck, unit-and-integration-tests, windows-sensitive, coverage, script-coverage, build, electron-smoke-macos/linux/windows)
-codeql_status:       success for 0a93b95b (run 35366321482)
+ci_status:           success for c6259193 (run 35371089895 — 11/11 jobs: contracts, macos-sensitive, lint-and-typecheck, unit-and-integration-tests, windows-sensitive, coverage, script-coverage, build, electron-smoke-macos/linux/windows)
+codeql_status:       success for c6259193 (run 35371089780)
 open_findings:       VF-20260918-P2-016, VF-20260918-P3-020
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
