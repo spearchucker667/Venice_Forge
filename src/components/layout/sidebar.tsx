@@ -684,7 +684,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                 className={cn(expanded ? "px-2" : "md:px-1.5 px-2")}
               >
                 {expanded && (
-                  <div className="px-2 pb-1.5 vf-tag uppercase tracking-[0.08em] font-semibold text-text-muted">
+                  <div className="min-w-0 px-2 pb-1.5 vf-tag uppercase tracking-[0.08em] font-semibold text-text-muted truncate" title={groupLabel}>
                     {groupLabel}
                   </div>
                 )}
@@ -716,9 +716,9 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                         {isActive && (
                           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-accent shadow-[0_0_8px_var(--color-vf-accent-glow)]" />
                         )}
-                        <Icon />
+                        <span className="shrink-0" aria-hidden="true"><Icon /></span>
                         {expanded && (
-                          <span className="font-medium">{tabLabel}</span>
+                          <span className="min-w-0 flex-1 truncate text-left" title={tabLabel}>{tabLabel}</span>
                         )}
                       </button>
                     );

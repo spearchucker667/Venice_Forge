@@ -831,7 +831,7 @@ function CardTile({
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 mt-auto pt-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5 mt-auto pt-1">
         <button
           type="button"
           onClick={async () => {
@@ -857,14 +857,16 @@ function CardTile({
               );
             }
           }}
-          className="flex-1 text-[12px] py-1.5 rounded-md border border-success/30 text-success-fg hover:bg-success/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+          title={tRuntime("surface.componentsRpStudioCharacterlibrary.action.chat")}
+          className="min-w-0 flex-1 truncate text-[12px] py-1.5 rounded-md border border-success/30 text-success-fg hover:bg-success/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
         >
           <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.action.chat" />
         </button>
         <button
           type="button"
           onClick={onEdit}
-          className="flex-1 text-[12px] py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:border-accent/40 hover:bg-vf-control-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
+          title={tRuntime("surface.componentsRpStudioCharacterlibrary.action.edit")}
+          className="min-w-0 flex-1 truncate text-[12px] py-1.5 rounded-md border border-vf-panel-border text-text-secondary hover:text-text-primary hover:border-accent/40 hover:bg-vf-control-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2"
         >
           <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.action.edit" />
         </button>
@@ -904,11 +906,12 @@ function CardTile({
           </button>
         )}
       </div>
-      <div className="flex gap-1.5">
+      <div className="flex min-w-0 flex-wrap gap-1.5">
         <button
           type="button"
           onClick={() => onExport("json")}
-          className="flex-1 text-[11px] py-1 rounded border border-vf-panel-border text-text-muted hover:text-text-primary"
+          title={tRuntime("surface.componentsRpStudioCharacterlibrary.action.exportJson")}
+          className="min-w-0 flex-1 truncate text-[11px] py-1 rounded border border-vf-panel-border text-text-muted hover:text-text-primary"
         >
           <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.action.exportJson" />
         </button>
@@ -916,7 +919,8 @@ function CardTile({
           type="button"
           onClick={() => onExport("png")}
           disabled={!card.avatar}
-          className="flex-1 text-[11px] py-1 rounded border border-vf-panel-border text-text-muted hover:text-text-primary disabled:opacity-40"
+          title={tRuntime("surface.componentsRpStudioCharacterlibrary.action.exportPng")}
+          className="min-w-0 flex-1 truncate text-[11px] py-1 rounded border border-vf-panel-border text-text-muted hover:text-text-primary disabled:opacity-40"
         >
           <Trans i18nKey="common:surface.componentsRpStudioCharacterlibrary.action.exportPng" />
         </button>
