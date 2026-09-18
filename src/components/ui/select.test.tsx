@@ -77,6 +77,15 @@ describe('Select — accessibility', () => {
     expect(options[0]).toHaveAttribute('aria-selected', 'false')
   })
 
+  it('points aria-activedescendant at the highlighted option id', async () => {
+    render(<TestSelect value="b" />)
+    const trigger = screen.getByRole('button')
+    await userEvent.click(trigger)
+    const activeId = trigger.getAttribute('aria-activedescendant')
+    expect(activeId).toBeTruthy()
+    expect(document.getElementById(activeId!)).toHaveTextContent('Beta')
+  })
+
   it('closes when clicking outside', async () => {
     render(<TestSelect />)
     await userEvent.click(screen.getByRole('button'))
@@ -152,6 +161,17 @@ describe('Select — keyboard navigation', () => {
     await userEvent.keyboard('{Escape}')
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('clamps the highlight when search results shrink', async () => {
+    render(<Select value="" onChange={vi.fn()} options={OPTIONS} searchable ariaLabel="Searchable letters" />)
+    await userEvent.click(screen.getByRole('button', { name: 'Searchable letters' }))
+    await userEvent.keyboard('{End}')
+    const search = screen.getByRole('combobox')
+    await userEvent.type(search, 'a')
+    const options = screen.getAllByRole('option')
+    expect(options.some((option) => option.getAttribute('data-highlighted') === 'true')).toBe(true)
+    expect(screen.getByRole('combobox')).not.toHaveAttribute('aria-activedescendant', expect.stringContaining('undefined'))
   })
 
   it('typeahead jumps to matching option', async () => {

@@ -14,7 +14,7 @@ branch:              main
 working_tree:        dirty (two user-owned audit moves and one new handoff at validation)
 ci_status:           not_rerun_for_current_remediation
 codeql_status:       not_rerun_for_current_remediation
-open_findings:       VF-20260918-P0-001, P1-002..006, P2-007, P2-011..017, P3-018..020
+open_findings:       VF-20260918-P0-001, P1-002..006, P2-007, P2-014..017, P3-018..020
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-007)
@@ -35,11 +35,10 @@ The active 2026-09-18 handoff is under `docs/audits/TODO/`. Its findings are evi
 
 1. **Safety contract (P0-001, P1-002, P1-003, P1-004, P1-006, P2-007):** Resolve the conflict between the new handoff's disabled-state semantics and the current mandatory child-safety contract; then align common guards, Electron and web authority, RP/import paths, bootstrap state, diagnostics, tests, and documentation. Do not publish a partial transport-only safety change.
 2. **Enabled-mode false positives (P1-005):** Build benign and synthetic restricted corpora, harden fuzzy matching with corroboration where justified, and benchmark the enabled path.
-3. **Select (P2-011, P2-012, P2-013):** Repair active-descendant identity, clamp filtered highlights, then verify positioning and dialog layering. Sidebar chat options (P2-009) and History folder actions (P2-010) are complete.
-4. **Responsive surfaces (P2-014, P2-015):** Repair sidebar labels and Character Library action rows; verify long copy, RTL, and zoom.
-5. **Docs and design metadata (P3-018, P3-019):** Refresh current-state authority and include ContextMenu in the Superdesign source manifest/verifier after the menu migrations.
-6. **Headed and localization acceptance (P2-016, P3-020):** Capture direct evidence for the canonical tabs and overlays, plus qualified native-language review. Record actual coverage without inferring it from static tests.
-7. **Hosted governance (P2-017):** Verify required status-check state and report the configuration gap; current repository publication instructions prohibit changing branch protection or required checks.
+3. **Responsive surfaces (P2-014, P2-015):** Repair sidebar labels and Character Library action rows; verify long copy, RTL, and zoom. Select behavior (P2-011, P2-012, P2-013) is complete.
+4. **Docs and design metadata (P3-018, P3-019):** Refresh current-state authority and include ContextMenu in the Superdesign source manifest/verifier after the menu migrations.
+5. **Headed and localization acceptance (P2-016, P3-020):** Capture direct evidence for the canonical tabs and overlays, plus qualified native-language review. Record actual coverage without inferring it from static tests.
+6. **Hosted governance (P2-017):** Verify required status-check state and report the configuration gap; current repository publication instructions prohibit changing branch protection or required checks.
 
 ## Current Work
 

@@ -40,6 +40,7 @@ recently_closed_in_session_2026-09-18:
 
 ## Latest Session Summary
 
+- **2026-09-18 current-main audit segment VF-20260918-P2-011..013 (baseline `72fdff4b`).** Repaired the shared Select primitive's active-descendant IDs so they match rendered option IDs for both searchable and non-searchable modes, clamped highlights when filtering shrinks the result set, and constrained the portaled list to the viewport with the shared context-menu layer token. Focused Select tests passed (18/18); ESLint, typecheck, build, and dist verification passed. The four stale Markdown links from the pre-existing user-owned audit moves remain the known repository-link failure.
 - **2026-09-18 current-main audit segment VF-20260918-P2-010 (baseline `57efe436`).** Migrated History folder actions from the bespoke portaled menu and global listeners to the shared ContextMenu. Added a keyboard-visible folder options trigger and retained privacy gate, rename, delete, export, and import actions with their existing store and modal flows. Focused History/ContextMenu tests passed (19/19); ESLint, typecheck, build, dist, roadmap, agent-doc, and handoff-hygiene checks passed. The four stale Markdown links from the pre-existing user-owned audit moves remain the only known repository-link failure.
 
 - **2026-09-18 current-main audit segment VF-20260918-P2-009 (baseline `fa49be6e`).** Migrated Sidebar chat options from its clipped, bespoke absolute menu and global dismissal listeners to the portaled shared ContextMenu. Retained all five actions, disabled states, confirmation, and localized labels. The shared menu keeps the existing `mesh-panel` surface treatment and preserves focus moved intentionally to chat search; Escape returns focus to the opener. Focused Sidebar/ContextMenu tests passed (27/27). ESLint, typecheck, theme-token and i18n regression checks, handoff/roadmap checks, build, and dist verification passed. Markdown-link verification still fails on four links to the two pre-existing user-owned audit moves. The moves and new handoff remain unstaged. The next menu task is History folder actions (P2-010).
@@ -526,6 +527,12 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Current-main audit Select segment
+
+- Baseline: `72fdff4b` on local `main`; findings `VF-20260918-P2-011`, `P2-012`, and `P2-013`.
+- Select now derives one encoded option ID for both `aria-activedescendant` and rendered options, clamps highlight indexes after filtering, and bounds the portaled listbox horizontally and vertically while keeping its overlay above the shared context-menu layer.
+- Focused Select tests passed (18/18). ESLint, typecheck, build, and dist verification passed.
 
 ### 2026-09-18 — Current-main audit History menu segment
 
@@ -2234,7 +2241,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
-* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. `P2-008`, `P2-009`, and `P2-010` are closed in this session and absent from that active list. Safety disabled-state semantics await resolution of the new handoff's conflict with the existing mandatory child-safety contract; remaining UI, headed acceptance, localization, and governance findings stay open.
+* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. `P2-008` through `P2-013` are closed in this session and absent from that active list. Safety disabled-state semantics await resolution of the new handoff's conflict with the existing mandatory child-safety contract; remaining UI, headed acceptance, localization, and governance findings stay open.
 
 * **CI-REPAIR-2026-09-18** — Lint, type, two failing test cases, repository identity, and avatar image-policy drift repaired locally on `main`. Full segmented CI tests and feature/release contract groups passed locally; see Validation Matrix. Existing `verify:i18n` rejects 3,900 untranslated-English entries in non-English catalogs; qualified translation review or a canonical catalog correction remains a separate release/localization task. Hosted CI/CodeQL must be checked against the published repair SHA before calling the workflow green.
 
@@ -2283,6 +2290,14 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Select primitive segment (baseline `72fdff4b`)
+
+- `npx vitest run src/components/ui/select.test.tsx` — PASS (18/18 tests).
+- `npm run lint:eslint` — PASS (zero errors/warnings).
+- `npm run typecheck` — PASS (all three tsconfigs).
+- `npm run build` — PASS (web, server, Electron).
+- `npm run verify:dist` — PASS.
 
 ### 2026-09-18 — History folder menu segment (baseline `57efe436`)
 

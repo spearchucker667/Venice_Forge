@@ -57,6 +57,9 @@ export function Select({
 
   const selectedLabel =
     options.find((o) => o.value === value)?.label || placeholder;
+  const highlightedOption = filtered[highlightedIndex];
+  const optionId = (option: { value: string }) =>
+    `${listboxId}-opt-${encodeURIComponent(option.value)}`;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -114,12 +117,18 @@ export function Select({
   useEffect(() => {
     if (open) {
       const idx = options.findIndex((o) => o.value === value);
-      setHighlightedIndex(idx >= 0 ? idx : 0);
+      setHighlightedIndex(filtered.length === 0 ? 0 : Math.min(idx >= 0 ? idx : 0, filtered.length - 1));
       if (searchable) inputRef.current?.focus();
     } else {
       setSearch("");
     }
-  }, [open, options, value, searchable]);
+  }, [open, options, value, searchable, filtered.length]);
+
+  useEffect(() => {
+    if (highlightedIndex >= filtered.length) {
+      setHighlightedIndex(Math.max(0, filtered.length - 1));
+    }
+  }, [filtered.length, highlightedIndex]);
 
   const handleKeyDown = (e: React.KeyboardEvent | KeyboardEvent) => {
     if (e.key === "Escape") {
@@ -235,8 +244,8 @@ export function Select({
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
         aria-activedescendant={
-          open && !searchable && filtered[highlightedIndex]
-            ? `${listboxId}-opt-${highlightedIndex}`
+          open && !searchable && highlightedOption
+            ? optionId(highlightedOption)
             : undefined
         }
         aria-label={ariaLabel}
@@ -282,11 +291,12 @@ export function Select({
               position: "fixed",
               top: flip ? undefined : rect.bottom + 4,
               bottom: flip ? window.innerHeight - rect.top + 4 : undefined,
-              left: rect.left,
-              width: rect.width,
+              left: Math.min(rect.left, Math.max(8, window.innerWidth - rect.width - 8)),
+              width: Math.min(rect.width, window.innerWidth - 16),
+              maxHeight: Math.max(0, window.innerHeight - 16),
             }}
             onKeyDown={handleKeyDown}
-            className="mesh-panel absolute z-50 w-full mt-0.5 rounded-lg animate-scale-in overflow-hidden shadow-xl border border-vf-panel-border"
+            className="mesh-panel absolute z-[var(--vf-z-context-menu)] w-full mt-0.5 rounded-lg animate-scale-in overflow-hidden shadow-xl border border-vf-panel-border"
           >
             {searchable && (
               <div className="p-1 border-b border-vf-panel-border">
@@ -297,8 +307,8 @@ export function Select({
                   aria-autocomplete="list"
                   aria-controls={listboxId}
                   aria-activedescendant={
-                    filtered[highlightedIndex]
-                      ? `${listboxId}-opt-${filtered[highlightedIndex].value.replace(/\W+/g, "-")}`
+                    highlightedOption
+                      ? optionId(highlightedOption)
                       : undefined
                   }
                   value={search}
@@ -330,7 +340,7 @@ export function Select({
                   <div
                     key={o.value}
                     role="option"
-                    id={`${listboxId}-opt-${o.value.replace(/\W+/g, "-")}`}
+                    id={optionId(o)}
                     aria-selected={o.value === value}
                     data-index={i}
                     data-highlighted={i === highlightedIndex}
