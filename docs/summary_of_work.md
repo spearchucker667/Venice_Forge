@@ -40,6 +40,8 @@ recently_closed_in_session_2026-09-18:
 
 ## Latest Session Summary
 
+- **2026-09-18 current-main audit segment VF-20260918-P2-009 (baseline `fa49be6e`).** Migrated Sidebar chat options from its clipped, bespoke absolute menu and global dismissal listeners to the portaled shared ContextMenu. Retained all five actions, disabled states, confirmation, and localized labels. The shared menu keeps the existing `mesh-panel` surface treatment and preserves focus moved intentionally to chat search; Escape returns focus to the opener. Focused Sidebar/ContextMenu tests passed (27/27). ESLint, typecheck, theme-token and i18n regression checks, handoff/roadmap checks, build, and dist verification passed. Markdown-link verification still fails on four links to the two pre-existing user-owned audit moves. The moves and new handoff remain unstaged. The next menu task is History folder actions (P2-010).
+
 - **2026-09-18 current-main audit segment VF-20260918-P2-008 (baseline `23963e02`, source commit `07222274`).** The new 2026-09-18 TODO handoff conflicts with the existing mandatory child-safety contract on disabled-state semantics; that question remains open. Independently hardened `src/components/ui/ContextMenu.tsx`: viewport-constrained width/height, internal scrolling, resize/scroll placement, RTL alignment, enabled-item roving focus, Arrow/Home/End navigation, Escape/Tab close, and focus return. Added `ContextMenu.test.tsx` and a shared menu layer token in `src/styles/theme.css`. Final focused tests passed (45/45 across ContextMenu, Sidebar, and History); ESLint, typecheck, theme-token verification, lockfile verification, build, and dist verification passed. A headed Chromium check at 320×240 confirmed a 30-item menu fits the viewport, scrolls to the last item, skips a disabled item, and restores focus after Escape. `verify:contracts` stops at four pre-existing broken Markdown links caused by the two user-owned audit moves already present at turn start; their files were left untouched. Full `npm test` finished with 6,768 passed, four skipped, and two failures: the same Markdown-link issue and an unchanged web chat-store IndexedDB assertion, which also fails when its file runs alone. Hosted checks are pending publication. Remaining 2026-09-18 findings are ordered in `docs/ROADMAP.md`.
 
 - **2026-09-18 CodeQL code scanning audit and remediation on `main` (baseline `917ba97d`).**
@@ -522,6 +524,12 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Current-main audit Sidebar menu segment
+
+- Baseline: `fa49be6e` on local `main`; finding `VF-20260918-P2-009`.
+- Replaced Sidebar's chat-options menu implementation with `useContextMenu` and `ContextMenu`. Kept New, Search, Export, Delete, and Clear selection actions and their existing availability rules. Changed the shared menu to preserve focus when an action deliberately focuses an external control; added a Sidebar regression for Search focus.
+- Focused Sidebar and ContextMenu tests passed (27/27). ESLint, typecheck, theme/i18n/roadmap/handoff checks, build, and dist verification passed. Markdown-link verification still fails on the same four links caused by the pre-existing user-owned audit moves.
 
 ### 2026-09-18 — Current-main audit shared ContextMenu segment
 
@@ -2218,7 +2226,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
-* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. `P2-008` is closed in this session and is absent from that active list. Safety disabled-state semantics await resolution of the new handoff's conflict with the existing mandatory child-safety contract; remaining UI, headed acceptance, localization, and governance findings stay open.
+* **VF-20260918 audit continuation** — Open work is tracked in the ordered `docs/ROADMAP.md` 2026-09-18 section. `P2-008` and `P2-009` are closed in this session and absent from that active list. Safety disabled-state semantics await resolution of the new handoff's conflict with the existing mandatory child-safety contract; remaining UI, headed acceptance, localization, and governance findings stay open.
 
 * **CI-REPAIR-2026-09-18** — Lint, type, two failing test cases, repository identity, and avatar image-policy drift repaired locally on `main`. Full segmented CI tests and feature/release contract groups passed locally; see Validation Matrix. Existing `verify:i18n` rejects 3,900 untranslated-English entries in non-English catalogs; qualified translation review or a canonical catalog correction remains a separate release/localization task. Hosted CI/CodeQL must be checked against the published repair SHA before calling the workflow green.
 
@@ -2267,6 +2275,18 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Sidebar chat-options menu segment (baseline `fa49be6e`)
+
+- `npx vitest run src/components/layout/sidebar.test.tsx src/components/ui/ContextMenu.test.tsx` — PASS (27/27 tests).
+- `npm run lint:eslint` — PASS (zero errors/warnings).
+- `npm run typecheck` — PASS (all three tsconfigs).
+- `npm run verify:theme-tokens` — PASS (199 files scanned).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (zero regressions).
+- `npm run verify:roadmap-current`, `npm run verify:agent-docs`, `npm run verify:repo-handoff-hygiene` — PASS.
+- `npm run build` — PASS (web, server, Electron).
+- `npm run verify:dist` — PASS.
+- `npm run verify:markdown-links` — FAIL (four links in `docs/DOCS_INDEX.md` and `docs/audits/README.md` to the two user-owned handoffs moved before this task began).
 
 ### 2026-09-18 — Shared ContextMenu audit segment (baseline `23963e02`)
 

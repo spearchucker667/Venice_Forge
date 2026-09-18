@@ -213,7 +213,7 @@ export function ContextMenu({
         event.preventDefault();
         event.stopPropagation();
       }}
-      className="fixed z-[var(--vf-z-context-menu)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised py-1 text-sm text-text shadow-xl animate-in fade-in-0 zoom-in-95"
+      className="mesh-panel fixed z-[var(--vf-z-context-menu)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised py-1 text-sm text-text shadow-xl animate-in fade-in-0 zoom-in-95"
     >
       {visibleItems.map((item) => {
         if (item.kind === "separator") {
@@ -246,7 +246,10 @@ export function ContextMenu({
               try {
                 item.onSelect();
               } finally {
-                restoreMenuFocus(returnFocusRef.current, previousFocusRef.current);
+                const active = document.activeElement;
+                if (!(active instanceof HTMLElement) || active === document.body || ref.current?.contains(active)) {
+                  restoreMenuFocus(returnFocusRef.current, previousFocusRef.current);
+                }
                 onClose();
               }
             }}

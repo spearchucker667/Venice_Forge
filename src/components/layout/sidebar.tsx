@@ -40,6 +40,7 @@ import { getConversationDisplayTitle } from "../../utils/conversationDisplayTitl
 import { CharacterAvatar } from "../characters/CharacterAvatar";
 import { Meteocon } from "../ui/Meteocon";
 import { CharacterCreatorMascot } from "../character-creator/CharacterCreatorMascot";
+import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 
 function ChatIcon() {
   return <Meteocon name="clear-day" size={20} />;
@@ -217,12 +218,11 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const deleteConversation = useChatStore((s) => s.deleteConversation);
   const selectedModel = useSettingsStore((s) => s.selectedModels.chat);
   const [search, setSearch] = useState("");
-  const [chatOptionsOpen, setChatOptionsOpen] = useState(false);
+  const chatOptionsMenu = useContextMenu();
   const [historyExpanded, setHistoryExpanded] = useState(true);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [pendingFamilySafeMode, setPendingFamilySafeMode] = useState<boolean | null>(null);
   const { masterPasswordSet } = useProfileStore();
-  const chatOptionsRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toggleRedTeamMode = () => {
@@ -382,30 +382,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const startNewChat = () => {
     createConversation(selectedModel || DEFAULT_CHAT_MODEL);
     setActiveTab("chat");
-    setChatOptionsOpen(false);
     onMobileClose?.();
   };
 
   const activeConversation = conversationSummaries.find(
     (conversation) => conversation.id === activeConversationId,
   );
-
-  useEffect(() => {
-    if (!chatOptionsOpen) return;
-    const closeOnPointerDown = (event: MouseEvent) => {
-      if (!chatOptionsRef.current?.contains(event.target as Node))
-        setChatOptionsOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setChatOptionsOpen(false);
-    };
-    document.addEventListener("mousedown", closeOnPointerDown);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("mousedown", closeOnPointerDown);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [chatOptionsOpen]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -749,10 +731,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
 
         {expanded && activeTab === "chat" && (
           <div className="flex flex-col flex-1 min-h-0 border-t border-vf-panel-border">
-            <div
-              className="relative flex items-center justify-between px-3 pt-3 pb-1.5 shrink-0"
-              ref={chatOptionsRef}
-            >
+            <div className="relative flex items-center justify-between px-3 pt-3 pb-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setHistoryExpanded((open) => !open)}
@@ -788,10 +767,21 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               </button>
               <button
                 type="button"
-                onClick={() => setChatOptionsOpen((open) => !open)}
+                onClick={(event) => {
+                  if (chatOptionsMenu.menu) {
+                    chatOptionsMenu.close();
+                    return;
+                  }
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  chatOptionsMenu.openAt({
+                    clientX: rect.right,
+                    clientY: rect.bottom,
+                    currentTarget: event.currentTarget,
+                  });
+                }}
                 aria-label={t("chat.options", "Chat options")}
                 aria-haspopup="menu"
-                aria-expanded={chatOptionsOpen}
+                aria-expanded={Boolean(chatOptionsMenu.menu)}
                 className="border border-vf-panel-border bg-vf-panel-bg-raised hover:bg-vf-control-hover text-text-secondary hover:text-text-primary p-1.5 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent cursor-pointer transition-colors"
                 title={t("chat.options", "Chat options")}
               >
@@ -807,78 +797,29 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
                   <circle cx="19" cy="12" r="1.5" />
                 </svg>
               </button>
-              {chatOptionsOpen && (
-                <div
-                  role="menu"
-                  aria-label={t("chat.options", "Chat options")}
-                  className="vf-shell-panel mesh-panel absolute right-3 top-10 z-50 min-w-48 rounded-lg p-1.5 vf-meta shadow-xl"
-                >
-                  <button
-                    role="menuitem"
-                    className="menu-action"
-                    onClick={startNewChat}
-                  >
-                    {t("chat.newChat", "New chat")}
-                  </button>
-                  <button
-                    role="menuitem"
-                    className="menu-action"
-                    onClick={() => {
-                      setChatOptionsOpen(false);
-                      searchInputRef.current?.focus();
-                    }}
-                  >
-                    {t("chat.searchChats", "Search chats")}
-                  </button>
-                  <button
-                    role="menuitem"
-                    className="menu-action"
-                    disabled={!activeConversation}
-                    onClick={() => {
-                      if (activeConversation)
-                        exportConversation(activeConversation);
-                      setChatOptionsOpen(false);
-                    }}
-                  >
-                    {t("chat.exportActive", "Export active chat")}
-                  </button>
-                  <button
-                    role="menuitem"
-                    className="menu-action text-danger"
-                    disabled={!activeConversation}
-                    onClick={async () => {
-                      if (activeConversation) {
-                        const shouldDelete = await askDecision({
-                          title: t("chat.deletePrompt", "Delete chat?"),
-                          detail:
-                            activeConversation.title ||
-                            t("chat.untitled", "Untitled"),
-                          actionLabel: t("chat.deleteAction", "Delete"),
-                          danger: true,
-                        });
-                        if (shouldDelete) void handleDelete(activeConversation);
-                      }
-                      setChatOptionsOpen(false);
-                    }}
-                  >
-                    {t("chat.deleteActive", "Delete active chat")}
-                  </button>
-                  <button
-                    role="menuitem"
-                    className="menu-action"
-                    disabled={!activeConversationId}
-                    onClick={() => {
-                      setActiveConversation(null);
-                      setChatOptionsOpen(false);
-                    }}
-                  >
-                    {t(
-                      "chat.clearActiveSelection",
-                      "Clear active chat selection",
-                    )}
-                  </button>
-                </div>
-              )}
+              <ContextMenu
+                position={chatOptionsMenu.menu}
+                onClose={chatOptionsMenu.close}
+                ariaLabel={t("chat.options", "Chat options")}
+                items={[
+                  { key: "new", label: t("chat.newChat", "New chat"), onSelect: startNewChat },
+                  { key: "search", label: t("chat.searchChats", "Search chats"), onSelect: () => searchInputRef.current?.focus() },
+                  { key: "export", label: t("chat.exportActive", "Export active chat"), disabled: !activeConversation, onSelect: () => {
+                    if (activeConversation) exportConversation(activeConversation);
+                  } },
+                  { key: "delete", label: t("chat.deleteActive", "Delete active chat"), destructive: true, disabled: !activeConversation, onSelect: async () => {
+                    if (!activeConversation) return;
+                    const shouldDelete = await askDecision({
+                      title: t("chat.deletePrompt", "Delete chat?"),
+                      detail: activeConversation.title || t("chat.untitled", "Untitled"),
+                      actionLabel: t("chat.deleteAction", "Delete"),
+                      danger: true,
+                    });
+                    if (shouldDelete) void handleDelete(activeConversation);
+                  } },
+                  { key: "clear", label: t("chat.clearActiveSelection", "Clear active chat selection"), disabled: !activeConversationId, onSelect: () => setActiveConversation(null) },
+                ]}
+              />
             </div>
             {historyExpanded && (
               <div

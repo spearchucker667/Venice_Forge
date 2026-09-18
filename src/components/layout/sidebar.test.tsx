@@ -185,6 +185,15 @@ describe('Sidebar controls', () => {
     }
     await userEvent.keyboard('{Escape}')
     expect(screen.queryByRole('menu', { name: 'Chat options' })).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it('moves focus to chat search when selected from Chat options', async () => {
+    render(<Sidebar />)
+    await userEvent.click(screen.getByRole('button', { name: 'Chat options' }))
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Search chats' }))
+    expect(screen.queryByRole('menu', { name: 'Chat options' })).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Search conversations' })).toHaveFocus()
   })
 
   it('collapses and expands the Chat History section with accessible semantics', async () => {
