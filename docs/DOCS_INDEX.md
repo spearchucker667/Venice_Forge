@@ -7,9 +7,16 @@ This is the canonical source-of-truth navigation map for all documentation in th
 ## Start Here
 
 - [README.md](../README.md) — Repository landing page, features, setup, and architecture overview.
+- [README.md](README.md) — Diátaxis documentation structure overview and navigation guide.
 - [ABOUT.md](ABOUT.md) — What Venice Forge is, goals, architecture, data flow, and tab overview.
 - [FAQ.md](FAQ.md) — Frequently asked questions about privacy, credentials, safety, storage, and compatibility.
 - [SUPPORT.md](../SUPPORT.md) — Where to get help and how to report issues.
+- [SECURITY.md](../SECURITY.md) — Security policy and vulnerability disclosure protocol.
+- [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) — Contributor standards, pledge, and enforcement responsibilities.
+- [LEGAL.md](../LEGAL.md) — Legal terms, licensing declarations, and trademark notices.
+- [PRODUCT.md](../PRODUCT.md) — Product vision, target personas, brand personality, and design principles.
+- [Showcase Website](https://veniceforge.space.minimax.io) — Feature showcase website.
+- [Demo Showcase](https://veniceforge.kimi.page/) — Interactive, but limited, website version of the app.
 
 ---
 
@@ -63,7 +70,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### API & Network Contracts
 
-- [reference/Venice_swagger_api.yaml](reference/Venice_swagger_api.yaml) — Authoritative local OpenAPI snapshot (`20260911.010226`) for Venice API requests/responses.
+- [reference/Venice_swagger_api.yaml](reference/Venice_swagger_api.yaml) — Authoritative local OpenAPI snapshot (`20260916.135625`) for Venice API requests/responses.
 - [reference/Venice_api_LLM_info.md](reference/Venice_api_LLM_info.md) — Venice-provided LLM integration reference.
 - [reference/VENICE_API_SYSTEM_PROMPT.md](reference/VENICE_API_SYSTEM_PROMPT.md) — Core system prompt for AI agents integrating with the Venice API.
 - [reference/VENICE_API_SOURCE_MANIFEST.md](reference/VENICE_API_SOURCE_MANIFEST.md) — Upstream API documentation mirror provenance and sync contract.
@@ -120,12 +127,14 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [legal/NOTICE.md](legal/NOTICE.md) — Copyright attributions and third-party notices.
 - [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md) — Dependency licenses and brand attributions.
 - [legal/TRADEMARKS.md](legal/TRADEMARKS.md) — Venice.ai and external trademark nominative-use notices.
+- [../assets/branding/NOTICE.md](../assets/branding/NOTICE.md) (and [`../public/assets/branding/NOTICE.md`](../public/assets/branding/NOTICE.md)) — Venice.ai brand kit property notice and usage guidelines.
 
 ### Source Code Contracts
 
 - [`../src/shared/chatMediaReferenceContracts.ts`](../src/shared/chatMediaReferenceContracts.ts) — Canonical `ChatMediaReference` parity contract between renderer and main.
 - [`../src/shared/promptLimits.ts`](../src/shared/promptLimits.ts) — Unicode code-point budgets and dynamic-limit helper.
 - [`../inactive-features/research-browser/README.md`](../inactive-features/research-browser/README.md) — Inactive archive boundary for the former embedded Research Browser.
+- [`../inactive-features/research-browser/docs/research-browser.md`](../inactive-features/research-browser/docs/research-browser.md) — Architecture reference for the former embedded Research Browser.
 
 ---
 
@@ -175,6 +184,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [superpowers/specs/2026-08-30-audit-remediation-design.md](superpowers/specs/2026-08-30-audit-remediation-design.md) — Approved design for August 30 audit findings remediation.
 - [superpowers/plans/2026-08-30-audit-remediation.md](superpowers/plans/2026-08-30-audit-remediation.md) — Test-first implementation plan for August 30 audit findings remediation.
 - [superpowers/plans/2026-09-01-theme-aware-code-blocks.md](superpowers/plans/2026-09-01-theme-aware-code-blocks.md) — Implementation plan for theme-aware syntax-colorized code rendering and Theme Maker Code & Syntax editor.
+- [superpowers/plans/2026-09-14-reference-ui-redesign-phase-1.md](superpowers/plans/2026-09-14-reference-ui-redesign-phase-1.md) — Test-first implementation plan for Phase 1 material foundation of the reference-driven UI redesign.
 - [superpowers/plans/2026-09-14-design-system-remaining-tabs.md](superpowers/plans/2026-09-14-design-system-remaining-tabs.md) — Test-first implementation plan for the approved Media Studio, Prompt Library, Scene Composer, and Workflow Templates design-system rollout.
 - [superpowers/specs/2026-09-01-theme-aware-code-rendering-design.md](superpowers/specs/2026-09-01-theme-aware-code-rendering-design.md) — Design specification for theme-aware syntax highlighting, code-theme tokens, preset registry, and persistence contracts.
 - [superpowers/specs/2026-09-14-design-system-remaining-tabs-design.md](superpowers/specs/2026-09-14-design-system-remaining-tabs-design.md) — Approved surgical rollout of the September 13 design-system primitives across Media Studio, Prompt Library, Scene Composer, and Workflow Templates.
@@ -221,6 +231,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [audits/Records/Function_calling_todo.md](audits/Records/Function_calling_todo.md) — Implementation/acceptance specification referenced by roadmap; not a checkbox ledger.
 - [audits/Records/Venice_Forge_Video_Research_Browser_Remediation_Work_Order.md](audits/Records/Venice_Forge_Video_Research_Browser_Remediation_Work_Order.md) — Historical work order for the inactive research-browser feature.
 - [audits/repo-management/README.md](audits/repo-management/README.md) — Historical repository hygiene and reorganization handoffs.
+- [audits/repo-management/2026-08-22-exhaustive-repository-audit-plan.md](audits/repo-management/2026-08-22-exhaustive-repository-audit-plan.md) — August 2026 repository-wide audit plan and execution method.
+- [audits/repo-management/2026-08-22-repository-hygiene-handoff.md](audits/repo-management/2026-08-22-repository-hygiene-handoff.md) — August 2026 repository reorganization and hygiene handoff.
 
 ### Repository Maintenance & Hygiene
 
@@ -231,6 +243,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Historical Reports
 
+- [reports/README.md](reports/README.md) — Validation and audit report policy and governance.
 - [reports/historical/README.md](reports/historical/README.md) — Guideline for audit history and historical report rules.
 - [reports/historical/remediation-report-2026-09-01.md](reports/historical/remediation-report-2026-09-01.md) — 2026-09-01 Code Health, Performance & Security Remediation Report.
 - [reports/historical/CANONICAL_REPORT_INDEX.md](reports/historical/CANONICAL_REPORT_INDEX.md) — Navigator for past validation audits.

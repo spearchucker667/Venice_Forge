@@ -1,13 +1,20 @@
 # Venice Forge — Deletion & Retirement Manifest
 
-**Latest revalidation working tree:** 2026-09-16 hygiene continuation on `main` (baseline `bd070918ae9aaefac681f68743882c195f8c3778`; commit SHA pending publication)
+**Latest revalidation working tree:** 2026-09-18 repository & documentation overhaul on `main` (baseline `ebf814a4edea71b7ea17d318525493d6678f621f`)
 **Historical overhaul baseline:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
-**Date:** 2026-09-16
-**Scope:** Repository Hygiene & Organization Overhaul
+**Date:** 2026-09-18
+**Scope:** Repository Hygiene, Documentation Overhaul, Showcase Integration & CodeQL Hardening
 
 ---
 
-## 0. Current Revalidation — 2026-09-16
+## 0. Current Revalidation — 2026-09-18
+
+No tracked files were deleted in this overhaul.
+- Transient untracked session logs (`kimi-export-session_-*.md`) and screenshot dumps (`Screenshot_20260914-132444.png`) were cleared from root and moved to local ignored paths (`.agent-backups/session-exports/` and `.design-captures/`).
+- User-owned local assets (such as `assets/Venice_Forge_Hero.png`) were carefully preserved.
+- Zero tracked files met Section 45 removal criteria; all tracked assets and docs remain active.
+
+## 0.1 Prior Revalidation — 2026-09-16
 
 No tracked file was deleted in this continuation. Four dated reports were relocated into `docs/reports/historical/` rather than removed. Local-only artifacts (`kimi-export-session_*.md`, `Screenshot_*.png`, `scratch/`, `artifacts/`, `venice-media-output/`, `.env`) remain user-owned and ignored. `docs/audits/TODO/.DS_Store` remains ignored.
 

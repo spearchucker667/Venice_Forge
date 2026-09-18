@@ -157,7 +157,7 @@ export const CHARACTER_SLUG_MAX_LENGTH = 128;
  *  Length 1..128. Reject: `/`, `.`, `%`, URL-encoded variants, anything
  *  else. The IPC layer also rejects encoded slashes / dot-segments
  *  separately. */
-export const VENICE_API_KEY_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
+export const VENICE_API_KEY_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 /** Regex used to validate a single character slug segment.
  *  Allowed: ASCII letters, digits, `_`, `-`. Length 1..128.

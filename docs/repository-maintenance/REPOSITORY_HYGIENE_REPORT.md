@@ -1,15 +1,31 @@
 # Venice Forge — Repository Hygiene, Organization, File Hygiene & Gitignore Overhaul Report
 
-> **Latest revalidation working tree:** 2026-09-16 hygiene continuation on `main` (baseline `bd070918ae9aaefac681f68743882c195f8c3778`; commit SHA pending publication)
+> **Latest revalidation working tree:** 2026-09-18 overhaul on `main` (baseline `ebf814a4edea71b7ea17d318525493d6678f621f`)
 > **Historical baseline for the original overhaul:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
 > **Package Version:** `3.0.0-beta.3`
 > **Branch:** `main`
-> **Date:** 2026-09-16
+> **Date:** 2026-09-18
 > **Authority:** Principal Repository Maintainer, Documentation Architect & Release Engineer
 
 ---
 
-## Current Revalidation — 2026-09-16
+## Current Revalidation — 2026-09-18
+
+- **Baseline & Worktree Safety:** Checked-out `main` verified at `ebf814a4edea71b7ea17d318525493d6678f621f`. Pre-existing user-owned working tree modifications (`README.md`, `docs/summary_of_work.md`, untracked `assets/Venice_Forge_Hero.png`) were preserved.
+- **Root Clutter Isolation:** Root-level transient session exports (`kimi-export-session_-*.md`) and local screenshot (`Screenshot_20260914-132444.png`) cleared to gitignored storage (`.agent-backups/session-exports/` and `.design-captures/`). Option B was preserved for root `server.ts` and `server.test.ts` to maintain live package-script contracts (`dev:server`, `build:server`).
+- **Showcase & Demo Integration:** Added Showcase Website (`https://veniceforge.space.minimax.io` — feature showcase) and Demo Showcase (`https://veniceforge.kimi.page/` — interactive, but limited, website version) to `README.md`, `docs/README.md`, `docs/ABOUT.md`, and `docs/DOCS_INDEX.md`. Added CodeQL badge to `README.md`.
+- **Sub-README Architecture:** Created `docs/README.md` (Diátaxis overview) and `docs/reports/README.md` (report governance). Verified all 29 historical reports carry `Historical snapshot.` banners.
+- **Master Documentation Index:** Indexed 100% of active markdown documents (125/125 candidates) in `docs/DOCS_INDEX.md`. Verified 0 broken links across all 417 markdown files (`npm run verify:markdown-links` PASS).
+- **Upstream Venice API Mirror:** Synchronized upstream docs mirror via `npm run docs:venice:sync` (HEAD: `e787d6fe07372f7961dc292979a3bdf4b95497e3`). Verified with `verify:venice-api-docs` and `verify:venice-contract-drift`.
+- **Git Hardening:** Added GitHub Linguist overrides to `.gitattributes` for `docs/reference/Venice_swagger_api.yaml` and `docs/i18n/**/*.json`. Hardened `.gitignore` with `/.superdesign/*` and `!/.superdesign/init/`.
+- **CodeQL Scanning Assessment & Remediation:** Assessed all 7 open alerts in GitHub CodeQL (`/security/code-scanning`):
+  - Fixed Alert #271 (`js/redundant-operation`): Removed duplicate condition in `scripts/verify-superdesign-init.cjs`.
+  - Fixed Alert #272 (`js/automatic-semicolon-insertion`): Added missing semicolon to `VENICE_API_KEY_ID_PATTERN` in `src/shared/validation.ts`.
+  - Fixed Alert #274 (`js/unused-local-variable`): Removed unused local variable in `src/stores/chat-store.test.ts`.
+  - Fixed Alerts #275 & #276 (`js/remote-property-injection`): Guarded `redactSecrets` against prototype pollution (`__proto__`, `constructor`, `prototype`) in `src/shared/redaction.ts`.
+  - Fixed Alert #277 (`js/missing-await`): Replaced promise object identity check in `electron/services/characterImageCache.ts` with a unique symbol token (`fetchToken`).
+  - Assessed Alert #273 (`js/file-access-to-http`): Verified as false positive (identical to dismissed alert #251); intentional credential testing in `jinaApiKey:test`.
+- **Validation:** `npm run lint:eslint` (0 warnings/errors), `npm run typecheck` (3/3 tsconfigs), `npm test` (571 passed files, 6,758 passed tests), `npm run build` (PASS), `npm run verify:bundle-budget` (PASS), `npm run verify:contracts:features` (PASS), `npm run verify:contracts:release` (104/104 PASS).
 
 - The checked-out `main` baseline is `bd070918ae9aaefac681f68743882c195f8c3778`, matching `origin/main` at session start. Pre-existing dirty hygiene edits were preserved; `docs/i18n/translation-status.json` was restored to HEAD because it is verifier output, not a hygiene change.
 - Root `AGENT_REINITIALIZATION.md` is no longer at the repository root; it lives at `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md`. Root `PRODUCT.md` and `server.ts` / `server.test.ts` remain because they are live governance and package-script contracts.

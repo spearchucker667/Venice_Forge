@@ -45,3 +45,7 @@
 *.deb binary
 *.rpm binary
 *.vfbackup binary
+
+# GitHub Linguist Overrides
+docs/reference/Venice_swagger_api.yaml linguist-generated=true
+docs/i18n/**/*.json linguist-generated=true

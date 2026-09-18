@@ -1,15 +1,23 @@
 # Venice Forge — File Move & Rename Manifest
 
-**Latest revalidation working tree:** 2026-09-16 hygiene continuation on `main` (baseline `bd070918ae9aaefac681f68743882c195f8c3778`; commit SHA pending publication)
+**Latest revalidation working tree:** 2026-09-18 repository & documentation overhaul on `main` (baseline `ebf814a4edea71b7ea17d318525493d6678f621f`)
 **Historical overhaul baseline:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
-**Date:** 2026-09-16
-**Scope:** Repository Hygiene & Organization Overhaul  
+**Date:** 2026-09-18
+**Scope:** Repository Hygiene, Documentation Overhaul, Showcase Integration & CodeQL Hardening
 
 ---
 
-## 0. Current Revalidation — 2026-09-15
+## 0. Current Revalidation — 2026-09-18
 
-No current-main move or rename was justified. The repository retains its existing source, test, script, asset, and documentation locations; the current session only corrected stale maintenance metadata and ignore discoverability.
+During the 2026-09-18 overhaul:
+- **Created Canonical Sub-READMEs:**
+  - `docs/README.md`: Entry point for Diátaxis documentation taxonomy, links to `DOCS_INDEX.md`, precedence rules, and live showcase/demo links.
+  - `docs/reports/README.md`: Governance and retention policy for historical validation reports.
+- **Root Transient File Isolation:**
+  - Root session exports (`kimi-export-session_-*.md`) and root screenshot capture (`Screenshot_20260914-132444.png`) were cleared from root and archived in local gitignored paths (`.agent-backups/session-exports/` and `.design-captures/`).
+- **Retained Entrypoints:**
+  - Root `server.ts` and `server.test.ts` retained at root under Option B to maintain package script contracts (`dev:server`, `build:server`).
+- **No tracked file relocations or renames were required.** All existing paths remain canonical.
 
 ## 1. 2026-09-14 Session Move & Rename Audit
 

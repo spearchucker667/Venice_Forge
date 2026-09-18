@@ -1,13 +1,12 @@
 ---
 source: https://docs.venice.ai/llms.txt
-upstream_commit: 601b7bb19921f0e31bc805d51322085cd6fc4ac5
-retrieved: "2026-08-23"
+upstream_commit: e787d6fe07372f7961dc292979a3bdf4b95497e3
+retrieved: "2026-09-18"
 content_type: text/markdown
 ---
-
 # Venice API
 
-> Venice is a privacy-first, uncensored AI API platform offering text generation, image generation, audio synthesis, video generation, music, embeddings, and developer tools (web search, document parsing, blockchain RPC) with zero data retention and OpenAI SDK compatibility.
+> Venice is a privacy-first, uncensored AI API platform offering text generation, image generation, audio synthesis, speech-to-speech voice conversion, video generation, music, embeddings, and developer tools (web search, document parsing, blockchain RPC) with zero data retention and OpenAI SDK compatibility.
 
 Venice provides permissionless access to AI models with no content filtering, making it ideal for developers building applications that require uncensored outputs, privacy guarantees, and full control over AI interactions. The API is fully compatible with OpenAI's SDK—just change the base URL to `https://api.venice.ai/api/v1`. Venice also offers developer tools including web search, web scraping, document parsing, and blockchain RPC—see the **Tools** section below.
 
@@ -47,6 +46,10 @@ Venice offers four tiers of privacy: **Anonymized** (third-party models with ide
 - [Music Generation (Retrieve)](https://docs.venice.ai/api-reference/endpoint/audio/retrieve): Retrieve generated audio by ID
 - [Music Generation (Quote)](https://docs.venice.ai/api-reference/endpoint/audio/quote): Get price quote for audio generation
 - [Music Generation (Complete)](https://docs.venice.ai/api-reference/endpoint/audio/complete): Queue and wait for audio generation in one call
+- [Voice Changer (Quote)](https://docs.venice.ai/api-reference/endpoint/audio/voice-changer/quote): Get a price quote for converting a source recording
+- [Voice Changer (Queue)](https://docs.venice.ai/api-reference/endpoint/audio/voice-changer/queue): Queue a speech-to-speech conversion (charged at queue time; do not retry)
+- [Voice Changer (Retrieve)](https://docs.venice.ai/api-reference/endpoint/audio/voice-changer/retrieve): Poll conversion status and download converted audio
+- [Voice Changer (Complete)](https://docs.venice.ai/api-reference/endpoint/audio/voice-changer/complete): Release stored media after downloading converted audio
 
 ### Video
 - [Video Generation (Queue)](https://docs.venice.ai/api-reference/endpoint/video/queue): Queue video generation (text-to-video or image-to-video)
@@ -143,6 +146,7 @@ Venice offers four tiers of privacy: **Anonymized** (third-party models with ide
 - [Speech-to-Text](https://docs.venice.ai/guides/media/speech-to-text): Transcribe audio to text with Venice speech-to-text models and /audio/transcriptions
 - [Meeting Notes with Speech to Text](https://docs.venice.ai/guides/media/meeting-notes): Transcribe a recording with segment timings, extract decisions and owners against a schema, and work around the absence of speaker labels
 - [Voice Cloning](https://docs.venice.ai/guides/media/voice-cloning): Clone a voice from a short reference sample with Chatterbox HD, then generate speech with Venice text-to-speech
+- [Voice Changer](https://docs.venice.ai/guides/media/voice-changer): Convert a source recording into another voice with `/audio/voice-changer/*` — not TTS, not voice cloning, and not `/audio/queue`
 - [Music & Sound Effects](https://docs.venice.ai/guides/media/music-and-sound-effects): Generate music and sound effects with Venice's asynchronous audio API
 
 ### Search & RAG
@@ -197,6 +201,8 @@ Venice offers four tiers of privacy: **Anonymized** (third-party models with ide
 - [Building a Rust LLM Gateway](https://docs.venice.ai/learn/rust-llm-gateway): OpenAI-compatible Rust gateway with Axum, Postgres-backed API keys, fixed-window rate limits, streaming responses, and OpenTelemetry
 - [Building an Audio Research Notebook](https://docs.venice.ai/learn/audio-research-notebook): NotebookLM-style notebook that ingests URLs and documents with Venice scrape and text parser, answers questions with citations over embeddings, and renders a two-host audio overview with text-to-speech
 - [Giving an Agent a Wallet and a Budget](https://docs.venice.ai/learn/wallet-budget-agent): Pay for Venice inference from a USDC wallet with no API key using x402, signing in with EIP-4361, topping up on Base or Solana, and capping agent spend against the per request charge ledger
+- [Building a Voice Agent](https://docs.venice.ai/learn/voice-agent): Terminal voice agent in Python built from Venice speech-to-text, streamed chat completions, and streamed PCM text-to-speech, with sentence-level TTS handoff and cross-platform record and playback via PortAudio
+- [Building a Terminal Agent with Apify](https://docs.venice.ai/learn/apify-terminal-agent): Python CLI agent that resolves a Venice function-calling model from /models/traits, loads Apify Actor and documentation tools over MCP, streams answers, and gates paid Actor runs behind confirmation
 
 ## Key Features
 

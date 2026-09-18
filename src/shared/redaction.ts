@@ -136,6 +136,9 @@ export function redactSecrets<T>(value: T, ancestors: WeakSet<object> = new Weak
   } else {
     const redacted: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (key === "__proto__" || key === "constructor" || key === "prototype") {
+        continue;
+      }
       if (SECRET_KEY_PATTERN.test(key)) {
         redacted[key] = "[REDACTED]";
       } else {

@@ -164,7 +164,11 @@ export interface CharacterImageCacheInventory {
   totalBytes: number;
 }
 
-const inFlightFetches = new Map<string, Promise<CharacterImageCacheResult>>();
+interface InFlightFetch {
+  readonly id: symbol;
+  readonly promise: Promise<CharacterImageCacheResult>;
+}
+const inFlightFetches = new Map<string, InFlightFetch>();
 
 interface NegativeCacheEntry {
   expiresAt: number;
@@ -515,7 +519,7 @@ export async function getCachedCharacterImage(url: string): Promise<CharacterIma
   // Single-flight dedup: if a fetch for this same URL is already in flight,
   // share its promise instead of issuing a duplicate upstream request.
   const inFlight = inFlightFetches.get(key);
-  if (inFlight) return inFlight;
+  if (inFlight) return inFlight.promise;
 
   const fetchAndWrite = async (): Promise<CharacterImageCacheResult> => {
     const controller = new AbortController();
@@ -596,12 +600,13 @@ export async function getCachedCharacterImage(url: string): Promise<CharacterIma
     }
   };
 
+  const fetchToken = Symbol("fetchToken");
   const promise = fetchAndWrite();
-  inFlightFetches.set(key, promise);
+  inFlightFetches.set(key, { id: fetchToken, promise });
   try {
     return await promise;
   } finally {
-    if (inFlightFetches.get(key) === promise) {
+    if (inFlightFetches.get(key)?.id === fetchToken) {
       inFlightFetches.delete(key);
     }
   }

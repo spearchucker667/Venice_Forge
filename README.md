@@ -16,6 +16,9 @@
   <a href="https://github.com/spearchucker667/Venice_Forge/actions/workflows/ci.yml">
     <img alt="CI" src="https://github.com/spearchucker667/Venice_Forge/actions/workflows/ci.yml/badge.svg" />
   </a>
+  <a href="https://github.com/spearchucker667/Venice_Forge/actions/workflows/codeql.yml">
+    <img alt="CodeQL" src="https://github.com/spearchucker667/Venice_Forge/actions/workflows/codeql.yml/badge.svg" />
+  </a>
   <a href="https://github.com/spearchucker667/Venice_Forge/releases">
     <img alt="Release" src="https://img.shields.io/badge/release-v3.0.0--beta.3-blue.svg" />
   </a>
@@ -45,7 +48,7 @@
 ---
 
 <p align="center">
-  <img src="assets/ReadMe_Preview.png" alt="Venice Forge - Your Local AI Workspace" width="100%" />
+  <img src="assets/Venice_Forge_Hero.png" alt="Venice Forge - Your Local AI Workspace" width="100%" />
 </p>
 
 ---
@@ -85,6 +88,13 @@ production-incomplete until qualified native reviewers record dated approval.
 Venice Forge is an unofficial, local-first creative desktop client for the [Venice API](https://docs.venice.ai). Designed as a premium, secure workspace, it empowers authors, artists, developers, and researchers with advanced local tooling that goes far beyond generic web interfaces.
 
 By prioritizing local data ownership, Venice Forge keeps application data on your machine. Renderer state uses local browser storage, encrypted backup archives protect exported data, and Electron credentials use the operating system's secure storage boundary.
+
+## Showcase
+
+Explore Venice Forge in action:
+
+- **Showcase Website**: [https://veniceforge.space.minimax.io](https://veniceforge.space.minimax.io) — showcases the features of Venice Forge.
+- **Demo Showcase**: [https://veniceforge.kimi.page/](https://veniceforge.kimi.page/) — interactive, but limited, website version of the app.
 
 ---
 

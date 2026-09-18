@@ -63,6 +63,8 @@ pnpm-debug.log*
 /.superpowers/
 /.freebuff/
 /.playwright-cli/
+/.superdesign/*
+!/.superdesign/init/
 
 /scripts/dev-tools/venice-styles.json
 

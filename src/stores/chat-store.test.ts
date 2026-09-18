@@ -538,7 +538,7 @@ describe('chat-store desktopBridge routing', () => {
     conversationListMock.mockResolvedValueOnce({ ok: false, error: 'skip' })
     chatListMock.mockRejectedValueOnce(new Error('legacy throw'))
     vi.resetModules()
-    const mod = await import('./chat-store')
+    await import('./chat-store')
     await vi.runAllTimersAsync()
     // Should catch the legacy throw
   })
@@ -548,7 +548,7 @@ describe('chat-store desktopBridge routing', () => {
     chatListMock.mockResolvedValueOnce({ ok: false, error: 'fail reason' })
     conversationListMock.mockResolvedValueOnce({ ok: false, error: 'fail vault' })
     vi.resetModules()
-    const mod = await import('./chat-store')
+    await import('./chat-store')
     await vi.runAllTimersAsync()
   })
 

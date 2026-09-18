@@ -260,7 +260,7 @@ export function serializeError(value: unknown, depth = 0): SerializedError {
     return {
       kind: "Event",
       type: e.type,
-      message: `Event(type=${e.type}, target=${summarizeTarget(e.target) ?? "?"})`,
+      message: safeString(`Event(type=${e.type}, target=${summarizeTarget(e.target) ?? "?"})`), // i18n-allow: technical event summary for error serialization
     };
   }
 

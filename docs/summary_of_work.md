@@ -5,32 +5,50 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-baseline_sha:        0dcd97a3
-verified_at:         2026-09-17 (Pacific)
+baseline_sha:        ebf814a4
+verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        clean
-ci_status:           not_rerun_this_session (last observed green per audit; rerun against published SHA outstanding)
-codeql_status:       not_rerun_this_session (rerun against published SHA outstanding)
-open_findings:       P2-007
+working_tree:        dirty (ready for review/commit)
+ci_status:           all_local_suites_green (full vitest 571 files / 6758 tests pass; build clean; bundle budget ok)
+codeql_status:       remediated (alerts #271, #272, #274, #275, #276, #277 resolved in code; alert #273 assessed as false positive)
+open_findings:       P2-007 (headed accessibility/visual QA); HQE-DOC-001 (native-language review of 12 non-English catalogs)
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-007)
-  - native-language translation review of the 12 non-English catalogs (incl. the new P2-001/P2-006 keys)
+  - native-language translation review of the 12 non-English catalogs (3,900 placeholder entries)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
-recently_closed_in_session_2026-09-17:
-  - VF-AUD-20260916-P2-004 (1c2bfe1d)  Google API-key query-string + redaction gap
-  - VF-AUD-20260916-P2-005 (no new commit)   Family-safe media heap pressure (verified closed by VF-20260916-P1-003)
-  - VF-AUD-20260916-P3-002 (6d577eba) Current-authority docs reconciliation
-  - VF-AUD-20260916-P2-002 (59a6bf7c) Selector↔compiler envelope-overhead invariant
-  - VF-AUD-20260916-P2-001 (a64e5a7d) Superdesign source drift verifier + init refresh
-  - VF-AUD-20260916-P2-006 (0dcd97a3) Truthful media-classifier capability surfaced to Status
+recently_closed_in_session_2026-09-18:
+  - Repository & documentation overhaul (100% active markdown docs indexed in DOCS_INDEX.md; 0 broken links in 417 files)
+  - Showcase website & demo integration in README.md, docs/README.md, docs/ABOUT.md, docs/DOCS_INDEX.md
+  - GitHub CodeQL code scanning remediation (Alerts #271, #272, #274, #275, #276, #277 resolved; #273 false positive assessed)
+  - Git configuration overhaul (.gitattributes Linguist overrides; .gitignore .superdesign hardening)
+  - Sub-READMEs added: docs/README.md (Diátaxis taxonomy) and docs/reports/README.md (historical report policy)
 ```
 
 ## Latest Session Summary
 
+- **2026-09-18 Venice API knowledge-base refresh on `main` (baseline `ebf814a4`).** Reconciled Forge's tracked API reference with the maintained `veniceai/api-docs` mirror at `e787d6fe`, rather than downgrading to the supplied local checkout's older August Swagger. `Venice_swagger_api.yaml` now records schema version `20260916.135625`; `Venice_api_LLM_info.md` includes current voice-changer coverage; and `VENICE_API_SOURCE_MANIFEST.md` records the refreshed provenance and source inventory. `docs:venice:sync` now promotes the validated Swagger, LLM reference, and manifest into the tracked knowledge base, preventing mirror-only refreshes from leaving it stale. Validation: `npm run docs:venice:sync`, `npm run verify:venice-api-docs`, and `npm run verify:venice-contract-drift` passed. No commit or push performed.
+
+- **2026-09-18 Repository & Documentation Overhaul, Showcase Integration, and CodeQL Scanning Remediation on `main` (baseline `ebf814a4`).**
+  - **Showcase Integration:** Added user-requested Showcase Website (`https://veniceforge.space.minimax.io` — feature showcase) and Demo Showcase (`https://veniceforge.kimi.page/` — interactive, but limited, website version) to `README.md`, `docs/README.md`, `docs/ABOUT.md`, and `docs/DOCS_INDEX.md`. Added CodeQL badge to `README.md` alongside CI badge.
+  - **CodeQL Code Scanning Assessment & Remediation:** Assessed all 7 open alerts in GitHub CodeQL (`https://github.com/spearchucker667/Venice_Forge/security/code-scanning`):
+    - Alert #271 (`js/redundant-operation`): Fixed duplicate condition `!theme.includes("```css")` in `scripts/verify-superdesign-init.cjs`.
+    - Alert #272 (`js/automatic-semicolon-insertion`): Added missing semicolon to `export const VENICE_API_KEY_ID_PATTERN` in `src/shared/validation.ts`.
+    - Alert #274 (`js/unused-local-variable`): Removed unused local variable `mod` in `src/stores/chat-store.test.ts`.
+    - Alerts #275 & #276 (`js/remote-property-injection`): Guarded `redactSecrets` against prototype pollution and property injection by skipping `__proto__`, `constructor`, and `prototype` in `src/shared/redaction.ts`.
+    - Alert #277 (`js/missing-await`): Refactored `inFlightFetches` in `electron/services/characterImageCache.ts` to associate in-flight operations with unique Symbol tokens (`fetchToken`), removing the object-identity comparison on promises that triggered the false-positive missing-await heuristic.
+    - Alert #273 (`js/file-access-to-http`): Assessed as false positive (identical to dismissed alert #251); intentional credential testing in `jinaApiKey:test` sending configured key to `https://r.jina.ai/`.
+  - **Sub-README Architecture:** Created `docs/README.md` (Diátaxis documentation taxonomy) and `docs/reports/README.md` (validation report governance). Verified all 29 historical reports in `docs/reports/historical/` carry the required `Historical snapshot.` banner.
+  - **Master Documentation Index:** Indexed 100% of active markdown documents (125/125 candidates) in `docs/DOCS_INDEX.md`. Verified 0 broken links across all 417 markdown files (`npm run verify:markdown-links` PASS).
+  - **Upstream Venice API Mirror:** Synchronized upstream docs mirror via `npm run docs:venice:sync` (HEAD `e787d6fe07372f7961dc292979a3bdf4b95497e3`). Verified with `verify:venice-api-docs` and `verify:venice-contract-drift`.
+  - **Git Hardening:** Added GitHub Linguist overrides in `.gitattributes` for `docs/reference/Venice_swagger_api.yaml` and `docs/i18n/**/*.json`. Hardened `.gitignore` with `/.superdesign/*` and `!/.superdesign/init/`.
+  - **Validation:** `npm run lint:eslint` (PASS, 0/0), `npm run typecheck` (PASS, 3/3 tsconfigs), `npm test` (PASS, 571 test files, 6,758 passed tests, 4 skipped, 0 failures), `npm run build` (PASS, 2.61s), `npm run verify:bundle-budget` (PASS, all chunks within budget), `npm run verify:contracts:features` (PASS), `npm run verify:contracts:release` (PASS, 104/104 checks), case collisions (0), tracked leaks (0).
+
 - **2026-09-18 CI failure repair on local `main` (baseline `5970eef7`).** Reproduced the reported hosted lint, type, test, and repository-identity failures against the dirty checkout. Kept the existing removal of the unused i18n regex and TTS type import, then removed the remaining unused TTS status mapper. Narrowed `speechResultFail()` to its failure variant to fix the six failure-handler type errors. The character image download-budget test now initializes its deferred fetch promise before use, without a timing delay. Restored the ErrorBoundary token-leak assertion and fixed `serializeError()` so string messages and primitives are sanitized before logging. Reconciled character-image IPC and protocol MIME handling with byte-detected formats, and updated the image-policy verifier to permit byte-validated GIF only in the Venice avatar cache. The pre-existing private-path edit in this file already makes `verify:repository-identity` pass. Local lint, typecheck, focused tests, full segmented CI tests, both coverage jobs, build, and dist verification passed. `verify:contracts` remains blocked by 3,900 pre-existing untranslated-English catalog entries in non-English locales; the translation gate was not weakened. The full segmented CI suite and feature/release contract groups passed; final results are recorded in the Validation Matrix below. Existing unrelated README, website handoff edits, and image asset were preserved.
+
+- **2026-09-17 Website update in place with kimi.page demo link (no repo changes).** Added `app.demoUrl = 'https://veniceforge.kimi.page'` and `app.demoHost = 'kimi.page'` to `src/config/site.ts`. Surfaces: 4th hero CTA "Try the live demo" (IconGlobe, ghost variant, `aria-label` notes the host), and a footer "live demo" link in the project nav (below the provider link). Build succeeded with new JS bundle hash `index-CMg9w0nL.js`. Deployed in place at drive node `441416942264624`; live URL remains `https://veniceforge.space.minimax.io`. Hosted QA: index 200, new bundle 200 bytes-match, both new strings ("veniceforge.kimi.page", "Try the live demo") present in the served JS. Validation: lint ✓, typecheck ✓, test skip due to unrelated Vitest/jsdom localStorage regression (30/30 all fail with `window.localStorage` undefined, not from this session), build ✓. Staging cleaned up after successful publish. **No Git changes to any repo**; the update is published but not committed into source control.
 
 - **2026-09-17 Audit-tranche 2026-09-17 — Six current-main deep-audit findings closed on `main` (baseline `c8fa1a5e`, head `0dcd97a3`).** Per `docs/audits/TODO/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md`, this single audit-tranche session closed six of seven remaining findings; P2-007 is a separate headed-a11y release task. Closed in order: **VF-AUD-20260916-P2-004** Google API-key query-string + redaction gap (commit `1c2bfe1d`); **VF-AUD-20260916-P2-005** family-safe media heap pressure (no new commit — verified closed by `VF-20260916-P1-003` `e7abe910`); **VF-AUD-20260916-P3-002** current-authority docs reconciliation (commit `6d577eba`); **VF-AUD-20260916-P2-002** selector↔compiler envelope-overhead invariant (commit `59a6bf7c`); **VF-AUD-20260916-P2-001** Superdesign source-drift verifier + init refresh (commit `a64e5a7d`); **VF-AUD-20260916-P2-006** truthful media-classifier capability surfaced to Status (commit `0dcd97a3`). All six closures include code, tests, and (where applicable) i18n + verifier updates; non-English locales carry `__MISSING__:` placeholders pending qualified native-language review. Remaining open finding: **VF-AUD-20260916-P2-007** direct headed a11y/visual QA — separate release task (see ROADMAP). Validation across the tranche: `npm run lint:eslint` 0/0, `npm run typecheck` 3/3 tsconfigs, `npm run verify:i18n` PASS, `npm run verify:i18n-hardcoded-regressions` PASS (0 regressions), `npm run verify:markdown-links` PASS (415 files), `node scripts/verify-superdesign-init.cjs` PASS (source fingerprint `59d449a17737d341`), focused vitest 21/21 (P2-006), broader vitest 401/401 across 48 files. **All six commits on `main`, not pushed** (per AGENTS.md §5 publication requires explicit authorization). Full session entries below under Session History; Open TODO Ledger updated.
 
@@ -432,6 +450,14 @@ recently_closed_in_session_2026-09-17:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-18 — Venice API knowledge-base refresh
+
+- Baseline: local `main` at `ebf814a4`; preserved all pre-existing worktree edits.
+- The provided `api-docs` checkout had Swagger `20260814.153445`, older than Forge's maintained upstream mirror. Refreshed the mirror to `e787d6fe07372f7961dc292979a3bdf4b95497e3` and promoted its schema `20260916.135625` instead of applying a contract downgrade.
+- Updated the tracked Swagger, LLM integration reference, and source manifest. The LLM reference now includes the upstream Voice Changer endpoint and guide entries.
+- Extended `scripts/sync-venice-api-docs.cjs` so future syncs validate the Voice Changer guide and atomically regenerate the tracked references with current provenance.
+- Validation: `npm run docs:venice:sync`, `npm run verify:venice-api-docs`, and `npm run verify:venice-contract-drift` passed. Hosted CI, CodeQL, and manual QA not run; no commit or push performed.
 
 ### 2026-09-18 — Hosted CI lint, type, test, and identity repair
 
@@ -2112,6 +2138,43 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-18 — Venice API knowledge-base refresh (baseline `ebf814a4`)
+
+- `npm run docs:venice:sync` — PASS (upstream `e787d6fe07372f7961dc292979a3bdf4b95497e3`; 18 mandatory source files; refreshed tracked references).
+- `npm run verify:venice-api-docs` — PASS (parsed provenance and schema contracts).
+- `npm run verify:venice-contract-drift` — PASS (Swagger, endpoint allowlists, media payload, persistence, and capability assertions).
+- `npm run lint:eslint` — PASS after correcting the sync script's whitespace-regex lint violation; no warnings or errors.
+- Not run: hosted CI, CodeQL, manual QA, typecheck, full test suite, build, and full contracts. This documentation-only refresh did not modify application code.
+
+### 2026-09-18 — Repository Overhaul, Showcase Links, & CodeQL Hardening (baseline `ebf814a4`)
+
+- `npm run lint:eslint` — PASS (0 warnings, 0 errors).
+- `npm run typecheck` — PASS (all 3 tsconfigs: root, electron, electron test).
+- `npm test` — PASS (571 test files passed, 6,758 tests passed, 4 skipped, 0 failed).
+- `npm run build` — PASS (vite web build in 2.61s, esbuild server in 18ms, electron bundle).
+- `npm run verify:bundle-budget` — PASS (all chunks within budget).
+- `npm run verify:safety-guard` — PASS (safety guard enforcement check passed).
+- `npm run verify:markdown-links` — PASS (417 Markdown files checked, 0 broken links).
+- `npm run verify:repository-identity` — PASS (all 19 tabs, custody markers, repo paths verified).
+- `npm run verify:roadmap-current` — PASS (roadmap current, scan evidence retained as input).
+- `npm run verify:release-metadata` — PASS (Electron 43, Vite 8, Express 5 verified).
+- `npm run verify:agent-docs` — PASS (canonical root, validation command parity).
+- `npm run verify:superdesign-init` — PASS (source fingerprint 59d449a17737d341; alert #271 deduplicated).
+- `npm run verify:image-policy` — PASS (PNG/JPEG/WEBP ingress, avatar cache AVIF/GIF).
+- `npm run verify:work-orders` — PASS (work-order schema valid).
+- `npm run verify:no-native-dialogs` — PASS (no native blocking dialogs).
+- `npm run verify:inactive-feature-archive` — PASS (VERIFY-144 research-browser inactive).
+- `npm run verify:provider-adapters` — PASS (5 files / 92 tests passed).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+- `npm run verify:ipc-parity` — PASS (190 channels, 0 orphans).
+- `npm run verify:prompt-language` — PASS (0 unjustified English directives).
+- `npm run verify:transitive-deprecations` — PASS (5 known deprecations allowlisted).
+- `npm run verify:contracts:features` — PASS (chat, image, workflow, rp, settings).
+- `npm run verify:contracts:release` — PASS (104 pass(es) in verify:release-packaging-hardening).
+- `git ls-files | awk '{print tolower($0)}' | sort | uniq -d` — PASS (0 case collisions).
+- Secret & transient scan: `git ls-files | rg '(^|/)(\.env$|\.env\.local|kimi-export-session_|Screenshot_|venice-media-output/)|^scratch/'` — PASS (0 leaks).
+- `gh api /code-scanning/alerts` audit — 7 open alerts assessed; #271, #272, #274, #275, #276, #277 resolved; #273 false positive assessed.
 
 ### 2026-09-18 — CI failure repair on `5970eef7` baseline
 

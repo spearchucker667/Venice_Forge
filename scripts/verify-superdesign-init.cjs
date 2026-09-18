@@ -334,7 +334,7 @@ function verifySuperdesignInit(repoRoot) {
   if (!theme.includes("#050505") || !theme.includes("#ef555f") || !theme.includes("src/theme/builtins/venice.ts")) {
     errors.push("theme.md does not contain current Venice near-black/crimson fingerprints and source authority.");
   }
-  if (!theme.includes("```css") && !theme.includes("```css")) {
+  if (!theme.includes("```css")) {
     errors.push("theme.md must include a fenced raw CSS/token source section.");
   }
 

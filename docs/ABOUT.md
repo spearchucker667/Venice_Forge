@@ -17,6 +17,11 @@ Current public readiness status:
 - Legal/TOS notes are maintained in [LEGAL.md](../LEGAL.md).
 - FAQ and troubleshooting guides are maintained in [FAQ.md](FAQ.md) and [DEVELOPMENT/troubleshooting.md](DEVELOPMENT/troubleshooting.md).
 
+## Live Showcases & Demos
+
+- **Showcase Website**: [https://veniceforge.space.minimax.io](https://veniceforge.space.minimax.io) — showcases the features of Venice Forge.
+- **Demo Showcase**: [https://veniceforge.kimi.page/](https://veniceforge.kimi.page/) — interactive, but limited, website version of the app.
+
 
 ## Goals
 
