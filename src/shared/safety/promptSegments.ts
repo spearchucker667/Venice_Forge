@@ -1,7 +1,7 @@
 /** @fileoverview Typed safety provenance segments (VF-20260916-P1-002 /
  *  VF-AUD-P1-002-STRUCTURAL).
  *
- *  Why this exists: the mandatory child-safety guard previously reconstructed
+ *  Why this exists: the local child-safety guard previously reconstructed
  *  the instruction-vs-quoted-attachment trust boundary by regex-parsing
  *  serialized `<external_attachment>` envelopes out of message text. The
  *  concrete split vector is closed (see `xmlEscape.ts`), but a string

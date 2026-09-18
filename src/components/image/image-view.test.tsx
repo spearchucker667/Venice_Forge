@@ -749,7 +749,7 @@ describe("ImageView model-aware payloads", () => {
     expect(textarea).toHaveValue("A copper city at dusk");
   });
 
-  it("explains that a safety-block fallback is independent of optional Safe Mode", async () => {
+  it("explains that a safety-block fallback preserves the original prompt", async () => {
     enhancePromptMock.mockResolvedValueOnce({
       prompt: "A copper city at dusk",
       modelUsed: "internal-text-enhancer",
@@ -767,7 +767,7 @@ describe("ImageView model-aware payloads", () => {
           expect.objectContaining({
             variant: "error",
             title: "Prompt enhancement failed",
-            description: expect.stringMatching(/mandatory child-safety protections.*separate from optional Safe Mode/i),
+            description: expect.stringMatching(/local child-safety protections while Family Safe Mode was enabled/i),
           }),
         ]),
       );
@@ -776,7 +776,7 @@ describe("ImageView model-aware payloads", () => {
     expect(textarea).toHaveValue("A copper city at dusk");
   });
 
-  it("uses the mandatory-child-safety toast message when the safety layer is present", async () => {
+  it("uses the child-safety toast message when the safety layer is present", async () => {
     enhancePromptMock.mockResolvedValueOnce({
       prompt: "A copper city at dusk",
       modelUsed: "internal-text-enhancer",
@@ -799,7 +799,7 @@ describe("ImageView model-aware payloads", () => {
           expect.objectContaining({
             variant: "error",
             title: "Prompt enhancement failed",
-            description: expect.stringMatching(/mandatory child-safety protections/i),
+            description: expect.stringMatching(/local child-safety protections/i),
           }),
         ]),
       );

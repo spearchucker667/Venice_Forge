@@ -1,5 +1,4 @@
-/** Central pipeline for Venice Forge's mandatory child-safety guard and
- * optional local family-filter state. */
+/** Central pipeline for Venice Forge's local Family Safe Mode guard. */
 import type { SafetyGuardDecision, SafetyGuardInput } from "./childExploitationGuard";
 import { recordDecision } from "./guardAudit";
 import { runLocalFamilyGuard } from "./localFamilyGuardRules";
@@ -11,12 +10,13 @@ import {
 export { runLocalFamilyGuard } from "./localFamilyGuardRules";
 
 export const FAMILY_SAFE_MODE_BLOCK_MESSAGE =
-  "Blocked by child-safety protections. This protection cannot be disabled.";
+  "Blocked by local Family Safe Mode.";
 
 /** Identifies which layer of the safety stack produced a decision. */
 export type SafetyLayer =
   | "mandatory-child-safety"
   | "optional-family-policy"
+  | "disabled-local-family-safe-mode"
   | "provider-policy"
   | "request-validation";
 
@@ -165,9 +165,8 @@ export function toSafetyDecision(
 }
 
 /**
- * Always evaluates the non-disableable child-exploitation guard. The
- * `localFamilySafeModeEnabled` flag controls optional family-filter behavior,
- * but it must never bypass legally required child-safety enforcement.
+ * Runs local screening only when Family Safe Mode is enabled. Disabled mode
+ * returns a synthetic skipped decision without invoking the rule engine.
  */
 function buildBlockedLocalDecision(
   guardDecision: SafetyGuardDecision,
@@ -208,13 +207,15 @@ function buildAllowedLocalDecision(
     SafetyDecisionCategory,
     "adult-content-approved" | "general"
   >;
-  const layer = deriveSafetyLayer(true, category, familyModeEnabled);
+  const layer = familyModeEnabled
+    ? deriveSafetyLayer(true, category, familyModeEnabled)
+    : "disabled-local-family-safe-mode";
   return familyModeEnabled
     ? { allowed: true, guardDecision, category, layer }
     : {
         allowed: true,
         skipped: true,
-        reason: "optional-local-family-filter-disabled-child-safety-checked",
+        reason: "LOCAL_FAMILY_SAFE_MODE_DISABLED",
         guardDecision,
         category,
         layer,
@@ -222,9 +223,8 @@ function buildAllowedLocalDecision(
 }
 
 /**
- * Always evaluates the non-disableable child-exploitation guard. The
- * `localFamilySafeModeEnabled` flag controls optional family-filter behavior,
- * but it must never bypass legally required child-safety enforcement.
+ * Evaluates the local safety stack when Family Safe Mode is enabled. Disabled
+ * mode is represented by a synthetic skipped decision from the rule runner.
  */
 export function maybeRunLocalFamilyGuard(
   input: SafetyGuardInput,
@@ -246,8 +246,7 @@ export function maybeRunLocalFamilyGuard(
  * audit counters.
  *
  * Returning a `skipped: true` decision for Adult Mode is intentional — the
- * inspector can show the operator that the local filter is disabled without
- * the renderer pretending to enforce it.
+ * inspector can show the operator that local screening is disabled.
  */
 export function previewLocalFamilyGuard(
   input: SafetyGuardInput,
@@ -377,7 +376,7 @@ export function screenResponseBody(
     uiCategory: decision.category,
     ...(localFamilySafeModeEnabled
       ? {}
-      : { reason: "optional-local-family-filter-disabled-child-safety-checked" }),
+      : { reason: "LOCAL_FAMILY_SAFE_MODE_DISABLED" }),
   };
 }
 

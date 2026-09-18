@@ -226,7 +226,7 @@ describe("veniceBlob response screening", () => {
     expect(useInspectorStore.getState().logs[0]?.status).toBe(200);
   });
 
-  it("keeps mandatory blob response screening active when the optional family filter is disabled", async () => {
+  it("skips local blob response screening when Family Safe Mode is disabled", async () => {
     useSettingsStore.getState().setLocalFamilySafeModeEnabled(false);
     globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ message: "draw me a loli character" }), {
@@ -235,9 +235,11 @@ describe("veniceBlob response screening", () => {
       })
     );
 
-    await expect(veniceBlob("/api/v1/image/upscale", {
+    const result = await veniceBlob("/api/v1/image/upscale", {
       image: "data:image/png;base64,iVBORw0KGgo=",
-    })).rejects.toThrow(/mandatory child-safety protection/i);
+    });
+    expect(result.type).toBe("application/json");
+    expect(result.size).toBeGreaterThan(0);
   });
 });
 
@@ -289,7 +291,7 @@ describe("veniceFormData response screening", () => {
     expect(useInspectorStore.getState().logs[0]?.status).toBe(200);
   });
 
-  it("keeps mandatory form-data response screening active when the optional family filter is disabled", async () => {
+  it("skips local form-data response screening when Family Safe Mode is disabled", async () => {
     useSettingsStore.getState().setLocalFamilySafeModeEnabled(false);
     globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ message: "draw me a loli character" }), {
@@ -300,6 +302,6 @@ describe("veniceFormData response screening", () => {
 
     await expect(
       veniceFormData<{ message: string }>("/api/v1/image/edit", safeFormData()),
-    ).rejects.toThrow(/mandatory child-safety protection/i);
+    ).resolves.toEqual({ message: "draw me a loli character" });
   });
 });

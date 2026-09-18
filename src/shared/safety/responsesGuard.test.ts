@@ -135,7 +135,7 @@ describe("Responses guard blocking (mandatory pipeline)", () => {
     expect(d.allow).toBe(true);
   });
 
-  it("maybeRunLocalFamilyGuard returns a blocked decision with 451-shaped details", () => {
+  it("maybeRunLocalFamilyGuard returns a blocked decision with 451-shaped details when enabled", () => {
     const decision = maybeRunLocalFamilyGuard(
       {
         endpoint: ENDPOINT,
@@ -146,7 +146,7 @@ describe("Responses guard blocking (mandatory pipeline)", () => {
         },
         source: "venice-client",
       },
-      false, // Family Safe Mode off — the mandatory child-safety layer still blocks
+      true, // Family Safe Mode enabled: local child-safety screening blocks
     );
     expect(decision.allowed).toBe(false);
     if (!decision.allowed) {
@@ -165,7 +165,7 @@ describe("Responses guard blocking (mandatory pipeline)", () => {
         },
         source: "venice-client",
       },
-      false,
+      true,
     );
     expect(decision.allowed).toBe(false);
     if (!decision.allowed) {

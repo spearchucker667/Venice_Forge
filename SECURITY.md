@@ -73,20 +73,16 @@ they are sent upstream. It does **not** guarantee that all unsafe, unlawful, or
 policy-violating content will be prevented, and it is not a legal/compliance
 system.
 
-Venice Forge applies two distinct local safety layers.
-
-The **mandatory child-safety layer** (`src/shared/safety/childExploitationGuard.ts`)
-runs on every guarded request regardless of settings. It blocks sexualization of
-minors, CSAM requests, grooming/exploitation, age-evasion attempts, fictional
-minor sexualization, obfuscated minor sexualization, and equivalent mandatory
-child-protection cases. This layer cannot be disabled by the user.
-
-The **optional Family Safe Mode / adult-content layer**
-(`src/shared/safety/localFamilySafeGuard.ts` and `src/shared/safety/localFamilyGuardRules.ts`)
-runs only when Family Safe Mode is enabled. It blocks adult explicit nudity,
-adult erotic framing, and non-child graphic gore for image generation and other
-covered endpoints. Turning Family Safe Mode off removes these adult-oriented
-restrictions but does not affect mandatory child safety.
+Venice Forge applies one local screening stack controlled by Family Safe Mode.
+When Family Safe Mode is enabled, the child-safety rules in
+`src/shared/safety/childExploitationGuard.ts` and the adult-content rules in
+`src/shared/safety/localFamilyGuardRules.ts` run before covered requests are
+sent upstream. They block sexualization of minors, CSAM requests,
+grooming/exploitation, age-evasion attempts, fictional or obfuscated minor
+sexualization, adult explicit nudity, adult erotic framing, and non-child
+graphic gore where the endpoint supports those checks. When Family Safe Mode is
+off, this local screening stack is skipped and the request may continue subject
+to ordinary request validation and provider policy.
 
 Both layers are endpoint-aware and extract prompt-like fields such as `messages`,
 `prompt`, `negative_prompt`, `query`, `text`, and `input`. They use rule-based

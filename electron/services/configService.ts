@@ -18,7 +18,8 @@
  *    - Default generated config files must never contain real keys.
  *    - No remote URLs.
  *    - Optional Family Safe Mode and provider safe_mode are independent and
- *      default off; mandatory child-safety enforcement is not configurable.
+ *      default off; local Family Safe Mode screening is controlled separately
+ *      from the provider-side safe_mode parameter.
  */
 import { app, shell } from "electron";
 import { promises as fs, constants as fsConstants } from "fs";

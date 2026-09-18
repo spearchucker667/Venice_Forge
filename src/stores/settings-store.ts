@@ -493,9 +493,9 @@ export const useSettingsStore = create<SettingsState>()(
           // v14: collapse state and the separately clamped expanded width persist.
           sidebarOpen: typeof state.sidebarOpen === 'boolean' ? state.sidebarOpen : true,
           sidebarWidth: clampSidebarWidth(state.sidebarWidth),
-          // v15: optional content controls default off. Explicit persisted
-          // choices are preserved; the mandatory child-safety guard is not a
-          // setting and remains active in every mode.
+          // v15: local Family Safe Mode and provider content controls default
+          // off. Explicit persisted choices are preserved; the provider
+          // safe_mode parameter remains independent from local screening.
           localFamilySafeModeEnabled: state.localFamilySafeModeEnabled ?? false,
           veniceApiSafeMode: state.veniceApiSafeMode ?? false,
           // v18 (Phase 8 — Responses API alpha): experimental chat transport

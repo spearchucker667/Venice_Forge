@@ -271,7 +271,7 @@ describe("veniceClient utilities", () => {
       expect(log?.guardOutcome).toBe("block");
     });
 
-    it("keeps mandatory response screening active when the optional family filter is disabled", async () => {
+    it("skips local response screening when Family Safe Mode is disabled", async () => {
       useSettingsStore.getState().setLocalFamilySafeModeEnabled(false);
       globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue(
         new Response(JSON.stringify({ message: "draw me a loli character" }), {
@@ -283,7 +283,7 @@ describe("veniceClient utilities", () => {
       await expect(veniceFetch("/chat/completions", {
         method: "POST",
         body: { messages: [] },
-      })).rejects.toThrow(/mandatory child-safety protection/i);
+      })).resolves.toMatchObject({ data: { message: "draw me a loli character" } });
     });
   });
 });

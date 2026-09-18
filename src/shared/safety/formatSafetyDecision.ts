@@ -50,7 +50,7 @@ export function guardCategoryToSafetyCategory(
     case "unsafe_batch_or_automation":
       return "grooming";
     default:
-      // Any other blocked category is treated as a mandatory child-safety concern.
+      // Any other blocked category is treated as a child-safety concern.
       return "minor-sexualization";
   }
 }
@@ -74,9 +74,11 @@ function defaultUserMessageForLayer(t: TranslateFn, layer: SafetyLayer): string 
   const key = `safetyDecision.userMessage.${layer}`;
   const fallback: Record<SafetyLayer, string> = {
     "mandatory-child-safety":
-      "Generation blocked: mandatory child-safety protection triggered.",
+      "Generation blocked: child-safety protection triggered.",
     "optional-family-policy":
       "Generation blocked: optional Family Safe Mode triggered.",
+    "disabled-local-family-safe-mode":
+      "Local Family Safe Mode is off; local screening was skipped.",
     "provider-policy": "Generation blocked: provider policy violation.",
     "request-validation": "Generation blocked: request validation failed.",
   };

@@ -158,7 +158,7 @@ describe("DEFAULT_SYSTEM_PROMPT", () => {
 
   it("rejects app-authored censorship while preserving hard boundaries", () => {
     expect(DEFAULT_SYSTEM_PROMPT).toMatch(/application-authored censorship/i);
-    expect(DEFAULT_SYSTEM_PROMPT).toMatch(/mandatory child-safety enforcement/i);
+    expect(DEFAULT_SYSTEM_PROMPT).toMatch(/local Family Safe Mode screening when enabled/i);
     expect(DEFAULT_SYSTEM_PROMPT).toMatch(/provider access checks/i);
     expect(DEFAULT_SYSTEM_PROMPT).not.toMatch(/any requests/i);
   });

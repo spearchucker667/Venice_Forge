@@ -46,12 +46,15 @@ vi.mock("../../src/shared/safety", () => {
     })),
     screenResponseBody: vi.fn(() => ({ allowed: true, skipped: false })),
     maybeRunLocalFamilyGuard: vi.fn((input: unknown, enabled: boolean) => {
+      if (!enabled) {
+        return { allowed: true, skipped: true, reason: "LOCAL_FAMILY_SAFE_MODE_DISABLED" };
+      }
       const guardDecision = assessChildExploitationSafety(input);
       return guardDecision.allow
         ? {
             allowed: true,
             skipped: !enabled,
-            reason: enabled ? undefined : "optional-local-family-filter-disabled-child-safety-checked",
+            reason: undefined,
             guardDecision,
           }
         : { allowed: false, reason: guardDecision.reasonCode, userMessage: guardDecision.userMessage, guardDecision };
@@ -164,6 +167,10 @@ describe("bridgeServer", () => {
   });
 
   it("enforces child safety guard and blocks request if unsafe", async () => {
+    // This regression exercises the enabled path explicitly. The suite keeps
+    // Family Safe Mode disabled by default so streaming tests can observe
+    // deltas; enabled mode must still block before the provider is called.
+    setRuntimeLocalFamilySafeModeEnabled(true);
     vi.mocked(assessChildExploitationSafety).mockReturnValueOnce({
       allow: false,
       action: "block",
@@ -200,6 +207,7 @@ describe("bridgeServer", () => {
     // IPC path (flat: error / reasonCode / category / severity at top level).
     expect(json.error).toBe("Safety block");
     expect(json.reasonCode).toBe("CSAM_DETECTED");
+    setRuntimeLocalFamilySafeModeEnabled(false);
   });
 
   // VERIFY-001 regression guard: SEC-1 / Bridge bearer token MUST NOT appear

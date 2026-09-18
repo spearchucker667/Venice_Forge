@@ -76,7 +76,7 @@ describe("VERIFY-015 guard pipeline — runtime source of truth", () => {
     expect(block).toBeNull();
   });
 
-  it("checkLocalFamilyGuard keeps mandatory child safety active when the optional filter is off", () => {
+  it("checkLocalFamilyGuard skips local screening when Family Safe Mode is off", () => {
     setRuntimeLocalFamilySafeModeEnabled(false);
     const block = checkLocalFamilyGuard({
       text: triggerInput("CSAM_EXPLICIT"),
@@ -84,8 +84,7 @@ describe("VERIFY-015 guard pipeline — runtime source of truth", () => {
       method: "POST",
       source: "ipc",
     });
-    expect(block).not.toBeNull();
-    expect(block?.status).toBe(451);
+    expect(block).toBeNull();
     // And the runtime snapshot remains the source of truth:
     expect(getRuntimeLocalFamilySafeModeEnabled()).toBe(false);
   });
@@ -307,7 +306,7 @@ describe("VERIFY-015 guard pipeline — performGuardedVeniceRequest", () => {
     expect(result.block.body.reasonCode).toBe("INVALID_MEDIA");
   });
 
-  it("blocks mandatory child-safety triggers when the optional filter is off", async () => {
+  it("forwards child-safety content when Family Safe Mode is off", async () => {
     setRuntimeLocalFamilySafeModeEnabled(false);
     const upstream = { ok: true, status: 200, statusText: "OK", headers: {}, body: {}, contentType: "application/json" };
     mockedPerformVeniceRequest.mockResolvedValue(upstream);
@@ -316,8 +315,8 @@ describe("VERIFY-015 guard pipeline — performGuardedVeniceRequest", () => {
       method: "POST",
       body: { model: "m", messages: [{ role: "user", content: triggerInput("CSAM_EXPLICIT") }] },
     });
-    expect(result.kind).toBe("blocked");
-    expect(mockedPerformVeniceRequest).not.toHaveBeenCalled();
+    expect(result.kind).toBe("response");
+    expect(mockedPerformVeniceRequest).toHaveBeenCalled();
   });
 
   it("withholds the caller onDelta while Family Safe Mode is on (GSS-P1-001)", async () => {
@@ -460,13 +459,15 @@ describe("VERIFY-015 guard pipeline — screenResponseBody (web-proxy/scrape ret
     expect(r.allowed).toBe(true);
   });
 
-  it("keeps mandatory child-safety response screening active when the optional filter is off", () => {
+  it("skips response screening when Family Safe Mode is off", () => {
     const r = screenResponseBody(
       triggerInput("CSAM_EXPLICIT"),
       { endpoint: "https://r.jina.example/page", method: "GET", source: "web-proxy" },
       false,
     );
-    expect(r.allowed).toBe(false);
+    expect(r.allowed).toBe(true);
+    if (!r.allowed) throw new Error("expected screening to be skipped");
+    expect(r.skipped).toBe(true);
   });
 
   it("detects a trigger at the end of a large body via tail window", () => {

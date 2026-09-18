@@ -37,7 +37,7 @@ export function SafetyPanel({
             <p className="mt-1 text-[12.5px] text-text-secondary leading-relaxed">
               {t(
                 "settings:safety.familySafeModeDescription",
-                "Controls the optional local family-oriented layer. Mandatory child-safety protection remains active in every mode.",
+                "Controls local Family Safe Mode screening. When it is off, local screening is skipped; Venice API provider Safe Mode is controlled separately.",
               )}
             </p>
           </div>
@@ -78,7 +78,7 @@ export function SafetyPanel({
               )
             : t(
                 "settings:safety.status.disabled",
-                "The optional family layer is off. Mandatory child-safety protection remains active; Venice API provider Safe Mode is controlled separately below.",
+                "Local Family Safe Mode screening is off; Venice API provider Safe Mode is controlled separately below.",
               )}
         </p>
 
@@ -100,7 +100,7 @@ export function SafetyPanel({
               : !localFamilySafeModeEnabled && !veniceApiSafeMode
                 ? t(
                     "settings:safety.status.bothOff",
-                    "Both optional filters are OFF and outbound requests include safe_mode: false. Mandatory child-safety protection remains active.",
+                    "Both filters are OFF and outbound requests include safe_mode: false. Local screening is skipped.",
                   )
                 : t(
                     "settings:safety.status.filteredLocally",
