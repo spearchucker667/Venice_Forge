@@ -113,28 +113,40 @@ function redactPaths(value: string): string {
 
 /**
  * Recursively redacts secrets from a value of any type.
+ *
+ * Uses an ancestor-stack approach to distinguish **real cycles** from
+ * shared references (DAG edges). A node that re-enters an already-ancestor
+ * is collapsed to the `[Circular]` placeholder; a node referenced from two
+ * distinct parents is preserved with its full value in both positions.
+ *
  * @template T The type of the input value.
  * @param value The value to redact.
  * @returns A deep copy with secrets replaced by placeholders.
  */
-export function redactSecrets<T>(value: T, seen = new WeakSet<object>()): T {
+export function redactSecrets<T>(value: T, ancestors: WeakSet<object> = new WeakSet()): T {
   if (typeof value === "string") return redactString(value) as T;
   if (!value || typeof value !== "object") return value;
 
-  if (seen.has(value)) return "[Circular]" as T;
-  seen.add(value);
+  if (ancestors.has(value as object)) return "[Circular]" as T;
+  ancestors.add(value as object);
 
-  if (Array.isArray(value)) return value.map((item) => redactSecrets(item, seen)) as T;
-
-  const redacted: Record<string, unknown> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (SECRET_KEY_PATTERN.test(key)) {
-      redacted[key] = "[REDACTED]";
-    } else {
-      redacted[key] = redactSecrets(entry, seen);
+  let result: T;
+  if (Array.isArray(value)) {
+    result = value.map((item) => redactSecrets(item, ancestors)) as T;
+  } else {
+    const redacted: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (SECRET_KEY_PATTERN.test(key)) {
+        redacted[key] = "[REDACTED]";
+      } else {
+        redacted[key] = redactSecrets(entry, ancestors);
+      }
     }
+    result = redacted as T;
   }
-  return redacted as T;
+
+  ancestors.delete(value as object);
+  return result;
 }
 
 /**

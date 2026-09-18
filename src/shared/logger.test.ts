@@ -99,4 +99,34 @@ describe("logger redaction", () => {
     expect(errorSpy).toHaveBeenCalled();
     expect(allOutput(errorSpy)).toContain("[Circular]");
   });
+
+  it("preserves shared references (DAG) and only collapses real cycles", () => {
+    const shared: Record<string, unknown> = { tag: "shared" };
+    const root: Record<string, unknown> = {
+      a: { child: shared },
+      b: { child: shared },
+    };
+    logger.warn("shared vs cyclic", root);
+    const out = allOutput(warnSpy);
+
+    // The shared object is emitted twice (one per parent) — neither
+    // occurrence should be collapsed to [Circular].
+    const occurrences = (out.match(/"tag":"shared"/g) ?? []).length;
+    expect(occurrences).toBeGreaterThanOrEqual(2);
+
+    // But a real self-cycle still collapses correctly.
+    const cyclic: Record<string, unknown> = { name: "cyc" };
+    cyclic.self = cyclic;
+    logger.warn("self cycle", cyclic);
+    expect(allOutput(warnSpy)).toContain("[Circular]");
+  });
+
+  it("collapses mutual cycles without crashing", () => {
+    const a: Record<string, unknown> = { name: "a" };
+    const b: Record<string, unknown> = { name: "b" };
+    a.peer = b;
+    b.peer = a;
+    expect(() => logger.error("mutual cycle", a)).not.toThrow();
+    expect(allOutput(errorSpy)).toContain("[Circular]");
+  });
 });

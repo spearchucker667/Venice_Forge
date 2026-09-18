@@ -11,6 +11,7 @@ import { useAuthStore } from "./stores/auth-store";
 import { activateRestoredProfileSession } from "./stores/profile-store";
 import { syncPrefersReducedMotion } from "./hooks/usePrefersReducedMotion";
 import { redactErrorDetails, sanitizeErrorText } from "./shared/redaction";
+import { serializeError, serializeErrorToString } from "./shared/serializeError";
 import { registerModelQueryClient } from "./services/modelQueryCoordinator";
 
 syncPrefersReducedMotion();
@@ -25,17 +26,38 @@ const queryClient = new QueryClient({
 });
 registerModelQueryClient(queryClient);
 
+// Detect production to gate chatty startup diagnostics. crypto.subtle
+// availability is a successful expected condition and must not surface as
+// ERROR/WARN noise in the user's log stream.
+const isProduction =
+  (typeof import.meta !== "undefined" && (import.meta as unknown as { env?: { MODE?: string } }).env?.MODE === "production") ||
+  (typeof process !== "undefined" && process.env?.NODE_ENV === "production");
+
 window.addEventListener("unhandledrejection", (event) => {
-  console.error("[venice-forge] Unhandled rejection:", event.reason instanceof Error
-    ? redactErrorDetails(event.reason)
-    : sanitizeErrorText(String(event.reason)));
+  // Structured serializer captures Error, DOMException, Event, Response,
+  // and arbitrary thrown values without producing `[object Object]`.
+  const serialized = serializeError(event.reason);
+  console.error("[venice-forge] Unhandled rejection:", serialized, serializeErrorToString(serialized));
 });
 window.addEventListener("error", (event) => {
-  console.error("[venice-forge] Uncaught error:", event.error instanceof Error
-    ? redactErrorDetails(event.error)
-    : sanitizeErrorText(event.message));
+  // Prefer event.error (the underlying Error) when present; fall back to
+  // event.message for synthetic cases (e.g., resource load failures where
+  // no Error object is provided). ErrorEvent does not expose `reason`
+  // directly so we rely on duck-typed fallback.
+  const reason = event.error ?? event.message;
+  const serialized = serializeError(reason);
+  const headline = sanitizeErrorText(event.message || serializeErrorToString(serialized));
+  console.error("[venice-forge] Uncaught error:", headline, serialized);
 });
-console.warn("[venice-forge] crypto.subtle available:", typeof crypto !== "undefined" && !!crypto.subtle);
+// Expected startup diagnostic — crypto.subtle availability is a successful
+// precondition, not an error or warning. Promote to debug/console.log to keep
+// the user-visible log stream focused on real failures.
+if (isProduction) {
+  // intentionally silent in production builds
+} else {
+  // eslint-disable-next-line no-console
+  console.debug("[venice-forge] crypto.subtle available:", typeof crypto !== "undefined" && !!crypto.subtle);
+}
 
 function appendFatalText(target: HTMLElement, title: string, message: string, details?: string): void {
   const container = document.createElement("div");

@@ -22,10 +22,17 @@ function isPrimitive(value: unknown): value is string | number | boolean | null 
 
 /**
  * Recursively sanitizes a single log argument, redacting secrets, tokens,
- * and local paths. Returns a deep copy for objects and preserves circular
- * references with a placeholder.
+ * and local paths. Returns a deep copy for objects and preserves shared
+ * references (a node that is referenced from two parents is emitted twice
+ * with its full value) while replacing **real** ancestor cycles with a
+ * `[Circular]` placeholder.
+ *
+ * The previous implementation used a `WeakSet` of "seen" objects which
+ * incorrectly collapsed shared references into `[Circular]`. We now use an
+ * ancestor-stack approach: only references that re-enter a node already on
+ * the current path are cycles.
  */
-function sanitizeArg(value: unknown, seen = new WeakSet<object>()): unknown {
+function sanitizeArg(value: unknown, ancestors: WeakSet<object> = new WeakSet()): unknown {
   if (typeof value === "string") return sanitizeErrorText(value);
   if (isPrimitive(value)) return value;
   if (typeof value === "function") return "[Function]";
@@ -40,22 +47,28 @@ function sanitizeArg(value: unknown, seen = new WeakSet<object>()): unknown {
     };
   }
 
-  if (seen.has(value)) return "[Circular]";
-  seen.add(value);
+  // Real cycle detection: only collapse if the node is already on the
+  // current ancestor chain. Shared (DAG) references are preserved.
+  if (ancestors.has(value as object)) return "[Circular]";
+  ancestors.add(value as object);
 
+  let result: unknown;
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeArg(item, seen));
+    result = value.map((item) => sanitizeArg(item, ancestors));
+  } else {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (SECRET_KEY_PATTERN.test(key)) {
+        sanitized[key] = "[REDACTED]";
+      } else {
+        sanitized[key] = sanitizeArg(entry, ancestors);
+      }
+    }
+    result = sanitized;
   }
 
-  const sanitized: Record<string, unknown> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (SECRET_KEY_PATTERN.test(key)) {
-      sanitized[key] = "[REDACTED]";
-    } else {
-      sanitized[key] = sanitizeArg(entry, seen);
-    }
-  }
-  return sanitized;
+  ancestors.delete(value as object);
+  return result;
 }
 
 /** Warn sink — active in development/test, silent in production. */

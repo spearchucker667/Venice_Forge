@@ -164,20 +164,20 @@
     "removeFromChat": "Retirer du chat"
   },
   "promptLimit": {
-    "count": "__MISSING__:promptLimit.count {{current}} {{limit}}",
-    "overTitle": "__MISSING__:promptLimit.overTitle",
-    "overDetail": "__MISSING__:promptLimit.overDetail {{limit}}"
+    "count": "{{current}}/{{limit}}",
+    "overTitle": "Prompt too long",
+    "overDetail": "Shorten the prompt to {{limit}} characters or fewer for the selected model."
   },
   "audioStudio": {
     "notification": {
-      "formatRepaired": "__MISSING__:audioStudio.notification.formatRepaired {{format}}"
+      "formatRepaired": "Output format reset to {{format}} — the selected model does not support your previous choice."
     }
   },
   "videoStudio": {
     "bitrateMode": {
-      "label": "__MISSING__:videoStudio.bitrateMode.label",
-      "standard": "__MISSING__:videoStudio.bitrateMode.standard",
-      "high": "__MISSING__:videoStudio.bitrateMode.high"
+      "label": "Output bitrate",
+      "standard": "Standard",
+      "high": "High"
     }
   }
 }

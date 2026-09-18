@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import * as logger from '../../shared/logger'
 import { redactErrorDetails, sanitizeErrorText } from '../../shared/redaction'
+import { serializeError, serializeErrorToString } from '../../shared/serializeError'
 import { Trans } from 'react-i18next';
 
 interface Props {
@@ -26,7 +27,10 @@ export class ErrorBoundary extends Component<Props, State> {
     const safeInfo = info.componentStack
       ? { componentStack: sanitizeErrorText(info.componentStack) }
       : {}
-    logger.error('[Venice Forge ErrorBoundary]', safeError, safeInfo)
+    // Pass structured serialization alongside the redacted details so the
+    // log stream never sees a bare `[object Object]` for non-Error throws.
+    const structured = serializeError(error)
+    logger.error('[Venice Forge ErrorBoundary]', safeError, structured, serializeErrorToString(structured), safeInfo)
   }
 
   reset = () => this.setState({ error: null })

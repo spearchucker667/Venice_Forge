@@ -7,6 +7,14 @@ import { DEFAULT_TTS_VOICE } from "../constants/tts";
 import { veniceBlob } from "../lib/venice-client";
 import { toast } from "../stores/toast-store";
 import { redactErrorMessage } from "../shared/redaction";
+import {
+  type SpeechFailureCode,
+  type SpeechResult,
+  mapHttpStatusToFailureCode,
+  speechResultFail,
+  speechResultOk,
+} from "../shared/ttsContract";
+import { serializeError, serializeErrorToString } from "../shared/serializeError";
 
 export type TtsPlaybackState = "idle" | "loading" | "playing" | "paused";
 
@@ -114,7 +122,7 @@ class ChatTtsControllerImpl {
     }
 
     try {
-      let sourceUrl: string;
+      let speech: SpeechResult;
 
       if (isElectron()) {
         const result = await desktopTts.synthesize(
@@ -132,50 +140,116 @@ class ChatTtsControllerImpl {
           this.currentMessageId !== messageId
         )
           return;
-        if (!result.ok || (!result.id && !result.audioBase64)) {
-          throw new Error(result.error || "TTS synthesis failed");
-        }
 
-        if (result.audioBase64) {
-          const binary = atob(result.audioBase64);
-          const bytes = Uint8Array.from(binary, (character) =>
-            character.charCodeAt(0),
+        if (!result.ok) {
+          speech = speechResultFail(
+            mapHttpStatusToFailureCode(result.status),
+            result.error || "TTS synthesis failed",
+            { status: result.status, providerCode: result.providerCode },
           );
-          this.objectUrl = URL.createObjectURL(
-            new Blob([bytes], { type: result.mimeType ?? "audio/mpeg" }),
-          );
-          sourceUrl = this.objectUrl;
+        } else if (result.audioBase64) {
+          try {
+            const binary = atob(result.audioBase64);
+            const bytes = Uint8Array.from(binary, (character) =>
+              character.charCodeAt(0),
+            );
+            if (bytes.byteLength === 0) {
+              const fail = speechResultFail("EMPTY_AUDIO", "Speech provider returned empty audio.");
+              this.handleSpeechFailure(fail, options);
+              return;
+            }
+            this.objectUrl = URL.createObjectURL(
+              new Blob([bytes], { type: result.mimeType ?? "audio/mpeg" }),
+            );
+            speech = speechResultOk({
+              sourceUrl: this.objectUrl,
+              mimeType: result.mimeType ?? "audio/mpeg",
+              bytes: bytes.byteLength,
+              cached: result.cacheMode === "disk" || result.cacheMode === "memory",
+              profileId: result.profileId,
+              cacheId: result.id,
+            });
+          } catch (decodeErr) {
+            const fail = speechResultFail(
+              "INVALID_AUDIO",
+              "Speech provider returned bytes that could not be decoded as audio.",
+            );
+            console.error("TTS audio decode error", serializeError(decodeErr));
+            this.handleSpeechFailure(fail, options);
+            return;
+          }
         } else if (result.id && result.profileId) {
-          sourceUrl = await resolvePlayableMediaUrl(
-            `venice-tts://${result.profileId}/${result.id}.mp3`,
-          );
+          try {
+            const sourceUrl = await resolvePlayableMediaUrl(
+              `venice-tts://${result.profileId}/${result.id}.mp3`,
+            );
+            speech = speechResultOk({
+              sourceUrl,
+              mimeType: "audio/mpeg",
+              bytes: 0, // bytes are unknown when reading from cache via protocol handler
+              cached: true,
+              profileId: result.profileId,
+              cacheId: result.id,
+            });
+          } catch (resolveErr) {
+            const fail = speechResultFail("CACHE_ERROR", "Could not resolve cached TTS audio.");
+            console.error("TTS cache resolve error", serializeError(resolveErr));
+            this.handleSpeechFailure(fail, options);
+            return;
+          }
         } else {
-          throw new Error(
+          const fail = speechResultFail(
+            "INVALID_RESPONSE",
             "TTS playback target missing cache id or profile id.",
           );
+          this.handleSpeechFailure(fail, options);
+          return;
         }
       } else {
         // Web mode fallback using veniceBlob
-        const blob = await veniceBlob("/audio/speech", {
-          model: prefs?.model || DEFAULT_TTS_MODEL,
-          input: textToRead,
-          voice: prefs?.voice || DEFAULT_TTS_VOICE,
-          speed: prefs?.speed || 1.0,
-        });
+        try {
+          const blob = await veniceBlob("/audio/speech", {
+            model: prefs?.model || DEFAULT_TTS_MODEL,
+            input: textToRead,
+            voice: prefs?.voice || DEFAULT_TTS_VOICE,
+            speed: prefs?.speed || 1.0,
+          });
 
-        if (
-          requestToken !== this.requestToken ||
-          this.currentMessageId !== messageId
-        )
+          if (
+            requestToken !== this.requestToken ||
+            this.currentMessageId !== messageId
+          )
+            return;
+          if (blob.size === 0) {
+            const fail = speechResultFail("EMPTY_AUDIO", "Speech provider returned empty audio.");
+            this.handleSpeechFailure(fail, options);
+            return;
+          }
+
+          this.objectUrl = URL.createObjectURL(blob);
+          speech = speechResultOk({
+            sourceUrl: this.objectUrl,
+            mimeType: blob.type || "audio/mpeg",
+            bytes: blob.size,
+            cached: false,
+          });
+        } catch (webErr) {
+          const fail = speechResultFail(
+            "NETWORK_ERROR",
+            webErr instanceof Error ? webErr.message : "Web TTS request failed.",
+          );
+          console.error("Web TTS error", serializeError(webErr));
+          this.handleSpeechFailure(fail, options);
           return;
-        if (blob.size === 0) {
-          throw new Error("Speech provider returned empty audio.");
         }
-
-        this.objectUrl = URL.createObjectURL(blob);
-        sourceUrl = this.objectUrl;
       }
 
+      if (!speech.ok) {
+        this.handleSpeechFailure(speech, options);
+        return;
+      }
+
+      const sourceUrl = speech.sourceUrl;
       if (
         requestToken !== this.requestToken ||
         this.currentMessageId !== messageId
@@ -199,7 +273,7 @@ class ChatTtsControllerImpl {
       };
 
       audio.onerror = (e) => {
-        console.error("TTS playback error", e);
+        console.error("TTS playback error", serializeError(e), serializeErrorToString(e));
         if (this.audio === audio) {
           if (!options?.isAutoRead) {
             toast.error(
@@ -231,7 +305,7 @@ class ChatTtsControllerImpl {
         await audio.play();
       }
     } catch (err) {
-      console.error("TTS error", err);
+      console.error("TTS error", serializeError(err), serializeErrorToString(err));
       if (!options?.isAutoRead) {
         toast.error(
           translateRuntime(
@@ -243,6 +317,29 @@ class ChatTtsControllerImpl {
       }
       this.stop();
     }
+  }
+
+  /**
+   * Centralized failure dispatch for the typed SpeechResult contract. Maps a
+   * discriminated-union failure to a user-visible toast (or quiet console
+   * log for auto-read) without conflating provider HTTP errors, billing
+   * blocks, invalid audio bytes, and browser playback errors.
+   */
+  private handleSpeechFailure(
+    failure: Extract<SpeechResult, { ok: false }>,
+    options: { isAutoRead?: boolean } | undefined,
+  ): void {
+    const headline = translateRuntime(
+      "runtimeGenerated.services.chatttscontroller.notification.ttsFailed",
+      "TTS Failed",
+    );
+    if (options?.isAutoRead) {
+      console.error("Auto-read TTS failure", failure.failure);
+      this.stop();
+      return;
+    }
+    toast.error(headline, failure.failure.message);
+    this.stop();
   }
 
   public pause() {

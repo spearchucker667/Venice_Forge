@@ -17,6 +17,7 @@ import { resolveAvailableTools, type ProviderToolSchema } from "../agent/registr
 import type { VeniceStreamDelta } from "../shared/veniceStreamDelta";
 import { useDocumentAgentStore } from "./document-agent-store";
 import * as logger from "../shared/logger";
+import { serializeError, serializeErrorToString } from "../shared/serializeError";
 import { getModelById } from "../services/modelService";
 import type { ModelInfo } from "../types/venice";
 import { resolveReasoningEffort } from "../shared/modelCapabilities";
@@ -673,7 +674,7 @@ export async function startStream(
           continue;
         }
         
-        logger.error("chat stream manager failed", err);
+        logger.error("chat stream manager failed", serializeError(err), serializeErrorToString(err));
         useChatStore.getState().clearSafetyPendingMessages(convId);
         removeLastAssistantTurn(convId);
         useChatStore.getState().addMessage(convId, {

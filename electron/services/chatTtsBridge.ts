@@ -25,6 +25,12 @@ export interface SynthesizeSpeechResult {
   mimeType?: "audio/mpeg";
   cacheMode?: "disk" | "memory";
   error?: string;
+  /** Upstream HTTP status (when the failure originated at the provider). */
+  status?: number;
+  /** Provider-specific error code (e.g., Venice billing rejection token). */
+  providerCode?: string;
+  /** SpeechFailureCode-equivalent that the renderer can use to localize. */
+  failureCode?: string;
 }
 
 const MAX_TTS_TEXT_LENGTH = 10_000;
