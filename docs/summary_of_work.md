@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: b62328d0 (docs-only successor after retiring TODO directory reference)
+repository_head_sha: 0a93b95b (scaffolding + tooling for P2-016 / P3-020 external acceptance)
 application_code_sha: ee6ade04
-verified_against_sha: b62328d0
+verified_against_sha: 0a93b95b
 verified_at:         2026-09-18 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        clean
-ci_status:           success for b62328d0 (run 35361646292 — 11/11 jobs)
-codeql_status:       success for b62328d0 (run 35361646193)
+ci_status:           success for 0a93b95b (run 35366321380 — 11/11 jobs)
+codeql_status:       success for 0a93b95b (run 35366321482)
 open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); P2-016/P3-020 and HQE-DOC-001 native-language review
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -52,7 +52,7 @@ recently_closed_in_session_2026-09-18:
 
 ## Latest Session Summary
 
-- **2026-09-18 external-acceptance scaffolding for `VF-20260918-P2-016` and `VF-20260918-P3-020` (published `main` HEAD pending — see Session History).** Both findings explicitly require out-of-band human acceptance (headed visual/accessibility QA across 15 tabs × 5 viewports × 4 themes × 3 locales × 3 states; qualified native-language review for 11 non-English catalogs × 356 placeholders each). The headless agent environment cannot perform the human reviews; this segment prepared the scaffolding and tooling that a human reviewer uses. For `P2-016`: `docs/design/per-tab-acceptance/{README,CHECKLIST,EVIDENCE_MANIFEST.template}.md|json`, `scripts/per-tab-acceptance/{runner.sh,tab-routes.json}`, `scripts/verify-per-tab-acceptance.cjs`, and `npm run verify:per-tab-acceptance`. The harness is idempotent and never overwrites signed entries; the verifier refuses to accept unsigned manifests. For `P3-020`: `docs/i18n/review-pack/{README.md,PLACEHOLDER-INVENTORY.json,PER-LOCALE/<locale>.md × 11}`, `scripts/generate-i18n-review-pack.cjs`, `scripts/verify-i18n-review-status.cjs`, and `npm run {generate,verify}:i18n-review-pack`. Inventory reports 3,916 outstanding `__MISSING__:` placeholders across 11 non-English locales × 12 namespaces (only `chat`, `common`, `media`, `settings` carry placeholders; the other 8 namespaces are already complete for every non-English locale). The status verifier refuses to mark a locale human-reviewed while placeholders remain, refuses to register a locale without a catalog (and vice versa), and emits a warning when a first-pass-machine locale's catalog is empty. No locale was promoted. `docs/ROADMAP.md` 2026-09-18 section updated to record the scaffolding. Both findings remain in `open_findings` until human review completes.
+- **2026-09-18 external-acceptance scaffolding for `VF-20260918-P2-016` and `VF-20260918-P3-020` (published `main` HEAD `0a93b95b`).** Both findings explicitly require out-of-band human acceptance (headed visual/accessibility QA across 15 tabs × 5 viewports × 4 themes × 3 locales × 3 states; qualified native-language review for 11 non-English catalogs × 356 placeholders each). The headless agent environment cannot perform the human reviews; this segment prepared the scaffolding and tooling that a human reviewer uses. For `P2-016`: `docs/design/per-tab-acceptance/{README,CHECKLIST,EVIDENCE_MANIFEST.template}.md|json`, `scripts/per-tab-acceptance/{runner.sh,tab-routes.json}`, `scripts/verify-per-tab-acceptance.cjs`, and `npm run verify:per-tab-acceptance`. The harness is idempotent and never overwrites signed entries; the verifier refuses to accept unsigned manifests. For `P3-020`: `docs/i18n/review-pack/{README.md,PLACEHOLDER-INVENTORY.json,PER-LOCALE/<locale>.md × 11}`, `scripts/generate-i18n-review-pack.cjs`, `scripts/verify-i18n-review-status.cjs`, and `npm run {generate,verify}:i18n-review-pack`. Inventory reports 3,916 outstanding `__MISSING__:` placeholders across 11 non-English locales × 12 namespaces (only `chat`, `common`, `media`, `settings` carry placeholders; the other 8 namespaces are already complete for every non-English locale). The status verifier refuses to mark a locale human-reviewed while placeholders remain, refuses to register a locale without a catalog (and vice versa), and emits a warning when a first-pass-machine locale's catalog is empty. No locale was promoted. `docs/ROADMAP.md` 2026-09-18 section updated to record the scaffolding. Hosted CI run `35366321380` reported `success` on all 11 jobs (contracts, macos-sensitive, lint-and-typecheck, unit-and-integration-tests, windows-sensitive, coverage, script-coverage, build, electron-smoke-macos/linux/windows); CodeQL run `35366321482` reported `success`. Local `main` and remote `origin/main` both at `0a93b95b`. Both findings remain in `open_findings` until human review completes.
 
 - **2026-09-18 current-main audit closure segment + leftover test-drift alignment + audit move completion + CI workflow fix (published `main` HEAD `b62328d0`).** Reconciled the 2026-09-18 exhaustive review work order after every actionable finding was repaired. Stamped the handoff with a `Closure Status` block and per-finding `*(CLOSED — commit SHA)*` markers, then moved the file from `docs/audits/TODO/` to `docs/audits/Records/`. `docs/DOCS_INDEX.md` was updated so the two prior user-owned audit moves (Venice API feature-gap, current-main deep-audit) and the new 2026-09-18 exhaustive review all resolve to their `Records/` paths; this also eliminates the four pre-existing stale Markdown-link failures caused by those moves. `docs/audits/README.md` updated to reflect that `TODO/` is empty. After pushing the closure commit `53efc703`, hosted CI run `35354226083` for `b0f9f6a5` was observed to fail in `server.test.ts` (4) and `electron/ipc/handlers.test.ts` (2): 6 tests still encoded the OLD "mandatory child safety when optional filter is off" contract. Aligned them with the user's chosen disabled-mode policy (skipped): renamed assertions to expect status `200` (not `451`) and to expect the handler invoked downstream when the runtime snapshot is OFF / header is `false` / env is `false` / env is `0` (commit `2636d1b6`). After pushing `2636d1b6`, hosted CI run `35358785911` still failed on `Verify markdown links`: 2 broken links in `docs/DOCS_INDEX.md` pointing to `audits/Records/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md` and `audits/Records/VENICE_FORGE_CURRENT_MAIN_DEEP_AUDIT_AGENT_HANDOFF_2026-09-16.md`. Root cause: those two files were user-owned untracked state that did not exist in CI's clean checkout. Verified byte-identity of the untracked Records copies to the HEAD TODO blobs (`6018fdce...` and `434eb11a...`); committed them as a pure rename (`cb482ab4`). After pushing `cb482ab4`, hosted CI run `35360954489` was cancelled when `3cae85df` superseded it; run `35361156657` for `3cae85df` reported a single new broken link `TODO/` because the directory was empty in the CI git checkout. Removed the `TODO/` row from `docs/audits/README.md`'s Layout table (commit `b62328d0`). Hosted CI run `35361646292` for `b62328d0` reported `success` on all 11 jobs (windows-sensitive, contracts, lint-and-typecheck, unit-and-integration-tests, coverage, macos-sensitive, script-coverage, build, electron-smoke-macos/linux/windows) and CodeQL `35361646193` reported `success`. `docs/ROADMAP.md` and `docs/summary_of_work.md` Current State now report `repository_head_sha: b62328d0`, `application_code_sha: ee6ade04`, `verified_against_sha: b62328d0`, hosted CI success, hosted CodeQL success. Local `main` and remote `origin/main` are verified to match `b62328d0`. Working tree is clean. Validation: `server.test.ts` (121/121), `electron/ipc/handlers.test.ts` (89/89), `tests/safety` (166/166), `src/shared/safety` (266/266), ESLint zero errors/warnings, three-tsconfig typecheck clean, `npm run verify:safety-guard` green, `npm run verify:markdown-links` green, `npm run verify:contracts` green, all 11 hosted CI jobs green, CodeQL green.
 
@@ -582,6 +582,8 @@ recently_closed_in_session_2026-09-18:
   - `npm run verify:agent-docs` — PASS.
 - Updated `docs/ROADMAP.md` 2026-09-18 Audit Work Order section to record the scaffolding for both findings.
 - Updated `docs/summary_of_work.md` Open TODO Ledger to reflect the scaffolding.
+- Hosted CI run `35366321380` for the commit `0a93b95b` reported `success` on all 11 jobs (contracts, macos-sensitive, lint-and-typecheck, unit-and-integration-tests, windows-sensitive, coverage, script-coverage, build, electron-smoke-macos/linux/windows); CodeQL run `35366321482` reported `success`.
+- Verified local `main` matches `origin/main` at `0a93b95b81e472c832e705b065e50b37aea9324a`. Working tree is clean.
 
 ### 2026-09-18 — Current-main audit closure segment + leftover test-drift alignment + audit move completion + CI workflow fix (TODO retirement)
 
@@ -2421,6 +2423,8 @@ Investigation only, then four targeted fixes based on the user-reported defects
 ### 2026-09-18 — External-acceptance scaffolding for VF-20260918-P2-016 and VF-20260918-P3-020 (published `main` HEAD pending — see Session History)
 
 - `npm run generate:i18n-review-pack` — PASS; wrote `PLACEHOLDER-INVENTORY.json` (3,916 placeholders across 11 non-English locales × 12 namespaces) and 11 per-locale review pack files under `docs/i18n/review-pack/PER-LOCALE/`.
+- Hosted CI `35366321380` — success for `0a93b95b` (all 11 jobs: contracts, macos-sensitive, lint-and-typecheck, unit-and-integration-tests, windows-sensitive, coverage, script-coverage, build, electron-smoke-macos/linux/windows).
+- Hosted CodeQL `35366321482` — success for `0a93b95b`.
 - `npm run verify:i18n-review-status` — PASS; 0 human-reviewed + 11 first-pass-machine locales; status file consistent with catalogs.
 - `npm run verify:per-tab-acceptance` — FAIL (expected; evidence root not yet scaffolded by a human reviewer). The verifier rejects unsigned manifests and refuses to mark the harness complete until a qualified reviewer signs every required (viewport × theme × locale × state) entry per tab.
 - `npm run lint:eslint` — PASS (zero errors/warnings after fixing one no-unused-vars warning in the generator).
@@ -2431,6 +2435,7 @@ Investigation only, then four targeted fixes based on the user-reported defects
 - `npm run verify:agent-docs` — PASS.
 - Source catalogs (`src/i18n/resources/<locale>/<namespace>.json`) — UNTOUCHED; no locale was promoted.
 - Production source code — UNCHANGED; only scaffolding, scripts, and canonical docs were added.
+- `git ls-remote origin refs/heads/main` — PASS; remote `main` equals `0a93b95b81e472c832e705b065e50b37aea9324a` after the push.
 
 ### 2026-09-18 — Current-main audit closure segment + leftover test-drift alignment + audit move completion + CI workflow fix (TODO retirement, published `main` HEAD `b62328d0`)
 
