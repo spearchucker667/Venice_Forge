@@ -219,6 +219,112 @@ describe("characterCreatorAiService", () => {
         }),
       ).rejects.toThrow("MODEL_UNAVAILABLE");
     });
+
+    it("retries transient 5xx transport errors and surfaces a fresh response", async () => {
+      // First call: simulated 5xx. Second call: a valid response. The
+      // retry policy should transparently recover before the schema-repair
+      // path even runs.
+      const validResponse = {
+        data: {
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  operation: "create_draft",
+                  design_summary: "Recovered hero.",
+                  assumptions: [],
+                  warnings: [],
+                  draft: {
+                    spec: "chara_card_v2",
+                    spec_version: "2.0",
+                    data: {
+                      name: "Recovered Hero",
+                      description: "Re",
+                      personality: "P",
+                      scenario: "S",
+                      first_mes: "F",
+                      mes_example: "M",
+                    },
+                  },
+                  validation: { valid: true, errors: [], warnings: [], recommendations: [] },
+                }),
+              },
+            },
+          ],
+        },
+      };
+      const { VeniceAPIError } = await import("./veniceClient/errors");
+      const fiveHundred = new VeniceAPIError("Internal Server Error", 502);
+      vi.mocked(fetchModule.veniceFetch)
+        .mockRejectedValueOnce(fiveHundred)
+        .mockResolvedValueOnce(validResponse as any);
+
+      const res = await createCharacterDraftAI({
+        operation: "create_draft",
+        sourceIdea: "Concept that needs transient retry recovery",
+      });
+      expect(res.draft.data.name).toBe("Recovered Hero");
+      // initial + retry = 2; no schema repair because the second response is valid.
+      expect(fetchModule.veniceFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("gives up after 4 retries with VENICE_TRANSPORT_FAILED on persistent 502", async () => {
+      const { VeniceAPIError } = await import("./veniceClient/errors");
+      const fiveHundred = new VeniceAPIError("Internal Server Error", 502);
+      // 1 initial + 4 retries = 5 attempts.
+      vi.mocked(fetchModule.veniceFetch).mockRejectedValue(fiveHundred);
+
+      await expect(
+        createCharacterDraftAI({
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        }),
+      ).rejects.toThrow("VENICE_TRANSPORT_FAILED");
+      // attempts = 1 (initial) + 4 (retries) = 5
+      expect(fetchModule.veniceFetch).toHaveBeenCalledTimes(5);
+    });
+
+    it("does not retry on non-transient 4xx (e.g. 401/403/400)", async () => {
+      const { VeniceAPIError } = await import("./veniceClient/errors");
+      vi.mocked(fetchModule.veniceFetch).mockRejectedValue(new VeniceAPIError("Unauthorized", 401));
+
+      await expect(
+        createCharacterDraftAI({
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        }),
+      ).rejects.toThrow("VENICE_TRANSPORT_FAILED");
+      // 401 is not in the retry set, so the call should fail immediately.
+      expect(fetchModule.veniceFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not retry on cancellation", async () => {
+      const controller = new AbortController();
+      const fetchSpy = vi.mocked(fetchModule.veniceFetch);
+      fetchSpy.mockImplementation(async () =>
+        new Promise((_resolve, reject) => {
+          // Reject when the controller aborts, never resolve.
+          controller.signal.addEventListener("abort", () =>
+            reject(Object.assign(new Error("Aborted"), { name: "AbortError" })),
+          );
+        }) as any,
+      );
+
+      const promise = createCharacterDraftAI(
+        {
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        },
+        controller.signal,
+      );
+      // Abort immediately after kicking off.
+      controller.abort();
+
+      await expect(promise).rejects.toThrow("REQUEST_CANCELLED: User cancelled generation.");
+      // Even if the underlying error would have been transient, an aborted
+      // request must not be retried.
+      expect(fetchSpy.mock.calls.length).toBeLessThanOrEqual(2);
+    });
   });
 
   describe("generateCharacterCreatorDraft with process events", () => {

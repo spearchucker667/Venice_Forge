@@ -3,6 +3,7 @@
  * Emits real event-driven process updates for transparent user-visible design decisions.
  */
 
+import { VeniceAPIError } from "./veniceClient/errors";
 import { CHARACTER_CREATOR_MODEL_ID, CHARACTER_CREATOR_SYSTEM_PROMPT, CharacterCreatorModelOverrideError } from "../constants/character-creator";
 import type {
   CharacterConceptAnalysis,
@@ -197,6 +198,107 @@ function createProcessEvent(
   };
 }
 
+/** Backoff schedule (ms) for transient Venice API transport errors. The first
+ *  retry is ~300 ms after the initial attempt, the last is ~3 s. Total
+ *  budget is bounded to keep the user-visible failure path responsive while
+ *  still riding out brief provider-side 5xx / 408 / 429 / network blips that
+ *  earlier leaked through as `SCHEMA_REPAIR_FAILED`. */
+const TRANSPORT_RETRY_DELAYS_MS = [300, 800, 1_800, 3_000] as const;
+
+interface RetryAttemptOutcome<T> {
+  ok: true;
+  value: T;
+  attempts: number;
+}
+
+interface RetryAborted {
+  ok: false;
+  aborted: true;
+}
+
+interface RetryFailed {
+  ok: false;
+  aborted: false;
+  error: unknown;
+  attempts: number;
+}
+
+type RetryResult<T> = RetryAttemptOutcome<T> | RetryAborted | RetryFailed;
+
+/** True for transient transport / status conditions worth retrying. */
+function isTransientVeniceError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  // `VeniceAPIError` carries a numeric `status`. 4xx (auth/client config)
+  // failures and anything with an explicit 4xx response are NOT transient.
+  const maybeStatus = (err as { status?: unknown }).status;
+  if (typeof maybeStatus === "number") {
+    if (maybeStatus >= 500 && maybeStatus < 600) return true; // 5xx
+    if (maybeStatus === 408 || maybeStatus === 425) return true;
+    if (maybeStatus === 429) return true; // rate limit; honour Retry-After
+    return false;
+  }
+  // No status → likely a fetch network failure. Treat as transient.
+  return err instanceof TypeError || (err instanceof Error && err.name === "TypeError");
+}
+
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve(undefined);
+      return;
+    }
+    const t = setTimeout(resolve, ms);
+    if (signal) {
+      const onAbort = () => {
+        clearTimeout(t);
+        resolve(undefined);
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+  });
+}
+
+/** Wraps a veniceFetch invocation with bounded exponential backoff for
+ *  transient transport errors (network blips, 5xx, 408, 425, 429). For
+ *  rate-limit (429) responses the Retry-After hint is honoured when present. */
+async function withVeniceApiRetry<T>(
+  attempt: () => Promise<T>,
+  signal?: AbortSignal,
+  onRetry?: (info: { attempt: number; status?: number; delayMs: number }) => void,
+): Promise<RetryResult<T>> {
+  let lastError: unknown;
+  for (let i = 0; i <= TRANSPORT_RETRY_DELAYS_MS.length; i += 1) {
+    if (signal?.aborted) {
+      return { ok: false, aborted: true };
+    }
+    try {
+      const value = await attempt();
+      return { ok: true, value, attempts: i + 1 };
+    } catch (err: unknown) {
+      if (signal?.aborted) {
+        return { ok: false, aborted: true };
+      }
+      // Surface a useful hint when the upstream returned 429 with Retry-After.
+      let hintMs: number | undefined;
+      if (err instanceof VeniceAPIError && err.status === 429) {
+        const retryAfter = (err as unknown as { rateLimit?: { retryAfterSeconds?: number } }).rateLimit?.retryAfterSeconds;
+        if (typeof retryAfter === "number" && retryAfter >= 0) {
+          hintMs = (retryAfter + 1) * 1000;
+        }
+      }
+      if (!isTransientVeniceError(err)) {
+        return { ok: false, aborted: false, error: err, attempts: i + 1 };
+      }
+      lastError = err;
+      const delayMs = hintMs ?? (TRANSPORT_RETRY_DELAYS_MS[i] ?? TRANSPORT_RETRY_DELAYS_MS[TRANSPORT_RETRY_DELAYS_MS.length - 1]);
+      const maybeStatus = err && typeof err === "object" ? (err as { status?: unknown }).status : undefined;
+      onRetry?.({ attempt: i + 1, status: typeof maybeStatus === "number" ? maybeStatus : undefined, delayMs });
+      await delay(delayMs, signal);
+    }
+  }
+  return { ok: false, aborted: false, error: lastError, attempts: TRANSPORT_RETRY_DELAYS_MS.length + 1 };
+}
+
 async function executeWithSingleRepair(
   requestInput: CharacterCreatorRequestInput,
   callbacks?: CharacterCreatorGenerationCallbacks,
@@ -234,26 +336,58 @@ async function executeWithSingleRepair(
   const reqPayload = buildCharacterCreatorRequest(requestInput);
 
   let responseData: unknown;
-  try {
-    const fetchResult = await veniceFetch("/chat/completions", {
-      method: "POST",
-      signal,
-      body: reqPayload,
-    });
-    responseData = fetchResult.data;
-  } catch (err: unknown) {
-    if (signal?.aborted) {
+  const initialAttempt = await withVeniceApiRetry<{ data: unknown }>(
+    () =>
+      veniceFetch("/chat/completions", {
+        method: "POST",
+        signal,
+        body: reqPayload,
+      }),
+    signal,
+    ({ attempt, status, delayMs }) => {
+      emit(
+        createProcessEvent(
+          "concept-analysis",
+          "warning",
+          "Transient Venice API error — retrying",
+          `Attempt ${attempt} failed${
+            typeof status === "number" ? ` (HTTP ${status})` : ""
+          }; retrying in ${Math.round(delayMs / 100) / 10}s.`,
+        ),
+      );
+    },
+  );
+
+  if (initialAttempt.ok) {
+    responseData = initialAttempt.value.data;
+  } else {
+    if (initialAttempt.aborted) {
       const cancelEv = createProcessEvent("cancelled", "failed", "Request cancelled", "Generation was cancelled by the user.");
       emit(cancelEv);
       throw new Error("REQUEST_CANCELLED: User cancelled generation.");
     }
+    const err = initialAttempt.error;
     const msg = err instanceof Error ? err.message : String(err);
     const failEv = createProcessEvent("failed", "failed", "Model request failed", msg);
     emit(failEv);
-    if (msg.includes("404") || msg.includes("not_found") || msg.includes("model_not_found") || msg.includes("Model")) {
+    // 404 / model-not-found is a permanent provider failure, not transient.
+    // Accept both VeniceAPIError(status=404) (production path) and any
+    // thrown error whose status field or message indicates 404, so the
+    // contract also holds for mocked test errors and upstream variants.
+    const errStatus =
+      err && typeof err === "object" && "status" in err
+        ? (err as { status?: unknown }).status
+        : undefined;
+    if (
+      errStatus === 404 ||
+      /\b404\b|model_not_found|not_found|model.{0,10}not.{0,10}found/i.test(msg)
+    ) {
       throw new Error(`MODEL_UNAVAILABLE: Model '${CHARACTER_CREATOR_MODEL_ID}' is currently unavailable on Venice API.`);
     }
-    throw err;
+    // Wrap remaining transport / 5xx / 429 / network failures so callers
+    // can distinguish "couldn't reach the upstream" from "model returned
+    // malformed output".
+    throw new Error(`VENICE_TRANSPORT_FAILED: ${msg}`);
   }
 
   const content = extractContent(responseData);
@@ -307,19 +441,58 @@ async function executeWithSingleRepair(
       temperature: 0.2,
     };
 
-    let repairData: unknown;
-    try {
-      const repairFetchResult = await veniceFetch("/chat/completions", {
-        method: "POST",
-        signal,
-        body: repairRequest,
-      });
-      repairData = repairFetchResult.data;
-    } catch (err: unknown) {
-      const failEv = createProcessEvent("failed", "failed", "Schema repair failed", err instanceof Error ? err.message : String(err));
+    const repairAttempt = await withVeniceApiRetry<{ data: unknown }>(
+      () =>
+        veniceFetch("/chat/completions", {
+          method: "POST",
+          signal,
+          body: repairRequest,
+        }),
+      signal,
+      ({ attempt, status, delayMs }) => {
+        emit(
+          createProcessEvent(
+            "repair",
+            "warning",
+            "Transient Venice API error — retrying repair",
+            `Repair attempt ${attempt} failed${
+              typeof status === "number" ? ` (HTTP ${status})` : ""
+            }; retrying in ${Math.round(delayMs / 100) / 10}s.`,
+          ),
+        );
+      },
+    );
+    if (!repairAttempt.ok) {
+      if (repairAttempt.aborted) {
+        const cancelEv = createProcessEvent(
+          "cancelled",
+          "failed",
+          "Repair cancelled",
+          "Repair attempt cancelled before completion.",
+        );
+        emit(cancelEv);
+        throw new Error("REQUEST_CANCELLED: Repair attempt cancelled.");
+      }
+      const err = repairAttempt.error;
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const failEv = createProcessEvent("failed", "failed", "Schema repair failed", errMsg);
       emit(failEv);
-      throw new Error(`SCHEMA_REPAIR_FAILED: Repair request failed: ${err instanceof Error ? err.message : String(err)}`);
+      // 404 stays the same logical "model_not_found" condition; everything
+      // else is an upstream transport failure with a clearer label than
+      // `SCHEMA_REPAIR_FAILED`.
+      const errStatus =
+        err && typeof err === "object" && "status" in err
+          ? (err as { status?: unknown }).status
+          : undefined;
+      if (
+        errStatus === 404 ||
+        /\b404\b|model_not_found|not_found|model.{0,10}not.{0,10}found/i.test(errMsg)
+      ) {
+        throw new Error(`MODEL_UNAVAILABLE: Model '${CHARACTER_CREATOR_MODEL_ID}' is currently unavailable on Venice API.`);
+      }
+      throw new Error(`VENICE_TRANSPORT_FAILED: ${errMsg}`);
     }
+    const repairData = repairAttempt.value.data;
 
     const repairContent = extractContent(repairData);
     const cleanRepairText = cleanJsonCodeFence(repairContent);
