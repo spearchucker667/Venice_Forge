@@ -230,7 +230,17 @@
         "video": "Video:",
         "registeredBackend": "Registered backend:",
         "yes": "yes",
-        "no": "no"
+        "no": "no",
+        "protectiveMode": "Protective mode",
+        "structuralOnly": "Structural validation only",
+        "semanticPlusStructural": "Semantic + structural",
+        "whatIsProtected": "What's protected today",
+        "protectionItemProtocolSafety": "Protocol-level request safety",
+        "protectionItemPayloadShape": "Payload shape & header validation",
+        "protectionItemAttachmentProvenance": "Attachment provenance & MIME sniffing",
+        "protectionItemImageBytes": "Image bytes (semantic): not classified",
+        "protectionItemAudioBytes": "Audio bytes (semantic): not classified",
+        "protectionItemVideoBytes": "Video bytes (semantic): not classified"
       }
     },
     "componentsThememaker": {

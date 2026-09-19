@@ -1811,7 +1811,17 @@
         "video": "__MISSING__:surface.componentsStatusview.text.video",
         "registeredBackend": "__MISSING__:surface.componentsStatusview.text.registeredBackend",
         "yes": "__MISSING__:surface.componentsStatusview.text.yes",
-        "no": "__MISSING__:surface.componentsStatusview.text.no"
+        "no": "__MISSING__:surface.componentsStatusview.text.no",
+        "protectiveMode": "__MISSING__:surface.componentsStatusview.text.protectiveMode",
+        "structuralOnly": "__MISSING__:surface.componentsStatusview.text.structuralOnly",
+        "semanticPlusStructural": "__MISSING__:surface.componentsStatusview.text.semanticPlusStructural",
+        "whatIsProtected": "__MISSING__:surface.componentsStatusview.text.whatIsProtected",
+        "protectionItemProtocolSafety": "__MISSING__:surface.componentsStatusview.text.protectionItemProtocolSafety",
+        "protectionItemPayloadShape": "__MISSING__:surface.componentsStatusview.text.protectionItemPayloadShape",
+        "protectionItemAttachmentProvenance": "__MISSING__:surface.componentsStatusview.text.protectionItemAttachmentProvenance",
+        "protectionItemImageBytes": "__MISSING__:surface.componentsStatusview.text.protectionItemImageBytes",
+        "protectionItemAudioBytes": "__MISSING__:surface.componentsStatusview.text.protectionItemAudioBytes",
+        "protectionItemVideoBytes": "__MISSING__:surface.componentsStatusview.text.protectionItemVideoBytes"
       }
     },
     "componentsThemepreview": {

@@ -163,18 +163,37 @@ export function StatusView() {
       <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
           <Meteocon name="umbrella" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.mediaClassifierCapabilities" /></h3>
-        <Row k={t('common:surface.componentsStatusview.text.image', 'Image:')} v={diag.mediaClassifierCapabilities.semanticImageClassifier} />
-        <Row k={t('common:surface.componentsStatusview.text.audio', 'Audio:')} v={diag.mediaClassifierCapabilities.semanticAudioClassifier} />
-        <Row k={t('common:surface.componentsStatusview.text.video', 'Video:')} v={diag.mediaClassifierCapabilities.semanticVideoClassifier} />
+        {/* The Status pane must reflect the honest capability state. Per VF-AUD-
+         * 20260916-P2-006, the production build ships with no registered
+         * semantic ML backend for image / audio / video. Displaying "unavailable"
+         * three times reads as "broken" rather than "by design", so we collapse
+         * the per-modality rows into a single protective-mode badge and an
+         * expandable disclosure of which checks ARE active today. */}
         <Row
-          k={t('common:surface.componentsStatusview.text.registeredBackend', 'Registered backend:')}
+          k={t('common:surface.componentsStatusview.text.protectiveMode', 'Protective mode')}
           v={diag.mediaClassifierCapabilities.hasRegisteredBackend
-            ? t('common:surface.componentsStatusview.text.yes', 'yes')
-            : t('common:surface.componentsStatusview.text.no', 'no')}
+            ? t('common:surface.componentsStatusview.text.semanticPlusStructural', 'Semantic + structural')
+            : t('common:surface.componentsStatusview.text.structuralOnly', 'Structural validation only')}
         />
-        <p className="text-[12px] text-text-muted pt-1">
-          <Trans i18nKey="common:surface.componentsStatusview.description.mediaClassifierIsStructuralOnly" />
-        </p>
+        <details className="text-[12px] text-text-muted pt-1">
+          <summary className="cursor-pointer hover:text-text-primary">
+            <Trans i18nKey="common:surface.componentsStatusview.text.whatIsProtected" />
+          </summary>
+          <ul className="list-disc pl-5 pt-1 space-y-0.5">
+            <li><Trans i18nKey="common:surface.componentsStatusview.text.protectionItemProtocolSafety" /></li>
+            <li><Trans i18nKey="common:surface.componentsStatusview.text.protectionItemPayloadShape" /></li>
+            <li><Trans i18nKey="common:surface.componentsStatusview.text.protectionItemAttachmentProvenance" /></li>
+            <li className="text-text-disabled-fg">
+              <Trans i18nKey="common:surface.componentsStatusview.text.protectionItemImageBytes" />
+            </li>
+            <li className="text-text-disabled-fg">
+              <Trans i18nKey="common:surface.componentsStatusview.text.protectionItemAudioBytes" />
+            </li>
+            <li className="text-text-disabled-fg">
+              <Trans i18nKey="common:surface.componentsStatusview.text.protectionItemVideoBytes" />
+            </li>
+          </ul>
+        </details>
       </section>
 
       <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
