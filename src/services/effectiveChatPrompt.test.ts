@@ -80,4 +80,69 @@ describe("resolveEffectiveChatPromptContext (VF-CUR-P2-001)", () => {
     expect(r.hostedCharacter).toBe(true);
     expect(r.effectiveSystemPrompt).toBe("HOSTED");
   });
+
+  it("hosted character defaults to disabled mode when systemPromptMode is unset", () => {
+    // Older character chats saved before the `systemPromptMode` field existed
+    // must still pre-bypass the user-supplied system prompt so the
+    // character's own prompt is the single source. Without the fallback
+    // these would inherit the conversation's `systemPrompt` (and the
+    // global) and silently bypass the character's voice.
+    const r = resolveEffectiveChatPromptContext(
+      conv({
+        systemPrompt: "USER_PROMPT",
+        metadata: {
+          tags: [],
+          pinned: false,
+          archived: false,
+          source: "chat",
+          messageCount: 0,
+          character: { name: "Hosted", slug: "hosted-slug", systemPrompt: "HOSTED" },
+          // No `systemPromptMode` field — this is the path being fixed.
+        },
+      }),
+      "GLOBAL",
+    );
+    expect(r.mode).toBe("disabled");
+    expect(r.effectiveSystemPrompt).toBe("");
+  });
+
+  it("local character defaults to disabled mode when systemPromptMode is unset", () => {
+    const r = resolveEffectiveChatPromptContext(
+      conv({
+        systemPrompt: "USER_PROMPT",
+        metadata: {
+          tags: [],
+          pinned: false,
+          archived: false,
+          source: "chat",
+          messageCount: 0,
+          character: { name: "Local Char", localCharacterId: "local-1", systemPrompt: "LOCAL" },
+          // No `systemPromptMode` field.
+        },
+      }),
+      "GLOBAL",
+    );
+    expect(r.mode).toBe("disabled");
+    expect(r.effectiveSystemPrompt).toBe("");
+  });
+
+  it("plain chat without character still defaults to inherit", () => {
+    const r = resolveEffectiveChatPromptContext(
+      conv({
+        systemPrompt: "USER_PROMPT",
+        metadata: {
+          tags: [],
+          pinned: false,
+          archived: false,
+          source: "chat",
+          messageCount: 0,
+          // No character + no mode = should default to inherit so USER_PROMPT
+          // is honoured when present, falling back to GLOBAL otherwise.
+        },
+      }),
+      "GLOBAL",
+    );
+    expect(r.mode).toBe("inherit");
+    expect(r.effectiveSystemPrompt).toBe("USER_PROMPT");
+  });
 });

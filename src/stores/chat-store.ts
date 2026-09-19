@@ -577,6 +577,11 @@ export const useChatStore = create<ChatState>()(
             messageCount: character.greeting ? 1 : 0,
             character: characterMeta,
             memoryRetrievalEnabled: false,
+            // Hosted characters own their own system prompt. Pre-bypass
+            // the user-supplied system prompt by default so the Venice
+            // default + character system prompt remain in charge; the
+            // user can still opt in by switching the mode manually.
+            systemPromptMode: "disabled",
           },
           memory: {
             summary: `Chat with ${character.name}`,
@@ -648,6 +653,9 @@ export const useChatStore = create<ChatState>()(
             messageCount: card.firstMessage ? 1 : 0,
             character: characterMeta,
             memoryRetrievalEnabled: false,
+            // Local characters likewise pin their compiled system prompt
+            // as the only source; users can still switch the mode manually.
+            systemPromptMode: "disabled",
           },
           memory: {
             summary: `Chat with ${card.name || "local character"}`,

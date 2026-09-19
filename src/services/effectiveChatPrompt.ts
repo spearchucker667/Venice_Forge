@@ -17,10 +17,20 @@ export function resolveEffectiveChatPromptContext(
   conversation: Pick<Conversation, "systemPrompt" | "metadata">,
   globalSystemPrompt: string,
 ): EffectiveChatPromptContext {
+  // Hosted (and local) character chats pre-bypass the user system prompt
+  // by default so the character's own prompt is the single source. New
+  // conversations created in chat-store.ts set
+  // `metadata.systemPromptMode = "disabled"` explicitly; this fallback
+  // also covers older conversations saved before that field existed. The
+  // test covers both `slug` (hosted) and `localCharacterId` (local) ids.
+  const hasCharacter = Boolean(
+    conversation.metadata?.character?.slug ||
+      conversation.metadata?.character?.localCharacterId,
+  );
+  const hostedCharacter = Boolean(conversation.metadata?.character?.slug);
   const mode = (conversation.metadata?.systemPromptMode ??
-    "inherit") as SystemPromptMode;
+    (hasCharacter ? "disabled" : "inherit")) as SystemPromptMode;
   const characterSystemPrompt = conversation.metadata?.character?.systemPrompt;
-  const hostedCharacter = !!conversation.metadata?.character?.slug;
   const systemSegments: string[] = [];
 
   if (mode === "override") {

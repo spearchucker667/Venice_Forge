@@ -1229,6 +1229,13 @@ function PriorConversationContextSelector({
     activeConversation?.metadata?.memoryRetrievalEnabled === true;
   const systemPromptMode =
     activeConversation?.metadata?.systemPromptMode || "inherit";
+  // Character chats (hosted or local) own their own system prompt. The
+  // user-system-prompt selector is hidden on those surfaces so the
+  // character prompt stays the single source by default; the underlying
+  // mode is locked to "disabled" for character chats (see createCharacter
+  // Conversation / createLocalCharacterConversation in chat-store.ts).
+  const activeCharacter = activeConversation?.metadata?.character;
+  const isCharacterChat = Boolean(activeCharacter);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -1364,13 +1371,13 @@ function PriorConversationContextSelector({
             <Trans i18nKey="common:surface.componentsChatChatView.text.chatContext" />
           </div>
 
-          {activeConversation && (
+          {activeConversation && !isCharacterChat && (
             <div className="mb-4">
               <label htmlFor="chat-view-1" className="vf-meta text-text-secondary block mb-1">
                 <Trans i18nKey="common:surface.componentsChatChatView.label.systemPromptMode" />
               </label>
               <select
-                value={systemPromptMode} id="chat-view-1" 
+                value={systemPromptMode} id="chat-view-1"
                 onChange={(e) =>
                   setConversationSystemPromptMode(
                     activeConversation.id,
@@ -1389,6 +1396,11 @@ function PriorConversationContextSelector({
                   <Trans i18nKey="common:surface.componentsChatChatView.option.disabled" />
                 </option>
               </select>
+            </div>
+          )}
+          {activeConversation && isCharacterChat && (
+            <div className="mb-4 vf-meta text-text-muted">
+              <Trans i18nKey="common:surface.componentsChatChatView.text.usesCharacterSystemPrompt" />
             </div>
           )}
 

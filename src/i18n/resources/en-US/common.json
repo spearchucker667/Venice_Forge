@@ -638,7 +638,8 @@
         "forgetFact": "Forget Fact",
         "chatContext": "⚙ Chat context ·",
         "requireMemoryPreviewBeforeNextSend": "Require memory preview before next send",
-        "clear": "Clear"
+        "clear": "Clear",
+        "usesCharacterSystemPrompt": "Using the character’s system prompt. The user-supplied system prompt is bypassed for hosted and local character chats."
       },
       "label": {
         "systemPromptMode": "System Prompt Mode"
