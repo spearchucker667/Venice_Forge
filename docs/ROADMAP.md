@@ -5,17 +5,17 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 7044c014 (remediated and published on main; hosted CI and CodeQL verified)
-application_code_sha: 7044c014
-verified_against_sha: 7044c014
+repository_head_sha: 2452b0d1 (CodeQL alerts 281-285 remediated; hosted CI and CodeQL verified)
+application_code_sha: 2452b0d1
+verified_against_sha: 2452b0d1
 verified_at:         2026-09-23 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
 working_tree:        clean
-ci_status:           success for 7044c014 (run 35879124620 — 11/11 jobs: contracts, macos-sensitive, coverage, unit-and-integration, lint-and-typecheck, windows-sensitive, script-coverage, build, electron-smoke-linux/windows/macos)
-codeql_status:       success for 7044c014 (run 35879124402 — Analyze actions & Analyze javascript-typescript)
+ci_status:           success for 2452b0d1 (run 35884133504 — 11/11 jobs: contracts, macos-sensitive, coverage, unit-and-integration, lint-and-typecheck, windows-sensitive, script-coverage, build, electron-smoke-linux/windows/macos)
+codeql_status:       success for 2452b0d1 (run 35884133309 — Analyze actions & Analyze javascript-typescript; 0 open alerts, alerts #281–#285 fixed)
 open_findings:       see docs/ROADMAP.md (P2-016 headed a11y QA and P3-020 native-language review)
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
