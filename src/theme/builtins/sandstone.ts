@@ -28,7 +28,7 @@ export const BUILTIN_SANDSTONE: ThemeFamily = {
       overlay: "rgba(252,250,248,0.75)",
       glow: "rgba(184, 92, 59, 0.2)",
       surfaceMuted: "#e6ded5",
-      borderStrong: "#b5aca1",
+      borderStrong: "#978f86",
       warningForeground: "#ffffff",
       successForeground: "#ffffff",
       dangerForeground: "#ffffff",

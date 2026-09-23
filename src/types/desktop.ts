@@ -16,6 +16,7 @@ import type { MutationOrigin } from "./sync";
 import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope } from "./background-task";
 import type { ProviderId } from "./provider";
 import type { BackupManifestMetadata } from "../services/backupManifest";
+import type { SafetyRuntimeStatus } from "../shared/safety/safetyRuntimeStatus";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
@@ -172,6 +173,8 @@ export interface VeniceForgeApp {
   getVersion(): Promise<string>;
   isEncryptionAvailable(): Promise<boolean>;
   getDiagnostics(): Promise<VeniceForgeDiagnostics>;
+  /** Live safety runtime status. Resolves `null` when the IPC call is rate-limited. */
+  getSafetyRuntimeStatus(): Promise<SafetyRuntimeStatus | null>;
   openLogsFolder(): Promise<{ ok: boolean; path: string }>;
   proxyScrape(url: string): Promise<{ ok: boolean; data?: { url: string; finalUrl: string; contentType: string; body: string }; error?: string }>;
 }

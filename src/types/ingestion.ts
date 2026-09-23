@@ -26,11 +26,21 @@ export interface AttachmentChunk {
   chunkIndex: number;
   startOffset: number;
   endOffset: number;
+  /** 1-based source line range for this chunk, when line info was computed. */
+  lineStart?: number;
+  lineEnd?: number;
   tokenEstimate: number;
   text: string;
+  /** SHA-256 hex digest of the chunk text, when hashing was performed. */
+  contentHash?: string;
   provenance: {
     name: string;
     mimeType: string;
+    /** Original source path when available; renderer File objects only expose
+     *  the basename, so this is typically the file name. */
+    sourcePath?: string;
+    /** Language hint (extension- or shebang-derived) when known. */
+    language?: string;
   };
 }
 

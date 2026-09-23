@@ -28,7 +28,7 @@ export const BUILTIN_NORD: ThemeFamily = {
       overlay: "rgba(0, 0, 0, 0.4)",
       glow: "rgba(55, 120, 139, 0.18)",
       surfaceMuted: "#eeeeef",
-      borderStrong: "#909298",
+      borderStrong: "#8c8d93",
       }),
       code: { preset: 'nord', tokens: resolveCodeThemeTokens('nord', 'light') },
     },

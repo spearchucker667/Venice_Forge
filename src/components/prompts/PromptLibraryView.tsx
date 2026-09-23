@@ -932,7 +932,7 @@ function PromptDetail(props: PromptDetailProps) {
           <textarea
             value={content} id="prompt-library-1" 
             onChange={(e) => setContent(e.target.value)}
-            className="mt-1 w-full min-h-[180px] rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1.5 text-[12.5px] font-mono"
+            className="mt-1 w-full min-h-[180px] max-h-[min(40vh,420px)] resize-y overflow-y-auto rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1.5 text-[12.5px] font-mono"
             data-testid="prompt-library-content"
           />
         </div>
@@ -943,7 +943,7 @@ function PromptDetail(props: PromptDetailProps) {
           <textarea
             value={negativeContent} id="prompt-library-2" 
             onChange={(e) => setNegativeContent(e.target.value)}
-            className="mt-1 w-full min-h-[100px] rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1.5 text-[12.5px] font-mono"
+            className="mt-1 w-full min-h-[100px] max-h-[min(40vh,420px)] resize-y overflow-y-auto rounded-md border border-vf-panel-border bg-vf-shell-bg px-2 py-1.5 text-[12.5px] font-mono"
             data-testid="prompt-library-negative"
           />
         </div>

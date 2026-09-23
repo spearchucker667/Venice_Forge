@@ -977,7 +977,7 @@ export function ChatView() {
               <textarea
                 value={editedText}
                 onChange={(e) => setEditedText(e.target.value)}
-                className="w-full bg-vf-panel-bg-inset border border-vf-panel-border rounded-md p-2.5 vf-meta text-text-primary font-mono outline-none focus:border-accent resize-y min-h-[120px]"
+                className="w-full bg-vf-panel-bg-inset border border-vf-panel-border rounded-md p-2.5 vf-meta text-text-primary font-mono outline-none focus:border-accent resize-y min-h-[120px] max-h-[min(40vh,420px)] overflow-y-auto"
               />
               <button
                 onClick={() => {
@@ -1224,6 +1224,9 @@ function PriorConversationContextSelector({
   const setConversationSystemPromptMode = useChatStore(
     (s) => s.setConversationSystemPromptMode,
   );
+  const setConversationUseVeniceSystemPrompt = useChatStore(
+    (s) => s.setConversationUseVeniceSystemPrompt,
+  );
   const { resetMemoryPreview } = useChat();
   const memoryEnabled =
     activeConversation?.metadata?.memoryRetrievalEnabled === true;
@@ -1236,6 +1239,10 @@ function PriorConversationContextSelector({
   // Conversation / createLocalCharacterConversation in chat-store.ts).
   const activeCharacter = activeConversation?.metadata?.character;
   const isCharacterChat = Boolean(activeCharacter);
+  // VF-20260923-P0-024: bypassing the Venice default system prompt requires
+  // an explicit per-conversation choice; it stays on by default.
+  const useVeniceSystemPrompt =
+    activeConversation?.metadata?.useVeniceSystemPrompt ?? true;
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -1365,7 +1372,7 @@ function PriorConversationContextSelector({
             aria-label={tRuntime(
               "runtimeGenerated.components.chat.chatView.attribute.chatContext",
             )}
-            className="fixed z-50 max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg border border-vf-panel-border bg-vf-shell-bg px-3 py-3 shadow-xl"
+            className="fixed z-[var(--vf-z-context-menu)] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-lg border border-vf-panel-border bg-vf-shell-bg px-3 py-3 shadow-xl"
           >
           <div className="mb-2 vf-meta font-semibold uppercase tracking-wide text-text-muted">
             <Trans i18nKey="common:surface.componentsChatChatView.text.chatContext" />
@@ -1399,8 +1406,26 @@ function PriorConversationContextSelector({
             </div>
           )}
           {activeConversation && isCharacterChat && (
-            <div className="mb-4 vf-meta text-text-muted">
-              <Trans i18nKey="common:surface.componentsChatChatView.text.usesCharacterSystemPrompt" />
+            <div className="mb-4">
+              <div className="mb-2 vf-meta text-text-muted">
+                <Trans i18nKey="common:surface.componentsChatChatView.text.usesCharacterSystemPrompt" />
+              </div>
+              <label htmlFor="chat-view-4" className="flex items-center justify-between gap-3 vf-meta text-text-primary">
+                <span>
+                  <Trans i18nKey="common:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt" />
+                </span>
+                <input
+                  type="checkbox" id="chat-view-4"
+                  checked={useVeniceSystemPrompt}
+                  onChange={(event) =>
+                    setConversationUseVeniceSystemPrompt(
+                      activeConversation.id,
+                      event.target.checked,
+                    )
+                  }
+                  className="h-4 w-4 accent-accent"
+                />
+              </label>
             </div>
           )}
 

@@ -212,7 +212,11 @@
         "storage": "Storage",
         "safetyGuardAudit": "Safety guard audit",
         "lastRequest": "Last request",
-        "mediaClassifierCapabilities": "Media classifier capabilities"
+        "mediaClassifierCapabilities": "Media classifier capabilities",
+        "safetyRuntime": "Safety runtime",
+        "structuralValidation": "Structural / protocol validation",
+        "mediaClassifierBackend": "Media classifier backend",
+        "classifierCounters": "Classifier counters"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Aggregated runtime info for the current build. Open",
@@ -240,7 +244,34 @@
         "protectionItemAttachmentProvenance": "Attachment provenance & MIME sniffing",
         "protectionItemImageBytes": "Image bytes (semantic): not classified",
         "protectionItemAudioBytes": "Audio bytes (semantic): not classified",
-        "protectionItemVideoBytes": "Video bytes (semantic): not classified"
+        "protectionItemVideoBytes": "Video bytes (semantic): not classified",
+        "localContentSafeguards": "Local content safeguards",
+        "providerSafety": "Provider safety (Venice safe_mode)",
+        "stateEnabled": "Enabled",
+        "stateDisabled": "Disabled",
+        "stateOn": "On",
+        "stateOff": "Off",
+        "source": "source",
+        "sourceUser": "user",
+        "sourceServer": "server",
+        "sourcePolicy": "policy",
+        "validationActive": "Active",
+        "requestsValidated": "Requests validated",
+        "rejectedRequests": "Rejected requests",
+        "backendRegistered": "Backend registered",
+        "backendName": "Backend name",
+        "classifierStateAvailable": "Available",
+        "classifierStateNotConfigured": "Not configured",
+        "classifierStateUnsupported": "Unsupported",
+        "classifierStateUnhealthy": "Backend unhealthy",
+        "counterTextEvaluations": "Text evaluations",
+        "counterImageEvaluations": "Image evaluations",
+        "counterAudioEvaluations": "Audio evaluations",
+        "counterVideoEvaluations": "Video evaluations",
+        "counterBlocked": "Blocked",
+        "counterAllowed": "Allowed",
+        "counterSkippedDisabled": "Skipped (safeguards disabled)",
+        "counterErrors": "Errors"
       }
     },
     "componentsThememaker": {
@@ -627,7 +658,8 @@
         "includePriorConversationContext": "Include prior conversation context",
         "selected": "selected",
         "chattingAs": "Chatting as",
-        "usesCharacterSystemPrompt": "Using the character’s system prompt. The user-supplied system prompt is bypassed for hosted and local character chats."
+        "usesCharacterSystemPrompt": "Using the character’s system prompt. The user-supplied system prompt is bypassed for hosted and local character chats.",
+        "useVeniceDefaultSystemPrompt": "Use Venice default system prompt"
       },
       "action": {
         "shuffle": "Shuffle",
@@ -2483,6 +2515,14 @@
         "charactercreatorview": {
           "metadata": {
             "analyzingImage": "Analyzing Image"
+          },
+          "error": {
+            "modelUnavailable": "The Character Creator model is temporarily unavailable. Please try again in a few minutes.",
+            "requestCancelled": "Generation was cancelled.",
+            "invalidModelResponse": "The model returned an unusable response. Please try again.",
+            "schemaRepairFailed": "The generated character card failed validation and could not be repaired. Please try again.",
+            "transportFailed": "Could not reach the Venice API. Please check your connection and try again.",
+            "providerHttp": "The Venice API rejected the generation request. Please try again later."
           },
           "notification": {
             "couldNotLoadDraft": "Could not load draft",

@@ -25,7 +25,7 @@
     },
     "safety": {
       "title": "Familjesäkert läge",
-      "description": "Ett huvudlösenord krävs innan Familjesäkert läge kan aktiveras eller inaktiveras. Familjesäkert läge tvingar också fram leverantörens safe_mode där det stöds."
+      "description": "Ett huvudlösenord krävs innan Familjesäkert läge kan aktiveras eller inaktiveras. Familjesäkert läge styrs oberoende av leverantörens safe_mode."
     }
   }
 }

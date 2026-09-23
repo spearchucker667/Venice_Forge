@@ -52,7 +52,7 @@ export const BUILTIN_VENICE: ThemeFamily = {
       overlay: "rgba(5, 5, 5, 0.7)",
       glow: "rgba(239, 85, 95, 0.12)",
       surfaceMuted: "#08080a",
-      borderStrong: "#55555e",
+      borderStrong: "#5c5c64",
       }),
       code: { preset: 'venice', tokens: resolveCodeThemeTokens('venice', 'dark') },
     },

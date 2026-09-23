@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAgentModels, type AgentModel } from "../../hooks/use-agent-models";
 import { cn } from "../../lib/utils";
 import { Trans, useTranslation } from "react-i18next";
+
+const LIST_MAX_HEIGHT = 380;
+const VIEWPORT_MARGIN = 8;
+const TRIGGER_MARGIN = 4;
 
 interface Props {
   value: string;
@@ -15,15 +20,85 @@ export function AgentModelPicker({ value, onChange }: Props) {
   const [search, setSearch] = useState("");
   const [showAll, setShowAll] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const close = useCallback((restoreFocus: boolean) => {
+    setOpen(false);
+    if (restoreFocus) buttonRef.current?.focus();
+  }, []);
 
   useEffect(() => {
+    if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
+      const target = e.target as HTMLElement | null;
+      if (ref.current && ref.current.contains(e.target as Node)) return;
+      if (target?.closest("[data-agent-model-picker-menu='true']")) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        close(true);
+      }
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, close]);
+
+  // Portal placement: mirror ContextMenu's clamping — keep the menu inside
+  // the viewport with an 8px margin, flip above the trigger when there is
+  // not enough room below, and re-place on resize/scroll.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const menu = menuRef.current;
+    const button = buttonRef.current;
+    const header = headerRef.current;
+    const list = listRef.current;
+    if (!menu || !button || !header || !list) return;
+
+    const place = () => {
+      const padding = VIEWPORT_MARGIN;
+      const rect = button.getBoundingClientRect();
+      const width = menu.offsetWidth;
+      const maxLeft = Math.max(padding, window.innerWidth - width - padding);
+      // Preserve the original right-edge alignment relative to the trigger.
+      const left = Math.min(Math.max(padding, rect.right - width), maxLeft);
+
+      const previousMax = list.style.maxHeight;
+      list.style.maxHeight = "none";
+      const naturalHeight = header.offsetHeight + list.offsetHeight;
+      list.style.maxHeight = previousMax;
+
+      const availableBelow = Math.max(0, window.innerHeight - rect.bottom - TRIGGER_MARGIN - padding);
+      const availableAbove = Math.max(0, rect.top - TRIGGER_MARGIN - padding);
+      const desiredHeight = Math.min(naturalHeight, header.offsetHeight + LIST_MAX_HEIGHT);
+      const placeAbove = availableBelow < desiredHeight && availableAbove > availableBelow;
+      const budget = placeAbove ? availableAbove : availableBelow;
+      const height = Math.min(desiredHeight, budget);
+      const top = placeAbove
+        ? Math.max(padding, rect.top - TRIGGER_MARGIN - height)
+        : rect.bottom + TRIGGER_MARGIN;
+
+      menu.style.left = `${Math.round(left)}px`;
+      menu.style.top = `${Math.round(top)}px`;
+      list.style.maxHeight = `${Math.max(0, Math.min(budget - header.offsetHeight, LIST_MAX_HEIGHT))}px`;
+    };
+
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open, search, showAll, models]);
 
   const filtered = useMemo(() => {
     const base = showAll ? models : models.filter((m) => m.tier <= 2);
@@ -71,6 +146,7 @@ export function AgentModelPicker({ value, onChange }: Props) {
   return (
     <div ref={ref} className="relative w-56 shrink-0">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
@@ -105,9 +181,17 @@ export function AgentModelPicker({ value, onChange }: Props) {
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute top-full right-0 mt-1 w-[340px] z-50 bg-vf-panel-bg-raised border border-vf-panel-border rounded-md shadow-2xl shadow-none animate-scale-in overflow-hidden">
-          <div className="px-2 py-2 border-b border-vf-panel-border flex items-center gap-2">
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          data-agent-model-picker-menu="true"
+          className="fixed z-[var(--vf-z-context-menu)] w-[340px] bg-vf-panel-bg-raised border border-vf-panel-border rounded-md shadow-2xl animate-scale-in overflow-hidden"
+        >
+          <div
+            ref={headerRef}
+            data-agent-model-picker-header="true"
+            className="px-2 py-2 border-b border-vf-panel-border flex items-center gap-2"
+          >
             <input
               autoFocus
               value={search}
@@ -144,7 +228,11 @@ export function AgentModelPicker({ value, onChange }: Props) {
                   )}
             </button>
           </div>
-          <div className="max-h-[380px] overflow-y-auto py-1">
+          <div
+            ref={listRef}
+            data-agent-model-picker-list="true"
+            className="overflow-y-auto py-1"
+          >
             {grouped.length === 0 && (
               <div className="px-3 py-6 text-center text-[13px] text-text-muted">
                 <Trans i18nKey="common:surface.playgroundAgentModelPicker.text.noMatches" />
@@ -160,8 +248,8 @@ export function AgentModelPicker({ value, onChange }: Props) {
                     key={m.id}
                     onClick={() => {
                       onChange(m.id);
-                      setOpen(false);
                       setSearch("");
+                      close(true);
                     }}
                     className={cn(
                       "w-full text-left px-3 py-2 hover:bg-vf-control-hover-muted transition-colors",
@@ -237,7 +325,8 @@ export function AgentModelPicker({ value, onChange }: Props) {
               </div>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

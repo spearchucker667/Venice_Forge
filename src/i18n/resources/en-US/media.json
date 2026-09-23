@@ -99,6 +99,44 @@
       "remove-bg": "Result appears here"
     }
   },
+  "mediaStudioActions": {
+    "heading": "Image operations",
+    "upscale": "Upscale",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "Remove Background",
+    "inpaint": "Inpaint",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "done": "{{operation}} finished for {{count}} asset(s)",
+    "running": "{{operation}} running for {{name}}…",
+    "failed": "{{operation}} failed for {{name}}",
+    "operationLabels": {
+      "upscale": "Upscale",
+      "remove-background": "Background removal",
+      "inpaint": "Inpaint"
+    },
+    "reason": {
+      "requiresImage": "This operation requires an image asset",
+      "sourceUnavailable": "This source asset is no longer available locally",
+      "modelUnavailable": "Inpainting is unavailable for the selected model",
+      "singleSelection": "Inpainting requires a single selected image"
+    },
+    "editor": {
+      "title": "Inpaint — paint a mask",
+      "description": "Paint over the area to replace, then describe the change. The mask and source image are sent to the selected edit model.",
+      "canvasLabel": "Mask painting canvas",
+      "brushSize": "Brush size",
+      "undo": "Undo",
+      "clear": "Clear",
+      "promptLabel": "Edit prompt (optional)",
+      "promptPlaceholder": "Describe what should appear inside the painted area…",
+      "submit": "Apply Inpaint",
+      "cancel": "Cancel",
+      "success": "Inpainted asset saved to Media Studio",
+      "loadFailed": "Could not load the selected image for masking."
+    }
+  },
   "imageStudioRuntime": {
     "imageDownloaded": "Image downloaded",
     "imageSaveFailed": "Image save failed",

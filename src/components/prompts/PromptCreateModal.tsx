@@ -310,7 +310,7 @@ export function PromptCreateModal({ onClose, onCreate }: Props) {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={4}
-              className="w-full bg-vf-shell-bg border border-vf-panel-border rounded-md px-3 py-2 text-[13px] font-mono focus:border-accent resize-y min-h-[100px]"
+              className="w-full bg-vf-shell-bg border border-vf-panel-border rounded-md px-3 py-2 text-[13px] font-mono focus:border-accent resize-y min-h-[100px] max-h-[min(40vh,420px)] overflow-y-auto"
               placeholder={tRuntime(
                 "runtimeGenerated.components.prompts.promptcreatemodal.attribute.enterPromptTextHere",
               )}
@@ -329,7 +329,7 @@ export function PromptCreateModal({ onClose, onCreate }: Props) {
                 value={negativeContent}
                 onChange={(e) => setNegativeContent(e.target.value)}
                 rows={2}
-                className="w-full bg-vf-shell-bg border border-vf-panel-border rounded-md px-3 py-2 text-[13px] font-mono focus:border-accent resize-y min-h-[60px]"
+                className="w-full bg-vf-shell-bg border border-vf-panel-border rounded-md px-3 py-2 text-[13px] font-mono focus:border-accent resize-y min-h-[60px] max-h-[min(40vh,420px)] overflow-y-auto"
                 placeholder={tRuntime(
                   "runtimeGenerated.components.prompts.promptcreatemodal.attribute.optionalNegativePrompt",
                 )}

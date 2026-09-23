@@ -1112,7 +1112,9 @@ function ConversationRow({
             size="sm"
           />
         )}
-        <span className="truncate">{getConversationDisplayTitle(conv)}</span>
+        <span className="truncate" title={getConversationDisplayTitle(conv)}>
+          {getConversationDisplayTitle(conv)}
+        </span>
       </button>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <button

@@ -40,7 +40,7 @@ export const BUILTIN_NEON_DUSK: ThemeFamily = {
       surfaceElevated: "#252146",
       surfaceMuted: "#14122a",
       border: "#36315c",
-      borderStrong: "#544d88",
+      borderStrong: "#605a90",
       textPrimary: "#f0eef5",
       textSecondary: "#c9c4e0",
       textMuted: "#8f88b0",

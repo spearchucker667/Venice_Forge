@@ -16,7 +16,7 @@ export const BUILTIN_AMBER_ARCHIVE: ThemeFamily = {
       surfaceElevated: "#e6dfce",
       surfaceMuted: "#faf7ef",
       border: "#d9d0c0",
-      borderStrong: "#b8ae9c",
+      borderStrong: "#948a7a",
       textPrimary: "#2c2416",
       textSecondary: "#5a5040",
       textMuted: "#827868",

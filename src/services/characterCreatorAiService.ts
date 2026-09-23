@@ -5,6 +5,7 @@
 
 import { VeniceAPIError } from "./veniceClient/errors";
 import { CHARACTER_CREATOR_MODEL_ID, CHARACTER_CREATOR_SYSTEM_PROMPT, CharacterCreatorModelOverrideError } from "../constants/character-creator";
+import type { CharacterCreatorErrorCode } from "../constants/character-creator";
 import type {
   CharacterConceptAnalysis,
   CharacterCreatorGenerationResult,
@@ -25,6 +26,74 @@ import { isPromptSecretLike } from "../types/prompt-library";
 
 export interface CharacterCreatorGenerationCallbacks {
   onEvent?: (event: CharacterCreatorProcessEvent) => void;
+}
+
+/** Typed failure surfaced by Character Creator AI generation. `code` keeps the
+ *  legacy string-code taxonomy; `retryable` tells callers whether a fresh
+ *  attempt could succeed without user input. */
+export class CharacterCreatorServiceError extends Error {
+  readonly code: CharacterCreatorErrorCode;
+  readonly retryable: boolean;
+
+  constructor(
+    code: CharacterCreatorErrorCode,
+    message: string,
+    retryable: boolean,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
+    this.name = "CharacterCreatorServiceError";
+    this.code = code;
+    this.retryable = retryable;
+  }
+}
+
+export function isCharacterCreatorServiceError(
+  err: unknown,
+): err is CharacterCreatorServiceError {
+  return err instanceof CharacterCreatorServiceError;
+}
+
+/** Maps a failed Venice transport attempt (initial or repair) to a typed
+ *  error. Non-transient 4xx responses are provider rejections (retryable
+ *  false); everything else is a transport/timeout failure (retryable true).
+ *  Non-404 messages keep the legacy VENICE_TRANSPORT_FAILED prefix because
+ *  existing tests and diagnostics match on it. */
+function toTransportStageError(err: unknown): CharacterCreatorServiceError {
+  const msg = err instanceof Error ? err.message : String(err);
+  const status =
+    err && typeof err === "object" && "status" in err
+      ? (err as { status?: unknown }).status
+      : undefined;
+  if (typeof status === "number" && status >= 400 && status < 500) {
+    return new CharacterCreatorServiceError(
+      "VENICE_PROVIDER_HTTP",
+      `VENICE_TRANSPORT_FAILED: HTTP ${status} — ${msg}`,
+      false,
+      { cause: err },
+    );
+  }
+  return new CharacterCreatorServiceError(
+    "VENICE_TRANSPORT_FAILED",
+    `VENICE_TRANSPORT_FAILED: ${msg}`,
+    true,
+    { cause: err },
+  );
+}
+
+/** 404 / model-not-found is a permanent provider failure, not transient.
+ *  Accept both VeniceAPIError(status=404) (production path) and any thrown
+ *  error whose status field or message indicates 404, so the contract also
+ *  holds for mocked test errors and upstream variants. */
+function isModelNotFound(err: unknown, msg: string): boolean {
+  const errStatus =
+    err && typeof err === "object" && "status" in err
+      ? (err as { status?: unknown }).status
+      : undefined;
+  return (
+    errStatus === 404 ||
+    /\b404\b|model_not_found|not_found|model.{0,10}not.{0,10}found/i.test(msg)
+  );
 }
 
 /** Construct the Venice chat completion request for Character Creator.
@@ -368,43 +437,49 @@ async function executeWithSingleRepair(
     if (initialAttempt.aborted) {
       const cancelEv = createProcessEvent("cancelled", "failed", "Request cancelled", "Generation was cancelled by the user.");
       emit(cancelEv);
-      throw new Error("REQUEST_CANCELLED: User cancelled generation.");
+      throw new CharacterCreatorServiceError(
+        "REQUEST_CANCELLED",
+        "REQUEST_CANCELLED: User cancelled generation.",
+        false,
+      );
     }
     const err = initialAttempt.error;
     const msg = err instanceof Error ? err.message : String(err);
     const failEv = createProcessEvent("failed", "failed", "Model request failed", msg);
     emit(failEv);
-    // 404 / model-not-found is a permanent provider failure, not transient.
-    // Accept both VeniceAPIError(status=404) (production path) and any
-    // thrown error whose status field or message indicates 404, so the
-    // contract also holds for mocked test errors and upstream variants.
-    const errStatus =
-      err && typeof err === "object" && "status" in err
-        ? (err as { status?: unknown }).status
-        : undefined;
-    if (
-      errStatus === 404 ||
-      /\b404\b|model_not_found|not_found|model.{0,10}not.{0,10}found/i.test(msg)
-    ) {
-      throw new Error(`MODEL_UNAVAILABLE: Model '${CHARACTER_CREATOR_MODEL_ID}' is currently unavailable on Venice API.`);
+    if (isModelNotFound(err, msg)) {
+      throw new CharacterCreatorServiceError(
+        "MODEL_UNAVAILABLE",
+        `MODEL_UNAVAILABLE: Model '${CHARACTER_CREATOR_MODEL_ID}' is currently unavailable on Venice API.`,
+        false,
+        { cause: err },
+      );
     }
     // Wrap remaining transport / 5xx / 429 / network failures so callers
     // can distinguish "couldn't reach the upstream" from "model returned
     // malformed output".
-    throw new Error(`VENICE_TRANSPORT_FAILED: ${msg}`);
+    throw toTransportStageError(err);
   }
 
   const content = extractContent(responseData);
   if (!content) {
     const failEv = createProcessEvent("failed", "failed", "Empty response", "Model returned an empty completion.");
     emit(failEv);
-    throw new Error("INVALID_MODEL_RESPONSE: Model returned an empty completion.");
+    throw new CharacterCreatorServiceError(
+      "INVALID_MODEL_RESPONSE",
+      "INVALID_MODEL_RESPONSE: Model returned an empty completion.",
+      false,
+    );
   }
 
   if (isPromptSecretLike(content)) {
     const failEv = createProcessEvent("failed", "failed", "Output security check failed", "Response contained secret-like data.");
     emit(failEv);
-    throw new Error("INVALID_MODEL_RESPONSE: Model output contained secret-like data.");
+    throw new CharacterCreatorServiceError(
+      "INVALID_MODEL_RESPONSE",
+      "INVALID_MODEL_RESPONSE: Model output contained secret-like data.",
+      false,
+    );
   }
 
   const cleanedText = cleanJsonCodeFence(content);
@@ -475,26 +550,28 @@ async function executeWithSingleRepair(
           "Repair attempt cancelled before completion.",
         );
         emit(cancelEv);
-        throw new Error("REQUEST_CANCELLED: Repair attempt cancelled.");
+        throw new CharacterCreatorServiceError(
+          "REQUEST_CANCELLED",
+          "REQUEST_CANCELLED: Repair attempt cancelled.",
+          false,
+        );
       }
       const err = repairAttempt.error;
       const errMsg = err instanceof Error ? err.message : String(err);
       const failEv = createProcessEvent("failed", "failed", "Schema repair failed", errMsg);
       emit(failEv);
       // 404 stays the same logical "model_not_found" condition; everything
-      // else is an upstream transport failure with a clearer label than
+      // else keeps the transport mapping with a clearer label than
       // `SCHEMA_REPAIR_FAILED`.
-      const errStatus =
-        err && typeof err === "object" && "status" in err
-          ? (err as { status?: unknown }).status
-          : undefined;
-      if (
-        errStatus === 404 ||
-        /\b404\b|model_not_found|not_found|model.{0,10}not.{0,10}found/i.test(errMsg)
-      ) {
-        throw new Error(`MODEL_UNAVAILABLE: Model '${CHARACTER_CREATOR_MODEL_ID}' is currently unavailable on Venice API.`);
+      if (isModelNotFound(err, errMsg)) {
+        throw new CharacterCreatorServiceError(
+          "MODEL_UNAVAILABLE",
+          `MODEL_UNAVAILABLE: Model '${CHARACTER_CREATOR_MODEL_ID}' is currently unavailable on Venice API.`,
+          false,
+          { cause: err },
+        );
       }
-      throw new Error(`VENICE_TRANSPORT_FAILED: ${errMsg}`);
+      throw toTransportStageError(err);
     }
     const repairData = repairAttempt.value.data;
 
@@ -511,7 +588,11 @@ async function executeWithSingleRepair(
     if (!validated) {
       const failEv = createProcessEvent("failed", "failed", "Schema validation failed", "Output failed schema validation after repair attempt.");
       emit(failEv);
-      throw new Error("SCHEMA_REPAIR_FAILED: Character Creator output failed JSON schema validation after repair attempt.");
+      throw new CharacterCreatorServiceError(
+        "SCHEMA_REPAIR_FAILED",
+        "SCHEMA_REPAIR_FAILED: Character Creator output failed JSON schema validation after repair attempt.",
+        false,
+      );
     }
 
     emit(createProcessEvent("repair", "complete", "Schema repair successful", "Card draft successfully restored to valid schema format."));

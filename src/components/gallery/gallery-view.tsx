@@ -50,6 +50,7 @@ import {
 } from "../../types/project";
 import { getImageModelCapabilities } from "../../config/image-model-capabilities";
 import { MediaToolbar } from "./media-toolbar";
+import { MediaStudioActionBar } from "./MediaStudioActionBar";
 import { MediaCard } from "./media-card";
 import { MediaDetailDialog } from "./media-detail-dialog";
 import { MediaInspector } from "./media-inspector";
@@ -1196,6 +1197,11 @@ export function MediaStudioView() {
           {lastError}
         </div>
       )}
+
+      {/* Direct derived-image operations (upscale / background removal /
+          inpaint) for the current selection. Self-hides when no compatible
+          image asset is selected. */}
+      <MediaStudioActionBar items={selectedItems} />
 
       <div className="flex items-center border-b border-vf-panel-border bg-vf-panel-bg px-5 py-2">
         <button

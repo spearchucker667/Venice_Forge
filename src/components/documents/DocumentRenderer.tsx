@@ -1,5 +1,16 @@
 import type { DocumentBlock } from '../../agent/contracts/documents'
 import { Trans } from 'react-i18next';
+import { ChatMarkdown } from '../chat/ChatMarkdown'
+
+// Blocks whose text contains TeX math ($...$ / $$...$$) are rendered through
+// the canonical safe markdown+math renderer. Only plain-text blocks
+// (paragraph/quote) take this path; headings, lists, tables, code, and other
+// structured blocks keep their dedicated renderers.
+const MATH_PATTERN = /\$\$[\s\S]+?\$\$|\$[^$\n]+\$/
+
+function containsMath(text: string): boolean {
+  return MATH_PATTERN.test(text)
+}
 
 export function DocumentRenderer({ blocks }: { blocks: DocumentBlock[] }) {
   if (!blocks || blocks.length === 0) {
@@ -27,12 +38,29 @@ export function DocumentRenderer({ blocks }: { blocks: DocumentBlock[] }) {
             )
           }
           case 'paragraph':
+            if (containsMath(block.text)) {
+              return (
+                <div key={block.id} className="text-foreground/90">
+                  <ChatMarkdown content={block.text} />
+                </div>
+              )
+            }
             return (
               <p key={block.id} className="text-foreground/90 whitespace-pre-wrap">
                 {block.text}
               </p>
             )
           case 'quote':
+            if (containsMath(block.text)) {
+              return (
+                <blockquote
+                  key={block.id}
+                  className="border-l-4 border-accent/60 pl-3 py-1 text-foreground-muted italic bg-vf-panel-bg-raised/40 rounded-r-md"
+                >
+                  <ChatMarkdown content={block.text} />
+                </blockquote>
+              )
+            }
             return (
               <blockquote
                 key={block.id}

@@ -101,4 +101,37 @@ describe("ContextMenu", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(outside).toHaveFocus();
   });
+
+  it("flips horizontal placement when the document direction is rtl", async () => {
+    const user = userEvent.setup();
+    const originalDir = document.documentElement.dir;
+    document.documentElement.dir = "rtl";
+    try {
+      render(<Harness />);
+      await user.click(screen.getByRole("button", { name: "Open menu" }));
+      const menu = screen.getByRole("menu", { name: "Actions" });
+      // jsdom reports zero rects; give the menu a real width so the RTL
+      // branch (anchor minus width) is observable on re-placement.
+      vi.spyOn(menu, "getBoundingClientRect").mockReturnValue({
+        top: 0,
+        bottom: 100,
+        left: 0,
+        right: 200,
+        width: 200,
+        height: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      } as DOMRect);
+      fireEvent(window, new Event("resize"));
+      // RTL grows leftward from the anchor: 900 - 200 = 700.
+      expect(menu.style.left).toBe("700px");
+      document.documentElement.dir = "ltr";
+      fireEvent(window, new Event("resize"));
+      // LTR clamps the right edge into the viewport: min(900, 1024-200-8).
+      expect(menu.style.left).toBe("816px");
+    } finally {
+      document.documentElement.dir = originalDir;
+    }
+  });
 });

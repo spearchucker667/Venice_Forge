@@ -195,6 +195,15 @@ describe("all built-in themes WCAG contrast regression guard", () => {
       expect(contrastRatio(t.disabledForeground, t.background)).toBeGreaterThanOrEqual(3);
       expect(contrastRatio(t.focusRing, t.background)).toBeGreaterThanOrEqual(3);
       expect(contrastRatio(t.foregroundSubtle, t.background)).toBeGreaterThanOrEqual(3);
+      expect(isAAPass(t.link, t.background)).toBe(true);
+      expect(contrastRatio(t.placeholder, t.inputBackground)).toBeGreaterThanOrEqual(3);
+      // borderStrong is the visible-boundary token and must clear 3:1. The
+      // plain border token is a decorative hairline in built-in themes (it is
+      // softened further via --color-border-soft/faint color-mix), so it is
+      // not held to the visible-boundary threshold.
+      if (t.borderStrong) {
+        expect(contrastRatio(t.borderStrong, t.background)).toBeGreaterThanOrEqual(3);
+      }
     },
   );
 });

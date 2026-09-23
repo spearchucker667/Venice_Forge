@@ -115,6 +115,12 @@ export interface Conversation {
     memoryRetrievalEnabled?: boolean;
     includePriorConversationContext?: boolean;
     systemPromptMode?: "inherit" | "override" | "disabled";
+    /** Character chats only: whether the Venice default system prompt is
+     *  requested (`venice_parameters.include_venice_system_prompt`).
+     *  Independently selectable per conversation; defaults to true so the
+     *  Venice default is never silently bypassed. Never gates the user's
+     *  global system prompt — character chats always bypass that. */
+    useVeniceSystemPrompt?: boolean;
     /** Per-conversation privacy overrides (E2EE, prompt-cache retention). */
     privacy?: ConversationPrivacyOverrides;
   };

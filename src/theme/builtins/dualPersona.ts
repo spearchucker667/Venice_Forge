@@ -16,7 +16,7 @@ export const BUILTIN_DUAL_PERSONA: ThemeFamily = {
       surfaceElevated: "#FFFFFF",
       surfaceMuted: "#F2DFE7",
       border: "#C3B4C9",
-      borderStrong: "#9AAFC0",
+      borderStrong: "#808798",
       textPrimary: "#412A3A",
       textSecondary: "#574457",
       textMuted: "#614E61",

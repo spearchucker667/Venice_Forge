@@ -28,7 +28,7 @@ export const BUILTIN_SWEET_NIGHTMARE: ThemeFamily = {
       overlay: "rgba(0, 0, 0, 0.4)",
       glow: "rgba(53, 121, 131, 0.18)",
       surfaceMuted: "#efeeef",
-      borderStrong: "#969098",
+      borderStrong: "#918b93",
       }),
       code: { preset: 'sweet-nightmare', tokens: resolveCodeThemeTokens('sweet-nightmare', 'light') },
     },

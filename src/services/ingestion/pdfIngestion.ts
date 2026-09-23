@@ -49,10 +49,11 @@ export async function ingestPdfFile(file: File): Promise<IngestedAttachment> {
   }
 
   const id = generateId();
-  const chunkResult = extractAttachmentChunks(redactSecrets(text), {
+  const chunkResult = await extractAttachmentChunks(redactSecrets(text), {
     attachmentId: id,
     name: file.name,
     mimeType: file.type,
+    sourcePath: file.name,
   });
   const redactedText = chunkResult.chunks.map((chunk) => chunk.text).join("");
   truncated = truncated || chunkResult.extractionTruncated;

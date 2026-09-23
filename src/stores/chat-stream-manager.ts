@@ -107,12 +107,25 @@ function compileSharedChatContext(convId: string, model: string): SharedChatCont
   if (!conv) throw new Error(`Conversation ${convId} not found`);
 
   const modelInfo = getModelById(model);
+  const binding = getConversationPersonaBinding(conv as unknown as Conversation);
+  const isCharacterRequest = binding.kind !== "standard";
+  // VF-20260923-P0-024: character conversations map ONLY the explicit
+  // per-conversation `useVeniceSystemPrompt` choice (default true — the
+  // Venice default is never silently bypassed) onto
+  // `include_venice_system_prompt`. The user's global system prompt stays
+  // excluded via the "disabled" systemPromptMode resolved inside
+  // compileChatPrompt; this flag never gates that. Standard conversations
+  // keep honoring the global Venice params setting.
+  const includeVeniceSystemPrompt = isCharacterRequest
+    ? (conv.metadata?.useVeniceSystemPrompt ?? true)
+    : state.veniceParams.include_venice_system_prompt !== false;
+
   const compiled = compileChatPrompt(
     conv as unknown as Conversation,
     state.systemPrompt,
     modelInfo,
     state.maxTokens,
-    state.veniceParams.include_venice_system_prompt !== false,
+    includeVeniceSystemPrompt,
     { resolveNativePart: (ref) => resolveNativePartRef(ref) },
   );
 
@@ -124,10 +137,8 @@ function compileSharedChatContext(convId: string, model: string): SharedChatCont
     delete veniceParamsForRequest.character_slug;
   }
 
-  const binding = getConversationPersonaBinding(conv as unknown as Conversation);
-  const isCharacterRequest = binding.kind !== "standard";
   if (isCharacterRequest) {
-    veniceParamsForRequest.include_venice_system_prompt = false;
+    veniceParamsForRequest.include_venice_system_prompt = includeVeniceSystemPrompt;
     if (
       conv.metadata?.character?.webEnabled &&
       veniceParamsForRequest.enable_web_search === "off"

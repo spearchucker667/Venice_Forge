@@ -62,6 +62,7 @@ export function toConversationRecord(conv: Conversation): ConversationRecordV1 {
       character: conv.metadata?.character,
       memoryRetrievalEnabled: conv.metadata?.memoryRetrievalEnabled,
       includePriorConversationContext: conv.metadata?.includePriorConversationContext,
+      useVeniceSystemPrompt: conv.metadata?.useVeniceSystemPrompt,
     },
     memory: {
       summary: conv.memory?.summary ?? conv.title ?? '',

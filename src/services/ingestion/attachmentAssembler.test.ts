@@ -6,7 +6,7 @@ import * as codeIngestion from "./codeIngestion";
 import * as pdfIngestion from "./pdfIngestion";
 import * as docxIngestion from "./docxIngestion";
 import * as imageIngestion from "./imageIngestion";
-import { UnsupportedFileTypeError } from "./ingestionErrors";
+import { BinaryContentError } from "./ingestionErrors";
 
 vi.mock("./textIngestion", () => ({ ingestTextFile: vi.fn() }));
 vi.mock("./codeIngestion", () => ({ ingestCodeFile: vi.fn() }));
@@ -63,8 +63,19 @@ describe("attachmentAssembler", () => {
     expect(imageIngestion.ingestImageFile).toHaveBeenCalledWith(file);
   });
 
-  it("throws UnsupportedFileTypeError for unknown", async () => {
-    const file = new File([""], "test.bin");
-    await expect(processFileAttachment(file)).rejects.toThrow(UnsupportedFileTypeError);
+  it("sniffs and ingests unknown-extension text files as plain text", async () => {
+    const file = new File(["#!/bin/bash\necho hello\n"], "deploy");
+    await processFileAttachment(file);
+    expect(textIngestion.ingestTextFile).toHaveBeenCalledWith(file, {
+      allowSniffedPlainText: true,
+      languageHint: "bash",
+    });
+  });
+
+  it("rejects unknown-extension binary files with a typed error", async () => {
+    const binaryBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
+    const file = new File([binaryBytes], "payload.bin");
+    await expect(processFileAttachment(file)).rejects.toThrow(BinaryContentError);
+    expect(textIngestion.ingestTextFile).not.toHaveBeenCalled();
   });
 });

@@ -150,7 +150,9 @@ describe("use-chat character_slug threading", () => {
     expect(body).not.toBeNull();
     const veniceParams = body!.venice_parameters as Record<string, unknown>;
     expect(veniceParams.character_slug).toBe("alan-watts");
-    expect(veniceParams.include_venice_system_prompt).toBe(false);
+    // VF-20260923-P0-024: the Venice default follows the per-conversation
+    // choice (default on); it is no longer forcibly bypassed.
+    expect(veniceParams.include_venice_system_prompt).toBe(true);
   });
 
   it("regenerate also uses the conversation-scoped character slug", async () => {
@@ -173,7 +175,8 @@ describe("use-chat character_slug threading", () => {
     expect(body).not.toBeNull();
     const veniceParams = body!.venice_parameters as Record<string, unknown>;
     expect(veniceParams.character_slug).toBe("alan-watts");
-    expect(veniceParams.include_venice_system_prompt).toBe(false);
+    // VF-20260923-P0-024: Venice default prompt stays enabled by default.
+    expect(veniceParams.include_venice_system_prompt).toBe(true);
   });
 
   it("preserves the existing web search / citation params when character_slug is set", async () => {
@@ -222,7 +225,8 @@ describe("use-chat character_slug threading", () => {
     expect(body).not.toBeNull();
     const veniceParams = body!.venice_parameters as Record<string, unknown>;
     expect(veniceParams.character_slug).toBeUndefined();
-    expect(veniceParams.include_venice_system_prompt).toBe(false);
+    // VF-20260923-P0-024: Venice default prompt stays enabled by default.
+    expect(veniceParams.include_venice_system_prompt).toBe(true);
   });
 
   it("prepends the local character system prompt as a system message", async () => {
@@ -936,7 +940,77 @@ describe("use-chat character_slug threading", () => {
     expect(JSON.stringify(messages)).not.toContain("[Local Memory Context]");
     // The global DEFAULT_SYSTEM_PROMPT distinctive phrase must not appear
     expect(JSON.stringify(messages)).not.toContain("Venice Forge's assistant");
+    // VF-20260923-P0-024: the Venice default system prompt is no longer
+    // forcibly bypassed; it follows the per-conversation choice, which
+    // defaults to on.
+    expect((body!.venice_parameters as Record<string, unknown>).include_venice_system_prompt).toBe(true);
+  });
+
+  it("character chat include_venice_system_prompt follows the per-conversation toggle both ways", async () => {
+    useSettingsStore.setState({ enableMemoryRetrieval: false, showPulledContextBeforeSending: false });
+    useChatStore.setState({
+      systemPrompt: "GLOBAL_USER_PROMPT_SENTINEL_9f3a",
+      veniceParams: {
+        include_venice_system_prompt: true,
+        enable_web_search: "off",
+      },
+    });
+    const convId = useChatStore.getState().createLocalCharacterConversation({
+      ...LOCAL_CARD,
+      systemPrompt: "CHARACTER_INSTRUCTION_SENTINEL_7b1c",
+      modelId: "llama-3.3-70b",
+    }, "llama-3.3-70b");
+
+    // Explicit opt-out must reach the wire as false.
+    useChatStore.getState().setConversationUseVeniceSystemPrompt(convId, false);
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("test", "llama-3.3-70b");
+    });
+
+    let body = extractPayloadFromCall();
     expect((body!.venice_parameters as Record<string, unknown>).include_venice_system_prompt).toBe(false);
+    // The global user prompt stays excluded even with the toggle off; the
+    // character instruction is still the only system source.
+    expect(JSON.stringify(body!.messages)).not.toContain("GLOBAL_USER_PROMPT_SENTINEL_9f3a");
+    expect(JSON.stringify(body!.messages)).toContain("CHARACTER_INSTRUCTION_SENTINEL_7b1c");
+
+    // Explicit opt-in must reach the wire as true.
+    useChatStore.getState().setConversationUseVeniceSystemPrompt(convId, true);
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+    await act(async () => {
+      await result.current.send("again", "llama-3.3-70b");
+    });
+
+    const lastCall = mockedVeniceStreamChat.mock.calls[mockedVeniceStreamChat.mock.calls.length - 1];
+    body = lastCall[0] as Record<string, unknown>;
+    expect((body.venice_parameters as Record<string, unknown>).include_venice_system_prompt).toBe(true);
+    expect(JSON.stringify(body.messages)).not.toContain("GLOBAL_USER_PROMPT_SENTINEL_9f3a");
+    expect(JSON.stringify(body.messages)).toContain("CHARACTER_INSTRUCTION_SENTINEL_7b1c");
+  });
+
+  it("standard chat ignores the character toggle and honors the global Venice default prompt setting", async () => {
+    useSettingsStore.setState({ enableMemoryRetrieval: false, showPulledContextBeforeSending: false });
+    useChatStore.setState({
+      veniceParams: {
+        include_venice_system_prompt: false,
+        enable_web_search: "off",
+      },
+    });
+    const convId = useChatStore.getState().createConversation("llama-3.3-70b");
+    // The character-only toggle field must not influence standard chats.
+    useChatStore.getState().setConversationUseVeniceSystemPrompt(convId, true);
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.send("plain", "llama-3.3-70b");
+    });
+
+    const body = extractPayloadFromCall();
+    expect((body!.venice_parameters as Record<string, unknown>).include_venice_system_prompt).toBe(false);
+    expect(body!).not.toHaveProperty("character_slug");
   });
 
   it("Venice-hosted character chat does not include DEFAULT_SYSTEM_PROMPT text", async () => {
@@ -955,6 +1029,9 @@ describe("use-chat character_slug threading", () => {
     expect(systemMessages).toHaveLength(0);
     expect(JSON.stringify(messages)).not.toContain("Venice Forge's assistant");
     expect(JSON.stringify(messages)).not.toContain(DEFAULT_SYSTEM_PROMPT.slice(0, 40));
+    // Venice default system prompt stays enabled unless explicitly disabled
+    // per conversation (VF-20260923-P0-024).
+    expect((body!.venice_parameters as Record<string, unknown>).include_venice_system_prompt).toBe(true);
   });
 
   it("standard chat with empty systemPrompt does not inject DEFAULT_SYSTEM_PROMPT", async () => {

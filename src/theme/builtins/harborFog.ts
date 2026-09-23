@@ -16,7 +16,7 @@ export const BUILTIN_HARBOR_FOG: ThemeFamily = {
       surfaceElevated: "#d6dee5",
       surfaceMuted: "#f4f6f8",
       border: "#c8d0d8",
-      borderStrong: "#9aa8b4",
+      borderStrong: "#7d8b98",
       textPrimary: "#1a2a3a",
       textSecondary: "#3f5566",
       textMuted: "#607585",

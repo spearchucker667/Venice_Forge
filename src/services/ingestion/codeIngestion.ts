@@ -12,17 +12,24 @@ function generateId(): string {
 }
 
 function detectLanguage(extension: string, name: string): string {
-  if (name.toLowerCase() === "dockerfile") return "dockerfile";
-  if (name.toLowerCase().startsWith(".env")) return "dotenv";
+  const lowerName = name.toLowerCase();
+  if (lowerName === "dockerfile" || lowerName === "containerfile") return "dockerfile";
+  if (lowerName.startsWith(".env")) return "dotenv";
+  if (lowerName === "makefile") return "makefile";
+  if (lowerName === "cmakelists.txt" || extension === "cmake") return "cmake";
 
   const map: Record<string, string> = {
     ts: "typescript",
     tsx: "typescript",
+    mts: "typescript",
+    cts: "typescript",
     js: "javascript",
     jsx: "javascript",
     mjs: "javascript",
     cjs: "javascript",
     py: "python",
+    pyw: "python",
+    pyi: "python",
     go: "go",
     rs: "rust",
     rb: "ruby",
@@ -34,6 +41,9 @@ function detectLanguage(extension: string, name: string): string {
     cxx: "cpp",
     h: "c",
     hpp: "cpp",
+    hxx: "cpp",
+    m: "objective-c",
+    mm: "objective-cpp",
     java: "java",
     kt: "kotlin",
     kts: "kotlin",
@@ -49,6 +59,46 @@ function detectLanguage(extension: string, name: string): string {
     sql: "sql",
     toml: "toml",
     ini: "ini",
+    css: "css",
+    scss: "scss",
+    sass: "scss",
+    less: "css",
+    vue: "vue",
+    svelte: "svelte",
+    astro: "astro",
+    groovy: "groovy",
+    gradle: "groovy",
+    fs: "fsharp",
+    fsx: "fsharp",
+    vb: "vbnet",
+    lua: "lua",
+    pl: "perl",
+    pm: "perl",
+    r: "r",
+    ex: "elixir",
+    exs: "elixir",
+    erl: "erlang",
+    hrl: "erlang",
+    clj: "clojure",
+    cljs: "clojure",
+    cljc: "clojure",
+    edn: "clojure",
+    lisp: "lisp",
+    scm: "scheme",
+    hs: "haskell",
+    lhs: "haskell",
+    graphql: "graphql",
+    gql: "graphql",
+    proto: "protobuf",
+    tex: "latex",
+    latex: "latex",
+    bib: "bibtex",
+    ipynb: "json",
+    lock: "text",
+    cfg: "ini",
+    conf: "ini",
+    properties: "properties",
+    cmake: "cmake",
   };
 
   return map[extension] || "text";
@@ -65,13 +115,16 @@ export async function ingestCodeFile(file: File): Promise<IngestedAttachment> {
     throw new FileTooLargeError(file.name, MAX_CODE_FILE_BYTES);
   }
 
-  const rawText = await extractTextFromFile(file);
-  const redactedRawText = redactSecrets(rawText);
+  const decoded = await extractTextFromFile(file);
+  const redactedRawText = redactSecrets(decoded.text);
   const id = generateId();
-  const chunkResult = extractAttachmentChunks(redactedRawText, {
+  const language = detectLanguage(classified.extension, classified.name);
+  const chunkResult = await extractAttachmentChunks(redactedRawText, {
     attachmentId: id,
     name: file.name,
     mimeType: file.type,
+    sourcePath: file.name,
+    language,
   }, { maxChars: MAX_CODE_CHARS_PER_FILE });
   const truncated = chunkResult.extractionTruncated;
   const text = chunkResult.chunks.map((chunk) => chunk.text).join("");
@@ -80,8 +133,6 @@ export async function ingestCodeFile(file: File): Promise<IngestedAttachment> {
   if (truncated) {
     warnings.push(`Code was truncated to ${MAX_CODE_CHARS_PER_FILE} characters.`);
   }
-
-  const language = detectLanguage(classified.extension, classified.name);
 
   // The wrapper is explicit to prevent prompt injection.
   // File names, language, and body are escaped so user content cannot close the tag.

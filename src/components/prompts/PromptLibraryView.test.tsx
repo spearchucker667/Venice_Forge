@@ -301,4 +301,18 @@ describe("PromptLibraryView (VERIFY-046)", () => {
     await usePromptLibraryStore.getState().updatePrompt(item.id, { title: "Resurrected" });
     expect(usePromptLibraryStore.getState().prompts).toHaveLength(0);
   });
+
+  it("bounds the detail prompt editors with a max height, vertical resize, and internal scroll (VF-20260923-P1-022)", async () => {
+    const item = await usePromptLibraryStore.getState().createPrompt({ title: "Bounded", kind: "image", content: "x", scope: "global" });
+    usePromptLibraryStore.setState({ activePromptId: item.id });
+    render(<PromptLibraryView />);
+
+    for (const testId of ["prompt-library-content", "prompt-library-negative"]) {
+      const el = screen.getByTestId(testId);
+      expect(el.className).toContain("max-h-[min(40vh,420px)]");
+      expect(el.className).toContain("resize-y");
+      expect(el.className).toContain("overflow-y-auto");
+      expect(el.className).toContain("min-h-");
+    }
+  });
 });

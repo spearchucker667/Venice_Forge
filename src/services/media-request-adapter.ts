@@ -236,6 +236,32 @@ export function buildImageUpscaleRequest(input: ImageUpscaleRequest): ImageUpsca
   return request
 }
 
+export interface ImageInpaintRequest {
+  image: string
+  mask: string
+  prompt: string
+  model: string
+  output_format?: 'jpeg' | 'png' | 'webp'
+}
+
+// The bundled swagger does not document a `mask` field on /image/edit
+// (additionalProperties: false); masks are documented on /image/multi-edit,
+// where the first entry of `images` is the base image and the remaining
+// entries are treated as edit layers/masks. The multi-edit schema declares
+// `modelId` (no canonical `model` alias), so `modelId` is used here.
+export function buildImageInpaintRequest(input: ImageInpaintRequest): { modelId: string; prompt: string; images: string[]; output_format: string } {
+  const prompt = input.prompt.trim()
+  const model = input.model.trim()
+  if (!prompt) throw new Error('Enter an inpaint prompt.')
+  if (!model) throw new Error('Select an image-edit model.')
+  return {
+    modelId: model,
+    prompt,
+    images: [normalizedImageValue(input.image), normalizedImageValue(input.mask)],
+    output_format: input.output_format || 'png',
+  }
+}
+
 export function buildBackgroundRemoveRequest(input: string): { image: string } | { image_url: string } {
   const normalized = normalizeImageInput(input)
   if (normalized.kind !== 'url') decodeImageDimensions(normalized.value, normalized.mimeType)

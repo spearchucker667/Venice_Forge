@@ -28,7 +28,7 @@ export const BUILTIN_TOKYO_NIGHT: ThemeFamily = {
       overlay: "rgba(0, 0, 0, 0.4)",
       glow: "rgba(13, 80, 221, 0.18)",
       surfaceMuted: "#eeeeef",
-      borderStrong: "#8f9099",
+      borderStrong: "#8b8c95",
       }),
       code: { preset: 'tokyo-night', tokens: resolveCodeThemeTokens('tokyo-night', 'light') },
     },

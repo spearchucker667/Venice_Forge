@@ -28,7 +28,7 @@ export const BUILTIN_ONE_DARK: ThemeFamily = {
       overlay: "rgba(0, 0, 0, 0.4)",
       glow: "rgba(20, 116, 195, 0.18)",
       surfaceMuted: "#eeeeef",
-      borderStrong: "#909397",
+      borderStrong: "#8b8d91",
       }),
       code: { preset: 'one-dark', tokens: resolveCodeThemeTokens('one-dark', 'light') },
     },

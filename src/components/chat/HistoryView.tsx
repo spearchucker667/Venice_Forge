@@ -975,7 +975,14 @@ export default function HistoryView() {
                                     ) : (
                                       <MessageSquare size={13} />
                                     )}
-                                    <span className="text-[12px] font-bold uppercase tracking-wider truncate max-w-[120px]">
+                                    <span
+                                      className="text-[12px] font-bold uppercase tracking-wider truncate max-w-[120px]"
+                                      title={
+                                        conv.metadata?.character
+                                          ? conv.metadata.character.name
+                                          : conv.model
+                                      }
+                                    >
                                       {conv.metadata?.character
                                         ? conv.metadata.character.name
                                         : conv.model}
@@ -1206,7 +1213,14 @@ export default function HistoryView() {
                                     ) : (
                                       <MessageSquare size={13} />
                                     )}
-                                    <span className="text-[12px] font-bold uppercase tracking-wider truncate max-w-[120px]">
+                                    <span
+                                      className="text-[12px] font-bold uppercase tracking-wider truncate max-w-[120px]"
+                                      title={
+                                        conv.metadata?.character
+                                          ? conv.metadata.character.name
+                                          : conv.model
+                                      }
+                                    >
                                       {conv.metadata?.character
                                         ? conv.metadata.character.name
                                         : conv.model}

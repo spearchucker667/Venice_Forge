@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ingestCodeFile } from "./codeIngestion";
 import { MAX_CODE_CHARS_PER_FILE, MAX_CODE_FILE_BYTES } from "./ingestionLimits";
-import { FileTooLargeError, UnsupportedFileTypeError } from "./ingestionErrors";
+import { FileTooLargeError, UnsupportedFileTypeError, BinaryContentError } from "./ingestionErrors";
 
 describe("codeIngestion", () => {
   const createCodeFile = (content: string, name: string) => {
@@ -29,6 +29,36 @@ describe("codeIngestion", () => {
     const envFile = createCodeFile("PORT=8080", ".env.local");
     const envResult = await ingestCodeFile(envFile);
     expect(envResult.language).toBe("dotenv");
+  });
+
+  it("detects languages for the extended source/config coverage", async () => {
+    const cases: Array<[string, string]> = [
+      ["styles.css", "css"],
+      ["app.vue", "vue"],
+      ["main.mts", "typescript"],
+      ["script.pyw", "python"],
+      ["Module.fsx", "fsharp"],
+      ["app.gradle", "groovy"],
+      ["Makefile", "makefile"],
+      ["CMakeLists.txt", "cmake"],
+      ["Containerfile", "dockerfile"],
+      ["notes.tex", "latex"],
+      ["analysis.R", "r"],
+      ["notebook.ipynb", "json"],
+      ["schema.proto", "protobuf"],
+      ["server.exs", "elixir"],
+      ["lib.hs", "haskell"],
+    ];
+    for (const [name, language] of cases) {
+      const result = await ingestCodeFile(createCodeFile("content", name));
+      expect(result.language).toBe(language);
+    }
+  });
+
+  it("rejects binary content renamed to a code extension", async () => {
+    const binaryBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
+    const file = new File([binaryBytes], "fake.ts", { type: "text/plain" });
+    await expect(ingestCodeFile(file)).rejects.toThrow(BinaryContentError);
   });
 
   it("truncates code files exceeding MAX_CODE_CHARS_PER_FILE", async () => {

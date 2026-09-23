@@ -14,6 +14,8 @@ export interface AttachmentChunkSource {
   attachmentId: string;
   name: string;
   mimeType: string;
+  sourcePath?: string;
+  language?: string;
 }
 
 export interface AttachmentChunkSelection {
@@ -39,20 +41,58 @@ function safeChunkEnd(text: string, start: number, proposedEnd: number): number 
   return Math.max(start + 1, end);
 }
 
+/** Renderer-safe SHA-256 over UTF-8 bytes via Web Crypto. */
+export async function computeChunkContentHash(text: string): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(text),
+  );
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/** 1-based line number containing `offset`, given sorted line-start offsets. */
+function lineNumberAt(lineStarts: number[], offset: number): number {
+  let low = 0;
+  let high = lineStarts.length - 1;
+  let answer = 0;
+  while (low <= high) {
+    const middle = (low + high) >> 1;
+    if (lineStarts[middle] <= offset) {
+      answer = middle;
+      low = middle + 1;
+    } else {
+      high = middle - 1;
+    }
+  }
+  return answer + 1;
+}
+
+function countNewlines(text: string): number {
+  let count = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 0x0a) count += 1;
+  }
+  return count;
+}
+
 /** Extract a bounded, ordered chunk list. The returned chunks remain plain
  * text wrapped by the existing untrusted-attachment boundary at send time. */
-export function extractAttachmentChunks(
+export async function extractAttachmentChunks(
   text: string,
   source: AttachmentChunkSource,
   options: {
     chunkChars?: number;
     maxChars?: number;
   } = {},
-): { chunks: AttachmentChunk[]; extractionTruncated: boolean } {
+): Promise<{ chunks: AttachmentChunk[]; extractionTruncated: boolean }> {
   const chunkChars = Math.max(256, Math.floor(options.chunkChars ?? ATTACHMENT_CHUNK_CHARS));
   const maxChars = Math.max(chunkChars, Math.floor(options.maxChars ?? MAX_ATTACHMENT_CHUNK_CHARS));
   const retainedLength = Math.min(text.length, maxChars);
   const chunks: AttachmentChunk[] = [];
+  const lineStarts: number[] = [0];
+  for (let i = 0; i < retainedLength; i++) {
+    if (text.charCodeAt(i) === 0x0a) lineStarts.push(i + 1);
+  }
   let start = 0;
   let chunkIndex = 0;
 
@@ -60,14 +100,27 @@ export function extractAttachmentChunks(
     const end = safeChunkEnd(text, start, Math.min(start + chunkChars, retainedLength));
     const chunkText = text.slice(start, end);
     if (!chunkText) break;
+    const lineStart = lineNumberAt(lineStarts, start);
+    const lineEnd = Math.max(
+      lineStart,
+      lineStart + countNewlines(chunkText) - (chunkText.endsWith("\n") ? 1 : 0),
+    );
     chunks.push({
       attachmentId: source.attachmentId,
       chunkIndex,
       startOffset: start,
       endOffset: end,
+      lineStart,
+      lineEnd,
       tokenEstimate: estimateTokenCount(chunkText).count,
       text: chunkText,
-      provenance: { name: source.name, mimeType: source.mimeType },
+      contentHash: await computeChunkContentHash(chunkText),
+      provenance: {
+        name: source.name,
+        mimeType: source.mimeType,
+        ...(source.sourcePath !== undefined ? { sourcePath: source.sourcePath } : {}),
+        ...(source.language !== undefined ? { language: source.language } : {}),
+      },
     });
     chunkIndex += 1;
     start = end;
@@ -101,9 +154,16 @@ function fitChunkToTokenBudget(
 
   if (bestEnd === 0) return null;
   const text = chunk.text.slice(0, bestEnd);
+  const lineStart = chunk.lineStart ?? 1;
+  const lineEnd = Math.max(
+    lineStart,
+    lineStart + countNewlines(text) - (text.endsWith("\n") ? 1 : 0),
+  );
   return {
     ...chunk,
     endOffset: chunk.startOffset + bestEnd,
+    lineStart,
+    lineEnd,
     tokenEstimate: estimateTokenCount(text).count,
     text,
   };

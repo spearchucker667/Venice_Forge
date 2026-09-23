@@ -28,7 +28,7 @@ export const BUILTIN_GLACIAL_INK: ThemeFamily = {
       overlay: "rgba(0, 0, 0, 0.4)",
       glow: "rgba(7, 123, 136, 0.18)",
       surfaceMuted: "#eceef0",
-      borderStrong: "#8793a1",
+      borderStrong: "#838e9c",
       }),
       code: { preset: 'glacial-ink', tokens: resolveCodeThemeTokens('glacial-ink', 'light') },
     },

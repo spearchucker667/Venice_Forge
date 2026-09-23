@@ -28,7 +28,7 @@ export const BUILTIN_DARK: ThemeFamily = {
       overlay: "rgba(0,0,0,0.4)",
       glow: "rgba(26,111,214,0.18)",
       surfaceMuted: "#eaeef2",
-      borderStrong: "#8c959f",
+      borderStrong: "#858e98",
       }),
       code: { preset: 'dark', tokens: resolveCodeThemeTokens('dark', 'light') },
     },

@@ -837,7 +837,7 @@ describe("persona isolation (VF-20260720-001)", () => {
     expect(veniceParameters()).not.toHaveProperty("character_slug");
   });
 
-  it("hosted character conversation sends its persisted slug and disables the Venice default system prompt", async () => {
+  it("hosted character conversation sends its persisted slug and keeps the Venice default system prompt by default", async () => {
     const convId = useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
     useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
     mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
@@ -845,6 +845,19 @@ describe("persona isolation (VF-20260720-001)", () => {
     await startStream(convId, "llama-3.3-70b");
 
     expect(veniceParameters().character_slug).toBe("alan-watts");
+    // VF-20260923-P0-024: the Venice default is no longer forcibly bypassed;
+    // it follows the per-conversation choice and defaults to on.
+    expect(veniceParameters().include_venice_system_prompt).toBe(true);
+  });
+
+  it("hosted character conversation honors an explicit useVeniceSystemPrompt=false opt-out", async () => {
+    const convId = useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
+    useChatStore.getState().addMessage(convId, { role: "user", content: "Hello" });
+    useChatStore.getState().setConversationUseVeniceSystemPrompt(convId, false);
+    mockedVeniceStreamChat.mockResolvedValueOnce(undefined);
+
+    await startStream(convId, "llama-3.3-70b");
+
     expect(veniceParameters().include_venice_system_prompt).toBe(false);
   });
 
@@ -886,7 +899,7 @@ describe("persona isolation (VF-20260720-001)", () => {
 
   it("standard chat restores the configured Venice default-system-prompt flag after a character chat", async () => {
     useChatStore.setState({
-      veniceParams: { include_venice_system_prompt: true, enable_web_search: "off" },
+      veniceParams: { include_venice_system_prompt: false, enable_web_search: "off" },
     });
     const hostedId = useChatStore.getState().createCharacterConversation(CHARACTER, "llama-3.3-70b");
     useChatStore.getState().addMessage(hostedId, { role: "user", content: "Hi" });
@@ -895,10 +908,12 @@ describe("persona isolation (VF-20260720-001)", () => {
     mockedVeniceStreamChat.mockResolvedValue(undefined);
 
     await startStream(hostedId, "llama-3.3-70b");
-    expect(veniceParameters().include_venice_system_prompt).toBe(false);
+    // Character chats default the Venice system prompt on regardless of the
+    // global setting; the standard chat must still honor the global setting.
+    expect(veniceParameters().include_venice_system_prompt).toBe(true);
 
     await startStream(standardId, "llama-3.3-70b");
-    expect(veniceParameters().include_venice_system_prompt).toBe(true);
+    expect(veniceParameters().include_venice_system_prompt).toBe(false);
   });
 
   it("retry rebuilds the request from conversation metadata, not global selection", async () => {

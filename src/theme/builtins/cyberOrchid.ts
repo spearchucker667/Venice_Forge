@@ -40,7 +40,7 @@ export const BUILTIN_CYBER_ORCHID: ThemeFamily = {
       surfaceElevated: "#271c35",
       surfaceMuted: "#140e1c",
       border: "#3a2d48",
-      borderStrong: "#5a4d68",
+      borderStrong: "#655973",
       textPrimary: "#f3e8ff",
       textSecondary: "#d4c4e8",
       textMuted: "#9a8ab0",

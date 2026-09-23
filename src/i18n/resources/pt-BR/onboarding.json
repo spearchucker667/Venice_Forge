@@ -25,7 +25,7 @@
     },
     "safety": {
       "title": "Modo Seguro para Família",
-      "description": "Uma senha mestra é necessária antes que o Modo Seguro para Família possa ser ativado ou desativado. O Modo Seguro para Família também força o safe_mode do provedor onde suportado."
+      "description": "Uma senha mestra é necessária antes que o Modo Seguro para Família possa ser ativado ou desativado. O Modo Seguro para Família é controlado de forma independente do safe_mode do provedor."
     }
   }
 }

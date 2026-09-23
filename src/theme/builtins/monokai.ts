@@ -28,7 +28,7 @@ export const BUILTIN_MONOKAI: ThemeFamily = {
       overlay: "rgba(0, 0, 0, 0.4)",
       glow: "rgba(89, 125, 17, 0.18)",
       surfaceMuted: "#efefee",
-      borderStrong: "#959790",
+      borderStrong: "#8c8e88",
       }),
       code: { preset: 'monokai', tokens: resolveCodeThemeTokens('monokai', 'light') },
     },

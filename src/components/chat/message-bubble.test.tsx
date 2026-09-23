@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Regression guards: VERIFY-071 (inline edit), VERIFY-074 (character display title).
 import "@testing-library/jest-dom/vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ChatMessage } from "../../types/venice";
@@ -23,6 +23,14 @@ vi.mock("../../shared/safety", () => ({
 
 import { maybeRunLocalFamilyGuard } from "../../shared/safety";
 
+const mockResolvePlayableMediaUrl = vi.hoisted(() => ({
+  fn: vi.fn(async (_url: string) => ""),
+}));
+
+vi.mock("../../services/playableMediaUrl", () => ({
+  resolvePlayableMediaUrl: (url: string) => mockResolvePlayableMediaUrl.fn(url),
+}));
+
 beforeEach(() => {
   Object.assign(navigator, {
     clipboard: { writeText: vi.fn() },
@@ -31,6 +39,8 @@ beforeEach(() => {
   testSettings.localFamilySafeModeEnabled = false;
   vi.mocked(maybeRunLocalFamilyGuard).mockClear();
   vi.mocked(maybeRunLocalFamilyGuard).mockReturnValue({ guardDecision: { allow: true } } as any);
+  mockResolvePlayableMediaUrl.fn.mockReset();
+  mockResolvePlayableMediaUrl.fn.mockResolvedValue("");
 });
 
 describe("MessageBubble accessibility", () => {
@@ -423,5 +433,121 @@ describe("MessageBubble Markdown and Fenced Code Rendering (Regression)", () => 
     await userEvent.click(copyButton!);
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith("const x = 1;");
+  });
+});
+
+// VF-20260922-P2-012: assistant generated-media attachments must render via
+// ResolvedMediaImg so no tokenless venice-media:// URL ever reaches the DOM
+// (the main-process handler rejects tokenless requests with 403).
+describe("MessageBubble generated media attachments", () => {
+  const MEDIA_HASH = "a".repeat(64);
+
+  function generatedMediaMessage(
+    displayUrl: string,
+    mediaId: string = MEDIA_HASH,
+  ): ChatMessage {
+    return {
+      role: "assistant",
+      content: "Here is the image.",
+      metadata: {
+        generatedMedia: [
+          {
+            id: "att-1",
+            mediaId,
+            mediaType: "image",
+            operation: "generate",
+            displayUrl,
+            altText: "generated test image",
+            createdAt: 1,
+          },
+        ],
+      },
+    } as ChatMessage;
+  }
+
+  it("renders generated media through a fresh capability URL from the resolver", async () => {
+    mockResolvePlayableMediaUrl.fn.mockResolvedValue(
+      `venice-media://${MEDIA_HASH}?cap=fresh-token`,
+    );
+    const { container } = render(
+      <MessageBubble
+        message={generatedMediaMessage(`venice-media://${MEDIA_HASH}`)}
+        index={0}
+        onCopy={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    const img = await screen.findByAltText("generated test image");
+    expect(img).toHaveAttribute("src", `venice-media://${MEDIA_HASH}?cap=fresh-token`);
+    // The tokenless durable URL must never appear as a DOM src attribute.
+    for (const el of container.querySelectorAll("img")) {
+      expect(el.getAttribute("src")).not.toBe(`venice-media://${MEDIA_HASH}`);
+    }
+  });
+
+  it("fails closed with no broken img when capability resolution is unavailable", async () => {
+    mockResolvePlayableMediaUrl.fn.mockResolvedValue("");
+    const { container } = render(
+      <MessageBubble
+        message={generatedMediaMessage(`venice-media://${MEDIA_HASH}`)}
+        index={0}
+        onCopy={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(mockResolvePlayableMediaUrl.fn).toHaveBeenCalledWith(
+        `venice-media://${MEDIA_HASH}`,
+      ),
+    );
+    // The assistant avatar <img> is unrelated; assert the generated-media
+    // attachment produced no broken img and no raw durable URL leaked.
+    expect(screen.queryByAltText("generated test image")).toBeNull();
+    expect(
+      container.querySelector('img[src*="venice-media://"]'),
+    ).toBeNull();
+    expect(container.innerHTML).not.toContain(`venice-media://${MEDIA_HASH}`);
+  });
+
+  it("falls back to the mediaId-derived URL and resolves it before rendering", async () => {
+    mockResolvePlayableMediaUrl.fn.mockResolvedValue(
+      `venice-media://${MEDIA_HASH}?cap=fresh-token`,
+    );
+    render(
+      <MessageBubble
+        message={generatedMediaMessage("")}
+        index={0}
+        onCopy={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(mockResolvePlayableMediaUrl.fn).toHaveBeenCalledWith(
+        `venice-media://${MEDIA_HASH}`,
+      ),
+    );
+    const img = await screen.findByAltText("generated test image");
+    expect(img.getAttribute("src")).toContain("cap=fresh-token");
+  });
+
+  it("passes non-custom-protocol display URLs through without resolution", async () => {
+    const { container } = render(
+      <MessageBubble
+        message={generatedMediaMessage("https://example.com/pic.png")}
+        index={0}
+        onCopy={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    const img = await screen.findByAltText("generated test image");
+    expect(img).toHaveAttribute("src", "https://example.com/pic.png");
+    expect(mockResolvePlayableMediaUrl.fn).not.toHaveBeenCalled();
+    expect(
+      container.querySelectorAll('img[src="https://example.com/pic.png"]'),
+    ).toHaveLength(1);
   });
 });

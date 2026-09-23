@@ -25,7 +25,7 @@
     },
     "safety": {
       "title": "Familien-Sicherheitsmodus",
-      "description": "Ein Master-Passwort ist erforderlich, bevor der Familien-Sicherheitsmodus ein- oder ausgeschaltet werden kann. Der Familien-Sicherheitsmodus erzwingt außerdem den safe_mode des Anbieters, sofern dieser unterstützt wird."
+      "description": "Ein Master-Passwort ist erforderlich, bevor der Familien-Sicherheitsmodus ein- oder ausgeschaltet werden kann. Der Familien-Sicherheitsmodus wird unabhängig vom safe_mode des Anbieters gesteuert."
     }
   }
 }

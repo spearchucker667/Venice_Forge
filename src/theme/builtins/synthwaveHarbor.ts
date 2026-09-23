@@ -40,7 +40,7 @@ export const BUILTIN_SYNTHWAVE_HARBOR: ThemeFamily = {
       surfaceElevated: "#1c2440",
       surfaceMuted: "#0e1528",
       border: "#2c3450",
-      borderStrong: "#4c5470",
+      borderStrong: "#57617b",
       textPrimary: "#e0f7fa",
       textSecondary: "#a8c8d8",
       textMuted: "#6888a0",

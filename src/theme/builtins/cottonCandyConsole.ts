@@ -16,7 +16,7 @@ export const BUILTIN_COTTON_CANDY_CONSOLE: ThemeFamily = {
       surfaceElevated: "#FFFFFF",
       surfaceMuted: "#EBD0D7",
       border: "#B7C9D3",
-      borderStrong: "#869CB1",
+      borderStrong: "#7c8ba0",
       textPrimary: "#412A3A",
       textSecondary: "#574457",
       textMuted: "#614E61",

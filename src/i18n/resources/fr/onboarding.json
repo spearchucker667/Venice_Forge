@@ -25,7 +25,7 @@
     },
     "safety": {
       "title": "Mode de sécurité familiale",
-      "description": "Un mot de passe maître est requis avant que le Mode de sécurité familiale puisse être activé ou désactivé. Le Mode de sécurité familiale force également le safe_mode du fournisseur lorsque pris en charge."
+      "description": "Un mot de passe maître est requis avant que le Mode de sécurité familiale puisse être activé ou désactivé. Le Mode de sécurité familiale est contrôlé indépendamment du safe_mode du fournisseur."
     }
   }
 }

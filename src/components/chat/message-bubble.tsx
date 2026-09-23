@@ -27,6 +27,7 @@ import type { ChatDocumentRef } from "../../types/chatDocument";
 import { ManagedDocumentAttachmentCard } from "../documents/ManagedDocumentAttachmentCard";
 import { Trans, useTranslation } from "react-i18next";
 import { safeVeniceMediaUrl } from "../../utils/mediaItem";
+import { ResolvedMediaImg } from "../media/ResolvedMediaImg";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
 import type { ContextMenuItem } from "../ui/ContextMenu";
 import { IconButton, Toolbar } from "../ui/primitives";
@@ -996,28 +997,40 @@ function MessageBubbleImpl({
           Array.isArray(message.metadata?.generatedMedia) &&
           (message.metadata.generatedMedia as ChatMediaReference[])
             .filter((r) => !r?.deletedFromChatAt)
-            .map((r) => (
-              <div
-                key={r.id}
-                className="relative group mt-2 mb-1 w-full max-w-sm rounded-lg overflow-hidden border border-vf-panel-border bg-vf-panel-bg-sunken"
-              >
-                <img
-                  src={
-                    safeVeniceMediaUrl(r.displayUrl) ??
-                    safeVeniceMediaUrl(
-                      r.mediaId ? `venice-media://${r.mediaId}` : null,
-                    ) ??
-                    ""
-                  }
-                  alt={
-                    r.altText && r.altText.trim().length > 0
-                      ? r.altText
-                      : tRuntime(
-                          "runtimeGenerated.components.chat.messageBubble.attribute.generatedMedia",
-                        )
-                  }
-                  className="w-full h-auto object-cover"
-                />
+            .map((r) => {
+              // VF-20260922-P2-012: never render a raw tokenless
+              // `venice-media://` URL — the main-process handler rejects it
+              // with 403. ResolvedMediaImg issues a capability URL first and
+              // fails closed (renders nothing) when resolution is impossible.
+              // Plain remote/data display URLs pass through synchronously;
+              // only durable venice-media URLs need capability resolution.
+              const displayUrl =
+                r.displayUrl && /^(?:https?:|data:image\/|blob:)/i.test(r.displayUrl)
+                  ? r.displayUrl
+                  : safeVeniceMediaUrl(r.displayUrl);
+              const mediaSrc =
+                displayUrl ??
+                safeVeniceMediaUrl(
+                  r.mediaId ? `venice-media://${r.mediaId}` : null,
+                );
+              return (
+                <div
+                  key={r.id}
+                  className="relative group mt-2 mb-1 w-full max-w-sm rounded-lg overflow-hidden border border-vf-panel-border bg-vf-panel-bg-sunken"
+                >
+                  {mediaSrc && (
+                    <ResolvedMediaImg
+                      src={mediaSrc}
+                      alt={
+                        r.altText && r.altText.trim().length > 0
+                          ? r.altText
+                          : tRuntime(
+                              "runtimeGenerated.components.chat.messageBubble.attribute.generatedMedia",
+                            )
+                      }
+                      className="w-full h-auto object-cover"
+                    />
+                  )}
                 <button
                   onClick={() => onRemoveMedia?.((message as ConversationMessage).id ?? "", r.id)}
                   className="absolute top-2 right-2 bg-black/60 text-white rounded p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500" // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR
@@ -1040,7 +1053,8 @@ function MessageBubbleImpl({
                   </svg>
                 </button>
               </div>
-            ))}
+              );
+            })}
         {isAssistant && sceneGeneration && (
           <CharacterSceneCard
             status={sceneGeneration.status}

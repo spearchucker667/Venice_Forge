@@ -3,6 +3,10 @@ import type { SafetyGuardDecision, SafetyGuardInput } from "./childExploitationG
 import { recordDecision } from "./guardAudit";
 import { runLocalFamilyGuard } from "./localFamilyGuardRules";
 import {
+  incrementEvaluated,
+  incrementSkippedDisabled,
+} from "./safetyCounters";
+import {
   MAX_SCAN_CHARS,
   TAIL_SCAN_CHARS,
   MIDDLE_SCAN_CHARS,
@@ -374,6 +378,7 @@ export function screenResponseBody(
   _sampleWindow = MAX_SCAN_CHARS,
 ): ResponseBodyScreenResult {
   if (!localFamilySafeModeEnabled) {
+    incrementSkippedDisabled("text");
     return {
       allowed: true,
       skipped: true,
@@ -385,6 +390,7 @@ export function screenResponseBody(
   const input: SafetyGuardInput = { ...context, text: sample };
   const decision = maybeRunLocalFamilyGuard(input, true);
   if (!decision.allowed) {
+    incrementEvaluated("text", "blocked");
     return {
       allowed: false,
       reason: decision.reason,
@@ -396,6 +402,7 @@ export function screenResponseBody(
       userMessage: decision.userMessage,
     };
   }
+  incrementEvaluated("text", "allowed");
   return {
     allowed: true,
     skipped: false,

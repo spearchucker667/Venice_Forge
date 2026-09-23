@@ -40,7 +40,7 @@ export const BUILTIN_MIDNIGHT_VELVET: ThemeFamily = {
       surfaceElevated: "#1e2240",
       surfaceMuted: "#101428",
       border: "#2e3250",
-      borderStrong: "#4e5270",
+      borderStrong: "#5c5f7a",
       textPrimary: "#f5e6e8",
       textSecondary: "#d0b8c0",
       textMuted: "#908090",

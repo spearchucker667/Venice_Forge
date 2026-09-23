@@ -1,3 +1,11 @@
+import {
+  incrementEvaluated,
+  incrementSkippedDisabled,
+  incrementStructuralRejected,
+  incrementStructuralValidated,
+} from "./safetyCounters";
+import type { SemanticClassifierStatus } from "./safetyRuntimeStatus";
+
 export type GeneratedMediaSafetyResult =
   | { allowed: true; skipped?: boolean; reason?: string }
   | {
@@ -6,6 +14,14 @@ export type GeneratedMediaSafetyResult =
       category: string;
       userMessage?: string;
     };
+
+/** Maps a MIME type to its semantic screening modality, when known. */
+function modalityFromMime(mimeType: string): "image" | "audio" | "video" | undefined {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("audio/")) return "audio";
+  if (mimeType.startsWith("video/")) return "video";
+  return undefined;
+}
 
 /** Minimum sensible byte count for each recognized media format. */
 const MIN_BYTES_BY_MIME: Record<string, number> = {
@@ -149,9 +165,16 @@ export function normalizeAndIdentifyMime(
  */
 export interface ClassifierBackend {
   classifyImage(buffer: Buffer, mimeType: string): Promise<GeneratedMediaSafetyResult>;
+  /** Optional display name surfaced in diagnostics (no credentials/URLs). */
+  readonly name?: string;
 }
 
 let _registeredBackend: ClassifierBackend | null = null;
+let _backendConsecutiveErrors = 0;
+
+/** Number of consecutive backend failures before the backend is reported as
+ *  "unhealthy" on the Status surface. */
+const BACKEND_UNHEALTHY_THRESHOLD = 3;
 
 /**
  * Register an ML classifier backend (called from Electron main process on startup).
@@ -166,11 +189,42 @@ export function registerClassifierBackend(backend: ClassifierBackend): void {
  */
 export function clearClassifierBackend(): void {
   _registeredBackend = null;
+  _backendConsecutiveErrors = 0;
 }
 
 /** @internal Exposed for testing only. */
 export function _getRegisteredBackend(): ClassifierBackend | null {
   return _registeredBackend;
+}
+
+/**
+ * Live semantic-classifier backend status for the Status surface
+ * (VF-20260923-P1-027). Unlike `getClassifierCapabilities()` — which
+ * describes the static capability contract — this reports the explicit
+ * four-state per-modality runtime state:
+ *   - "available"      — a registered backend classifies this modality.
+ *   - "not-configured" — no backend is registered for this modality.
+ *   - "unsupported"    — the registered backend contract cannot classify
+ *                        this modality (audio/video have no ML model yet).
+ *   - "unhealthy"      — the registered backend keeps failing; structural
+ *                        validation remains the only gate.
+ */
+export function getSemanticClassifierStatus(): SemanticClassifierStatus {
+  if (_registeredBackend === null) {
+    return {
+      backendRegistered: false,
+      image: "not-configured",
+      audio: "not-configured",
+      video: "not-configured",
+    };
+  }
+  return {
+    backendRegistered: true,
+    backendName: _registeredBackend.name,
+    image: _backendConsecutiveErrors >= BACKEND_UNHEALTHY_THRESHOLD ? "unhealthy" : "available",
+    audio: "unsupported",
+    video: "unsupported",
+  };
 }
 
 /**
@@ -318,9 +372,20 @@ function heuristicClassifyImage(buffer: Buffer, mimeType: string): GeneratedMedi
  */
 export async function classifyGeneratedImage(buffer: Buffer, mimeType: string): Promise<GeneratedMediaSafetyResult> {
   if (_registeredBackend) {
-    return _registeredBackend.classifyImage(buffer, mimeType);
+    try {
+      const result = await _registeredBackend.classifyImage(buffer, mimeType);
+      _backendConsecutiveErrors = 0;
+      incrementEvaluated("image", result.allowed ? "allowed" : "blocked");
+      return result;
+    } catch (err) {
+      _backendConsecutiveErrors++;
+      incrementEvaluated("image", "error");
+      throw err;
+    }
   }
-  return heuristicClassifyImage(buffer, mimeType);
+  const result = heuristicClassifyImage(buffer, mimeType);
+  incrementEvaluated("image", result.allowed ? "allowed" : "blocked");
+  return result;
 }
 
 /**
@@ -335,6 +400,7 @@ export async function classifyGeneratedImage(buffer: Buffer, mimeType: string): 
 export async function classifyGeneratedAudio(_buffer: Buffer, _mimeType: string): Promise<GeneratedMediaSafetyResult> {
   // No ML model available for audio.  Structural validation already passed.
   // Permit audio under FSM; block semantics can be added when a model ships.
+  incrementEvaluated("audio", "allowed");
   return { allowed: true };
 }
 
@@ -350,6 +416,7 @@ export async function classifyGeneratedAudio(_buffer: Buffer, _mimeType: string)
  */
 export async function classifyGeneratedVideo(_buffer: Buffer, _mimeType: string): Promise<GeneratedMediaSafetyResult> {
   // No ML model available for video.  Structural validation already passed.
+  incrementEvaluated("video", "allowed");
   return { allowed: true };
 }
 
@@ -372,6 +439,7 @@ export async function identifyAndValidateGeneratedMedia(
   // Treat HTTP URLs as opaque. We cannot inline-screen remote URLs without downloading.
   if (typeof candidateData === "string" && (candidateData.startsWith("http://") || candidateData.startsWith("https://"))) {
     if (!localFamilySafeModeEnabled) {
+      incrementSkippedDisabled(modalityFromMime(declaredMimeType));
       return { allowed: true, skipped: true, reason: "remote-url-not-screened" };
     }
     return {
@@ -383,8 +451,10 @@ export async function identifyAndValidateGeneratedMedia(
   }
 
   // --- PHASE 1: Structural integrity validation (ALWAYS runs). ----
+  incrementStructuralValidated();
   const { valid, mime, buffer } = normalizeAndIdentifyMime(candidateData, declaredMimeType);
   if (!valid) {
+    incrementStructuralRejected();
     return {
       allowed: false,
       reasonCode: "INVALID_MEDIA",
@@ -395,6 +465,7 @@ export async function identifyAndValidateGeneratedMedia(
 
   const effectiveMime = mime || declaredMimeType;
   if (!effectiveMime.startsWith("image/") && !effectiveMime.startsWith("audio/") && !effectiveMime.startsWith("video/")) {
+    incrementStructuralRejected();
     return {
       allowed: false,
       reasonCode: "UNSUPPORTED_MEDIA",
@@ -406,6 +477,7 @@ export async function identifyAndValidateGeneratedMedia(
   // --- PHASE 2: Semantic classification (ONLY under Family Safe Mode). ----
   if (!localFamilySafeModeEnabled) {
     // Structural validation passed, FSM off — allow.
+    incrementSkippedDisabled(modalityFromMime(effectiveMime));
     return { allowed: true, skipped: true, reason: "local-family-safe-mode-disabled" };
   }
 

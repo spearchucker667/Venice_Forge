@@ -278,6 +278,10 @@ interface ChatState {
     conversationId: string,
     mode: "inherit" | "override" | "disabled",
   ) => void;
+  setConversationUseVeniceSystemPrompt: (
+    conversationId: string,
+    enabled: boolean,
+  ) => void;
   setConversationMemoryEnabled: (
     conversationId: string,
     enabled: boolean,
@@ -582,6 +586,9 @@ export const useChatStore = create<ChatState>()(
             // default + character system prompt remain in charge; the
             // user can still opt in by switching the mode manually.
             systemPromptMode: "disabled",
+            // The Venice default system prompt stays enabled unless the
+            // user explicitly turns it off for this conversation (VF-20260923-P0-024).
+            useVeniceSystemPrompt: true,
           },
           memory: {
             summary: `Chat with ${character.name}`,
@@ -656,6 +663,9 @@ export const useChatStore = create<ChatState>()(
             // Local characters likewise pin their compiled system prompt
             // as the only source; users can still switch the mode manually.
             systemPromptMode: "disabled",
+            // Venice default system prompt remains on unless explicitly
+            // disabled per conversation (VF-20260923-P0-024).
+            useVeniceSystemPrompt: true,
           },
           memory: {
             summary: `Chat with ${card.name || "local character"}`,
@@ -1327,6 +1337,27 @@ export const useChatStore = create<ChatState>()(
               systemPromptMode: mode,
             },
           }),
+          "structural",
+        );
+      },
+      setConversationUseVeniceSystemPrompt: (conversationId, enabled) => {
+        commitConversationMutation(
+          set,
+          conversationId,
+          (c) =>
+            touchConversation({
+              ...c,
+              metadata: {
+                tags: c.metadata?.tags ?? [],
+                pinned: c.metadata?.pinned ?? false,
+                archived: c.metadata?.archived ?? false,
+                source: c.metadata?.source ?? "chat",
+                messageCount:
+                  c.metadata?.messageCount ?? c.messages?.length ?? 0,
+                ...c.metadata,
+                useVeniceSystemPrompt: enabled,
+              },
+            }),
           "structural",
         );
       },

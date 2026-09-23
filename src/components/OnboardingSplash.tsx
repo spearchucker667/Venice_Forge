@@ -49,7 +49,7 @@ export function OnboardingSplash() {
       title: t('onboarding:steps.safety.title', 'Family Safe Mode'),
       description: t(
         'onboarding:steps.safety.description',
-        'A master password is required before Family Safe Mode can be turned on or off. Family Safe Mode also forces provider safe_mode where supported.',
+        'A master password is required before Family Safe Mode can be turned on or off. Family Safe Mode is controlled independently of provider safe_mode.',
       ),
       icon: <Meteocon name="weather-alarm" size={48} className="mb-4" />,
     },

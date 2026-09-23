@@ -164,7 +164,11 @@
         "storage": "存储",
         "safetyGuardAudit": "安全防护审核",
         "lastRequest": "最后请求",
-        "mediaClassifierCapabilities": "媒体分类器功能"
+        "mediaClassifierCapabilities": "媒体分类器功能",
+        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
+        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
+        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
+        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "当前构建的聚合运行时信息。打开",
@@ -192,7 +196,34 @@
         "protectionItemAttachmentProvenance": "附件来源与 MIME 探查",
         "protectionItemImageBytes": "图像字节（语义）：未分类",
         "protectionItemAudioBytes": "音频字节（语义）：未分类",
-        "protectionItemVideoBytes": "视频字节（语义）：未分类"
+        "protectionItemVideoBytes": "视频字节（语义）：未分类",
+        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
+        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
+        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
+        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
+        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
+        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
+        "source": "__MISSING__:surface.componentsStatusview.text.source",
+        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
+        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
+        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
+        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
+        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
+        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
+        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
+        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
+        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
+        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
+        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
+        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
+        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
+        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
+        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
+        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
+        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
+        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
+        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
+        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
       }
     },
     "componentsThememaker": {
@@ -551,7 +582,8 @@
         "includePriorConversationContext": "包括之前的对话上下文",
         "selected": "选择了",
         "chattingAs": "作为此消息所附的",
-        "usesCharacterSystemPrompt": "正在使用角色的系统提示词。对于托管和本地角色聊天，用户提供的系统提示词将被跳过。"
+        "usesCharacterSystemPrompt": "正在使用角色的系统提示词。对于托管和本地角色聊天，用户提供的系统提示词将被跳过。",
+        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
       },
       "label": {
         "systemPromptMode": "系统提示模式"
@@ -2465,6 +2497,14 @@
         "charactercreatorview": {
           "metadata": {
             "analyzingImage": "分析图像"
+          },
+          "error": {
+            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
+            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
+            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
+            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
+            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
+            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
           },
           "notification": {
             "couldNotLoadDraft": "无法加载草稿",

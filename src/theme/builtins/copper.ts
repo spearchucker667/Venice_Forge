@@ -28,7 +28,7 @@ export const BUILTIN_COPPER: ThemeFamily = {
       overlay: "rgba(0, 0, 0, 0.4)",
       glow: "rgba(171, 95, 33, 0.18)",
       surfaceMuted: "#edeef0",
-      borderStrong: "#8d929b",
+      borderStrong: "#898d96",
       }),
       code: { preset: 'copper', tokens: resolveCodeThemeTokens('copper', 'light') },
     },

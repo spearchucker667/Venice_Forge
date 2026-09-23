@@ -179,5 +179,43 @@
       "standard": "Standard",
       "high": "Hoch"
     }
+  },
+  "mediaStudioActions": {
+    "heading": "__MISSING__:mediaStudioActions.heading",
+    "upscale": "__MISSING__:mediaStudioActions.upscale",
+    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
+    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
+    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
+    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
+    "cancel": "__MISSING__:mediaStudioActions.cancel",
+    "retry": "__MISSING__:mediaStudioActions.retry",
+    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
+    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
+    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "operationLabels": {
+      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
+      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
+      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+    },
+    "reason": {
+      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
+      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
+      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
+      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+    },
+    "editor": {
+      "title": "__MISSING__:mediaStudioActions.editor.title",
+      "description": "__MISSING__:mediaStudioActions.editor.description",
+      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
+      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
+      "undo": "__MISSING__:mediaStudioActions.editor.undo",
+      "clear": "__MISSING__:mediaStudioActions.editor.clear",
+      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
+      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
+      "submit": "__MISSING__:mediaStudioActions.editor.submit",
+      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
+      "success": "__MISSING__:mediaStudioActions.editor.success",
+      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+    }
   }
 }

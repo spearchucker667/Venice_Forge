@@ -18,9 +18,11 @@ import type { CharacterCardV1 } from "../../types/rp";
 import { CharacterDraftService } from "../../services/characterCreatorDraftService";
 import {
   generateCharacterCreatorDraft,
+  isCharacterCreatorServiceError,
   regenerateCharacterFieldAI,
   reviseCharacterDraftAI,
 } from "../../services/characterCreatorAiService";
+import type { CharacterCreatorErrorCode } from "../../constants/character-creator";
 import {
   CharacterCreatorImportService,
   validateCardForApproval,
@@ -74,12 +76,37 @@ function formatSafetyError(
   });
 }
 
+const SERVICE_ERROR_MESSAGE_KEYS: Partial<
+  Record<CharacterCreatorErrorCode, string>
+> = {
+  MODEL_UNAVAILABLE:
+    "runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
+  REQUEST_CANCELLED:
+    "runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
+  INVALID_MODEL_RESPONSE:
+    "runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
+  SCHEMA_REPAIR_FAILED:
+    "runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
+  VENICE_TRANSPORT_FAILED:
+    "runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
+  VENICE_PROVIDER_HTTP:
+    "runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp",
+};
+
 function normalizeCreatorError(t: TranslateFn, err: unknown): string {
   if (isSafetyBlockResult(err)) {
     return formatSafetyDecision(t, err);
   }
   if (err instanceof SafetyGuardBlockedError) {
     return formatSafetyError(t, err);
+  }
+  if (isCharacterCreatorServiceError(err)) {
+    console.error(
+      `[CharacterCreator] generation failed [${err.code}]`,
+      err.cause ?? err.message,
+    );
+    const messageKey = SERVICE_ERROR_MESSAGE_KEYS[err.code];
+    return messageKey ? t(messageKey) : err.message;
   }
   return err instanceof Error ? err.message : String(err);
 }
@@ -264,12 +291,15 @@ export function CharacterCreatorView() {
     idea: string,
     optionalContext?: OptionalDraftContext,
   ) => {
+    // Latest request wins: cancel any in-flight generation before replacing it.
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setActiveIdea(idea);
     setViewState("generating");
     setErrorDetails(null);
     setProcessEvents([]);
-
-    abortControllerRef.current = new AbortController();
 
     try {
       const res = await generateCharacterCreatorDraft(
@@ -283,8 +313,17 @@ export function CharacterCreatorView() {
             setProcessEvents((prev) => [...prev, ev]);
           },
         },
-        abortControllerRef.current.signal,
+        controller.signal,
       );
+
+      // A newer request may have superseded this one while it was in flight;
+      // a stale response must not write into the newer request's state.
+      if (
+        controller.signal.aborted ||
+        abortControllerRef.current !== controller
+      ) {
+        return;
+      }
 
       const draft = await CharacterDraftService.create({
         sourceIdea: idea,
@@ -316,10 +355,14 @@ export function CharacterCreatorView() {
       setViewState("draft");
       await loadRecentDrafts();
     } catch (err: unknown) {
-      if (abortControllerRef.current?.signal.aborted) {
-        setViewState("welcome");
+      const superseded = abortControllerRef.current !== controller;
+      if (controller.signal.aborted) {
+        if (!superseded) {
+          setViewState("welcome");
+        }
         return;
       }
+      if (superseded) return;
       const msg = normalizeCreatorError(tRuntime, err);
       setErrorDetails(msg);
       setViewState("error");
@@ -903,6 +946,10 @@ export function CharacterCreatorView() {
     }
   };
 
+  // Defensive: the welcome form guards its submit action while a generation is
+  // in flight, even though the form itself unmounts during generation.
+  const isGeneratingView = viewState === "generating";
+
   return (
     <div className="h-full w-full flex flex-col bg-vf-shell-bg text-text-primary overflow-hidden">
       {autosaveError && (
@@ -933,6 +980,7 @@ export function CharacterCreatorView() {
           onImportCard={handleImportCardFile}
           onEditLocalCharacter={() => setShowLocalPicker(true)}
           recentDrafts={recentDrafts}
+          isGenerating={isGeneratingView}
         />
       )}
 

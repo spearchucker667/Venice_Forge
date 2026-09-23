@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ingestTextFile } from "./textIngestion";
 import { MAX_EXTRACTED_TEXT_CHARS, MAX_TEXT_FILE_BYTES } from "./ingestionLimits";
-import { FileTooLargeError, UnsupportedFileTypeError } from "./ingestionErrors";
+import { FileTooLargeError, UnsupportedFileTypeError, BinaryContentError } from "./ingestionErrors";
 
 describe("textIngestion", () => {
   const createTextFile = (content: string, name: string) => {
@@ -52,6 +52,32 @@ describe("textIngestion", () => {
   it("throws UnsupportedFileTypeError for binary files", async () => {
     const file = new File(["binary"], "test.exe", { type: "application/x-msdownload" });
     await expect(ingestTextFile(file)).rejects.toThrow(UnsupportedFileTypeError);
+  });
+
+  it("rejects binary content renamed to a text extension", async () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
+    const file = new File([pngBytes], "fake.txt", { type: "text/plain" });
+    await expect(ingestTextFile(file)).rejects.toThrow(BinaryContentError);
+  });
+
+  it("decodes UTF-16 text files", async () => {
+    const codeUnits: number[] = [0xff, 0xfe];
+    for (let i = 0; i < "hello utf16".length; i++) {
+      const code = "hello utf16".charCodeAt(i);
+      codeUnits.push(code & 0xff, (code >> 8) & 0xff);
+    }
+    const file = new File([new Uint8Array(codeUnits)], "utf16.txt", { type: "text/plain" });
+    const result = await ingestTextFile(file);
+    expect(result.text).toContain("hello utf16");
+  });
+
+  it("ingests a sniffed extensionless file as plain text with a shebang language hint", async () => {
+    const file = new File(["#!/bin/bash\necho hello\n"], "deploy", { type: "" });
+    const result = await ingestTextFile(file, { allowSniffedPlainText: true });
+    expect(result.kind).toBe("text");
+    expect(result.language).toBe("bash");
+    expect(result.text).toContain("echo hello");
+    expect(result.text).toContain('kind="text"');
   });
 
   it("handles markdown and csv files", async () => {

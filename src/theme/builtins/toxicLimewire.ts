@@ -28,7 +28,7 @@ export const BUILTIN_TOXIC_LIMEWIRE: ThemeFamily = {
       overlay: "rgba(0, 0, 0, 0.4)",
       glow: "rgba(99, 126, 7, 0.18)",
       surfaceMuted: "#eeefee",
-      borderStrong: "#909892",
+      borderStrong: "#888f8a",
       }),
       code: { preset: 'toxic-limewire', tokens: resolveCodeThemeTokens('toxic-limewire', 'light') },
     },

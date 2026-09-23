@@ -145,6 +145,7 @@ export interface ConversationRecordV1 {
     memoryRetrievalEnabled?: boolean;
     includePriorConversationContext?: boolean;
     systemPromptMode?: "inherit" | "override" | "disabled";
+    useVeniceSystemPrompt?: boolean;
   };
   memory: {
     summary: string;

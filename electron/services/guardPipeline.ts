@@ -28,6 +28,11 @@ import {
 } from "../../src/shared/safety";
 import type { SafetyGuardInput } from "../../src/shared/safety";
 import { extractSafetyProvenance } from "../../src/shared/safety/promptSegments";
+import {
+  incrementEvaluated,
+  incrementSkippedDisabled,
+  incrementStructuralValidated,
+} from "../../src/shared/safety/safetyCounters";
 import { serializeSafetyProvenanceIntoPayload } from "../../src/services/ingestion/xmlEscape";
 import { performVeniceRequest } from "./veniceClient";
 import {
@@ -103,9 +108,11 @@ export function checkLocalFamilyGuard(input: SafetyGuardInput): GuardedBlock | n
     // Inspector telemetry must never break guard evaluation.
   }
   const enabled = getRuntimeLocalFamilySafeModeEnabled();
+  incrementStructuralValidated();
   const decision = maybeRunLocalFamilyGuard(input, enabled);
   try {
     if (isGuardBlock(decision)) {
+      incrementEvaluated("text", "blocked");
       publishInspectorCompletion({
         source: "main-guard",
         transport: "local",
@@ -118,6 +125,11 @@ export function checkLocalFamilyGuard(input: SafetyGuardInput): GuardedBlock | n
         error: `blocked:${decision.guardDecision.reasonCode}:${decision.guardDecision.category}`,
       });
       return buildGuardedBlock(decision);
+    }
+    if (decision.skipped) {
+      incrementSkippedDisabled("text");
+    } else {
+      incrementEvaluated("text", "allowed");
     }
     publishInspectorCompletion({
       source: "main-guard",

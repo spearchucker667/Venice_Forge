@@ -41,6 +41,7 @@ export const BUILTIN_CATPPUCCIN: ThemeFamily = {
       textPrimary: "#cdd6f4",
       textSecondary: "#a6adc8",
       textMuted: "#8c91aa",
+      placeholder: "#8f95ae",
       accent: "#f38ba8",
       accentHover: "#fab387",
       accentForeground: "#1e1e2e",

@@ -170,6 +170,32 @@ describe("adult content boundary (VF-SAFETY-ADULT-CONTENT-BOUNDARY-2026-08-24)",
   });
 });
 
+// Handoff §35.7: OFF/ON boundary for fuzzy-only collisions. The fixture below
+// collides with the fuzzy matcher (warn-only) but must never hard-block.
+describe("local safeguards OFF/ON boundary for fuzzy-only collisions (handoff §35.7)", () => {
+  // "lowly" Soundex-matches the critical token "loli" (L400) with length
+  // parity, is not in FUZZY_ALLOWLIST, and is entirely benign vocabulary.
+  const fuzzyFixture = "a lowly cottage garden with wildflowers";
+
+  it("with local safeguards OFF the fuzzy fixture never invokes the evaluator", () => {
+    const decision = family(fuzzyFixture, false);
+    expect(decision.allowed).toBe(true);
+    expect(decision.skipped).toBe(true);
+    expect(decision.reason).toBe("LOCAL_FAMILY_SAFE_MODE_DISABLED");
+    expect(decision.layer).toBe("disabled-local-family-safe-mode");
+    expect("guardDecision" in decision).toBe(false);
+  });
+
+  it("with local safeguards ON the same fuzzy fixture is evaluated and stays non-blocking", () => {
+    const decision = family(fuzzyFixture, true);
+    expect(decision.allowed).toBe(true);
+    expect(decision.guardDecision).toBeDefined();
+    expect(decision.guardDecision?.reasonCode).toBe("FUZZY_CRITICAL_TERM_MATCH");
+    expect(decision.guardDecision?.action).not.toBe("block");
+    expect(decision.layer).toBe("optional-family-policy");
+  });
+});
+
 describe("screenResponseBody window coverage", () => {
   const context = {
     endpoint: "https://example.com/page",

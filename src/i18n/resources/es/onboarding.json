@@ -25,7 +25,7 @@
     },
     "safety": {
       "title": "Modo seguro familiar",
-      "description": "Se requiere una contraseña maestra antes de poder activar o desactivar el Modo seguro familiar. El Modo seguro familiar también fuerza el safe_mode del proveedor cuando es compatible."
+      "description": "Se requiere una contraseña maestra antes de poder activar o desactivar el Modo seguro familiar. El Modo seguro familiar se controla de forma independiente del safe_mode del proveedor."
     }
   }
 }

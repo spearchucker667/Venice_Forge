@@ -4,23 +4,24 @@
  *  This is a pragmatic "80/20" version: it gives users visibility into
  *  transport, storage, audit, and last-request state in one place
  *  while the dedicated feature tabs retain their own focused interfaces.
- */
+ *
+ *  VF-20260923-P1-027 — the safety runtime block renders the four safety
+ *  concepts as SEPARATE rows (local safeguards, provider safe_mode,
+ *  structural validation, semantic classifier backend) so they are never
+ *  conflated. The payload carries only booleans, counters, and
+ *  fixed-vocabulary strings. */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Chip } from './Chip';
 import { desktopApp, isElectron } from '../services/desktopBridge';
 import { getAuditSnapshot } from '../shared/safety';
+import type { ClassifierState, SafetyRuntimeStatus } from '../shared/safety/safetyRuntimeStatus';
 import { useSettingsStore } from '../stores/settings-store';
 import { useInspectorStore } from '../stores/inspector-store';
 import { Meteocon } from './ui/Meteocon';
 import { Trans, useTranslation } from 'react-i18next';
 
-interface MediaClassifierCapabilities {
-  semanticImageClassifier: 'unavailable' | 'local' | 'provider';
-  semanticAudioClassifier: 'unavailable' | 'local' | 'provider';
-  semanticVideoClassifier: 'unavailable' | 'local' | 'provider';
-  hasRegisteredBackend: boolean;
-}
+const NS = 'common:surface.componentsStatusview';
 
 interface AppDiagnostics {
   appVersion: string;
@@ -35,10 +36,6 @@ interface AppDiagnostics {
   electronVersion?: string;
   chromeVersion?: string;
   lastApiError: string;
-  // VF-AUD-20260916-P2-006 — truthful Family Safe Mode media-classifier
-  // capability state. Defaults to "all unavailable" on web mode where the
-  // shared capability descriptor is not loaded through this bridge.
-  mediaClassifierCapabilities: MediaClassifierCapabilities;
 }
 
 function getEmptyDiagnostics(): AppDiagnostics {
@@ -53,19 +50,16 @@ function getEmptyDiagnostics(): AppDiagnostics {
     apiKeyConfigured: false,
     nodeVersion: '',
     lastApiError: '',
-    mediaClassifierCapabilities: {
-      semanticImageClassifier: 'unavailable',
-      semanticAudioClassifier: 'unavailable',
-      semanticVideoClassifier: 'unavailable',
-      hasRegisteredBackend: false,
-    },
   };
 }
 
 export function StatusView() {
   const [diag, setDiag] = useState<AppDiagnostics>(getEmptyDiagnostics);
+  const [safety, setSafety] = useState<SafetyRuntimeStatus | null>(null);
   const { t } = useTranslation();
   const activeTab = useSettingsStore((s) => s.activeTab);
+  const localFamilySafeModeEnabled = useSettingsStore((s) => s.localFamilySafeModeEnabled);
+  const veniceApiSafeMode = useSettingsStore((s) => s.veniceApiSafeMode);
   const lastRequest = useInspectorStore((s) => s.logs[0]);
 
   useEffect(() => {
@@ -87,7 +81,6 @@ export function StatusView() {
             electronVersion: result.electronVersion,
             chromeVersion: result.chromeVersion,
             lastApiError: result.lastApiError ?? '',
-            mediaClassifierCapabilities: result.mediaClassifierCapabilities,
           });
         }
       } else {
@@ -105,26 +98,66 @@ export function StatusView() {
     };
   }, [activeTab]);
 
+  const refreshSafety = useCallback(() => {
+    void desktopApp.getSafetyRuntimeStatus().then((status) => {
+      if (status) setSafety(status);
+    });
+  }, []);
+
+  // Refetch on tab entry/change and whenever the renderer-side safety toggles
+  // change, so the main-process-authoritative state is reflected immediately
+  // without leaving the tab.
+  useEffect(() => {
+    refreshSafety();
+  }, [refreshSafety, activeTab, localFamilySafeModeEnabled, veniceApiSafeMode]);
+
+  // Cheap extra refresh whenever the window regains focus.
+  useEffect(() => {
+    const onFocus = () => refreshSafety();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [refreshSafety]);
+
   // Re-read the safety audit snapshot on every render — it is in-memory only.
   const audit = getAuditSnapshot();
+
+  const classifierStateLabel = (state: ClassifierState): string => {
+    switch (state) {
+      case 'available':
+        return t(`${NS}.text.classifierStateAvailable`);
+      case 'not-configured':
+        return t(`${NS}.text.classifierStateNotConfigured`);
+      case 'unsupported':
+        return t(`${NS}.text.classifierStateUnsupported`);
+      case 'unhealthy':
+        return t(`${NS}.text.classifierStateUnhealthy`);
+    }
+  };
+
+  const sourceLabel =
+    safety?.localSafeguards.source === 'user'
+      ? t(`${NS}.text.sourceUser`)
+      : safety?.localSafeguards.source === 'server'
+        ? t(`${NS}.text.sourceServer`)
+        : t(`${NS}.text.sourcePolicy`);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-4 py-4 gap-4">
       <section className="space-y-2">
-        <h2 className="text-[15px] font-semibold text-text-primary"><Trans i18nKey="common:surface.componentsStatusview.heading.status" /></h2>
+        <h2 className="text-[15px] font-semibold text-text-primary"><Trans i18nKey={`${NS}.heading.status`} /></h2>
         <p className="text-[12.5px] text-text-muted leading-relaxed">
-          <Trans i18nKey="common:surface.componentsStatusview.description.aggregatedRuntimeInfoForTheCurrentBuild" />{' '}
+          <Trans i18nKey={`${NS}.description.aggregatedRuntimeInfoForTheCurrentBuild`} />{' '}
           <a className="underline" href="#" onClick={(e) => {
             e.preventDefault();
             void desktopApp.openLogsFolder();
           }}>
-            <Trans i18nKey="common:surface.componentsStatusview.text.logsFolder" /></a>{' '}
-          <Trans i18nKey="common:surface.componentsStatusview.description.toInspectDetailedConsoleOutput" /></p>
+            <Trans i18nKey={`${NS}.text.logsFolder`} /></a>{' '}
+          <Trans i18nKey={`${NS}.description.toInspectDetailedConsoleOutput`} /></p>
       </section>
 
       <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
-          <Meteocon name="barometer" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.runtime" /></h3>
+          <Meteocon name="barometer" size={14} /> <Trans i18nKey={`${NS}.heading.runtime`} /></h3>
         <Row k="App version" v={diag.appVersion} />
         <Row k="Transport" v={diag.transport} />
         <Row k="Mode" v={diag.isDesktop ? 'Electron desktop' : 'Web (browser)'} />
@@ -135,7 +168,7 @@ export function StatusView() {
 
       <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
-          <Meteocon name="humidity" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.storage" /></h3>
+          <Meteocon name="humidity" size={14} /> <Trans i18nKey={`${NS}.heading.storage`} /></h3>
         <Row k="Secure store" v={diag.storageMode} />
         <Row k="Encryption available" v={diag.secureStorageAvailable ? 'yes' : 'no'} />
         <Row k="Venice key configured" v={diag.apiKeyConfigured ? 'yes' : 'no'} />
@@ -143,9 +176,64 @@ export function StatusView() {
         <Row k="Logs path" v={diag.logsPath} mono />
       </section>
 
+      {safety && (
+        <>
+          <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
+            <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
+              <Meteocon name="umbrella" size={14} /> <Trans i18nKey={`${NS}.heading.safetyRuntime`} /></h3>
+            <Row
+              k={t(`${NS}.text.localContentSafeguards`)}
+              v={`${safety.localSafeguards.enabled
+                ? t(`${NS}.text.stateEnabled`)
+                : t(`${NS}.text.stateDisabled`)} · ${t(`${NS}.text.source`)}: ${sourceLabel}`}
+            />
+            <Row
+              k={t(`${NS}.text.providerSafety`)}
+              v={safety.providerSafety.safeMode ? t(`${NS}.text.stateOn`) : t(`${NS}.text.stateOff`)}
+            />
+          </section>
+
+          <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
+            <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
+              <Meteocon name="umbrella" size={14} /> <Trans i18nKey={`${NS}.heading.structuralValidation`} /></h3>
+            <Row k="Status" v={t(`${NS}.text.validationActive`)} />
+            <Row k={t(`${NS}.text.requestsValidated`)} v={String(safety.structuralValidation.requestsValidated)} />
+            <Row k={t(`${NS}.text.rejectedRequests`)} v={String(safety.structuralValidation.rejectedRequests)} />
+          </section>
+
+          <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
+            <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
+              <Meteocon name="umbrella" size={14} /> <Trans i18nKey={`${NS}.heading.mediaClassifierBackend`} /></h3>
+            <Row
+              k={t(`${NS}.text.backendRegistered`)}
+              v={safety.semanticClassifiers.backendRegistered ? t(`${NS}.text.yes`) : t(`${NS}.text.no`)}
+            />
+            {safety.semanticClassifiers.backendName && (
+              <Row k={t(`${NS}.text.backendName`)} v={safety.semanticClassifiers.backendName} />
+            )}
+            <Row k={t(`${NS}.text.image`)} v={classifierStateLabel(safety.semanticClassifiers.image)} />
+            <Row k={t(`${NS}.text.audio`)} v={classifierStateLabel(safety.semanticClassifiers.audio)} />
+            <Row k={t(`${NS}.text.video`)} v={classifierStateLabel(safety.semanticClassifiers.video)} />
+          </section>
+
+          <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
+            <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
+              <Meteocon name="umbrella" size={14} /> <Trans i18nKey={`${NS}.heading.classifierCounters`} /></h3>
+            <Row k={t(`${NS}.text.counterTextEvaluations`)} v={String(safety.counters.textEvaluations)} />
+            <Row k={t(`${NS}.text.counterImageEvaluations`)} v={String(safety.counters.imageEvaluations)} />
+            <Row k={t(`${NS}.text.counterAudioEvaluations`)} v={String(safety.counters.audioEvaluations)} />
+            <Row k={t(`${NS}.text.counterVideoEvaluations`)} v={String(safety.counters.videoEvaluations)} />
+            <Row k={t(`${NS}.text.counterBlocked`)} v={String(safety.counters.blocked)} />
+            <Row k={t(`${NS}.text.counterAllowed`)} v={String(safety.counters.allowed)} />
+            <Row k={t(`${NS}.text.counterSkippedDisabled`)} v={String(safety.counters.skippedDisabled)} />
+            <Row k={t(`${NS}.text.counterErrors`)} v={String(safety.counters.errors)} />
+          </section>
+        </>
+      )}
+
       <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
-          <Meteocon name="umbrella" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.safetyGuardAudit" /></h3>
+          <Meteocon name="umbrella" size={14} /> <Trans i18nKey={`${NS}.heading.safetyGuardAudit`} /></h3>
         <Row k="Allowed" v={String(audit.allowed)} />
         <Row k="Warned" v={String(audit.warned)} />
         <Row k="Blocked" v={String(audit.blocked)} />
@@ -153,7 +241,7 @@ export function StatusView() {
         <Row k="Last decision at" v={audit.lastDecisionAt ?? 'n/a'} mono />
         {Object.keys(audit.bySeverity).length > 0 && (
           <div className="text-[12px] text-text-muted pt-1">
-            <Trans i18nKey="common:surface.componentsStatusview.text.bySeverity" /> {Object.entries(audit.bySeverity)
+            <Trans i18nKey={`${NS}.text.bySeverity`} /> {Object.entries(audit.bySeverity)
               .map(([k, v]) => `${k}=${v}`)
               .join(' · ')}
           </div>
@@ -162,43 +250,7 @@ export function StatusView() {
 
       <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
-          <Meteocon name="umbrella" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.mediaClassifierCapabilities" /></h3>
-        {/* The Status pane must reflect the honest capability state. Per VF-AUD-
-         * 20260916-P2-006, the production build ships with no registered
-         * semantic ML backend for image / audio / video. Displaying "unavailable"
-         * three times reads as "broken" rather than "by design", so we collapse
-         * the per-modality rows into a single protective-mode badge and an
-         * expandable disclosure of which checks ARE active today. */}
-        <Row
-          k={t('common:surface.componentsStatusview.text.protectiveMode', 'Protective mode')}
-          v={diag.mediaClassifierCapabilities.hasRegisteredBackend
-            ? t('common:surface.componentsStatusview.text.semanticPlusStructural', 'Semantic + structural')
-            : t('common:surface.componentsStatusview.text.structuralOnly', 'Structural validation only')}
-        />
-        <details className="text-[12px] text-text-muted pt-1">
-          <summary className="cursor-pointer hover:text-text-primary">
-            <Trans i18nKey="common:surface.componentsStatusview.text.whatIsProtected" />
-          </summary>
-          <ul className="list-disc pl-5 pt-1 space-y-0.5">
-            <li><Trans i18nKey="common:surface.componentsStatusview.text.protectionItemProtocolSafety" /></li>
-            <li><Trans i18nKey="common:surface.componentsStatusview.text.protectionItemPayloadShape" /></li>
-            <li><Trans i18nKey="common:surface.componentsStatusview.text.protectionItemAttachmentProvenance" /></li>
-            <li className="text-text-disabled-fg">
-              <Trans i18nKey="common:surface.componentsStatusview.text.protectionItemImageBytes" />
-            </li>
-            <li className="text-text-disabled-fg">
-              <Trans i18nKey="common:surface.componentsStatusview.text.protectionItemAudioBytes" />
-            </li>
-            <li className="text-text-disabled-fg">
-              <Trans i18nKey="common:surface.componentsStatusview.text.protectionItemVideoBytes" />
-            </li>
-          </ul>
-        </details>
-      </section>
-
-      <section className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset p-3 space-y-1.5">
-        <h3 className="flex items-center gap-1.5 text-[12px] uppercase tracking-wide text-text-muted font-semibold">
-          <Meteocon name="time-morning" size={14} /> <Trans i18nKey="common:surface.componentsStatusview.heading.lastRequest" /></h3>
+          <Meteocon name="time-morning" size={14} /> <Trans i18nKey={`${NS}.heading.lastRequest`} /></h3>
         {lastRequest ? (
           <>
             <Row k="Endpoint" v={lastRequest.endpoint} mono />
@@ -206,16 +258,16 @@ export function StatusView() {
             <Row k="Method" v={lastRequest.method} />
             {lastRequest.error && (
               <div className="text-[12px] text-danger pt-1 break-words">
-                <Trans i18nKey="common:surface.componentsStatusview.text.lastError" /> {lastRequest.error}
+                <Trans i18nKey={`${NS}.text.lastError`} /> {lastRequest.error}
               </div>
             )}
           </>
         ) : (
           <>
-            <Chip><Trans i18nKey="common:surface.componentsStatusview.text.noRequestsYetLastErrorBelowIf" /></Chip>
+            <Chip><Trans i18nKey={`${NS}.text.noRequestsYetLastErrorBelowIf`} /></Chip>
             {diag.lastApiError && (
               <div className="text-[12px] text-danger pt-1 break-words">
-                <Trans i18nKey="common:surface.componentsStatusview.text.lastError" /> {diag.lastApiError}
+                <Trans i18nKey={`${NS}.text.lastError`} /> {diag.lastApiError}
               </div>
             )}
           </>
@@ -223,7 +275,7 @@ export function StatusView() {
       </section>
 
       <p className="text-[12px] text-text-muted">
-        <Trans i18nKey="common:surface.componentsStatusview.description.statusProvidesTransportStorageAuditAndRequest" /></p>
+        <Trans i18nKey={`${NS}.description.statusProvidesTransportStorageAuditAndRequest`} /></p>
     </div>
   );
 }

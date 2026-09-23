@@ -247,6 +247,12 @@ const veniceForge = {
     getDiagnostics() {
       return ipcRenderer.invoke("app:getDiagnostics");
     },
+    /** Retrieves the live safety runtime status (local safeguards, provider
+     *  safe_mode, structural validation, semantic classifier backend). The
+     *  payload contains only booleans, counters, and fixed-vocabulary strings. */
+    getSafetyRuntimeStatus(): Promise<import("../src/shared/safety/safetyRuntimeStatus").SafetyRuntimeStatus | null> {
+      return ipcRenderer.invoke("app:getSafetyRuntimeStatus");
+    },
     /** Opens the log folder in the system file manager.
      *  @returns A promise resolving with the operation result.
      */

@@ -28,7 +28,7 @@ export const BUILTIN_DRACULA: ThemeFamily = {
       overlay: "rgba(0, 0, 0, 0.4)",
       glow: "rgba(99, 12, 222, 0.18)",
       surfaceMuted: "#eeeeef",
-      borderStrong: "#909198",
+      borderStrong: "#8c8d93",
       }),
       code: { preset: 'dracula', tokens: resolveCodeThemeTokens('dracula', 'light') },
     },

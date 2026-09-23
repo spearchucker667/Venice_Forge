@@ -20,6 +20,15 @@ export class FileTooLargeError extends IngestionError {
   }
 }
 
+export class BinaryContentError extends IngestionError {
+  constructor(name: string) {
+    super(
+      `File ${name} appears to be binary content and cannot be ingested as text.`,
+      'BINARY_CONTENT'
+    );
+  }
+}
+
 export class ImageCodecUnsupportedError extends IngestionError {
   constructor(name: string) {
     super(`Image codec unsupported for file: ${name}.`, 'IMAGE_CODEC_UNSUPPORTED');

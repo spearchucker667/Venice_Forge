@@ -28,7 +28,7 @@ export const BUILTIN_LIGHT: ThemeFamily = {
       overlay: "rgba(0,0,0,0.4)",
       glow: "rgba(9,105,218,0.18)",
       surfaceMuted: "#eef1f4",
-      borderStrong: "#8c959f",
+      borderStrong: "#878f99",
       placeholder: "#57606a",
       disabledForeground: "#6e7781",
       }),

@@ -2,7 +2,7 @@
 
 > **Authority:** `src/config/tabs.ts` (`TAB_REGISTRY`, `CANONICAL_TAB_ORDER`). Legacy aliases in `TAB_IDS` are persisted-state compatibility only.
 >
-> **Source fingerprint:** 40f9f5f68a9227f3
+> **Source fingerprint:** c008955af1a810f0
 
 | # | Tab id | Group | View source | Selector |
 |---:|---|---|---|---|

@@ -26,4 +26,16 @@ describe('PromptCreateModal accessibility', () => {
       tags: ['dark fantasy', 'portrait lighting'],
     }))
   })
+
+  it('bounds the prompt editors with a max height, vertical resize, and internal scroll (VF-20260923-P1-022)', () => {
+    render(<PromptCreateModal onClose={vi.fn()} onCreate={vi.fn(async () => undefined)} />)
+
+    for (const label of ['Content *', 'Negative Content']) {
+      const el = screen.getByLabelText(label)
+      expect(el.className).toContain('max-h-[min(40vh,420px)]')
+      expect(el.className).toContain('resize-y')
+      expect(el.className).toContain('overflow-y-auto')
+      expect(el.className).toContain('min-h-')
+    }
+  })
 })

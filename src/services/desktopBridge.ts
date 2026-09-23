@@ -13,6 +13,9 @@ import type {
   VeniceForgeRequest,
   VeniceForgeResponse,
 } from "../types/desktop";
+import type { SafetyRuntimeStatus } from "../shared/safety/safetyRuntimeStatus";
+import { assembleSafetyRuntimeStatus } from "../shared/safety/safetyRuntimeStatus";
+import { getSemanticClassifierStatus } from "../shared/safety/mediaScreener";
 import type { ApiConnectivityStatus } from "../types/api-connectivity";
 import type { Conversation } from "../types/conversation";
 import type {
@@ -540,6 +543,30 @@ export const desktopApp = {
       });
     }
     return window.veniceForge!.app.getDiagnostics();
+  },
+
+  /**
+   * Fetches the live safety runtime status (local safeguards, provider
+   * safe_mode, structural validation counters, semantic classifier backend).
+   * Web mode derives the status from the local renderer state so the Status
+   * tab never crashes when the desktop-only fields are absent.
+   */
+  getSafetyRuntimeStatus(): Promise<SafetyRuntimeStatus | null> {
+    if (!isElectron()) {
+      const settings = useSettingsStore.getState();
+      return Promise.resolve(
+        assembleSafetyRuntimeStatus({
+          localSafeguards: {
+            enabled: settings.localFamilySafeModeEnabled === true,
+            // Web deployments enforce safeguards at the proxy/server boundary.
+            source: "server",
+          },
+          providerSafety: { safeMode: settings.veniceApiSafeMode === true },
+          semanticClassifiers: getSemanticClassifierStatus(),
+        }),
+      );
+    }
+    return window.veniceForge!.app.getSafetyRuntimeStatus();
   },
 
   /**

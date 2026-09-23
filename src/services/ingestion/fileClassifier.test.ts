@@ -44,7 +44,11 @@ describe("fileClassifier", () => {
       "jsx",
       "mjs",
       "cjs",
+      "mts",
+      "cts",
       "py",
+      "pyw",
+      "pyi",
       "go",
       "rs",
       "rb",
@@ -56,6 +60,9 @@ describe("fileClassifier", () => {
       "cxx",
       "h",
       "hpp",
+      "hxx",
+      "m",
+      "mm",
       "java",
       "kt",
       "kts",
@@ -71,11 +78,72 @@ describe("fileClassifier", () => {
       "sql",
       "toml",
       "ini",
+      "css",
+      "scss",
+      "sass",
+      "less",
+      "vue",
+      "svelte",
+      "astro",
+      "groovy",
+      "gradle",
+      "fs",
+      "fsx",
+      "vb",
+      "lua",
+      "pl",
+      "pm",
+      "r",
+      "R",
+      "ex",
+      "exs",
+      "erl",
+      "hrl",
+      "clj",
+      "cljs",
+      "cljc",
+      "edn",
+      "lisp",
+      "scm",
+      "hs",
+      "lhs",
+      "graphql",
+      "gql",
+      "proto",
+      "tex",
+      "latex",
+      "bib",
+      "ipynb",
+      "lock",
+      "cfg",
+      "conf",
+      "properties",
+      "cmake",
     ]) {
       expect(classifyFile(mockFile(`source.${ext}`)).kind).toBe("code");
     }
     expect(classifyFile(mockFile("test.c#")).kind).toBe("code");
     expect(classifyFile(mockFile("test.c#")).extension).toBe("cs");
+  });
+
+  it("classifies web/style and data extensions added for source coverage", () => {
+    for (const ext of ["jsonc", "json5"]) {
+      expect(classifyFile(mockFile(`config.${ext}`)).kind).toBe("text");
+    }
+    for (const ext of ["mdx", "rst", "adoc"]) {
+      expect(classifyFile(mockFile(`guide.${ext}`)).kind).toBe("markdown");
+    }
+    expect(classifyFile(mockFile("data.tsv")).kind).toBe("spreadsheet");
+  });
+
+  it("classifies build/config special filenames as code", () => {
+    expect(classifyFile(mockFile("Makefile")).kind).toBe("code");
+    expect(classifyFile(mockFile("makefile")).kind).toBe("code");
+    expect(classifyFile(mockFile("CMakeLists.txt")).kind).toBe("code");
+    expect(classifyFile(mockFile("Containerfile")).kind).toBe("code");
+    expect(classifyFile(mockFile("module.cmake")).kind).toBe("code");
+    expect(classifyFile(mockFile("Dockerfile")).kind).toBe("code");
+    expect(classifyFile(mockFile(".env.production")).kind).toBe("code");
   });
 
   it("classifies code files by exact name", () => {

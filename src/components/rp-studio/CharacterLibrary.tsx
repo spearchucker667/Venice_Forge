@@ -818,7 +818,7 @@ function CardTile({
       </div>
 
       <div className="min-h-0">
-        <div className="text-[13.5px] font-semibold text-text-primary truncate">
+        <div className="text-[13.5px] font-semibold text-text-primary truncate" title={card.name}>
           {card.name}
         </div>
         <div className="text-[12px] text-text-muted mt-0.5">

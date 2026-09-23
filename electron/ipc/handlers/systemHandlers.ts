@@ -25,6 +25,7 @@ import {
 import { getClassifierCapabilities } from "../../../src/shared/safety/mediaScreener";
 import { checkLocalFamilyGuard } from "../../services/guardPipeline";
 import { getRuntimeLocalFamilySafeModeEnabled } from "../../services/runtimeSafetySettings";
+import { buildSafetyRuntimeStatus } from "../../services/safetyRuntimeStatus";
 import { redactErrorMessage } from "../../../src/shared/redaction";
 import { VENICE_MAX_BODY_BYTES } from "../../../src/shared/limits";
 
@@ -269,6 +270,14 @@ export function registerSystemHandlers(): void {
   });
 
   registerPrivilegedIpcChannel("app:openLogsFolder", () => openLogsFolder());
+
+  // VF-20260923-P1-027 — live safety runtime status for System → Status.
+  // Local safeguards, provider safe_mode, structural validation, and semantic
+  // classifier backend state are reported as separate concepts. The payload
+  // carries only booleans, small counters, and fixed-vocabulary strings.
+  registerPrivilegedIpcChannel("app:getSafetyRuntimeStatus", () => buildSafetyRuntimeStatus(), {
+    rateLimitedResponse: () => null,
+  });
 
   registerPrivilegedIpcChannel("chat:list", async (event) => {
     try {

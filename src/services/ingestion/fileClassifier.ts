@@ -8,8 +8,8 @@ export interface ClassifiedFile {
 }
 
 const DOCUMENT_EXTS = new Set(["pdf", "docx", "rtf", "csv", "xml", "html", "htm"]);
-const TEXT_EXTS = new Set(["txt", "json", "jsonl", "yaml", "yml"]);
-const MARKDOWN_EXTS = new Set(["md", "markdown"]);
+const TEXT_EXTS = new Set(["txt", "json", "jsonl", "jsonc", "json5", "yaml", "yml"]);
+const MARKDOWN_EXTS = new Set(["md", "markdown", "mdx", "rst", "adoc"]);
 const IMAGE_EXTS = new Set([
   "png",
   "jpg",
@@ -31,7 +31,11 @@ const CODE_EXTS = new Set([
   "jsx",
   "mjs",
   "cjs",
+  "mts",
+  "cts",
   "py",
+  "pyw",
+  "pyi",
   "go",
   "rs",
   "rb",
@@ -43,6 +47,9 @@ const CODE_EXTS = new Set([
   "cxx",
   "h",
   "hpp",
+  "hxx",
+  "m",
+  "mm",
   "java",
   "kt",
   "kts",
@@ -58,8 +65,58 @@ const CODE_EXTS = new Set([
   "sql",
   "toml",
   "ini",
+  "css",
+  "scss",
+  "sass",
+  "less",
+  "vue",
+  "svelte",
+  "astro",
+  "groovy",
+  "gradle",
+  "fs",
+  "fsx",
+  "vb",
+  "lua",
+  "pl",
+  "pm",
+  "r",
+  "ex",
+  "exs",
+  "erl",
+  "hrl",
+  "clj",
+  "cljs",
+  "cljc",
+  "edn",
+  "lisp",
+  "scm",
+  "hs",
+  "lhs",
+  "graphql",
+  "gql",
+  "proto",
+  "tex",
+  "latex",
+  "bib",
+  "ipynb",
+  "lock",
+  "cfg",
+  "conf",
+  "properties",
+  "cmake",
 ]);
-const CODE_FILES = new Set(["dockerfile", ".dockerfile", ".gitignore", ".gitattributes", ".editorconfig", ".env"]);
+const CODE_FILES = new Set([
+  "dockerfile",
+  ".dockerfile",
+  "containerfile",
+  "makefile",
+  "cmakelists.txt",
+  ".gitignore",
+  ".gitattributes",
+  ".editorconfig",
+  ".env",
+]);
 
 function getExtension(name: string): string {
   const parts = name.split(".");
@@ -85,7 +142,7 @@ function classifyByExtensionAndName(name: string, mimeType: string): IngestedAtt
   if (ext === "pdf") return "pdf";
   if (ext === "docx") return "docx";
   if (ext === "doc") return "doc";
-  if (ext === "csv") return "spreadsheet";
+  if (ext === "csv" || ext === "tsv") return "spreadsheet";
   if (ext === "xlsx" || ext === "xls") return "spreadsheet";
 
   if (MARKDOWN_EXTS.has(ext)) return "markdown";

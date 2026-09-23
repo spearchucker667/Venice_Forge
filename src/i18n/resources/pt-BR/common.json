@@ -497,7 +497,8 @@
         "includePriorConversationContext": "Incluir contexto de conversa anterior",
         "selected": "selecionou",
         "chattingAs": "Bate-papo como",
-        "usesCharacterSystemPrompt": "Usando o prompt de sistema do personagem. O prompt de sistema fornecido pelo usuário é ignorado para chats de personagens hospedados e locais."
+        "usesCharacterSystemPrompt": "Usando o prompt de sistema do personagem. O prompt de sistema fornecido pelo usuário é ignorado para chats de personagens hospedados e locais.",
+        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
       },
       "label": {
         "systemPromptMode": "Modo de prompt do sistema"
@@ -1794,7 +1795,11 @@
         "storage": "Armazenamento",
         "safetyGuardAudit": "Auditoria de segurança",
         "lastRequest": "Última solicitação",
-        "mediaClassifierCapabilities": "Capacidades do classificador de mídia"
+        "mediaClassifierCapabilities": "Capacidades do classificador de mídia",
+        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
+        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
+        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
+        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Informações agregadas de tempo de execução para a compilação atual. Abra a pasta de logs",
@@ -1822,7 +1827,34 @@
         "protectionItemAttachmentProvenance": "Procedência de anexos e identificação MIME",
         "protectionItemImageBytes": "Bytes de imagem (semântica): não classificados",
         "protectionItemAudioBytes": "Bytes de áudio (semântica): não classificados",
-        "protectionItemVideoBytes": "Bytes de vídeo (semântica): não classificados"
+        "protectionItemVideoBytes": "Bytes de vídeo (semântica): não classificados",
+        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
+        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
+        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
+        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
+        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
+        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
+        "source": "__MISSING__:surface.componentsStatusview.text.source",
+        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
+        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
+        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
+        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
+        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
+        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
+        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
+        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
+        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
+        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
+        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
+        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
+        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
+        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
+        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
+        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
+        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
+        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
+        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
+        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
       }
     },
     "componentsThemepreview": {
@@ -2465,6 +2497,14 @@
         "charactercreatorview": {
           "metadata": {
             "analyzingImage": "Analisando Imagem"
+          },
+          "error": {
+            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
+            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
+            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
+            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
+            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
+            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
           },
           "notification": {
             "couldNotLoadDraft": "Não foi possível carregar o rascunho",

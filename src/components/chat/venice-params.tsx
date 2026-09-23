@@ -69,6 +69,11 @@ export function VeniceParams() {
     ? conversations.find((c) => c.id === activeConversationId)
     : null;
   const hasMessages = (activeConv?.messages?.length ?? 0) > 0;
+  // VF-20260923-P0-024: character chats must not expose view/edit of the
+  // global user system prompt; the character's own prompt is the single
+  // source. The Venice default system prompt is controlled per conversation
+  // from the Chat Context popover instead.
+  const isCharacterChat = Boolean(activeConv?.metadata?.character);
 
   // P1-005 truthful state: the canonical request builder only sends tools
   // for models that explicitly advertise `supportsFunctionCalling`. Mirror
@@ -185,6 +190,16 @@ export function VeniceParams() {
 
       {showSettings && (
         <div className="mt-2.5 pb-1 flex flex-col gap-2.5">
+          {isCharacterChat ? (
+            <div>
+              <div className="mb-1 vf-meta text-text-muted/40 font-medium uppercase tracking-[0.08em]">
+                <Trans i18nKey="common:surface.componentsChatVeniceParams.label.appSystemPrompt" />
+              </div>
+              <p className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-inset px-3 py-2 vf-body text-text-muted/60">
+                <Trans i18nKey="common:surface.componentsChatChatView.text.usesCharacterSystemPrompt" />
+              </p>
+            </div>
+          ) : (
           <div>
             <div className="flex justify-between items-center mb-1">
               <label htmlFor="venice-params-1" className="vf-meta text-text-muted/40 font-medium block uppercase tracking-[0.08em]">
@@ -242,8 +257,8 @@ export function VeniceParams() {
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder={t("controls.systemPromptPlaceholder")}
-              rows={2}
-              className="w-full bg-vf-panel-bg-inset border border-vf-panel-border rounded-lg px-3 py-2 vf-body text-text-secondary outline-none resize-none placeholder:text-text-muted/30 focus:border-vf-panel-border-strong transition-colors"
+              rows={6}
+              className="w-full bg-vf-panel-bg-inset border border-vf-panel-border rounded-lg px-3 py-2 vf-body text-text-secondary outline-none resize-y overflow-y-auto max-h-[min(40vh,420px)] placeholder:text-text-muted/30 focus:border-vf-panel-border-strong transition-colors"
             />
             {systemPromptLimitResult.isWarning && (
               <div className="vf-meta text-warning mt-1">
@@ -256,6 +271,7 @@ export function VeniceParams() {
               </div>
             )}
           </div>
+          )}
           <div className="grid grid-cols-3 gap-3">
             <ParamSlider
               label={t("controls.temperature")}

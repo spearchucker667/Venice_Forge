@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   buildCharacterCreatorRequest,
+  CharacterCreatorServiceError,
   createCharacterDraftAI,
   generateCharacterCreatorDraft,
   validateCharacterCreatorResponse,
@@ -324,6 +325,216 @@ describe("characterCreatorAiService", () => {
       // Even if the underlying error would have been transient, an aborted
       // request must not be retried.
       expect(fetchSpy.mock.calls.length).toBeLessThanOrEqual(2);
+    });
+  });
+
+  describe("typed error taxonomy", () => {
+    const catchError = async (promise: Promise<unknown>): Promise<unknown> =>
+      promise.then(
+        () => null,
+        (err: unknown) => err,
+      );
+
+    it("does not issue a third request when the repair response is also invalid", async () => {
+      const malformedFirst = {
+        data: {
+          choices: [{ message: { content: "Still prose, not JSON..." } }],
+        },
+      };
+      const malformedRepair = {
+        data: {
+          choices: [{ message: { content: "Also not valid JSON..." } }],
+        },
+      };
+
+      vi.mocked(fetchModule.veniceFetch)
+        .mockResolvedValueOnce(malformedFirst as any)
+        .mockResolvedValueOnce(malformedRepair as any);
+
+      await expect(
+        createCharacterDraftAI({
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        }),
+      ).rejects.toThrow("SCHEMA_REPAIR_FAILED");
+      // Exactly one repair attempt: initial + repair, never a third request.
+      expect(fetchModule.veniceFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("surfaces a repair-in-progress process event while schema repair runs", async () => {
+      const malformedFirst = {
+        data: {
+          choices: [{ message: { content: "unparseable output" } }],
+        },
+      };
+      const repairedSecond = {
+        data: {
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  operation: "create_draft",
+                  design_summary: "Repaired",
+                  assumptions: [],
+                  warnings: [],
+                  draft: {
+                    spec: "chara_card_v2",
+                    spec_version: "2.0",
+                    data: {
+                      name: "Fixed",
+                      description: "D",
+                      personality: "P",
+                      scenario: "S",
+                      first_mes: "F",
+                      mes_example: "M",
+                    },
+                  },
+                  validation: { valid: true, errors: [], warnings: [], recommendations: [] },
+                }),
+              },
+            },
+          ],
+        },
+      };
+
+      vi.mocked(fetchModule.veniceFetch)
+        .mockResolvedValueOnce(malformedFirst as any)
+        .mockResolvedValueOnce(repairedSecond as any);
+
+      const eventsEmitted: CharacterCreatorProcessEvent[] = [];
+      await createCharacterDraftAI(
+        {
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        },
+        undefined,
+        {
+          onEvent(ev) {
+            eventsEmitted.push(ev);
+          },
+        },
+      );
+
+      expect(
+        eventsEmitted.some((e) => e.phase === "repair" && e.status === "active"),
+      ).toBe(true);
+    });
+
+    it("maps persistent transport failures to code VENICE_TRANSPORT_FAILED, retryable true", async () => {
+      const { VeniceAPIError } = await import("./veniceClient/errors");
+      vi.mocked(fetchModule.veniceFetch).mockRejectedValue(
+        new VeniceAPIError("Internal Server Error", 502),
+      );
+
+      const err = await catchError(
+        createCharacterDraftAI({
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        }),
+      );
+
+      expect(err).toBeInstanceOf(CharacterCreatorServiceError);
+      const typed = err as CharacterCreatorServiceError;
+      expect(typed.code).toBe("VENICE_TRANSPORT_FAILED");
+      expect(typed.retryable).toBe(true);
+      expect(typed.message).toContain("VENICE_TRANSPORT_FAILED");
+    });
+
+    it("maps non-transient 4xx to code VENICE_PROVIDER_HTTP, retryable false", async () => {
+      const { VeniceAPIError } = await import("./veniceClient/errors");
+      vi.mocked(fetchModule.veniceFetch).mockRejectedValue(
+        new VeniceAPIError("Unauthorized", 401),
+      );
+
+      const err = await catchError(
+        createCharacterDraftAI({
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        }),
+      );
+
+      expect(err).toBeInstanceOf(CharacterCreatorServiceError);
+      const typed = err as CharacterCreatorServiceError;
+      expect(typed.code).toBe("VENICE_PROVIDER_HTTP");
+      expect(typed.retryable).toBe(false);
+      // Legacy prefix is retained so existing log/diagnostic matchers hold.
+      expect(typed.message).toContain("VENICE_TRANSPORT_FAILED");
+    });
+
+    it("maps cancellation to code REQUEST_CANCELLED, retryable false", async () => {
+      const controller = new AbortController();
+      vi.mocked(fetchModule.veniceFetch).mockImplementation(
+        async () =>
+          new Promise((_resolve, reject) => {
+            controller.signal.addEventListener("abort", () =>
+              reject(Object.assign(new Error("Aborted"), { name: "AbortError" })),
+            );
+          }) as any,
+      );
+
+      const promise = createCharacterDraftAI(
+        {
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        },
+        controller.signal,
+      );
+      controller.abort();
+
+      const err = await catchError(promise);
+      expect(err).toBeInstanceOf(CharacterCreatorServiceError);
+      const typed = err as CharacterCreatorServiceError;
+      expect(typed.code).toBe("REQUEST_CANCELLED");
+      expect(typed.retryable).toBe(false);
+      expect(typed.message).toBe("REQUEST_CANCELLED: User cancelled generation.");
+    });
+
+    it("maps an invalid repair response to code SCHEMA_REPAIR_FAILED, retryable false", async () => {
+      const malformedFirst = {
+        data: {
+          choices: [{ message: { content: "prose" } }],
+        },
+      };
+      const malformedRepair = {
+        data: {
+          choices: [{ message: { content: "more prose" } }],
+        },
+      };
+
+      vi.mocked(fetchModule.veniceFetch)
+        .mockResolvedValueOnce(malformedFirst as any)
+        .mockResolvedValueOnce(malformedRepair as any);
+
+      const err = await catchError(
+        createCharacterDraftAI({
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        }),
+      );
+
+      expect(err).toBeInstanceOf(CharacterCreatorServiceError);
+      const typed = err as CharacterCreatorServiceError;
+      expect(typed.code).toBe("SCHEMA_REPAIR_FAILED");
+      expect(typed.retryable).toBe(false);
+      expect(typed.message).toContain("SCHEMA_REPAIR_FAILED");
+    });
+
+    it("maps model-not-found to code MODEL_UNAVAILABLE, retryable false", async () => {
+      vi.mocked(fetchModule.veniceFetch).mockRejectedValueOnce(
+        new Error("404 Model zai-org-glm-5-2 not found"),
+      );
+
+      const err = await catchError(
+        createCharacterDraftAI({
+          operation: "create_draft",
+          sourceIdea: "Concept",
+        }),
+      );
+
+      expect(err).toBeInstanceOf(CharacterCreatorServiceError);
+      const typed = err as CharacterCreatorServiceError;
+      expect(typed.code).toBe("MODEL_UNAVAILABLE");
+      expect(typed.retryable).toBe(false);
     });
   });
 
