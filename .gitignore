@@ -290,7 +290,8 @@ pnpm-debug.log*
 /.local/
 /.local-dev/
 /.dev/
-/.agents/
+/.agents/*
+!/.agents/skills/
 /.agent/
 /.ai/
 /.cursor/

@@ -41,6 +41,9 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [DEVELOPMENT/i18n-tooling.md](DEVELOPMENT/i18n-tooling.md) — `i18n:extract`, `i18n:sync-catalogs`, `i18n:coverage` workflow.
 - [DEVELOPMENT/performance-baselines.md](DEVELOPMENT/performance-baselines.md) — Profile bundle size and render performance before monolith refactors.
 - [DEVELOPMENT/CONFIG.md](DEVELOPMENT/CONFIG.md) — Configure local YAML options and import secure keys.
+- [../.agents/skills/ci-publication-verification/SKILL.md](../.agents/skills/ci-publication-verification/SKILL.md) — Hosted CI and CodeQL dual-workflow verification runbook.
+- [../.agents/skills/i18n-remediation/SKILL.md](../.agents/skills/i18n-remediation/SKILL.md) — i18n localization, placeholder integrity, and loanword verification runbook.
+- [../.agents/skills/per-tab-acceptance/SKILL.md](../.agents/skills/per-tab-acceptance/SKILL.md) — Per-tab visual and accessibility audit execution and screenshot harness runbook.
 
 ### Backup & Sync
 

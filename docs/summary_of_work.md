@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: df91bdb9 (remediated and published on main; hosted CI and CodeQL verified)
-application_code_sha: df91bdb9
-verified_against_sha: df91bdb9
-verified_at:         2026-09-22 (Pacific)
+repository_head_sha: 7044c014 (remediated and published on main; hosted CI and CodeQL verified)
+application_code_sha: 7044c014
+verified_against_sha: 7044c014
+verified_at:         2026-09-23 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        clean
-ci_status:           success for df91bdb9 (run 35818393320 — 11/11 jobs: contracts, macos-sensitive, coverage, unit-and-integration, lint-and-typecheck, windows-sensitive, script-coverage, build, electron-smoke-linux/windows/macos)
-codeql_status:       success for df91bdb9 (run 35818393403 — Analyze actions & Analyze javascript-typescript)
+ci_status:           success for 7044c014 (run 35879124620 — 11/11 jobs: contracts, macos-sensitive, coverage, unit-and-integration, lint-and-typecheck, windows-sensitive, script-coverage, build, electron-smoke-linux/windows/macos)
+codeql_status:       success for 7044c014 (run 35879124402 — Analyze actions & Analyze javascript-typescript)
 open_findings:       see docs/ROADMAP.md (P2-016 headed a11y QA and P3-020 native-language review)
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
@@ -66,6 +66,17 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-23 Publication to `main` & Workspace Learning Retention (`VF-20260922-P2-009`, `VF-20260922-P2-011`, `/learn`).**
+  - **Publication to `main` (`7044c014`):** Committed and pushed all catalog translations (1,804 keys across 11 non-English locales), per-tab acceptance scaffolding optimizations, standalone Chrome headless capture harness, and review-pack updates directly to `origin/main`.
+  - **Hosted CI & CodeQL Validation:**
+    - **CI Run `35879124620`:** 11/11 jobs passed `success` (contracts, macos-sensitive, lint-and-typecheck, coverage in 18m21s, windows-sensitive in 4m21s, unit-and-integration-tests in 13m33s, script-coverage, build, electron-smoke-macos, electron-smoke-linux, electron-smoke-windows).
+    - **CodeQL Run `35879124402`:** Passed `success` (Analyze javascript-typescript and Analyze actions).
+  - **Reusable Skills Persisted via `/learn`:**
+    - `.agents/skills/ci-publication-verification/SKILL.md`: Runbook for safe direct push and dual-workflow monitoring.
+    - `.agents/skills/i18n-remediation/SKILL.md`: Runbook for catalog translation, placeholder preservation, and allowlisted cognates.
+    - `.agents/skills/per-tab-acceptance/SKILL.md`: Runbook for scaffolding acceptance tuples, capturing Chrome screenshots, and keeping evidence git-clean.
+    - Updated `.gitignore` to permit tracking `.agents/skills/` while ignoring local agent scratch state.
 
 - **2026-09-23 i18n Catalog Acceleration & Per-Tab Acceptance Scaffolding (`VF-20260922-P2-009`, `VF-20260922-P2-011`).**
   - **i18n Namespace Translations (`VF-20260922-P2-009`):** Translated all missing keys across `media.json` (7 keys × 11 locales = 77 keys), `chat.json` (44 keys × 11 locales = 484 keys), and `common.json` (113 keys × 11 locales = 1,243 keys). Total 1,804 translation keys added across Spanish, French, German, Brazilian Portuguese, Russian, Simplified Chinese, Japanese, Hindi, Arabic, Korean, and Swedish. All interpolation variables (`{{rating}}`, `{{date}}`, `{{model}}`, `{{name}}`, `{{token}}`, `{{mode}}`, `{{section}}`) and brand tokens preserved.
