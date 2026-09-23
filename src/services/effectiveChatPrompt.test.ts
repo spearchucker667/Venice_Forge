@@ -123,7 +123,7 @@ describe("resolveEffectiveChatPromptContext (VF-CUR-P2-001)", () => {
       "GLOBAL",
     );
     expect(r.mode).toBe("disabled");
-    expect(r.effectiveSystemPrompt).toBe("");
+    expect(r.effectiveSystemPrompt).toBe("LOCAL");
   });
 
   it("plain chat without character still defaults to inherit", () => {

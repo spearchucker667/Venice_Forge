@@ -496,7 +496,8 @@
         "includeMemoryRetrievalForThisChat": "Speicherabruf für diesen Chat einschließen",
         "includePriorConversationContext": "Vorherigen Konversationskontext einschließen",
         "selected": "ausgewählt",
-        "chattingAs": "Chatten als"
+        "chattingAs": "Chatten als",
+        "usesCharacterSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.usesCharacterSystemPrompt"
       },
       "label": {
         "systemPromptMode": "Systemaufforderungsmodus"

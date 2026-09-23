@@ -550,7 +550,8 @@
         "includeMemoryRetrievalForThisChat": "Incluir recuperación de memoria para este chat",
         "includePriorConversationContext": "Incluir contexto de conversación anterior",
         "selected": "seleccionado",
-        "chattingAs": "Chateando como"
+        "chattingAs": "Chateando como",
+        "usesCharacterSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.usesCharacterSystemPrompt"
       },
       "label": {
         "systemPromptMode": "Modo de aviso del sistema"

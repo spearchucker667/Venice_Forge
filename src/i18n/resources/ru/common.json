@@ -550,7 +550,8 @@
         "includeMemoryRetrievalForThisChat": "Включить извлечение памяти для этого чата",
         "includePriorConversationContext": "Включить контекст предыдущего разговора",
         "selected": "выбрано",
-        "chattingAs": "В чате как"
+        "chattingAs": "В чате как",
+        "usesCharacterSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.usesCharacterSystemPrompt"
       },
       "label": {
         "systemPromptMode": "Режим системной подсказки"

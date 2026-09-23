@@ -90,7 +90,9 @@
       "cannotDisableTitle": "Anbieter-Sicherheitsmodus kann nicht deaktiviert werden",
       "cannotDisableDetail": "Der Familien-Sicherheitsmodus muss zuerst ausgeschaltet werden."
     },
-    "keepCurrent": "Aktuelle Sicherheitseinstellungen beibehalten"
+    "keepCurrent": "Aktuelle Sicherheitseinstellungen beibehalten",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "Inoffiziell",

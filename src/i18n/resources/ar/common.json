@@ -550,7 +550,8 @@
         "includeMemoryRetrievalForThisChat": "تضمين استرجاع الذاكرة لهذه الدردشة",
         "includePriorConversationContext": "تضمين سياق المحادثة السابقة",
         "selected": "تم تحديد",
-        "chattingAs": "الدردشة كـ"
+        "chattingAs": "الدردشة كـ",
+        "usesCharacterSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.usesCharacterSystemPrompt"
       },
       "label": {
         "systemPromptMode": "وضع مطالبة النظام"

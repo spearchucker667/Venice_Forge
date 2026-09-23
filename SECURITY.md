@@ -73,22 +73,23 @@ they are sent upstream. It does **not** guarantee that all unsafe, unlawful, or
 policy-violating content will be prevented, and it is not a legal/compliance
 system.
 
-Venice Forge applies one local screening stack controlled by Family Safe Mode.
-When Family Safe Mode is enabled, the child-safety rules in
-`src/shared/safety/childExploitationGuard.ts` and the adult-content rules in
-`src/shared/safety/localFamilyGuardRules.ts` run before covered requests are
-sent upstream. They block sexualization of minors, CSAM requests,
-grooming/exploitation, age-evasion attempts, fictional or obfuscated minor
-sexualization, adult explicit nudity, adult erotic framing, and non-child
-graphic gore where the endpoint supports those checks. When Family Safe Mode is
-off, this local screening stack is skipped and the request may continue subject
-to ordinary request validation and provider policy.
+Venice Forge distinguishes three independent safety and moderation layers:
 
-Both layers are endpoint-aware and extract prompt-like fields such as `messages`,
-`prompt`, `negative_prompt`, `query`, `text`, and `input`. They use rule-based
-normalization, cross-sentence context detection, and endpoint-aware extraction.
-Adult Mode does not disable Venice's own provider controls, nor the separate
-Venice API `safe_mode` parameter.
+1. **`localSafeguardsEnabled` (`safety.local_family_safe_mode_enabled`)**: The optional in-app local content safeguard feature.
+   - **Ownership:** User-controlled in Electron desktop (lockable via Master Password); operator-controlled in Web deployments.
+   - **When ON:** Evaluates request prompt fields and scrape/Jina text against child-safety rules (`src/shared/safety/childExploitationGuard.ts`) and optional adult-content rules (`src/shared/safety/localFamilyGuardRules.ts`), returning canonical HTTP 451 blocks when violated.
+   - **When OFF (Adult Mode):** **Zero behavioral impact.** All local screening is short-circuited: no classifiers run, no rule evaluators run, no fuzzy/soundex matches execute, no local 451 decisions are emitted, and no audit decision counters are recorded. Outbound requests are never mutated by this feature.
+   - **Diagnostics:** Reflected in inspector telemetry as `skipped` rather than `allowed`.
+
+2. **`providerSafeMode` (`safety.venice_api_safe_mode`)**: Independent provider-side parameter forwarded to Venice API endpoints (`safe_mode: true|false`).
+   - **Ownership:** User-configured in app settings.
+   - **Independence:** Disabling local safeguards never changes provider safe mode. Enabling or disabling provider safe mode never changes local safeguards.
+
+3. **`serverOperatorSafetyPolicy` (`VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED`)**: Web proxy deployment policy.
+   - **Ownership:** Server operator authoritative override for hosted web proxy instances (`server.ts`).
+   - **Behavior:** Defaults to ON in web proxy mode. Client headers are ignored in production deployments unless `VENICE_FORGE_ALLOW_CLIENT_SAFETY_OVERRIDE=true` is set. The web UI explicitly displays this policy as server-controlled.
+
+Adult Mode bypasses only the local in-app safeguard stack; it does not weaken transport authentication, IPC sender validation, schema checks, SSRF protections, or Venice's own provider moderation.
 
 ## IPC sender validation
 
@@ -401,7 +402,10 @@ A clean audit at the `moderate` level or higher (`npm audit --audit-level=modera
 
 ## Static Analysis (CodeQL)
 
-The tracked `.github/workflows/codeql.yml` workflow automatically runs CodeQL analysis on pull requests, pushes to main, and on a schedule. You can opt-out by setting the repository variable `VENICE_FORGE_DISABLE_CODEQL=true`. Findings appear in
+CodeQL static analysis is governed exclusively by the repository's **Advanced Setup** workflow:
+- **Authoritative Workflow:** `.github/workflows/codeql.yml` runs on pull requests, pushes to `main`, and on a weekly schedule. Actions are pinned to immutable commit SHAs.
+- **Single Owner Contract:** GitHub's dynamic CodeQL Default Setup is deconfigured (`state: not-configured`) to prevent dual-setup conflicts or blocked SARIF uploads. Only the tracked `.github/workflows/codeql.yml` workflow is authoritative.
+- **Repository Control:** CodeQL can be opted out via the repository variable `VENICE_FORGE_DISABLE_CODEQL=true`. Findings appear in
 [Security → Code Scanning](https://github.com/spearchucker667/Venice_Forge/security/code-scanning).
 
 ### Current open alerts

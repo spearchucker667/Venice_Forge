@@ -49,8 +49,14 @@ export function resolveEffectiveChatPromptContext(
     } else if (globalSystemPrompt) {
       systemSegments.push(globalSystemPrompt.trim());
     }
+  } else if (mode === "disabled") {
+    // User-supplied system prompt is bypassed.
+    // For local characters, the character's compiled system prompt defines
+    // the character voice and must still be sent (Venice does not host it).
+    if (characterSystemPrompt && !hostedCharacter) {
+      systemSegments.push(characterSystemPrompt.trim());
+    }
   }
-  // mode === "disabled" → no user system prompt segments
 
   return {
     mode,

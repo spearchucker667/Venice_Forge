@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MasterPasswordDialog } from "./MasterPasswordDialog";
 import { useProfileStore } from "../../stores/profile-store";
+import { isElectron } from "../../services/desktopBridge";
 
 export interface SafetyPanelProps {
   localFamilySafeModeEnabled: boolean;
@@ -18,6 +19,7 @@ export function SafetyPanel({
   veniceApiSafeMode,
   onUpdateSafetySetting,
 }: SafetyPanelProps): React.ReactElement {
+  const isDesktop = isElectron();
   const { t: tRuntime } = useTranslation("common");
   const { t } = useTranslation(["settings", "common"]);
   const { masterPasswordSet } = useProfileStore();
@@ -31,21 +33,38 @@ export function SafetyPanel({
       <div className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised p-5 shadow-sm space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-[14.5px] font-medium text-text-primary">
-              {t("settings:safety.familySafeModeTitle", "Family Safe Mode")}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-[14.5px] font-medium text-text-primary">
+                {t("settings:safety.familySafeModeTitle", "Family Safe Mode")}
+              </h3>
+              {!isDesktop && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-vf-panel-bg-inset text-text-muted border border-vf-panel-border">
+                  {t("settings:safety.serverControlledBadge", "Server Controlled (Web Mode)")}
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-[12.5px] text-text-secondary leading-relaxed">
               {t(
                 "settings:safety.familySafeModeDescription",
                 "Controls local Family Safe Mode screening. When it is off, local screening is skipped; Venice API provider Safe Mode is controlled separately.",
               )}
             </p>
+            {!isDesktop && (
+              <p className="mt-1 text-[12px] text-text-muted leading-relaxed">
+                {t(
+                  "settings:safety.webModeNotice",
+                  "In Web Mode, local safety filtering is server-controlled by the operator policy (VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED). Use Electron desktop mode for owner-controlled local safety toggles.",
+                )}
+              </p>
+            )}
           </div>
-          <label className="flex items-center gap-2 cursor-pointer shrink-0">
+          <label className={`flex items-center gap-2 shrink-0 ${isDesktop ? "cursor-pointer" : "cursor-not-allowed opacity-80"}`}>
             <input
               type="checkbox"
               checked={localFamilySafeModeEnabled}
+              disabled={!isDesktop}
               onChange={(event) => {
+                if (!isDesktop) return;
                 // Force a master password setup before any toggle is committed.
                 // Without a master password, an attacker (or a curious sibling) who
                 // sits down at the unlocked app can flip Family Safe Mode with

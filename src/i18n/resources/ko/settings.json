@@ -90,7 +90,9 @@
       "cannotDisableTitle": "공급자 세이프 모드를 비활성화할 수 없음",
       "cannotDisableDetail": "먼저 가족 세이프 모드를 꺼야 합니다."
     },
-    "keepCurrent": "현재 안전 설정 유지"
+    "keepCurrent": "현재 안전 설정 유지",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "비공식",

@@ -90,7 +90,9 @@
       "cannotDisableTitle": "प्रदाता सुरक्षित मोड को अक्षम नहीं कर सकते",
       "cannotDisableDetail": "पारिवारिक सुरक्षित मोड को पहले बंद किया जाना चाहिए।"
     },
-    "keepCurrent": "वर्तमान सुरक्षा रखें"
+    "keepCurrent": "वर्तमान सुरक्षा रखें",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "अनौपचारिक",

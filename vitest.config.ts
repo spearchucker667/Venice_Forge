@@ -33,6 +33,7 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     exclude: [...configDefaults.exclude, "inactive-features/**"],
     pool: "forks",
+    fileParallelism: false,
     testTimeout: 30000,
     // CI-only JUnit output so failure artifacts carry real diagnostics
     // (test-results/junit.xml). Local `vite`/`vitest` developer output is

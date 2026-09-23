@@ -90,7 +90,9 @@
       "cannotDisableTitle": "Não é possível desativar o Modo de Segurança do Provedor",
       "cannotDisableDetail": "O Modo de Segurança Familiar deve ser desativado primeiro."
     },
-    "keepCurrent": "Manter segurança atual"
+    "keepCurrent": "Manter segurança atual",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "Não oficial",

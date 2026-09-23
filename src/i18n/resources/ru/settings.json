@@ -90,7 +90,9 @@
       "cannotDisableTitle": "Cannot disable Provider Safe режим",
       "cannotDisableDetail": "Сначала необходимо отключить Семейный безопасный режим."
     },
-    "keepCurrent": "Сохранить текущие настройки безопасности"
+    "keepCurrent": "Сохранить текущие настройки безопасности",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "Неофициально",

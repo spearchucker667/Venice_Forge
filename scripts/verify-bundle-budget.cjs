@@ -14,6 +14,7 @@ const budgets = [
   { pattern: /^index-.*\.js$/, limitKB: 600, name: 'Main App Bundle' },
   { pattern: /^vendor-.*\.js$/, limitKB: 900, name: 'Vendor Chunks' },
   { pattern: /^pdf\.worker\.min-.*\.m?js$/, limitKB: 1500, name: 'PDF Worker' },
+  { pattern: /^i18n-.*\.js$/, limitKB: 400, name: 'Translation Catalogs' },
   { pattern: /^.*\.css$/, limitKB: 200, name: 'CSS Styles' },
 ];
 

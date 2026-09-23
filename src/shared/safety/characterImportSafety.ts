@@ -46,7 +46,27 @@ const RP_CONTEXT_SOURCE: SafetyGuardInput["source"] = "venice-client";
 const SCENE_PROMPT_SOURCE: SafetyGuardInput["source"] = "image";
 
 function assess(input: SafetyGuardInput, enabled: boolean): SafetyGuardDecision {
-  const result = maybeRunLocalFamilyGuard(input, enabled);
+  if (!enabled) {
+    return {
+      allow: true,
+      action: "allow",
+      severity: "none",
+      category: "none",
+      reasonCode: "LOCAL_FAMILY_SAFE_MODE_DISABLED",
+      userMessage: "",
+      developerMessage: "Local Family Safe Mode disabled; rule evaluation skipped.",
+      normalizedChanged: false,
+      signals: [],
+      audit: {
+        decisionId: "local-family-safe-mode-disabled",
+        createdAt: new Date().toISOString(),
+        promptHash: "00000000",
+        promptLength: 0,
+        matchedFieldPaths: [],
+      },
+    };
+  }
+  const result = maybeRunLocalFamilyGuard(input, true);
   if (result.guardDecision) {
     return result.allowed
       ? result.guardDecision

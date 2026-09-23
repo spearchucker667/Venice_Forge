@@ -90,7 +90,9 @@
       "cannotDisableTitle": "プロバイダーセーフモードを無効にできません",
       "cannotDisableDetail": "まずファミリーセーフモードをオフにする必要があります。"
     },
-    "keepCurrent": "現在の安全性を維持"
+    "keepCurrent": "現在の安全性を維持",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "非公式",

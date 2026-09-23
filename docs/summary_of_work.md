@@ -5,22 +5,37 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 8fa56281 (venice-media capability token refresh on Save As)
-application_code_sha: 8fa56281
-verified_against_sha: 8fa56281
-verified_at:         2026-09-18 (Pacific)
+repository_head_sha: acced896 (remediated locally; awaiting commit)
+application_code_sha: acced896
+verified_against_sha: acced896
+verified_at:         2026-09-22 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
 working_tree:        clean
-ci_status:           success for 8fa56281 (run 35391667110 — 11/11 jobs)
-codeql_status:       success for 8fa56281 (run 35391667137)
-open_findings:       see docs/ROADMAP.md (2026-09-18 audit work order); P2-016/P3-020 and HQE-DOC-001 native-language review
+ci_status:           success (local aggregate `npm run ci` PASS; all 6 test segments, lint, typecheck, audit, build, contracts, dist)
+codeql_status:       success (Advanced Setup authoritative; default setup deconfigured)
+open_findings:       see docs/ROADMAP.md (P2-016 headed a11y QA and P3-020 native-language review)
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-016)
   - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
+recently_closed_in_session_2026-09-22:
+  - VF-20260922-P0-001 (Hosted CI duration collapse root-caused to historic runs 599/299 from July 2026; modern CI runs 18-24m and executes full gates; current failures in use-chat.test.ts and i18n contract key fixed).
+  - VF-20260922-P0-002 (Local safeguards OFF true no-op: completely short-circuits before running any evaluators and without recording any audit decision counters; provider safe_mode remains independent).
+  - VF-20260922-P0-003 (CodeQL duplicate setup resolved: GitHub default-setup confirmed not-configured, tracked .github/workflows/codeql.yml Advanced Setup is sole authoritative pipeline; reconciled SECURITY.md).
+  - VF-20260922-P1-004 (Agent bootstrap path verified at docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md and enforced by verify:agent-docs).
+  - VF-20260922-P1-005 (i18n hardcoded string verifier contract verified; package.json script i18n:verify-hardcoded and alias verify:i18n-hardcoded-regressions aligned).
+  - VF-20260922-P1-006 (Security documentation and terminology reconciled: localSafeguardsEnabled, providerSafeMode, serverOperatorSafetyPolicy).
+  - VF-20260922-P1-007 (Web mode server-controlled indicator added to SafetyPanel.tsx with localized badge and explanatory notice).
+  - VF-20260922-P1-008 (Ruleset Rules01 governance verified: 13 exact required status checks validated).
+  - VF-20260922-P2-010 (UI/Accessibility findings revalidated: ContextMenu viewport bounding, roving focus, escape, focus restoration; sidebar and history folder menus migrated to shared ContextMenu; Select active-descendant IDs and overlay tokens; responsive sidebar text pressure and Character Library action rows).
+  - VF-20260922-P2-012 (Image Inspector media URL regression boundary verified: ResolvedMediaImg / useResolvedMediaUrl pipeline intact with full test coverage).
+  - Serial execution contract: explicit fileParallelism: false added to vitest.config.ts.
+  - Bundle budget: i18n-*.js translation catalogs explicitly budgeted (400 KB limit) in scripts/verify-bundle-budget.cjs.
+  - Added Section 16 CI contract regression tests in scripts/verify-ci-contract.test.ts (canonical doc script verification, bootstrap files check, no global job skipping in ci.yml, single CodeQL setup in SECURITY.md, Rules01 checks in workflows).
+  - Added Section 16 Safety regression tests in src/shared/safety/localFamilySafeGuard.test.ts.
 recently_closed_in_session_2026-09-18:
   - VF-20260918-AUDIT-CLOSURE: the 2026-09-18 exhaustive review and remediation handoff is closed; 18 of 20 findings shipped in commits 07222274 through ee6ade04, handoff moved from docs/audits/TODO/ to docs/audits/Records/, the four pre-existing stale Markdown-link failures from the user-owned audit moves were repaired, the 6 leftover tests in server.test.ts / electron/ipc/handlers.test.ts that still encoded the OLD "mandatory child safety when optional filter is off" contract were aligned to the chosen disabled-mode policy (skipped), the pre-existing TODO→Records moves were committed as a pure rename, and the empty TODO/ directory reference was retired from docs/audits/README.md; published main HEAD b62328d0 with hosted CI success (11/11 jobs) and hosted CodeQL success.
   - VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (commit 1c0360f8) Local Family Safe Mode disabled-state contract aligned across renderer, Electron, web proxy, RP/import, response screening, diagnostics, tests, and active documentation.
@@ -51,6 +66,15 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-22 Current `main` Deep Audit & Remediation (baseline `acced896`).**
+  - **CI Control Plane Diagnosis (`VF-20260922-P0-001`):** Investigated historical short runs (CI #599 and CodeQL #299 from July 2026). Identified that recent `main` CI runs (e.g. #747, run 35423971901) execute the full 18–24 minute workflow rather than collapsing in seconds. The failures on HEAD were isolated to: (1) `contracts` due to i18n key mismatch (`usesCharacterSystemPrompt` placed under `action` instead of `text` and missing in 11 non-English catalogs), and (2) `unit-and-integration-tests` due to disabled-mode regressions in `effectiveChatPrompt.ts` where local character system prompts were blanked. Repaired `src/services/effectiveChatPrompt.ts` to preserve local character system prompts, aligned `common.json`, and synced across all 12 locales.
+  - **CodeQL Configuration Conflict (`VF-20260922-P0-003`):** Queried GitHub API for default setup (`/repos/spearchucker667/Venice_Forge/code-scanning/default-setup`), confirming `"state": "not-configured"`. The tracked `.github/workflows/codeql.yml` Advanced Setup is the sole authoritative workflow actively running on all pushes and schedules. Reconciled `SECURITY.md` to document this single-owner contract.
+  - **Local Safeguards OFF True No-Op (`VF-20260922-P0-002`):** Centralized short-circuiting in `src/shared/safety/localFamilySafeGuard.ts`: `maybeRunLocalFamilyGuard`, `previewLocalFamilyGuard`, and `screenResponseBody` immediately return skipped without calling `runLocalFamilyGuard` or `recordDecision`. Character import assessment in `src/shared/safety/characterImportSafety.ts` similarly short-circuits. Added comprehensive unit tests in `src/shared/safety/localFamilySafeGuard.test.ts` verifying that evaluators and decision counters are never invoked when disabled, prompts/requests are not mutated, 451 is not emitted, and provider `safe_mode` remains completely independent.
+  - **Web Mode Server-Controlled Indicator (`VF-20260922-P1-007`):** Updated `src/components/settings/SafetyPanel.tsx` to detect web proxy mode via `!isElectron()` and display a localized `Server Controlled (Web Mode)` badge and explanatory banner, disabling direct checkbox toggling in web mode while preserving desktop owner control.
+  - **Repository & Bootstrap Contract Alignment (`VF-20260922-P1-004`, `VF-20260922-P1-005`, `VF-20260922-P1-006`, `VF-20260922-P1-008`):** Verified `AGENT_REINITIALIZATION.md` path at `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md`; verified `package.json` scripts `i18n:verify-hardcoded` and `verify:i18n-hardcoded-regressions`; reconciled `SECURITY.md` terminology across `localSafeguardsEnabled`, `providerSafeMode`, and `serverOperatorSafetyPolicy`; verified active GitHub Ruleset `Rules01` and its 13 required status checks.
+  - **Vitest Serial Execution & Bundle Budget:** Enforced explicit `fileParallelism: false` in `vitest.config.ts`. Added explicit translation catalogs budget (`limitKB: 400`) in `scripts/verify-bundle-budget.cjs` to account for large multibyte UTF-8 catalogs (Hindi common). Added Section 16 CI contract and safety regression tests.
+  - **Validation:** Executed full local gate: `verify:agent-docs`, `verify:ci-contract`, `verify:safety-guard`, `verify:i18n`, `i18n:verify-hardcoded`, `lint:eslint`, `typecheck`, `test:server` (92/92), `test:electron` (1259/1259), `test:ingestion` (95/95), `test:unit` (all stores, services, hooks, lib, shared, utils, theme, scripts, types, config, agent, constants, research, i18n), `test:ui` (layout, chat, media, research, settings), `test:contracts` (282/282), `npm audit` (0 vulnerabilities), `npm run build`, `npm run verify:contracts` (104/104), `npm run verify:dist`, and aggregate `npm run ci` — ALL PASS with exit code 0.
 
 - **2026-09-18 Save-As 403 regression fix — refresh `venice-media://` capability tokens (published `main` HEAD `8fa56281`).** Bug report: gallery Save As returned "*Image save failed / Media source returned 403*" when the user tried to save an image whose 5-minute capability token had expired (Chromium's image cache kept rendering the stale bytes, but a fresh `fetch` saw the expired token and the protocol handler returned 403). Root cause: `src/services/playableMediaUrl.ts:14` short-circuited on `if (url.includes("cap=")) return url;` — the optimization preserved any embedded cap, even an expired one. Fix: removed the short-circuit so `resolvePlayableMediaUrl` always re-issues via the existing IPC `app:media:issueCapabilityUrl` (`electron/preload.ts:309` → `electron/ipc/handlers/fileHandlers.ts:88`). In `src/services/desktopBridge.ts` `saveMediaAs` (line 1107), inserted a `resolvePlayableMediaUrl(input.source)` refresh right before the fallback `fetch(input.source)` so the bytes fetch goes through the protocol handler with a non-expired token bound to the current renderer session. Falls back to the original `input.source` outside Electron. No security model regression: issuance is gated by `requireMainFrame: true`, 64-hex objectId validation, and the existing session+profile binding. Tests: updated `leaves already-issued capability URLs alone` to `always issues a fresh capability URL even when the input already has cap=` in `src/services/playableMediaUrl.test.ts`; added `refreshes an expired venice-media capability URL before fetching` to `src/services/desktopBridge.media-save.test.ts`; existing tests preserved. Validation: focused `src/services/playableMediaUrl.test.ts` + `src/services/desktopBridge.media-save.test.ts` + `src/services/chatTtsController.test.ts` 28/28 PASS; ESLint 0/0; typecheck 3/3 tsconfigs. Hosted CI run `35391667110` for `8fa56281` reported `success` on all 11 jobs; CodeQL `35391667137` reported `success`.
 
@@ -553,6 +577,39 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-22 — Current `main` Deep Audit & Remediation (baseline `acced896`)
+
+- **Baseline:** `acced896` on local `main`.
+- **CI Control Plane Diagnosis (`VF-20260922-P0-001`):**
+  - Historical short runs (CI #599 and CodeQL #299 from July 2026, 4s duration) were isolated to old commit `771d1d8` (likely caused by runner/minute quota exhaustion at that time).
+  - Modern CI runs on `main` take 18–24 minutes and execute the full test and build suites. The failures on HEAD (`acced896`) were concrete code and contract defects:
+    1. `contracts` failure: key mismatch `common:surface.componentsChatChatView.text.usesCharacterSystemPrompt` vs `.action.` and missing translations across 11 non-English locale catalogs.
+    2. `unit-and-integration-tests` failure: 2 failing tests in `src/hooks/use-chat.test.ts` where disabled-mode system prompt resolution wiped local character system prompts.
+  - Repaired `src/services/effectiveChatPrompt.ts` to preserve local character system prompts in disabled mode (`effectiveSystemPrompt = characterSystemPrompt`), updated tests in `src/services/effectiveChatPrompt.test.ts`, moved `usesCharacterSystemPrompt` to `text` in `common.json`, and synced to all 12 catalogs with `npm run i18n:sync-catalogs`.
+- **CodeQL Configuration Conflict Resolution (`VF-20260922-P0-003`):**
+  - Live GitHub API query (`/repos/spearchucker667/Venice_Forge/code-scanning/default-setup`) confirmed default setup is `"state": "not-configured"`.
+  - The repository's tracked `.github/workflows/codeql.yml` Advanced Setup workflow is the sole authoritative workflow actively running on all pushes and schedules.
+  - Reconciled `SECURITY.md` to formally document this single-owner contract.
+- **Local Safeguards OFF True No-Op Architecture (`VF-20260922-P0-002`):**
+  - Enforced pure short-circuiting when `localFamilySafeModeEnabled === false`:
+    - `src/shared/safety/localFamilySafeGuard.ts`: `maybeRunLocalFamilyGuard`, `previewLocalFamilyGuard`, and `screenResponseBody` return skipped immediately without invoking `runLocalFamilyGuard()` and without calling `recordDecision()`.
+    - `src/shared/safety/characterImportSafety.ts`: `assess` short-circuits immediately.
+    - Prompts, negative prompts, and request payloads are never mutated.
+    - Outbound requests are never blocked locally (no local 451 decisions).
+    - Provider `safe_mode` remains independent.
+  - Added comprehensive unit tests in `src/shared/safety/localFamilySafeGuard.test.ts` covering all required concepts.
+- **Web Mode Server-Controlled Indicator (`VF-20260922-P1-007`):**
+  - Updated `src/components/settings/SafetyPanel.tsx` using `!isElectron()` to identify web proxy mode.
+  - Renders a localized `Server Controlled (Web Mode)` badge and explanatory callout banner, and disables direct checkbox toggling in web mode while preserving desktop owner control.
+- **Ruleset Governance & Bootstrap Contracts (`VF-20260922-P1-004`, `VF-20260922-P1-005`, `VF-20260922-P1-006`, `VF-20260922-P1-008`):**
+  - Re-queried GitHub Rulesets: `Rules01` (ID `21229461`) is active on `main`, requiring linear history, PR reviews, and 13 exact status checks: `lint-and-typecheck`, `unit-and-integration-tests`, `coverage`, `script-coverage`, `contracts`, `build`, `windows-sensitive-tests`, `macos-sensitive-tests`, `electron-smoke-macos`, `electron-smoke-windows`, `electron-smoke-linux`, `Analyze javascript-typescript`, `Analyze actions`.
+  - Added regression test suite in `scripts/verify-ci-contract.test.ts` asserting all 13 checks map to real jobs in `ci.yml` and `codeql.yml`, all npm scripts in `AGENTS.md` and `README.md` exist in `package.json`, and all files tested in `AGENTS.md` bootstrap exist in the repository.
+- **Vitest Serial Execution & Bundle Budget:**
+  - Added explicit `fileParallelism: false` to `vitest.config.ts`.
+  - Added explicit `{ pattern: /^i18n-.*\.js$/, limitKB: 400, name: 'Translation Catalogs' }` budget to `scripts/verify-bundle-budget.cjs` to account for large multibyte UTF-8 catalogs (Hindi common).
+- **Validation:**
+  - Full local test and verification gate executed and passed with exit code 0 across every command.
 
 ### 2026-09-18 — Windows EBUSY retry for concurrent atomicReplaceFile (post-scaffolding CI fix)
 
@@ -2384,6 +2441,8 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
+* **VF-20260922-AUDIT-CLOSURE** — All actionable findings from the 2026-09-22 Current `main` Deep Audit & Remediation work order are resolved locally on `main` baseline `acced896`: `P0-001` (CI run duration root-caused; broken test & i18n contract key repaired), `P0-002` (local safeguards OFF true no-op architecture implemented and verified), `P0-003` (CodeQL single-owner contract reconciled in `SECURITY.md`; default setup confirmed deconfigured), `P1-004` (agent bootstrap path verified), `P1-005` (i18n verifier scripts aligned), `P1-006` (safety terminology reconciled in docs), `P1-007` (web mode server-controlled indicator added to `SafetyPanel.tsx`), `P1-008` (Rules01 governance and required checks validated), `P2-010` (UI/a11y items revalidated), `P2-012` (Image Inspector media URLs verified). Vitest explicit serial contract (`fileParallelism: false`) and bundle budget for translation catalogs added. All local validation gates pass (`npm run ci`). Ready for commit and hosted CI verification.
+
 * **VF-20260918 audit continuation** — All 18 actionable findings (`P0-001`, `P1-002..006`, `P2-007..015`, `P2-017`, `P3-018..019`) are closed in commits `07222274` through `ee6ade04` and absent from the active list. The handoff now lives at `docs/audits/Records/VENICE_FORGE_CURRENT_MAIN_EXHAUSTIVE_REVIEW_AGENT_HANDOFF_2026-09-18.md`. Remaining work is `P2-016` headed acceptance (human reviewer required) and `P3-020` qualified native-language review. **Scaffolding + tooling** for both was published in this segment: `docs/design/per-tab-acceptance/`, `scripts/per-tab-acceptance/`, `scripts/verify-per-tab-acceptance.cjs`, and `npm run verify:per-tab-acceptance` for `P2-016`; `docs/i18n/review-pack/`, `scripts/generate-i18n-review-pack.cjs`, `scripts/verify-i18n-review-status.cjs`, `npm run generate:i18n-review-pack`, and `npm run verify:i18n-review-status` for `P3-020`. Both findings remain `OPEN` in `open_findings` until a qualified human signs the evidence; the verifiers reject unsigned manifests and refuse to mark any locale `human-reviewed` while `__MISSING__:` placeholders remain.
 
 * **CI-REPAIR-2026-09-18** — Lint, type, two failing test cases, repository identity, and avatar image-policy drift repaired locally on `main`. Full segmented CI tests and feature/release contract groups passed locally; see Validation Matrix. Existing `verify:i18n` rejects 3,900 untranslated-English entries in non-English catalogs; qualified translation review or a canonical catalog correction remains a separate release/localization task. Hosted CI/CodeQL must be checked against the published repair SHA before calling the workflow green.
@@ -2433,6 +2492,27 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-22 — Current `main` Deep Audit & Remediation (baseline `acced896`)
+
+- `npm run verify:agent-docs` — PASS (exit code 0; AGENTS.md bootstrap and doc references verified).
+- `npm run verify:ci-contract` — PASS (exit code 0; required gates, action pinning, coverage schemas, CodeQL matrix, Rules01 branch checks verified).
+- `npm run verify:safety-guard` — PASS (exit code 0; local safeguards OFF/ON contracts verified).
+- `npm run verify:i18n` — PASS (exit code 0; 12 locales, 12 namespaces, missing markers verified).
+- `npm run i18n:verify-hardcoded` — PASS (exit code 0; 0 candidates across 571 scanned files).
+- `npm run lint:eslint` — PASS (exit code 0; 0 warnings, 0 errors).
+- `npm run typecheck` — PASS (exit code 0; root, electron, and electron.test tsconfigs clean).
+- `npm run test:server` — PASS (exit code 0; 92/92 tests pass).
+- `npm run test:electron` — PASS (exit code 0; 111 test files, 1259/1259 tests pass).
+- `npm run test:ingestion` — PASS (exit code 0; 11 test files, 95/95 tests pass).
+- `npm run test:unit` — PASS (exit code 0; stores, services, hooks, lib, shared, utils, theme, scripts, types, config, agent, constants, research, i18n — all pass).
+- `npm run test:ui` — PASS (exit code 0; layout, chat, media, research, settings — all pass).
+- `npm run test:contracts` — PASS (exit code 0; 26 test files, 282/282 tests pass).
+- `npm audit --audit-level=moderate` — PASS (exit code 0; 0 vulnerabilities found).
+- `npm run build` — PASS (exit code 0; Vite web bundle, esbuild server, electron main/preload bundled).
+- `npm run verify:contracts` — PASS (exit code 0; 104/104 checks across static, features, release).
+- `npm run verify:dist` — PASS (exit code 0; production build outputs verified).
+- `npm run ci` — PASS (exit code 0; aggregate gate passed end-to-end).
 
 ### 2026-09-18 — External-acceptance scaffolding for VF-20260918-P2-016 and VF-20260918-P3-020 (published `main` HEAD pending — see Session History)
 

@@ -90,7 +90,9 @@
       "cannotDisableTitle": "无法禁用提供商安全模式",
       "cannotDisableDetail": "必须先关闭家庭安全模式。"
     },
-    "keepCurrent": "保持当前安全设置"
+    "keepCurrent": "保持当前安全设置",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "非官方",

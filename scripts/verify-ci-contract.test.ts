@@ -137,3 +137,70 @@ describe("verify-ci-contract workflow contents", () => {
     expect(result.stdout).toContain("vitest.config.ts test isolation and coverage schema are valid");
   });
 });
+
+describe("verify-ci-contract documentation and ruleset contract invariants (Section 16)", () => {
+  const root = path.resolve(__dirname, "..");
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")) as {
+    scripts: Record<string, string>;
+  };
+
+  it("ensures every npm run script referenced in AGENTS.md and README.md exists in package.json", () => {
+    const scripts = Object.keys(pkg.scripts);
+    for (const doc of ["AGENTS.md", "README.md"]) {
+      const content = fs.readFileSync(path.join(root, doc), "utf8");
+      const matches = [...content.matchAll(/npm\s+run\s+([a-zA-Z0-9:-]+)/g)].map((m) => m[1]);
+      const missing = matches.filter((s) => !scripts.includes(s));
+      expect(missing, `Nonexistent scripts found in ${doc}`).toEqual([]);
+    }
+  });
+
+  it("ensures every file tested in AGENTS.md bootstrap script exists in repository", () => {
+    const agents = fs.readFileSync(path.join(root, "AGENTS.md"), "utf8");
+    const testPaths = [...agents.matchAll(/test\s+-[fd]\s+([^\n\r]+)/g)].map((m) => m[1].trim());
+    expect(testPaths.length).toBeGreaterThan(0);
+    for (const relPath of testPaths) {
+      expect(fs.existsSync(path.join(root, relPath)), `Bootstrap path missing: ${relPath}`).toBe(true);
+    }
+  });
+
+  it("ensures ci.yml contains no global job-skipping if-condition", () => {
+    const ciYaml = fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
+    // Ensure no top-level job has `if: false` or invalid skip expression
+    expect(ciYaml).not.toMatch(/^\s*if:\s*false\s*$/m);
+    expect(ciYaml).not.toMatch(/^\s*if:\s*!\s*always\(\)\s*$/m);
+  });
+
+  it("ensures SECURITY.md designates only Advanced Setup as authoritative and documents Default Setup as deconfigured", () => {
+    const securityMd = fs.readFileSync(path.join(root, "SECURITY.md"), "utf8");
+    expect(securityMd).toContain("Advanced Setup");
+    expect(securityMd).toMatch(/Default Setup.*(?:not-configured|not configured|deconfigured)/is);
+  });
+
+  it("ensures all required branch protection checks correspond to real jobs in ci.yml and codeql.yml", () => {
+    const ciYaml = fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
+    const codeqlYaml = fs.readFileSync(path.join(root, ".github/workflows/codeql.yml"), "utf8");
+
+    const requiredCiJobs = [
+      "lint-and-typecheck",
+      "unit-and-integration-tests",
+      "coverage",
+      "script-coverage",
+      "contracts",
+      "build",
+      "windows-sensitive-tests",
+      "macos-sensitive-tests",
+      "electron-smoke-macos",
+      "electron-smoke-windows",
+      "electron-smoke-linux",
+    ];
+
+    for (const job of requiredCiJobs) {
+      const jobRegex = new RegExp(`^  ${job}:`, "m");
+      expect(jobRegex.test(ciYaml), `Required job '${job}' missing from ci.yml`).toBe(true);
+    }
+
+    expect(codeqlYaml).toMatch(/^ {2}analyze:/m);
+    expect(codeqlYaml).toContain("javascript-typescript");
+    expect(codeqlYaml).toContain("actions");
+  });
+});

@@ -626,7 +626,8 @@
         "includeMemoryRetrievalForThisChat": "Include memory retrieval for this chat",
         "includePriorConversationContext": "Include prior conversation context",
         "selected": "selected",
-        "chattingAs": "Chatting as"
+        "chattingAs": "Chatting as",
+        "usesCharacterSystemPrompt": "Using the character’s system prompt. The user-supplied system prompt is bypassed for hosted and local character chats."
       },
       "action": {
         "shuffle": "Shuffle",
@@ -638,8 +639,7 @@
         "forgetFact": "Forget Fact",
         "chatContext": "⚙ Chat context ·",
         "requireMemoryPreviewBeforeNextSend": "Require memory preview before next send",
-        "clear": "Clear",
-        "usesCharacterSystemPrompt": "Using the character’s system prompt. The user-supplied system prompt is bypassed for hosted and local character chats."
+        "clear": "Clear"
       },
       "label": {
         "systemPromptMode": "System Prompt Mode"

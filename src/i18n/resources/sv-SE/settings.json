@@ -90,7 +90,9 @@
       "cannotDisableTitle": "Kan inte inaktivera leverantörens säkra läge",
       "cannotDisableDetail": "Familjesäkert läge måste stängas av först."
     },
-    "keepCurrent": "Behåll nuvarande säkerhet"
+    "keepCurrent": "Behåll nuvarande säkerhet",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "Inofficiell",

@@ -496,7 +496,8 @@
         "includeMemoryRetrievalForThisChat": "Inkludera minneshämtning för denna chatt",
         "includePriorConversationContext": "Requiclude föregående konversation",
         "selected": "valt",
-        "chattingAs": "Chattar som"
+        "chattingAs": "Chattar som",
+        "usesCharacterSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.usesCharacterSystemPrompt"
       },
       "label": {
         "systemPromptMode": "Systemmeddelandeläge"

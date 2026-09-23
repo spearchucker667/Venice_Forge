@@ -496,7 +496,8 @@
         "includeMemoryRetrievalForThisChat": "Incluir recuperação de memória para este bate-papo",
         "includePriorConversationContext": "Incluir contexto de conversa anterior",
         "selected": "selecionou",
-        "chattingAs": "Bate-papo como"
+        "chattingAs": "Bate-papo como",
+        "usesCharacterSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.usesCharacterSystemPrompt"
       },
       "label": {
         "systemPromptMode": "Modo de prompt do sistema"

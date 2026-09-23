@@ -90,7 +90,9 @@
       "cannotDisableTitle": "تعذر تعطيل وضع الأمان للمزود",
       "cannotDisableDetail": "يجب إيقاف وضع الأمان العائلي أولاً."
     },
-    "keepCurrent": "الاحتفاظ بإعدادات الأمان الحالية"
+    "keepCurrent": "الاحتفاظ بإعدادات الأمان الحالية",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "غير رسمي",

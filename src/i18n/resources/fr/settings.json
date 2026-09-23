@@ -90,7 +90,9 @@
       "cannotDisableTitle": "Impossible de désactiver le mode de sécurité du fournisseur",
       "cannotDisableDetail": "Le mode de sécurité familial doit d'abord être désactivé."
     },
-    "keepCurrent": "Conserver la sécurité actuelle"
+    "keepCurrent": "Conserver la sécurité actuelle",
+    "serverControlledBadge": "__MISSING__:safety.serverControlledBadge",
+    "webModeNotice": "__MISSING__:safety.webModeNotice"
   },
   "aboutPanel": {
     "unofficial": "Non officiel",

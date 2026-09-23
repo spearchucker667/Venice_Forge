@@ -550,7 +550,8 @@
         "includeMemoryRetrievalForThisChat": "包括本次聊天的内存检索",
         "includePriorConversationContext": "包括之前的对话上下文",
         "selected": "选择了",
-        "chattingAs": "作为此消息所附的"
+        "chattingAs": "作为此消息所附的",
+        "usesCharacterSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.usesCharacterSystemPrompt"
       },
       "label": {
         "systemPromptMode": "系统提示模式"

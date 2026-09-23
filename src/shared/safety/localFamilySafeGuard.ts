@@ -223,19 +223,29 @@ function buildAllowedLocalDecision(
 }
 
 /**
- * Evaluates the local safety stack when Family Safe Mode is enabled. Disabled
- * mode is represented by a synthetic skipped decision from the rule runner.
+ * Evaluates the local safety stack when Family Safe Mode is enabled. When
+ * disabled, local screening is short-circuited with zero behavioral impact:
+ * no rules evaluated, no counters recorded, no blocks emitted.
  */
 export function maybeRunLocalFamilyGuard(
   input: SafetyGuardInput,
   localFamilySafeModeEnabled: boolean,
 ): LocalGuardDecision {
-  const guardDecision = runLocalFamilyGuard(input, localFamilySafeModeEnabled);
+  if (!localFamilySafeModeEnabled) {
+    return {
+      allowed: true,
+      skipped: true,
+      reason: "LOCAL_FAMILY_SAFE_MODE_DISABLED",
+      category: "general",
+      layer: "disabled-local-family-safe-mode",
+    };
+  }
+  const guardDecision = runLocalFamilyGuard(input, true);
   recordDecision(guardDecision);
   if (!guardDecision.allow || guardDecision.action === "block") {
-    return buildBlockedLocalDecision(guardDecision, localFamilySafeModeEnabled);
+    return buildBlockedLocalDecision(guardDecision, true);
   }
-  return buildAllowedLocalDecision(guardDecision, localFamilySafeModeEnabled);
+  return buildAllowedLocalDecision(guardDecision, true);
 }
 
 /**
@@ -252,11 +262,20 @@ export function previewLocalFamilyGuard(
   input: SafetyGuardInput,
   localFamilySafeModeEnabled: boolean,
 ): LocalGuardDecision {
-  const guardDecision = runLocalFamilyGuard(input, localFamilySafeModeEnabled);
-  if (!guardDecision.allow || guardDecision.action === "block") {
-    return buildBlockedLocalDecision(guardDecision, localFamilySafeModeEnabled);
+  if (!localFamilySafeModeEnabled) {
+    return {
+      allowed: true,
+      skipped: true,
+      reason: "LOCAL_FAMILY_SAFE_MODE_DISABLED",
+      category: "general",
+      layer: "disabled-local-family-safe-mode",
+    };
   }
-  return buildAllowedLocalDecision(guardDecision, localFamilySafeModeEnabled);
+  const guardDecision = runLocalFamilyGuard(input, true);
+  if (!guardDecision.allow || guardDecision.action === "block") {
+    return buildBlockedLocalDecision(guardDecision, true);
+  }
+  return buildAllowedLocalDecision(guardDecision, true);
 }
 
 export type ResponseBodyScreenResult =
@@ -338,10 +357,9 @@ function buildScreeningSample(body: string): string {
 }
 
 /**
- * Screens a string returned by a web-proxy or scrape boundary. The guard is
- * always subject to the child-exploitation guard. When the optional Family
- * Safe Mode setting is OFF, an allowed result is marked `skipped` only to
- * describe the optional layer; child-safety evaluation still occurred.
+ * Screens a string returned by a web-proxy or scrape boundary when Local Family
+ * Safe Mode is enabled. When disabled (Adult Mode), local screening has zero
+ * behavioral impact and returns immediately as skipped.
  *
  * Callers MUST treat blocked results as a 451 with the supplied `userMessage`
  * (do not echo raw body content back to the user). When the input is shorter
@@ -355,9 +373,17 @@ export function screenResponseBody(
   localFamilySafeModeEnabled: boolean,
   _sampleWindow = MAX_SCAN_CHARS,
 ): ResponseBodyScreenResult {
+  if (!localFamilySafeModeEnabled) {
+    return {
+      allowed: true,
+      skipped: true,
+      uiCategory: "general",
+      reason: "LOCAL_FAMILY_SAFE_MODE_DISABLED",
+    };
+  }
   const sample = buildScreeningSample(body);
   const input: SafetyGuardInput = { ...context, text: sample };
-  const decision = maybeRunLocalFamilyGuard(input, localFamilySafeModeEnabled);
+  const decision = maybeRunLocalFamilyGuard(input, true);
   if (!decision.allowed) {
     return {
       allowed: false,
@@ -372,11 +398,8 @@ export function screenResponseBody(
   }
   return {
     allowed: true,
-    skipped: !localFamilySafeModeEnabled,
+    skipped: false,
     uiCategory: decision.category,
-    ...(localFamilySafeModeEnabled
-      ? {}
-      : { reason: "LOCAL_FAMILY_SAFE_MODE_DISABLED" }),
   };
 }
 

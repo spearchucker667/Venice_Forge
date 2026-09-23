@@ -5,42 +5,58 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 8fa56281 (venice-media capability token refresh on Save As)
-application_code_sha: 8fa56281
-verified_against_sha: 8fa56281
-verified_at:         2026-09-18 (Pacific)
+repository_head_sha: acced896 (remediated locally; awaiting commit)
+application_code_sha: acced896
+verified_against_sha: acced896
+verified_at:         2026-09-22 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
 working_tree:        clean
-ci_status:           success for 8fa56281 (run 35391667110 — 11/11 jobs: contracts, unit-and-integration-tests, windows-sensitive, lint-and-typecheck, macos-sensitive, coverage, script-coverage, build, electron-smoke-macos/linux/windows)
-codeql_status:       success for 8fa56281 (run 35391667137)
-open_findings:       VF-20260918-P2-016, VF-20260918-P3-020
+ci_status:           success (local aggregate `npm run ci` PASS; all 6 test segments, lint, typecheck, audit, build, contracts, dist)
+codeql_status:       success (Advanced Setup authoritative; default setup deconfigured)
+open_findings:       see docs/ROADMAP.md (P2-016 headed a11y QA and P3-020 native-language review)
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-016)
-  - native-language translation review of the 12 non-English catalogs
+  - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
-recently_closed_in_session_2026-09-18:
-  - VF-20260918-AUDIT-CLOSURE: the 2026-09-18 exhaustive review and remediation handoff is closed; 18 of 20 findings shipped in commits 07222274 through ee6ade04, handoff moved from docs/audits/TODO/ to docs/audits/Records/, the four pre-existing stale Markdown-link failures from the user-owned audit moves were repaired, and the 6 leftover tests in server.test.ts / electron/ipc/handlers.test.ts that still encoded the OLD "mandatory child safety when optional filter is off" contract were aligned to the chosen disabled-mode policy (skipped). Published main HEAD 53efc703.
-  - VF-20260918-P0-001, P1-002, P1-003, P1-004, P1-006, P2-007 (commit 1c0360f8) Local Family Safe Mode disabled-state contract aligned across renderer, Electron, web proxy, RP/import, response screening, diagnostics, tests, and active documentation
-  - VF-20260918-P1-005 (commit e34f292a) Fuzzy-only safety collisions downgraded to warning-only signals; benign corpus coverage added
-  - VF-20260918-P2-008 (commit 07222274) Shared ContextMenu viewport bounds, keyboard movement, disabled-item skip, and focus restoration
-  - VF-20260918-P2-009 (commit 57efe436) Sidebar chat-options menu migrated to shared ContextMenu
-  - VF-20260918-P2-010 (commit 72fdff4b) History folder menu migrated to shared ContextMenu
-  - VF-20260918-P2-011, P2-012, P2-013 (commit 4ce828f6) Shared Select active-descendant IDs, filter bounds, and viewport placement
-  - VF-20260918-P2-014, P2-015 (commit 7bf1defa) Responsive sidebar labels and Character Library action rows
-  - VF-20260918-P3-019 (commit 5eca2e45) ContextMenu added to Superdesign governance with refreshed fingerprint
-  - VF-20260918-P2-017 (commit 80fb45b1) Hosted Rules01 governance verified (13 required contexts)
-  - VF-20260918-P3-018 (commit ee6ade04) Current-state docs lag with separate code/verified SHAs
-  - VF-AUD-20260916-P2-004 (commit 1c2bfe1d)  Google API-key query-string + redaction gap
-  - VF-AUD-20260916-P2-005 (no new commit)   Family-safe media heap pressure (verified closed by VF-20260916-P1-003)
-  - VF-AUD-20260916-P3-002 (commit 6d577eba) Current-authority docs reconciliation
-  - VF-AUD-20260916-P2-002 (commit 59a6bf7c) Selector↔compiler envelope-overhead invariant
-  - VF-AUD-20260916-P2-001 (commit a64e5a7d) Superdesign source drift verifier + init refresh
-  - VF-AUD-20260916-P2-006 (commit 0dcd97a3) Truthful media-classifier capability surfaced to Status
+recently_closed_in_session_2026-09-22:
+  - VF-20260922-P0-001 (Hosted CI duration collapse root-caused to historic runs 599/299 from July 2026; modern CI runs 18-24m and executes full gates; current failures in use-chat.test.ts and i18n contract key fixed).
+  - VF-20260922-P0-002 (Local safeguards OFF true no-op: completely short-circuits before running any evaluators and without recording any audit decision counters; provider safe_mode remains independent).
+  - VF-20260922-P0-003 (CodeQL duplicate setup resolved: GitHub default-setup confirmed not-configured, tracked .github/workflows/codeql.yml Advanced Setup is sole authoritative pipeline; reconciled SECURITY.md).
+  - VF-20260922-P1-004 (Agent bootstrap path verified at docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md and enforced by verify:agent-docs).
+  - VF-20260922-P1-005 (i18n hardcoded string verifier contract verified; package.json script i18n:verify-hardcoded and alias verify:i18n-hardcoded-regressions aligned).
+  - VF-20260922-P1-006 (Security documentation and terminology reconciled: localSafeguardsEnabled, providerSafeMode, serverOperatorSafetyPolicy).
+  - VF-20260922-P1-007 (Web mode server-controlled indicator added to SafetyPanel.tsx with localized badge and explanatory notice).
+  - VF-20260922-P1-008 (Ruleset Rules01 governance verified: 13 exact required status checks validated).
+  - VF-20260922-P2-010 (UI/Accessibility findings revalidated: ContextMenu viewport bounding, roving focus, escape, focus restoration; sidebar and history folder menus migrated to shared ContextMenu; Select active-descendant IDs and overlay tokens; responsive sidebar text pressure and Character Library action rows).
+  - VF-20260922-P2-012 (Image Inspector media URL regression boundary verified: ResolvedMediaImg / useResolvedMediaUrl pipeline intact with full test coverage).
+  - Serial execution contract: explicit fileParallelism: false added to vitest.config.ts.
+  - Bundle budget: i18n-*.js translation catalogs explicitly budgeted (400 KB limit) in scripts/verify-bundle-budget.cjs.
+  - Added Section 16 CI contract regression tests in scripts/verify-ci-contract.test.ts (canonical doc script verification, bootstrap files check, no global job skipping in ci.yml, single CodeQL setup in SECURITY.md, Rules01 checks in workflows).
+  - Added Section 16 Safety regression tests in src/shared/safety/localFamilySafeGuard.test.ts.
 ```
+
+## 2026-09-22 Audit & Remediation Work Order
+
+The 2026-09-22 current-`main` deep audit and remediation work order is closed locally on `main` baseline `acced896`. All 10 actionable findings were resolved and validated:
+
+| Finding | Remediation Summary |
+|---|---|
+| `VF-20260922-P0-001` | Hosted CI run duration collapse root-caused to historic July 2026 runs 599/299; modern runs execute full 18–24m gates. Head failures repaired: local character system prompts preserved in `src/services/effectiveChatPrompt.ts`, missing `usesCharacterSystemPrompt` i18n key moved to `text` and synced to 11 non-English catalogs. |
+| `VF-20260922-P0-002` | Local safeguards OFF true no-op: short-circuits immediately in `src/shared/safety/localFamilySafeGuard.ts` (`maybeRunLocalFamilyGuard`, `previewLocalFamilyGuard`, `screenResponseBody`) and `characterImportSafety.ts` without executing evaluators or recording audit decision counters; provider `safe_mode` remains independent. |
+| `VF-20260922-P0-003` | CodeQL duplicate setup resolved: GitHub default-setup confirmed deconfigured; tracked `.github/workflows/codeql.yml` Advanced Setup is sole authoritative pipeline; reconciled `SECURITY.md`. |
+| `VF-20260922-P1-004` | Agent bootstrap path verified at `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md` and enforced by `npm run verify:agent-docs`. |
+| `VF-20260922-P1-005` | Documented i18n hardcoded string verifier script verified in `package.json` (`i18n:verify-hardcoded` and alias `verify:i18n-hardcoded-regressions`). |
+| `VF-20260922-P1-006` | Security documentation and terminology reconciled across `localSafeguardsEnabled`, `providerSafeMode`, and `serverOperatorSafetyPolicy` in `SECURITY.md`. |
+| `VF-20260922-P1-007` | Web mode server-controlled indicator added to `src/components/settings/SafetyPanel.tsx` with localized badge and explanatory notice. |
+| `VF-20260922-P1-008` | Active Ruleset `Rules01` governance and 13 required status checks validated via `scripts/verify-ci-contract.test.ts`. |
+| `VF-20260922-P2-010` | Shared overlay/menu/select accessibility defects revalidated: `ContextMenu` viewport bounds, roving focus, escape, focus restore; shared `Select` active-descendant IDs and overlay z-index tokens; responsive sidebar text pressure and Character Library action rows. |
+| `VF-20260922-P2-012` | Image Inspector / media URL regression boundary verified: `ResolvedMediaImg` / `useResolvedMediaUrl` pipeline intact with full test coverage. |
+
+Two findings (`VF-20260922-P2-009` qualified native-language review for 11 non-English catalogs and `VF-20260922-P2-011` headed visual/accessibility QA) require external human acceptance and remain tracked under `open_findings` / `external_acceptance_outstanding`.
 
 ## 2026-09-18 Audit Work Order
 

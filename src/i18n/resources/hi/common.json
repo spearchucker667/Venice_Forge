@@ -550,7 +550,8 @@
         "includeMemoryRetrievalForThisChat": "इस चैट के लिए मेमोरी पुनर्प्राप्ति शामिल करें",
         "includePriorConversationContext": "पूर्व वार्तालाप संदर्भ शामिल करें",
         "selected": "चयनित",
-        "chattingAs": "इस संदेश के साथ संलग्न"
+        "chattingAs": "इस संदेश के साथ संलग्न",
+        "usesCharacterSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.usesCharacterSystemPrompt"
       },
       "label": {
         "systemPromptMode": "सिस्टम प्रॉम्प्ट मोड"

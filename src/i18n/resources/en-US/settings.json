@@ -90,7 +90,9 @@
       "cannotDisableTitle": "Cannot disable Provider Safe Mode",
       "cannotDisableDetail": "Family Safe Mode must be turned off first."
     },
-    "keepCurrent": "Keep current safety"
+    "keepCurrent": "Keep current safety",
+    "serverControlledBadge": "Server Controlled (Web Mode)",
+    "webModeNotice": "In Web Mode, local safety filtering is server-controlled by the operator policy (VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED). Use Electron desktop mode for owner-controlled local safety toggles."
   },
   "aboutPanel": {
     "unofficial": "Unofficial",

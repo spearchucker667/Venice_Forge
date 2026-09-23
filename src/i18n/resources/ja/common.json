@@ -550,7 +550,8 @@
         "includeMemoryRetrievalForThisChat": "このチャットのメモリ取得を含める",
         "includePriorConversationContext": "以前の会話コンテキストを含める",
         "selected": "選択済み",
-        "chattingAs": "このメッセージに添付された"
+        "chattingAs": "このメッセージに添付された",
+        "usesCharacterSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.usesCharacterSystemPrompt"
       },
       "label": {
         "systemPromptMode": "システム プロンプト モード"
