@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PerTabAcceptanceEvidenceManifest",
+  "description": "Schema and template for per-tab headed visual and accessibility acceptance manifests (VF-20260918-P2-016 / VF-20260922-P2-011).",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "tab",
+    "viewport",
+    "theme",
+    "locale",
+    "state",
+    "reviewer",
+    "capturedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Manifest schema version (must be 1)."
+    },
+    "tab": {
+      "type": "string",
+      "enum": [
+        "character-chats",
+        "history",
+        "image-inspector",
+        "prompts",
+        "scenes",
+        "audio",
+        "music",
+        "video",
+        "embeddings",
+        "search",
+        "characters",
+        "character-creator",
+        "rp-studio",
+        "privacy",
+        "playground"
+      ],
+      "description": "Canonical tab identifier."
+    },
+    "viewport": {
+      "type": "string",
+      "enum": [
+        "1280x720",
+        "1440x900",
+        "1920x1080",
+        "2560x1440",
+        "mobile-390x844"
+      ],
+      "description": "Target viewport resolution."
+    },
+    "theme": {
+      "type": "string",
+      "enum": [
+        "venice-dark",
+        "venice-light",
+        "nord-dark",
+        "venice-rtl"
+      ],
+      "description": "Active UI theme preset."
+    },
+    "locale": {
+      "type": "string",
+      "enum": [
+        "en-US",
+        "ar",
+        "zh-CN"
+      ],
+      "description": "Active UI locale."
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "initial",
+        "keyboard",
+        "overflow"
+      ],
+      "description": "Tested UI state."
+    },
+    "headings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Rendered landmarks and section headings observed."
+    },
+    "interactions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Interactions performed during acceptance."
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["signature", "contact"],
+      "properties": {
+        "signature": {
+          "type": "string",
+          "description": "Qualified reviewer full name."
+        },
+        "contact": {
+          "type": "string",
+          "description": "Reviewer contact (email or GitHub handle)."
+        }
+      }
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of capture."
+    },
+    "browser": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "os": {
+      "type": "string",
+      "description": "Operating system and version."
+    },
+    "defects": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Observed visual, layout, or accessibility defects."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Reference to companion notes.md."
+    }
+  }
+}

@@ -40,27 +40,27 @@
     "promotedToDocuments": "दस्तावेज़ों में सहेजा गया",
     "attachmentNotRegistered": "संलग्नक प्रमोशन के लिए पंजीकृत नहीं है।",
     "promotionFailed": "प्रमोशन विफल रहा।",
-    "addVideoUrl": "__MISSING__:composer.addVideoUrl",
-    "nativeVideoDraft": "__MISSING__:composer.nativeVideoDraft",
-    "videoUrlPlaceholder": "__MISSING__:composer.videoUrlPlaceholder",
-    "videoUrlLabel": "__MISSING__:composer.videoUrlLabel {{name}}",
-    "attachmentMode": "__MISSING__:composer.attachmentMode {{name}}",
+    "addVideoUrl": "वीडियो URL जोड़ें",
+    "nativeVideoDraft": "वीडियो URL",
+    "videoUrlPlaceholder": "https://example.com/video.mp4 या YouTube लिंक",
+    "videoUrlLabel": "{{name}} के लिए वीडियो URL",
+    "attachmentMode": "{{name}} के लिए स्रोत",
     "attachmentModes": {
-      "context": "__MISSING__:composer.attachmentModes.context",
-      "nativeFile": "__MISSING__:composer.attachmentModes.nativeFile",
-      "nativeVideo": "__MISSING__:composer.attachmentModes.nativeVideo"
+      "context": "स्थानीय संदर्भ",
+      "nativeFile": "मूल फ़ाइल",
+      "nativeVideo": "मूल वीडियो"
     },
     "nativeErrors": {
-      "title": "__MISSING__:composer.nativeErrors.title",
-      "unsupportedType": "__MISSING__:composer.nativeErrors.unsupportedType",
-      "missingPayload": "__MISSING__:composer.nativeErrors.missingPayload",
-      "rawLocalPath": "__MISSING__:composer.nativeErrors.rawLocalPath",
-      "unsupportedFileFormat": "__MISSING__:composer.nativeErrors.unsupportedFileFormat",
-      "unsupportedVideoFormat": "__MISSING__:composer.nativeErrors.unsupportedVideoFormat",
-      "tooManyVideoUrls": "__MISSING__:composer.nativeErrors.tooManyVideoUrls {{max}} {{actual}}",
-      "tooLarge": "__MISSING__:composer.nativeErrors.tooLarge",
-      "fileUnavailable": "__MISSING__:composer.nativeErrors.fileUnavailable",
-      "readFailed": "__MISSING__:composer.nativeErrors.readFailed"
+      "title": "अनुलग्नक नहीं भेजा जा सकता",
+      "unsupportedType": "इस अनुलग्नक प्रकार को मूल इनपुट के रूप में नहीं भेजा जा सकता है।",
+      "missingPayload": "इस अनुलग्नक की सामग्री गायब है।",
+      "rawLocalPath": "स्थानीय फ़ाइल पथ नहीं भेजे जा सकते। फ़ाइल स्वयं संलग्न करें या सार्वजनिक https:// URL का उपयोग करें।",
+      "unsupportedFileFormat": "मूल इनपुट के लिए असमर्थित फ़ाइल प्रकार। समर्थित: PDF, EPUB, DOCX, PPTX, XLSX, XLS, TXT, Markdown, CSV या JSON। इसके बजाय “स्थानीय संदर्भ” चुनें।",
+      "unsupportedVideoFormat": "असमर्थित वीडियो URL। सीधे mp4/mpeg/mov/webm लिंक या YouTube URL का उपयोग करें।",
+      "tooManyVideoUrls": "प्रति संदेश अधिकतम {{max}} वीडियो इनपुट की अनुमति है (इस संदेश में {{actual}} हैं)।",
+      "tooLarge": "यह फ़ाइल मूल फ़ाइल के रूप में अपलोड करने के लिए बहुत बड़ी है। इसके बजाय “स्थानीय संदर्भ” का उपयोग करें — यह बातचीत में पाठ निकालता है।",
+      "fileUnavailable": "मूल फ़ाइल अब उपलब्ध नहीं है — इसे मूल फ़ाइल के रूप में भेजने के लिए पुनः संलग्न करें।",
+      "readFailed": "इस फ़ाइल को मूल इनपुट के रूप में नहीं पढ़ा जा सका।"
     }
   },
   "memory": {
@@ -99,39 +99,39 @@
     "retryingFromCheckpoint": "स्ट्रीम टूट गई। चेकपॉइंट से पुनः प्रयास"
   },
   "privacy": {
-    "e2eeLabel": "__MISSING__:privacy.e2eeLabel",
-    "e2eeUnavailable": "__MISSING__:privacy.e2eeUnavailable",
-    "e2eeEffective": "__MISSING__:privacy.e2eeEffective {{value}}",
-    "conversationOverride": "__MISSING__:privacy.conversationOverride",
-    "retentionLabel": "__MISSING__:privacy.retentionLabel",
-    "retentionHint": "__MISSING__:privacy.retentionHint",
-    "fallbackNotice": "__MISSING__:privacy.fallbackNotice",
+    "e2eeLabel": "एंड-टू-एंड एन्क्रिप्शन",
+    "e2eeUnavailable": "चयनित मॉडल E2EE समर्थन का विज्ञापन नहीं करता है।",
+    "e2eeEffective": "इस चैट के लिए प्रभावी: {{value}}",
+    "conversationOverride": "बातचीत ओवरराइड",
+    "retentionLabel": "प्रॉम्प्ट कैश प्रतिधारण",
+    "retentionHint": "केवल-Venice कैश संकेत। फ़ॉलबैक प्रदाता इसे अनदेखा करते हैं।",
+    "fallbackNotice": "फ़ॉलबैक प्रदाता सक्षम हैं। वे E2EE को बनाए नहीं रख सकते — फ़ॉलबैक प्रदाता पर भेजी गई चैट बिना E2EE के भेजी जाती है।",
     "e2eeOptions": {
-      "provider-default": "__MISSING__:privacy.e2eeOptions.provider-default",
-      "on": "__MISSING__:privacy.e2eeOptions.on",
-      "off": "__MISSING__:privacy.e2eeOptions.off"
+      "provider-default": "प्रदाता डिफ़ॉल्ट",
+      "on": "चालू",
+      "off": "बंद"
     },
     "retentionOptions": {
-      "default": "__MISSING__:privacy.retentionOptions.default",
-      "extended": "__MISSING__:privacy.retentionOptions.extended",
-      "24h": "__MISSING__:privacy.retentionOptions.24h"
+      "default": "डिफ़ॉल्ट",
+      "extended": "विस्तारित",
+      "24h": "24h"
     }
   },
   "reasoningEffort": {
-    "label": "__MISSING__:reasoningEffort.label",
-    "providerDefault": "__MISSING__:reasoningEffort.providerDefault",
-    "hint": "__MISSING__:reasoningEffort.hint",
-    "unsupported": "__MISSING__:reasoningEffort.unsupported",
-    "unknownMetadata": "__MISSING__:reasoningEffort.unknownMetadata",
-    "repaired": "__MISSING__:reasoningEffort.repaired {{effort}} {{model}} {{resetTo}}",
+    "label": "तर्क प्रयास",
+    "providerDefault": "प्रदाता डिफ़ॉल्ट",
+    "hint": "उच्च प्रयास का अर्थ है गहरा तर्क, अधिक टोकन और अधिक विलंबता।",
+    "unsupported": "चयनित मॉडल तर्क-प्रयास समर्थन का विज्ञापन नहीं करता है।",
+    "unknownMetadata": "मॉडल क्षमताएं उपलब्ध नहीं हैं, इसलिए तर्क प्रयास नहीं भेजा जाएगा।",
+    "repaired": "“{{effort}}” {{model}} द्वारा समर्थित नहीं है — {{resetTo}} पर रीसेट किया गया।",
     "options": {
-      "none": "__MISSING__:reasoningEffort.options.none",
-      "minimal": "__MISSING__:reasoningEffort.options.minimal",
-      "low": "__MISSING__:reasoningEffort.options.low",
-      "medium": "__MISSING__:reasoningEffort.options.medium",
-      "high": "__MISSING__:reasoningEffort.options.high",
-      "xhigh": "__MISSING__:reasoningEffort.options.xhigh",
-      "max": "__MISSING__:reasoningEffort.options.max"
+      "none": "कोई नहीं",
+      "minimal": "न्यूनतम",
+      "low": "कम",
+      "medium": "मध्यम",
+      "high": "उच्च",
+      "xhigh": "अत्यधिक",
+      "max": "अधिकतम"
     }
   }
 }

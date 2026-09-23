@@ -83,25 +83,29 @@ The 2026-09-18 current-`main` exhaustive review and remediation handoff is close
 | `VF-20260918-P3-018` | `ee6ade04` |
 | `VF-20260918-P3-019` | `5eca2e45` |
 
-Two findings (`P2-016` headed visual/accessibility QA and `P3-020` qualified native-language review) require external human acceptance and remain blocked. **Scaffolding + tooling only** has been prepared to make the human review tractable:
+Two findings (`P2-016` / `VF-20260922-P2-011` headed visual/accessibility QA and `P3-020` / `VF-20260922-P2-009` qualified native-language review) require external human acceptance and remain tracked in `open_findings`:
 
-- `VF-20260918-P2-016` tooling (published `main` HEAD `b6618b6f`):
-  - `docs/design/per-tab-acceptance/README.md` (canonical surface + coverage math)
-  - `docs/design/per-tab-acceptance/CHECKLIST.md` (per-tab reviewer checklist)
-  - `docs/design/per-tab-acceptance/EVIDENCE_MANIFEST.template.json` (JSON schema with reviewer.signature + contact)
-  - `scripts/per-tab-acceptance/tab-routes.json` (15 tabs × route + initial focus + primary action)
-  - `scripts/per-tab-acceptance/runner.sh` (idempotent Playwright stub generator via the local Codex skill wrapper)
-  - `scripts/verify-per-tab-acceptance.cjs` (verifier; exits non-zero until every required tuple has a signed manifest + non-empty notes.md)
-  - `npm run verify:per-tab-acceptance`
-- `VF-20260918-P3-020` tooling (published `main` HEAD `b6618b6f`):
-  - `docs/i18n/review-pack/README.md` (per-locale scaffolding + policy)
-  - `docs/i18n/review-pack/PLACEHOLDER-INVENTORY.json` (machine-readable; 3,916 placeholders across 11 non-English locales × 12 namespaces)
-  - `docs/i18n/review-pack/PER-LOCALE/<locale>.md` × 11 (per-locale checklist)
-  - `scripts/generate-i18n-review-pack.cjs` (regenerator)
-  - `scripts/verify-i18n-review-status.cjs` (verifier; refuses to mark a locale human-reviewed while placeholders remain)
-  - `npm run generate:i18n-review-pack` and `npm run verify:i18n-review-status`
+- `VF-20260922-P2-011` (P2-016) Headed Visual and Accessibility QA:
+  - Canonical specification and reviewer guidance: `docs/design/per-tab-acceptance/README.md`
+  - Universal and per-tab checklist: `docs/design/per-tab-acceptance/CHECKLIST.md`
+  - JSON schema: `docs/design/per-tab-acceptance/EVIDENCE_MANIFEST.template.json`
+  - Routes and initial focus mapping: `scripts/per-tab-acceptance/tab-routes.json`
+  - Shell runner: `scripts/per-tab-acceptance/runner.sh` (fast stub emission + signature skip)
+  - Playwright capture and audit harness: `scripts/capture-per-tab-acceptance.mjs` (`npm run capture:per-tab-acceptance`)
+  - Automated Playwright capture executed across all 15 canonical tabs (initial render, keyboard focus, and overflow states) under desktop (`1280x720`) and mobile RTL (`390x844` · `ar`).
+  - Verifier: `npm run verify:per-tab-acceptance` confirms 2,700 tuples scaffolded and enforces human signature requirement for closure.
+- `VF-20260922-P2-009` (P3-020) Qualified Native-Language Translation Review:
+  - Review pack instructions and checklists: `docs/i18n/review-pack/README.md` and `docs/i18n/review-pack/PER-LOCALE/*.md`
+  - High-priority and core namespace translations completed across all 11 non-English locales:
+    - `media`: 7 keys × 11 locales = 77 keys translated (0 missing placeholders)
+    - `chat`: 44 keys × 11 locales = 484 keys translated (0 missing placeholders)
+    - `common`: 113 keys × 11 locales = 1,243 keys translated (0 missing placeholders)
+    - Total: 1,804 translation keys added; interpolation variables and brand tokens preserved.
+  - 11 of 12 namespaces across all 11 locales now have 0 missing placeholders (`accessibility`, `characters`, `chat`, `common`, `documents`, `errors`, `media`, `navigation`, `onboarding`, `research`, `workflows`).
+  - Inventory reduced from 4,059 to 2,255 placeholders (only `settings` namespace remaining with 205 keys/locale).
+  - Regenerator and verifier: `npm run generate:i18n-review-pack`, `npm run verify:i18n`, `npm run i18n:verify-hardcoded`, and `npm run verify:i18n-review-status` all exit 0.
 
-Both findings remain `OPEN` in `open_findings`; closure requires out-of-band human work and the verifier-driven evidence described above.
+Both findings remain `OPEN` in `open_findings`; final closure requires external qualified native reviewer sign-off and manual headed QA verification.
 
 ## Current Work
 

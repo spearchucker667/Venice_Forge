@@ -40,27 +40,27 @@
     "promotedToDocuments": "تم الحفظ في المستندات",
     "attachmentNotRegistered": "المرفق غير مسجل للترقية.",
     "promotionFailed": "فشلت الترقية.",
-    "addVideoUrl": "__MISSING__:composer.addVideoUrl",
-    "nativeVideoDraft": "__MISSING__:composer.nativeVideoDraft",
-    "videoUrlPlaceholder": "__MISSING__:composer.videoUrlPlaceholder",
-    "videoUrlLabel": "__MISSING__:composer.videoUrlLabel {{name}}",
-    "attachmentMode": "__MISSING__:composer.attachmentMode {{name}}",
+    "addVideoUrl": "إضافة رابط فيديو",
+    "nativeVideoDraft": "رابط الفيديو",
+    "videoUrlPlaceholder": "https://example.com/video.mp4 أو رابط YouTube",
+    "videoUrlLabel": "رابط الفيديو لـ {{name}}",
+    "attachmentMode": "المصدر لـ {{name}}",
     "attachmentModes": {
-      "context": "__MISSING__:composer.attachmentModes.context",
-      "nativeFile": "__MISSING__:composer.attachmentModes.nativeFile",
-      "nativeVideo": "__MISSING__:composer.attachmentModes.nativeVideo"
+      "context": "سياق محلي",
+      "nativeFile": "ملف أصلي",
+      "nativeVideo": "فيديو أصلي"
     },
     "nativeErrors": {
-      "title": "__MISSING__:composer.nativeErrors.title",
-      "unsupportedType": "__MISSING__:composer.nativeErrors.unsupportedType",
-      "missingPayload": "__MISSING__:composer.nativeErrors.missingPayload",
-      "rawLocalPath": "__MISSING__:composer.nativeErrors.rawLocalPath",
-      "unsupportedFileFormat": "__MISSING__:composer.nativeErrors.unsupportedFileFormat",
-      "unsupportedVideoFormat": "__MISSING__:composer.nativeErrors.unsupportedVideoFormat",
-      "tooManyVideoUrls": "__MISSING__:composer.nativeErrors.tooManyVideoUrls {{max}} {{actual}}",
-      "tooLarge": "__MISSING__:composer.nativeErrors.tooLarge",
-      "fileUnavailable": "__MISSING__:composer.nativeErrors.fileUnavailable",
-      "readFailed": "__MISSING__:composer.nativeErrors.readFailed"
+      "title": "لا يمكن إرسال المرفق",
+      "unsupportedType": "لا يمكن إرسال هذا النوع من المرفقات كإدخال أصلي.",
+      "missingPayload": "هذا المرفق يفتقر إلى المحتوى.",
+      "rawLocalPath": "لا يمكن إرسال مسارات الملفات المحلية. يرجى إرفاق الملف نفسه أو استخدام رابط https:// عام.",
+      "unsupportedFileFormat": "نوع ملف غير مدعوم للإدخال الأصلي. المسموح به: PDF أو EPUB أو DOCX أو PPTX أو XLSX أو XLS أو TXT أو Markdown أو CSV أو JSON. اختر “سياق محلي” بدلاً من ذلك.",
+      "unsupportedVideoFormat": "رابط فيديو غير مدعوم. استخدم رابط مباشر بتنسيق mp4/mpeg/mov/webm أو رابط YouTube.",
+      "tooManyVideoUrls": "الحد الأقصى {{max}} مدخلات فيديو لكل رسالة (تحتوي هذه الرسالة على {{actual}}).",
+      "tooLarge": "هذا الملف كبير جداً ولا يمكن تحميله كملف أصلي. استخدم “سياق محلي” بدلاً من ذلك — حيث يستخرج النص إلى المحادثة.",
+      "fileUnavailable": "الملف الأصلي لم يعد متاحاً — يرجى إعادة إرفاقه لإرساله كملف أصلي.",
+      "readFailed": "تعذر قراءة هذا الملف كإدخال أصلي."
     }
   },
   "memory": {
@@ -99,39 +99,39 @@
     "retryingFromCheckpoint": "انقطع البث. إعادة المحاولة من نقطة التحقق"
   },
   "privacy": {
-    "e2eeLabel": "__MISSING__:privacy.e2eeLabel",
-    "e2eeUnavailable": "__MISSING__:privacy.e2eeUnavailable",
-    "e2eeEffective": "__MISSING__:privacy.e2eeEffective {{value}}",
-    "conversationOverride": "__MISSING__:privacy.conversationOverride",
-    "retentionLabel": "__MISSING__:privacy.retentionLabel",
-    "retentionHint": "__MISSING__:privacy.retentionHint",
-    "fallbackNotice": "__MISSING__:privacy.fallbackNotice",
+    "e2eeLabel": "تشفير تام بين الطرفين",
+    "e2eeUnavailable": "النموذج المحدد لا يعلن عن دعم E2EE.",
+    "e2eeEffective": "الفعّال لهذه المحادثة: {{value}}",
+    "conversationOverride": "تجاوز خاص بالمحادثة",
+    "retentionLabel": "الاحتفاظ بذاكرة التخزين المؤقت للمطالبات",
+    "retentionHint": "تلميح تخزين مؤقت خاص بـ Venice فقط. يتجاهله المزودون الاحتياطيون.",
+    "fallbackNotice": "المزودون الاحتياطيون مفعلون. ولا يمكنهم الحفاظ على E2EE — يتم إرسال المحادثة الموجهة إلى مزود احتياطي بدون E2EE.",
     "e2eeOptions": {
-      "provider-default": "__MISSING__:privacy.e2eeOptions.provider-default",
-      "on": "__MISSING__:privacy.e2eeOptions.on",
-      "off": "__MISSING__:privacy.e2eeOptions.off"
+      "provider-default": "الافتراضي للمزود",
+      "on": "تشغيل",
+      "off": "إيقاف"
     },
     "retentionOptions": {
-      "default": "__MISSING__:privacy.retentionOptions.default",
-      "extended": "__MISSING__:privacy.retentionOptions.extended",
-      "24h": "__MISSING__:privacy.retentionOptions.24h"
+      "default": "افتراضي",
+      "extended": "ممتد",
+      "24h": "24h"
     }
   },
   "reasoningEffort": {
-    "label": "__MISSING__:reasoningEffort.label",
-    "providerDefault": "__MISSING__:reasoningEffort.providerDefault",
-    "hint": "__MISSING__:reasoningEffort.hint",
-    "unsupported": "__MISSING__:reasoningEffort.unsupported",
-    "unknownMetadata": "__MISSING__:reasoningEffort.unknownMetadata",
-    "repaired": "__MISSING__:reasoningEffort.repaired {{effort}} {{model}} {{resetTo}}",
+    "label": "جهد التفكير المنطقي",
+    "providerDefault": "الافتراضي للمزود",
+    "hint": "الجهد الأعلى يعني تفكيراً أعمق والمزيد من الرموز وتأخيراً إضافياً.",
+    "unsupported": "النموذج المحدد لا يعلن عن دعم تعديل جهد التفكير.",
+    "unknownMetadata": "إمكانيات النموذج غير متوفرة، لذا لن يتم إرسال جهد التفكير.",
+    "repaired": "“{{effort}}” غير مدعوم بواسطة {{model}} — تمت إعادة التعيين إلى {{resetTo}}.",
     "options": {
-      "none": "__MISSING__:reasoningEffort.options.none",
-      "minimal": "__MISSING__:reasoningEffort.options.minimal",
-      "low": "__MISSING__:reasoningEffort.options.low",
-      "medium": "__MISSING__:reasoningEffort.options.medium",
-      "high": "__MISSING__:reasoningEffort.options.high",
-      "xhigh": "__MISSING__:reasoningEffort.options.xhigh",
-      "max": "__MISSING__:reasoningEffort.options.max"
+      "none": "لا شيء",
+      "minimal": "أدنى حد",
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع",
+      "xhigh": "مرتفع جداً",
+      "max": "أقصى حد"
     }
   }
 }

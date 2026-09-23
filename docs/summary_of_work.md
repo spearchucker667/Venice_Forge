@@ -19,7 +19,7 @@ open_findings:       see docs/ROADMAP.md (P2-016 headed a11y QA and P3-020 nativ
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
   - headed accessibility/visual QA (per-tab acceptance, P2-016)
-  - native-language translation review of the 12 non-English catalogs (3,916 placeholder entries pending qualified native review)
+  - native-language translation review of the 11 non-English catalogs (2,255 placeholder entries pending qualified native review; 11 of 12 namespaces 100% complete)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-22:
   - VF-20260922-P0-001 (Hosted CI duration collapse root-caused to historic runs 599/299 from July 2026; modern CI runs 18-24m and executes full gates; current failures in use-chat.test.ts and i18n contract key fixed).
@@ -66,6 +66,17 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-23 i18n Catalog Acceleration & Per-Tab Acceptance Scaffolding (`VF-20260922-P2-009`, `VF-20260922-P2-011`).**
+  - **i18n Namespace Translations (`VF-20260922-P2-009`):** Translated all missing keys across `media.json` (7 keys × 11 locales = 77 keys), `chat.json` (44 keys × 11 locales = 484 keys), and `common.json` (113 keys × 11 locales = 1,243 keys). Total 1,804 translation keys added across Spanish, French, German, Brazilian Portuguese, Russian, Simplified Chinese, Japanese, Hindi, Arabic, Korean, and Swedish. All interpolation variables (`{{rating}}`, `{{date}}`, `{{model}}`, `{{name}}`, `{{token}}`, `{{mode}}`, `{{section}}`) and brand tokens preserved.
+  - **Catalog Progress:** 11 of the 12 namespaces across all 11 non-English locales now have zero missing placeholders (`accessibility`, `characters`, `chat`, `common`, `documents`, `errors`, `media`, `navigation`, `onboarding`, `research`, `workflows`). Outstanding placeholder inventory in `docs/i18n/review-pack/PLACEHOLDER-INVENTORY.json` dropped from 4,059 to 2,255 (only the `settings` namespace remains with 205 keys).
+  - **Per-Tab Acceptance Scaffolding & Verification (`VF-20260922-P2-011`):**
+    - Established canonical documentation: `docs/design/per-tab-acceptance/README.md`, `CHECKLIST.md`, and `EVIDENCE_MANIFEST.template.json`.
+    - Optimized `scripts/per-tab-acceptance/runner.sh` to emit manifests directly without spawning repetitive Python sub-processes, reducing stub execution time from ~15 minutes to <50 seconds.
+    - Verified `npm run verify:per-tab-acceptance`: all 2,700 required tuples (15 tabs × 5 viewports × 4 themes × 3 locales × 3 states) are scaffolded and parse against the schema, awaiting human review signatures.
+    - Built standalone Playwright capture harness `scripts/capture-per-tab-acceptance.mjs` and wired `npm run capture:per-tab-acceptance` into `package.json`. Harness detects system Google Chrome, mocks read-only endpoints, navigates to tab routes, and captures screenshots (`screenshot.png`, `screenshot-tab.png`, `screenshot-overflow.png`), landmark headers, focus targets, and notes across all 15 canonical tabs.
+    - Executed captures across all 15 tabs for desktop `1280x720` and mobile RTL `390x844` · `ar`.
+  - **Validation:** `npm run verify:agent-docs`, `npm run verify:ci-contract`, `npm run verify:safety-guard`, `npm run verify:i18n`, `npm run i18n:verify-hardcoded`, `npm run verify:i18n-review-status`, `npm run verify:markdown-links` (1,332 files), `npm run lint:eslint`, `npm run typecheck`, and `npm run verify:contracts` (104/104) all pass with exit code 0.
 
 - **2026-09-22 Current `main` Deep Audit & Remediation (baseline `acced896`).**
   - **CI Control Plane Diagnosis (`VF-20260922-P0-001`):** Investigated historical short runs (CI #599 and CodeQL #299 from July 2026). Identified that recent `main` CI runs (e.g. #747, run 35423971901) execute the full 18–24 minute workflow rather than collapsing in seconds. The failures on HEAD were isolated to: (1) `contracts` due to i18n key mismatch (`usesCharacterSystemPrompt` placed under `action` instead of `text` and missing in 11 non-English catalogs), and (2) `unit-and-integration-tests` due to disabled-mode regressions in `effectiveChatPrompt.ts` where local character system prompts were blanked. Repaired `src/services/effectiveChatPrompt.ts` to preserve local character system prompts, aligned `common.json`, and synced across all 12 locales.

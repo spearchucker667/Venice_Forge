@@ -89,6 +89,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [design/VENICE_FORGE_REFERENCE_UI_REDESIGN.md](design/VENICE_FORGE_REFERENCE_UI_REDESIGN.md) — APPROVED 2026-09-14 reference-driven UI redesign: derived `--vf-*` shell material layer, graphite/crimson visual contract, rollout phases; authoritative for visual/material redesign atop Theme Engine V2.
 - [design/VENICE_FORGE_REFERENCE_UI_REDESIGN_MATRIX.md](design/VENICE_FORGE_REFERENCE_UI_REDESIGN_MATRIX.md) — UI migration ledger: per-file redesign status across all renderer surfaces (completeness proof).
 - [design/reference-ui-redesign-evidence/](design/reference-ui-redesign-evidence/) — Phase 9 visual-QA screenshot evidence for the reference-driven redesign, captured by [`../scripts/capture-redesign-matrix.mjs`](../scripts/capture-redesign-matrix.mjs). Each capture lives at `<viewport>/<theme-locale-preset>/<surface>.png` and the bundle is summarized by `EVIDENCE_MANIFEST.json`.
+- [design/per-tab-acceptance/README.md](design/per-tab-acceptance/README.md) — Per-tab headed visual and accessibility acceptance specification and harness (VF-20260918-P2-016 / VF-20260922-P2-011).
 - [ui-modernization/THEME_SCHEMA.md](ui-modernization/THEME_SCHEMA.md) — Theme Engine V2 token definitions, schema specification, and palette constraints.
 - [ui-modernization/THEME_IMPORT_EXPORT.md](ui-modernization/THEME_IMPORT_EXPORT.md) — Theme import, export, migration, duplication, and cross-platform compatibility specifications.
 
@@ -116,6 +117,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [i18n/GLOSSARY.md](i18n/GLOSSARY.md) — Internationalization terminology glossary.
 - [i18n/translation-status.json](i18n/translation-status.json) — Machine-readable structural, runtime-surface, and linguistic-review metadata (schema v4).
 - [i18n/native-review-status.json](i18n/native-review-status.json) — Per-locale qualified-review state and production-completion input.
+- [i18n/review-pack/README.md](i18n/review-pack/README.md) — Native-language review pack instructions, inventory, and per-locale checklists (VF-20260918-P3-020 / VF-20260922-P2-009).
 
 ### Release & Legal
 

@@ -97,6 +97,13 @@ pnpm-debug.log*
 /docs/design/*
 !/docs/design/*.md
 
+# Per-tab acceptance scaffolding (docs and schema; local evidence remains ignored)
+!/docs/design/per-tab-acceptance/
+!/docs/design/per-tab-acceptance/*.md
+!/docs/design/per-tab-acceptance/*.json
+/docs/design/per-tab-acceptance/evidence/
+/docs/design/per-tab-acceptance/evidence/**
+
 # Reference-driven redesign evidence (Phase 9 visual QA capture):
 # allow the evidence directory recursively so PNGs and JSON can be
 # tracked alongside the design docs. Mirrors the docs/audits/visual-snapshots

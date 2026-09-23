@@ -41,6 +41,7 @@
     "build": "npm run build:web && npm run build:server && npm run build:electron",
     "verify:safety-guard": "node scripts/verify-safety-guard.cjs",
     "verify:per-tab-acceptance": "node scripts/verify-per-tab-acceptance.cjs",
+    "capture:per-tab-acceptance": "node scripts/capture-per-tab-acceptance.mjs",
     "verify:i18n-review-status": "node scripts/verify-i18n-review-status.cjs",
     "generate:i18n-review-pack": "node scripts/generate-i18n-review-pack.cjs",
     "verify:markdown-links": "node scripts/verify-markdown-links.cjs",

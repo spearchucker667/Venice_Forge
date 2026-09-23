@@ -47,6 +47,7 @@ while [[ $# -gt 0 ]]; do
     --themes)    THEMES="$2"; shift 2 ;;
     --locales)   LOCALES="$2"; shift 2 ;;
     --states)    STATES="$2"; shift 2 ;;
+    --stubs-only|--scaffold-only) STUBS_ONLY=true; shift ;;
     -h|--help)
       sed -n '2,30p' "${BASH_SOURCE[0]}"
       exit 0
@@ -55,14 +56,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "${VENICE_FORGE_DEV_URL:-}" ]]; then
-  echo "VENICE_FORGE_DEV_URL is required (e.g. http://127.0.0.1:5173 from \`npm run dev:web -- --host 127.0.0.1\`)" >&2
-  exit 64
-fi
+if [[ "${STUBS_ONLY:-false}" != "true" ]]; then
+  if [[ -z "${VENICE_FORGE_DEV_URL:-}" ]]; then
+    echo "VENICE_FORGE_DEV_URL is required (e.g. http://127.0.0.1:5173 from \`npm run dev:web -- --host 127.0.0.1\`)" >&2
+    exit 64
+  fi
 
-if [[ ! -x "${PLAYWRIGHT_WRAPPER}" ]]; then
-  echo "Playwright wrapper not found at ${PLAYWRIGHT_WRAPPER}. Run from the Codex agent context that has the playwright skill installed." >&2
-  exit 64
+  if [[ ! -x "${PLAYWRIGHT_WRAPPER}" ]]; then
+    echo "Playwright wrapper not found at ${PLAYWRIGHT_WRAPPER}. Run from the Codex agent context that has the playwright skill installed." >&2
+    exit 64
+  fi
 fi
 
 mkdir -p "${EVIDENCE_ROOT}"
@@ -125,75 +128,80 @@ emit_stub() {
   local manifest="${dir}/manifest.json"
   if [[ -f "${manifest}" ]]; then
     # Don't overwrite signed entries.
-    if python3 -c "import json,sys; m=json.load(open('${manifest}')); sys.exit(0 if m.get('reviewer',{}).get('signature','').strip() else 1)" "${manifest}" 2>/dev/null; then
+    if grep -Eq '"signature":\s*"[^"]+"' "${manifest}" 2>/dev/null; then
       echo "  [skip] ${tab}/${viewport}__${theme}__${locale}/${state} (signed)"
       return 0
     fi
   fi
-  python3 - "$tab" "$viewport" "$theme" "$locale" "$state" "$manifest" <<'PYEOF'
-import json, sys, datetime
-tab, viewport, theme, locale, state, manifest = sys.argv[1:7]
-stub = {
-    "schemaVersion": 1,
-    "tab": tab,
-    "viewport": viewport,
-    "theme": theme,
-    "locale": locale,
-    "state": state,
-    "headings": [],
-    "interactions": [],
-    "reviewer": {"signature": "", "contact": ""},
-    "capturedAt": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
-    "browser": {"name": "", "version": ""},
-    "os": "",
-    "defects": [],
-    "notes": "see notes.md in the same directory; fill before re-running this stub"
+  local now
+  now="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  cat > "${manifest}" <<EOF
+{
+  "schemaVersion": 1,
+  "tab": "${tab}",
+  "viewport": "${viewport}",
+  "theme": "${theme}",
+  "locale": "${locale}",
+  "state": "${state}",
+  "headings": [],
+  "interactions": [],
+  "reviewer": {
+    "signature": "",
+    "contact": ""
+  },
+  "capturedAt": "${now}",
+  "browser": {
+    "name": "",
+    "version": ""
+  },
+  "os": "",
+  "defects": [],
+  "notes": "see notes.md in the same directory; fill before re-running this stub"
 }
-with open(manifest, "w", encoding="utf-8") as f:
-    json.dump(stub, f, indent=2, ensure_ascii=False)
-    f.write("\n")
-print(f"  [stub] {tab}/{viewport}__{theme}__{locale}/{state}")
-PYEOF
+EOF
+  echo "  [stub] ${tab}/${viewport}__${theme}__${locale}/${state}"
 }
 
 run_capture() {
   local tab="$1" viewport="$2" theme="$3" locale="$4" state="$5"
   local tuple_dir="${EVIDENCE_ROOT}/${tab}/${viewport}__${theme}__${locale}"
   mkdir -p "${tuple_dir}"
-  local route focus
-  route="$(get_route "${tab}")"
-  focus="$(get_focus "${tab}")"
 
-  # Launch Playwright with the requested viewport + locale; navigate, focus,
-  # exercise state, screenshot. The screenshot is the reviewer-confirmable
-  # artifact; the stub manifest is what the verifier reads.
-  local pw_args=(
-    open "${VENICE_FORGE_DEV_URL}${route}"
-    --viewport "${viewport//x/,}"   # e.g. "1280,720"
-    --lang "${locale}"
-    --theme-preset "${theme}"
-  )
+  if [[ "${STUBS_ONLY:-false}" != "true" ]]; then
+    local route focus
+    route="$(get_route "${tab}")"
+    focus="$(get_focus "${tab}")"
+    # Launch Playwright with the requested viewport + locale; navigate, focus,
+    # exercise state, screenshot. The screenshot is the reviewer-confirmable
+    # artifact; the stub manifest is what the verifier reads.
+    local pw_args=(
+      open "${VENICE_FORGE_DEV_URL}${route}"
+      --viewport "${viewport//x/,}"   # e.g. "1280,720"
+      --lang "${locale}"
+      --theme-preset "${theme}"
+    )
 
-  set +e
-  "${PLAYWRIGHT_WRAPPER}" "${pw_args[@]}" >/dev/null 2>&1
-  set -e
+    set +e
+    "${PLAYWRIGHT_WRAPPER}" "${pw_args[@]}" >/dev/null 2>&1
+    set -e
 
-  case "${state}" in
-    initial)
-      # Screenshot the initial render.
-      "${PLAYWRIGHT_WRAPPER}" screenshot "${tuple_dir}/screenshot.png" --full-page >/dev/null 2>&1 || true
-      ;;
-    keyboard)
-      # Focus the initial target, then capture.
-      "${PLAYWRIGHT_WRAPPER}" focus "${focus}" >/dev/null 2>&1 || true
-      "${PLAYWRIGHT_WRAPPER}" screenshot "${tuple_dir}/screenshot-tab.png" --full-page >/dev/null 2>&1 || true
-      ;;
-    overflow)
-      # Inject a long-content fixture, capture overflow behavior.
-      "${PLAYWRIGHT_WRAPPER}" eval "() => { const t=document.querySelector('${focus}'); if(t){t.focus();} for(let i=0;i<20;i++){document.body.appendChild(document.createElement('div')).textContent='filler '.repeat(200);} }" >/dev/null 2>&1 || true
-      "${PLAYWRIGHT_WRAPPER}" screenshot "${tuple_dir}/screenshot-overflow.png" --full-page >/dev/null 2>&1 || true
-      ;;
-  esac
+    case "${state}" in
+      initial)
+        # Screenshot the initial render.
+        "${PLAYWRIGHT_WRAPPER}" screenshot "${tuple_dir}/screenshot.png" --full-page >/dev/null 2>&1 || true
+        ;;
+      keyboard)
+        # Focus the initial target, then capture.
+        "${PLAYWRIGHT_WRAPPER}" focus "${focus}" >/dev/null 2>&1 || true
+        "${PLAYWRIGHT_WRAPPER}" screenshot "${tuple_dir}/screenshot-tab.png" --full-page >/dev/null 2>&1 || true
+        ;;
+      overflow)
+        # Inject a long-content fixture, capture overflow behavior.
+        "${PLAYWRIGHT_WRAPPER}" eval "() => { const t=document.querySelector('${focus}'); if(t){t.focus();} for(let i=0;i<20;i++){document.body.appendChild(document.createElement('div')).textContent='filler '.repeat(200);} }" >/dev/null 2>&1 || true
+        "${PLAYWRIGHT_WRAPPER}" screenshot "${tuple_dir}/screenshot-overflow.png" --full-page >/dev/null 2>&1 || true
+        ;;
+    esac
+  fi
 
   # Always emit / refresh the stub manifest.
   emit_stub "${tab}" "${viewport}" "${theme}" "${locale}" "${state}" "${tuple_dir}"

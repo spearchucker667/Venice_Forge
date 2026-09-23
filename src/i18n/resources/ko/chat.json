@@ -40,27 +40,27 @@
     "promotedToDocuments": "문서에 저장됨",
     "attachmentNotRegistered": "첨부 파일이 승격용으로 등록되지 않았습니다.",
     "promotionFailed": "승격에 실패했습니다.",
-    "addVideoUrl": "__MISSING__:composer.addVideoUrl",
-    "nativeVideoDraft": "__MISSING__:composer.nativeVideoDraft",
-    "videoUrlPlaceholder": "__MISSING__:composer.videoUrlPlaceholder",
-    "videoUrlLabel": "__MISSING__:composer.videoUrlLabel {{name}}",
-    "attachmentMode": "__MISSING__:composer.attachmentMode {{name}}",
+    "addVideoUrl": "비디오 URL 추가",
+    "nativeVideoDraft": "비디오 URL",
+    "videoUrlPlaceholder": "https://example.com/video.mp4 또는 YouTube 링크",
+    "videoUrlLabel": "{{name}}의 비디오 URL",
+    "attachmentMode": "{{name}}의 소스",
     "attachmentModes": {
-      "context": "__MISSING__:composer.attachmentModes.context",
-      "nativeFile": "__MISSING__:composer.attachmentModes.nativeFile",
-      "nativeVideo": "__MISSING__:composer.attachmentModes.nativeVideo"
+      "context": "로컬 컨텍스트",
+      "nativeFile": "네이티브 파일",
+      "nativeVideo": "네이티브 비디오"
     },
     "nativeErrors": {
-      "title": "__MISSING__:composer.nativeErrors.title",
-      "unsupportedType": "__MISSING__:composer.nativeErrors.unsupportedType",
-      "missingPayload": "__MISSING__:composer.nativeErrors.missingPayload",
-      "rawLocalPath": "__MISSING__:composer.nativeErrors.rawLocalPath",
-      "unsupportedFileFormat": "__MISSING__:composer.nativeErrors.unsupportedFileFormat",
-      "unsupportedVideoFormat": "__MISSING__:composer.nativeErrors.unsupportedVideoFormat",
-      "tooManyVideoUrls": "__MISSING__:composer.nativeErrors.tooManyVideoUrls {{max}} {{actual}}",
-      "tooLarge": "__MISSING__:composer.nativeErrors.tooLarge",
-      "fileUnavailable": "__MISSING__:composer.nativeErrors.fileUnavailable",
-      "readFailed": "__MISSING__:composer.nativeErrors.readFailed"
+      "title": "첨부 파일을 보낼 수 없습니다",
+      "unsupportedType": "이 첨부 파일 형식은 네이티브 입력으로 보낼 수 없습니다.",
+      "missingPayload": "이 첨부 파일의 내용이 누락되었습니다.",
+      "rawLocalPath": "로컬 파일 경로는 보낼 수 없습니다. 파일 자체를 첨부하거나 공개 https:// URL을 사용하세요.",
+      "unsupportedFileFormat": "네이티브 입력에 지원되지 않는 파일 형식입니다. 허용 형식: PDF, EPUB, DOCX, PPTX, XLSX, XLS, TXT, Markdown, CSV, JSON. 대신 “로컬 컨텍스트”를 선택하세요.",
+      "unsupportedVideoFormat": "지원되지 않는 비디오 URL입니다. 직접 mp4/mpeg/mov/webm 링크 또는 YouTube URL을 사용하세요.",
+      "tooManyVideoUrls": "메시지당 최대 {{max}}개의 비디오 입력이 가능합니다(현재 메시지에는 {{actual}}개 포함).",
+      "tooLarge": "이 파일은 네이티브 파일로 업로드하기에 너무 큽니다. 대신 “로컬 컨텍스트”를 사용하세요 — 텍스트를 대화로 추출합니다.",
+      "fileUnavailable": "원본 파일을 더 이상 사용할 수 없습니다 — 네이티브 파일로 보내려면 다시 첨부하세요.",
+      "readFailed": "이 파일을 네이티브 입력으로 읽을 수 없습니다."
     }
   },
   "memory": {
@@ -99,39 +99,39 @@
     "retryingFromCheckpoint": "스트림이 끊겼습니다. 체크포인트에서 재시도합니다"
   },
   "privacy": {
-    "e2eeLabel": "__MISSING__:privacy.e2eeLabel",
-    "e2eeUnavailable": "__MISSING__:privacy.e2eeUnavailable",
-    "e2eeEffective": "__MISSING__:privacy.e2eeEffective {{value}}",
-    "conversationOverride": "__MISSING__:privacy.conversationOverride",
-    "retentionLabel": "__MISSING__:privacy.retentionLabel",
-    "retentionHint": "__MISSING__:privacy.retentionHint",
-    "fallbackNotice": "__MISSING__:privacy.fallbackNotice",
+    "e2eeLabel": "종단간 암호화",
+    "e2eeUnavailable": "선택한 모델은 E2EE 지원을 알리지 않습니다.",
+    "e2eeEffective": "이 채팅에 적용: {{value}}",
+    "conversationOverride": "대화 오버라이드",
+    "retentionLabel": "프롬프트 캐시 보존",
+    "retentionHint": "Venice 전용 캐시 힌트입니다. 대체 공급자는 이를 무시합니다.",
+    "fallbackNotice": "대체 공급자가 활성화되어 있습니다. E2EE를 보존할 수 없습니다 — 대체 공급자로 라우팅된 채팅은 E2EE 없이 전송됩니다.",
     "e2eeOptions": {
-      "provider-default": "__MISSING__:privacy.e2eeOptions.provider-default",
-      "on": "__MISSING__:privacy.e2eeOptions.on",
-      "off": "__MISSING__:privacy.e2eeOptions.off"
+      "provider-default": "제공자 기본값",
+      "on": "켜짐",
+      "off": "꺼짐"
     },
     "retentionOptions": {
-      "default": "__MISSING__:privacy.retentionOptions.default",
-      "extended": "__MISSING__:privacy.retentionOptions.extended",
-      "24h": "__MISSING__:privacy.retentionOptions.24h"
+      "default": "기본값",
+      "extended": "확장됨",
+      "24h": "24h"
     }
   },
   "reasoningEffort": {
-    "label": "__MISSING__:reasoningEffort.label",
-    "providerDefault": "__MISSING__:reasoningEffort.providerDefault",
-    "hint": "__MISSING__:reasoningEffort.hint",
-    "unsupported": "__MISSING__:reasoningEffort.unsupported",
-    "unknownMetadata": "__MISSING__:reasoningEffort.unknownMetadata",
-    "repaired": "__MISSING__:reasoningEffort.repaired {{effort}} {{model}} {{resetTo}}",
+    "label": "추론 노력 수준",
+    "providerDefault": "제공자 기본값",
+    "hint": "노력이 클수록 더 깊은 추론이 이루어지며 더 많은 토큰과 지연 시간이 소요됩니다.",
+    "unsupported": "선택한 모델은 추론 노력 설정을 지원하지 않습니다.",
+    "unknownMetadata": "모델 기능을 확인할 수 없어 추론 노력이 전송되지 않습니다.",
+    "repaired": "“{{effort}}”은(는) {{model}}에서 지원되지 않습니다 — {{resetTo}}(으)로 재설정되었습니다.",
     "options": {
-      "none": "__MISSING__:reasoningEffort.options.none",
-      "minimal": "__MISSING__:reasoningEffort.options.minimal",
-      "low": "__MISSING__:reasoningEffort.options.low",
-      "medium": "__MISSING__:reasoningEffort.options.medium",
-      "high": "__MISSING__:reasoningEffort.options.high",
-      "xhigh": "__MISSING__:reasoningEffort.options.xhigh",
-      "max": "__MISSING__:reasoningEffort.options.max"
+      "none": "없음",
+      "minimal": "최소",
+      "low": "낮음",
+      "medium": "보통",
+      "high": "높음",
+      "xhigh": "매우 높음",
+      "max": "최대"
     }
   }
 }
