@@ -472,6 +472,12 @@ npm run verify:i18n-hardcoded-regressions
 * Do not convert a failing test to skipped merely to unblock publication.
 * Do not delete tests that expose real contract drift.
 
+### New source test directories and asset types
+
+* **Test Surface Coverage**: Any new directory created under `src/` that contains tests (`*.test.ts` or `*.test.tsx`) is statically monitored by `scripts/verify-ci-contract.cjs`. You must register a corresponding unit test script in `package.json` (e.g. `"test:unit:<name>": "vitest run src/<name> --no-file-parallelism"`) and include it in `"test:unit"` so it is transitively executed by `"test:ci"`.
+* **Ambient Asset Types**: When importing non-code assets or using Vite import suffixes (such as `?url` or `.webp`), verify that `src/assets.d.ts` or `src/types/vite-env.d.ts` provides the ambient module declaration before running `npm run typecheck`.
+* **Dynamic Sprite Styling Exception**: Dynamic pixel calculations for CSS sprite coordinates (`backgroundPosition`, `backgroundSize`) are exempt from VERIFY-007's prohibition on inline styles, provided no hardcoded theme color classes are bypassed.
+
 ### Hosted acceptance
 
 When the task authorizes a push or release and hosted checks are part of acceptance:

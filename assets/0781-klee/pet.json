@@ -1,0 +1,7 @@
+{
+  "id": "klee",
+  "displayName": "Klee可莉",
+  "description": "A fan-made Klee-inspired Codex pet.",
+  "spritesheetPath": "spritesheet.webp",
+  "kind": "object"
+}

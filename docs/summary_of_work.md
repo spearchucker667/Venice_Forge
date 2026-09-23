@@ -68,6 +68,21 @@ recently_closed_in_session_2026-09-18:
 
 ## Latest Session Summary
 
+- **2026-09-23 Random Pet / Mascot Rotation Feature Implementation & Invariant Learning.**
+  - **Scope:** Implemented the full pet rotation feature for the seven Codex V1 atlas assets (`frieren`, `diana`, `palantir-patrick`, `plana`, `icebell`, `powerpet`, `klee`) per `docs/audits/Venice_Forge_Random_Pet_Rotation_Agent_Handoff.md`.
+  - **Files Created:** `src/features/mascot/pickNextPet.ts` (pure selection function), `src/features/mascot/pickNextPet.test.ts` (9 tests), `src/features/mascot/petCatalog.ts` (7-pet typed catalogue, Vite `?url` imports), `src/features/mascot/petCatalog.test.ts` (9 tests), `src/features/mascot/useNavigationPetRotation.ts` (navigation-driven hook, Strict Mode safe), `src/features/mascot/useNavigationPetRotation.test.tsx` (9 tests), `src/features/mascot/PetSpriteRenderer.tsx` (CSS background-position renderer, 48×52px, 8 FPS setInterval, reduced-motion safe, aria-hidden, error fallback), `src/features/mascot/PetSpriteRenderer.test.tsx` (10 tests).
+  - **Files Modified:**
+    - `src/components/layout/sidebar.tsx` — hook call + `<PetSpriteRendererWithFallback>` in expanded footer.
+    - `src/assets.d.ts` — added `*.webp` and `*?url` ambient module declarations.
+    - `package.json` — added `test:unit:features` script and wired into `test:unit` to satisfy CI test directory surface coverage.
+    - `.superdesign/init/routes.md` — synchronized layout source fingerprint (`0e2b0b0db2a9875e`) for `verify:superdesign-init`.
+    - `AGENTS.md` — added Section 8 invariants for new test directory coverage, ambient asset import declarations, and dynamic sprite styling exceptions.
+  - **Contract & Regression Fixes:**
+    - Omitted unused `description` metadata from `petCatalog.ts` to satisfy `verify:i18n-hardcoded-regressions` (zero regressions).
+    - Updated `.superdesign/init/routes.md` source fingerprint following `sidebar.tsx` modification (`verify:superdesign-init` clean pass).
+  - **Validation:** 37/37 mascot tests PASS, 23/23 sidebar tests PASS, 7/7 package-scripts tests PASS, `typecheck` PASS, `lint:eslint` PASS, `verify:contracts` PASS (104/104 checks across all verifier suites, exit 0).
+  - **Remaining:** Headed visual QA (manual Electron dev launch), production build (`npm run build`), and push to `origin/main` (requires user authorization).
+
 - **2026-09-23 GitHub CodeQL Code Scanning Remediation (Alerts #281–#285).**
   - **Alert Triage & Source Remediation:** Audited all 5 open CodeQL alerts across scripts and services, implementing clean AST-compliant fixes so CodeQL closes them upon the next push:
     - **Alert #285 (`js/file-system-race`, High):** `scripts/capture-per-tab-acceptance.mjs:179` — Eliminated the time-of-check to time-of-use (TOCTOU) file-system race condition by removing `fs.existsSync(manifestPath)` before `readFile`; now reads `manifestPath` directly within a `try/catch` block.

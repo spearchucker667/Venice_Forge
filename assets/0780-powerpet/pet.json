@@ -1,0 +1,7 @@
+{
+  "id": "powerpet",
+  "displayName": "PowerPet",
+  "description": "A cute chibi pet inspired by Power from Chainsaw Man, playful and feral with tiny blood-weapon flair.",
+  "spritesheetPath": "spritesheet.webp",
+  "kind": "person"
+}

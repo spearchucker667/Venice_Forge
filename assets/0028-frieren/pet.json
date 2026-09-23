@@ -1,0 +1,7 @@
+{
+  "id": "frieren",
+  "displayName": "Frieren",
+  "description": "Uma pequena maga elfa inspirada na Frieren, calma e curiosa.",
+  "spritesheetPath": "spritesheet.webp",
+  "kind": "person"
+}

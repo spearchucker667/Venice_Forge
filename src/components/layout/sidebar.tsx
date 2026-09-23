@@ -41,6 +41,10 @@ import { CharacterAvatar } from "../characters/CharacterAvatar";
 import { Meteocon } from "../ui/Meteocon";
 import { CharacterCreatorMascot } from "../character-creator/CharacterCreatorMascot";
 import { ContextMenu, useContextMenu } from "../ui/ContextMenu";
+import { useNavigationPetRotation } from "../../features/mascot/useNavigationPetRotation";
+import { PetSpriteRendererWithFallback } from "../../features/mascot/PetSpriteRenderer";
+import { PET_CATALOG } from "../../features/mascot/petCatalog";
+import { normaliseTab } from "../../config/tabs";
 
 function ChatIcon() {
   return <Meteocon name="clear-day" size={20} />;
@@ -224,6 +228,15 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
   const [pendingFamilySafeMode, setPendingFamilySafeMode] = useState<boolean | null>(null);
   const { masterPasswordSet } = useProfileStore();
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Pet mascot rotation: select a new pet whenever the canonical tab changes.
+  // One canonical owner for pet selection — this hook. Session-only UI state;
+  // not persisted to any store, IndexedDB, or localStorage.
+  const normalisedTabKey = normaliseTab(activeTab);
+  const activePet = useNavigationPetRotation({
+    navigationKey: normalisedTabKey,
+    pets: PET_CATALOG,
+  });
 
   const toggleRedTeamMode = () => {
     const enabled = !redTeamMode;
@@ -1002,6 +1015,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
               <kbd className="font-mono text-text-muted">⌘1-8</kbd>
             </div>
           </div>
+          {/* Pet mascot: changes on every primary tab navigation. Decorative only. */}
+          {activePet !== null && (
+            <div className="pt-1 flex justify-center shrink-0 [@media(max-height:700px)]:hidden">
+              <PetSpriteRendererWithFallback key={activePet.id} pet={activePet} />
+            </div>
+          )}
         </div>
       )}
       {sidebarOpen && (

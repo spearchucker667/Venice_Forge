@@ -1,0 +1,7 @@
+{
+  "id": "icebell",
+  "displayName": "Azuma Seren",
+  "description": "A tiny cool-toned white-haired companion with a blue ice pop and ribbon charm.",
+  "spritesheetPath": "spritesheet.webp",
+  "kind": "object"
+}
