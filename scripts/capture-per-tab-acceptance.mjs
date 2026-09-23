@@ -176,16 +176,14 @@ async function runCaptureForTuple({
   const notesPath = path.join(tupleDir, "notes.md");
 
   // Skip if already signed
-  if (fs.existsSync(manifestPath)) {
-    try {
-      const existing = JSON.parse(await readFile(manifestPath, "utf8"));
-      if (existing.reviewer && existing.reviewer.signature?.trim()) {
-        console.log(`  [skip signed] ${tabInfo.id}/${viewportName}__${themeName}__${localeName}`);
-        return;
-      }
-    } catch {
-      /* parse error, rewrite */
+  try {
+    const existing = JSON.parse(await readFile(manifestPath, "utf8"));
+    if (existing?.reviewer?.signature?.trim()) {
+      console.log(`  [skip signed] ${tabInfo.id}/${viewportName}__${themeName}__${localeName}`);
+      return;
     }
+  } catch {
+    /* file does not exist or unparseable, proceed with capture */
   }
 
   const context = await browser.newContext({

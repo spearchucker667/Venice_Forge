@@ -22,6 +22,7 @@ external_acceptance_outstanding:
   - native-language translation review of the 11 non-English catalogs (2,255 placeholder entries pending qualified native review; 11 of 12 namespaces 100% complete)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-22:
+  - CodeQL code scanning alerts #281–#285 remediated in source (scripts/capture-per-tab-acceptance.mjs, src/services/characterCreatorAiService.ts, scripts/generate-i18n-review-pack.cjs, scripts/verify-per-tab-acceptance.cjs).
   - VF-20260922-P0-001 (Hosted CI duration collapse root-caused to historic runs 599/299 from July 2026; modern CI runs 18-24m and executes full gates; current failures in use-chat.test.ts and i18n contract key fixed).
   - VF-20260922-P0-002 (Local safeguards OFF true no-op: completely short-circuits before running any evaluators and without recording any audit decision counters; provider safe_mode remains independent).
   - VF-20260922-P0-003 (CodeQL duplicate setup resolved: GitHub default-setup confirmed not-configured, tracked .github/workflows/codeql.yml Advanced Setup is sole authoritative pipeline; reconciled SECURITY.md).
@@ -66,6 +67,15 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-23 GitHub CodeQL Code Scanning Remediation (Alerts #281–#285).**
+  - **Alert Triage & Source Remediation:** Audited all 5 open CodeQL alerts across scripts and services, implementing clean AST-compliant fixes so CodeQL closes them upon the next push:
+    - **Alert #285 (`js/file-system-race`, High):** `scripts/capture-per-tab-acceptance.mjs:179` — Eliminated the time-of-check to time-of-use (TOCTOU) file-system race condition by removing `fs.existsSync(manifestPath)` before `readFile`; now reads `manifestPath` directly within a `try/catch` block.
+    - **Alert #284 (`js/index-out-of-bounds`, Medium):** `src/services/characterCreatorAiService.ts:271` — Corrected the off-by-one retry loop condition (`attemptIndex <= maxRetries`), added an explicit early break before attempting out-of-bounds delay indexing, and eliminated an unintended 3,000ms delay after the final failed retry.
+    - **Alert #283 (`js/unused-local-variable`, Medium):** `scripts/generate-i18n-review-pack.cjs:86` — Removed the unused stub function `loadCanonical`.
+    - **Alert #282 (`js/incomplete-sanitization`, Medium):** `scripts/generate-i18n-review-pack.cjs:228` — Escaped backslashes before escaping markdown table pipes (`p.marker.replace(/\\/g, "\\\\").replace(/\|/g, "\\|")`).
+    - **Alert #281 (`js/identity-replacement`, Medium):** `scripts/verify-per-tab-acceptance.cjs:165` — Corrected the regex identity replacement from `" · "` to `" - "` (`needle.replace(/ · /g, " - ")`) to support hyphenated alternatives without self-replacement.
+  - **Local Validation:** `lint:eslint` (0 errors, 0 warnings), `typecheck` (3/3 clean), `verify:safety-guard` (PASS), `verify:markdown-links` (435 files PASS), `characterCreatorAiService.test.ts` (12/12 PASS), and `verify:contracts` (PASS).
 
 - **2026-09-23 Publication to `main` & Workspace Learning Retention (`VF-20260922-P2-009`, `VF-20260922-P2-011`, `/learn`).**
   - **Publication to `main` (`7044c014`):** Committed and pushed all catalog translations (1,804 keys across 11 non-English locales), per-tab acceptance scaffolding optimizations, standalone Chrome headless capture harness, and review-pack updates directly to `origin/main`.

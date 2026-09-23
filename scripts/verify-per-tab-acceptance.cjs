@@ -160,9 +160,8 @@ function validateNotes(notesText, manifest) {
     errors.push("notes.md is empty");
     return errors;
   }
-  // Notes must reference the tuple.
   const needle = `${manifest.tab} · ${manifest.viewport} · ${manifest.theme} · ${manifest.locale}`;
-  if (!notesText.includes(needle) && !notesText.includes(needle.replace(/ · /g, " · "))) {
+  if (!notesText.includes(needle) && !notesText.includes(needle.replace(/ · /g, " - "))) {
     errors.push(`notes.md must reference the tuple header "${needle}"`);
   }
   // Notes must have a non-empty reviewer signature line.

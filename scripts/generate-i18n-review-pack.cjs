@@ -78,14 +78,6 @@ function findMissing(obj, currentPath = "") {
   return out;
 }
 
-// Reserved for future use: load the canonical English string for a missing
-// marker so the review pack can show reviewers what the source string is.
-// Currently computed inline from the marker; left here as a stable extension
-// point so reviewer tooling can be written against it.
-// eslint-disable-next-line no-unused-vars
-function loadCanonical(_locale, _namespace) {
-  return null;
-}
 
 function main() {
   if (!fs.existsSync(RESOURCES_ROOT)) {
@@ -225,7 +217,8 @@ function main() {
       lines.push("| JSON key | Placeholder marker |");
       lines.push("|---|---|");
       for (const p of nsEntry.placeholders) {
-        lines.push(`| \`${p.key}\` | \`${p.marker.replace(/\|/g, "\\|")}\` |`);
+        const safeMarker = p.marker.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+        lines.push(`| \`${p.key}\` | \`${safeMarker}\` |`);
       }
       lines.push("");
     }

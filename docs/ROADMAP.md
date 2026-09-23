@@ -23,6 +23,7 @@ external_acceptance_outstanding:
   - native-language translation review of the 11 non-English catalogs (2,255 placeholder entries pending qualified native review; 11 of 12 namespaces 100% complete)
   - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 recently_closed_in_session_2026-09-22:
+  - CodeQL code scanning alerts #281–#285 remediated in source (scripts/capture-per-tab-acceptance.mjs, src/services/characterCreatorAiService.ts, scripts/generate-i18n-review-pack.cjs, scripts/verify-per-tab-acceptance.cjs).
   - VF-20260922-P0-001 (Hosted CI duration collapse root-caused to historic runs 599/299 from July 2026; modern CI runs 18-24m and executes full gates; current failures in use-chat.test.ts and i18n contract key fixed).
   - VF-20260922-P0-002 (Local safeguards OFF true no-op: completely short-circuits before running any evaluators and without recording any audit decision counters; provider safe_mode remains independent).
   - VF-20260922-P0-003 (CodeQL duplicate setup resolved: GitHub default-setup confirmed not-configured, tracked .github/workflows/codeql.yml Advanced Setup is sole authoritative pipeline; reconciled SECURITY.md).

@@ -267,13 +267,14 @@ async function withVeniceApiRetry<T>(
   onRetry?: (info: { attempt: number; status?: number; delayMs: number }) => void,
 ): Promise<RetryResult<T>> {
   let lastError: unknown;
-  for (let i = 0; i <= TRANSPORT_RETRY_DELAYS_MS.length; i += 1) {
+  const maxRetries = TRANSPORT_RETRY_DELAYS_MS.length;
+  for (let attemptIndex = 0; attemptIndex <= maxRetries; attemptIndex += 1) {
     if (signal?.aborted) {
       return { ok: false, aborted: true };
     }
     try {
       const value = await attempt();
-      return { ok: true, value, attempts: i + 1 };
+      return { ok: true, value, attempts: attemptIndex + 1 };
     } catch (err: unknown) {
       if (signal?.aborted) {
         return { ok: false, aborted: true };
@@ -287,16 +288,19 @@ async function withVeniceApiRetry<T>(
         }
       }
       if (!isTransientVeniceError(err)) {
-        return { ok: false, aborted: false, error: err, attempts: i + 1 };
+        return { ok: false, aborted: false, error: err, attempts: attemptIndex + 1 };
       }
       lastError = err;
-      const delayMs = hintMs ?? (TRANSPORT_RETRY_DELAYS_MS[i] ?? TRANSPORT_RETRY_DELAYS_MS[TRANSPORT_RETRY_DELAYS_MS.length - 1]);
+      if (attemptIndex >= maxRetries) {
+        break;
+      }
+      const delayMs = hintMs ?? TRANSPORT_RETRY_DELAYS_MS[attemptIndex];
       const maybeStatus = err && typeof err === "object" ? (err as { status?: unknown }).status : undefined;
-      onRetry?.({ attempt: i + 1, status: typeof maybeStatus === "number" ? maybeStatus : undefined, delayMs });
+      onRetry?.({ attempt: attemptIndex + 1, status: typeof maybeStatus === "number" ? maybeStatus : undefined, delayMs });
       await delay(delayMs, signal);
     }
   }
-  return { ok: false, aborted: false, error: lastError, attempts: TRANSPORT_RETRY_DELAYS_MS.length + 1 };
+  return { ok: false, aborted: false, error: lastError, attempts: maxRetries + 1 };
 }
 
 async function executeWithSingleRepair(
