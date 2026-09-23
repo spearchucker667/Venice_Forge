@@ -5,17 +5,17 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: acced896 (remediated locally; awaiting commit)
-application_code_sha: acced896
-verified_against_sha: acced896
+repository_head_sha: df91bdb9 (remediated and published on main; hosted CI and CodeQL verified)
+application_code_sha: df91bdb9
+verified_against_sha: df91bdb9
 verified_at:         2026-09-22 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
 working_tree:        clean
-ci_status:           success (local aggregate `npm run ci` PASS; all 6 test segments, lint, typecheck, audit, build, contracts, dist)
-codeql_status:       success (Advanced Setup authoritative; default setup deconfigured)
+ci_status:           success for df91bdb9 (run 35818393320 — 11/11 jobs: contracts, macos-sensitive, coverage, unit-and-integration, lint-and-typecheck, windows-sensitive, script-coverage, build, electron-smoke-linux/windows/macos)
+codeql_status:       success for df91bdb9 (run 35818393403 — Analyze actions & Analyze javascript-typescript)
 open_findings:       see docs/ROADMAP.md (P2-016 headed a11y QA and P3-020 native-language review)
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
