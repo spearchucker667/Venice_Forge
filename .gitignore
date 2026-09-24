@@ -325,6 +325,7 @@ pnpm-debug.log*
 /.claude/
 /.local-ai/
 /.freebuff/
+/.rup/
 
 venice-forge-filelist.txt
 VENICE_FORGE_COMPLETE_AUDIT.md

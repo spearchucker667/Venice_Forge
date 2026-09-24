@@ -354,7 +354,7 @@ Tests live next to the source files they cover: `src/services/foo.ts` → `src/s
 
 ## Regression Guard System (`VERIFY-NNN`)
 
-Regression-sensitive surfaces are protected by named regression guards. The active sequence is `VERIFY-001`..`VERIFY-155` (with `VERIFY-168` as an intentional legacy bridge allowlisted by `verify:repo-handoff-hygiene`). Each guard lives in a specific test file and fails CI if the protection is weakened. When fixing a regression, add or annotate the closest `VERIFY-NNN` test with a brief comment.
+Regression-sensitive surfaces are protected by named regression guards. The active sequence is `VERIFY-001`..`VERIFY-158` (with `VERIFY-168` as an intentional legacy bridge allowlisted by `verify:repo-handoff-hygiene`). Each guard lives in a specific test file and fails CI if the protection is weakened. When fixing a regression, add or annotate the closest `VERIFY-NNN` test with a brief comment.
 
 - **When you find a regression**, first grep `AGENTS.md` for the table row describing `VERIFY-NNN`. The row tells you (a) which test file is the canonical guard, (b) what behavior is locked, and (c) which boundary the guarantee spans.
 - **When you add a new regression guard**, append the entry to the `AGENTS.md` table with the ID, what it locks, and the test file path. Update `verify:repo-handoff-hygiene` if you intentionally assign an out-of-sequence slot.

@@ -6,12 +6,16 @@ logging, diagnostics, and API-key handling model.
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 1c0360f8 (application commit before this docs-only successor)
-application_code_sha: 1c0360f8
-verified_against_sha: 1c0360f8
-verified_at:         2026-09-18 (Pacific)
+repository_head_sha: 088acd0d (feat(mascot): implement random pet rotation with 7 codex atlas assets)
+application_code_sha: 088acd0d
+verified_against_sha: 088acd0d
+verified_at:         2026-09-23 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
+npm_engine:          >=10.0.0
+branch:              main
+ci_status:           success for 2452b0d1 (run 35884133504 — 11/11 jobs: contracts, macos-sensitive, coverage, unit-and-integration, lint-and-typecheck, windows-sensitive, script-coverage, build, electron-smoke-linux/windows/macos)
+codeql_status:       success for 2452b0d1 (run 35884133309 — Analyze actions & Analyze javascript-typescript; 0 open alerts, alerts #281–#285 fixed)
 sender_validation:   electron/utils/validateIpcSender.ts fails closed when
                      event.senderFrame is absent or untrusted; no
                      sender.getURL() / WebContents top-level fallback
@@ -22,12 +26,12 @@ fsm_authority:       electron/services/guardPipeline.ts via
                      screenResponseBody()
 endpoint_allowlist:  src/shared/validation.ts ALLOWED_VENICE_ENDPOINTS
                      (POST-only method gate; no wildcard routing)
-open_findings:       P2-016, P3-020
+open_findings:       P2-016 (headed a11y QA), P3-020 (native-language review)
 external_acceptance_outstanding:
   - hosted CI/CodeQL against the published SHA
-  - headed accessibility/visual QA
-  - native-language translation review
-  - funded-provider verification of safety-screened paths
+  - headed accessibility/visual QA (per-tab acceptance, P2-016)
+  - native-language translation review of the 11 non-English catalogs
+  - funded-provider verification of newly-wired paths (Responses, x402, Crypto RPC)
 ```
 
 ## Reporting a Vulnerability

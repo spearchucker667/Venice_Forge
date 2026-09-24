@@ -20,6 +20,7 @@
 /electron-builder.config.cjs @spearchucker667
 /tsconfig.json @spearchucker667
 /tsconfig.electron.json @spearchucker667
+/tsconfig.electron.test.json @spearchucker667
 
 # Repository governance and CI/CD
 /.github/CODEOWNERS @spearchucker667
