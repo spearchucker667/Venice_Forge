@@ -12,13 +12,30 @@ function verifyLockfile(rootDir) {
       const source = path.join(rootDir, filename);
       if (fs.existsSync(source)) fs.copyFileSync(source, path.join(tempDir, filename));
     }
+    const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
     const result = spawnSync(
-      process.platform === "win32" ? "npm.cmd" : "npm",
+      npmCommand,
       ["install", "--package-lock-only", "--ignore-scripts", "--no-audit", "--no-fund"],
-      { cwd: tempDir, encoding: "utf8" },
+      {
+        cwd: tempDir,
+        encoding: "utf8",
+        windowsHide: true,
+        shell: process.platform === "win32",
+      },
     );
     if (result.status !== 0) {
-      return { passed: false, error: result.stderr || result.stdout || "npm install failed" };
+      const details = [
+        result.error && result.error.message,
+        result.stderr,
+        result.stdout,
+        `npm: ${npmCommand}`,
+        `cwd: ${tempDir}`,
+        `exit status: ${result.status}`,
+        `signal: ${result.signal}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      return { passed: false, error: details || "npm install failed" };
     }
     const before = fs.readFileSync(path.join(rootDir, "package-lock.json"));
     const after = fs.readFileSync(path.join(tempDir, "package-lock.json"));

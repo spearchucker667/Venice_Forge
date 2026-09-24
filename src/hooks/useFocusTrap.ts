@@ -1,5 +1,16 @@
 import { useEffect, useRef, RefObject } from "react";
 
+const escapeClosers: Array<() => void> = [];
+
+function onDocumentEscape(event: KeyboardEvent) {
+  if (event.key !== "Escape") return;
+  const close = escapeClosers[escapeClosers.length - 1];
+  if (!close) return;
+  event.preventDefault();
+  event.stopPropagation();
+  close();
+}
+
 export function useFocusTrap(
   ref: RefObject<HTMLElement | null>,
   active: boolean = true,
@@ -45,12 +56,15 @@ export function useFocusTrap(
       el.focus();
     }
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onCloseRef.current?.();
-        return;
-      }
+    const closeFromEscape = () => {
+      onCloseRef.current?.();
+    };
+    escapeClosers.push(closeFromEscape);
+    if (escapeClosers.length === 1) {
+      document.addEventListener("keydown", onDocumentEscape);
+    }
 
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
 
       const elements = getFocusable();
@@ -80,6 +94,11 @@ export function useFocusTrap(
     el.addEventListener('keydown', handleKeyDown);
     return () => {
       el.removeEventListener('keydown', handleKeyDown);
+      const index = escapeClosers.lastIndexOf(closeFromEscape);
+      if (index >= 0) escapeClosers.splice(index, 1);
+      if (escapeClosers.length === 0) {
+        document.removeEventListener("keydown", onDocumentEscape);
+      }
       // Only restore focus if we currently own the focus. If another dialog mounted
       // and stole focus, we should not yank it back to the old previouslyFocused element.
       if (

@@ -3,8 +3,8 @@
 > **Canonical local repository root:** `/Users/super_user/Projects/Venice_Forge`  
 > **GitHub:** `spearchucker667/Venice_Forge`  
 > **Authoritative branch:** `main`  
-> **Declared release line:** `3.0.2-beta` (VERIFY-052)  
-> **Version:** 3.0.2-beta  
+> **Declared release line:** `3.1.0` (VERIFY-052)  
+> **Version:** 3.1.0  
 > **Runtime/toolchain contract:** Node `>=22.15.0 <23.0.0`, npm `>=10`
 >
 > The absolute repository path is a **local bootstrap constraint only**. Never copy it into hosted CI, portable exports, committed diagnostics, permanent reports, fixtures, snapshots, generated artifacts intended for distribution, or user-facing documentation.

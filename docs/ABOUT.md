@@ -33,7 +33,7 @@ Current public readiness status:
 
 > [!NOTE]
 > [!IMPORTANT]
-> Venice Forge is currently a 3.0 beta. Automated validation is substantial, but signed cross-platform packaging, paid-provider operations, two-machine sync, and headed accessibility/theme/sound QA remain release acceptance work.
+> Venice Forge 3.1.0 is the current release line. Automated validation is substantial. Signed cross-platform packaging, paid-provider operations, two-machine sync, and headed accessibility QA remain release acceptance work.
 
 ## Architecture
 

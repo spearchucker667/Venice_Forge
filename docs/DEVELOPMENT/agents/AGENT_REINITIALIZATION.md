@@ -2,7 +2,7 @@
 
 > **Canonical Repository Root:** `/Users/super_user/Projects/Venice_Forge`
 > **GitHub:** `spearchucker667/Venice_Forge`
-> **Version:** `3.0.2-beta`
+> **Version:** `3.1.0`
 > **Last Re-Initialization:** 2026-09-23 (Anchored to git commit `088acd0d`)
 > **Canonical tab registry:** `src/config/tabs.ts` (`CANONICAL_TAB_ORDER`; do not duplicate a tab count here)
 > **Audience:** Senior Engineers & AI Coding Agents joining the project.

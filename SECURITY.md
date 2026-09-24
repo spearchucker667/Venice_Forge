@@ -10,7 +10,7 @@ repository_head_sha: 088acd0d (feat(mascot): implement random pet rotation with 
 application_code_sha: 088acd0d
 verified_against_sha: 088acd0d
 verified_at:         2026-09-23 (Pacific)
-package_version:     3.0.2-beta
+package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main

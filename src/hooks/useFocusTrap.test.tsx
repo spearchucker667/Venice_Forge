@@ -51,6 +51,13 @@ describe("useFocusTrap", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("closes the active popup when Escape is pressed outside the dialog", () => {
+    const onClose = vi.fn();
+    render(<TestComponent active={true} onClose={onClose} />);
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("cycles focus forward on Tab from last element", () => {
     render(<TestComponent active={true} />);
     screen.getByTestId("second").focus();
