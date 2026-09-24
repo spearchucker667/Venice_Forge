@@ -5,17 +5,17 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: c4134390 (docs(governance): synchronize github docs, audit security state, and ignore rup artifacts)
-application_code_sha: c4134390
-verified_against_sha: c4134390 for hosted CI; worktree edits are uncommitted
+repository_head_sha: 6747b0ad (docs(hygiene): compact the roadmap and archive the session ledger)
+application_code_sha: 6747b0ad
+verified_against_sha: 6747b0ad
 verified_at:         2026-09-23 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
-working_tree:        dirty — repo-management revalidation and roadmap compaction, uncommitted
-ci_status:           success for c4134390 (run 35944950611 — 11/11 jobs)
-codeql_status:       success for c4134390 (run 35944950570 — Analyze actions and Analyze javascript-typescript)
+working_tree:        clean
+ci_status:           success for 6747b0ad (run 35957327247 — 11/11 jobs)
+codeql_status:       success for 6747b0ad (run 35957327282 — Analyze actions and Analyze javascript-typescript)
 open_findings:       P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)

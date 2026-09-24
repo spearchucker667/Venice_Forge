@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: c4134390 (docs(governance): synchronize github docs, audit security state, and ignore rup artifacts)
-application_code_sha: c4134390
-verified_against_sha: c4134390 for hosted CI; worktree edits are uncommitted
+repository_head_sha: 6747b0ad (docs(hygiene): compact the roadmap and archive the session ledger)
+application_code_sha: 6747b0ad
+verified_against_sha: 6747b0ad
 verified_at:         2026-09-23 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        dirty — repo-management revalidation and roadmap compaction, uncommitted
-ci_status:           success for c4134390 (run 35944950611 — 11/11 jobs)
-codeql_status:       success for c4134390 (run 35944950570 — Analyze actions and Analyze javascript-typescript)
+working_tree:        clean
+ci_status:           success for 6747b0ad (run 35957327247 — 11/11 jobs)
+codeql_status:       success for 6747b0ad (run 35957327282 — Analyze actions and Analyze javascript-typescript)
 open_findings:       P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
@@ -31,7 +31,7 @@ external_acceptance_outstanding:
   - **IPC:** Every production `ipcMain.handle` registration goes through `registerPrivilegedIpcChannel`. `registerIpcChannel` has no production caller. `sync:setSyncFolder` accepts only the path already chosen by the main-process folder picker.
   - **Theme:** `--color-border-soft` and `--color-border-faint` already have a single `color-mix` definition in `src/styles/theme.css`. No second declaration remains.
   - **Left open on purpose:** human per-tab accessibility sign-off, qualified native-language review, and external release evidence (signing, notarization, funded provider calls, two-device sync). Those require a person, certificates, a paid account, or a second device.
-  - **Publication:** not committed and not pushed.
+  - **Publication:** committed and pushed as `6747b0ad`. Hosted CI run `35957327247` and CodeQL run `35957327282` both succeeded.
 
 - **2026-09-23 Repository-management revalidation.** Hygiene delta from the prior turn in this worktree is still uncommitted: `/out/` ignore, removal of unreferenced `assets/ReadMe_Preview.png`, Records archive of `auditsep23.md` and the pet-rotation handoff, README CI wording, and the three reports under `docs/audits/Records/2026-09-23-repository-*.md`.
 
@@ -55,7 +55,9 @@ external_acceptance_outstanding:
 
 ### 2026-09-23 — Roadmap compaction and remaining-risk closeout
 
-- Hosted CI run `35944950611` and CodeQL run `35944950570` — PASS on published `c4134390` (recorded in the prior turn; not re-run).
+- Hosted CI run `35957327247` — PASS, 11/11 jobs, SHA `6747b0ad`.
+- Hosted CodeQL run `35957327282` — PASS, Analyze actions and Analyze javascript-typescript, SHA `6747b0ad`.
+- Local `HEAD` matches `origin/main` at `6747b0ad`.
 - `npm ci`, `npm run lint:eslint`, `npm run typecheck`, `npm test`, `npm run build` — not run. This pass did not change application source.
 - `npm run verify:markdown-links` — PASS (441 files).
 - `npm run verify:repository-identity` — PASS.
