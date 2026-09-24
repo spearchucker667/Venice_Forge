@@ -6,6 +6,16 @@
 
 This directory preserves past repository reorganization and hygiene planning documents executed during the August 2026 modernization efforts.
 
+## 2026-09-23 Revalidation
+
+Those two work orders were executed again against current `main` (`c4134390`). The August documents stay historical. The revalidation evidence is:
+
+- [`../Records/2026-09-23-repository-audit.md`](../Records/2026-09-23-repository-audit.md)
+- [`../Records/2026-09-23-repository-hygiene-audit.md`](../Records/2026-09-23-repository-hygiene-audit.md)
+- [`../Records/2026-09-23-repository-hygiene-final-report.md`](../Records/2026-09-23-repository-hygiene-final-report.md)
+
+A root `VENICE_FORGE_COMPLETE_AUDIT.md` is intentionally not recreated. `.gitignore` and `scripts/verify-repo-handoff-hygiene.cjs` keep audit reports out of the repository root.
+
 ## Retained Historical Files
 
 | File | Date | Description |

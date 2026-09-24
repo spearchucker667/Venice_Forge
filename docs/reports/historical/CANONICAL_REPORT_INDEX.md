@@ -37,6 +37,7 @@ Only the first four rows are current operational authorities. Dated evidence row
 | [`historical/FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md`](FINAL_AUDIT_REMEDIATION_REPORT_2026-08-26.md) | Historical 2026-08-26 CI-repair and repository audit | Relocated from `docs/reports/` on 2026-09-16; evidence only. |
 | [`historical/MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md`](MEDIA_PREVIEW_TRAFFIC_INSPECTOR_REMEDIATION_REPORT_2026-07-26.md) | Historical 2026-07-26 Traffic Inspector remediation | Relocated from `docs/reports/` on 2026-09-16; evidence only. |
 | [`historical/MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md`](MEDIA_SAVE_PIPELINE_AUDIT_2026-07-28.md) | Historical 2026-07-28 Media Studio Save As audit | Relocated from `docs/reports/` on 2026-09-16; evidence only. |
+| [`summary-of-work-before-2026-09-23.md`](summary-of-work-before-2026-09-23.md) | Session ledger copied before the 2026-09-23 compaction | Evidence only. Live ledger is `docs/summary_of_work.md`. |
 
 ## Rules For New Reports
 

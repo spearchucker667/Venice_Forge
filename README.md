@@ -35,7 +35,7 @@
     <img alt="Apache 2.0 License" src="https://img.shields.io/badge/license-Apache_2.0-blue.svg" />
   </a>
   <a href="package.json">
-    <img alt="Node.js 22.x" src="https://img.shields.io/badge/node.js-22.x-339933.svg" />
+    <img alt="Node.js 22.15+" src="https://img.shields.io/badge/node.js-22.15%2B-339933.svg" />
   </a>
   <a href="tsconfig.json">
     <img alt="TypeScript strict" src="https://img.shields.io/badge/typescript-strict-3178c6.svg" />
@@ -293,7 +293,9 @@ npm run verify:dist
 npm run verify:i18n
 npm run verify:i18n-hardcoded-regressions
 
-# Complete CI-equivalent gate, including coverage and feature contracts
+# Segmented Vitest suites used by CI (server, electron, ingestion, unit, UI, contracts).
+# Coverage is a separate CI job: npm run test:coverage
+# The aggregate local gate is: npm run ci
 npm run test:ci
 ```
 
@@ -320,7 +322,7 @@ For a complete breakdown of every file, see [FILE_TREE.md](docs/DEVELOPMENT/FILE
 ├── inactive-features/     # Archived inactive features (research-browser)
 ├── public/                # Static web assets served by Vite/Express
 ├── scripts/               # Build, verify, release, and hygiene scripts
-├── tests/                 # Playwright smoke tests, contract suites, and invariants
+├── tests/                 # Vitest smoke tests, contract suites, and invariants
 ├── package.json           # Scripts, engines, and dependencies
 ├── .editorconfig          # Repository-wide code formatting rules
 ├── .gitattributes         # Line endings and binary file declarations

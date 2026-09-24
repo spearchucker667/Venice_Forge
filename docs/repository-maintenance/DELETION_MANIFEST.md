@@ -1,13 +1,23 @@
 # Venice Forge — Deletion & Retirement Manifest
 
-**Latest revalidation working tree:** 2026-09-18 repository & documentation overhaul on `main` (baseline `ebf814a4edea71b7ea17d318525493d6678f621f`)
+**Latest revalidation working tree:** 2026-09-23 repository-management revalidation on `main` (published HEAD `c4134390241f792527837fc143c7e979ae36fa7a`)
 **Historical overhaul baseline:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
 **Date:** 2026-09-18
 **Scope:** Repository Hygiene, Documentation Overhaul, Showcase Integration & CodeQL Hardening
 
 ---
 
-## 0. Current Revalidation — 2026-09-18
+## 0. Current Revalidation — 2026-09-23
+
+- **Path:** `assets/ReadMe_Preview.png`
+- **Classification:** Unused packaged image
+- **Reason for removal:** 2,803,600 bytes. No reference in source, tests, or `README.md`. `electron-builder` includes `assets/**/*`, so the file was installer weight. The README hero is `assets/Venice_Forge_Hero.png`. The only mention was an inventory row in `docs/audits/Records/venice-forge-exhaustive-audit-2026-08-15/02-FILE-AUDIT-LEDGER.md`.
+- **Replacement:** `assets/Venice_Forge_Hero.png`
+- **Reference search performed:** Yes.
+
+No other tracked file was deleted. `tests/fixtures/character-cards/png/oversized-metadata.png` stays because the PNG codec test and `scripts/verify-character-card-png.cjs` require it.
+
+## 0.2 Prior Revalidation — 2026-09-18
 
 No tracked files were deleted in this overhaul.
 - Transient untracked session logs (`kimi-export-session_-*.md`) and screenshot dumps (`Screenshot_20260914-132444.png`) were cleared from root and moved to local ignored paths (`.agent-backups/session-exports/` and `.design-captures/`).

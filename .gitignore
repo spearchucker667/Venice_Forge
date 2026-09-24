@@ -25,6 +25,7 @@ pnpm-debug.log*
 /dist/
 /dist-electron/
 /release/
+/out/
 /coverage/
 /.vite/
 /playwright-report/
@@ -305,6 +306,7 @@ pnpm-debug.log*
 /.agents/skills/finishing-a-development-branch/
 /.agents/skills/github/
 /.agents/skills/hqe/
+/.agents/skills/init/
 /.agents/skills/receiving-code-review/
 /.agents/skills/requesting-code-review/
 /.agents/skills/rup/

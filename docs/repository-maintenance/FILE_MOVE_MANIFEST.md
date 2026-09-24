@@ -1,13 +1,27 @@
 # Venice Forge — File Move & Rename Manifest
 
-**Latest revalidation working tree:** 2026-09-18 repository & documentation overhaul on `main` (baseline `ebf814a4edea71b7ea17d318525493d6678f621f`)
+**Latest revalidation working tree:** 2026-09-23 repository-management revalidation on `main` (published HEAD `c4134390241f792527837fc143c7e979ae36fa7a`; archive move uncommitted)
 **Historical overhaul baseline:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
 **Date:** 2026-09-18
 **Scope:** Repository Hygiene, Documentation Overhaul, Showcase Integration & CodeQL Hardening
 
 ---
 
-## 0. Current Revalidation — 2026-09-18
+## 0. Current Revalidation — 2026-09-23
+
+Two closed handoffs were already copied into `Records/` in the dirty worktree. Checksums matched the HEAD blobs. This pass kept the move and updated links.
+
+- **OLD PATH:** `docs/audits/auditsep23.md`
+- **→ NEW PATH:** `docs/audits/Records/auditsep23.md`
+- **Reason:** Workstreams A–I were remediated. Closed handoffs live under `Records/`.
+- **References updated:** `docs/DOCS_INDEX.md`, `docs/summary_of_work.md`, `docs/audits/repo-management/README.md`.
+
+- **OLD PATH:** `docs/audits/Venice_Forge_Random_Pet_Rotation_Agent_Handoff.md`
+- **→ NEW PATH:** `docs/audits/Records/Venice_Forge_Random_Pet_Rotation_Agent_Handoff.md`
+- **Reason:** The pet-rotation feature had landed. The specification is retained evidence, not an active work order.
+- **References updated:** `docs/DOCS_INDEX.md`, `docs/summary_of_work.md`.
+
+## 0.1 Prior Revalidation — 2026-09-18
 
 During the 2026-09-18 overhaul:
 - **Created Canonical Sub-READMEs:**
