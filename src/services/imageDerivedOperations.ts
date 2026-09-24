@@ -22,6 +22,8 @@ import { generateId } from "../lib/utils";
 import { DEFAULT_IMAGE_EDIT_MODEL } from "../constants/venice";
 import type { MediaItem, MediaOperation } from "../types/media";
 
+import { convertImageFormat } from "../utils/imageFormatConverter";
+
 export type ImageDerivedOperation =
   | { kind: "upscale"; scale: 2 | 4 }
   | { kind: "remove-background" }
@@ -38,6 +40,8 @@ export interface RunImageDerivedOperationInput {
   /** Edit-capable model used for inpainting. Ignored for upscale/background
    *  removal, whose endpoints take no model selector. */
   modelId?: string;
+  /** Requested target image format (Workstream B). Converts to WebP when requested. */
+  targetFormat?: "png" | "webp";
   signal?: AbortSignal;
 }
 
@@ -88,6 +92,7 @@ export async function runImageDerivedOperation({
   sourceAsset,
   operation,
   modelId,
+  targetFormat,
   signal,
 }: RunImageDerivedOperationInput): Promise<ImageDerivedOperationOutcome> {
   try {
@@ -130,6 +135,7 @@ export async function runImageDerivedOperation({
           mask: await blobToDataUrl(operation.mask),
           prompt,
           model: modelId ?? DEFAULT_IMAGE_EDIT_MODEL,
+          output_format: targetFormat ?? "png",
         }),
         { signal },
       );
@@ -140,7 +146,16 @@ export async function runImageDerivedOperation({
     }
 
     if (signal?.aborted) return { status: "cancelled" };
-    const dataUrl = await blobToDataUrl(blob);
+    let dataUrl = await blobToDataUrl(blob);
+    let finalMimeType: "image/png" | "image/webp" =
+      blob.type === "image/webp" ? "image/webp" : "image/png";
+
+    if (targetFormat === "webp" && finalMimeType !== "image/webp") {
+      const converted = await convertImageFormat(dataUrl, "webp");
+      dataUrl = converted.dataUrl;
+      finalMimeType = "image/webp";
+    }
+
     const asset: MediaItem = {
       id: generateId(),
       image: dataUrl,
@@ -148,6 +163,7 @@ export async function runImageDerivedOperation({
       model: derivedModel,
       timestamp: Date.now(),
       mediaType: "image",
+      mimeType: finalMimeType,
       operation: mediaOperation,
       parentId: sourceAsset.id,
       childrenIds: [],

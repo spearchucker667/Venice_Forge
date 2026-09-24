@@ -4694,7 +4694,9 @@
     "prepareFailed": "Экспорт медиа не выполнен. Не удалось подготовить файлы.",
     "exported": "Экспортировано медиафайлов: {{count}}.",
     "partiallyExported": "Экспортировано {{saved}} из {{total}} медиафайлов. Некоторые элементы не удалось разрешить.",
-    "failedWithDetail": "Экспорт медиа не выполнен. {{detail}}"
+    "failedWithDetail": "Экспорт медиа не выполнен. {{detail}}",
+    "originalFormat": "Исходный формат",
+    "exportFormat": "Формат экспорта"
   },
   "layout": {
     "sidebar": {

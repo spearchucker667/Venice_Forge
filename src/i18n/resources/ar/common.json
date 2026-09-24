@@ -4694,7 +4694,9 @@
     "prepareFailed": "فشل تصدير الوسائط. تعذر تجهيز أي ملفات.",
     "exported": "تم تصدير {{count}} من ملفات الوسائط.",
     "partiallyExported": "تم تصدير {{saved}} من أصل {{total}} ملفات وسائط. تعذر حل بعض العناصر.",
-    "failedWithDetail": "فشل تصدير الوسائط. {{detail}}"
+    "failedWithDetail": "فشل تصدير الوسائط. {{detail}}",
+    "originalFormat": "التنسيق الأصلي",
+    "exportFormat": "تنسيق التصدير"
   },
   "layout": {
     "sidebar": {

@@ -169,6 +169,71 @@ describe("ImageView model-aware payloads", () => {
     expect(request).not.toHaveProperty("cfg_scale");
   });
 
+  it("allows selecting WEBP output format and sends format: webp in request", () => {
+    render(<ImageView />);
+    fireEvent.change(
+      screen.getByPlaceholderText(/serene mountain landscape/i),
+      {
+        target: { value: "A copper city at dusk" },
+      },
+    );
+    const webpPill = screen.getByRole("radio", { name: "WEBP" });
+    fireEvent.click(webpPill);
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+
+    const request = mutate.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(request.format).toBe("webp");
+  });
+
+  it("renders CFG scale slider for applicable models and sends cfg_scale when modified", () => {
+    render(<ImageView />);
+    const cfgSlider = screen.getByRole("slider", { name: /cfg scale/i });
+    expect(cfgSlider).toBeInTheDocument();
+    expect(cfgSlider).toHaveValue("7");
+
+    fireEvent.change(cfgSlider, { target: { value: "9.5" } });
+    fireEvent.change(
+      screen.getByPlaceholderText(/serene mountain landscape/i),
+      { target: { value: "A vivid painting" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+
+    const request = mutate.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(request.cfg_scale).toBe(9.5);
+  });
+
+  it("allows clearing CFG scale back to auto/default so cfg_scale is omitted", () => {
+    render(<ImageView />);
+    const cfgSlider = screen.getByRole("slider", { name: /cfg scale/i });
+    fireEvent.change(cfgSlider, { target: { value: "11" } });
+
+    const clearBtn = screen.getByRole("button", { name: "Clear" });
+    fireEvent.click(clearBtn);
+
+    fireEvent.change(
+      screen.getByPlaceholderText(/serene mountain landscape/i),
+      { target: { value: "A vivid painting" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Generate" }));
+
+    const request = mutate.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(request).not.toHaveProperty("cfg_scale");
+  });
+
+  it("hides CFG scale slider when model does not support it", () => {
+    const originalGetCapabilities = imageCapabilities.getImageModelCapabilities;
+    vi.spyOn(imageCapabilities, "getImageModelCapabilities").mockImplementation(
+      (modelId) => ({
+        ...originalGetCapabilities(modelId),
+        supportsCfgScale: false,
+      }),
+    );
+
+    render(<ImageView />);
+    expect(screen.queryByRole("slider", { name: /cfg scale/i })).not.toBeInTheDocument();
+  });
+
   it("shows the variants control for wai-Illustrious and emits variants when count > 1", () => {
     modelsDataMock.mockReturnValue([
       {

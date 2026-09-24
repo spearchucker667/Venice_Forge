@@ -4694,7 +4694,9 @@
     "prepareFailed": "Error al exportar los medios. No se pudo preparar ningún archivo.",
     "exported": "Se exportaron {{count}} archivos de medios.",
     "partiallyExported": "Se exportaron {{saved}} de {{total}} archivos de medios. Algunos elementos no se pudieron resolver.",
-    "failedWithDetail": "Error al exportar los medios. {{detail}}"
+    "failedWithDetail": "Error al exportar los medios. {{detail}}",
+    "originalFormat": "Formato original",
+    "exportFormat": "Formato de exportación"
   },
   "layout": {
     "sidebar": {

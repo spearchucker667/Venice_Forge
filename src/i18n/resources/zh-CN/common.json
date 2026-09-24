@@ -4694,7 +4694,9 @@
     "prepareFailed": "媒体导出失败。无法准备任何文件。",
     "exported": "已导出 {{count}} 个媒体文件。",
     "partiallyExported": "已导出 {{total}} 个媒体文件中的 {{saved}} 个。部分项目无法解析。",
-    "failedWithDetail": "媒体导出失败。{{detail}}"
+    "failedWithDetail": "媒体导出失败。{{detail}}",
+    "originalFormat": "原始格式",
+    "exportFormat": "导出格式"
   },
   "layout": {
     "sidebar": {

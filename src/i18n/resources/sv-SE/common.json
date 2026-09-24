@@ -4694,7 +4694,9 @@
     "prepareFailed": "Mediaexporten misslyckades. Inga filer kunde förberedas.",
     "exported": "Exporterade {{count}} mediafiler.",
     "partiallyExported": "Exporterade {{saved}} av {{total}} mediafiler. Vissa objekt kunde inte lösas.",
-    "failedWithDetail": "Mediaexporten misslyckades. {{detail}}"
+    "failedWithDetail": "Mediaexporten misslyckades. {{detail}}",
+    "originalFormat": "Ursprungligt format",
+    "exportFormat": "Exportformat"
   },
   "layout": {
     "sidebar": {

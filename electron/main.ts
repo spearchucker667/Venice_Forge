@@ -189,8 +189,8 @@ function isAllowedAppNavigation(url: string): boolean {
 function createWindow(): BrowserWindow {
   const preloadPath = path.join(__dirname, "preload.js");
   const win = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    width: 2019,
+    height: 1306,
     minWidth: 800,
     minHeight: 600,
     show: false,

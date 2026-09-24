@@ -407,7 +407,7 @@ describe('MediaStudioView (GalleryView)', () => {
     vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
     const clickSpy = vi.fn()
     const originalCreateElement = Document.prototype.createElement
-    vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tag) => {
       const el = originalCreateElement.call(document, tag)
       if (tag.toLowerCase() === 'a') el.click = clickSpy
       return el
@@ -447,8 +447,57 @@ describe('MediaStudioView (GalleryView)', () => {
       expect(blob.size).toBeGreaterThan(0)
       expect(clickSpy).toHaveBeenCalled()
     } finally {
+      createElementSpy.mockRestore()
       vi.unstubAllGlobals()
-      vi.restoreAllMocks()
+    }
+  })
+
+  it('exposes export format control and converts to webp with matching extension', async () => {
+    vi.mocked(StorageService.getItemsPageWithMeta).mockResolvedValue({
+      items: [sampleRecord], decryptFailures: 0, total: 1, offset: 0, limit: 60, hasMore: false,
+    })
+    const originalFetch = globalThis.fetch.bind(globalThis)
+    vi.stubGlobal('fetch', vi.fn((url: string | URL | Request) => {
+      if (typeof url === 'string' && url.startsWith('data:')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          blob: () => Promise.resolve(new Blob(['fake-image-bytes'], { type: 'image/png' })),
+        } as unknown as Response)
+      }
+      return originalFetch(url)
+    }))
+
+    const clickSpy = vi.fn()
+    const originalCreateElement = Document.prototype.createElement
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+      const el = originalCreateElement.call(document, tag)
+      if (tag.toLowerCase() === 'a') el.click = clickSpy
+      return el
+    })
+    const createObjectURL = vi.fn().mockReturnValue('blob:test-webp')
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() })
+
+    try {
+      render(<GalleryView />)
+      await screen.findByText('Copper city at dusk')
+      fireEvent.click(screen.getByRole('button', { name: 'Select' }))
+      fireEvent.click(screen.getByTestId('bulk-select-all'))
+
+      await waitFor(() => expect(screen.getByTestId('bulk-export')).toBeEnabled())
+      const formatSelect = screen.getByTestId('bulk-export-format-select')
+      expect(formatSelect).toBeInTheDocument()
+      fireEvent.change(formatSelect, { target: { value: 'webp' } })
+      fireEvent.click(screen.getByTestId('bulk-export'))
+
+      await waitFor(() => expect(createObjectURL).toHaveBeenCalled())
+      const blob = createObjectURL.mock.calls[0][0] as Blob
+      expect(blob).toBeInstanceOf(Blob)
+      expect(blob.type).toBe('image/webp')
+      expect(clickSpy).toHaveBeenCalled()
+    } finally {
+      createElementSpy.mockRestore()
+      vi.unstubAllGlobals()
     }
   })
 

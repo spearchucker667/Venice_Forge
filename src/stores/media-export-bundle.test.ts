@@ -180,6 +180,18 @@ describe("media-export-bundle (VERIFY-044)", () => {
       expect(name).not.toContain("/")
       expect(name).not.toContain("\\")
     })
+
+    it("respects overrideFormat ('png' | 'webp') for image items", () => {
+      const item = makeItem({ image: "data:image/png;base64,abc" })
+      expect(buildMediaFilename(item, "webp")).toMatch(/\.webp$/)
+      expect(buildMediaFilename(item, "png")).toMatch(/\.png$/)
+      expect(buildMediaFilename(item, "original")).toMatch(/\.png$/)
+    })
+
+    it("does not override extension for non-image items like video", () => {
+      const videoItem = makeItem({ mediaType: "video" })
+      expect(buildMediaFilename(videoItem, "webp")).toMatch(/\.mp4$/)
+    })
   })
 
   describe("validateSidecar", () => {

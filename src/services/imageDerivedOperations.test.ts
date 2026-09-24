@@ -183,6 +183,23 @@ describe("runImageDerivedOperation", () => {
     expect(outcome.asset.prompt).toBe("remove the tree");
   });
 
+  it("passes output_format: 'webp' to inpaint request when targetFormat is webp (Workstream B)", async () => {
+    const mask = pngBlob();
+    await runImageDerivedOperation({
+      sourceAsset: source,
+      operation: { kind: "inpaint", mask, prompt: "remove the tree" },
+      modelId: "flux-2-max-edit",
+      targetFormat: "webp",
+    });
+    expect(veniceBlob).toHaveBeenCalledWith(
+      "/image/multi-edit",
+      expect.objectContaining({
+        output_format: "webp",
+      }),
+      expect.any(Object),
+    );
+  });
+
   it("defaults the inpaint model to the canonical edit model when none is given", async () => {
     const mask = pngBlob();
     const outcome = await runImageDerivedOperation({

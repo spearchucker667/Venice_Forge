@@ -417,6 +417,26 @@ describe("Seedream image-edit models", () => {
     }
   });
 
+  it("text-to-image models support cfgScale", () => {
+    const textToImageModels = [
+      "flux-dev",
+      "flux-dev-schnell",
+      "z-image-turbo",
+      "hidream-i-flux-dev",
+      "wai-Illustrious",
+      "lustify",
+      "sdxl",
+      "nano-banana-v1",
+      "seedream-v5-pro",
+      "seedream-v5-lite",
+      "seedream-v4",
+    ];
+    for (const id of textToImageModels) {
+      const caps = getImageModelCapabilities(id);
+      expect(caps.supportsCfgScale).toBe(true);
+    }
+  });
+
   it("getEditModelCapabilities returns non-null for Seedream edit models", () => {
     for (const id of EDIT_IDS) {
       expect(getEditModelCapabilities(id)).not.toBeNull();

@@ -4694,7 +4694,9 @@
     "prepareFailed": "メディアの書き出しに失敗しました。ファイルを準備できませんでした。",
     "exported": "{{count}} 件のメディアファイルを書き出しました。",
     "partiallyExported": "{{total}} 件中 {{saved}} 件のメディアファイルを書き出しました。一部の項目を解決できませんでした。",
-    "failedWithDetail": "メディアの書き出しに失敗しました。{{detail}}"
+    "failedWithDetail": "メディアの書き出しに失敗しました。{{detail}}",
+    "originalFormat": "元の形式",
+    "exportFormat": "エクスポート形式"
   },
   "layout": {
     "sidebar": {

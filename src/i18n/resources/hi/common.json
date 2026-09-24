@@ -4694,7 +4694,9 @@
     "prepareFailed": "मीडिया निर्यात विफल। कोई फ़ाइल तैयार नहीं की जा सकी।",
     "exported": "{{count}} मीडिया फ़ाइलें निर्यात की गईं।",
     "partiallyExported": "{{total}} में से {{saved}} मीडिया फ़ाइलें निर्यात हुईं। कुछ आइटम हल नहीं हो सके।",
-    "failedWithDetail": "मीडिया निर्यात विफल। {{detail}}"
+    "failedWithDetail": "मीडिया निर्यात विफल। {{detail}}",
+    "originalFormat": "मूल प्रारूप",
+    "exportFormat": "निर्यात प्रारूप"
   },
   "layout": {
     "sidebar": {

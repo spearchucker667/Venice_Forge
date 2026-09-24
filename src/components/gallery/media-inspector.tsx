@@ -57,6 +57,7 @@ import { useSettingsStore } from "../../stores/settings-store";
 import { useCharacterCreatorLaunchStore } from "../../stores/character-creator-launch-store";
 import { desktopMedia, isElectron } from "../../services/desktopBridge";
 import { buildMediaFilename } from "../../stores/media-export-bundle";
+import { convertImageFormat } from "../../utils/imageFormatConverter";
 import { Trans, useTranslation } from "react-i18next";
 
 interface MediaInspectorProps {
@@ -261,13 +262,25 @@ export function MediaInspector({
     if (hasSeed) void copyText(String(item.seed));
   }, [hasSeed, item.seed]);
 
+  const [exportFormat, setExportFormat] = useState<"original" | "png" | "webp">("original");
+
   const handleInspectorDownload = useCallback(async () => {
     try {
+      let exportSource = mediaItemSource(item) ?? undefined;
+      let exportMime = item.mimeType;
+      const isImage = item.mediaType === "image" || !item.mediaType;
+
+      if (isImage && exportFormat !== "original" && exportSource) {
+        const converted = await convertImageFormat(exportSource, exportFormat);
+        exportSource = converted.dataUrl;
+        exportMime = converted.mimeType;
+      }
+
       const result = await desktopMedia.saveMediaAs({
-        source: mediaItemSource(item) ?? undefined,
-        mediaId: item.generatedMediaId,
-        mimeType: item.mimeType,
-        suggestedName: buildMediaFilename(item),
+        source: exportSource,
+        mediaId: exportFormat === "original" ? item.generatedMediaId : undefined,
+        mimeType: exportMime,
+        suggestedName: buildMediaFilename(item, exportFormat),
       });
       if (result.status === "failed") throw new Error(result.error);
       if (result.status === "saved") toast.success(
@@ -283,7 +296,7 @@ export function MediaInspector({
         ),
       );
     }
-  }, [item, tRuntime]);
+  }, [item, exportFormat, tRuntime]);
 
   const handleCopyMetadata = useCallback(() => {
     const meta: Record<string, unknown> = {};
@@ -795,18 +808,33 @@ export function MediaInspector({
             </button>
           )}
           {(item.generatedMediaId || mediaItemSource(item)) && isElectron() && (
-            <button
-              type="button"
-              onClick={() => void handleInspectorDownload()}
-              className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
-              title={tRuntime(
-                "runtimeGenerated.components.gallery.mediaInspector.attribute.saveTheMainProcessMediaFileWithANativeDialog",
+            <div className="inline-flex items-center gap-1">
+              {(item.mediaType === "image" || !item.mediaType) && (
+                <select
+                  value={exportFormat}
+                  onChange={(e) => setExportFormat(e.target.value as "original" | "png" | "webp")}
+                  aria-label={tRuntime("mediaSave.exportFormat", "Export format")}
+                  data-testid="inspector-export-format-select"
+                  className="rounded-md border border-vf-panel-border bg-transparent px-2 py-1 text-[12px] text-text-secondary hover:border-accent"
+                >
+                  <option value="original">{tRuntime("mediaSave.originalFormat", "Original format")}</option>
+                  <option value="png">PNG</option>
+                  <option value="webp">WEBP</option>
+                </select>
               )}
-              data-testid="inspector-download-generated-media"
-            >
-              <Download className="h-3 w-3" />{" "}
-              <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.downloadMedia" />
-            </button>
+              <button
+                type="button"
+                onClick={() => void handleInspectorDownload()}
+                className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent"
+                title={tRuntime(
+                  "runtimeGenerated.components.gallery.mediaInspector.attribute.saveTheMainProcessMediaFileWithANativeDialog",
+                )}
+                data-testid="inspector-download-generated-media"
+              >
+                <Download className="h-3 w-3" />{" "}
+                <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.downloadMedia" />
+              </button>
+            </div>
           )}
           <button
             type="button"

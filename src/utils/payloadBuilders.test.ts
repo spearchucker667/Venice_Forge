@@ -471,6 +471,29 @@ describe("buildImagePayload", () => {
     expect(payload).not.toHaveProperty("output_format");
   });
 
+  it("emits format: 'webp' when webp format is requested (Workstream B)", () => {
+    const payload = buildImagePayload("flux-dev", {
+      prompt: "test",
+      width: 1024,
+      height: 1024,
+      format: "webp",
+    });
+
+    expect(payload.format).toBe("webp");
+    expect(payload).not.toHaveProperty("output_format");
+  });
+
+  it("defaults to 'png' when an unrecognized format is passed", () => {
+    const payload = buildImagePayload("flux-dev", {
+      prompt: "test",
+      width: 1024,
+      height: 1024,
+      format: "invalid-fmt",
+    });
+
+    expect(payload.format).toBe("png");
+  });
+
   /** Verifies that invalid imported state is normalized before building payload. */
   it("normalizes invalid imported state before building payload", () => {
     const payload = buildImagePayload("flux-dev", {

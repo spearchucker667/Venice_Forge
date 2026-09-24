@@ -4694,7 +4694,9 @@
     "prepareFailed": "Falha na exportação da mídia. Nenhum arquivo pôde ser preparado.",
     "exported": "{{count}} arquivos de mídia exportados.",
     "partiallyExported": "{{saved}} de {{total}} arquivos de mídia exportados. Alguns itens não puderam ser resolvidos.",
-    "failedWithDetail": "Falha na exportação da mídia. {{detail}}"
+    "failedWithDetail": "Falha na exportação da mídia. {{detail}}",
+    "originalFormat": "Formato original",
+    "exportFormat": "Formato de exportação"
   },
   "layout": {
     "sidebar": {

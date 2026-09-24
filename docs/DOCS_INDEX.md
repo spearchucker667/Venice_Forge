@@ -221,6 +221,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Audit Evidence
 
+- [audits/auditsep23.md](audits/auditsep23.md) — 2026-09-23 Media, Character, Documents, Theme & Status remediation handoff covering workstreams A–I.
+- [audits/Venice_Forge_Random_Pet_Rotation_Agent_Handoff.md](audits/Venice_Forge_Random_Pet_Rotation_Agent_Handoff.md) — 2026-09-23 Codex V1 mascot random pet rotation specification and implementation guide.
 - [audits/Records/venice-forge-hqe-audit-2026-09-14/README.md](audits/Records/venice-forge-hqe-audit-2026-09-14/README.md) — **Latest.** 2026-09-14 canonical HQE Protocol v5.0.0 codebase health audit across 1,951+ tracked files (baseline `c2279276`). Overall Health Score: 8/10 (Solid). Remediated and verified sidebar pointer drag persistence regression (`HQE-BUG-001`). Identified release gate blocker on missing i18n placeholders (`HQE-DOC-001`). All test suites (unit, electron, contracts, UI, ingestion, workflow, character cards) 100% green. See `HQE_FINDINGS.json`, `HQE_RUN_MANIFEST.json`, `RISK_REGISTER.md`, `REMEDIATION_PLAN.md`.
 - [audits/README.md](audits/README.md) — Audit directory policy: active work orders in `TODO/`, immutable evidence in `Records/`.
 - [audits/Records/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md](audits/Records/VENICE_API_2026-09-16_FEATURE_GAP_AGENT_HANDOFF.md) — Venice API feature-gap work order (moved to `Records/` after the 2026-09-16/17 phased tranches shipped on `main`); cited by `docs/ROADMAP.md` and current source comments.

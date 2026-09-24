@@ -37,6 +37,7 @@ const IGNORE_PATH_PREFIXES = [
   'src/components/layout/inspector-pane.tsx',
   'src/components/ui/select.tsx',
   'src/components/ui/toaster.tsx',
+  'src/features/mascot/PetSpriteRenderer.tsx',
 ]
 
 /** Recursively gather all matching source files. */

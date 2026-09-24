@@ -4694,7 +4694,9 @@
     "prepareFailed": "Échec de l’export des médias. Aucun fichier n’a pu être préparé.",
     "exported": "{{count}} fichiers multimédias exportés.",
     "partiallyExported": "{{saved}} fichiers multimédias sur {{total}} exportés. Certains éléments n’ont pas pu être résolus.",
-    "failedWithDetail": "Échec de l’export des médias. {{detail}}"
+    "failedWithDetail": "Échec de l’export des médias. {{detail}}",
+    "originalFormat": "Format d'origine",
+    "exportFormat": "Format d'exportation"
   },
   "layout": {
     "sidebar": {

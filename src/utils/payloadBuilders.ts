@@ -488,6 +488,8 @@ export interface ImageDraftLike {
   aspectRatio?: string;
   resolution?: string;
   quality?: "low" | "medium" | "high" | "auto" | string;
+  /** Image format requested from the provider ("png" | "webp"). Defaults to "png". */
+  format?: "png" | "webp" | string;
   steps?: number | string;
   cfg?: number | string;
   style?: string;
@@ -610,6 +612,8 @@ export function normalizeImageDraft(
     }
     return undefined;
   })();
+  const rawFormat = String(draft.format ?? "").trim().toLowerCase();
+  const format: "png" | "webp" = rawFormat === "webp" ? "webp" : "png";
   // Per-model limit when the caller provides modelInfo; otherwise fall
   // back to the legacy global ceiling (existing caller contract).
   const promptLimit = options.modelInfo
@@ -624,6 +628,7 @@ export function normalizeImageDraft(
     aspectRatio: aspectRatio || undefined,
     resolution: resolution || undefined,
     quality,
+    format,
     steps: clampInt(draft.steps, 1, 50),
     // Omit CFG when unset so Venice uses the model-dependent default.
     cfg: optionalClampedCfg(draft.cfg),
@@ -672,7 +677,7 @@ export function buildImagePayload(
     steps: normalized.steps,
     hide_watermark: normalized.disableWatermark,
     return_binary: false,
-    format: "png",
+    format: normalized.format ?? "png",
   };
 
   // Sizing: pick exactly one shape. Caller decides via aspectRatio.

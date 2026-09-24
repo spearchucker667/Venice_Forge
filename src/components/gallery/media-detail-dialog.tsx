@@ -2,7 +2,7 @@
  * keyboard nav, and a small inline action bar (favorite, delete). The
  * Inspector is rendered alongside as a side panel. */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Heart, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/shared";
@@ -68,7 +68,10 @@ interface MediaDetailDialogProps {
   onClose: () => void;
   onNavigate: (direction: "prev" | "next") => void;
   onToggleFavorite: (item: MediaItem) => void;
-  onSaveAs: (item: MediaItem) => unknown | Promise<unknown>;
+  onSaveAs: (
+    item: MediaItem,
+    targetFormat?: "original" | "png" | "webp",
+  ) => unknown | Promise<unknown>;
   onDelete: (item: MediaItem) => void;
   onSelect: (item: MediaItem) => void;
 }
@@ -84,6 +87,7 @@ export function MediaDetailDialog({
   onSelect,
 }: MediaDetailDialogProps) {
   const { t: tRuntime } = useTranslation("common");
+  const [saveFormat, setSaveFormat] = useState<"original" | "png" | "webp">("original");
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const isVideo = isVideoItem(item);
@@ -174,9 +178,22 @@ export function MediaDetailDialog({
                     "runtimeGenerated.components.gallery.mediaDetailDialog.text.favorite",
                   )}
             </button>
+            {!isVideo && !isAudio && (
+              <select
+                value={saveFormat}
+                onChange={(e) => setSaveFormat(e.target.value as "original" | "png" | "webp")}
+                aria-label={tRuntime("mediaSave.exportFormat", "Export format")}
+                data-testid="detail-save-format-select"
+                className="rounded-md border border-vf-panel-border bg-transparent px-2 py-1 text-[12px] text-text-secondary hover:border-accent"
+              >
+                <option value="original">{tRuntime("mediaSave.originalFormat", "Original format")}</option>
+                <option value="png">PNG</option>
+                <option value="webp">WEBP</option>
+              </select>
+            )}
             <button
               type="button"
-              onClick={() => void onSaveAs(item)}
+              onClick={() => void (saveFormat === "original" ? onSaveAs(item) : onSaveAs(item, saveFormat))}
               disabled={!src && !item.generatedMediaId}
               aria-label={tRuntime("actions.saveAs")}
               className="inline-flex items-center gap-1 rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"

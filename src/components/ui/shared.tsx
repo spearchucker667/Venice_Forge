@@ -38,6 +38,7 @@ export function TextArea({
   maxLength,
   autoFocus,
   id,
+  className,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -47,6 +48,7 @@ export function TextArea({
   maxLength?: number;
   autoFocus?: boolean;
   id?: string;
+  className?: string;
 }) {
   return (
     <textarea
@@ -58,7 +60,10 @@ export function TextArea({
       aria-label={ariaLabel}
       maxLength={maxLength}
       autoFocus={autoFocus}
-      className="w-full min-w-0 max-w-full overflow-x-hidden break-words whitespace-pre-wrap bg-input-bg border border-vf-panel-border rounded-lg px-3 py-2.5 text-[15px] text-input-fg outline-none focus:border-vf-panel-border-strong transition-colors resize-none placeholder:text-placeholder leading-relaxed"
+      className={cn(
+        "w-full min-w-0 max-w-full overflow-x-hidden break-words whitespace-pre-wrap bg-input-bg border border-vf-panel-border rounded-lg px-3 py-2.5 text-[15px] text-input-fg outline-none focus:border-vf-panel-border-strong transition-colors resize-y overflow-y-auto min-h-[80px] max-h-[min(40vh,360px)] placeholder:text-placeholder leading-relaxed",
+        className,
+      )}
     />
   );
 }

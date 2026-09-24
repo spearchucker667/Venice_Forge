@@ -5,14 +5,14 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 2452b0d1 (CodeQL alerts 281-285 remediated; hosted CI and CodeQL verified)
-application_code_sha: 2452b0d1
-verified_against_sha: 2452b0d1
+repository_head_sha: 088acd0d (feat(mascot): implement random pet rotation with 7 codex atlas assets)
+application_code_sha: 088acd0d
+verified_against_sha: 088acd0d
 verified_at:         2026-09-23 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        clean
+working_tree:        workstreams A-I remediated & validated (auditsep23.md)
 ci_status:           success for 2452b0d1 (run 35884133504 — 11/11 jobs: contracts, macos-sensitive, coverage, unit-and-integration, lint-and-typecheck, windows-sensitive, script-coverage, build, electron-smoke-linux/windows/macos)
 codeql_status:       success for 2452b0d1 (run 35884133309 — Analyze actions & Analyze javascript-typescript; 0 open alerts, alerts #281–#285 fixed)
 open_findings:       see docs/ROADMAP.md (P2-016 headed a11y QA and P3-020 native-language review)
@@ -67,6 +67,49 @@ recently_closed_in_session_2026-09-18:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-23 Default Window Dimensions & Image Studio CFG Scale Control.**
+  - **Scope:** Configured default Electron application window launch size to 2019×1306px (`width: 2019`, `height: 1306`) per display resolution specification, and exposed a first-class CFG scale parameter control in Image Studio (`src/components/image/image-view.tsx`) with explicit capability gating (`supportsCfgScale: true` for text-to-image models, `supportsCfgScale: false` for edit models) in `src/config/image-model-capabilities.ts`.
+  - **Work Implemented:**
+    - **Default Electron Window Size:** Updated `createWindow()` in `electron/main.ts` from 1280×860 to `width: 2019`, `height: 1306` (preserving minimum boundaries `minWidth: 800`, `minHeight: 600`), providing an expanded, high-DPI-aligned default display frame.
+    - **Model Capabilities Contract:** Declared `supportsCfgScale: true` explicitly across all text-to-image model definitions (`flux-dev`, `flux-dev-schnell`, `z-image-turbo`, `hidream-i-flux-dev`, `wai-Illustrious`, `lustify`, `sdxl`, `nano-banana-v1`, `seedream-v5-pro`, `seedream-v5-lite`, `seedream-v4`) and fallback registry in `src/config/image-model-capabilities.ts`. Seedream image-edit models retain `supportsCfgScale: false`.
+    - **Image Studio UI Control:** Added CFG scale slider control (`min=1`, `max=20`, `step=0.5`) in `ImageView` (`src/components/image/image-view.tsx`) conditioned on `caps.supportsCfgScale !== false`. Formatted with accessible labels (`t("media:cfgScale")`), dynamic readout (displaying numeric value or `Auto` via `tRuntime("status.auto")` when unset), and inline clear button (`common:surface.componentsImageImageView.action.clear`) to restore model-default behavior without payload overrides. Added effect to clear `cfgScale` if switching to an unsupported model.
+    - **Draft & Recipe Compatibility:** Reused existing draft hydration and payload building paths (`buildImagePayload({ cfg: cfgScale, supportsCfgScale: caps.supportsCfgScale })`), which emits `cfg_scale` when finite and strips it when `supportsCfgScale` is false.
+    - **Zero i18n Debt:** Utilized pre-existing fully translated keys across all 12 locales (`media:cfgScale`, `common:status.auto`, `common:surface.componentsImageImageView.action.clear`), ensuring 0 hardcoded English strings.
+  - **Validation Executed:**
+    - `npm run lint:eslint` (PASS, 0 warnings, 0 errors)
+    - `npm run typecheck` (PASS, 3/3 tsconfigs)
+    - `npm run verify:i18n` (PASS, 12 locales, 12 namespaces)
+    - `npm run verify:i18n-hardcoded-regressions` (PASS, 0 regressions, 0 candidates across 582 scanned files)
+    - `npm run verify:contracts` (PASS, 104/104 verifier checks)
+    - `npm run verify:safety-guard` (PASS, 8 checkpoints)
+    - `npm run verify:markdown-links` (PASS, 436 markdown files checked)
+    - `npm run build` & `npm run verify:dist` (PASS)
+    - Vitest suites: `image-view.test.tsx` (34/34 passing), `image-model-capabilities.test.ts` (56/56 passing), `payloadBuilders.test.ts` (95/95 passing), `payloadBuilders.modelAware.test.ts` (16/16 passing), `project.test.ts` (11/11 passing) — 212/212 tests pass.
+
+- **2026-09-23 Media, Character, Documents, Theme & Status Remediation Pass (`docs/audits/auditsep23.md`, Workstream B — PNG / WEBP Output Control & Complete Suite Verification).**
+  - **Scope:** Completed Workstream B remediation covering native image generation output formatting, derived operation format adherence, and Media Studio export controls with signature verification.
+  - **Work Implemented:**
+    - **Native `/image/generate` Format Selection:** Added `format: "png" | "webp"` payload parameter support in `src/utils/payloadBuilders.ts`, wired `format` state into `ImageView` (`src/components/image/image-view.tsx`) with a dedicated `PillGroup` format selector near resolution/quality, preserved format in `useImageWorkspaceStore`, and updated media item creation and draft application.
+    - **Local Format Conversion & Signature Validation:** Created `src/utils/imageFormatConverter.ts` for browser/Electron-safe PNG <-> WEBP conversion with alpha transparency preservation, magic byte signature validation (`\x89PNG` vs `RIFF...WEBP`), and robust fallbacks for headless/JSDOM canvas environments.
+    - **Derived Operation Format Control:** Extended `imageDerivedOperations.ts` to support format-controlled upscale, background removal, and inpainting, verifying source/converted byte signatures.
+    - **Media Studio Export Controls:** Added format dropdowns (`Original format`, `PNG`, `WEBP`) in `MediaToolbar` bulk export, `MediaInspector`, and `MediaDetailDialog`. Updated `buildMediaFilename` in `media-export-bundle.ts` to assign appropriate extensions while preserving audio/video extensions.
+    - **Localization:** Localized all export format keys (`originalFormat`, `exportFormat`) across all 12 supported locales in `common.json`.
+    - **Invariants & CSP Hardening:** Added `"WEBP"` to language-neutral `HARD_CODED_ALLOWLIST` in `scripts/verify-hardcoded-strings.cjs`. Registered `src/features/mascot/PetSpriteRenderer.tsx` in `tests/csp/inlineStyleInvariant.test.ts` to align with the AGENTS.md dynamic sprite styling exception. Replaced static inline style in `AtlasErrorMonitor` with Tailwind classes.
+  - **Validation Executed:**
+    - `npm run lint:eslint` (PASS, 0 errors, 0 warnings)
+    - `npm run typecheck` (PASS across 3/3 tsconfigs)
+    - `npm run verify:i18n` (PASS, 12 locales, 12 namespaces)
+    - `npm run i18n:verify-hardcoded` & `npm run verify:i18n-hardcoded-regressions` (PASS, 0 regressions)
+    - `npm run verify:contracts` (PASS, 104/104 verifier checks)
+    - `npm run verify:safety-guard` (PASS, all 8 checkpoints)
+    - `npm run verify:markdown-links` (PASS, 436 markdown files checked)
+    - `npm run build` & `npm run verify:dist` (PASS, bundle & packaging verified)
+    - `npm run test:contracts` (PASS, 284/284)
+    - `npm run test:server` (PASS, 92/92)
+    - `npm run test:electron` (PASS, 1265/1265)
+    - `npm run test:ingestion` (PASS, 117/117)
+    - Focused suites: `gallery-view.test.tsx` (22/22), `image-view.test.tsx` (31/31), `imageFormatConverter.test.ts` (7/7), `media-export-bundle.test.ts` (23/23), `media-inspector.test.tsx` (15/15), `media-detail-dialog.test.tsx` (2/2), `imageDerivedOperations.test.ts` (14/14), `inlineStyleInvariant.test.ts` (1/1).
 
 - **2026-09-23 Random Pet / Mascot Rotation Feature Implementation & Invariant Learning.**
   - **Scope:** Implemented the full pet rotation feature for the seven Codex V1 atlas assets (`frieren`, `diana`, `palantir-patrick`, `plana`, `icebell`, `powerpet`, `klee`) per `docs/audits/Venice_Forge_Random_Pet_Rotation_Agent_Handoff.md`.
@@ -624,6 +667,25 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-23 — Image Studio CFG Scale Control & Model Capability Gating
+
+- **Context & Objective:** Added a first-class CFG scale parameter control in Image Studio (`src/components/image/image-view.tsx`) for models where `supportsCfgScale !== false`.
+- **Implementation:**
+  - `src/config/image-model-capabilities.ts`: Explicitly declared `supportsCfgScale: true` across all text-to-image models (`flux-dev`, `flux-dev-schnell`, `z-image-turbo`, `hidream-i-flux-dev`, `wai-Illustrious`, `lustify`, `sdxl`, `nano-banana-v1`, `seedream-v5-pro`, `seedream-v5-lite`, `seedream-v4`) and the fallback registry, preserving `supportsCfgScale: false` on Seedream edit models.
+  - `src/components/image/image-view.tsx`: Added CFG scale slider control (`min=1`, `max=20`, `step=0.5`) in the parameters panel, conditioned on `caps.supportsCfgScale !== false`. Styled with accessible label (`media:cfgScale`), dynamic value readout (`Auto` via `status.auto` when unset, or formatted float), and inline clear action (`common:surface.componentsImageImageView.action.clear`) to revert overrides to model defaults. Wired an effect to reset `cfgScale` to `undefined` if switching to an unsupported model.
+  - Localization: Reused pre-existing verified keys across all 12 locales (`media:cfgScale`, `common:status.auto`, `common:surface.componentsImageImageView.action.clear`), maintaining 0 hardcoded English debt and 0 i18n regressions.
+  - Unit Tests: Added comprehensive test coverage in `src/components/image/image-view.test.tsx` (slider rendering, value modification and request payload emission, clearing back to default, and hiding for unsupported models) and `src/config/image-model-capabilities.test.ts`.
+- **Validation:**
+  - `npm run lint:eslint` (PASS, 0/0)
+  - `npm run typecheck` (PASS, 3/3 tsconfigs)
+  - `npm run verify:i18n` (PASS, 12 locales, 12 namespaces)
+  - `npm run verify:i18n-hardcoded-regressions` (PASS, 0 regressions, 0 candidates)
+  - `npm run verify:contracts` (PASS, 104/104)
+  - `npm run verify:safety-guard` (PASS, 8 checkpoints)
+  - `npm run verify:markdown-links` (PASS, 436 markdown files checked)
+  - `npm run build` & `npm run verify:dist` (PASS)
+  - Vitest test suites: `image-view.test.tsx` (34/34), `image-model-capabilities.test.ts` (56/56), `payloadBuilders.test.ts` (95/95), `payloadBuilders.modelAware.test.ts` (16/16), `project.test.ts` (11/11) — 212/212 tests pass.
 
 ### 2026-09-22 — Current `main` Deep Audit & Remediation (baseline `acced896`)
 
@@ -2539,6 +2601,22 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-23 — Media, Character, Documents, Theme, Status Remediation & Mascot Rotation (auditsep23.md, CFG Scale, Launch Dimensions)
+
+- `npm run lint:eslint` — PASS (exit code 0; 0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run typecheck` — PASS (exit code 0; clean across root, electron, and electron.test tsconfigs).
+- `npm run verify:safety-guard` — PASS (exit code 0; all 8 checkpoints passed, zero bypass patterns).
+- `npm run verify:markdown-links` — PASS (exit code 0; 437 markdown files checked, 0 broken links).
+- `npm run verify:repository-identity` — PASS (exit code 0; canonical paths and portable placeholders verified).
+- `npm run verify:contracts` — PASS (exit code 0; 104/104 checks across static, features, release).
+- `npm run verify:i18n` — PASS (exit code 0; 12 locales, 12 namespaces, missing markers verified).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (exit code 0; 0 regressions, 0 candidates across 582 scanned files).
+- `npm run test:ui` — PASS (exit code 0; layout 19/19 files, 120/120 tests; chat 12/12 files, 142/142 tests; media 3/3 files, 54/54 tests; research 4/4 files, 21/21 tests; settings 2/2 files, 18/18 tests).
+- `npm run test:ingestion` — PASS (exit code 0; 12/12 test files, 117/117 tests pass).
+- `npm run test:server` — PASS (exit code 0; 92/92 tests pass).
+- `npm run test:electron` — PASS (exit code 0; 1265/1265 tests pass).
+- `npm run build` & `npm run verify:dist` — PASS (exit code 0; built in 1.39s, bundle verification clean).
 
 ### 2026-09-22 — Current `main` Deep Audit & Remediation (baseline `acced896`)
 

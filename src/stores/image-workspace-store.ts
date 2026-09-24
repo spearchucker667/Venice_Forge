@@ -14,6 +14,7 @@ export interface ImageGenerationDraft {
   aspectRatio?: string
   resolution?: string
   quality?: string
+  format?: 'png' | 'webp'
   seed?: number | null
   recipeMeta?: Record<string, unknown>
 }

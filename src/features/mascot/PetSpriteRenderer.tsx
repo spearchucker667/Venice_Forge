@@ -171,7 +171,7 @@ function AtlasErrorMonitor({
       src={url}
       alt=""
       aria-hidden="true"
-      style={{ display: 'none', pointerEvents: 'none' }}
+      className="hidden pointer-events-none"
       onError={() => {
         console.warn(
           `[mascot] Atlas load failed for pet "${petId}" (NetworkError or resource unavailable)`,

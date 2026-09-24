@@ -54,7 +54,9 @@
     "prepareFailed": "Media export failed. No files could be prepared.",
     "exported": "Exported {{count}} media files.",
     "partiallyExported": "Exported {{saved}} of {{total}} media files. Some items could not be resolved.",
-    "failedWithDetail": "Media export failed. {{detail}}"
+    "failedWithDetail": "Media export failed. {{detail}}",
+    "originalFormat": "Original format",
+    "exportFormat": "Export format"
   },
   "layout": {
     "sidebar": {

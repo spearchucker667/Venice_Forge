@@ -642,7 +642,7 @@ Do not claim a command passed unless it actually ran successfully in the current
 
 Inspect the production output or packaged app to confirm all seven WebP files are included and referenced by valid renderer URLs.
 
-The runtime must not contain any absolute `/Users/super_user/...` asset path.
+The runtime must not contain any absolute `/Users/<user>/...` asset path.
 
 Useful checks after build, adapted to the actual output structure:
 
@@ -689,7 +689,7 @@ Do not:
 
 - enable `nodeIntegration`;
 - expose filesystem APIs to the renderer;
-- read `/Users/super_user/...` at runtime;
+- read `/Users/<user>/...` at runtime;
 - use unrestricted `file://` URLs;
 - weaken CSP;
 - add network access;

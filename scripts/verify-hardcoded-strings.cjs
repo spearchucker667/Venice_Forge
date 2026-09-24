@@ -100,6 +100,7 @@ const HARD_CODED_ALLOWLIST = new Set([
   "PNG",
   "JPEG",
   "WebP",
+  "WEBP",
   "MP4",
   "TTS",
   "ST",

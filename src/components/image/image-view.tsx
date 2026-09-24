@@ -90,6 +90,9 @@ function toImageSrc(b64: string): string {
     b64.startsWith("blob:")
   )
     return b64;
+  if (b64.startsWith("UklGR")) {
+    return `data:image/webp;base64,${b64}`;
+  }
   return `data:image/png;base64,${b64}`;
 }
 
@@ -142,6 +145,7 @@ export function ImageView() {
   const styleId = useId();
   const seedId = useId();
   const stepsId = useId();
+  const cfgScaleId = useId();
   const variantsId = useId();
   const styleReferencesId = useId();
   const hasVeniceKey = useAuthStore(selectHasVeniceKey);
@@ -246,6 +250,7 @@ export function ImageView() {
   const [aspectRatio, setAspectRatio] = useState("");
   const [resolution, setResolution] = useState("");
   const [quality, setQuality] = useState("");
+  const [format, setFormat] = useState<"png" | "webp">("png");
   const [style, setStyle] = useState("");
   const [styleReferences, setStyleReferences] = useState<StyleReferenceInput[]>([]);
   const [steps, setSteps] = useState(defaultSteps);
@@ -368,6 +373,12 @@ export function ImageView() {
   useEffect(() => {
     setStyleReferences([]);
   }, [model]);
+
+  useEffect(() => {
+    if (caps.supportsCfgScale === false) {
+      setCfgScale(undefined);
+    }
+  }, [caps.supportsCfgScale]);
 
   useEffect(() => {
     setStyleReferences((current) => {
@@ -711,12 +722,14 @@ export function ImageView() {
       aspectRatio?: string;
       resolution?: string;
       quality?: string;
+      format?: string;
       seed?: number | null;
     }) => {
       if (typeof draft.prompt === "string") setPromptClamped(draft.prompt);
       const neg = draft.negativePrompt ?? draft.negative;
       if (typeof neg === "string") setNegativePrompt(neg);
       if (typeof draft.style === "string") setStyle(draft.style);
+      if (draft.format === "png" || draft.format === "webp") setFormat(draft.format);
       if (typeof draft.steps === "number" && Number.isFinite(draft.steps))
         setSteps(draft.steps);
       if (typeof draft.cfgScale === "number" && Number.isFinite(draft.cfgScale))
@@ -808,6 +821,7 @@ export function ImageView() {
         quality: dimOptions.qualities?.length
           ? quality || undefined
           : undefined,
+        format,
         steps: Math.min(maxSteps, Math.max(1, steps)),
         cfg: cfgScale,
         style: style || undefined,
@@ -925,7 +939,10 @@ export function ImageView() {
               originalBytes: report.originalBytes,
               processedBytes:
                 durableMedia?.byteCount ?? report.processedBytes,
-              mimeType: durableMedia?.mimeType ?? report.mimeType,
+              mimeType:
+                durableMedia?.mimeType ??
+                report.mimeType ??
+                (format === "webp" ? "image/webp" : "image/png"),
               generatedMediaId: durableMedia?.id,
               sha256: durableMedia?.sha256,
               assetCategory: routedFolder,
@@ -1388,6 +1405,21 @@ export function ImageView() {
         </div>
       )}
 
+      <div>
+        <Label>
+          <Trans i18nKey="common:surface.componentsAudioAudioView.text.format" />
+        </Label>
+        <PillGroup
+          options={[
+            { value: "png", label: "PNG" },
+            { value: "webp", label: "WEBP" },
+          ]}
+          value={format}
+          onChange={(val) => setFormat(val as "png" | "webp")}
+          ariaLabel={tRuntime("surface.componentsAudioAudioView.text.format", "Format")}
+        />
+      </div>
+
       {caps.supportsStyle !== false && styles && styles.length > 0 && (
         <div>
           <Label htmlFor={styleId}>
@@ -1592,6 +1624,48 @@ export function ImageView() {
             aria-valuetext={t("imageStudioRuntime.stepsValue", {
               count: steps,
             })}
+          />
+        </div>
+      )}
+      {caps.supportsCfgScale !== false && (
+        <div>
+          <div className="flex justify-between items-center">
+            <Label htmlFor={cfgScaleId}>
+              <Trans i18nKey="media:cfgScale" />
+            </Label>
+            <div className="flex items-center gap-2">
+              <output htmlFor={cfgScaleId} className="text-xs text-text-secondary">
+                {cfgScale !== undefined
+                  ? cfgScale
+                  : tRuntime("status.auto")}
+              </output>
+              {cfgScale !== undefined && (
+                <button
+                  type="button"
+                  onClick={() => setCfgScale(undefined)}
+                  className="text-[11px] text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                  aria-label={tRuntime("surface.componentsImageImageView.action.clear")}
+                >
+                  <Trans i18nKey="common:surface.componentsImageImageView.action.clear" />
+                </button>
+              )}
+            </div>
+          </div>
+          <input
+            id={cfgScaleId}
+            type="range"
+            min={1}
+            max={20}
+            step={0.5}
+            value={cfgScale ?? 7}
+            onChange={(e) => setCfgScale(Number(e.target.value))}
+            className="w-full"
+            aria-label={t("cfgScale")}
+            aria-valuetext={
+              cfgScale !== undefined
+                ? String(cfgScale)
+                : tRuntime("status.auto")
+            }
           />
         </div>
       )}

@@ -3,6 +3,7 @@ import { translateRuntime } from "../../i18n/runtimeTranslator";
  * sort select, batch-select toggle, batch action buttons, and the batch count
  * summary. Phase 2B adds the dynamic project picker + bulk action hooks. */
 
+import { useState } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { PillGroup, GhostButton } from "../ui/shared";
@@ -214,7 +215,7 @@ interface MediaToolbarProps {
   onBulkProjectIdChange?: (id: string) => void;
   onBatchAssignProject?: () => void;
   onBatchAddTag?: () => void;
-  onBatchExport?: () => void;
+  onBatchExport?: (format?: "original" | "png" | "webp") => void;
   onBatchCompare?: () => void;
   compareReady?: boolean;
 }
@@ -248,6 +249,7 @@ export function MediaToolbar({
   compareReady,
 }: MediaToolbarProps) {
   const { t: tRuntime } = useTranslation("common");
+  const [batchExportFormat, setBatchExportFormat] = useState<"original" | "png" | "webp">("original");
   const allFavorited =
     selectedItems.length > 0 && selectedItems.every((item) => item.favorite);
   const hasSelection = selectedIds.size > 0;
@@ -422,15 +424,34 @@ export function MediaToolbar({
               </button>
             )}
             {onBatchExport && (
-              <button
-                type="button"
-                onClick={onBatchExport}
-                disabled={!hasSelection}
-                data-testid="bulk-export"
-                className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
-              >
-                <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.export" />
-              </button>
+              <div className="inline-flex items-center gap-1">
+                <select
+                  value={batchExportFormat}
+                  onChange={(e) => setBatchExportFormat(e.target.value as "original" | "png" | "webp")}
+                  aria-label={tRuntime("mediaSave.exportFormat", "Export format")}
+                  data-testid="bulk-export-format-select"
+                  className="rounded-md border border-vf-panel-border bg-transparent px-2 py-1 text-[12px] text-text-secondary hover:border-accent"
+                >
+                  <option value="original">{tRuntime("mediaSave.originalFormat", "Original format")}</option>
+                  <option value="png">PNG</option>
+                  <option value="webp">WEBP</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (batchExportFormat === "original") {
+                      onBatchExport();
+                    } else {
+                      onBatchExport(batchExportFormat);
+                    }
+                  }}
+                  disabled={!hasSelection}
+                  data-testid="bulk-export"
+                  className="rounded-md border border-vf-panel-border px-2 py-1 text-[12px] text-text-secondary hover:border-accent hover:text-accent disabled:opacity-30"
+                >
+                  <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.export" />
+                </button>
+              </div>
             )}
             {onBatchAddTag && (
               <button

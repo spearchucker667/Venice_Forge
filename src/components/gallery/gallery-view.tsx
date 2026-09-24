@@ -35,6 +35,7 @@ import {
   listAssignableProjects,
 } from "../../stores/media-bulk-actions";
 import { buildMediaFilename } from "../../stores/media-export-bundle";
+import { convertImageFormat } from "../../utils/imageFormatConverter";
 import {
   sendToChat,
   sendToImageStudio,
@@ -111,7 +112,9 @@ export function MediaStudioView() {
   // see the latest stable runExport / runBulkAddTag identities. Ref mirrors
   // forward them through a useEffect that has those callbacks in its dep
   // array, so the registration body can read ref.current.
-  const runExportRef = useRef<((ids: string[]) => Promise<void>) | null>(null);
+  const runExportRef = useRef<
+    ((ids: string[], format?: "original" | "png" | "webp") => Promise<void>) | null
+  >(null);
   const runBulkAddTagRef = useRef<
     ((ids: string[], tags: string[]) => Promise<void>) | null
   >(null);
@@ -676,36 +679,52 @@ export function MediaStudioView() {
     setCompareOpen(true);
   }, []);
 
-  const saveMediaItemAs = useCallback(async (item: MediaItem): Promise<"saved" | "cancelled" | "failed"> => {
-    const src = mediaItemSource(item);
-    if (!src && !item.generatedMediaId) {
-      toast.error(tRuntime("mediaSave.failed"));
-      return "failed";
-    }
-    try {
-      const filename = buildMediaFilename(item);
-      const result = await desktopMedia.saveMediaAs({
-        source: src ?? undefined,
-        mediaId: item.generatedMediaId,
-        mimeType: item.mimeType,
-        suggestedName: filename,
-      });
-      if (result.status === "cancelled") return "cancelled";
-      if (result.status === "failed") throw new Error(result.error || tRuntime("mediaSave.failed"));
-      toast.success(tRuntime("mediaSave.success"));
-      return "saved";
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : tRuntime("mediaSave.failed");
-      toast.error(tRuntime("mediaSave.failed"), detail);
-      return "failed";
-    }
-  }, [tRuntime]);
+  const saveMediaItemAs = useCallback(
+    async (
+      item: MediaItem,
+      targetFormat?: "original" | "png" | "webp",
+    ): Promise<"saved" | "cancelled" | "failed"> => {
+      const src = mediaItemSource(item);
+      if (!src && !item.generatedMediaId) {
+        toast.error(tRuntime("mediaSave.failed"));
+        return "failed";
+      }
+      try {
+        let exportSource = src ?? undefined;
+        let exportMime = item.mimeType;
+        const isImage = item.mediaType === "image" || !item.mediaType;
+
+        if (isImage && targetFormat && targetFormat !== "original" && exportSource) {
+          const converted = await convertImageFormat(exportSource, targetFormat);
+          exportSource = converted.dataUrl;
+          exportMime = converted.mimeType;
+        }
+
+        const filename = buildMediaFilename(item, targetFormat);
+        const result = await desktopMedia.saveMediaAs({
+          source: exportSource,
+          mediaId: (!targetFormat || targetFormat === "original") ? item.generatedMediaId : undefined,
+          mimeType: exportMime,
+          suggestedName: filename,
+        });
+        if (result.status === "cancelled") return "cancelled";
+        if (result.status === "failed") throw new Error(result.error || tRuntime("mediaSave.failed"));
+        toast.success(tRuntime("mediaSave.success"));
+        return "saved";
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : tRuntime("mediaSave.failed");
+        toast.error(tRuntime("mediaSave.failed"), detail);
+        return "failed";
+      }
+    },
+    [tRuntime],
+  );
 
   // Phase 2B: export the selected media as actual image files.
   // Electron: opens a native Save dialog (single) or directory chooser (multi).
   // Web: triggers blob downloads (unchanged).
   const runExport = useCallback(
-    async (ids: string[]) => {
+    async (ids: string[], targetFormat: "original" | "png" | "webp" = "original") => {
       if (ids.length === 0) {
         toast.error(
           tRuntime(
@@ -727,10 +746,24 @@ export function MediaStudioView() {
           const src = mediaItemSource(item);
           if (!src) continue;
           try {
-            const response = await fetch(src);
-            const blob = await response.blob();
+            let blob: Blob;
+            const isImage = item.mediaType === "image" || !item.mediaType;
+            if (isImage && targetFormat !== "original") {
+              const converted = await convertImageFormat(src, targetFormat);
+              const comma = converted.dataUrl.indexOf(",");
+              const b64 = comma >= 0 ? converted.dataUrl.slice(comma + 1) : converted.dataUrl;
+              const byteCharacters = atob(b64);
+              const byteNumbers = new Uint8Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              blob = new Blob([byteNumbers], { type: converted.mimeType });
+            } else {
+              const response = await fetch(src);
+              blob = await response.blob();
+            }
             if (!blob || blob.size === 0) continue;
-            const filename = buildMediaFilename(item);
+            const filename = buildMediaFilename(item, targetFormat);
             const blobUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = blobUrl;
@@ -758,7 +791,7 @@ export function MediaStudioView() {
 
       // Electron desktop path.
       if (exportItems.length === 1) {
-        await saveMediaItemAs(exportItems[0]);
+        await saveMediaItemAs(exportItems[0], targetFormat);
         return;
       }
 
@@ -771,15 +804,30 @@ export function MediaStudioView() {
         suggestedName: string;
       }> = [];
       for (const item of exportItems) {
-        const filename = buildMediaFilename(item);
-        if (item.generatedMediaId) {
+        const filename = buildMediaFilename(item, targetFormat);
+        const isImage = item.mediaType === "image" || !item.mediaType;
+        const src = mediaItemSource(item);
+        if (isImage && targetFormat !== "original" && src) {
+          try {
+            const converted = await convertImageFormat(src, targetFormat);
+            itemsForExport.push({
+              itemId: item.id,
+              dataUrl: converted.dataUrl,
+              mimeType: converted.mimeType,
+              suggestedName: filename,
+            });
+            continue;
+          } catch {
+            // fall through
+          }
+        }
+        if (item.generatedMediaId && targetFormat === "original") {
           itemsForExport.push({
             itemId: item.id,
             mediaId: item.generatedMediaId,
             suggestedName: filename,
           });
         } else {
-          const src = mediaItemSource(item);
           if (!src) continue;
           try {
             const response = await fetch(src);
@@ -832,9 +880,12 @@ export function MediaStudioView() {
     [items, saveMediaItemAs, tRuntime],
   );
 
-  const handleBatchExport = useCallback(() => {
-    void runExport(selectedMediaIds);
-  }, [selectedMediaIds, runExport]);
+  const handleBatchExport = useCallback(
+    (format?: "original" | "png" | "webp") => {
+      void runExport(selectedMediaIds, format);
+    },
+    [selectedMediaIds, runExport],
+  );
 
   // BUG-React#12 regression guard: forward the latest runExport and runBulkAddTag
   // callback identities to the refs that the registerMediaCommandHandlers effect

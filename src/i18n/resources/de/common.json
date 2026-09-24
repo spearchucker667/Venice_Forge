@@ -4694,7 +4694,9 @@
     "prepareFailed": "Medienexport fehlgeschlagen. Es konnten keine Dateien vorbereitet werden.",
     "exported": "{{count}} Mediendateien exportiert.",
     "partiallyExported": "{{saved}} von {{total}} Mediendateien exportiert. Einige Elemente konnten nicht aufgelöst werden.",
-    "failedWithDetail": "Medienexport fehlgeschlagen. {{detail}}"
+    "failedWithDetail": "Medienexport fehlgeschlagen. {{detail}}",
+    "originalFormat": "Originalformat",
+    "exportFormat": "Exportformat"
   },
   "layout": {
     "sidebar": {

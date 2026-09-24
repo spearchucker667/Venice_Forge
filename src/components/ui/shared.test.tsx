@@ -31,6 +31,23 @@ describe('TextArea — accessible name', () => {
     )
     expect(screen.getByRole('textbox', { name: 'Description' })).toBeInTheDocument()
   })
+
+  it('bounds the editor with vertical resize, internal scroll, and max height (VF-20260923-P1-022)', () => {
+    render(<TextArea value="prompt text" onChange={vi.fn()} />)
+    const textarea = screen.getByRole('textbox')
+    expect(textarea.className).toContain('resize-y')
+    expect(textarea.className).toContain('overflow-y-auto')
+    expect(textarea.className).toContain('min-h-[80px]')
+    expect(textarea.className).toContain('max-h-[min(40vh,360px)]')
+    expect(textarea.className).not.toContain('resize-none')
+  })
+
+  it('merges custom className when supplied', () => {
+    render(<TextArea value="" onChange={vi.fn()} className="custom-class" />)
+    const textarea = screen.getByRole('textbox')
+    expect(textarea.className).toContain('custom-class')
+    expect(textarea.className).toContain('resize-y')
+  })
 })
 
 describe('PrimaryButton — layout and accessibility', () => {

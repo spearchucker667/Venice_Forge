@@ -5,9 +5,9 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 2452b0d1 (CodeQL alerts 281-285 remediated; hosted CI and CodeQL verified)
-application_code_sha: 2452b0d1
-verified_against_sha: 2452b0d1
+repository_head_sha: 088acd0d (feat(mascot): implement random pet rotation with 7 codex atlas assets)
+application_code_sha: 088acd0d
+verified_against_sha: 088acd0d
 verified_at:         2026-09-23 (Pacific)
 package_version:     3.0.0-beta.3
 node_engine:         >=22.15.0 <23.0.0

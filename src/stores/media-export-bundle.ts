@@ -194,8 +194,16 @@ export function buildExportBundle(items: readonly MediaItem[], exportedAt: strin
 /** Pure: resolves the safe media filename for one item. The caller
  *  is responsible for writing the actual bytes; this only produces the
  *  filename so the on-disk layout is deterministic. */
-export function buildMediaFilename(item: MediaItem): string {
-  const ext = extensionFor(item);
+export function buildMediaFilename(
+  item: MediaItem,
+  overrideFormat?: "original" | "png" | "webp",
+): string {
+  let ext = extensionFor(item);
+  if (overrideFormat && overrideFormat !== "original") {
+    if (item.mediaType === "image" || !item.mediaType) {
+      ext = overrideFormat;
+    }
+  }
   const stem = sanitiseFilename(item.prompt || item.id);
   const id = sanitiseFilename(item.id).slice(0, 12);
   return `${id}-${stem}.${ext}`;
