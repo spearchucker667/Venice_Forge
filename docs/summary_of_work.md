@@ -68,6 +68,24 @@ recently_closed_in_session_2026-09-18:
 
 ## Latest Session Summary
 
+- **2026-09-23 User Agent Skills Application & Gitignore Exclusion.**
+  - **Scope:** Applied all 23 skills found at `~/.agents/` (`agentHandoff`, `brainstorming`, `context7`, `diagnosing-superpowers`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `github`, `hqe`, `receiving-code-review`, `requesting-code-review`, `rup`, `snippetslab`, `subagent-driven-development`, `superdesign`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `venice-media`, `verification-before-completion`, `writing-plans`, `writing-skills`) and `.skill-lock.json` into `.agents/` in the project.
+  - **Work Implemented:**
+    - Synchronized all 23 skill directories from `~/.agents/skills/` into `.agents/skills/` excluding `.DS_Store`.
+    - Copied `.skill-lock.json` into `.agents/.skill-lock.json`.
+    - Hardened `.gitignore` to ignore all 23 added skills both individually and via `/.agents/skills/*/` pattern, while strictly preserving git tracking for the three canonical repository skills (`ci-publication-verification`, `i18n-remediation`, `per-tab-acceptance`).
+  - **Validation Executed:**
+    - `git check-ignore -v` (Confirmed added skills ignored, canonical skills unignored)
+    - `git status --short` (Clean working tree aside from expected `.gitignore` and `summary_of_work.md`)
+    - `npm run verify:safety-guard` (PASS, 8 checkpoints)
+    - `npm run verify:markdown-links` (PASS, 437 files checked)
+    - `npm run verify:agent-docs` (PASS)
+    - `npm run verify:repo-handoff-hygiene` (PASS)
+    - `npm run verify:release-packaging-hardening` (PASS, 104 checks)
+    - `npm run verify:contracts:static` (PASS)
+    - `npx vitest run scripts/verify-markdown-links.test.ts` (PASS, 15/15)
+    - `npx vitest run scripts/verify-archive-clean.test.ts` (PASS, 19/19)
+
 - **2026-09-23 Default Window Dimensions & Image Studio CFG Scale Control.**
   - **Scope:** Configured default Electron application window launch size to 2019×1306px (`width: 2019`, `height: 1306`) per display resolution specification, and exposed a first-class CFG scale parameter control in Image Studio (`src/components/image/image-view.tsx`) with explicit capability gating (`supportsCfgScale: true` for text-to-image models, `supportsCfgScale: false` for edit models) in `src/config/image-model-capabilities.ts`.
   - **Work Implemented:**
@@ -667,6 +685,26 @@ recently_closed_in_session_2026-09-18:
 - **2026-09-13 Publication of audit remediations to `origin/main` + hosted CI restoration.** Pushed `cd27ebc2` (C6-P1-001 CSP smoke probe → page-context inline event-handler vector with CDP-exemption note + local-gate docs; C6-P3-001 capability-token reaping; C6-DR-001 atomic-replace consolidation) and `067dca58` (scenario-store reset flake fix). Hosted verification on `067dca58`: **CodeQL success; CI run 34756782691 11/11 jobs success, including all three `electron-smoke-{macos,windows,linux}`** — the first fully green hosted CI since `bb29350e` introduced the defective probe. En route, the hosted `contracts`/`coverage` jobs exposed a latent `scenario-store.test.ts` flake: `createBlank` fires a fire-and-forget `upsert` whose fake-indexeddb save resolves after the test ends, and the post-save store `set()` could land inside the next test ("expected 2, received 3", deterministic on hosted linux, passing locally). Fixed in `067dca58` by draining pending macrotasks between the two `reset()` clears; verified 5/5 local runs under the exact hosted invocation shape (`verify-rp-studio-polish` → vitest `--no-file-parallelism`).
 
 ## Session History
+
+### 2026-09-23 — User Agent Skills Application & Gitignore Exclusion
+
+- **Context & Objective:** Apply all skills from `~/.agents/` into the project repository while ensuring `.gitignore` ignores all newly added skills and maintains repository hygiene and git status clean of untracked assets.
+- **Implementation:**
+  - Applied 23 external agent skills into `.agents/skills/`: `agentHandoff`, `brainstorming`, `context7`, `diagnosing-superpowers`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `github`, `hqe`, `receiving-code-review`, `requesting-code-review`, `rup`, `snippetslab`, `subagent-driven-development`, `superdesign`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `venice-media`, `verification-before-completion`, `writing-plans`, and `writing-skills`.
+  - Copied `.skill-lock.json` to `.agents/.skill-lock.json`.
+  - Updated `.gitignore` in the `Scratch directories and local tooling` section: added `/.agents/skills/*/` with un-ignores for the 3 canonical repository skills (`!/.agents/skills/ci-publication-verification/`, `!/.agents/skills/i18n-remediation/`, `!/.agents/skills/per-tab-acceptance/`) alongside explicit per-skill ignores for each of the 23 added skills.
+  - Verified with `git check-ignore` that all 23 added skills are ignored while canonical repository skills remain unignored and tracked.
+- **Validation:**
+  - `git status --short` (verified 0 untracked files from added skills)
+  - `git check-ignore -v` (verified pattern matching)
+  - `npm run verify:safety-guard` (PASS, 8 checkpoints)
+  - `npm run verify:markdown-links` (PASS, 437 files checked)
+  - `npm run verify:agent-docs` (PASS)
+  - `npm run verify:repo-handoff-hygiene` (PASS)
+  - `npm run verify:release-packaging-hardening` (PASS, 104/104 checks)
+  - `npm run verify:contracts:static` (PASS)
+  - `npx vitest run scripts/verify-markdown-links.test.ts` (PASS, 15/15)
+  - `npx vitest run scripts/verify-archive-clean.test.ts` (PASS, 19/19)
 
 ### 2026-09-23 — Image Studio CFG Scale Control & Model Capability Gating
 
@@ -2550,6 +2588,8 @@ Investigation only, then four targeted fixes based on the user-reported defects
 
 ## Open TODO Ledger
 
+* **USER-SKILLS-INTEGRATION-2026-09-23** — 23 user agent skills from `~/.agents/skills/` and `.skill-lock.json` applied into `.agents/skills/`. `.gitignore` updated to ignore all added skills while preserving git tracking of the three canonical repository skills (`ci-publication-verification`, `i18n-remediation`, `per-tab-acceptance`). Verified zero untracked git files and full static contract pass.
+
 * **VF-20260922-AUDIT-CLOSURE** — All actionable findings from the 2026-09-22 Current `main` Deep Audit & Remediation work order are resolved locally on `main` baseline `acced896`: `P0-001` (CI run duration root-caused; broken test & i18n contract key repaired), `P0-002` (local safeguards OFF true no-op architecture implemented and verified), `P0-003` (CodeQL single-owner contract reconciled in `SECURITY.md`; default setup confirmed deconfigured), `P1-004` (agent bootstrap path verified), `P1-005` (i18n verifier scripts aligned), `P1-006` (safety terminology reconciled in docs), `P1-007` (web mode server-controlled indicator added to `SafetyPanel.tsx`), `P1-008` (Rules01 governance and required checks validated), `P2-010` (UI/a11y items revalidated), `P2-012` (Image Inspector media URLs verified). Vitest explicit serial contract (`fileParallelism: false`) and bundle budget for translation catalogs added. All local validation gates pass (`npm run ci`). Ready for commit and hosted CI verification.
 
 * **VF-20260918 audit continuation** — All 18 actionable findings (`P0-001`, `P1-002..006`, `P2-007..015`, `P2-017`, `P3-018..019`) are closed in commits `07222274` through `ee6ade04` and absent from the active list. The handoff now lives at `docs/audits/Records/VENICE_FORGE_CURRENT_MAIN_EXHAUSTIVE_REVIEW_AGENT_HANDOFF_2026-09-18.md`. Remaining work is `P2-016` headed acceptance (human reviewer required) and `P3-020` qualified native-language review. **Scaffolding + tooling** for both was published in this segment: `docs/design/per-tab-acceptance/`, `scripts/per-tab-acceptance/`, `scripts/verify-per-tab-acceptance.cjs`, and `npm run verify:per-tab-acceptance` for `P2-016`; `docs/i18n/review-pack/`, `scripts/generate-i18n-review-pack.cjs`, `scripts/verify-i18n-review-status.cjs`, `npm run generate:i18n-review-pack`, and `npm run verify:i18n-review-status` for `P3-020`. Both findings remain `OPEN` in `open_findings` until a qualified human signs the evidence; the verifiers reject unsigned manifests and refuse to mark any locale `human-reviewed` while `__MISSING__:` placeholders remain.
@@ -2601,6 +2641,19 @@ Investigation only, then four targeted fixes based on the user-reported defects
 * **LEGAL-DOC-SWEEP-2026-09-13** — The authoritative project-facing docs are aligned to Apache 2.0; historical MIT references are treated as archival/informational only and not as the active project license statement.
 
 ## Validation Matrix
+
+### 2026-09-23 — User Agent Skills Application & Gitignore Exclusion
+
+- `git status --short` — PASS (exit code 0; 0 untracked files; only expected modified repo files).
+- `git check-ignore -v` — PASS (exit code 0; all 23 added skills ignored; 3 canonical skills unignored).
+- `npm run verify:safety-guard` — PASS (exit code 0; 8 checkpoints passed, zero bypass patterns).
+- `npm run verify:markdown-links` — PASS (exit code 0; 437 markdown files checked, 0 broken links).
+- `npm run verify:agent-docs` — PASS (exit code 0; AGENTS.md bootstrap and doc references verified).
+- `npm run verify:repo-handoff-hygiene` — PASS (exit code 0; root report prohibition & VERIFY ID bounds).
+- `npm run verify:release-packaging-hardening` — PASS (exit code 0; 104/104 checks passed).
+- `npm run verify:contracts:static` — PASS (exit code 0; all static contract gates passed).
+- `npx vitest run scripts/verify-markdown-links.test.ts` — PASS (15/15 tests pass).
+- `npx vitest run scripts/verify-archive-clean.test.ts` — PASS (19/19 tests pass).
 
 ### 2026-09-23 — Media, Character, Documents, Theme, Status Remediation & Mascot Rotation (auditsep23.md, CFG Scale, Launch Dimensions)
 
