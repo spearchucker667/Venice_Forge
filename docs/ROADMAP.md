@@ -9,7 +9,7 @@ repository_head_sha: 6747b0ad (docs(hygiene): compact the roadmap and archive th
 application_code_sha: 6747b0ad
 verified_against_sha: 6747b0ad
 verified_at:         2026-09-23 (Pacific)
-package_version:     3.0.0-beta.3
+package_version:     3.0.2-beta
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main

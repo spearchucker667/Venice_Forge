@@ -75,7 +75,7 @@ function getReplicateUserAgent(): string {
   } catch {
     // app may not be ready in some test/utility contexts.
   }
-  return "VeniceForge/3.0.0-beta.3";
+  return "VeniceForge/3.0.2-beta";
 }
 
 function bearerHeader(apiToken: string): Record<string, string> {
