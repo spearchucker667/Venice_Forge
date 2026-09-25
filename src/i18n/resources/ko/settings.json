@@ -485,6 +485,25 @@
       "vertexProjectId": "Google Cloud 프로젝트 ID",
       "vertexLocation": "Vertex 위치",
       "vertexCredentialsJson": "서비스 계정 / OAuth 자격 증명 JSON"
+    },
+    "primaryRoute": {
+      "title": "__MISSING__:Primary API Route",
+      "description": "__MISSING__:Choose which canonical host your primary API requests go to. The Venice route is the default and supports the full endpoint surface. The Fraterna route mirrors a curated subset (chat, image generate/edit/upscale/multi-edit, embeddings); unsupported endpoints automatically fall back to the Venice host. No separate credential or privacy posture is required.",
+      "label": "__MISSING__:Primary API Route",
+      "venice": {
+        "label": "__MISSING__:Venice (default)",
+        "description": "__MISSING__:Canonical Venice API host. Required for billing, models, audio, video, characters, API-key administration, x402, and crypto RPC."
+      },
+      "fraterna": {
+        "label": "__MISSING__:Fraterna",
+        "description": "__MISSING__:Public Fraterna upstream that mirrors a curated subset of the Venice API contract (chat, image generate/edit/upscale, embeddings). All other endpoints fall back to the Venice host automatically."
+      },
+      "supportedNotice": "__MISSING__:Fraterna supports: chat completions, image generate, image edit, image upscale, image multi-edit, embeddings. All other endpoints automatically fall back to the Venice host.",
+      "aria": {
+        "select": "__MISSING__:Select primary API route"
+      },
+      "unsupportedNotice": "__MISSING__:Your currently selected route does not support this endpoint; the request will be forwarded to the Venice host.",
+      "webDisabled": "__MISSING__:The Primary API Route is configured per-profile in the desktop app. In web mode, the route is set by the VENICE_FORGE_PRIMARY_API_ROUTE server environment variable (default: Venice)."
     }
   },
   "errors": {

@@ -186,7 +186,7 @@ const veniceForge = {
     get() {
       return ipcRenderer.invoke("providerSettings:get");
     },
-    update(input: { enabledProviders?: Record<string, boolean>; autoFallbackEnabled?: boolean; fallbackOrdering?: string[] }) {
+    update(input: { enabledProviders?: Record<string, boolean>; autoFallbackEnabled?: boolean; fallbackOrdering?: string[]; primaryApiRoute?: "venice" | "fraterna" }) {
       return ipcRenderer.invoke("providerSettings:update", input);
     },
   },

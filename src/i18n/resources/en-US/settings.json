@@ -458,6 +458,25 @@
       "orderingPlaceholder": "together, groq, anthropic",
       "orderingNotice": "Providers will be tried in this exact order. Ensure you have enabled them below. Available: {{available}}"
     },
+    "primaryRoute": {
+      "title": "Primary API Route",
+      "description": "Choose which canonical host your primary API requests go to. The Venice route is the default and supports the full endpoint surface. The Fraterna route mirrors a curated subset (chat, image generate/edit/upscale/multi-edit, embeddings); unsupported endpoints automatically fall back to the Venice host. No separate credential or privacy posture is required.",
+      "label": "Primary API Route",
+      "venice": {
+        "label": "Venice (default)",
+        "description": "Canonical Venice API host. Required for billing, models, audio, video, characters, API-key administration, x402, and crypto RPC."
+      },
+      "fraterna": {
+        "label": "Fraterna",
+        "description": "Public Fraterna upstream that mirrors a curated subset of the Venice API contract (chat, image generate/edit/upscale, embeddings). All other endpoints fall back to the Venice host automatically."
+      },
+      "supportedNotice": "Fraterna supports: chat completions, image generate, image edit, image upscale, image multi-edit, embeddings. All other endpoints automatically fall back to the Venice host.",
+      "aria": {
+        "select": "Select primary API route"
+      },
+      "unsupportedNotice": "Your currently selected route does not support this endpoint; the request will be forwarded to the Venice host.",
+      "webDisabled": "The Primary API Route is configured per-profile in the desktop app. In web mode, the route is set by the VENICE_FORGE_PRIMARY_API_ROUTE server environment variable (default: Venice)."
+    },
     "badge": {
       "deferred": "Deferred"
     },

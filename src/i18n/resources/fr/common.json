@@ -4598,7 +4598,8 @@
       "notConfigured": "Clé API Venise non configurée. Ajoutez une clé pour activer la génération.",
       "openConfigDetail": "Ouvrez l&#39;onglet Config pour connecter votre clé API Venice.",
       "connectivityUnverified": "La clé API est configurée, mais la connectivité en direct de Venise n&#39;a pas encore été vérifiée.",
-      "testConnectivityDetail": "Utilisez l’action de test de clé API pour vérifier la connectivité /models."
+      "testConnectivityDetail": "Utilisez l’action de test de clé API pour vérifier la connectivité /models.",
+      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
     },
     "apiKey": {
       "notChecked": "La clé API de Venise n&#39;a pas encore été vérifiée.",

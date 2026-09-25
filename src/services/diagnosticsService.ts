@@ -34,6 +34,10 @@ import {
 import { isElectron } from "./desktopBridge";
 import { useAuthStore, selectHasVeniceKey } from "../stores/auth-store";
 import { useSettingsStore } from "../stores/settings-store";
+import {
+  isPrimaryApiRouteId,
+  type PrimaryApiRouteId,
+} from "../shared/primaryApiRoute";
 import { useProjectStore } from "../stores/project-store";
 import { useMediaStore } from "../stores/media-store";
 import { useChatStore } from "../stores/chat-store";
@@ -69,6 +73,22 @@ function isoNow(): string {
   return new Date().toISOString();
 }
 
+/**
+ * Reads the user's selected primary API route from the renderer store.
+ * The diagnostics export bundle uses this so the on-call engineer or
+ * developer can see which canonical host the user is configured for.
+ *
+ * The EFFECTIVE route for a given endpoint is computed by the shared
+ * resolver against the per-endpoint capability matrix — this field is
+ * the SELECTED id only. Unknown values (defensive only) are coerced to
+ * `undefined` so the JSON bundle never carries an unparseable id.
+ */
+function resolvePrimaryApiRouteForDiagnostics(): PrimaryApiRouteId | undefined {
+  const settings = useSettingsStore.getState();
+  const route = settings.primaryApiRoute;
+  return isPrimaryApiRouteId(route) ? route : undefined;
+}
+
 function statusText(key: string, values?: StatusText["values"]): StatusText {
   return { key: `statusDiagnostics.${key}`, ...(values ? { values } : {}) };
 }
@@ -96,6 +116,7 @@ function buildApiStatus(): AppStatusItem {
   // diagnostics drawer offers an explicit "Test API" action that
   // runs the request when the user wants it.
   const auth = useAuthStore.getState();
+  const route = resolvePrimaryApiRouteForDiagnostics();
   if (auth.hydrationStatus === "idle") {
     return makeItem("api", "unknown", statusText("api.notChecked"));
   }
@@ -119,9 +140,19 @@ function buildApiStatus(): AppStatusItem {
       actionTargetTabId: "settings",
     });
   }
-  return makeItem("api", "warn", statusText("api.connectivityUnverified"), {
-    detail: statusText("api.testConnectivityDetail"),
-  });
+  return makeItem(
+    "api",
+    "warn",
+    statusText("api.connectivityUnverified"),
+    {
+      detail: route && route !== "venice"
+        ? {
+            key: "statusDiagnostics.api.routeDetail",
+            values: { route },
+          }
+        : undefined,
+    },
+  );
 }
 
 function buildApiKeyStatus(): AppStatusItem {
@@ -521,6 +552,7 @@ export function computeSafeDiagnosticsSnapshot(
     generatedAt: isoNow(),
     appMode: isElectron() ? "desktop" : "web",
     statuses,
+    primaryApiRoute: resolvePrimaryApiRouteForDiagnostics(),
     environment,
     stores: {
       projects: {

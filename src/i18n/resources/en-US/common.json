@@ -4618,7 +4618,8 @@
       "notConfigured": "Venice API key not configured. Add a key to enable generation.",
       "openConfigDetail": "Open the Config tab to connect your Venice API key.",
       "connectivityUnverified": "API key is configured, but live Venice connectivity has not been verified yet.",
-      "testConnectivityDetail": "Use the API-key test action to verify /models connectivity."
+      "testConnectivityDetail": "Use the API-key test action to verify /models connectivity.",
+      "routeDetail": "Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
     },
     "apiKey": {
       "notChecked": "Venice API key has not been checked yet.",

@@ -4598,7 +4598,8 @@
       "notConfigured": "Venice API キーが設定されていません。キーを追加して生成を有効にします。",
       "openConfigDetail": "「構成」タブを開いて、Venice API キーを接続します。",
       "connectivityUnverified": "API キーは構成されていますが、ライブ Venice 接続はまだ検証されていません。",
-      "testConnectivityDetail": "API キー テスト アクションを使用して、/models の接続を確認します。"
+      "testConnectivityDetail": "API キー テスト アクションを使用して、/models の接続を確認します。",
+      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
     },
     "apiKey": {
       "notChecked": "Venice API キーはまだチェックされていません。",

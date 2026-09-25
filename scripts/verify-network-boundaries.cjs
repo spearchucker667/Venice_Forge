@@ -75,10 +75,13 @@ function checkAllowed(pattern, allowedGlobs, includeGlobs, excludeGlobs = [], la
 }
 
 function main() {
-  // 1. Venice API fetch must be in canonical files only.
-  //    Use a pattern that catches global fetch or node fetch with a Venice host.
+  // 1. Primary-API fetch must be in canonical files only. The pattern catches
+  //    any fetch against the canonical Venice host OR the public Fraterna
+  //    upstream (FRATERNA primary routing — v3.1.0). Both hosts share the
+  //    same credential and contract; both MUST be funnelled through the
+  //    single shared resolver in src/shared/primaryApiRoute.ts.
   checkAllowed(
-    'fetch\\([^)]*(?:api\\.venice\\.ai|/api/venice)',
+    'fetch\\([^)]*(?:api\\.venice\\.ai|fraterna\\.ai|/api/venice)',
     [
       "src/services/veniceClient.ts",
       "electron/services/veniceClient.ts",
@@ -89,7 +92,7 @@ function main() {
     ],
     ["src/**/*.ts", "src/**/*.tsx", "electron/**/*.ts", "electron/**/*.tsx"],
     ["src/services/veniceClient.ts", "src/services/veniceClient.test.ts", "electron/services/veniceClient.ts", "electron/services/veniceClient.test.ts"],
-    "Venice API fetch outside canonical files"
+    "Primary-API fetch outside canonical files"
   );
 
   // 2. Jina fetch only in research providers/proxies and server.ts.
@@ -138,6 +141,31 @@ function main() {
     ["src/**/*.ts", "src/**/*.tsx", "electron/**/*.ts", "electron/**/*.tsx"],
     ["src/services/veniceClient.ts", "src/services/veniceClient.test.ts"],
     "Raw fetch('/api/venice/...') outside canonical files"
+  );
+
+  // 5. FRATERNA primary routing — the public Fraterna host MUST be referenced
+  //    through the shared resolver (`src/shared/primaryApiRoute.ts`). Any
+  //    hard-coded reference to `fraterna.ai` outside the canonical resolver,
+  //    the transport, the proxy, and their focused tests is a verifier
+  //    failure.
+  checkAllowed(
+    "fraterna\\.ai",
+    [
+      "src/shared/primaryApiRoute.ts",
+      "src/shared/primaryApiRoute.test.ts",
+      "electron/services/veniceClient.ts",
+      "electron/services/veniceClient.test.ts",
+      "electron/services/providerAdapters.ts",
+      "electron/services/providerAdapters.test.ts",
+      "server.ts",
+      "server.test.ts",
+      "docs/DEVELOPMENT/FRATERNA_ROUTING.md",
+      "docs/security/security-model.md",
+      "docs/legal/PRIVACY.md",
+    ],
+    ["src/**/*.ts", "src/**/*.tsx", "electron/**/*.ts", "electron/**/*.tsx", "docs/**/*.md"],
+    ["src/shared/primaryApiRoute.ts", "src/shared/primaryApiRoute.test.ts", "electron/services/providerAdapters.ts", "electron/services/providerAdapters.test.ts", "server.ts", "server.test.ts"],
+    "Hard-coded fraterna.ai reference outside canonical routing files"
   );
 
   // 5. Jina proxy header allowlist must exist in server.ts

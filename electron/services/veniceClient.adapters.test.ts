@@ -38,6 +38,7 @@ vi.mock("./providerSettingsStore", () => ({
       anthropic: "claude-3-5-sonnet-latest",
       together: "meta-llama/Llama-3-70b-chat-hf",
     },
+    primaryApiRoute: "venice",
   })),
 }));
 
@@ -184,6 +185,7 @@ describe("performVeniceRequest multi-provider adapter integration", () => {
       autoFallbackEnabled: true,
       fallbackOrdering: ["anthropic"],
       nativeFallbackModels: { anthropic: "claude-3-5-sonnet-latest" },
+      primaryApiRoute: "venice",
     });
     const requestMock = https.request as unknown as HttpsRequestMock;
     const requests: Array<{ options: Record<string, unknown>; body: string }> = [];
@@ -216,5 +218,59 @@ describe("performVeniceRequest multi-provider adapter integration", () => {
     expect(requests).toHaveLength(2);
     expect(requests[1].options.hostname).toBe("api.anthropic.com");
     expect(JSON.parse(requests[1].body).model).toBe("claude-3-5-sonnet-latest");
+  });
+
+  // FRATERNA primary routing — handoff §7.3 requires that an explicit
+  // `provider:foo` prefix ALWAYS wins over the primary route selector, so
+  // a Together / Anthropic / Groq request is never silently redirected
+  // through Fraterna. This is the single contract guarantee that keeps
+  // Fraterna out of the third-party fallback chain (handoff §5.1, §7.3.4).
+  it("[FRATERNA-201] explicit provider: prefix bypasses Fraterna routing", async () => {
+    vi.mocked(getProviderSettings).mockReturnValue({
+      enabledProviders: { together: true, anthropic: true },
+      autoFallbackEnabled: false,
+      fallbackOrdering: [],
+      nativeFallbackModels: {
+        anthropic: "claude-3-5-sonnet-latest",
+        together: "meta-llama/Llama-3-70b-chat-hf",
+      },
+      // Fraterna is selected — but this request uses an explicit
+      // `together:foo` prefix and MUST route to Together, NOT Fraterna.
+      primaryApiRoute: "fraterna",
+    });
+
+    const requestMock = https.request as unknown as HttpsRequestMock;
+    const requests: Array<{ options: Record<string, unknown>; body: string }> = [];
+    requestMock.mockImplementation((options, callback) => {
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn();
+      req.end = vi.fn(() => {
+        const res = new EventEmitter() as MockResponse;
+        res.headers = { "content-type": "application/json" };
+        res.statusCode = 200;
+        callback(res);
+        res.emit("end");
+      });
+      requests.push({ options: options as Record<string, unknown>, body: "{}" });
+      return req;
+    });
+
+    await performVeniceRequest({
+      endpoint: "/chat/completions",
+      method: "POST",
+      body: {
+        model: "together:meta-llama/Llama-3-70b-chat-hf",
+        messages: [{ role: "user", content: "Hi" }],
+      },
+    });
+
+    // The request must reach Together (api.together.xyz), not Fraterna.
+    expect(requests).toHaveLength(1);
+    expect(requests[0].options.hostname).not.toBe("fraterna.ai");
+    expect(requests[0].options.hostname).not.toBe("api.venice.ai");
+    // Together adapter writes Authorization header from the per-provider key.
+    expect(requests[0].options.headers).toMatchObject({
+      Authorization: "Bearer test-together-key",
+    });
   });
 });

@@ -226,6 +226,7 @@ Venice Forge documentation follows the [Diátaxis](https://diataxis.fr) framewor
 - **[Contributing Guide](CONTRIBUTING.md)** — Code conventions, validation commands, and pull request checklist.
 - **[Agent Instructions](AGENTS.md)** — Guidelines, authority order, and safety rules for AI coding assistants.
 - **[API Reference](docs/reference/Venice_swagger_api.yaml)** — Bundled OpenAPI specification for the Venice API.
+- **[Fraterna Primary Routing](docs/DEVELOPMENT/FRATERNA_ROUTING.md)** — Optional primary API route selection (Venice or Fraterna) and the per-endpoint capability matrix.
 - **[Repository Maintenance & Hygiene](docs/repository-maintenance/README.md)** — Repository organization policies, hygiene report, and file manifests.
 
 ---

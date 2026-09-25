@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { resolveProviderRoute, providerAdapters, sanitizeProviderRequestBody } from './providerAdapters'
+import { resolveProviderRoute, resolvePrimaryApiRouteForRequest, providerAdapters, sanitizeProviderRequestBody } from './providerAdapters'
 import { getProviderCredentialOrFallback } from './secureStore'
 import { getProviderSettings } from './providerSettingsStore'
 
@@ -17,6 +17,7 @@ function transformBody(
 
 // Mock credential lookups to return a fake key for testing
 vi.mock('./secureStore', () => ({
+  getApiKey: vi.fn(() => 'fake-venice-key'),
   getProviderApiKey: vi.fn((providerId, _profileId) => {
     if (providerId === 'together') return 'fake-together-key'
     if (providerId === 'groq') return 'fake-groq-key'
@@ -82,6 +83,7 @@ vi.mock('./providerSettingsStore', () => ({
     autoFallbackEnabled: false,
     fallbackOrdering: [],
     nativeFallbackModels: {},
+    primaryApiRoute: 'venice',
   })),
 }))
 
@@ -290,6 +292,7 @@ describe('providerAdapters', () => {
         autoFallbackEnabled: false,
         fallbackOrdering: [],
         nativeFallbackModels: { anthropic: 'claude-3-5-sonnet-latest' },
+        primaryApiRoute: 'venice',
       })
 
       const result = resolveProviderRoute({
@@ -699,6 +702,7 @@ describe('generic_openai adapter', () => {
       autoFallbackEnabled: false,
       fallbackOrdering: [],
       nativeFallbackModels: {},
+      primaryApiRoute: 'venice',
     } as never)
     const result = resolveProviderRoute({
       endpoint: '/chat/completions',
@@ -706,4 +710,108 @@ describe('generic_openai adapter', () => {
     })
     expect(result?.error).toMatch(/disabled/i)
   })
+
+  // FRATERNA primary API route — resolvePrimaryApiRouteForRequest
+  describe('resolvePrimaryApiRouteForRequest', () => {
+    function setPrimaryRoute(route: 'venice' | 'fraterna') {
+      vi.mocked(getProviderSettings).mockImplementation(() => ({
+        enabledProviders: {},
+        autoFallbackEnabled: false,
+        fallbackOrdering: [],
+        nativeFallbackModels: {},
+        primaryApiRoute: route,
+      }));
+    }
+
+    it('returns null on the default venice route so the canonical host is used', () => {
+      setPrimaryRoute('venice');
+      const result = resolvePrimaryApiRouteForRequest(
+        { endpoint: '/chat/completions' },
+        'work',
+      );
+      expect(result).toBeNull();
+    });
+
+    it('returns a Fraterna route for supported endpoints when selected', () => {
+      setPrimaryRoute('fraterna');
+      const result = resolvePrimaryApiRouteForRequest(
+        { endpoint: '/chat/completions' },
+        'work',
+      );
+      expect(result?.route?.host).toBe('fraterna.ai');
+      expect(result?.route?.path).toBe('/api/v1/chat/completions');
+      // Authorization is attached from the canonical Venice API key.
+      expect(result?.route?.headers?.Authorization).toBe('Bearer fake-venice-key');
+    });
+
+    it('preserves the query string when constructing the upstream path', () => {
+      setPrimaryRoute('fraterna');
+      const result = resolvePrimaryApiRouteForRequest(
+        { endpoint: '/chat/completions?stream=true' },
+        'work',
+      );
+      expect(result?.route?.path).toBe('/api/v1/chat/completions?stream=true');
+    });
+
+    it('returns null for endpoints the Fraterna route does not support', () => {
+      setPrimaryRoute('fraterna');
+      // handoff §4.2 — image edit/upscale/multi-edit, embeddings, audio,
+      // video, billing, x402 stay on Venice Direct.
+      expect(
+        resolvePrimaryApiRouteForRequest({ endpoint: '/image/edit' }, 'work'),
+      ).toBeNull();
+      expect(
+        resolvePrimaryApiRouteForRequest({ endpoint: '/image/upscale' }, 'work'),
+      ).toBeNull();
+      expect(
+        resolvePrimaryApiRouteForRequest({ endpoint: '/embeddings' }, 'work'),
+      ).toBeNull();
+      expect(
+        resolvePrimaryApiRouteForRequest({ endpoint: '/video/queue' }, 'work'),
+      ).toBeNull();
+      expect(
+        resolvePrimaryApiRouteForRequest({ endpoint: '/billing/balance' }, 'work'),
+      ).toBeNull();
+      expect(
+        resolvePrimaryApiRouteForRequest({ endpoint: '/x402/top-up' }, 'work'),
+      ).toBeNull();
+    });
+
+    it('supports every documented Fraterna-allowed endpoint (handoff §4.1)', () => {
+      setPrimaryRoute('fraterna');
+      // handoff §4.1 — exactly: GET /models, POST /chat/completions,
+      // POST /image/generate, POST /images/generations.
+      const supported = [
+        '/models',
+        '/chat/completions',
+        '/image/generate',
+        '/images/generations',
+      ];
+      for (const endpoint of supported) {
+        const result = resolvePrimaryApiRouteForRequest({ endpoint }, 'work');
+        expect(result?.route?.host).toBe('fraterna.ai');
+      }
+    });
+
+    it('routes /models through Fraterna when selected', () => {
+      setPrimaryRoute('fraterna');
+      const result = resolvePrimaryApiRouteForRequest(
+        { endpoint: '/models' },
+        'work',
+      );
+      expect(result?.route?.host).toBe('fraterna.ai');
+      expect(result?.route?.path).toBe('/api/v1/models');
+    });
+
+    it('normalizes query strings before routing /models?type=image', () => {
+      setPrimaryRoute('fraterna');
+      const result = resolvePrimaryApiRouteForRequest(
+        { endpoint: '/models?type=image' },
+        'work',
+      );
+      // Per handoff §4.1: "Normalize query strings before checking support,
+      // so /models?type=image matches canonical endpoint /models."
+      expect(result?.route?.host).toBe('fraterna.ai');
+    });
+  });
 })

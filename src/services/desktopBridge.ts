@@ -447,6 +447,7 @@ export const desktopProviderSettings = {
         enabledProviders: settings.enabledProviders,
         autoFallbackEnabled: settings.autoFallbackEnabled,
         fallbackOrdering: settings.fallbackOrdering,
+        primaryApiRoute: settings.primaryApiRoute,
       });
       return settings;
     }
@@ -457,6 +458,7 @@ export const desktopProviderSettings = {
       fallbackOrdering:
         state.fallbackOrdering as ProviderSettingsSnapshot["fallbackOrdering"],
       nativeFallbackModels: {},
+      primaryApiRoute: state.primaryApiRoute,
     };
   },
 
@@ -464,12 +466,31 @@ export const desktopProviderSettings = {
     enabledProviders?: Record<string, boolean>;
     autoFallbackEnabled?: boolean;
     fallbackOrdering?: string[];
+    primaryApiRoute?: ProviderSettingsSnapshot["primaryApiRoute"];
   }): Promise<{
     ok: boolean;
     settings?: ProviderSettingsSnapshot;
     error?: string;
   }> {
-    if (isElectron()) return window.veniceForge!.providerSettings.update(input);
+    if (isElectron()) {
+      const result = await window.veniceForge!.providerSettings.update(input);
+      if (result.ok && result.settings) {
+        // Mirror the authoritative settings back into the renderer.
+        useSettingsStore.setState({
+          enabledProviders: result.settings.enabledProviders,
+          autoFallbackEnabled: result.settings.autoFallbackEnabled,
+          fallbackOrdering: result.settings.fallbackOrdering,
+          primaryApiRoute: result.settings.primaryApiRoute,
+        });
+      } else if (!result.ok) {
+        // handoff §6.3: failed IPC persistence must roll UI state back.
+        // Re-hydrate the renderer from the authoritative store so the
+        // next render does not show a stale "primaryApiRoute" value the
+        // user just selected but the main process rejected.
+        await this.get();
+      }
+      return result;
+    }
     return { ok: true, settings: await this.get() };
   },
 };

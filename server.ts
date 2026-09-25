@@ -24,6 +24,14 @@ import {
   isAllowedCryptoRpcRequest,
 } from "./src/shared/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
+import {
+  DEFAULT_PRIMARY_API_ROUTE,
+  isPrimaryApiRouteId,
+  PRIMARY_API_ROUTE_BASE_PATHS,
+  PRIMARY_API_ROUTE_HOSTS,
+  resolvePrimaryApiRoute as resolveSharedPrimaryApiRoute,
+  type PrimaryApiRouteId,
+} from "./src/shared/primaryApiRoute";
 import { AppConfig } from "./src/shared/configSchema";
 import { warn, error } from "./src/shared/logger";
 import {
@@ -165,10 +173,25 @@ type VeniceProxyOutboundRequest = {
 
 const FORBIDDEN_RENDERER_PROXY_HEADERS = ["Authorization", "Cookie", "Host"] as const;
 
+/**
+ * Server-side authoritative primary API route. The web proxy has no notion
+ * of per-user profiles, so the route selection is driven by the
+ * `VENICE_FORGE_PRIMARY_API_ROUTE` env var (default: `"venice"`). Unknown
+ * or malformed values fall back to the canonical Venice host.
+ *
+ * The renderer NEVER influences this value through the proxy path; the
+ * desktop app keeps its own per-profile selection via `providerSettings`.
+ */
+function resolveServerPrimaryApiRoute(): PrimaryApiRouteId {
+  const raw = process.env.VENICE_FORGE_PRIMARY_API_ROUTE;
+  return isPrimaryApiRouteId(raw) ? raw : DEFAULT_PRIMARY_API_ROUTE;
+}
+
 export function applyVeniceProxyHeaders(
   proxyReq: VeniceProxyOutboundRequest,
   req: VeniceProxyRequest,
   apiKey = AppConfig.VENICE_API_KEY,
+  upstreamHost = VENICE_API_HOST,
 ) {
   for (const header of FORBIDDEN_RENDERER_PROXY_HEADERS) {
     proxyReq.removeHeader(header);
@@ -177,7 +200,7 @@ export function applyVeniceProxyHeaders(
   if (apiKey) {
     proxyReq.setHeader("Authorization", `Bearer ${apiKey}`);
   }
-  proxyReq.setHeader("Host", VENICE_API_HOST);
+  proxyReq.setHeader("Host", upstreamHost);
 
   if (req.method !== "GET" && req.body) {
     if (!Buffer.isBuffer(req.body)) {
@@ -544,6 +567,21 @@ export function createServerApp() {
       proxyReq,
       proxyReqReq as VeniceProxyRequest,
       getDevSessionKey(devSessionVeniceApiKey) || AppConfig.VENICE_API_KEY,
+      VENICE_API_HOST,
+    );
+  };
+
+/**
+ * Proxy-request hook for the Fraterna upstream. Same body shaping rules as
+ * the Venice hook — the only difference is the `Host` header so the
+ * upstream TLS SNI matches the canonical Fraterna host (`fraterna.ai`).
+ */
+const applyFraternaProxyReq = (proxyReq: VeniceProxyOutboundRequest, proxyReqReq: express.Request): void => {
+    applyVeniceProxyHeaders(
+      proxyReq,
+      proxyReqReq as VeniceProxyRequest,
+      getDevSessionKey(devSessionVeniceApiKey) || AppConfig.VENICE_API_KEY,
+      PRIMARY_API_ROUTE_HOSTS.fraterna,
     );
   };
 
@@ -744,6 +782,20 @@ export function createServerApp() {
     },
   };
 
+  // FRATERNA primary routing: same shape as `veniceProxyBase` but pointed at
+  // the public Fraterna upstream. The public host is `fraterna.ai` (per
+  // handoff §2.1 / §4) and the path prefix is the canonical `/api/v1`;
+  // the client side rewrites `/api/venice` to "" the same way.
+  const fraternaProxyBase = {
+    target: `https://${PRIMARY_API_ROUTE_HOSTS.fraterna}${PRIMARY_API_ROUTE_BASE_PATHS.fraterna}`,
+    changeOrigin: true,
+    timeout: AppConfig.VENICE_API_STREAM_TIMEOUT_MS,
+    proxyTimeout: AppConfig.VENICE_API_STREAM_TIMEOUT_MS,
+    pathRewrite: {
+      "^/api/venice": "",
+    },
+  };
+
   const standardVeniceProxy = createProxyMiddleware({
     ...veniceProxyBase,
     on: {
@@ -759,6 +811,29 @@ export function createServerApp() {
     selfHandleResponse: true,
     on: {
       proxyReq: applyVeniceProxyReq,
+      proxyRes: fsmMediaProxyRes,
+      error: writeGenericProxyError,
+    },
+  });
+
+  // Fraterna mirrors. They share response handlers with the Venice pair so
+  // every guard (FSM SSE, response screening, retry-after) applies to the
+  // Fraterna upstream identically.
+  const standardFraternaProxy = createProxyMiddleware({
+    ...fraternaProxyBase,
+    on: {
+      proxyReq: applyFraternaProxyReq,
+      proxyRes: standardProxyRes,
+      error: writeGenericProxyError,
+    },
+  });
+
+  const fsmMediaFraternaProxy = createProxyMiddleware({
+    ...fraternaProxyBase,
+    headers: { "Accept-Encoding": "identity" },
+    selfHandleResponse: true,
+    on: {
+      proxyReq: applyFraternaProxyReq,
       proxyRes: fsmMediaProxyRes,
       error: writeGenericProxyError,
     },
@@ -993,6 +1068,38 @@ export function createServerApp() {
     },
   });
 
+  // Fraterna FSM chat-stream proxy — same FSM SSE gate, pointed at Fraterna.
+  const fsmChatStreamFraternaProxy = createProxyMiddleware({
+    ...fraternaProxyBase,
+    headers: { "Accept-Encoding": "identity" },
+    selfHandleResponse: true,
+    on: {
+      proxyReq: applyFraternaProxyReq,
+      proxyRes: fsmChatStreamProxyRes,
+      error: writeGenericProxyError,
+    },
+  });
+
+  /**
+   * Resolves the primary route for an inbound proxy request. The selection
+   * is server-side authoritative (env-driven), and the per-endpoint
+   * capability matrix is enforced by the shared resolver. Returns `null`
+   * when the resolved route is the default Venice host OR when the
+   * resolved Fraterna route does not support this endpoint — in either
+   * case the caller falls back to the Venice proxy pair.
+   */
+  function resolveUpstreamRouteForRequest(pathname: string): {
+    id: PrimaryApiRouteId;
+    host: string;
+    basePath: string;
+  } | null {
+    const route = resolveServerPrimaryApiRoute();
+    if (route === "venice") return null;
+    const resolved = resolveSharedPrimaryApiRoute(route, pathname);
+    if (!resolved) return null;
+    return resolved;
+  }
+
   app.use("/api/venice", (req, res, next) => {
     const now = Date.now();
     if (circuitOpenUntil > 0) {
@@ -1192,11 +1299,23 @@ export function createServerApp() {
     (req, res, next) => {
       const isMedia = req.path.startsWith("/image/") || req.path.startsWith("/video/") || req.path.startsWith("/audio/");
       const isLocalFamilySafe = isLocalFamilySafeModeEnabled(req);
+      // FRATERNA primary routing: when the server-side primary route is
+      // Fraterna and supports this endpoint, dispatch to the Fraterna
+      // proxy pair (identical guards, swapped upstream). When the route is
+      // Venice OR Fraterna does not support this endpoint, the existing
+      // Venice pair handles the request. This keeps every guard
+      // (FSM SSE, response screening, retry-after, circuit breaker)
+      // identical between the two hosts.
+      const upstreamRoute = resolveUpstreamRouteForRequest(req.path);
+      const isFraterna = upstreamRoute?.id === "fraterna";
+      const standardProxy = isFraterna ? standardFraternaProxy : standardVeniceProxy;
+      const fsmMediaProxy = isFraterna ? fsmMediaFraternaProxy : fsmMediaVeniceProxy;
+      const fsmChatProxy = isFraterna ? fsmChatStreamFraternaProxy : fsmChatStreamProxy;
       if (isMedia && isLocalFamilySafe) {
-        return fsmMediaVeniceProxy(req, res, next);
+        return fsmMediaProxy(req, res, next);
       }
       if (req.path === "/chat/completions" && isLocalFamilySafe) {
-        return fsmChatStreamProxy(req, res, next);
+        return fsmChatProxy(req, res, next);
       }
       // Phase 8 — Responses API (alpha): the opt-in /responses stream goes
       // through the same mandatory FSM SSE gate as chat. The gate screens
@@ -1205,9 +1324,9 @@ export function createServerApp() {
       // guard above; the response screen is an FSM-only layer, identical to
       // chat.
       if (req.path === "/responses" && isLocalFamilySafe) {
-        return fsmChatStreamProxy(req, res, next);
+        return fsmChatProxy(req, res, next);
       }
-      return standardVeniceProxy(req, res, next);
+      return standardProxy(req, res, next);
     },
   );
 

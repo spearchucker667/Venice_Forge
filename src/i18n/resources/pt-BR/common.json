@@ -4598,7 +4598,8 @@
       "notConfigured": "Chave API de Veneza não configurada. Adicione uma chave para permitir a geração.",
       "openConfigDetail": "Abra a guia Config para conectar sua chave de API Venice.",
       "connectivityUnverified": "A chave de API está configurada, mas a conectividade ao vivo de Veneza ainda não foi verificada.",
-      "testConnectivityDetail": "Use a ação de teste da chave de API para verificar a conectividade de /models."
+      "testConnectivityDetail": "Use a ação de teste da chave de API para verificar a conectividade de /models.",
+      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
     },
     "apiKey": {
       "notChecked": "A chave da API de Veneza ainda não foi verificada.",

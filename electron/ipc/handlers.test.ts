@@ -1359,6 +1359,7 @@ describe("registerIpcHandlers", () => {
         autoFallbackEnabled: true,
         fallbackOrdering: [],
         nativeFallbackModels: { anthropic: "claude-3-5-sonnet-latest" },
+        primaryApiRoute: "venice",
       });
       const handler = capturedHandlers.get("providerSettings:update")!;
 

@@ -1,6 +1,10 @@
 /** @fileoverview API key IPC handlers (apiKey:*). */
 
 import {
+  isPrimaryApiRouteId,
+  DEFAULT_PRIMARY_API_ROUTE,
+} from "../../../src/shared/primaryApiRoute";
+import {
   deleteApiKey,
   getApiKeyConfigurationStatus,
   getStorageMode,
@@ -800,6 +804,9 @@ export function registerApiKeyHandlers(): void {
       }
       if (update.fallbackOrdering !== undefined && !Array.isArray(update.fallbackOrdering)) {
         throw new Error("Fallback ordering must be an array.");
+      }
+      if (update.primaryApiRoute !== undefined && !isPrimaryApiRouteId(update.primaryApiRoute)) {
+        throw new Error(`Primary API route must be one of: ${DEFAULT_PRIMARY_API_ROUTE}, fraterna.`);
       }
       if (update.fallbackOrdering) {
         if (update.fallbackOrdering.some((providerId) => typeof providerId !== "string")) {

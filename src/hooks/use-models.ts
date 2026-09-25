@@ -69,9 +69,15 @@ export function useModels(type?: string, options: UseModelsOptions = {}) {
     .map(([id]) => id)
     .sort()
     .join(',')
+  // Primary API route: Venice hosts the canonical /models surface. When
+  // the user switches to Fraterna, /models is a Venice-only endpoint, so
+  // the cache for that route must NOT be confused with the canonical
+  // Venice response — including the route in the query key forces React
+  // Query to refetch (or skip) on route change.
+  const primaryApiRoute = useSettingsStore((s) => s.primaryApiRoute)
 
   return useQuery({
-    queryKey: ['models', normalizedType ?? 'all', enabledProviderKey, activeProfileId],
+    queryKey: ['models', normalizedType ?? 'all', enabledProviderKey, activeProfileId, primaryApiRoute],
     enabled: options.enabled ?? true,
     queryFn: async () => {
       const runtime = useModelCatalogRuntimeStore.getState()

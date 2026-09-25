@@ -15,6 +15,7 @@ import type { ApiConnectivityStatus, ApiKeyConfigurationStatus, ApiKeyMutationRe
 import type { MutationOrigin } from "./sync";
 import type { BackgroundTask, BackgroundTaskCreateInput, BackgroundTaskIpcEnvelope } from "./background-task";
 import type { ProviderId } from "./provider";
+import type { PrimaryApiRouteId } from "../shared/primaryApiRoute";
 import type { BackupManifestMetadata } from "../services/backupManifest";
 import type { SafetyRuntimeStatus } from "../shared/safety/safetyRuntimeStatus";
 
@@ -46,6 +47,11 @@ export interface ProviderSettingsSnapshot {
   autoFallbackEnabled: boolean;
   fallbackOrdering: ProviderId[];
   nativeFallbackModels: Partial<Record<ProviderId, string>>;
+  /** User-selected primary API route. `venice` is the default; `fraterna`
+   *  mirrors a curated subset of the same contract. The transport falls
+   *  back to the canonical Venice host for any endpoint the selected
+   *  route does not support. */
+  primaryApiRoute: PrimaryApiRouteId;
 }
 
 export interface VeniceForgeProviderSettings {
@@ -54,6 +60,7 @@ export interface VeniceForgeProviderSettings {
     enabledProviders?: Record<string, boolean>;
     autoFallbackEnabled?: boolean;
     fallbackOrdering?: string[];
+    primaryApiRoute?: PrimaryApiRouteId;
   }): Promise<{ ok: boolean; settings?: ProviderSettingsSnapshot; error?: string }>;
 }
 

@@ -4598,7 +4598,8 @@
       "notConfigured": "Venedig API-nyckel inte konfigurerad. Lägg till en nyckel för att aktivera generering.",
       "openConfigDetail": "Öppna fliken Config för att ansluta din Venedig API-nyckel.",
       "connectivityUnverified": "API-nyckel är konfigurerad, men live Venedig-anslutning har inte verifierats ännu.",
-      "testConnectivityDetail": "Använd API-nyckel-teståtgärden för att verifiera /models-anslutning."
+      "testConnectivityDetail": "Använd API-nyckel-teståtgärden för att verifiera /models-anslutning.",
+      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
     },
     "apiKey": {
       "notChecked": "Venedig API-nyckel har inte kontrollerats ännu.",

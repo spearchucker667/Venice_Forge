@@ -95,6 +95,13 @@ export interface SafeDiagnosticsSnapshot {
   generatedAt: string;
   appMode: "desktop" | "web" | "unknown";
   statuses: AppStatusSnapshot;
+  /**
+   * Primary API route the user has selected for the active profile. The
+   * effective upstream for a given request is computed by the shared
+   * resolver against the per-endpoint capability matrix; this field is
+   * the SELECTED id only.
+   */
+  primaryApiRoute?: "venice" | "fraterna";
   environment: {
     userAgent?: string;
     platform?: string;

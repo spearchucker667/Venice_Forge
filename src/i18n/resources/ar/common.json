@@ -4598,7 +4598,8 @@
       "notConfigured": "لم يتم تكوين مفتاح واجهة برمجة تطبيقات Venice. إضافة مفتاح لتمكين الجيل.",
       "openConfigDetail": "افتح علامة التبويب &quot;التكوين&quot; لتوصيل مفتاح Venice API الخاص بك.",
       "connectivityUnverified": "تم تكوين مفتاح API، ولكن لم يتم التحقق من اتصال البندقية المباشر بعد.",
-      "testConnectivityDetail": "استخدم إجراء اختبار مفتاح API للتحقق من اتصال /models."
+      "testConnectivityDetail": "استخدم إجراء اختبار مفتاح API للتحقق من اتصال /models.",
+      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
     },
     "apiKey": {
       "notChecked": "لم يتم التحقق من مفتاح واجهة برمجة تطبيقات Venice بعد.",

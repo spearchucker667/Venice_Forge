@@ -26,7 +26,14 @@ const ALL_FEATURES = ['chat', 'image', 'video', 'audio', 'embeddings', 'vision']
 export function ProvidersPanel() {
   const { t } = useTranslation(['settings', 'common'])
   const { configuredProviders, setProviderApiKey, clearProviderApiKey, setProviderCredential, clearProviderCredential } = useAuthStore()
-  const { enabledProviders, setEnabledProvider, autoFallbackEnabled, setAutoFallbackEnabled, fallbackOrdering, setFallbackOrdering } = useSettingsStore()
+  const {
+    enabledProviders,
+    setEnabledProvider,
+    autoFallbackEnabled,
+    setAutoFallbackEnabled,
+    fallbackOrdering,
+    setFallbackOrdering,
+  } = useSettingsStore()
 
   // Track local input state per provider so we don't pollute global state while typing
   const [keyInputs, setKeyInputs] = useState<Record<string, string>>({})
@@ -163,6 +170,13 @@ export function ProvidersPanel() {
     // Don't show Venice in fallback providers list, it's the primary provider managed in ApiKeysPanel
     .filter(p => p.id !== 'venice')
   const availableProviderIds = new Set<string>(AVAILABLE_FALLBACK_PROVIDER_IDS)
+
+  // The Primary API Route control is colocated with the Venice API key
+  // controls per the FRATERNA handoff §3.1 ("Settings → API Keys or a small
+  // primary-routing subsection immediately adjacent to the Venice API key
+  // controls"). It is NOT rendered here. See
+  // `src/components/settings/PrimaryApiRoutePanel.tsx` for the canonical
+  // control, which is rendered from `VeniceApiKeysPanel.tsx`.
 
   return (
     <div className="space-y-6">

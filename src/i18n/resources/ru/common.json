@@ -4598,7 +4598,8 @@
       "notConfigured": "Ключ API Венеции не настроен. Добавьте ключ для включения генерации.",
       "openConfigDetail": "Откройте вкладку «Конфигурация», чтобы подключить ключ API Венеции.",
       "connectivityUnverified": "Ключ API настроен, но подключение к Венеции еще не проверено.",
-      "testConnectivityDetail": "Используйте тестовое действие API-ключа, чтобы проверить подключение /models."
+      "testConnectivityDetail": "Используйте тестовое действие API-ключа, чтобы проверить подключение /models.",
+      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
     },
     "apiKey": {
       "notChecked": "Ключ API Венеции еще не проверен.",

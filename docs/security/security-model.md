@@ -8,6 +8,45 @@ Venice Forge keeps provider credentials in Electron `safeStorage`; the renderer 
 
 Implemented fallback providers are explicitly allowlisted by the main process. Cohere, Hugging Face, Azure OpenAI, AWS Bedrock, and Google Vertex AI are implemented for chat; Replicate is implemented as an async media-generation provider. All providers use Electron `safeStorage` for credentials and context-isolated preload IPC for configuration. Providers are only routable once implemented, configured, enabled, capability-compatible, and model-compatible. Provider credentials can be manually removed and replaced; scheduled credential rotation is not implemented.
 
+## Primary API route selection (Fraterna)
+
+As of v3.1.0 the user can switch the primary API route to the public
+Fraterna upstream (`api.fraterna.ai`), which mirrors a curated subset
+of the same contract under the same `/api/v1` prefix and the same
+Venice API key. Security guarantees:
+
+- The route selection is **profile-scoped** and main-process
+  authoritative (`electron/services/providerSettingsStore.ts`). The
+  renderer mirror is hydrated via the desktop bridge; renderer-only
+  state cannot select a route.
+- The shared IPC validator
+  (`electron/ipc/validation.ts:validateVeniceIpcRequest`) is unchanged.
+  Endpoint allowlisting remains the single source of truth; the route
+  resolver chooses the host AFTER endpoint validation has passed.
+- Both routes use the same Venice API key. No new credential, no new
+  secret persistence layer, no new outbound allowlist. The
+  network-boundaries verifier
+  (`scripts/verify-network-boundaries.cjs`) treats the Fraterna host as
+  a fixed allowlist entry alongside `api.venice.ai`.
+- The full safety guard pipeline (Local Family Safe Mode, child
+  exploitation guard, prompt-limit, system-prompt limits, response
+  screening) applies to both hosts identically. Web mode applies every
+  proxy-level guard to the Fraterna pair the same way it does to the
+  Venice pair.
+- Endpoints the Fraterna route does not support (e.g. `/models`,
+  `/billing/*`, `/audio/*`, `/video/*`, `/api_keys/*`, `/x402/*`,
+  `/crypto/rpc/*`, `/responses`, `/characters/*`, `/augment/*`) fall
+  back transparently to the canonical Venice host, so the surface area
+  is identical regardless of which route is selected.
+- Diagnostics export bundles include `primaryApiRoute: "<id>"` so
+  support engineers can confirm the user's selection. The export
+  remains free of API keys, raw prompts, base64 media, and absolute
+  paths.
+
+For the canonical contract, the per-endpoint capability matrix, and the
+implementation seams see
+[`docs/DEVELOPMENT/FRATERNA_ROUTING.md`](../DEVELOPMENT/FRATERNA_ROUTING.md).
+
 Local Family Safe Mode and Venice provider `safe_mode` are separate controls. The main process owns the desktop safety snapshot. New Electron backup and sync encryption uses Argon2id with XChaCha20-Poly1305; the main-process decryptor retains PBKDF2-SHA-256/AES-256-GCM support for legacy 12-byte-IV envelopes. Browser-mode manual backups use that PBKDF2/AES-GCM compatibility format. Sync passphrases are transient and are cleared when sync pauses or stops.
 
 Portable data excludes API keys, authorization tokens, passwords, passphrases, secrets, sync-folder settings, and machine-local paths. Import and sync accept only allowlisted stores, validate record IDs, reject malformed/oversized envelopes, and preserve divergent user content instead of silently overwriting it.

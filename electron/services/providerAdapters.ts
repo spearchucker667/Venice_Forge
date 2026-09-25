@@ -1,7 +1,12 @@
-import { getProviderCredentialOrFallback } from './secureStore'
+import { getApiKey, getProviderCredentialOrFallback } from './secureStore'
 import { getProviderSettings } from './providerSettingsStore'
 import type { StreamDelta } from './veniceClient'
 import { PROVIDER_REGISTRY, type AzureOpenAiConfig, type AwsBedrockConfig, type GenericOpenAiConfig, type GoogleVertexConfig, type ProviderCredential, type ProviderId } from '../../src/types/provider'
+import {
+  DEFAULT_PRIMARY_API_ROUTE,
+  resolvePrimaryApiRoute as resolveSharedPrimaryApiRoute,
+  type PrimaryApiRouteId,
+} from '../../src/shared/primaryApiRoute'
 
 export interface ProviderRoute {
   host: string
@@ -735,4 +740,51 @@ export function resolveProviderRoute(
   }
 
   return { route }
+}
+
+/**
+ * Resolves the user-selected primary API route (Venice or Fraterna) for a
+ * request that is NOT explicitly addressed to a fallback provider. Returns
+ * `{ route }` when the selected primary route supports the endpoint,
+ * `null` when the user is on the default Venice route OR the selected
+ * route does not support this endpoint (the caller falls back to the
+ * canonical Venice host in either case).
+ *
+ * FRATERNA primary routing: this helper is the single seam where the
+ * `primaryApiRoute` setting is consulted by the transport. Adding new
+ * routes must extend this helper AND the shared resolver in
+ * `src/shared/primaryApiRoute.ts`.
+ */
+export function resolvePrimaryApiRouteForRequest(
+  request: Record<string, unknown>,
+  profileId?: string,
+): { route?: ProviderRoute } | null {
+  const endpoint = request.endpoint;
+  if (typeof endpoint !== "string") return null;
+  const endpointPath = endpoint.split("?")[0];
+
+  // `getProviderSettings` is main-process authoritative; it always returns
+  // a valid `primaryApiRoute` (defaulting to "venice" for older persisted
+  // profiles that pre-date the schema).
+  const settings = getProviderSettings(profileId);
+  const primaryRoute: PrimaryApiRouteId = settings.primaryApiRoute ?? DEFAULT_PRIMARY_API_ROUTE;
+  if (primaryRoute === "venice") return null;
+
+  // The shared resolver handles the per-endpoint capability matrix.
+  const resolved = resolveSharedPrimaryApiRoute(primaryRoute, endpointPath);
+  if (!resolved) return null;
+
+  // Fraterna (and any future non-default route) reuses the Venice API key.
+  // The credential lives in the main-process secure store and is never
+  // exposed to the renderer; the transport attaches it here.
+  const apiKey = getApiKey(profileId);
+  const headers: Record<string, string> = apiKey
+    ? { Authorization: `Bearer ${apiKey}` }
+    : {};
+  const route: ProviderRoute = {
+    host: resolved.host,
+    path: `${resolved.basePath}${endpoint}`,
+    headers,
+  };
+  return { route };
 }

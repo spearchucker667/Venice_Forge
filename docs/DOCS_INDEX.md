@@ -159,6 +159,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [design/REPOSITORY_TREE.md](design/REPOSITORY_TREE.md) — Codebase layout and design rationale.
 - [DEVELOPMENT/rp-token-counting.md](DEVELOPMENT/rp-token-counting.md) — Compiled prompt estimates and over-budget save behavior.
 - [features/DOCUMENT_AGENT.md](features/DOCUMENT_AGENT.md) — Limited Documents, workspace grants, approval integrity, path security, lazy directory tree, tool execution context, preset semantics, attachment promotion, and supported document/workspace tools.
+- [DEVELOPMENT/FRATERNA_ROUTING.md](DEVELOPMENT/FRATERNA_ROUTING.md) — Primary API route selection (`venice` / `fraterna`): per-endpoint capability matrix (handoff §4.1), direct-Venice exceptions (handoff §4.2), profile-scoped persistence, web-proxy env var, security & privacy posture, diagnostics export, fallback-chain coexistence.
 
 ### Design History & Reports
 

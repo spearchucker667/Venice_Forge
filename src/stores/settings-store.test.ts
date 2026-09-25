@@ -268,6 +268,44 @@ describe('settings-store', () => {
     })
   })
 
+  describe('primary API route (FRATERNA routing)', () => {
+    it('defaults to the venice route on a fresh store', () => {
+      expect(useSettingsStore.getState().primaryApiRoute).toBe('venice')
+    })
+
+    it('accepts and round-trips the fraterna route', () => {
+      useSettingsStore.getState().setPrimaryApiRoute('fraterna')
+      expect(useSettingsStore.getState().primaryApiRoute).toBe('fraterna')
+      useSettingsStore.getState().setPrimaryApiRoute('venice')
+      expect(useSettingsStore.getState().primaryApiRoute).toBe('venice')
+    })
+
+    it('coerces unknown values to the default instead of persisting garbage', () => {
+      useSettingsStore.getState().setPrimaryApiRoute('fraterna')
+      // @ts-expect-error - intentional bad input to validate sanitizer.
+      useSettingsStore.getState().setPrimaryApiRoute('not-a-route')
+      expect(useSettingsStore.getState().primaryApiRoute).toBe('venice')
+    })
+
+    it('migrates a v18 (pre-routing) persisted state to the default', () => {
+      const migrate = useSettingsStore.persist.getOptions().migrate as (persistedState: unknown, version: number) => any
+      const migrated = migrate({}, 18)
+      expect(migrated.primaryApiRoute).toBe('venice')
+    })
+
+    it('preserves an explicit persisted fraterna selection through migration', () => {
+      const migrate = useSettingsStore.persist.getOptions().migrate as (persistedState: unknown, version: number) => any
+      const migrated = migrate({ primaryApiRoute: 'fraterna' }, 18)
+      expect(migrated.primaryApiRoute).toBe('fraterna')
+    })
+
+    it('drops a malformed persisted primaryApiRoute to the default', () => {
+      const migrate = useSettingsStore.persist.getOptions().migrate as (persistedState: unknown, version: number) => any
+      const migrated = migrate({ primaryApiRoute: 'bogus' }, 19)
+      expect(migrated.primaryApiRoute).toBe('venice')
+    })
+  })
+
   describe('persistence migration and merge', () => {
     it('migrates older state objects', () => {
       const migrate = useSettingsStore.persist.getOptions().migrate as (persistedState: unknown, version: number) => any

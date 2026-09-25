@@ -104,6 +104,33 @@ privacy or complete safety protection.
 - `shell.openExternal` only allows `https:` URLs with public routable
   hostnames.
 
+### Primary API Route selection (Fraterna)
+
+As of v3.1.0, the user (desktop build) or the server operator (web
+build) may switch the primary API route to the public Fraterna upstream
+(`https://fraterna.ai/api/v1`), which mirrors a curated subset of the
+same contract. **Fraterna is a third-party service separate from
+Venice Forge and Venice.ai.** When the Fraterna route is active:
+
+- Fraterna receives selected request/response metadata on the routes it
+  proxies. Per Fraterna's public documentation, successful proxied
+  requests are recorded using pseudonymous member IDs and may include
+  endpoint, model, and API-consumption details.
+- The user's Venice API key is reused — Fraterna does not introduce a
+  separate credential — but the credential is sent to a third-party
+  origin, not directly to `api.venice.ai`.
+- Fraterna routing applies only to the curated endpoint subset (per the
+  capability matrix in `docs/DEVELOPMENT/FRATERNA_ROUTING.md`); every
+  other endpoint automatically falls back to `api.venice.ai`.
+- The local safety guard pipeline (Local Family Safe Mode, child
+  exploitation guard, prompt-limit, system-prompt limit) applies
+  identically regardless of which route is selected.
+
+Do **not** advertise "no separate privacy posture" or "all traffic
+remains direct to Venice" when Fraterna is active — both claims are
+misleading. For the full capability matrix, failure modes, and
+diagnostics behaviour see `docs/DEVELOPMENT/FRATERNA_ROUTING.md`.
+
 ### Image Inspector
 
 Image Inspector resolves a user-selected PNG, JPEG, or WebP through the main process, validates its encoded and decoded bounds, and sends the image plus user-selected analysis instructions to the chosen Venice vision model only after an explicit analysis action. Structured results and safe provider-authored failures may be stored in the local Image Inspector session record.

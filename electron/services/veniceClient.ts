@@ -10,7 +10,7 @@ import { logError, setLastApiError } from "./logger";
 import { redactErrorMessage } from "../../src/shared/redaction";
 import { validateVeniceIpcRequest } from "../ipc/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS, VENICE_API_STREAM_TIMEOUT_MS } from "../../src/shared/apiConfig";
-import { resolveProviderRoute, type ProviderRouteSelection } from "./providerAdapters";
+import { resolveProviderRoute, resolvePrimaryApiRouteForRequest, type ProviderRouteSelection } from "./providerAdapters";
 import { cloneSanitizedForFallbackProvider } from "../../src/shared/chatFallbackSanitizer";
 import { getProviderSettings } from "./providerSettingsStore";
 import {
@@ -491,8 +491,31 @@ async function performSingleVeniceRequest(
   signal?: AbortSignal,
 ): Promise<VeniceIpcResponse> {
 
-  // Check if this request should be routed to a fallback provider
-  const fallbackRouteResult = resolveProviderRoute(request as unknown as Record<string, unknown>, request.profileId, providerSelection);
+  // Primary API route resolution (FRATERNA routing): handoff §5.1 / §7.3
+  // keep Fraterna semantically separate from third-party fallback
+  // providers. Order matters here:
+//
+//   1. `resolveProviderRoute` — handles renderer-supplied `provider:` prefix
+//      (e.g. `together:foo`). A third-party fallback route ALWAYS wins; we
+//      do not route explicit-prefix requests through Fraterna (handoff
+//      §7.3.4: "Do not apply Venice-only request semantics to third-party
+//      fallback adapters").
+//   2. `resolvePrimaryApiRouteForRequest` — consulted only when no
+//      third-party route was selected. Returns a Fraterna route when the
+//      user selected Fraterna AND the endpoint is supported; otherwise
+//      null so the request falls through to the default Venice host.
+//
+// Cross-provider fallback chain behaviour is preserved: when Fraterna is
+// selected for a supported endpoint and the request 5xx's, the OUTER
+// `performVeniceRequest` loop already iterates across `venice` + the
+// configured fallback ordering — that is the path that drives third-party
+// resilience (handoff §7.3.2). The changes here ONLY add the per-request
+// primary-route hop; the chain semantics are unchanged.
+  const fallbackRouteResult = resolveProviderRoute(
+    request as unknown as Record<string, unknown>,
+    request.profileId,
+    providerSelection,
+  );
   if (fallbackRouteResult && fallbackRouteResult.error) {
     return {
       ok: false,
@@ -506,9 +529,20 @@ async function performSingleVeniceRequest(
       contentType: "application/json",
     };
   }
+  const primaryRouteResult = fallbackRouteResult?.route
+    ? null
+    : resolvePrimaryApiRouteForRequest(
+        request as unknown as Record<string, unknown>,
+        request.profileId,
+      );
 
-  const route = fallbackRouteResult?.route;
-  const isFallback = !!route;
+  const route = primaryRouteResult?.route ?? fallbackRouteResult?.route;
+  // `isFallback` is true when the request was sent to a third-party
+  // fallback provider. The primary-route branch (Fraterna) is NOT a
+  // fallback — it uses the same Venice API key and the same authorization
+  // contract — so it must keep `isFallback = false` and continue to apply
+  // the API-key guard below.
+  const isFallback = !primaryRouteResult?.route && !!fallbackRouteResult?.route;
 
   const endpointPath = request.endpoint.split("?")[0];
   const isX402 = isAllowedX402Request(endpointPath, request.method);

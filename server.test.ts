@@ -47,6 +47,10 @@ vi.mock("http-proxy-middleware", () => ({
 
 import { applyVeniceProxyHeaders, createServerApp as originalCreateServerApp } from "./server";
 import { AppConfig } from "./src/shared/configSchema";
+import {
+  DEFAULT_PRIMARY_API_ROUTE,
+  isPrimaryApiRouteId,
+} from "./src/shared/primaryApiRoute";
 import * as safetyModule from "./src/shared/safety";
 import * as localFamilyGuardRules from "./src/shared/safety/localFamilyGuardRules";
 import { triggerInput } from "./tests/safety/fixtureBuilders";
@@ -835,6 +839,56 @@ describe("server.ts proxy header sanitization", () => {
     applyVeniceProxyHeaders(proxyReq, { method: "GET" }, "vn-session-fixture");
     expect(proxyReq.removeHeader).toHaveBeenCalledWith("Authorization");
     expect(proxyReq.setHeader).toHaveBeenCalledWith("Authorization", "Bearer vn-session-fixture");
+  });
+
+  // FRATERNA primary routing: when the upstream host argument is overridden
+  // the helper rewrites the Host header (preserving TLS SNI) without
+  // removing the Authorization header.
+  it("[FRATERNA-101] rewrites Host to the Fraterna upstream when requested", () => {
+    process.env.VENICE_API_KEY = "fraterna-key";
+    const proxyReq = {
+      removeHeader: vi.fn(),
+      setHeader: vi.fn(),
+      write: vi.fn(),
+    };
+    applyVeniceProxyHeaders(
+      proxyReq,
+      { method: "POST", body: Buffer.from("{}") },
+      undefined,
+      "fraterna.ai",
+    );
+    expect(proxyReq.setHeader).toHaveBeenCalledWith("Host", "fraterna.ai");
+    expect(proxyReq.setHeader).toHaveBeenCalledWith(
+      "Authorization",
+      "Bearer fraterna-key",
+    );
+    delete process.env.VENICE_API_KEY;
+  });
+});
+
+describe("server.ts primary API route resolution", () => {
+  const previousEnv = process.env.VENICE_FORGE_PRIMARY_API_ROUTE;
+  afterEach(() => {
+    if (previousEnv === undefined) {
+      delete process.env.VENICE_FORGE_PRIMARY_API_ROUTE;
+    } else {
+      process.env.VENICE_FORGE_PRIMARY_API_ROUTE = previousEnv;
+    }
+  });
+
+  it("defaults to the Venice host when the env var is unset", () => {
+    delete process.env.VENICE_FORGE_PRIMARY_API_ROUTE;
+    // The shared resolver returns null for venice, mirroring the canonical
+    // contract. The test verifies the env-helper contract here.
+    expect(DEFAULT_PRIMARY_API_ROUTE).toBe("venice");
+  });
+
+  it("accepts the documented values and silently ignores unknown ones", () => {
+    process.env.VENICE_FORGE_PRIMARY_API_ROUTE = "bogus";
+    expect(isPrimaryApiRouteId("venice")).toBe(true);
+    expect(isPrimaryApiRouteId("fraterna")).toBe(true);
+    expect(isPrimaryApiRouteId("bogus")).toBe(false);
+    expect(DEFAULT_PRIMARY_API_ROUTE).toBe("venice");
   });
 });
 

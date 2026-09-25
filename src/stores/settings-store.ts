@@ -17,6 +17,11 @@ export type Tab = TabId
 import type { LocaleSetting } from '../i18n/locale-types'
 import { changeLanguage } from '../i18n'
 import {
+  DEFAULT_PRIMARY_API_ROUTE,
+  isPrimaryApiRouteId,
+  type PrimaryApiRouteId,
+} from '../shared/primaryApiRoute'
+import {
   DEFAULT_FONT_ID,
   DEFAULT_FONT_SIZE,
   clampFontSize,
@@ -254,6 +259,12 @@ interface SettingsState {
   setAutoFallbackEnabled: (enabled: boolean) => void
   fallbackOrdering: string[]
   setFallbackOrdering: (ordering: string[]) => void
+  // Primary API route: 'venice' (default) or 'fraterna' (public mirror of a
+  // curated subset). Renderer-owned mirror of the main-process
+  // `providerSettings.primaryApiRoute`; the desktop bridge keeps the two
+  // in sync. Web mode falls back to the default (renderer cannot change it).
+  primaryApiRoute: PrimaryApiRouteId
+  setPrimaryApiRoute: (route: PrimaryApiRouteId) => void
   favoriteHostedCharacterSlugs: string[]
   setFavoriteHostedCharacterSlugs: (slugs: string[]) => void
 
@@ -440,6 +451,8 @@ export const useSettingsStore = create<SettingsState>()(
       setAutoFallbackEnabled: (enabled) => set({ autoFallbackEnabled: enabled }),
       fallbackOrdering: [],
       setFallbackOrdering: (ordering) => set({ fallbackOrdering: ordering }),
+      primaryApiRoute: DEFAULT_PRIMARY_API_ROUTE,
+      setPrimaryApiRoute: (route) => set({ primaryApiRoute: isPrimaryApiRouteId(route) ? route : DEFAULT_PRIMARY_API_ROUTE }),
       favoriteHostedCharacterSlugs: [],
       setFavoriteHostedCharacterSlugs: (slugs) => set({
         favoriteHostedCharacterSlugs: [...new Set(slugs.filter((slug) => /^[A-Za-z0-9_-]{1,128}$/.test(slug)))].slice(0, 100),
@@ -473,7 +486,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'venice-settings',
-      version: 18,
+      version: 19,
       storage: createJSONStorage(() => createSafeStorage()),
       partialize: (state) => {
         const { pendingSettingsSection: _pendingSettingsSection, ...persisted } = state;
@@ -558,6 +571,12 @@ export const useSettingsStore = create<SettingsState>()(
           customTheme: state.customTheme ? ensureThemeCode(state.customTheme) : null,
           fontFamily: normalizeFontId(state.fontFamily),
           fontSize: clampFontSize(state.fontSize),
+          // v19 (FRATERNA primary routing): default to the Venice host when
+          // the renderer has no explicit selection. Unknown / malformed
+          // persisted values fall back to the default.
+          primaryApiRoute: isPrimaryApiRouteId(state.primaryApiRoute)
+            ? state.primaryApiRoute
+            : DEFAULT_PRIMARY_API_ROUTE,
         } as SettingsState
       },
       merge: (persisted, current) => {
@@ -573,6 +592,12 @@ export const useSettingsStore = create<SettingsState>()(
           fontSize,
           sidebarOpen: typeof persistedState.sidebarOpen === 'boolean' ? persistedState.sidebarOpen : true,
           sidebarWidth: clampSidebarWidth(persistedState.sidebarWidth),
+          // v19 (FRATERNA primary routing): coerce persisted values that
+          // pre-date the schema or were hand-edited. The default keeps
+          // existing users on the Venice host.
+          primaryApiRoute: isPrimaryApiRouteId(persistedState.primaryApiRoute)
+            ? persistedState.primaryApiRoute
+            : DEFAULT_PRIMARY_API_ROUTE,
         };
         if (merged.uiLocale) {
           changeLanguage(merged.uiLocale);

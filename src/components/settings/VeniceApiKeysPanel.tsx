@@ -19,6 +19,7 @@ import type {
   VeniceApiKeyType,
 } from "../../types/venice-api-keys";
 import { AccessibleDialog } from "../ui/AccessibleDialog";
+import { PrimaryApiRoutePanel } from "./PrimaryApiRoutePanel";
 import { VeniceApiKeyRateLimitsSection } from "./VeniceApiKeyRateLimitsSection";
 
 const DESCRIPTION_MAX_LENGTH = 64;
@@ -668,6 +669,16 @@ export function VeniceApiKeysPanel(): React.ReactElement {
 
           {/* ── Rate limits & log ──────────────────────────────────── */}
           <VeniceApiKeyRateLimitsSection />
+
+          {/* ── Primary API Route ─────────────────────────────────── */}
+          {/*
+            handoff §3.1: "Settings → API Keys or a small primary-routing
+            subsection immediately adjacent to the Venice API key
+            controls." Rendered here so the routing control sits directly
+            below the Venice credential management. See
+            `docs/DEVELOPMENT/FRATERNA_ROUTING.md` for the full contract.
+          */}
+          <PrimaryApiRoutePanel />
         </>
       )}
 
