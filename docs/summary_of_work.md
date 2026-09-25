@@ -47,6 +47,50 @@ external_acceptance_outstanding:
 
 ## Session History
 
+### 2026-09-25 — Post-publish code-review pass: doc/i18n drift corrections
+
+A second two-axis `mattpocock-skills:code-review` pass against the
+published commits (fixed-point `0a1bfdf4`) surfaced drift between the
+corrected FRATERNA implementation and three documentation surfaces
+that the prior spec-axis pass missed. Real bugs fixed:
+
+- `docs/security/security-model.md` — hostname drift (`api.fraterna.ai`
+  → `fraterna.ai`); the earlier hostname sweep missed this file.
+- `docs/DEVELOPMENT/FRATERNA_ROUTING.md` — capability-matrix table was
+  the pre-correction matrix (image edit/upscale/multi-edit/embeddings
+  marked Fraterna-supported, `/models` marked Venice-only); replaced
+  with the §4.1 set.
+- `src/shared/primaryApiRoute.ts` — `PRIMARY_API_ROUTE_DESCRIPTIONS`
+  was carrying the old matrix AND the disallowed "no separate
+  credential or privacy posture" claim; rewritten with the §4.1 set
+  and the honest third-party-service wording per §3.2.
+- `src/i18n/resources/en-US/settings.json` + 11 non-English catalogs
+  — capability-matrix and privacy-overstatement propagated to all
+  locales as `__MISSING__:` placeholders so the source-language
+  catalog stays `isProductionComplete: false`.
+- `src/hooks/use-models.ts` — added the missing Spec §10 runtime-store
+  reset so the previous host's `status` / `totalCount` /
+  `liveModelIds` do not surface as authoritative state for the new
+  host while the refetch is in flight; added the matching focused
+  regression test.
+- Removed the unused `supportedNotice` / `unsupportedNotice` i18n
+  keys (the panel never rendered them; they only re-encoded the wrong
+  matrix).
+
+Validation (re-run on local Node 22.15.0 / npm 10 before commit):
+`npm run lint:eslint` clean, `npm run typecheck` clean (3 projects),
+7 use-models tests pass (incl. new Spec §10 reset regression),
+9 primaryApiRoute tests pass, 56 providerAdapters tests pass,
+`verify:i18n` 12/12 locales pass, `verify:network-boundaries` OK.
+
+Committed as `2c551019 fix(routing): align FRATERNA docs/i18n with
+corrected §4.1/§4.2 contract` and pushed (`e90516d9..2c551019 main ->
+main`). Hosted acceptance re-checked:
+- CI run `36185930241` — `completed success` (11/11 jobs green)
+- CodeQL run `36185930234` — `completed success`
+
+Local and remote `main` both at `2c5510192f8ee62a2f7c24a6af6e160c94f1dfb8`.
+
 ### 2026-09-25 — Published FRATERNA routing implementation + audit handoff to main
 
 - **Commits.** Two commits on local `main` directly from `0a1bfdf4`:
