@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 56924240509f8580b9cee5d9ef31202d35439908 (release: prepare v3.1.0)
-application_code_sha: 56924240509f8580b9cee5d9ef31202d35439908
-verified_against_sha: 56924240509f8580b9cee5d9ef31202d35439908
+repository_head_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4 (fix(audit,i18n): remediate 2026-09-24 audit findings and complete first-pass locale catalogs)
+application_code_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4
+verified_against_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4
 verified_at:         2026-09-24 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        dirty at session start; six audit remediations and first-pass locale completion are uncommitted
-ci_status:           success for 56924240 (run 36064443092)
-codeql_status:       success for 56924240 (run 36064443001 — Analyze actions and Analyze javascript-typescript)
+working_tree:        clean
+ci_status:           success for 107e6e12 (run 36082441197 — 11/11 jobs)
+codeql_status:       success for 107e6e12 (run 36082441227 — Analyze actions and Analyze javascript-typescript)
 open_findings:       safety-contract conflict in selected 2026-09-24 audit; P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
@@ -24,7 +24,7 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
-- **2026-09-24 Hosted publication and validation.** Completed pre-push local validation gates (safety guard, markdown links, contracts, ESLint, TypeScript typecheck, full test suite with 7,055 tests across 588 files, segmented test suites for electron/server/ingestion, build, dist verification, and full local `npm run ci`). Committed the 2026-09-24 audit remediations, point-in-time audit record, and first-pass locale catalog completion to local main and pushed to remote main.
+- **2026-09-24 Hosted publication and validation.** Completed pre-push local validation gates (safety guard, markdown links, contracts, ESLint, TypeScript typecheck, full test suite with 7,055 tests across 588 files, segmented test suites for electron/server/ingestion, build, dist verification, and full local `npm run ci`). Committed the 2026-09-24 audit remediations, point-in-time audit record, and first-pass locale catalog completion to local main (`107e6e12a75aa5bc119b633d4117939b90339cb4`), pushed to remote main, synchronized HEAD, and verified hosted GitHub Actions CI (run 36082441197, 11/11 jobs) and CodeQL (run 36082441227, 2/2 jobs) both succeeded.
 
 - **2026-09-24 Audit remediation and first-pass locale completion.** Repaired the mobile sidebar layout and related History/Privacy mobile controls; valid legacy history now remains retryable after vault write failure; main-frame IPC checks reject missing frame identities; the direct esbuild override follows the declared dependency; and the capture runner records measured defects with unsigned human-review notes. Added focused migration and IPC regression tests. Resolved the 128 standard i18n errors in the dirty starting worktree and, with user direction, filled 594 missing locale values as first-pass translations. Removed four pre-existing visible translation-token artifacts and added a verifier regression check for them. `node scripts/verify-i18n.cjs --strict` now passes. Non-English catalogs remain `first-pass-machine` pending qualified review. Local validation and packaging results are recorded below; no commit or push was made.
 
@@ -111,6 +111,9 @@ external_acceptance_outstanding:
 - `npm run ci` — PASS (full gate and dist verification).
 - `git diff --check` — PASS (0 whitespace errors).
 - `npm run verify:archive-clean`, `npm run verify:superdesign-init`, `npm run verify:i18n`, `npm run verify:roadmap-current`, and `npm run verify:repo-handoff-hygiene` — PASS.
+- Hosted CI run `36082441197` — PASS, 11/11 jobs (`windows-sensitive-tests`, `contracts`, `lint-and-typecheck`, `unit-and-integration-tests`, `macos-sensitive-tests`, `coverage`, `script-coverage`, `build`, `electron-smoke-windows`, `electron-smoke-macos`, `electron-smoke-linux`), SHA `107e6e12`.
+- Hosted CodeQL run `36082441227` — PASS, Analyze actions and Analyze javascript-typescript, SHA `107e6e12`.
+- Local `HEAD` matches `origin/main` at `107e6e12a75aa5bc119b633d4117939b90339cb4`.
 
 ### 2026-09-24 — Audit remediation and first-pass locale completion
 

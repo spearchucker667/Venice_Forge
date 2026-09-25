@@ -5,17 +5,17 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 56924240509f8580b9cee5d9ef31202d35439908 (release: prepare v3.1.0)
-application_code_sha: 56924240509f8580b9cee5d9ef31202d35439908
-verified_against_sha: 56924240509f8580b9cee5d9ef31202d35439908
+repository_head_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4 (fix(audit,i18n): remediate 2026-09-24 audit findings and complete first-pass locale catalogs)
+application_code_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4
+verified_against_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4
 verified_at:         2026-09-24 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
-working_tree:        dirty at session start; six audit remediations and first-pass locale completion are uncommitted
-ci_status:           success for 56924240 (run 36064443092)
-codeql_status:       success for 56924240 (run 36064443001 — Analyze actions and Analyze javascript-typescript)
+working_tree:        clean
+ci_status:           success for 107e6e12 (run 36082441197 — 11/11 jobs)
+codeql_status:       success for 107e6e12 (run 36082441227 — Analyze actions and Analyze javascript-typescript)
 open_findings:       2026-09-24 audit safety-contract conflict; P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
