@@ -10,10 +10,11 @@
  * desired.
  */
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSettingsStore } from '../../stores/settings-store'
 import {
+  FRATERNA_DOCS_URL,
   PRIMARY_API_ROUTE_DESCRIPTIONS,
   PRIMARY_API_ROUTE_IDS,
   PRIMARY_API_ROUTE_LABELS,
@@ -38,6 +39,69 @@ export function PrimaryApiRoutePanel({
     ? primaryApiRoute
     : 'venice'
 
+  const [isSaving, setIsSaving] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const handleRouteChange = async (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const next = event.target.value
+    if (!isPrimaryApiRouteId(next) || isSaving) return
+
+    setIsSaving(true)
+    setErrorMessage(null)
+
+    try {
+      const saved = await desktopProviderSettings.update({
+        primaryApiRoute: next,
+      })
+      if (saved.ok) {
+        setPrimaryApiRoute(next)
+        setErrorMessage(null)
+      } else {
+        setErrorMessage(
+          t(
+            'settings:providers.primaryRoute.saveFailed',
+            'Failed to update primary API route. Please try again.',
+          ),
+        )
+        // Authoritative rehydrate on save failure
+        try {
+          const current = await desktopProviderSettings.get()
+          if (
+            current?.primaryApiRoute &&
+            isPrimaryApiRouteId(current.primaryApiRoute)
+          ) {
+            setPrimaryApiRoute(current.primaryApiRoute)
+          }
+        } catch {
+          // Best effort rehydrate
+        }
+      }
+    } catch {
+      setErrorMessage(
+        t(
+          'settings:providers.primaryRoute.saveFailed',
+          'Failed to update primary API route. Please try again.',
+        ),
+      )
+      // Authoritative rehydrate on thrown error
+      try {
+        const current = await desktopProviderSettings.get()
+        if (
+          current?.primaryApiRoute &&
+          isPrimaryApiRouteId(current.primaryApiRoute)
+        ) {
+          setPrimaryApiRoute(current.primaryApiRoute)
+        }
+      } catch {
+        // Best effort rehydrate
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="p-4 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-secondary)] space-y-4">
       <div className="space-y-2">
@@ -50,6 +114,20 @@ export function PrimaryApiRoutePanel({
             'Choose which canonical host your primary API requests go to. The Venice route is the default and supports the full endpoint surface. The Fraterna route mirrors a curated subset; unsupported endpoints automatically fall back to the Venice host. Fraterna is a third-party service separate from Venice Forge and Venice.ai — its proxy records selected request metadata for successful requests.',
           )}
         </p>
+        <div className="pt-1">
+          <a
+            href={FRATERNA_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-accent hover:underline inline-flex items-center gap-1"
+          >
+            {t(
+              'settings:providers.primaryRoute.fraternaDocsLink',
+              'Fraterna documentation',
+            )}
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
       </div>
       <div className="flex flex-col gap-3">
         <label
@@ -61,16 +139,8 @@ export function PrimaryApiRoutePanel({
         <select
           id="primary-api-route-select"
           value={selectedRoute}
-          onChange={(event) => {
-            const next = event.target.value
-            if (!isPrimaryApiRouteId(next)) return
-            void desktopProviderSettings
-              .update({ primaryApiRoute: next })
-              .then((saved) => {
-                if (saved.ok) setPrimaryApiRoute(next)
-              })
-          }}
-          disabled={!supportsPrimaryRouteSelection}
+          onChange={handleRouteChange}
+          disabled={!supportsPrimaryRouteSelection || isSaving}
           aria-label={t(
             'settings:providers.primaryRoute.aria.select',
             'Select primary API route',
@@ -86,6 +156,14 @@ export function PrimaryApiRoutePanel({
             </option>
           ))}
         </select>
+        {errorMessage && (
+          <div
+            role="alert"
+            className="text-xs text-[var(--color-danger)] font-medium"
+          >
+            {errorMessage}
+          </div>
+        )}
         {supportsPrimaryRouteSelection && (
           <p className="text-xs text-[var(--color-text-muted)]">
             {t(

@@ -2,6 +2,9 @@
 
 import { redactErrorMessage, redactSecrets } from "../shared/redaction";
 import { SAFETY_PROVENANCE_FIELD } from "../shared/safety/promptSegments";
+import type { InspectorRoutingReason } from "../shared/inspectorTelemetryContracts";
+
+export type { InspectorRoutingReason };
 
 /**
  * Structured metadata describing the local Family Safe Mode decision for a
@@ -379,6 +382,9 @@ export interface InspectorTelemetryPatch {
   error?: string;
   responseHeaders?: Record<string, string>;
   responseBody?: unknown;
+  selectedPrimaryRoute?: "venice" | "fraterna";
+  effectiveUpstream?: "venice" | "fraterna" | string;
+  routingReason?: InspectorRoutingReason;
 }
 
 /** Builds a redacted telemetry patch from raw call results. */
@@ -390,6 +396,9 @@ export function buildInspectorTelemetryPatch(input: {
   error?: string;
   responseHeaders?: Record<string, string>;
   responseBody?: unknown;
+  selectedPrimaryRoute?: "venice" | "fraterna";
+  effectiveUpstream?: "venice" | "fraterna" | string;
+  routingReason?: InspectorRoutingReason;
 }): InspectorTelemetryPatch {
   const errorClass = classifyInspectorError(input.status, input.error);
   return {
@@ -403,6 +412,9 @@ export function buildInspectorTelemetryPatch(input: {
     responseHeaders: input.responseHeaders ? maskInspectorHeaders(input.responseHeaders) : undefined,
     responseBody:
       input.responseBody === undefined ? undefined : sanitizeInspectorResponse(input.responseBody),
+    selectedPrimaryRoute: input.selectedPrimaryRoute,
+    effectiveUpstream: input.effectiveUpstream,
+    routingReason: input.routingReason,
   };
 }
 
@@ -424,6 +436,14 @@ export interface InspectorExportLog {
   responseBody?: unknown;
   safetyDecision?: unknown;
   error?: string;
+  selectedPrimaryRoute?: "venice" | "fraterna";
+  effectiveUpstream?: "venice" | "fraterna" | string;
+  routingReason?:
+    | "selected-venice"
+    | "fraterna-supported-endpoint"
+    | "fraterna-unsupported-endpoint"
+    | "explicit-provider"
+    | "automatic-fallback-provider";
 }
 
 /** Produces a redacted export payload safe to share outside the app. */
@@ -446,6 +466,14 @@ export function exportRedactedInspectorLogs(
     responseBody?: unknown;
     safetyDecision?: unknown;
     error?: string;
+    selectedPrimaryRoute?: "venice" | "fraterna";
+    effectiveUpstream?: "venice" | "fraterna" | string;
+    routingReason?:
+      | "selected-venice"
+      | "fraterna-supported-endpoint"
+      | "fraterna-unsupported-endpoint"
+      | "explicit-provider"
+      | "automatic-fallback-provider";
   }>,
 ): InspectorExportLog[] {
   return logs.map((log) => ({
@@ -468,6 +496,9 @@ export function exportRedactedInspectorLogs(
       log.responseBody === undefined ? undefined : sanitizeInspectorResponse(log.responseBody),
     safetyDecision: log.safetyDecision ? redactSecrets(log.safetyDecision) : undefined,
     error: log.error ? redactErrorMessage(log.error) : undefined,
+    selectedPrimaryRoute: log.selectedPrimaryRoute,
+    effectiveUpstream: log.effectiveUpstream,
+    routingReason: log.routingReason,
   }));
 }
 

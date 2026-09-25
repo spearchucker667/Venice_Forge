@@ -2,6 +2,8 @@
 
 import type { DiagnosticsEntry } from "../../types/venice";
 import type { VeniceRateLimitInfo } from "../../types/venice";
+import type { PrimaryApiRouteId } from "../../shared/primaryApiRoute";
+import type { InspectorRoutingReason } from "../inspectorTelemetry";
 
 /** Custom error structure for Venice client requests. */
 export interface VeniceApiError extends Error {
@@ -13,6 +15,9 @@ export interface VeniceApiError extends Error {
   rateLimit?: VeniceRateLimitInfo;
   /** Parsed response payload when available (e.g. 402 payment requirements). */
   responseBody?: unknown;
+  selectedPrimaryRoute?: PrimaryApiRouteId;
+  effectiveUpstream?: string;
+  routingReason?: InspectorRoutingReason;
 }
 
 /** Custom error thrown by the legacy Venice client surface. */

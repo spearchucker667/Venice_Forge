@@ -25,11 +25,13 @@ a **host switch**, not a credential or contract change.
 
 This unlocks three product outcomes:
 
-1. **Capacity diversity for chat / image / embeddings.** The most-used
+1. **Capacity diversity for chat / image.** The most-used
    endpoints are forwarded to a second canonical origin without
    requiring the user to manage a second credential.
-2. **Zero new privacy surface.** No separate key, no separate billing,
-   no separate transport. The credential boundary is unchanged.
+2. **Preserved local credential boundary.** No separate key, no separate
+   billing, no separate local transport. Venice Forge adds no analytics
+   telemetry; Fraterna has its own documented server-side request metadata
+   as part of service operation.
 3. **Predictable fallback.** Endpoints that Fraterna does not mirror
    automatically fall back to `api.venice.ai`, so the user keeps the
    full surface area regardless of which route is selected.
@@ -101,7 +103,7 @@ must add their own set with a comment explaining the contract. Tests in
 
 ### Desktop
 
-* Open **Settings → Fallback Providers → Primary API Route**.
+* Open **Settings → API Keys → Venice API Key → Primary API Route**.
 * Pick **Venice (default)** or **Fraterna**.
 * The setting is profile-scoped — each profile can choose its own route.
 * Selection is main-process authoritative. The renderer mirror
@@ -141,15 +143,15 @@ must add their own set with a comment explaining the contract. Tests in
 * The transport attaches `Authorization: Bearer <key>` to the outbound
   request regardless of which host receives the request.
 
-### No new privacy surface
+### Privacy posture
 
-* No new credential is collected.
-* No new secret persistence layer is added.
-* No new outbound allowlist is created — the network-boundaries
-  verifier treats the Fraterna host as a fixed allowlist entry, on par
-  with `api.venice.ai`.
-* No telemetry is sent to either host that the user has not already
-  opted into.
+* No new credential is collected or persisted.
+* Venice Forge adds no analytics or telemetry.
+* Supported requests route to the fixed third-party host `fraterna.ai`;
+  Fraterna documents recording selected technical request metadata for
+  successful proxied requests as part of service operation.
+* The network-boundaries verifier treats the Fraterna host as a fixed allowlist
+  entry, on par with `api.venice.ai`.
 
 ### Diagnostics export
 
@@ -195,7 +197,7 @@ must add their own set with a comment explaining the contract. Tests in
 | Desktop IPC + persistence  | `electron/services/providerSettingsStore.ts`, `electron/ipc/handlers/apiKeyHandlers.ts` |
 | Electron transport         | `electron/services/providerAdapters.ts:resolvePrimaryApiRouteForRequest`, `electron/services/veniceClient.ts:performSingleVeniceRequest` |
 | Web proxy                  | `server.ts` (`resolveServerPrimaryApiRoute`, `fraternaProxyBase`, `fsmChatStreamFraternaProxy`, …) |
-| Settings UI                | `src/components/settings/ProvidersPanel.tsx`                |
+| Settings UI                | `src/components/settings/PrimaryApiRoutePanel.tsx` (mounted in `VeniceApiKeysPanel.tsx`) |
 | Model cache key            | `src/hooks/use-models.ts`                                   |
 | Diagnostics                | `src/services/diagnosticsService.ts`, `src/types/status.ts` |
 | Network allowlist          | `scripts/verify-network-boundaries.cjs`                     |

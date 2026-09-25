@@ -883,6 +883,64 @@ describe("server.ts primary API route resolution", () => {
     expect(DEFAULT_PRIMARY_API_ROUTE).toBe("venice");
   });
 
+  it("routes the exact image-generation alias to Fraterna through the web proxy", async () => {
+    process.env.VENICE_FORGE_PRIMARY_API_ROUTE = "fraterna";
+    process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED = "false";
+    proxyMocks.statusCode = 200;
+    try {
+      const response = await request(createServerApp())
+        .post("/api/venice/images/generations")
+        .send({ model: "gpt-image-1", prompt: "minimal geometric shapes" });
+
+      expect(response.status).toBe(200);
+      expect(proxyMocks.lastRequestBody).toBeInstanceOf(Buffer);
+      const body = JSON.parse(Buffer.from(proxyMocks.lastRequestBody as Buffer).toString("utf8"));
+      expect(body).toEqual({ model: "gpt-image-1", prompt: "minimal geometric shapes" });
+    } finally {
+      delete process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED;
+    }
+  });
+
+  it("selects Fraterna and applies JSON media response screening in Family Safe Mode", async () => {
+    process.env.VENICE_FORGE_PRIMARY_API_ROUTE = "fraterna";
+    process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED = "true";
+    const unsafeFixture = Buffer.from("synthetic-invalid-image-payload").toString("base64");
+    const upstream = new EventEmitter() as EventEmitter & {
+      statusCode: number;
+      headers: Record<string, string>;
+      pause: ReturnType<typeof vi.fn>;
+      resume: ReturnType<typeof vi.fn>;
+      destroy: ReturnType<typeof vi.fn>;
+    };
+    upstream.statusCode = 200;
+    upstream.headers = {
+      "content-type": "application/json",
+      "content-length": String(Buffer.byteLength(JSON.stringify({ created: 1, data: [{ b64_json: unsafeFixture }] }))),
+    };
+    upstream.pause = vi.fn();
+    upstream.resume = vi.fn();
+    upstream.destroy = vi.fn();
+    proxyMocks.proxyResponse = () => {
+      setImmediate(() => {
+        upstream.emit("data", Buffer.from(JSON.stringify({ created: 1, data: [{ b64_json: unsafeFixture }] })));
+        upstream.emit("end");
+      });
+      return upstream;
+    };
+    try {
+      const response = await request(createServerApp())
+        .post("/api/venice/images/generations")
+        .send({ model: "gpt-image-1", prompt: "minimal geometric shapes" });
+
+      expect(response.status).toBe(451);
+      expect(response.body.reasonCode).toBe("INVALID_MEDIA");
+      expect(JSON.stringify(response.body)).not.toContain(unsafeFixture);
+      expect(proxyMocks.lastRequestBody).toBeInstanceOf(Buffer);
+    } finally {
+      delete process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED;
+    }
+  });
+
   it("accepts the documented values and silently ignores unknown ones", () => {
     process.env.VENICE_FORGE_PRIMARY_API_ROUTE = "bogus";
     expect(isPrimaryApiRouteId("venice")).toBe(true);
@@ -1021,6 +1079,25 @@ describe("server.ts safety middleware", () => {
       .send({ prompt: "safe picture", negative_prompt: "nude 11 year old" });
 
     expect(res.status).toBe(451);
+  });
+
+  it("screens prompt and classifies the exact /images/generations request as image generation", async () => {
+    const res = await request(app)
+      .post("/api/venice/images/generations")
+      .send({ model: "gpt-image-1", prompt: triggerInput("MINOR_AGE_ONLY") });
+
+    expect(res.status).toBe(451);
+    expect(res.body.reasonCode).toBe("IMAGE_EXPLICIT_MINOR_AGE");
+    expect(proxyMocks.lastRequestBody).toBeNull();
+  });
+
+  it("rejects unknown image-generation aliases before reaching the proxy", async () => {
+    const res = await request(app)
+      .post("/api/venice/images/not-real")
+      .send({ model: "gpt-image-1", prompt: "minimal geometric shapes" });
+
+    expect(res.status).toBe(403);
+    expect(proxyMocks.lastRequestBody).toBeNull();
   });
 
   // M-001 regression guard
@@ -1875,6 +1952,48 @@ describe("server.ts FSM media collector integration (VF-20260916-P1-003)", () =>
     };
     return upstream;
   }
+
+  it("screens documented OpenAI-compatible data[].b64_json responses", async () => {
+    const unsafeFixture = Buffer.from("synthetic-invalid-image-payload").toString("base64");
+    const upstream = mockBinaryUpstream(
+      Buffer.from(JSON.stringify({ created: 1, data: [{ b64_json: unsafeFixture }] })),
+      "application/json",
+    );
+    process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED = "true";
+    try {
+      const response = await request(createServerApp())
+        .post("/api/venice/images/generations")
+        .send({ model: "gpt-image-1", prompt: "minimal geometric shapes" });
+
+      expect(response.status).toBe(451);
+      expect(response.body.reasonCode).toBe("INVALID_MEDIA");
+      expect(JSON.stringify(response.body)).not.toContain(unsafeFixture);
+      expect(upstream.destroy).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED;
+    }
+  });
+
+  it("screens documented OpenAI-compatible data[].url data-URL responses", async () => {
+    const unsafeFixture = Buffer.from("synthetic-invalid-image-payload").toString("base64");
+    const upstream = mockBinaryUpstream(
+      Buffer.from(JSON.stringify({ created: 1, data: [{ url: `data:image/png;base64,${unsafeFixture}` }] })),
+      "application/json",
+    );
+    process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED = "true";
+    try {
+      const response = await request(createServerApp())
+        .post("/api/venice/images/generations")
+        .send({ model: "gpt-image-1", prompt: "minimal geometric shapes" });
+
+      expect(response.status).toBe(451);
+      expect(response.body.reasonCode).toBe("INVALID_MEDIA");
+      expect(JSON.stringify(response.body)).not.toContain(unsafeFixture);
+      expect(upstream.destroy).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.VENICE_FORGE_LOCAL_FAMILY_SAFE_MODE_ENABLED;
+    }
+  });
 
   it("screens and delivers a structurally valid generated image", async () => {
     const png = minimalPng();

@@ -222,6 +222,9 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Audit Evidence
 
+- [audits/VENICE_FORGE_FRATERNA_POST_IMPLEMENTATION_AUDIT_AGENT_HANDOFF_2026-09-25.md](audits/VENICE_FORGE_FRATERNA_POST_IMPLEMENTATION_AUDIT_AGENT_HANDOFF_2026-09-25.md) — 2026-09-25 Fraterna primary API routing post-implementation audit & remediation handoff covering FRAT-AUD-001 through FRAT-AUD-011.
+- [audits/Records/VENICE_FORGE_FRATERNA_PRIMARY_API_ROUTING_AGENT_HANDOFF.md](audits/Records/VENICE_FORGE_FRATERNA_PRIMARY_API_ROUTING_AGENT_HANDOFF.md) — 2026-09-25 Fraterna primary API routing feature handoff; archived in `Records/` after initial implementation.
+- [audits/Records/Venice_Forge_Exhaustive_Audit_Remediation_Handoff_2026-09-24.md](audits/Records/Venice_Forge_Exhaustive_Audit_Remediation_Handoff_2026-09-24.md) — 2026-09-24 exhaustive audit remediation handoff archived in `Records/`.
 - [audits/Records/2026-09-24-application-repository-audit-handoff.md](audits/Records/2026-09-24-application-repository-audit-handoff.md) — Point-in-time audit of `main` at `56924240` with six evidence-backed findings. Current status stays in `ROADMAP.md`.
 - [audits/Records/2026-09-23-repository-audit.md](audits/Records/2026-09-23-repository-audit.md) — 2026-09-23 revalidation of the August repository-audit work order against `main` @ `c4134390`. Point-in-time evidence. Open work stays in `ROADMAP.md`.
 - [audits/Records/2026-09-23-repository-hygiene-audit.md](audits/Records/2026-09-23-repository-hygiene-audit.md) — 2026-09-23 hygiene inventory. Does not replace the 2026-09-01 hygiene audit.

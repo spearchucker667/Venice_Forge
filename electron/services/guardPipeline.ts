@@ -25,6 +25,8 @@ import {
   safetyBlockBodyFromResponseScreen,
   screenResponseBody,
   identifyAndValidateGeneratedMedia,
+  identifyAndValidateOpenAiImageGenerationResponse,
+  isOpenAiImageGenerationEndpoint,
 } from "../../src/shared/safety";
 import type { SafetyGuardInput } from "../../src/shared/safety";
 import { extractSafetyProvenance } from "../../src/shared/safety/promptSegments";
@@ -189,13 +191,34 @@ function withFamilySafeProviderOverride(rawRequest: unknown, endpoint: string): 
   };
 }
 
-function stringifyResponseForScreening(body: unknown): string | null {
+function stringifyResponseForScreening(body: unknown, endpoint: string): string | null {
+  if (isOpenAiImageGenerationEndpoint(endpoint) && typeof body === "string") {
+    try {
+      return stringifyResponseForScreening(JSON.parse(body) as unknown, endpoint);
+    } catch {
+      return null;
+    }
+  }
   if (typeof body === "string") return body;
   if (body == null) return "";
   if (isRecord(body)) {
     const redactedBinary = { ...body };
     for (const key of ["dataBase64", "image", "images", "dataUrl", "audio", "video"]) {
       if (key in redactedBinary) redactedBinary[key] = "[binary-media]";
+    }
+    if (isOpenAiImageGenerationEndpoint(endpoint) && Array.isArray(redactedBinary.data)) {
+      redactedBinary.data = redactedBinary.data.map((item) => {
+        if (!isRecord(item)) return item;
+        const redactedItem = { ...item };
+        if ("b64_json" in redactedItem) redactedItem.b64_json = "[binary-media]";
+        if (
+          typeof redactedItem.url === "string" &&
+          /^data:/i.test(redactedItem.url)
+        ) {
+          redactedItem.url = "[binary-media]";
+        }
+        return redactedItem;
+      });
     }
     try {
       return JSON.stringify(redactedBinary);
@@ -213,15 +236,58 @@ function stringifyResponseForScreening(body: unknown): string | null {
 async function screenUpstreamResponse(endpoint: string, method: string, response: VeniceIpcResponse): Promise<GuardedBlock | null> {
   if (!getRuntimeLocalFamilySafeModeEnabled()) return null;
 
-  // 1. Screen binary media fields semantically if present.
-  // Note (VF-AUD-20260912-DR-002): Current Venice endpoints return objects, not bare arrays.
-  // If Venice ever introduces top-level array responses for batch generation endpoints,
-  // iterate over array items here as well.
+  // 1. Screen the exact documented OpenAI-compatible envelope before any
+  // binary fields are redacted for the text-only response classifier.
+  if (isOpenAiImageGenerationEndpoint(endpoint) && response.status >= 200 && response.status < 300) {
+    if (
+      method !== "POST" ||
+      !response.ok ||
+      response.contentType.split(";", 1)[0].trim().toLowerCase() !== "application/json"
+    ) {
+      return {
+        ok: false,
+        status: 451,
+        statusText: "Blocked by Family Safe Mode",
+        headers: {} as Record<string, never>,
+        body: { error: "Generated image response could not be screened.", reasonCode: "INVALID_MEDIA" },
+        contentType: "application/json",
+      };
+    }
+
+    let imageResponse: unknown = response.body;
+    if (typeof imageResponse === "string") {
+      try {
+        imageResponse = JSON.parse(imageResponse);
+      } catch {
+        imageResponse = null;
+      }
+    }
+    const imageScreen = await identifyAndValidateOpenAiImageGenerationResponse(imageResponse);
+    if (!imageScreen.allowed) {
+      return {
+        ok: false,
+        status: 451,
+        statusText: "Blocked by Family Safe Mode",
+        headers: {} as Record<string, never>,
+        body: {
+          error: imageScreen.userMessage || "Generated image response could not be screened.",
+          reasonCode: imageScreen.reasonCode,
+          category: imageScreen.category,
+          severity: "HIGH",
+        },
+        contentType: "application/json",
+      };
+    }
+  }
+
+  // The exact OpenAI-compatible envelope is screened above. Other established
+  // response shapes retain their existing media-field screening behavior.
   if (isRecord(response.body)) {
     const b = response.body;
-    // Iterate over known media fields
-    for (const key of ["dataBase64", "image", "images", "dataUrl", "audio", "video"]) {
-      const val = b[key];
+    const mediaFields: unknown[] = [
+      ...["dataBase64", "image", "images", "dataUrl", "audio", "video"].map((key) => b[key]),
+    ];
+    for (const val of mediaFields) {
       if (val === undefined || val === null) continue;
       const items = Array.isArray(val) ? val : [val];
       for (const item of items) {
@@ -238,9 +304,7 @@ async function screenUpstreamResponse(endpoint: string, method: string, response
             base64String = (item as { url: string }).url;
           }
         }
-        
         if (base64String) {
-          // Pass the base64 content to the semantic media screener
           const mediaScreen = await identifyAndValidateGeneratedMedia(base64String, "application/octet-stream", true);
           if (!mediaScreen.allowed) {
             return {
@@ -262,7 +326,7 @@ async function screenUpstreamResponse(endpoint: string, method: string, response
   }
 
   // 2. Screen the textual/JSON structure (with binary data replaced by [binary-media] to save tokens).
-  const bodyTextOrNull = stringifyResponseForScreening(response.body);
+  const bodyTextOrNull = stringifyResponseForScreening(response.body, endpoint);
   if (bodyTextOrNull === null) {
     return {
       ok: false,
@@ -289,6 +353,7 @@ async function screenUpstreamResponse(endpoint: string, method: string, response
     contentType: "application/json",
   };
 }
+
 
 type StreamDeltaChunk = {
   content: string;

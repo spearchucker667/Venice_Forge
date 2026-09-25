@@ -9,6 +9,8 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   "/image/styles",
   "/chat/completions",
   "/image/generate",
+  // OpenAI-compatible image generation alias documented in the Venice Swagger.
+  "/images/generations",
   "/image/upscale",
   "/augment/search",
   "/augment/scrape",
@@ -91,6 +93,7 @@ export const VENICE_ENDPOINT_METHODS: Record<string, readonly VeniceIpcMethod[]>
   "/image/styles": ["GET"],
   "/chat/completions": ["POST"],
   "/image/generate": ["POST"],
+  "/images/generations": ["POST"],
   "/image/upscale": ["POST"],
   "/augment/search": ["POST"],
   "/augment/scrape": ["POST"],

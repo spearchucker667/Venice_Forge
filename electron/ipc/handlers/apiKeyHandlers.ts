@@ -3,6 +3,7 @@
 import {
   isPrimaryApiRouteId,
   DEFAULT_PRIMARY_API_ROUTE,
+  type PrimaryApiRouteId,
 } from "../../../src/shared/primaryApiRoute";
 import {
   deleteApiKey,
@@ -78,7 +79,33 @@ function connectivityFailure(
   };
 }
 
-function classifyConnectivityFailure(status: number, message: string): ApiConnectivityStatus {
+export function classifyConnectivityFailure(
+  status: number,
+  message: string,
+  primaryRoute: PrimaryApiRouteId = "venice",
+): ApiConnectivityStatus {
+  if (primaryRoute === "fraterna") {
+    if (status === 401 || status === 403) {
+      return connectivityFailure(
+        "invalid-api-key",
+        "Fraterna rejected this request. The Venice key may be invalid or may not belong to an active Fraterna consorzio. Verify Fraterna membership and the stored key before replacing the credential.",
+        { statusCode: status },
+      );
+    }
+    if ([408, 429, 500, 502, 503, 504].includes(status)) {
+      return connectivityFailure(
+        "venice-error",
+        "Fraterna returned an upstream error. Try again or switch to Venice Direct.",
+        { statusCode: status, retryable: true },
+      );
+    }
+    return connectivityFailure(
+      "catalog-failure",
+      message || "Model catalog failed to load from Fraterna. Try again or switch to Venice Direct.",
+      { statusCode: status, retryable: status >= 500 },
+    );
+  }
+
   if (status === 401 || status === 403) {
     return connectivityFailure(
       "invalid-api-key",
@@ -100,7 +127,8 @@ function classifyConnectivityFailure(status: number, message: string): ApiConnec
   );
 }
 
-async function testVeniceConnection(profileId?: string): Promise<{ ok: boolean; status?: number; message: string; connectivity: ApiConnectivityStatus }> {
+export async function testVeniceConnection(profileId?: string): Promise<{ ok: boolean; status?: number; message: string; connectivity: ApiConnectivityStatus }> {
+  const primaryRoute: PrimaryApiRouteId = getProviderSettings(profileId).primaryApiRoute ?? "venice";
   if (!isApiKeyConfigured(profileId)) {
     return {
       ok: false,
@@ -135,19 +163,22 @@ async function testVeniceConnection(profileId?: string): Promise<{ ok: boolean; 
       ok: false,
       status: response.status,
       message,
-      connectivity: classifyConnectivityFailure(response.status, message),
+      connectivity: classifyConnectivityFailure(response.status, message, primaryRoute),
     };
   } catch (err) {
     const message = redactErrorMessage(err);
+    const safeMessage = /ipc|bridge|preload/i.test(message)
+      ? "Desktop bridge is unavailable. Restart the app or use web dev mode."
+      : primaryRoute === "fraterna"
+        ? "Failed to reach Fraterna. Check network/proxy/VPN/firewall or switch to Venice Direct."
+        : "Network request failed before Venice responded. Check connection, proxy, VPN, or firewall.";
     return {
       ok: false,
       status: 0,
       message,
       connectivity: connectivityFailure(
         /ipc|bridge|preload/i.test(message) ? "bridge-unavailable" : "network-failure",
-        /ipc|bridge|preload/i.test(message)
-          ? "Desktop bridge is unavailable. Restart the app or use web dev mode."
-          : "Network request failed before Venice responded. Check connection, proxy, VPN, or firewall.",
+        safeMessage,
         { statusCode: 0, retryable: true },
       ),
     };

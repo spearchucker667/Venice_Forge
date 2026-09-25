@@ -942,7 +942,10 @@
         "selectARequestToViewDetails": "Välj en begäran för att se detaljer",
         "noActiveConversationOpenAChatTo": "Öppna ett chattlager för att inspektera.",
         "active": "Aktiv:",
-        "source": "Källa:"
+        "source": "Källa:",
+        "primaryRoute": "__MISSING__:surface.componentsLayoutInspectorPane.text.primaryRoute",
+        "effectiveUpstream": "__MISSING__:surface.componentsLayoutInspectorPane.text.effectiveUpstream",
+        "routingReason": "__MISSING__:surface.componentsLayoutInspectorPane.text.routingReason"
       }
     },
     "componentsMusicMusicView": {
@@ -4599,7 +4602,7 @@
       "openConfigDetail": "Öppna fliken Config för att ansluta din Venedig API-nyckel.",
       "connectivityUnverified": "API-nyckel är konfigurerad, men live Venedig-anslutning har inte verifierats ännu.",
       "testConnectivityDetail": "Använd API-nyckel-teståtgärden för att verifiera /models-anslutning.",
-      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
+      "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"
     },
     "apiKey": {
       "notChecked": "Venedig API-nyckel har inte kontrollerats ännu.",

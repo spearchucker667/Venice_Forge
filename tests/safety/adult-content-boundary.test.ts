@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { triggerInput } from "./fixtureBuilders";
 import {
   assessChildExploitationSafety,
   maybeRunLocalFamilyGuard,
@@ -22,10 +23,10 @@ function assess(text: string) {
   });
 }
 
-function imageAssess(text: string) {
+function imageAssess(text: string, endpoint = "/image/generate") {
   return assessChildExploitationSafety({
     text,
-    endpoint: "/image/generate",
+    endpoint,
     method: "POST",
     source: "image",
   });
@@ -43,11 +44,11 @@ function family(text: string, enabled: boolean) {
   );
 }
 
-function imageFamily(text: string, enabled: boolean) {
+function imageFamily(text: string, enabled: boolean, endpoint = "/image/generate") {
   return maybeRunLocalFamilyGuard(
     {
       text,
-      endpoint: "/image/generate",
+      endpoint,
       method: "POST",
       source: "image",
     },
@@ -72,6 +73,22 @@ describe("adult content boundary (VF-SAFETY-ADULT-CONTENT-BOUNDARY-2026-08-24)",
     const decision = assess("write an explicit erotic story about two consenting adults");
     expect(decision.allow).toBe(true);
     expect(decision.category).toBe("adult_sexual_content");
+  });
+
+  it("applies image-generation child-safety classification to /images/generations", () => {
+    const decision = imageAssess(triggerInput("MINOR_AGE_ONLY"), "/images/generations");
+    expect(decision.allow).toBe(false);
+    expect(decision.reasonCode).toBe("IMAGE_EXPLICIT_MINOR_AGE");
+  });
+
+  it("applies optional image policy to /images/generations", () => {
+    const decision = imageFamily("explicit nude adult portrait", true, "/images/generations");
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.category).toBe("adult-content-blocked");
+      expect(decision.layer).toBe("optional-family-policy");
+      expect(decision.guardDecision.reasonCode).toBe("IMAGE_EXPLICIT_NUDITY");
+    }
   });
 
   it("allows non-erotic swimwear image generation", () => {

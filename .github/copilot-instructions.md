@@ -170,6 +170,10 @@ The renderer (`src/`) runs identically in both modes. Transport is selected at r
 
 All Venice API requests go through `src/services/veniceClient.ts` — `veniceFetch()` for non-streaming and `veniceStreamChat()` for chat streams. Both paths include up to 3 retries with exponential back-off for 429/500/503 responses. (See also `src/lib/venice-client.ts` for the thin Electron passthrough used by some legacy hooks.)
 
+### Primary API route selection
+
+`src/shared/primaryApiRoute.ts` is the single source of truth for primary-route IDs, hosts, base paths, and endpoint support. The default `venice` route supports the full allowlist. The profile-scoped `fraterna` route reuses the Venice API key but supports only `/models`, `/chat/completions`, `/image/generate`, and `/images/generations`; every other allowed endpoint transparently uses Venice. Do not hard-code either route host outside this resolver or bypass endpoint validation, the guard pipeline, or the existing fallback-provider precedence. Desktop persists the selection through main-process provider settings; web mode accepts only the operator-set `VENICE_FORGE_PRIMARY_API_ROUTE`.
+
 ### State management
 
 **Zustand 5 lightweight slice stores** (auth, chat, playground, settings, toast, workflow, media, rp-*, inspector, etc.). Reducer-based state has been fully migrated. Side effects live in services. See `AGENTS.md` "State" and the individual `src/stores/*.ts` + `src/stores/*-store.ts` files.

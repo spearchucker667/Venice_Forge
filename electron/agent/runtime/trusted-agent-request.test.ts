@@ -165,6 +165,17 @@ describe("trusted-agent-request — P0-05 trust boundary regressions", () => {
     expect(body.model).toBe("nano-banana");
   });
 
+  it("does not inject System Runtime Context into /images/generations body.prompt", () => {
+    const raw = {
+      endpoint: "/images/generations",
+      method: "POST",
+      body: { model: "gpt-image-1", prompt: "minimal geometric shapes" },
+    };
+    const body = expectComposedBody(composeTrustedRequest(raw));
+    expect(body.prompt).toBe("minimal geometric shapes");
+    expect(body.prompt).not.toContain("[System Runtime Context]");
+  });
+
   it("P0-05 (3) leaves non-POST endpoints untouched", () => {
     const raw = {
       endpoint: "/models",

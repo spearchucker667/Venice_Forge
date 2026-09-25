@@ -39,6 +39,7 @@ describe("validation", () => {
         "/image/styles",
         "/chat/completions",
         "/image/generate",
+        "/images/generations",
         "/image/upscale",
         "/augment/search",
         "/augment/scrape",
@@ -150,6 +151,7 @@ describe("validation", () => {
       expect(isAllowedVeniceRequest("/image/styles", "GET")).toBe(true);
       expect(isAllowedVeniceRequest("/chat/completions", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/image/generate", "POST")).toBe(true);
+      expect(isAllowedVeniceRequest("/images/generations", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/video/queue", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/video/retrieve", "POST")).toBe(true);
       expect(isAllowedVeniceRequest("/image/edit", "POST")).toBe(true);
@@ -173,6 +175,14 @@ describe("validation", () => {
       // No wildcard/nested routing.
       expect(isAllowedVeniceRequest("/responses/anything", "POST")).toBe(false);
       expect(isAllowedVeniceRequest("/responses/input", "POST")).toBe(false);
+    });
+
+    it("allows only POST on the exact /images/generations path", () => {
+      expect(VENICE_ENDPOINT_METHODS["/images/generations"]).toEqual(["POST"]);
+      expect(isAllowedVeniceRequest("/images/generations", "GET")).toBe(false);
+      expect(isAllowedVeniceRequest("/images/generations", "PUT")).toBe(false);
+      expect(isAllowedVeniceRequest("/images/generations/extra", "POST")).toBe(false);
+      expect(isAllowedVeniceRequest("/images/not-real", "POST")).toBe(false);
     });
 
     it("returns false for wrong method", () => {

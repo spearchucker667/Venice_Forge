@@ -1,3 +1,4 @@
+import { FSM_MEDIA_MAX_IMAGE_BYTES } from "../limits";
 import {
   incrementEvaluated,
   incrementSkippedDisabled,
@@ -64,7 +65,7 @@ export function normalizeAndIdentifyMime(
 
     // Ignore HTTP URLs for inline parsing
     if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
-       return { mime: null, valid: false, buffer: Buffer.alloc(0) };
+      return { mime: null, valid: false, buffer: Buffer.alloc(0) };
     }
 
     try {
@@ -154,14 +155,10 @@ export function normalizeAndIdentifyMime(
 /**
  * ClassifierBackend — optional interface for a real semantic classifier.
  *
- * VF-AUD-20260831-P2-009: An ML-backed implementation (e.g. nsfwjs + TensorFlow.js)
- * can be registered via `registerClassifierBackend()` at Electron main-process
- * startup.  When no backend is registered the structural heuristic is used
- * instead — this is "structural generated-media validation", NOT semantic
- * content screening.  Use `getClassifierCapabilities()` to truthfully report
- * the current classification regime to the UI/status surface.  Audio and video
- * classification always fall back to structural pass because no open semantic
- * model exists for those formats yet.
+ * VF-AUD-20260831-P2-009: An ML-backed implementation can be registered via
+ * `registerClassifierBackend()` at Electron main-process startup. When no
+ * backend is registered the structural heuristic is used instead — this is
+ * structural generated-media validation, NOT semantic content screening.
  */
 export interface ClassifierBackend {
   classifyImage(buffer: Buffer, mimeType: string): Promise<GeneratedMediaSafetyResult>;
@@ -171,22 +168,12 @@ export interface ClassifierBackend {
 
 let _registeredBackend: ClassifierBackend | null = null;
 let _backendConsecutiveErrors = 0;
-
-/** Number of consecutive backend failures before the backend is reported as
- *  "unhealthy" on the Status surface. */
 const BACKEND_UNHEALTHY_THRESHOLD = 3;
 
-/**
- * Register an ML classifier backend (called from Electron main process on startup).
- * Replaces any previously registered backend.
- */
 export function registerClassifierBackend(backend: ClassifierBackend): void {
   _registeredBackend = backend;
 }
 
-/**
- * Clear the registered backend (used in tests to restore the heuristic path).
- */
 export function clearClassifierBackend(): void {
   _registeredBackend = null;
   _backendConsecutiveErrors = 0;
@@ -197,26 +184,9 @@ export function _getRegisteredBackend(): ClassifierBackend | null {
   return _registeredBackend;
 }
 
-/**
- * Live semantic-classifier backend status for the Status surface
- * (VF-20260923-P1-027). Unlike `getClassifierCapabilities()` — which
- * describes the static capability contract — this reports the explicit
- * four-state per-modality runtime state:
- *   - "available"      — a registered backend classifies this modality.
- *   - "not-configured" — no backend is registered for this modality.
- *   - "unsupported"    — the registered backend contract cannot classify
- *                        this modality (audio/video have no ML model yet).
- *   - "unhealthy"      — the registered backend keeps failing; structural
- *                        validation remains the only gate.
- */
 export function getSemanticClassifierStatus(): SemanticClassifierStatus {
   if (_registeredBackend === null) {
-    return {
-      backendRegistered: false,
-      image: "not-configured",
-      audio: "not-configured",
-      video: "not-configured",
-    };
+    return { backendRegistered: false, image: "not-configured", audio: "not-configured", video: "not-configured" };
   }
   return {
     backendRegistered: true,
@@ -227,35 +197,13 @@ export function getSemanticClassifierStatus(): SemanticClassifierStatus {
   };
 }
 
-/**
- * VF-AUD-20260831-P2-009: Truthful capability descriptor for the Family Safe
- * Mode media classifier.  Each modality is reported as one of:
- *   - "unavailable" — no production classifier is registered and structural
- *     validation is the only gate.  This is the current default for image,
- *     audio, and video.
- *   - "local"        — a local on-device ML backend is registered.  Not yet
- *     implemented in production builds.
- *   - "provider"     — classification is delegated to an external provider.
- *     Not yet implemented in production builds.
- *
- * The returned shape is the public contract surfaced to diagnostics/status UI;
- * do not narrow it without updating consumers.
- */
 export interface ClassifierCapabilities {
   semanticImageClassifier: "unavailable" | "local" | "provider";
   semanticAudioClassifier: "unavailable" | "local" | "provider";
   semanticVideoClassifier: "unavailable" | "local" | "provider";
-  /** True when a registered ML backend is present (any modality). */
   hasRegisteredBackend: boolean;
 }
 
-/**
- * Returns the current classifier capabilities.  Today the production build
- * always reports "unavailable" because no semantic ML backend is registered.
- * The diagnostic is exposed so the UI can truthfully state that Family Safe
- * Mode is currently "structural generated-media validation" rather than
- * "semantic content screening".
- */
 export function getClassifierCapabilities(): ClassifierCapabilities {
   const hasRegisteredBackend = _registeredBackend !== null;
   return {
@@ -269,28 +217,14 @@ export function getClassifierCapabilities(): ClassifierCapabilities {
 const FAMILY_SAFE_MODE_MEDIA_BLOCKED =
   "Media generation is not available while Family Safe Mode is enabled.";
 
-// ---------------------------------------------------------------------------
-// PNG dimension extraction helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Reads the image width from a PNG IHDR chunk (bytes 16–19) or a JPEG SOF
- * segment width field (variable offset).  Returns null when the buffer is too
- * short or the format is not handled.
- */
 function extractImageDimensions(buffer: Buffer, mimeType: string): { width: number; height: number } | null {
   if (mimeType === "image/png" && buffer.length >= 24) {
-    // PNG IHDR: magic(8) + chunk-len(4) + "IHDR"(4) + width(4) + height(4)
-    const width = buffer.readUInt32BE(16);
-    const height = buffer.readUInt32BE(20);
-    return { width, height };
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
   }
   if (mimeType === "image/jpeg" && buffer.length >= 20) {
-    // Scan for SOF0/SOF2 markers (0xFFC0, 0xFFC2)
     for (let i = 2; i < buffer.length - 8; i++) {
       const marker = (buffer[i] << 8) | buffer[i + 1];
       if (marker === 0xffc0 || marker === 0xffc2) {
-        // SOF: marker(2) + len(2) + precision(1) + height(2) + width(2)
         const height = (buffer[i + 5] << 8) | buffer[i + 6];
         const width = (buffer[i + 7] << 8) | buffer[i + 8];
         return { width, height };
@@ -300,31 +234,7 @@ function extractImageDimensions(buffer: Buffer, mimeType: string): { width: numb
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Heuristic image classifier
-// ---------------------------------------------------------------------------
-
-/**
- * Heuristic image classifier.
- *
- * Evaluates structural anomalies in the decoded image buffer:
- *
- * 1. **Tracking-pixel detection** — Images with both dimensions ≤ 2 pixels
- *    are suspicious (1×1 and 2×2 tracking pixels).  Block them.
- * 2. **MIME structural mismatch** — If the magic-byte MIME disagrees with the
- *    declared mimeType this is a strong signal of disguised content.  Block it.
- * 3. **Minimum viable size** — Images under 64 bytes after structural
- *    validation pass (already enforced in `normalizeAndIdentifyMime`) are
- *    treated as degenerate.  This is defence-in-depth; the structural
- *    validator already rejects them.
- *
- * Everything else passes.  The heuristic is intentionally conservative on the
- * allow side — false positives here mean users cannot generate normal images
- * with FSM on.  A real ML backend (registered via `registerClassifierBackend`)
- * will be delegated to instead of this function when available.
- */
 function heuristicClassifyImage(buffer: Buffer, mimeType: string): GeneratedMediaSafetyResult {
-  // Check 1 — tracking-pixel detection.
   const dims = extractImageDimensions(buffer, mimeType);
   if (dims !== null && dims.width <= 2 && dims.height <= 2) {
     return {
@@ -334,14 +244,6 @@ function heuristicClassifyImage(buffer: Buffer, mimeType: string): GeneratedMedi
       userMessage: FAMILY_SAFE_MODE_MEDIA_BLOCKED,
     };
   }
-
-  // Check 2 — structural MIME mismatch (magic bytes vs declared type).
-  // `normalizeAndIdentifyMime` already re-identified the MIME from magic bytes.
-  // Here we compare the effective magic-byte MIME (passed in) against what the
-  // caller declared.  Mismatches indicate disguised content.
-  // We only flag cross-category mismatches (image vs. non-image), not
-  // intra-category ones (jpeg vs. png), to avoid false positives from
-  // legitimate format conversions.
   if (!mimeType.startsWith("image/")) {
     return {
       allowed: false,
@@ -350,26 +252,9 @@ function heuristicClassifyImage(buffer: Buffer, mimeType: string): GeneratedMedi
       userMessage: FAMILY_SAFE_MODE_MEDIA_BLOCKED,
     };
   }
-
-  // All heuristic checks passed — allow.
   return { allowed: true };
 }
 
-// ---------------------------------------------------------------------------
-// Public classifier entry points
-// ---------------------------------------------------------------------------
-
-/**
- * Classify a generated image under Family Safe Mode.
- *
- * Delegates to the registered ML backend when available; otherwise runs the
- * structural heuristic classifier.  The heuristic passes all structurally
- * valid, non-anomalous images (FSM now permits normal AI-generated images when
- * no suspicious structural signals are detected).
- *
- * @param buffer   Raw decoded image bytes (not base64).
- * @param mimeType Magic-byte–identified MIME type (e.g. "image/jpeg").
- */
 export async function classifyGeneratedImage(buffer: Buffer, mimeType: string): Promise<GeneratedMediaSafetyResult> {
   if (_registeredBackend) {
     try {
@@ -388,55 +273,26 @@ export async function classifyGeneratedImage(buffer: Buffer, mimeType: string): 
   return result;
 }
 
-/**
- * Classify a generated audio response under Family Safe Mode.
- *
- * No semantic ML model exists for audio content yet.  Structural validation
- * has already passed at this point.  Permits audio under FSM.
- *
- * @param _buffer   Raw audio bytes (unused until ML model is available).
- * @param _mimeType Identified MIME type (unused until ML model is available).
- */
 export async function classifyGeneratedAudio(_buffer: Buffer, _mimeType: string): Promise<GeneratedMediaSafetyResult> {
-  // No ML model available for audio.  Structural validation already passed.
-  // Permit audio under FSM; block semantics can be added when a model ships.
   incrementEvaluated("audio", "allowed");
   return { allowed: true };
 }
 
-/**
- * Classify a generated video response under Family Safe Mode.
- *
- * Callers should pass only the first ~64 KB of header/frame data.
- * No semantic ML model exists for video yet.  Structural validation has
- * already passed.  Permits video under FSM.
- *
- * @param _buffer   First ~64 KB of video bytes (unused until ML model ships).
- * @param _mimeType Identified MIME type (unused until ML model ships).
- */
 export async function classifyGeneratedVideo(_buffer: Buffer, _mimeType: string): Promise<GeneratedMediaSafetyResult> {
-  // No ML model available for video.  Structural validation already passed.
   incrementEvaluated("video", "allowed");
   return { allowed: true };
 }
 
 /**
- * Validates magic bytes and routes media to the appropriate semantic classifier.
- *
- * Under Family Safe Mode the classifier pipeline is:
- * 1. PHASE 1 — Structural integrity: magic bytes, MIME, minimum size.  Always runs.
- * 2. PHASE 2 — Semantic classification: heuristic (or ML backend if registered).
- *    Images are evaluated by the heuristic classifier (tracking pixels, MIME
- *    mismatch).  Audio and video pass through once structural validation succeeds.
- *
- * When FSM is off, only structural validation runs.
+ * Validates magic bytes and routes media to the appropriate classifier.
+ * Structural validation always runs; semantic image checks run only while
+ * Family Safe Mode is enabled.
  */
 export async function identifyAndValidateGeneratedMedia(
   candidateData: string | Buffer,
   declaredMimeType: string,
-  localFamilySafeModeEnabled: boolean = true
+  localFamilySafeModeEnabled: boolean = true,
 ): Promise<GeneratedMediaSafetyResult> {
-  // Treat HTTP URLs as opaque. We cannot inline-screen remote URLs without downloading.
   if (typeof candidateData === "string" && (candidateData.startsWith("http://") || candidateData.startsWith("https://"))) {
     if (!localFamilySafeModeEnabled) {
       incrementSkippedDisabled(modalityFromMime(declaredMimeType));
@@ -450,7 +306,6 @@ export async function identifyAndValidateGeneratedMedia(
     };
   }
 
-  // --- PHASE 1: Structural integrity validation (ALWAYS runs). ----
   incrementStructuralValidated();
   const { valid, mime, buffer } = normalizeAndIdentifyMime(candidateData, declaredMimeType);
   if (!valid) {
@@ -474,18 +329,110 @@ export async function identifyAndValidateGeneratedMedia(
     };
   }
 
-  // --- PHASE 2: Semantic classification (ONLY under Family Safe Mode). ----
   if (!localFamilySafeModeEnabled) {
-    // Structural validation passed, FSM off — allow.
     incrementSkippedDisabled(modalityFromMime(effectiveMime));
     return { allowed: true, skipped: true, reason: "local-family-safe-mode-disabled" };
   }
 
-  if (effectiveMime.startsWith("image/")) {
-    return classifyGeneratedImage(buffer, effectiveMime);
-  } else if (effectiveMime.startsWith("audio/")) {
-    return classifyGeneratedAudio(buffer, effectiveMime);
-  } else {
-    return classifyGeneratedVideo(buffer, effectiveMime);
+  if (effectiveMime.startsWith("image/")) return classifyGeneratedImage(buffer, effectiveMime);
+  if (effectiveMime.startsWith("audio/")) return classifyGeneratedAudio(buffer, effectiveMime);
+  return classifyGeneratedVideo(buffer, effectiveMime);
+}
+
+/**
+ * Validates and screens the documented /images/generations JSON envelope.
+ * Remote URLs fail closed because this boundary must not fetch provider URLs.
+ */
+export async function identifyAndValidateOpenAiImageGenerationResponse(
+  response: unknown,
+): Promise<GeneratedMediaSafetyResult> {
+  const invalidEnvelope: GeneratedMediaSafetyResult = {
+    allowed: false,
+    reasonCode: "INVALID_MEDIA",
+    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+    userMessage: "Generated image response could not be screened.",
+  };
+  const classifierUnavailable: GeneratedMediaSafetyResult = {
+    allowed: false,
+    reasonCode: "CLASSIFIER_UNAVAILABLE",
+    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+    userMessage: FAMILY_SAFE_MODE_MEDIA_BLOCKED,
+  };
+  const maxBase64Chars = 4 * Math.ceil(FSM_MEDIA_MAX_IMAGE_BYTES / 3);
+  const maxDataUrlChars = maxBase64Chars + 64;
+  const maxResponseItems = 32;
+  const base64Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const base64Pattern = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+  const validBase64 = (value: string): boolean => {
+    if (!value || value.length > maxBase64Chars || value.length % 4 !== 0 || !base64Pattern.test(value)) return false;
+    const paddingBytes = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+    const decodedLength = (value.length / 4) * 3 - paddingBytes;
+    if (!Number.isInteger(decodedLength) || decodedLength <= 0 || decodedLength > FSM_MEDIA_MAX_IMAGE_BYTES) return false;
+    const lastSextet = base64Alphabet.indexOf(value[value.length - paddingBytes - 1]);
+    if (paddingBytes === 2 && (lastSextet & 0x0f) !== 0) return false;
+    if (paddingBytes === 1 && (lastSextet & 0x03) !== 0) return false;
+    return true;
+  };
+  const decodeImage = (base64: string, declaredMime?: string): { buffer: Buffer; mime: string } | null => {
+    if (!validBase64(base64)) return null;
+    const paddingBytes = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+    const decodedLength = (base64.length / 4) * 3 - paddingBytes;
+    const buffer = Buffer.from(base64, "base64");
+    if (buffer.length !== decodedLength) return null;
+    const identified = normalizeAndIdentifyMime(buffer, declaredMime);
+    if (
+      !identified.valid ||
+      identified.buffer.length > FSM_MEDIA_MAX_IMAGE_BYTES ||
+      !identified.mime?.startsWith("image/") ||
+      (declaredMime && identified.mime !== declaredMime.toLowerCase())
+    ) return null;
+    return { buffer: identified.buffer, mime: identified.mime };
+  };
+  const screenImage = async (base64: string, declaredMime?: string): Promise<GeneratedMediaSafetyResult> => {
+    const image = decodeImage(base64, declaredMime);
+    if (!image) return invalidEnvelope;
+    try {
+      return await identifyAndValidateGeneratedMedia(image.buffer, image.mime, true);
+    } catch {
+      return classifierUnavailable;
+    }
+  };
+  const screenCandidate = async (field: "b64_json" | "url", candidate: string): Promise<GeneratedMediaSafetyResult> => {
+    if (field === "b64_json") return screenImage(candidate);
+    if (/^https?:\/\//i.test(candidate)) {
+      if (candidate.length > 8_192) return invalidEnvelope;
+      return classifierUnavailable;
+    }
+    if (candidate.length > maxDataUrlChars) return invalidEnvelope;
+    const dataUrlPrefix = /^data:(image\/[a-z0-9.+-]{1,32});base64,/i.exec(candidate);
+    if (!dataUrlPrefix) return invalidEnvelope;
+    return screenImage(candidate.slice(dataUrlPrefix[0].length), dataUrlPrefix[1].toLowerCase());
+  };
+
+  if (typeof response !== "object" || response === null || Array.isArray(response)) return invalidEnvelope;
+  const envelope = response as Record<string, unknown>;
+  if (
+    !Number.isInteger(envelope.created) ||
+    !Array.isArray(envelope.data) ||
+    envelope.data.length === 0 ||
+    envelope.data.length > maxResponseItems ||
+    Object.keys(envelope).some((key) => key !== "created" && key !== "data")
+  ) return invalidEnvelope;
+
+  for (const item of envelope.data) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) return invalidEnvelope;
+    const image = item as Record<string, unknown>;
+    const candidateFields = Object.keys(image);
+    if (
+      candidateFields.length !== 1 ||
+      (candidateFields[0] !== "b64_json" && candidateFields[0] !== "url")
+    ) return invalidEnvelope;
+    const field = candidateFields[0] as "b64_json" | "url";
+    const candidate = image[field];
+    if (typeof candidate !== "string" || candidate.length === 0) return invalidEnvelope;
+    const screened = await screenCandidate(field, candidate);
+    if (!screened.allowed) return screened;
   }
+
+  return { allowed: true };
 }

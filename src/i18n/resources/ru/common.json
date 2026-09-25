@@ -1027,7 +1027,10 @@
         "selectARequestToViewDetails": "Выберите запрос для просмотра подробностей",
         "noActiveConversationOpenAChatTo": "Нет активности Откройте чат, чтобы просмотреть слои подсказок.",
         "active": "Активно:",
-        "source": "Источник:"
+        "source": "Источник:",
+        "primaryRoute": "__MISSING__:surface.componentsLayoutInspectorPane.text.primaryRoute",
+        "effectiveUpstream": "__MISSING__:surface.componentsLayoutInspectorPane.text.effectiveUpstream",
+        "routingReason": "__MISSING__:surface.componentsLayoutInspectorPane.text.routingReason"
       }
     },
     "componentsMusicMusicView": {
@@ -4599,7 +4602,7 @@
       "openConfigDetail": "Откройте вкладку «Конфигурация», чтобы подключить ключ API Венеции.",
       "connectivityUnverified": "Ключ API настроен, но подключение к Венеции еще не проверено.",
       "testConnectivityDetail": "Используйте тестовое действие API-ключа, чтобы проверить подключение /models.",
-      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
+      "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"
     },
     "apiKey": {
       "notChecked": "Ключ API Венеции еще не проверен.",

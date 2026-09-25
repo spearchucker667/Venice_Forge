@@ -3,6 +3,7 @@ import {
   clearClassifierBackend,
   getClassifierCapabilities,
   identifyAndValidateGeneratedMedia,
+  identifyAndValidateOpenAiImageGenerationResponse,
   normalizeAndIdentifyMime,
   registerClassifierBackend,
 } from "./mediaScreener";
@@ -138,6 +139,67 @@ describe("identifyAndValidateGeneratedMedia", () => {
     expect(result.userMessage).toBe(
       "Media generation is not available while Family Safe Mode is enabled.",
     );
+  });
+});
+
+describe("identifyAndValidateOpenAiImageGenerationResponse", () => {
+  afterEach(() => {
+    clearClassifierBackend();
+  });
+
+  function validPngBase64(): string {
+    const png = Buffer.alloc(33);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(png, 0);
+    png.writeUInt32BE(13, 8);
+    png.write("IHDR", 12, "ascii");
+    png.writeUInt32BE(100, 16);
+    png.writeUInt32BE(100, 20);
+    png[24] = 8;
+    png[25] = 2;
+    return png.toString("base64");
+  }
+
+  it("screens structurally valid b64_json images", async () => {
+    clearClassifierBackend();
+    const result = await identifyAndValidateOpenAiImageGenerationResponse({
+      created: 1,
+      data: [{ b64_json: validPngBase64() }],
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it("screens structurally valid data-URL images", async () => {
+    clearClassifierBackend();
+    const result = await identifyAndValidateOpenAiImageGenerationResponse({
+      created: 1,
+      data: [{ url: `data:image/png;base64,${validPngBase64()}` }],
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it("rejects missing candidates, invalid base64, MIME mismatch, and unexpected envelope fields", async () => {
+    clearClassifierBackend();
+    const png = validPngBase64();
+    for (const response of [
+      { created: 1, data: [{}] },
+      { created: 1, data: [{ b64_json: "not base64!" }] },
+      { created: 1, data: [{ url: `data:image/jpeg;base64,${png}` }] },
+      { created: 1, data: [{ b64_json: png }], extra: true },
+    ]) {
+      const result = await identifyAndValidateOpenAiImageGenerationResponse(response);
+      expect(result.allowed).toBe(false);
+      if (!result.allowed) expect(result.reasonCode).toBe("INVALID_MEDIA");
+    }
+  });
+
+  it("fails closed for remote image URLs without fetching them", async () => {
+    clearClassifierBackend();
+    const result = await identifyAndValidateOpenAiImageGenerationResponse({
+      created: 1,
+      data: [{ url: "https://images.example.test/generated.png" }],
+    });
+    expect(result.allowed).toBe(false);
+    if (!result.allowed) expect(result.reasonCode).toBe("CLASSIFIER_UNAVAILABLE");
   });
 });
 

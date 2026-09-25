@@ -3,6 +3,7 @@
 import { PROXY_BASE_PATH } from "../../shared/apiConfig";
 import { desktopVenice, isElectron } from "../desktopBridge";
 import type { VeniceForgeResponse } from "../../types/desktop";
+import type { PrimaryApiRouteId } from "../../shared/primaryApiRoute";
 import type { AppDispatch } from "../../types/app";
 import type { DiagnosticsEntry } from "../../types/venice";
 import { maybeRunLocalFamilyGuard, SafetyGuardBlockedError } from "../../shared/safety";
@@ -13,6 +14,7 @@ import {
   deriveGuardOutcome,
   maskInspectorHeaders,
   sanitizeInspectorPayload,
+  type InspectorRoutingReason,
 } from "../inspectorTelemetry";
 import { useInspectorStore } from "../../stores/inspector-store";
 import { useSettingsStore } from "../../stores/settings-store";
@@ -246,6 +248,9 @@ async function veniceFetchDesktop(
         error.status = response.status;
         error.diagnostics = diag; // marks as already dispatched
         error.responseBody = response.body;
+        error.selectedPrimaryRoute = response.selectedPrimaryRoute;
+        error.effectiveUpstream = response.effectiveUpstream;
+        error.routingReason = response.routingReason;
         // Attach typed rate-limit metadata for 429 responses so UI/analytics
         // can distinguish reasons without re-parsing headers everywhere.
         if (response.status === 429) {
@@ -261,6 +266,9 @@ async function veniceFetchDesktop(
       const normalized = errorObj.message || "Desktop Venice transport failed.";
       lastError = new Error(normalized) as VeniceApiError;
       lastError.status = errorObj.status ?? response?.status ?? 0;
+      lastError.selectedPrimaryRoute = errorObj?.selectedPrimaryRoute ?? response?.selectedPrimaryRoute;
+      lastError.effectiveUpstream = errorObj?.effectiveUpstream ?? response?.effectiveUpstream;
+      lastError.routingReason = errorObj?.routingReason ?? response?.routingReason;
       // Skip re-dispatch for HTTP errors already dispatched in the try block.
       if (!errorObj.diagnostics) {
         dispatch?.({
@@ -638,6 +646,17 @@ export async function veniceFetch<T = unknown>(
       if (options.validator && !options.validator(result.data)) {
         throw new Error(`veniceFetch: Response validation failed for ${endpoint}`);
       }
+      const desktopResp = result.response as VeniceForgeResponse;
+      const selectedPrimaryRoute =
+        desktopResp?.selectedPrimaryRoute ??
+        (result.headers["x-venice-forge-primary-route"] as PrimaryApiRouteId | undefined);
+      const effectiveUpstream =
+        desktopResp?.effectiveUpstream ??
+        result.headers["x-venice-forge-effective-upstream"];
+      const routingReason =
+        desktopResp?.routingReason ??
+        (result.headers["x-venice-forge-routing-reason"] as InspectorRoutingReason | undefined);
+
       useInspectorStore.getState().updateLog(
         logId,
         buildInspectorTelemetryPatch({
@@ -647,6 +666,9 @@ export async function veniceFetch<T = unknown>(
           guardOutcome,
           responseHeaders: result.headers,
           responseBody: result.data,
+          selectedPrimaryRoute,
+          effectiveUpstream,
+          routingReason,
         }),
       );
 
@@ -670,7 +692,12 @@ export async function veniceFetch<T = unknown>(
         // The response-screening helper has already logged the 451 safety-block patch.
         throw err;
       }
-      const errAny = err as { status?: number };
+      const errAny = err as {
+        status?: number;
+        selectedPrimaryRoute?: PrimaryApiRouteId;
+        effectiveUpstream?: string;
+        routingReason?: InspectorRoutingReason;
+      };
       useInspectorStore.getState().updateLog(
         logId,
         buildInspectorTelemetryPatch({
@@ -679,6 +706,9 @@ export async function veniceFetch<T = unknown>(
           previewDurationMs,
           guardOutcome,
           error: safeInspectorError(err),
+          selectedPrimaryRoute: errAny.selectedPrimaryRoute,
+          effectiveUpstream: errAny.effectiveUpstream,
+          routingReason: errAny.routingReason,
         }),
       );
       throw err;
@@ -768,6 +798,9 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
       status: fetchResponse.status,
       callOutcome: "success",
       durationMs: Date.now() - startedAt,
+      selectedPrimaryRoute: (fetchResponse.headers.get("x-venice-forge-primary-route") as PrimaryApiRouteId) || undefined,
+      effectiveUpstream: fetchResponse.headers.get("x-venice-forge-effective-upstream") || undefined,
+      routingReason: (fetchResponse.headers.get("x-venice-forge-routing-reason") as InspectorRoutingReason) || undefined,
     });
     return await fetchResponse.blob();
   }
@@ -781,6 +814,11 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
     init.signal
   );
   if (!response.ok) {
+    useInspectorStore.getState().updateLog(logId, {
+      selectedPrimaryRoute: response.selectedPrimaryRoute,
+      effectiveUpstream: response.effectiveUpstream,
+      routingReason: response.routingReason,
+    });
     const bodyMessage = readVeniceErrorBody(response.body);
     throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status);
   }
@@ -799,6 +837,9 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
     status: response.status,
     callOutcome: "success",
     durationMs: Date.now() - startedAt,
+    selectedPrimaryRoute: response.selectedPrimaryRoute,
+    effectiveUpstream: response.effectiveUpstream,
+    routingReason: response.routingReason,
   });
   return new Blob([bytes], { type: response.contentType });
   } catch (error) {
@@ -902,6 +943,9 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
       callOutcome: "success",
       durationMs: Date.now() - startedAt,
       responseBody: sanitizeInspectorPayload(body),
+      selectedPrimaryRoute: (response.headers.get("x-venice-forge-primary-route") as PrimaryApiRouteId) || undefined,
+      effectiveUpstream: response.headers.get("x-venice-forge-effective-upstream") || undefined,
+      routingReason: (response.headers.get("x-venice-forge-routing-reason") as InspectorRoutingReason) || undefined,
     });
     return body as T;
   }
@@ -917,6 +961,11 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
   );
 
   if (!response.ok) {
+    useInspectorStore.getState().updateLog(logId, {
+      selectedPrimaryRoute: response.selectedPrimaryRoute,
+      effectiveUpstream: response.effectiveUpstream,
+      routingReason: response.routingReason,
+    });
     const bodyMessage = readVeniceErrorBody(response.body);
     throw new VeniceAPIError(bodyMessage || `HTTP ${response.status}`, response.status);
   }
@@ -926,6 +975,9 @@ export async function veniceFormData<T>(path: string, formData: FormData, init: 
     callOutcome: "success",
     durationMs: Date.now() - startedAt,
     responseBody: sanitizeInspectorPayload(response.body),
+    selectedPrimaryRoute: response.selectedPrimaryRoute,
+    effectiveUpstream: response.effectiveUpstream,
+    routingReason: response.routingReason,
   });
   return response.body as T;
   } catch (error) {

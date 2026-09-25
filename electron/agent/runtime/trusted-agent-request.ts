@@ -196,9 +196,11 @@ ${ledger}
   }
 
   const rawEndpoint = typeof rawRequest.endpoint === 'string' ? rawRequest.endpoint : '';
-  const normEndpoint = rawEndpoint.toLowerCase().replace(/^\/api\/venice/, "");
+  let normEndpoint = rawEndpoint.trim().toLowerCase().split(/[?#]/, 1)[0] ?? '';
+  normEndpoint = normEndpoint.replace(/^\/api\/(?:venice|v1)(?=\/|$)/, "");
   const isMediaEndpoint =
     normEndpoint.startsWith("/image/") ||
+    normEndpoint === "/images/generations" ||
     normEndpoint.startsWith("/video/") ||
     normEndpoint.startsWith("/audio/");
 

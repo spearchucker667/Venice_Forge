@@ -1,14 +1,3 @@
-/**
- * @fileoverview VERIFY-018 — Provider `safe_mode` endpoint matrix.
- *
- * Regression guard for P1 #7 of the safety batch:
- *   - `applyVeniceApiSafeMode` adds `safe_mode` only for endpoints in
- *     the supported set.
- *   - `endpointSupportsSafeMode` matches the matrix exactly.
- *   - Undefined input is a no-op (never adds the field).
- *   - The matrix covers every endpoint in the IPC + proxy allowlist.
- */
-
 import { describe, expect, it } from "vitest";
 import {
   VENICE_API_SAFE_MODE_MATRIX,
@@ -37,6 +26,13 @@ describe("VERIFY-018 safe_mode endpoint matrix", () => {
   it("omits safe_mode for /image/upscale (no extractable prompt fields)", () => {
     const out = applyVeniceApiSafeMode("/image/upscale", { model: "m" }, true);
     expect(out.safe_mode).toBeUndefined();
+  });
+
+  it("omits safe_mode for /images/generations because its request schema uses moderation", () => {
+    expect(endpointSupportsSafeMode("/images/generations")).toBe(false);
+    expect(
+      applyVeniceApiSafeMode("/images/generations", { model: "gpt-image-1", prompt: "minimal shapes" }, true),
+    ).not.toHaveProperty("safe_mode");
   });
 
   it("omits safe_mode for endpoints whose request schemas do not declare it", () => {

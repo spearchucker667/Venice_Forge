@@ -220,6 +220,45 @@ describe("performVeniceRequest multi-provider adapter integration", () => {
     expect(JSON.parse(requests[1].body).model).toBe("claude-3-5-sonnet-latest");
   });
 
+  it("routes /images/generations through the selected Fraterna route with its documented payload", async () => {
+    vi.mocked(getProviderSettings).mockReturnValue({
+      enabledProviders: { anthropic: true, together: true },
+      autoFallbackEnabled: false,
+      fallbackOrdering: [],
+      nativeFallbackModels: {},
+      primaryApiRoute: "fraterna",
+    });
+
+    const requestMock = https.request as unknown as HttpsRequestMock;
+    let requestOptions: Record<string, unknown> = {};
+    let writtenBody = "";
+    requestMock.mockImplementation((options, callback) => {
+      requestOptions = options as Record<string, unknown>;
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn((data) => { writtenBody += String(data); });
+      req.end = vi.fn(() => {
+        const res = new EventEmitter() as MockResponse;
+        res.headers = { "content-type": "application/json" };
+        res.statusCode = 200;
+        callback(res);
+        res.emit("data", Buffer.from(JSON.stringify({ created: 1, data: [] })));
+        res.emit("end");
+      });
+      return req;
+    });
+
+    await performVeniceRequest({
+      endpoint: "/images/generations",
+      method: "POST",
+      body: { model: "gpt-image-1", prompt: "minimal geometric shapes" },
+    });
+
+    expect(requestOptions.hostname).toBe("fraterna.ai");
+    expect(requestOptions.path).toBe("/api/v1/images/generations");
+    expect(requestOptions.headers).toMatchObject({ Authorization: "Bearer default-venice-key" });
+    expect(JSON.parse(writtenBody)).toEqual({ model: "gpt-image-1", prompt: "minimal geometric shapes" });
+  });
+
   // FRATERNA primary routing — handoff §7.3 requires that an explicit
   // `provider:foo` prefix ALWAYS wins over the primary route selector, so
   // a Together / Anthropic / Groq request is never silently redirected

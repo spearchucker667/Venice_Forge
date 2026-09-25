@@ -31,6 +31,13 @@ export type InspectorTelemetrySource =
   | "main-agent"
   | "main-research";
 
+export type InspectorRoutingReason =
+  | "selected-venice"
+  | "fraterna-supported-endpoint"
+  | "fraterna-unsupported-endpoint"
+  | "explicit-provider"
+  | "automatic-fallback-provider";
+
 export interface InspectorTelemetryEvent {
   /** Stable id used to merge creates and updates into a single store row. */
   eventId: string;
@@ -62,6 +69,9 @@ export interface InspectorTelemetryEvent {
   status?: number;
   /** Profile that owns this event. Used to scope renderer delivery. */
   profileId?: string;
+  selectedPrimaryRoute?: "venice" | "fraterna";
+  effectiveUpstream?: "venice" | "fraterna" | string;
+  routingReason?: InspectorRoutingReason;
 }
 
 export type InspectorTelemetryListener = (event: InspectorTelemetryEvent) => void;

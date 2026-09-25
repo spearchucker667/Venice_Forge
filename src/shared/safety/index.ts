@@ -5,6 +5,8 @@
 export {
   assessChildExploitationSafety,
   assertChildExploitationSafe,
+  isImageSafetyEndpoint,
+  isOpenAiImageGenerationEndpoint,
   SafetyGuardBlockedError,
   normalizeText,
 } from "./childExploitationGuard";
@@ -32,6 +34,7 @@ export {
   safetyBlockBodyFromResponseScreen,
   screenResponseBody,
   identifyAndValidateGeneratedMedia,
+  identifyAndValidateOpenAiImageGenerationResponse,
   toSafetyDecision,
 } from "./localFamilySafeGuard";
 export type { LocalGuardDecision, ResponseBodyScreenResult, SafetyBlockBody, GeneratedMediaSafetyResult, SafetyDecision, SafetyDecisionCategory, SafetyLayer, SafetyCategory } from "./localFamilySafeGuard";
@@ -42,4 +45,5 @@ export {
   isSafetyBlockResult,
   safetyLayerFromGuardCategory,
 } from "./formatSafetyDecision";
-export type { SafetyBlockResult } from "./formatSafetyDecision";
+
+export { normalizeAndIdentifyMime } from "./mediaScreener";

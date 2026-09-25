@@ -134,11 +134,16 @@ Export is always user-mediated by a native save dialog. The model does not choos
 
 - Request-side prompt screening for the canonical Venice endpoint matrix locked
   by `VERIFY-015`: `/chat/completions`, `/image/generate`,
-  `/image/edit`, `/image/multi-edit`, `/augment/search`,
+  `/images/generations`, `/image/edit`, `/image/multi-edit`, `/augment/search`,
   `/augment/scrape`, `/augment/text-parser`, `/embeddings`,
   `/audio/speech`, `/audio/transcriptions`, and `/video/queue`.
 - Research and scrape dispatch paths that originate in the renderer and are
   routed through guarded transports/providers.
+- Generated media screening for the documented `/images/generations`
+  response envelope (`data[].b64_json` / `data[].url`) in the Electron and
+  web-proxy Family Safe Mode paths. Web media responses are fully held under
+  bounded modality caps before delivery; Electron screens returned image data
+  before releasing the response.
 - Jina and generic scrape **response-body** screening through
   `screenResponseBody()` for `/api/proxy-jina`, `/api/proxy-scrape`, and the
   corresponding Electron IPC handlers. Large text responses are sampled with
@@ -172,8 +177,9 @@ Export is always user-mediated by a native save dialog. The model does not choos
   network calls and does not send blocked request text or blocked response text
   to an external moderation service.
 - Blocked **requests** are not forwarded upstream.
-- Blocked **response bodies** from Jina/scrape are not returned to the
-  renderer; callers get the canonical 451 block body instead.
+- Blocked **response bodies** from Jina/scrape and blocked generated media
+  envelopes are not returned to the renderer; callers get the canonical 451
+  block body instead.
 - Raw prompt text, matched terms, and raw blocked response text are not written
   to the safety audit counters, safe diagnostics snapshot, or exported safe
   diagnostics.

@@ -155,6 +155,55 @@ describe("useModels canonical catalog lifecycle", () => {
     );
   });
 
+  // FRAT-AUD-009: Multiple concurrent useModels consumers must not produce
+  // repeated resets or race conditions when primaryApiRoute changes.
+  it("resets modelCatalogRuntimeStore centrally without race conditions when multiple consumers are mounted", async () => {
+    veniceMock
+      .mockResolvedValueOnce({
+        object: "list",
+        data: [{ id: "venice-text", object: "model", created: 0, owned_by: "venice" }],
+      })
+      .mockResolvedValueOnce({
+        object: "list",
+        data: [{ id: "venice-image", object: "model", created: 0, owned_by: "venice" }],
+      });
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const textHook = renderHook(() => useModels("text"), { wrapper: createWrapper(client) });
+    const imageHook = renderHook(() => useModels("image"), { wrapper: createWrapper(client) });
+
+    await waitFor(() => expect(textHook.result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(imageHook.result.current.isSuccess).toBe(true));
+
+    const resetSpy = vi.spyOn(useModelCatalogRuntimeStore.getState(), "reset");
+
+    veniceMock
+      .mockResolvedValueOnce({
+        object: "list",
+        data: [{ id: "fraterna-text", object: "model", created: 0, owned_by: "venice" }],
+      })
+      .mockResolvedValueOnce({
+        object: "list",
+        data: [{ id: "fraterna-image", object: "model", created: 0, owned_by: "venice" }],
+      });
+
+    // Central route transition via settings store action
+    useSettingsStore.getState().setPrimaryApiRoute("fraterna");
+
+    // The centralized subscriber must invoke reset exactly once, not once per mounted hook
+    expect(resetSpy).toHaveBeenCalledTimes(1);
+
+    await waitFor(() =>
+      expect(useModelCatalogRuntimeStore.getState().liveModelIds).toEqual(
+        expect.arrayContaining(["fraterna-text", "fraterna-image"]),
+      ),
+    );
+    expect(useModelCatalogRuntimeStore.getState().liveModelIds).not.toContain("venice-text");
+    expect(useModelCatalogRuntimeStore.getState().liveModelIds).not.toContain("venice-image");
+
+    resetSpy.mockRestore();
+  });
+
   it("preserves typed catalog metadata across modality loads", async () => {
     veniceMock
       .mockResolvedValueOnce({ object: "list", data: [{ id: "text-live", object: "model", created: 0, owned_by: "venice" }] })

@@ -47,6 +47,10 @@ vi.mock("../../src/shared/safety", async () => {
     },
     screenResponseBody: vi.fn(() => ({ allowed: true })),
     safetyBlockBodyFromResponseScreen: vi.fn(() => ({ error: "blocked" })),
+    identifyAndValidateGeneratedMedia: vi.fn(async () => ({ allowed: true })),
+    identifyAndValidateOpenAiImageGenerationResponse: vi.fn(async () => ({ allowed: true })),
+    isImageSafetyEndpoint: vi.fn(() => false),
+    isOpenAiImageGenerationEndpoint: vi.fn((endpoint: string) => endpoint.split("?", 1)[0] === "/images/generations"),
   };
 });
 

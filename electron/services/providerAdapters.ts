@@ -673,7 +673,7 @@ export function resolveProviderRoute(
   request: Record<string, unknown>,
   profileId?: string,
   selection?: ProviderRouteSelection,
-): { route?: ProviderRoute; error?: string; unsupported?: boolean } | null {
+): { route?: ProviderRoute; providerId?: ProviderId; error?: string; unsupported?: boolean } | null {
   const body = typeof request.body === 'object' && request.body ? request.body as Record<string, unknown> : null
   if (!body) return null
 
@@ -739,7 +739,7 @@ export function resolveProviderRoute(
     }
   }
 
-  return { route }
+  return { route, providerId: providerId as ProviderId }
 }
 
 /**

@@ -1027,7 +1027,10 @@
         "selectARequestToViewDetails": "选择请求以查看详细信息",
         "noActiveConversationOpenAChatTo": "没有活动对话。打开聊天以检查提示层。",
         "active": "活动：",
-        "source": "来源："
+        "source": "来源：",
+        "primaryRoute": "__MISSING__:surface.componentsLayoutInspectorPane.text.primaryRoute",
+        "effectiveUpstream": "__MISSING__:surface.componentsLayoutInspectorPane.text.effectiveUpstream",
+        "routingReason": "__MISSING__:surface.componentsLayoutInspectorPane.text.routingReason"
       }
     },
     "componentsMusicMusicView": {
@@ -4599,7 +4602,7 @@
       "openConfigDetail": "打开“配置”选项卡以连接您的 Venice API 密钥。",
       "connectivityUnverified": "API 密钥已配置，但尚未验证实时威尼斯连接。",
       "testConnectivityDetail": "使用 API 密钥测试操作来验证 /models 连接。",
-      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
+      "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"
     },
     "apiKey": {
       "notChecked": "Venice API 密钥尚未经过检查。",

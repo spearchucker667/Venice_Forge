@@ -2,6 +2,19 @@ import { describe, expect, it } from "vitest";
 import { extractPromptLikeFields } from "./promptPayloadExtractor";
 
 describe("extractPromptLikeFields", () => {
+  it("screens only the documented prompt field for OpenAI-compatible image generation", () => {
+    expect(
+      extractPromptLikeFields(
+        {
+          model: "gpt-image-1",
+          prompt: "minimal geometric shapes",
+          negative_prompt: "not part of the documented request schema",
+        },
+        "/images/generations",
+      ),
+    ).toEqual([{ path: "prompt", value: "minimal geometric shapes" }]);
+  });
+
   it("parses a prompt field that appears after the extraction value cap in JSON text", () => {
     const body = JSON.stringify({ padding: "x".repeat(40_000), prompt: "late prompt" });
 

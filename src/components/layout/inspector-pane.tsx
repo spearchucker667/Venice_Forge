@@ -540,6 +540,30 @@ export function InspectorPane() {
                       </span>{" "}
                       {selectedLog.transport}
                     </div>
+                    {selectedLog.selectedPrimaryRoute ? (
+                      <div>
+                        <span className="text-text-muted font-bold">
+                          <Trans i18nKey="common:surface.componentsLayoutInspectorPane.text.primaryRoute" />
+                        </span>{" "}
+                        {selectedLog.selectedPrimaryRoute}
+                      </div>
+                    ) : null}
+                    {selectedLog.effectiveUpstream ? (
+                      <div>
+                        <span className="text-text-muted font-bold">
+                          <Trans i18nKey="common:surface.componentsLayoutInspectorPane.text.effectiveUpstream" />
+                        </span>{" "}
+                        {selectedLog.effectiveUpstream}
+                      </div>
+                    ) : null}
+                    {selectedLog.routingReason ? (
+                      <div>
+                        <span className="text-text-muted font-bold">
+                          <Trans i18nKey="common:surface.componentsLayoutInspectorPane.text.routingReason" />
+                        </span>{" "}
+                        {selectedLog.routingReason}
+                      </div>
+                    ) : null}
                     <div>
                       <span className="text-text-muted font-bold">
                         <Trans i18nKey="common:surface.componentsLayoutInspectorPane.text.status" />

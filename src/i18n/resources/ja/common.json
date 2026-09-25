@@ -1027,7 +1027,10 @@
         "selectARequestToViewDetails": "詳細を表示するにはリクエストを選択してください",
         "noActiveConversationOpenAChatTo": "アクティブな会話がありません。プロンプト レイヤーを検査するにはチャットを開いてください。",
         "active": "アクティブ:",
-        "source": "ソース:"
+        "source": "ソース:",
+        "primaryRoute": "__MISSING__:surface.componentsLayoutInspectorPane.text.primaryRoute",
+        "effectiveUpstream": "__MISSING__:surface.componentsLayoutInspectorPane.text.effectiveUpstream",
+        "routingReason": "__MISSING__:surface.componentsLayoutInspectorPane.text.routingReason"
       }
     },
     "componentsMusicMusicView": {
@@ -4599,7 +4602,7 @@
       "openConfigDetail": "「構成」タブを開いて、Venice API キーを接続します。",
       "connectivityUnverified": "API キーは構成されていますが、ライブ Venice 接続はまだ検証されていません。",
       "testConnectivityDetail": "API キー テスト アクションを使用して、/models の接続を確認します。",
-      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
+      "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"
     },
     "apiKey": {
       "notChecked": "Venice API キーはまだチェックされていません。",

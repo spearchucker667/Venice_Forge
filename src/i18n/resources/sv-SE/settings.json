@@ -487,21 +487,23 @@
       "vertexCredentialsJson": "JSON för tjänstkonto-/OAuth-uppgifter"
     },
     "primaryRoute": {
-      "title": "__MISSING__:Primary API Route",
-      "description": "__MISSING__:Choose which canonical host your primary API requests go to. The Venice route is the default and supports the full endpoint surface. The Fraterna route mirrors a curated subset (/models, /chat/completions, /image/generate, /images/generations); every other endpoint automatically falls back to the Venice host. Fraterna is a third-party service separate from Venice Forge and Venice.ai — its proxy records selected request metadata for successful proxied requests per its public documentation.",
-      "label": "__MISSING__:Primary API Route",
+      "title": "__MISSING__:providers.primaryRoute.title",
+      "description": "__MISSING__:providers.primaryRoute.description",
+      "label": "__MISSING__:providers.primaryRoute.label",
       "venice": {
-        "label": "__MISSING__:Venice (default)",
-        "description": "__MISSING__:Canonical Venice API host. Required for billing, audio, video, characters, API-key administration, x402, crypto RPC, augment, embeddings, image edit/upscale/multi-edit, and every other endpoint not documented for Fraterna."
+        "label": "__MISSING__:providers.primaryRoute.venice.label",
+        "description": "__MISSING__:providers.primaryRoute.venice.description"
       },
       "fraterna": {
-        "label": "__MISSING__:Fraterna",
-        "description": "__MISSING__:Public Fraterna upstream that mirrors a curated subset of the Venice API contract (/models, /chat/completions, /image/generate, /images/generations). All other endpoints fall back to the Venice host automatically. Fraterna is a third-party service separate from Venice Forge and Venice.ai; it reuses the Venice API key but records selected request metadata for successful proxied requests per its public documentation."
+        "label": "__MISSING__:providers.primaryRoute.fraterna.label",
+        "description": "__MISSING__:providers.primaryRoute.fraterna.description"
       },
       "aria": {
-        "select": "__MISSING__:Select primary API route"
+        "select": "__MISSING__:providers.primaryRoute.aria.select"
       },
-      "webDisabled": "__MISSING__:The Primary API Route is configured per-profile in the desktop app. In web mode, the route is set by the VENICE_FORGE_PRIMARY_API_ROUTE server environment variable (default: Venice)."
+      "webDisabled": "__MISSING__:providers.primaryRoute.webDisabled",
+      "fraternaDocsLink": "__MISSING__:providers.primaryRoute.fraternaDocsLink",
+      "saveFailed": "__MISSING__:providers.primaryRoute.saveFailed"
     }
   },
   "errors": {

@@ -1027,7 +1027,10 @@
         "selectARequestToViewDetails": "विवरण देखने के लिए एक अनुरोध चुनें",
         "noActiveConversationOpenAChatTo": "कोई सक्रिय नहीं वार्तालाप। त्वरित परतों का निरीक्षण करने के लिए चैट खोलें।",
         "active": "सक्रिय:",
-        "source": "स्रोत:"
+        "source": "स्रोत:",
+        "primaryRoute": "__MISSING__:surface.componentsLayoutInspectorPane.text.primaryRoute",
+        "effectiveUpstream": "__MISSING__:surface.componentsLayoutInspectorPane.text.effectiveUpstream",
+        "routingReason": "__MISSING__:surface.componentsLayoutInspectorPane.text.routingReason"
       }
     },
     "componentsMusicMusicView": {
@@ -4599,7 +4602,7 @@
       "openConfigDetail": "अपनी वेनिस एपीआई कुंजी कनेक्ट करने के लिए कॉन्फ़िग टैब खोलें।",
       "connectivityUnverified": "एपीआई कुंजी कॉन्फ़िगर की गई है, लेकिन लाइव वेनिस कनेक्टिविटी अभी तक सत्यापित नहीं की गई है।",
       "testConnectivityDetail": "/मॉडल कनेक्टिविटी को सत्यापित करने के लिए एपीआई-कुंजी परीक्षण क्रिया का उपयोग करें।",
-      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
+      "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"
     },
     "apiKey": {
       "notChecked": "वेनिस एपीआई कुंजी की अभी तक जाँच नहीं की गई है।",

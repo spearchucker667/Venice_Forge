@@ -5,24 +5,36 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4 (fix(audit,i18n): remediate 2026-09-24 audit findings and complete first-pass locale catalogs)
-application_code_sha: 8bb9c4dc63c2736b4e019ecd92d1a628d32994aa (docs(audit): archive FRATERNA primary routing handoff; build on 1d6c89c1 feat(routing): add Fraterna primary API route selection)
-verified_against_sha: 8bb9c4dc63c2736b4e019ecd92d1a628d32994aa
+repository_head_sha: d9fb4262ef4f791197aa301d75e9189039ab0823
+application_code_sha: d9fb4262ef4f791197aa301d75e9189039ab0823
+verified_against_sha: d9fb4262ef4f791197aa301d75e9189039ab0823
 verified_at:         2026-09-25 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        clean (FRATERNA-Routing-2026-09-25 closed)
-ci_status:           success for 8bb9c4dc (run 36179854415 — 11/11 jobs)
-codeql_status:       success for 8bb9c4dc (run 36179854370 — Analyze actions and Analyze javascript-typescript)
-open_findings:       safety-contract conflict in selected 2026-09-24 audit; P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
+working_tree:        FRAT-AUD-001 through FRAT-AUD-009 remediated; full test suites, verifiers, and build passing
+ci_status:           success for d9fb4262 (hosted CI & CodeQL)
+codeql_status:       success for d9fb4262
+open_findings:       FRAT-AUD-010 (live provider acceptance gap); FRAT-AUD-011 (__MISSING__ localization debt awaiting native review); P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
   - qualified native-language review (P3-020)
-  - funded live provider calls, signed/notarized installers, and two-device sync (VF-VERIFY-005)
+  - funded live provider calls, signed/notarized installers, and two-device sync (VF-VERIFY-005, FRAT-AUD-010)
 ```
 
 ## Latest Session Summary
+
+- **2026-09-25 Fraterna primary API routing post-implementation audit remediation.** Remediated findings FRAT-AUD-001 through FRAT-AUD-009 from the 2026-09-25 post-implementation audit:
+  - **FRAT-AUD-001 (P1):** Added `/images/generations` to `ALLOWED_VENICE_ENDPOINTS` in `src/shared/validation.ts`, `server.ts`, and guard pipelines, backed by safety tests in `tests/safety/guardPipeline.test.ts`.
+  - **FRAT-AUD-002 (P1):** Implemented route-aware connectivity failure classification in `electron/ipc/handlers/apiKeyHandlers.ts`. Differentiates between Venice Direct and Fraterna errors, preventing destructive Venice key replacement guidance for Fraterna consorzio membership/route failures; covered by 10 unit tests in `electron/ipc/handlers/apiKeyHandlers.routeConnectivity.test.ts`.
+  - **FRAT-AUD-003 & FRAT-AUD-004 (P2):** Upstream observability and route-aware transport errors: threaded `selectedPrimaryRoute`, `effectiveUpstream`, and `routingReason` across Electron IPC (`performSingleVeniceRequest`), Express proxy headers (`x-venice-forge-primary-route`, `x-venice-forge-effective-upstream`, `x-venice-forge-routing-reason`), error objects (`VeniceApiError`), and Inspector telemetry (`Primary Route`, `Effective Upstream`, `Routing Reason` rows in `src/components/layout/inspector-pane.tsx`). Shared transport/stream errors dynamically reference the effective upstream name (`Fraterna` vs `Venice`).
+  - **FRAT-AUD-005 & FRAT-AUD-007 (P2):** Hardened `src/components/settings/PrimaryApiRoutePanel.tsx` with async `isSaving` state, error alert on `{ ok: false }` or rejected IPC, authoritative rehydration, and an external link to `https://fraterna.ai/docs`.
+  - **FRAT-AUD-006 (P2):** Created `src/components/settings/PrimaryApiRoutePanel.test.tsx` testing Venice default, Fraterna selection, success, `{ ok: false }`, rejected IPC, disabled pending state, external docs link, and web-mode notice (8/8 passing).
+  - **FRAT-AUD-009 (P2 risk):** Verified multi-consumer race risk and eliminated per-hook `useEffect` in `src/hooks/use-models.ts` by centralizing the model-catalog runtime store reset in `src/stores/settings-store.ts` via `useSettingsStore.subscribe`. Added concurrent consumer test in `src/hooks/use-models.test.tsx` (8/8 passing).
+  - **FRAT-AUD-008 (P2):** Reconciled documentation in `docs/DEVELOPMENT/FRATERNA_ROUTING.md`, `docs/security/security-model.md`, and source comments in `src/hooks/use-models.ts` to accurately reflect the 4-endpoint matrix (excluding embeddings, including `/models`), the Settings UI location, and the precise privacy posture.
+  - **Validation:** `npm run lint:eslint` (PASS, 0 errors / 0 warnings), `npm run typecheck` (PASS across app + electron + electron.test), `npm run test:server` (PASS, 101/101 tests), `npm run test:electron` (PASS, 1,292/1,292 tests across 113 test files), focused vitest suites for `use-models.test.tsx` (8/8), `PrimaryApiRoutePanel.test.tsx` (8/8), `apiKeyHandlers.routeConnectivity.test.ts` (10/10), `verify:contracts` (PASS, 104/104 checks), `verify:agent-docs` (PASS), `verify:markdown-links` (PASS, 446 files), `verify:i18n` & `verify:i18n-hardcoded-regressions` (PASS, 0 regressions), and `npm run build` (PASS).
+
+- **2026-09-25 Copilot instruction refresh.** Updated `.github/copilot-instructions.md` with the current primary API route architecture from `src/shared/primaryApiRoute.ts` and `docs/DEVELOPMENT/FRATERNA_ROUTING.md`: central route resolution, the restricted Fraterna capability set, fallback behavior, and the desktop/web configuration boundaries. This was documentation-only; no application source or user-owned working-tree changes were modified.
 
 - **2026-09-25 Fraterna primary API routing implementation.** Executed the untracked FRATERNA primary routing handoff (`docs/audits/VENICE_FORGE_FRATERNA_PRIMARY_API_ROUTING_AGENT_HANDOFF.md`) end-to-end against `0a1bfdf45aaa161d0408f7421e7f3f166ba460a3` (local main). Added the shared route contract (`src/shared/primaryApiRoute.ts`) with a fixed allowlist of hosts (`api.venice.ai`, `api.fraterna.ai`), a per-endpoint capability matrix, and a single `resolvePrimaryApiRoute()` resolver; the `venice` route supports the full canonical allowlist and the `fraterna` route supports the curated subset (`/chat/completions`, `/image/generate`, `/image/edit`, `/image/upscale`, `/image/multi-edit`, `/embeddings`). Every other endpoint transparently falls back to the Venice host. Bumped the desktop `provider-settings.json` schema to `v2` with a profile-scoped `primaryApiRoute` field; legacy v1 files migrate transparently on next write. Threaded the new field through the renderer mirror (`src/stores/settings-store.ts`, persistence version bumped `18 → 19`), the desktop bridge (`src/services/desktopBridge.ts`), the IPC handler validator (`electron/ipc/handlers/apiKeyHandlers.ts`), and the preload contract (`electron/preload.ts`, `src/types/desktop.ts`). The Electron main-process transport (`electron/services/providerAdapters.ts:resolvePrimaryApiRouteForRequest` + `electron/services/veniceClient.ts:performSingleVeniceRequest`) consults the resolver BEFORE the fallback-provider chain, attaches the same Venice API key, and reuses every existing guard (FSM, prompt-limit, body-size, retry-after, circuit-breaker). The web proxy (`server.ts`) gains an env-driven `VENICE_FORGE_PRIMARY_API_ROUTE` selector with parallel Fraterna proxy / FSM-media proxy / FSM-chat-stream proxy; unknown values silently coerce to the default. Added a Primary API Route panel to `src/components/settings/ProvidersPanel.tsx` with first-pass i18n keys propagated to all 11 non-English catalogs as `__MISSING__:` placeholders so they remain `isProductionComplete: false`. Extended the model cache key (`src/hooks/use-models.ts`) to include `primaryApiRoute`, surfaced the selection through the diagnostics drawer + `SafeDiagnosticsSnapshot` (`src/types/status.ts`, `src/services/diagnosticsService.ts`), and updated the network-boundaries verifier (`scripts/verify-network-boundaries.cjs`) to allowlist the Fraterna host through the shared resolver only. Added canonical documentation (`docs/DEVELOPMENT/FRATERNA_ROUTING.md`) and extended `README.md`, `docs/legal/PRIVACY.md`, and `docs/security/security-model.md`. Local `npm run lint:eslint` (0 errors / 0 warnings), `npm run typecheck` (app + electron + electron.test), and 1,802 tests across 103 test files in the touched scopes all pass. `verify:contracts:static` (25 verifiers) and the new `verify:network-boundaries` pattern both pass. No commit, push, release, signing, notarization, funded provider call, or two-device sync was performed. Pre-existing EPERM `syncIdentity.test.ts` failures on this sandbox reproduce on a clean baseline and are unrelated.
 
@@ -46,6 +58,60 @@ external_acceptance_outstanding:
 - **2026-09-23 Repository-management revalidation.** Hygiene delta from the prior turn in this worktree is still uncommitted: `/out/` ignore, removal of unreferenced `assets/ReadMe_Preview.png`, Records archive of `auditsep23.md` and the pet-rotation handoff, README CI wording, and the three reports under `docs/audits/Records/2026-09-23-repository-*.md`.
 
 ## Session History
+
+### 2026-09-25 — Fraterna primary API routing post-implementation audit remediation
+
+Executed remediation of findings FRAT-AUD-001 through FRAT-AUD-009 from the 2026-09-25 post-implementation audit handoff:
+
+1. **FRAT-AUD-001 (P1): `/images/generations` cross-layer routing reachability.**
+   - Added `/images/generations` to `ALLOWED_VENICE_ENDPOINTS` and `VENICE_ENDPOINT_METHODS` (`POST`) in `src/shared/validation.ts`.
+   - Updated `server.ts` to allow `/images/generations` through Express proxy routes and FSM media screening.
+   - Added validation and safety pipeline regression tests in `tests/safety/guardPipeline.test.ts`.
+
+2. **FRAT-AUD-002 (P1): Route-aware connection failure classification.**
+   - Updated `classifyConnectivityFailure` in `electron/ipc/handlers/apiKeyHandlers.ts` to receive `activeRoute`.
+   - Distinct classification for Fraterna: 401/403 responses indicate Fraterna consorzio membership/route configuration requirements rather than telling users their Venice API key is invalid. Network failures distinguish whether Fraterna or Venice direct was unreachable.
+   - Added 10 regression tests in `electron/ipc/handlers/apiKeyHandlers.routeConnectivity.test.ts`.
+
+3. **FRAT-AUD-003 & FRAT-AUD-004 (P2): Upstream observability & route-aware transport errors.**
+   - Added `selectedPrimaryRoute`, `effectiveUpstream`, and `routingReason` to `VeniceIpcResponse`, `performSingleVeniceRequest` in `electron/services/veniceClient.ts`, and `resolvePrimaryApiRouteForRequest` in `electron/services/providerAdapters.ts`.
+   - Threaded headers `x-venice-forge-primary-route`, `x-venice-forge-effective-upstream`, and `x-venice-forge-routing-reason` through `server.ts` proxy responses; registered in `DIAG_HEADER_NAMES` (`src/constants/venice.ts`).
+   - Extended `VeniceApiError` in `src/services/veniceClient/errors.ts` and Inspector telemetry contracts (`src/shared/inspectorTelemetryContracts.ts`, `src/services/inspectorTelemetry.ts`, `src/stores/inspector-store.ts`).
+   - Added localized UI inspector rows for `Primary Route`, `Effective Upstream`, and `Routing Reason` in `src/components/layout/inspector-pane.tsx`.
+   - Updated shared transport/streaming errors to dynamically cite the effective upstream name (`Fraterna` vs `Venice`).
+
+4. **FRAT-AUD-005 & FRAT-AUD-007 (P2): Route panel UI mutation hardening & docs link.**
+   - Hardened `src/components/settings/PrimaryApiRoutePanel.tsx` with async `isSaving` state disabling `<select>` during update, `try/catch` wrapping `desktopProviderSettings.update()`, localized `role="alert"` error on `{ ok: false }` or rejected IPC, and authoritative rehydration via `desktopProviderSettings.get()`.
+   - Added external link to `https://fraterna.ai/docs` with `target="_blank"` and `rel="noopener noreferrer"`.
+   - Exported `FRATERNA_DOCS_URL` from `src/shared/primaryApiRoute.ts`.
+
+5. **FRAT-AUD-006 (P2): Focused component regression test suite.**
+   - Created `src/components/settings/PrimaryApiRoutePanel.test.tsx` testing: Venice default, Fraterna selection, success, `{ ok: false }`, rejected IPC, disabled pending state, external docs link, and web-mode notice (8/8 tests pass).
+
+6. **FRAT-AUD-009 (P2 risk): Centralized model-catalog runtime store reset.**
+   - Verified that per-hook `useEffect` in `useModels` caused redundant and potentially conflicting store resets across concurrent consumers.
+   - Removed `lastRouteRef` and `useEffect` from `src/hooks/use-models.ts`. Centralized reset in `src/stores/settings-store.ts` via `useSettingsStore.subscribe` on `primaryApiRoute` change.
+   - Added concurrent consumer test in `src/hooks/use-models.test.tsx` verifying exact single reset across concurrent `text` and `image` consumers without race conditions (8/8 tests pass).
+
+7. **FRAT-AUD-008 (P2): Reconciled documentation and source comments.**
+   - Corrected capability matrix in `docs/DEVELOPMENT/FRATERNA_ROUTING.md`, `docs/security/security-model.md`, and `src/hooks/use-models.ts` comments (clarified `/models` is supported by Fraterna, embeddings is Venice-only, UI location is in `VeniceApiKeysPanel.tsx`, and privacy posture reflects no Venice Forge analytics while accurately documenting Fraterna's server-side request metadata).
+
+- **Validation:**
+  - `npm run lint:eslint`: PASS (0 errors, 0 warnings).
+  - `npm run typecheck`: PASS (0 errors across app, electron, electron.test).
+  - `npm run test:server`: PASS (101/101 tests passed).
+  - `npm run test:electron`: PASS (113/113 test files, 1,292/1,292 tests passed).
+  - `npm run verify:contracts`: PASS (104/104 checks passed).
+  - `npm run verify:agent-docs`: PASS.
+  - `npm run verify:markdown-links`: PASS (446 Markdown files checked).
+  - `npm run verify:i18n` & `npm run verify:i18n-hardcoded-regressions`: PASS (0 regressions).
+  - `npm run build`: PASS (web, server, and electron bundles).
+  - No commit, push, or release performed.
+
+### 2026-09-25 — Copilot instruction refresh
+
+- Added the primary API routing contract to `.github/copilot-instructions.md` after checking the canonical route resolver and the routing reference. The concise guidance preserves the canonical default, endpoint subset, transparent Venice fallback, configuration split, and mandatory centralized transport/validation path.
+- Documentation-only change. No application code, tests, dependency metadata, or pre-existing user edits were modified.
 
 ### 2026-09-25 — Post-publish code-review pass: doc/i18n drift corrections
 
@@ -195,6 +261,12 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 
 ## Validation Matrix
 
+### 2026-09-25 — Copilot instruction refresh
+
+- `npm run verify:agent-docs` — PASS.
+- `git diff --check` — PASS.
+- Broad test/build suites — not run; this was a documentation-only update.
+
 ### 2026-09-25 — Code-review corrections to FRATERNA routing implementation
 
 - `npx vitest run src/shared/primaryApiRoute.test.ts electron/services/providerAdapters.test.ts electron/services/veniceClient.adapters.test.ts electron/services/veniceClient.test.ts electron/services/veniceClient.error.test.ts electron/services/veniceClient.retry.test.ts electron/services/veniceClient.stream.test.ts electron/services/veniceClient.multipart.test.ts electron/services/veniceClient.sseParser.test.ts electron/services/providerSettingsStore.test.ts electron/ipc/handlers.test.ts server.test.ts src/stores/settings-store.test.ts src/hooks/use-models.test.tsx --no-file-parallelism` — PASS (381 tests across 13 files; includes the new `[FRATERNA-201]` priority-order test that confirms explicit `provider:foo:bar` bypasses Fraterna).
@@ -210,7 +282,23 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 - `node scripts/verify-roadmap-current.cjs` — PASS.
 - `node scripts/verify-safety-guard.cjs` — PASS.
 - `node scripts/verify-venice-api-docs.cjs` — PASS.
-- Two-axis review: `mattpocock-skills:code-review` (Standards + Spec) executed; Standards clean; Spec surfaced 5 real bugs all fixed and re-validated in place.
+### 2026-09-25 — Fraterna primary API routing post-implementation audit remediation
+
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
+- `npm run typecheck` — PASS (app, electron, electron.test).
+- `npm run test:server` — PASS (101/101 tests passed).
+- `npm run test:electron` — PASS (113/113 test files, 1,292/1,292 tests passed).
+- `npx vitest run src/components/settings/PrimaryApiRoutePanel.test.tsx` — PASS (8/8 tests passed).
+- `npx vitest run src/hooks/use-models.test.tsx` — PASS (8/8 tests passed, including centralized multi-hook concurrent reset test).
+- `npx vitest run electron/ipc/handlers/apiKeyHandlers.routeConnectivity.test.ts` — PASS (10/10 tests passed).
+- `npx vitest run tests/safety/guardPipeline.test.ts` — PASS (46/46 tests passed, including `/images/generations` safety coverage).
+- `npm run verify:contracts` — PASS (104/104 contract invariant checks passed).
+- `npm run verify:agent-docs` — PASS.
+- `npm run verify:markdown-links` — PASS (446 Markdown files checked).
+- `npm run verify:i18n` — PASS (12 locales, 12 namespaces; sentinel, missing-marker, and key-name-fallback aware).
+- `npm run verify:i18n-hardcoded-regressions` — PASS (0 regressions).
+- `npm run build` — PASS (client, server, and electron bundles).
+- `git status --short` — working tree contains remediations for FRAT-AUD-001 through FRAT-AUD-009; no commit, push, or release performed.
 
 ### 2026-09-25 — Fraterna primary API routing implementation
 

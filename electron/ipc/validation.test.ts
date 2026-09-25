@@ -29,6 +29,25 @@ describe("Electron IPC validation", () => {
     ).toThrow(/method/i);
   });
 
+  it("accepts only POST for the exact /images/generations endpoint through IPC", () => {
+    expect(
+      validateVeniceIpcRequest({
+        endpoint: "/images/generations?quality=standard",
+        method: "POST",
+        body: { model: "gpt-image-1", prompt: "minimal geometric shapes" },
+      }),
+    ).toMatchObject({
+      endpoint: "/images/generations?quality=standard",
+      method: "POST",
+    });
+    expect(() =>
+      validateVeniceIpcRequest({ endpoint: "/images/generations", method: "GET" }),
+    ).toThrow(/method/i);
+    expect(() =>
+      validateVeniceIpcRequest({ endpoint: "/images/not-real", method: "POST" }),
+    ).toThrow(/not allowed/i);
+  });
+
   /** BUG-010 regression guard: allowed methods must still match the endpoint. */
   it("rejects allowed methods on the wrong Venice endpoint", () => {
     expect(() =>

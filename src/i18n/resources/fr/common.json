@@ -1027,7 +1027,10 @@
         "selectARequestToViewDetails": "Sélectionnez une demande pour afficher les détails",
         "noActiveConversationOpenAChatTo": "Aucune conversation active. Ouvrez une discussion pour inspecter les couches d'invites",
         "active": "Actif :",
-        "source": "Source :"
+        "source": "Source :",
+        "primaryRoute": "__MISSING__:surface.componentsLayoutInspectorPane.text.primaryRoute",
+        "effectiveUpstream": "__MISSING__:surface.componentsLayoutInspectorPane.text.effectiveUpstream",
+        "routingReason": "__MISSING__:surface.componentsLayoutInspectorPane.text.routingReason"
       }
     },
     "componentsMusicMusicView": {
@@ -4599,7 +4602,7 @@
       "openConfigDetail": "Ouvrez l&#39;onglet Config pour connecter votre clé API Venice.",
       "connectivityUnverified": "La clé API est configurée, mais la connectivité en direct de Venise n&#39;a pas encore été vérifiée.",
       "testConnectivityDetail": "Utilisez l’action de test de clé API pour vérifier la connectivité /models.",
-      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
+      "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"
     },
     "apiKey": {
       "notChecked": "La clé API de Venise n&#39;a pas encore été vérifiée.",

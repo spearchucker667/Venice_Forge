@@ -10,12 +10,14 @@ import {
 } from "../../shared/sseStreamDecoder";
 import { desktopVenice, isElectron } from "../desktopBridge";
 import type { VeniceStreamDelta } from "../../shared/veniceStreamDelta";
+import type { PrimaryApiRouteId } from "../../shared/primaryApiRoute";
 import type { AppDispatch } from "../../types/app";
 import { maybeRunLocalFamilyGuard, SafetyGuardBlockedError } from "../../shared/safety";
 import {
   buildInspectorTelemetryPatch,
   deriveGuardOutcome,
   sanitizeInspectorPayload,
+  type InspectorRoutingReason,
 } from "../inspectorTelemetry";
 import { useInspectorStore } from "../../stores/inspector-store";
 import { useSettingsStore } from "../../stores/settings-store";
@@ -132,10 +134,18 @@ export async function veniceStreamChat(
           model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
         }),
       });
+      useInspectorStore.getState().updateLog(logId, {
+        selectedPrimaryRoute: response.selectedPrimaryRoute,
+        effectiveUpstream: response.effectiveUpstream,
+        routingReason: response.routingReason,
+      });
       if (!response.ok) {
         const errorMsg = normalizeError(response.status, readDesktopErrorBody(response.body));
         const error: VeniceApiError = new Error(errorMsg);
         error.status = response.status;
+        error.selectedPrimaryRoute = response.selectedPrimaryRoute;
+        error.effectiveUpstream = response.effectiveUpstream;
+        error.routingReason = response.routingReason;
         throw error;
       }
       useInspectorStore.getState().updateLog(
@@ -145,6 +155,9 @@ export async function veniceStreamChat(
           durationMs: Date.now() - startedAtTime,
           previewDurationMs,
           guardOutcome,
+          selectedPrimaryRoute: response.selectedPrimaryRoute,
+          effectiveUpstream: response.effectiveUpstream,
+          routingReason: response.routingReason,
           responseBody: {
             choices: [
               {
@@ -210,6 +223,15 @@ export async function veniceStreamChat(
       }
 
       const headers = parseDiagnosticsHeaders(response);
+      const selectedPrimaryRoute = (response.headers.get("x-venice-forge-primary-route") as PrimaryApiRouteId | null) ?? undefined;
+      const effectiveUpstream = response.headers.get("x-venice-forge-effective-upstream") ?? undefined;
+      const routingReason = (response.headers.get("x-venice-forge-routing-reason") as InspectorRoutingReason | null) ?? undefined;
+      useInspectorStore.getState().updateLog(logId, {
+        selectedPrimaryRoute,
+        effectiveUpstream,
+        routingReason,
+      });
+
       let streamError = "";
       if (!response.ok) {
         const text = await response.text().catch(() => "");
@@ -236,6 +258,9 @@ export async function veniceStreamChat(
       if (!response.ok) {
         const error: VeniceApiError = new Error(streamError);
         error.status = response.status;
+        error.selectedPrimaryRoute = selectedPrimaryRoute;
+        error.effectiveUpstream = effectiveUpstream;
+        error.routingReason = routingReason;
         throw error;
       }
 
@@ -350,6 +375,9 @@ export async function veniceStreamChat(
           durationMs: Date.now() - startedAtTime,
           previewDurationMs,
           guardOutcome,
+          selectedPrimaryRoute,
+          effectiveUpstream,
+          routingReason,
           responseBody: {
             choices: [
               {
@@ -371,7 +399,12 @@ export async function veniceStreamChat(
       reader?.releaseLock();
     }
   } catch (err: unknown) {
-    const errAny = err as { status?: number };
+    const errAny = err as {
+      status?: number;
+      selectedPrimaryRoute?: PrimaryApiRouteId;
+      effectiveUpstream?: string;
+      routingReason?: InspectorRoutingReason;
+    };
     useInspectorStore.getState().updateLog(
       logId,
       buildInspectorTelemetryPatch({
@@ -380,6 +413,9 @@ export async function veniceStreamChat(
         previewDurationMs,
         guardOutcome,
         error: safeInspectorError(err),
+        selectedPrimaryRoute: errAny.selectedPrimaryRoute,
+        effectiveUpstream: errAny.effectiveUpstream,
+        routingReason: errAny.routingReason,
       }),
     );
     throw err;

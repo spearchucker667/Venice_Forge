@@ -89,7 +89,10 @@ export const DIAG_HEADER_NAMES = [
   "x-venice-is-content-violation",
   "x-venice-is-blurred",
   "x-venice-contains-minor",
-  "x-venice-is-adult-model-content-violation"
+  "x-venice-is-adult-model-content-violation",
+  "x-venice-forge-primary-route",
+  "x-venice-forge-effective-upstream",
+  "x-venice-forge-routing-reason"
 ];
 
 /**

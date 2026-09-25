@@ -28,6 +28,9 @@ const ENDPOINT_FIELDS: Record<string, readonly string[]> = {
   // the guard must screen it with the same coverage as chat.
   "/responses": ["input"],
   "/image/generate": ["prompt", "negative_prompt"],
+  // SimpleGenerateImageRequest in the tracked OpenAPI schema permits `prompt`
+  // but not the legacy Venice-only `negative_prompt` field.
+  "/images/generations": ["prompt"],
   "/image/upscale": ["prompt"],
   "/augment/search": ["query", "question"],
   "/augment/scrape": ["instructions", "url"],
@@ -270,13 +273,17 @@ export function extractPromptLikeFields(
 ): ExtractedField[] {
   if (!payload) return [];
 
-  let normEndpoint = endpoint?.replace(/^\/api\/venice/, "") ?? "";
+  let normEndpoint = endpoint?.trim().split(/[?#]/, 1)[0] ?? "";
+  normEndpoint = normEndpoint.replace(/^\/api\/(?:venice|v1)(?=\/|$)/, "");
   if (normEndpoint && !normEndpoint.startsWith("/")) {
-    normEndpoint = "/" + normEndpoint;
+    normEndpoint = `/${normEndpoint}`;
   }
   const fieldNames: readonly string[] = (() => {
     for (const [key, fields] of Object.entries(ENDPOINT_FIELDS)) {
-      if (normEndpoint.startsWith(key)) return fields;
+      const matches = key === "/images/generations"
+        ? normEndpoint === key
+        : normEndpoint.startsWith(key);
+      if (matches) return fields;
     }
     // Unknown endpoint — check common prompt-ish field names
     return ["prompt", "query", "text", "content", "instruction", "message", "input", "messages", "question"];
@@ -325,7 +332,12 @@ export function extractPromptLikeFields(
     // same depth as the standard path (8) so deeply-nested prompt fields are still
     // extracted. We deliberately use a high depth here because unknown endpoints
     // might wrap their prompt content in arbitrary nesting.
-    if (results.length === 0 && !Object.keys(ENDPOINT_FIELDS).some(k => normEndpoint.startsWith(k))) {
+    if (
+      results.length === 0 &&
+      !Object.keys(ENDPOINT_FIELDS).some((key) =>
+        key === "/images/generations" ? normEndpoint === key : normEndpoint.startsWith(key),
+      )
+    ) {
       return extractFromObject(payload, ["*"], "", 0, 8);
     }
     return results;

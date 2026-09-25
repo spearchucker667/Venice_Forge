@@ -33,9 +33,10 @@ Venice API key. Security guarantees:
   screening) applies to both hosts identically. Web mode applies every
   proxy-level guard to the Fraterna pair the same way it does to the
   Venice pair.
-- Endpoints the Fraterna route does not support (e.g. `/models`,
+- Endpoints the Fraterna route does not support (e.g.
   `/billing/*`, `/audio/*`, `/video/*`, `/api_keys/*`, `/x402/*`,
-  `/crypto/rpc/*`, `/responses`, `/characters/*`, `/augment/*`) fall
+  `/crypto/rpc/*`, `/responses`, `/characters/*`, `/augment/*`,
+  `/embeddings`, `/image/edit`, `/image/upscale`) fall
   back transparently to the canonical Venice host, so the surface area
   is identical regardless of which route is selected.
 - Diagnostics export bundles include `primaryApiRoute: "<id>"` so

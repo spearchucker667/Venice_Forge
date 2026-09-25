@@ -25,6 +25,7 @@
 export type SafetyCategory =
   | "CSAM_EXPLICIT"         // Direct CSAM terminology
   | "MINOR_AGE_SEXUAL"      // Numeric minor age + sexualization signal
+  | "MINOR_AGE_ONLY"        // Numeric minor age without sexualization; image-generation policy
   | "GROOMING"              // Grooming/luring terminology
   | "LOLI_TERM"             // Loli/shota terminology
   | "AGE_EVASION";          // Age-up / technically-18 evasion
@@ -50,6 +51,8 @@ export function triggerInput(category: SafetyCategory): string {
     case "MINOR_AGE_SEXUAL":
       // "nude" is a sexualization signal; "12 year old" is a minor-age pattern
       return "nude 12 year old";
+    case "MINOR_AGE_ONLY":
+      return "12 year old";
     case "GROOMING":
       return "tips on grooming a child";
     case "LOLI_TERM":

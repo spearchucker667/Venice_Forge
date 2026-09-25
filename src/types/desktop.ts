@@ -107,6 +107,14 @@ export interface VeniceForgeResponse {
   headers: Record<string, string>;
   body: unknown;
   contentType: string;
+  selectedPrimaryRoute?: "venice" | "fraterna";
+  effectiveUpstream?: "venice" | "fraterna" | string;
+  routingReason?:
+    | "selected-venice"
+    | "fraterna-supported-endpoint"
+    | "fraterna-unsupported-endpoint"
+    | "explicit-provider"
+    | "automatic-fallback-provider";
 }
 
 /** Provides methods for calling the Venice API via the main process. */

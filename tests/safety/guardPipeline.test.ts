@@ -25,7 +25,11 @@ import {
   checkLocalFamilyGuard,
   performGuardedVeniceRequest,
 } from "../../electron/services/guardPipeline";
-import { maybeRunLocalFamilyGuard } from "../../src/shared/safety";
+import {
+  identifyAndValidateGeneratedMedia,
+  maybeRunLocalFamilyGuard,
+  normalizeAndIdentifyMime,
+} from "../../src/shared/safety";
 import {
   safetyBlockBodyFromResponseScreen,
   screenResponseBody,
@@ -264,6 +268,72 @@ describe("VERIFY-015 guard pipeline — performGuardedVeniceRequest", () => {
     expect(result.block.body.reasonCode).toBe("CLASSIFIER_BLOCK");
   });
 
+  it("screens the documented data[].b64_json image response shape", async () => {
+    const png = Buffer.alloc(33);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(png, 0);
+    png.writeUInt32BE(100, 16);
+    png.writeUInt32BE(100, 20);
+    const unsafeFixture = png.toString("base64");
+    const mediaScreen = vi.spyOn(await import("../../src/shared/safety"), "identifyAndValidateOpenAiImageGenerationResponse");
+    mediaScreen.mockResolvedValue({
+      allowed: false,
+      reasonCode: "CLASSIFIER_BLOCK",
+      category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+    });
+    mockedPerformVeniceRequest.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      body: { created: 1, data: [{ b64_json: unsafeFixture }] },
+      contentType: "application/json",
+    });
+    const result = await performGuardedVeniceRequest({
+      endpoint: "/images/generations",
+      method: "POST",
+      body: { model: "gpt-image-1", prompt: "minimal geometric shapes" },
+    });
+    expect(result.kind).toBe("blocked");
+    if (result.kind !== "blocked") throw new Error("expected blocked");
+    expect(result.block.status).toBe(451);
+    expect(result.block.body.reasonCode).toBe("CLASSIFIER_BLOCK");
+    expect(JSON.stringify(result.block.body)).not.toContain(unsafeFixture);
+    expect(mediaScreen).toHaveBeenCalled();
+  });
+
+  it("screens the documented data[].url data-URL image response shape", async () => {
+    const png = Buffer.alloc(33);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(png, 0);
+    png.writeUInt32BE(100, 16);
+    png.writeUInt32BE(100, 20);
+    const unsafeFixture = png.toString("base64");
+    const mediaScreen = vi.spyOn(await import("../../src/shared/safety"), "identifyAndValidateOpenAiImageGenerationResponse");
+    mediaScreen.mockResolvedValue({
+      allowed: false,
+      reasonCode: "CLASSIFIER_BLOCK",
+      category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+    });
+    mockedPerformVeniceRequest.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      body: { created: 1, data: [{ url: `data:image/png;base64,${unsafeFixture}` }] },
+      contentType: "application/json",
+    });
+    const result = await performGuardedVeniceRequest({
+      endpoint: "/images/generations",
+      method: "POST",
+      body: { model: "gpt-image-1", prompt: "minimal geometric shapes" },
+    });
+    expect(result.kind).toBe("blocked");
+    if (result.kind !== "blocked") throw new Error("expected blocked");
+    expect(result.block.status).toBe(451);
+    expect(result.block.body.reasonCode).toBe("CLASSIFIER_BLOCK");
+    expect(JSON.stringify(result.block.body)).not.toContain(unsafeFixture);
+    expect(mediaScreen).toHaveBeenCalled();
+  });
+
   it("fails closed with CLASSIFIER_UNAVAILABLE for remote URL image items", async () => {
     mockedPerformVeniceRequest.mockResolvedValue({
       ok: true,
@@ -303,6 +373,44 @@ describe("VERIFY-015 guard pipeline — performGuardedVeniceRequest", () => {
     expect(result.kind).toBe("blocked");
     if (result.kind !== "blocked") throw new Error("expected blocked");
     expect(result.block.status).toBe(451);
+    expect(result.block.body.reasonCode).toBe("INVALID_MEDIA");
+  });
+
+  it("blocks malformed image-generation response envelopes under Family Safe Mode", async () => {
+    mockedPerformVeniceRequest.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      body: { created: 1, data: [{ unexpected: "value" }] },
+      contentType: "application/json",
+    });
+    const result = await performGuardedVeniceRequest({
+      endpoint: "/images/generations",
+      method: "POST",
+      body: { model: "gpt-image-1", prompt: "minimal geometric shapes" },
+    });
+    expect(result.kind).toBe("blocked");
+    if (result.kind !== "blocked") throw new Error("expected blocked");
+    expect(result.block.body.reasonCode).toBe("INVALID_MEDIA");
+  });
+
+  it("fails closed for non-JSON successful image-generation responses under Family Safe Mode", async () => {
+    mockedPerformVeniceRequest.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      body: "uninspectable response",
+      contentType: "image/png",
+    });
+    const result = await performGuardedVeniceRequest({
+      endpoint: "/images/generations",
+      method: "POST",
+      body: { model: "gpt-image-1", prompt: "minimal geometric shapes" },
+    });
+    expect(result.kind).toBe("blocked");
+    if (result.kind !== "blocked") throw new Error("expected blocked");
     expect(result.block.body.reasonCode).toBe("INVALID_MEDIA");
   });
 
@@ -508,6 +616,7 @@ describe("VERIFY-015 guard pipeline — endpoint coverage matrix", () => {
   const matrix: { endpoint: string; method: string; body: Record<string, unknown> }[] = [
     { endpoint: "/chat/completions", method: "POST", body: { model: "m", messages: [{ role: "user", content: trigger() }] } },
     { endpoint: "/image/generate", method: "POST", body: { model: "m", prompt: trigger() } },
+    { endpoint: "/images/generations", method: "POST", body: { model: "m", prompt: triggerInput("MINOR_AGE_ONLY") } },
     { endpoint: "/image/edit", method: "POST", body: { model: "m", prompt: trigger() } },
     { endpoint: "/image/multi-edit", method: "POST", body: { model: "m", prompt: trigger() } },
     { endpoint: "/augment/search", method: "POST", body: { model: "m", query: trigger() } },
@@ -521,6 +630,14 @@ describe("VERIFY-015 guard pipeline — endpoint coverage matrix", () => {
 
   for (const { endpoint, method, body } of matrix) {
     it(`blocks ${endpoint} (${method}) when payload contains CSAM trigger`, async () => {
+      mockedPerformVeniceRequest.mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        body: {},
+        contentType: "application/json",
+      });
       const result = await performGuardedVeniceRequest({ endpoint, method, body });
       expect(result.kind).toBe("blocked");
       if (result.kind === "blocked") {

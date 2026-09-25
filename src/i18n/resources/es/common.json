@@ -1027,7 +1027,10 @@
         "selectARequestToViewDetails": "Seleccione una solicitud para ver detalles",
         "noActiveConversationOpenAChatTo": "No hay conversación activa. Abra un chat para inspeccionar las capas de mensajes.",
         "active": "Activo:",
-        "source": "Fuente:"
+        "source": "Fuente:",
+        "primaryRoute": "__MISSING__:surface.componentsLayoutInspectorPane.text.primaryRoute",
+        "effectiveUpstream": "__MISSING__:surface.componentsLayoutInspectorPane.text.effectiveUpstream",
+        "routingReason": "__MISSING__:surface.componentsLayoutInspectorPane.text.routingReason"
       }
     },
     "componentsMusicMusicView": {
@@ -4599,7 +4602,7 @@
       "openConfigDetail": "Abra la pestaña Configuración para conectar su clave API de Venecia.",
       "connectivityUnverified": "La clave API está configurada, pero aún no se ha verificado la conectividad en vivo de Venecia.",
       "testConnectivityDetail": "Utilice la acción de prueba de clave API para verificar la conectividad de /models.",
-      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
+      "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"
     },
     "apiKey": {
       "notChecked": "La clave API de Venecia aún no se ha verificado.",

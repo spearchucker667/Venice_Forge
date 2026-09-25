@@ -39,6 +39,9 @@ function verifySwagger() {
   assert(content.includes("/audio/quote:"), "Swagger contains /audio/quote endpoint");
   assert(content.includes("/audio/queue:"), "Swagger contains /audio/queue endpoint");
   assert(content.includes("/audio/retrieve:"), "Swagger contains /audio/retrieve endpoint");
+  assert(content.includes("/images/generations:"), "Swagger contains /images/generations endpoint");
+  assert(content.includes("data:") && content.includes("b64_json:"), "Swagger documents OpenAI-compatible image response data and b64_json fields");
+  assert(content.includes("url: data:image/png;base64"), "Swagger documents data-URL image response values");
   assert(content.includes("/models/traits:"), "Swagger contains /models/traits endpoint");
   assert(content.includes("/models/compatibility_mapping:"), "Swagger contains /models/compatibility_mapping endpoint");
 }
@@ -52,6 +55,7 @@ function verifyValidationEndpoints() {
     "/models/traits",
     "/models/compatibility_mapping",
     "/image/generate",
+    "/images/generations",
     "/image/edit",
     "/image/multi-edit",
     "/image/upscale",

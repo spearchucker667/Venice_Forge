@@ -36,10 +36,13 @@ import { AppConfig } from "./src/shared/configSchema";
 import { warn, error } from "./src/shared/logger";
 import {
   maybeRunLocalFamilyGuard,
+  isImageSafetyEndpoint,
+  isOpenAiImageGenerationEndpoint,
+  identifyAndValidateGeneratedMedia,
+  identifyAndValidateOpenAiImageGenerationResponse,
   recordDecision,
   safetyBlockBodyFromResponseScreen,
   screenResponseBody,
-  identifyAndValidateGeneratedMedia,
 } from "./src/shared/safety";
 import type { SafetyGuardDecision } from "./src/shared/safety";
 import {
@@ -52,7 +55,7 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 import { isPrivateHostname } from "./src/shared/urlSecurity";
 import { createReadStream } from "node:fs";
 import { open as fsOpen } from "node:fs/promises";
-import { JINA_MAX_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES, FSM_MEDIA_STRUCTURAL_PREFIX_BYTES } from "./src/shared/limits";
+import { JINA_MAX_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_RESPONSE_BYTES, VENICE_PROXY_MAX_FSM_SSE_EVENT_BYTES, FSM_MEDIA_STRUCTURAL_PREFIX_BYTES, FSM_MEDIA_MAX_DEFAULT_BYTES } from "./src/shared/limits";
 import {
   collectFsmMediaResponse,
   resolveFsmMediaCapBytes,
@@ -69,6 +72,18 @@ import {
 
 import { FetchBodyTooLargeError, parseJsonOrNull, readBoundedFetchBody } from "./src/shared/readBoundedFetchBody";
 import { checkSystemPromptMessages } from "./src/shared/promptLimits";
+
+function invalidFsmImageEnvelopeBlock(): FsmMediaBlockResult {
+  return {
+    allowed: false,
+    blockBody: {
+      error: "Generated image response could not be screened. Blocked under Family Safe Mode.",
+      reasonCode: "INVALID_MEDIA",
+      category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+      severity: "HIGH",
+    },
+  };
+}
 
 function safeDecodeForScreening(value: string): string {
   try {
@@ -600,36 +615,67 @@ const applyFraternaProxyReq = (proxyReq: VeniceProxyOutboundRequest, proxyReqReq
     buffer: Buffer,
     contentType: string,
     statusOk: boolean,
+    isOpenAiImageGeneration = false,
   ): Promise<FsmMediaScreenResult | FsmMediaBlockResult> => {
-    if (statusOk && contentType.includes("application/json")) {
-      const bodyStr = buffer.toString("utf8");
+    if (statusOk && isOpenAiImageGeneration) {
+      if (contentType.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
+        return invalidFsmImageEnvelopeBlock();
+      }
       try {
-        const parsed = JSON.parse(bodyStr) as Record<string, unknown>;
-        const keys = ["dataBase64", "image", "images", "dataUrl", "audio", "video"];
-        for (const key of keys) {
-          const val = parsed[key];
-          if (val === undefined || val === null) continue;
-          const items = Array.isArray(val) ? val : [val];
-          for (const item of items) {
-            let base64String = "";
-            if (typeof item === "string" && item.length > 0) base64String = item;
-            else if (typeof item === "object" && item !== null && typeof (item as { b64_json?: string }).b64_json === "string") {
-              base64String = (item as { b64_json: string }).b64_json;
-            } else if (typeof item === "object" && item !== null && typeof (item as { url?: string }).url === "string") {
-              base64String = (item as { url: string }).url;
-            }
-            if (base64String) {
-              const mediaScreen = await identifyAndValidateGeneratedMedia(base64String, "application/octet-stream", true);
-              if (!mediaScreen.allowed) {
-                return {
-                  allowed: false,
-                  blockBody: {
-                    error: mediaScreen.userMessage || "Media blocked by safety filter",
-                    reasonCode: mediaScreen.reasonCode,
-                    category: mediaScreen.category,
-                    severity: "HIGH",
-                  },
-                };
+        const parsed: unknown = JSON.parse(buffer.toString("utf8"));
+        const screened = await identifyAndValidateOpenAiImageGenerationResponse(parsed);
+        if (screened.allowed) return { allowed: true };
+        return {
+          allowed: false,
+          blockBody: {
+            error: screened.userMessage || "Generated image response could not be screened.",
+            reasonCode: screened.reasonCode,
+            category: screened.category,
+            severity: "HIGH",
+          },
+        };
+      } catch {
+        return invalidFsmImageEnvelopeBlock();
+      }
+    }
+
+    const normalizedContentType = contentType.toLowerCase();
+    if (statusOk && normalizedContentType.includes("application/json")) {
+      try {
+        const parsedValue: unknown = JSON.parse(buffer.toString("utf8"));
+        const parsed =
+          typeof parsedValue === "object" && parsedValue !== null && !Array.isArray(parsedValue)
+            ? parsedValue as Record<string, unknown>
+            : null;
+
+        if (parsed) {
+          const mediaFields: unknown[] = [
+            ...["dataBase64", "image", "images", "dataUrl", "audio", "video"].map((key) => parsed[key]),
+          ];
+          for (const val of mediaFields) {
+            if (val === undefined || val === null) continue;
+            const items = Array.isArray(val) ? val : [val];
+            for (const item of items) {
+              let mediaCandidate = "";
+              if (typeof item === "string" && item.length > 0) mediaCandidate = item;
+              else if (typeof item === "object" && item !== null && typeof (item as { b64_json?: string }).b64_json === "string") {
+                mediaCandidate = (item as { b64_json: string }).b64_json;
+              } else if (typeof item === "object" && item !== null && typeof (item as { url?: string }).url === "string") {
+                mediaCandidate = (item as { url: string }).url;
+              }
+              if (mediaCandidate) {
+                const mediaScreen = await identifyAndValidateGeneratedMedia(mediaCandidate, "application/octet-stream", true);
+                if (!mediaScreen.allowed) {
+                  return {
+                    allowed: false,
+                    blockBody: {
+                      error: mediaScreen.userMessage || "Media blocked by safety filter",
+                      reasonCode: mediaScreen.reasonCode,
+                      category: mediaScreen.category,
+                      severity: "HIGH",
+                    },
+                  };
+                }
               }
             }
           }
@@ -647,7 +693,7 @@ const applyFraternaProxyReq = (proxyReq: VeniceProxyOutboundRequest, proxyReqReq
       }
     } else if (
       statusOk &&
-      (contentType.startsWith("video/") || contentType.startsWith("audio/") || contentType.startsWith("image/"))
+      (normalizedContentType.startsWith("video/") || normalizedContentType.startsWith("audio/") || normalizedContentType.startsWith("image/"))
     ) {
       const mediaScreen = await identifyAndValidateGeneratedMedia(buffer, contentType, true);
       if (!mediaScreen.allowed) {
@@ -672,10 +718,11 @@ const applyFraternaProxyReq = (proxyReq: VeniceProxyOutboundRequest, proxyReqReq
     artifact: FsmMediaArtifact,
     contentType: string,
     statusOk: boolean,
+    isOpenAiImageGeneration = false,
   ): Promise<FsmMediaScreenResult | FsmMediaBlockResult> => {
     try {
       if (artifact.kind === "memory") {
-        return await screenFsmMediaBuffer(artifact.buffer, contentType, statusOk);
+        return await screenFsmMediaBuffer(artifact.buffer, contentType, statusOk, isOpenAiImageGeneration);
       }
       const sizeBytes = artifact.sizeBytes;
       const isAudioOrVideo =
@@ -687,7 +734,7 @@ const applyFraternaProxyReq = (proxyReq: VeniceProxyOutboundRequest, proxyReqReq
       try {
         const buffer = Buffer.alloc(readBytes);
         await handle.read(buffer, 0, readBytes, 0);
-        return await screenFsmMediaBuffer(buffer, contentType, statusOk);
+        return await screenFsmMediaBuffer(buffer, contentType, statusOk, isOpenAiImageGeneration);
       } finally {
         await handle.close();
       }
@@ -723,9 +770,16 @@ const applyFraternaProxyReq = (proxyReq: VeniceProxyOutboundRequest, proxyReqReq
     collectFsmMediaResponse({
       upstream: proxyRes,
       downstream: res,
-      maxBytes: resolveFsmMediaCapBytes(String(proxyRes.headers["content-type"] || "")),
+      maxBytes: isOpenAiImageGenerationEndpoint(req.path)
+        ? FSM_MEDIA_MAX_DEFAULT_BYTES
+        : resolveFsmMediaCapBytes(String(proxyRes.headers["content-type"] || "")),
       screen: (artifact, contentType) =>
-        screenFsmMediaArtifact(artifact, contentType, proxyResStatusOk),
+        screenFsmMediaArtifact(
+          artifact,
+          contentType,
+          proxyResStatusOk,
+          isOpenAiImageGenerationEndpoint(req.path),
+        ),
       writeTooLarge: () => {
         applyCircuitFromStatus(proxyRes.statusCode);
         if (!res.headersSent) {
@@ -1297,7 +1351,7 @@ const applyFraternaProxyReq = (proxyReq: VeniceProxyOutboundRequest, proxyReqReq
       next();
     },
     (req, res, next) => {
-      const isMedia = req.path.startsWith("/image/") || req.path.startsWith("/video/") || req.path.startsWith("/audio/");
+      const isMedia = isImageSafetyEndpoint(req.path) || req.path.startsWith("/video/") || req.path.startsWith("/audio/");
       const isLocalFamilySafe = isLocalFamilySafeModeEnabled(req);
       // FRATERNA primary routing: when the server-side primary route is
       // Fraterna and supports this endpoint, dispatch to the Fraterna
@@ -1308,6 +1362,17 @@ const applyFraternaProxyReq = (proxyReq: VeniceProxyOutboundRequest, proxyReqReq
       // identical between the two hosts.
       const upstreamRoute = resolveUpstreamRouteForRequest(req.path);
       const isFraterna = upstreamRoute?.id === "fraterna";
+      const serverPrimaryRoute = resolveServerPrimaryApiRoute();
+      res.setHeader("x-venice-forge-primary-route", serverPrimaryRoute);
+      res.setHeader("x-venice-forge-effective-upstream", isFraterna ? "fraterna" : "venice");
+      res.setHeader(
+        "x-venice-forge-routing-reason",
+        serverPrimaryRoute === "venice"
+          ? "selected-venice"
+          : isFraterna
+          ? "fraterna-supported-endpoint"
+          : "fraterna-unsupported-endpoint"
+      );
       const standardProxy = isFraterna ? standardFraternaProxy : standardVeniceProxy;
       const fsmMediaProxy = isFraterna ? fsmMediaFraternaProxy : fsmMediaVeniceProxy;
       const fsmChatProxy = isFraterna ? fsmChatStreamFraternaProxy : fsmChatStreamProxy;

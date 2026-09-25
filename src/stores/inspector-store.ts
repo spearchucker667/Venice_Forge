@@ -25,6 +25,14 @@ export interface InspectorRequestLog {
   guardOutcome?: InspectorGuardOutcome
   callOutcome?: InspectorCallOutcome
   errorClass?: InspectorErrorClass
+  selectedPrimaryRoute?: "venice" | "fraterna"
+  effectiveUpstream?: "venice" | "fraterna" | string
+  routingReason?:
+    | "selected-venice"
+    | "fraterna-supported-endpoint"
+    | "fraterna-unsupported-endpoint"
+    | "explicit-provider"
+    | "automatic-fallback-provider"
   // Local Family Safe Mode decision metadata. Either the renderer-side
   // explicit 3-state preview (`InspectorSafetyDecision`) or, for backward
   // compatibility with code paths that still record a `SafetyGuardDecision`
@@ -104,6 +112,9 @@ export const useInspectorStore = create<InspectorState>((set) => ({
         status: event.status,
         durationMs: event.summaries?.durationMs,
         error: event.error,
+        selectedPrimaryRoute: event.selectedPrimaryRoute,
+        effectiveUpstream: event.effectiveUpstream,
+        routingReason: event.routingReason,
       }
       const existingIndex = state.logs.findIndex((log) => (log as InspectorRequestLog & { externalId?: string }).externalId === event.eventId)
       if (existingIndex >= 0) {
@@ -127,6 +138,9 @@ export const useInspectorStore = create<InspectorState>((set) => ({
         durationMs: event.summaries?.durationMs,
         error: event.error,
         externalId: event.eventId,
+        selectedPrimaryRoute: event.selectedPrimaryRoute,
+        effectiveUpstream: event.effectiveUpstream,
+        routingReason: event.routingReason,
       }
       return { logs: [newLog, ...state.logs].slice(0, 100) }
     })

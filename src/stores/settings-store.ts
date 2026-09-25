@@ -21,6 +21,7 @@ import {
   isPrimaryApiRouteId,
   type PrimaryApiRouteId,
 } from '../shared/primaryApiRoute'
+import { useModelCatalogRuntimeStore } from './model-catalog-runtime-store'
 import {
   DEFAULT_FONT_ID,
   DEFAULT_FONT_SIZE,
@@ -607,3 +608,14 @@ export const useSettingsStore = create<SettingsState>()(
     },
   ),
 )
+
+// FRATERNA primary routing (FRAT-AUD-009): on primary route change, reset the
+// cross-cutting model-catalog runtime store centrally so that stale status,
+// counts, and live model IDs from the previous host do not linger during refetch.
+// Subscribing at the store layer avoids per-hook race conditions across multiple
+// mounted consumers.
+useSettingsStore.subscribe((state, previous) => {
+  if (previous && state.primaryApiRoute !== previous.primaryApiRoute) {
+    useModelCatalogRuntimeStore.getState().reset()
+  }
+})

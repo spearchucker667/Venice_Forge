@@ -932,7 +932,10 @@
         "selectARequestToViewDetails": "Wählen Sie eine Anforderung aus, um Details anzuzeigen",
         "noActiveConversationOpenAChatTo": "Keine aktive Konversation. Öffnen Sie einen Chat, um Eingabeaufforderungsebenen zu überprüfen.",
         "active": "Aktiv:",
-        "source": "Quelle:"
+        "source": "Quelle:",
+        "primaryRoute": "__MISSING__:surface.componentsLayoutInspectorPane.text.primaryRoute",
+        "effectiveUpstream": "__MISSING__:surface.componentsLayoutInspectorPane.text.effectiveUpstream",
+        "routingReason": "__MISSING__:surface.componentsLayoutInspectorPane.text.routingReason"
       }
     },
     "componentsMusicMusicView": {
@@ -4599,7 +4602,7 @@
       "openConfigDetail": "Öffnen Sie die Registerkarte „Konfiguration“, um Ihren Venice-API-Schlüssel zu verbinden.",
       "connectivityUnverified": "Der API-Schlüssel ist konfiguriert, aber die Live-Konnektivität mit Venedig wurde noch nicht überprüft.",
       "testConnectivityDetail": "Verwenden Sie die API-Schlüsseltestaktion, um die /models-Konnektivität zu überprüfen.",
-      "routeDetail": "__MISSING__:Primary API route: {{route}}. Endpoints not supported by this route automatically fall back to the Venice host."
+      "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"
     },
     "apiKey": {
       "notChecked": "Der API-Schlüssel von Venedig wurde noch nicht überprüft.",

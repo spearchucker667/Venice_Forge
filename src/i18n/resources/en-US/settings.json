@@ -473,7 +473,9 @@
       "aria": {
         "select": "Select primary API route"
       },
-      "webDisabled": "The Primary API Route is configured per-profile in the desktop app. In web mode, the route is set by the VENICE_FORGE_PRIMARY_API_ROUTE server environment variable (default: Venice)."
+      "webDisabled": "The Primary API Route is configured per-profile in the desktop app. In web mode, the route is set by the VENICE_FORGE_PRIMARY_API_ROUTE server environment variable (default: Venice).",
+      "fraternaDocsLink": "Fraterna documentation",
+      "saveFailed": "Failed to update primary API route. Please try again."
     },
     "badge": {
       "deferred": "Deferred"

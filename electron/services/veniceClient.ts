@@ -254,6 +254,14 @@ export interface VeniceIpcResponse {
   headers: Record<string, string>;
   body: unknown;
   contentType: string;
+  selectedPrimaryRoute?: "venice" | "fraterna";
+  effectiveUpstream?: "venice" | "fraterna" | string;
+  routingReason?:
+    | "selected-venice"
+    | "fraterna-supported-endpoint"
+    | "fraterna-unsupported-endpoint"
+    | "explicit-provider"
+    | "automatic-fallback-provider";
 }
 
 /** Strips sensitive headers from an incoming HTTP response.
@@ -516,6 +524,51 @@ async function performSingleVeniceRequest(
     request.profileId,
     providerSelection,
   );
+
+  const primaryRouteResult = fallbackRouteResult?.route
+    ? null
+    : resolvePrimaryApiRouteForRequest(
+        request as unknown as Record<string, unknown>,
+        request.profileId,
+      );
+
+  const settings = getProviderSettings(request.profileId);
+  const selectedPrimaryRoute: "venice" | "fraterna" = settings.primaryApiRoute ?? "venice";
+
+  let effectiveUpstream: "venice" | "fraterna" | string = "venice";
+  let routingReason:
+    | "selected-venice"
+    | "fraterna-supported-endpoint"
+    | "fraterna-unsupported-endpoint"
+    | "explicit-provider"
+    | "automatic-fallback-provider" = "selected-venice";
+
+  if (providerSelection?.providerId && providerSelection.providerId !== "venice") {
+    effectiveUpstream = providerSelection.providerId;
+    routingReason = "automatic-fallback-provider";
+  } else if (fallbackRouteResult?.route) {
+    effectiveUpstream = fallbackRouteResult.providerId ?? "fallback-provider";
+    routingReason = "explicit-provider";
+  } else if (selectedPrimaryRoute === "fraterna") {
+    if (primaryRouteResult?.route) {
+      effectiveUpstream = "fraterna";
+      routingReason = "fraterna-supported-endpoint";
+    } else {
+      effectiveUpstream = "venice";
+      routingReason = "fraterna-unsupported-endpoint";
+    }
+  } else {
+    effectiveUpstream = "venice";
+    routingReason = "selected-venice";
+  }
+
+  const isFraterna = effectiveUpstream === "fraterna";
+  const upstreamName = isFraterna
+    ? "Fraterna"
+    : effectiveUpstream !== "venice"
+    ? effectiveUpstream
+    : "Venice";
+
   if (fallbackRouteResult && fallbackRouteResult.error) {
     return {
       ok: false,
@@ -527,14 +580,11 @@ async function performSingleVeniceRequest(
       // error to the caller as a terminal failure.
       body: { error: fallbackRouteResult.error, _adapterNotSupported: fallbackRouteResult.unsupported === true },
       contentType: "application/json",
+      selectedPrimaryRoute,
+      effectiveUpstream,
+      routingReason,
     };
   }
-  const primaryRouteResult = fallbackRouteResult?.route
-    ? null
-    : resolvePrimaryApiRouteForRequest(
-        request as unknown as Record<string, unknown>,
-        request.profileId,
-      );
 
   const route = primaryRouteResult?.route ?? fallbackRouteResult?.route;
   // `isFallback` is true when the request was sent to a third-party
@@ -561,6 +611,9 @@ async function performSingleVeniceRequest(
       headers: {},
       body: { error: "Venice API key is not configured. Add it in Settings." },
       contentType: "application/json",
+      selectedPrimaryRoute,
+      effectiveUpstream,
+      routingReason,
     };
   }
 
@@ -709,7 +762,7 @@ async function performSingleVeniceRequest(
               const redacted = redactErrorMessage(
                 outcome.errorMessage || outcome.rawData || "unknown frame",
               );
-              logError("Malformed SSE frame from Venice upstream", {
+              logError(`Malformed SSE frame from ${upstreamName} upstream`, {
                 raw: redacted,
               });
               if (outcome.errorMessage && !streamTerminalError) {
@@ -733,10 +786,10 @@ async function performSingleVeniceRequest(
               events = sseDecoder.push(chunk);
             } catch (err) {
               const message = err instanceof Error ? err.message : String(err);
-              logError("SseDecodeError from Venice upstream", {
+              logError(`SseDecodeError from ${upstreamName} upstream`, {
                 raw: redactErrorMessage(message),
               });
-              req.destroy(new Error("Venice returned invalid stream data."));
+              req.destroy(new Error(`${upstreamName} returned invalid stream data.`));
               return;
             }
             consumeSseEvents(events);
@@ -753,7 +806,7 @@ async function performSingleVeniceRequest(
               events = sseDecoder.flush();
             } catch (err) {
               const message = err instanceof Error ? err.message : String(err);
-              logError("SseDecodeError from Venice upstream (tail)", {
+              logError(`SseDecodeError from ${upstreamName} upstream (tail)`, {
                 raw: redactErrorMessage(message),
               });
               resolve({
@@ -761,8 +814,11 @@ async function performSingleVeniceRequest(
                 status: 0,
                 statusText: "Stream Error",
                 headers: responseHeaders,
-                body: { error: "Venice stream ended with a truncated data sequence." },
+                body: { error: `${upstreamName} stream ended with a truncated data sequence.` },
                 contentType,
+                selectedPrimaryRoute,
+                effectiveUpstream,
+                routingReason,
               });
               return;
             }
@@ -776,6 +832,9 @@ async function performSingleVeniceRequest(
               headers: responseHeaders,
               body: { error: streamTerminalError },
               contentType,
+              selectedPrimaryRoute,
+              effectiveUpstream,
+              routingReason,
             });
             return;
           }
@@ -787,10 +846,13 @@ async function performSingleVeniceRequest(
               headers: responseHeaders,
               body: {
                 error: isResponsesEndpoint
-                  ? "Venice Responses stream ended before the terminal event."
-                  : "Venice stream ended before the [DONE] terminator.",
+                  ? `${upstreamName} Responses stream ended before the terminal event.`
+                  : `${upstreamName} stream ended before the [DONE] terminator.`,
               },
               contentType,
+              selectedPrimaryRoute,
+              effectiveUpstream,
+              routingReason,
             });
             return;
           }
@@ -810,14 +872,17 @@ async function performSingleVeniceRequest(
             headers: responseHeaders,
             body,
             contentType,
+            selectedPrimaryRoute,
+            effectiveUpstream,
+            routingReason,
           });
         });
 
         res.on("error", (err) => {
           cleanup();
-          setLastApiError("Venice response stream error.");
-          logError("Venice response stream error", err);
-          reject(new Error("Venice response stream error."));
+          setLastApiError(`${upstreamName} response stream error.`);
+          logError(`${upstreamName} response stream error`, err);
+          reject(new Error(`${upstreamName} response stream error.`));
         });
       }
     );
@@ -854,13 +919,17 @@ async function performSingleVeniceRequest(
         err.message === "Request aborted"
           ? "Request aborted"
           : err.message === "Response too large"
-          ? "Venice response exceeded the local safety limit."
+          ? `${upstreamName} response exceeded the local safety limit.`
           : err.message.startsWith("Stream timed out after 5 minutes")
           ? err.message
+          : isFraterna
+          ? "Failed to reach Fraterna."
+          : effectiveUpstream !== "venice"
+          ? `Failed to reach ${upstreamName}.`
           : "Failed to reach Venice API.";
       if (message !== "Request aborted") {
         setLastApiError(message);
-        logError("Venice API request failed", err);
+        logError(`${upstreamName} API request failed`, err);
       }
       reject(new Error(message));
     });

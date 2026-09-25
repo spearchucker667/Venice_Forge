@@ -15,9 +15,10 @@
  *                  Venice API key and the same request/response contract for
  *                  a small, hand-picked allowlist of endpoints. It never
  *                  bypasses the canonical Venice origin — there is no
- *                  separate credential, no separate privacy posture, and no
- *                  separate billing. It is just another canonical origin that
- *                  exposes a subset of the same Venice API contract.
+ *                  separate credential, and no separate billing. Fraterna is a
+ *                  third-party service separate from Venice Forge and Venice.ai;
+ *                  its proxy records selected request metadata for successful
+ *                  proxied requests per its public documentation.
  *
  * The mapping between `PrimaryApiRouteId`, its transport-level host/base-path,
  * and the per-endpoint capability matrix is the SINGLE source of truth shared
@@ -84,6 +85,11 @@ export const PRIMARY_API_ROUTE_HOSTS: Record<PrimaryApiRouteId, string> = {
   // subset enumerated in §4.1.
   fraterna: "fraterna.ai",
 };
+
+/**
+ * Public documentation URL for Fraterna.
+ */
+export const FRATERNA_DOCS_URL = "https://fraterna.ai/docs";
 
 /**
  * Base path for each primary route. Both canonical hosts expose the Venice
