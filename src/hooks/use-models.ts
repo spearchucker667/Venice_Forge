@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useEffect, useRef } from 'react'
 import { venice } from '../lib/venice-client'
 import type { ModelsResponse, VeniceModel, VideoConstraints } from '../types/venice'
 import type { ProviderModel } from '../types/provider'
@@ -75,6 +76,20 @@ export function useModels(type?: string, options: UseModelsOptions = {}) {
   // Venice response — including the route in the query key forces React
   // Query to refetch (or skip) on route change.
   const primaryApiRoute = useSettingsStore((s) => s.primaryApiRoute)
+
+  // FRATERNA primary routing — Spec §10: on primary route change, reset the
+  // model-catalog runtime store so the previous host's `status`,
+  // `totalCount`, `liveModelIds`, etc. do not surface as authoritative
+  // state for the new host while the refetch is in flight. React Query
+  // already drops the cached payload via the queryKey; this hook
+  // guarantees the cross-cutting runtime store follows suit.
+  const lastRouteRef = useRef(primaryApiRoute);
+  useEffect(() => {
+    if (lastRouteRef.current !== primaryApiRoute) {
+      lastRouteRef.current = primaryApiRoute;
+      useModelCatalogRuntimeStore.getState().reset();
+    }
+  }, [primaryApiRoute]);
 
   return useQuery({
     queryKey: ['models', normalizedType ?? 'all', enabledProviderKey, activeProfileId, primaryApiRoute],

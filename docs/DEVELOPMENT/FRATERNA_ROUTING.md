@@ -58,23 +58,24 @@ default.
 ## 3. Per-endpoint capability matrix
 
 The `venice` route supports every endpoint in the canonical allowlist
-(`src/shared/validation.ts`). The `fraterna` route supports the
-following curated subset, and falls back to the Venice host for every
-other endpoint:
+(`src/shared/validation.ts`). The `fraterna` route supports ONLY the
+curated subset enumerated by handoff §4.1 — every other endpoint
+transparently falls back to the canonical Venice host:
 
 | Endpoint                | Venice (default) | Fraterna | Notes                                                    |
 |-------------------------|------------------|----------|----------------------------------------------------------|
+| `/models`               | ✅                | ✅        | GET catalog. Query strings are normalized before lookup, so `/models?type=image` resolves correctly. |
 | `/chat/completions`     | ✅                | ✅        | Headline use-case; identical schema + key.               |
 | `/image/generate`       | ✅                | ✅        | Same request body, same response shape.                  |
-| `/image/edit`           | ✅                | ✅        | Multipart and JSON variants both supported.              |
-| `/image/upscale`        | ✅                | ✅        |                                                            |
-| `/image/multi-edit`     | ✅                | ✅        |                                                            |
-| `/embeddings`           | ✅                | ✅        |                                                            |
-| `/models`               | ✅                | ↩ Venice  | The model catalog is canonical to `api.venice.ai`.      |
-| `/models/traits`        | ✅                | ↩ Venice  |                                                            |
-| `/models/compatibility_mapping` | ✅         | ↩ Venice  |                                                            |
+| `/images/generations`   | ✅                | ✅        | OpenAI-compatible alias for `/image/generate` (handoff §4.1). |
+| `/image/edit`           | ✅                | ↩ Venice  | Image editing — not in the published Fraterna matrix.   |
+| `/image/upscale`        | ✅                | ↩ Venice  | Upscale — not in the published Fraterna matrix.          |
+| `/image/multi-edit`     | ✅                | ↩ Venice  | Multi-edit — not in the published Fraterna matrix.      |
 | `/image/styles`         | ✅                | ↩ Venice  |                                                            |
 | `/image/background-remove` | ✅             | ↩ Venice  |                                                            |
+| `/embeddings`           | ✅                | ↩ Venice  | OpenAI-compatible but not documented by Fraterna.        |
+| `/models/traits`        | ✅                | ↩ Venice  |                                                            |
+| `/models/compatibility_mapping` | ✅         | ↩ Venice  |                                                            |
 | `/augment/*`            | ✅                | ↩ Venice  | Search, scrape, text-parser.                             |
 | `/audio/*`              | ✅                | ↩ Venice  | Speech, voices, transcriptions, queue/retrieve/complete. |
 | `/video/*`              | ✅                | ↩ Venice  | Queue, retrieve, quote, complete, transcriptions.        |

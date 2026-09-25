@@ -11,7 +11,7 @@ Implemented fallback providers are explicitly allowlisted by the main process. C
 ## Primary API route selection (Fraterna)
 
 As of v3.1.0 the user can switch the primary API route to the public
-Fraterna upstream (`api.fraterna.ai`), which mirrors a curated subset
+Fraterna upstream (`fraterna.ai`), which mirrors a curated subset
 of the same contract under the same `/api/v1` prefix and the same
 Venice API key. Security guarantees:
 

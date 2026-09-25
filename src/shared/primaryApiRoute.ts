@@ -111,9 +111,9 @@ export const PRIMARY_API_ROUTE_LABELS: Record<PrimaryApiRouteId, string> = {
  */
 export const PRIMARY_API_ROUTE_DESCRIPTIONS: Record<PrimaryApiRouteId, string> = {
   venice:
-    "Canonical Venice API host. Required for billing, models, audio, video, characters, API-key administration, x402, and crypto RPC.",
+    "Canonical Venice API host. Required for billing, audio, video, characters, API-key administration, x402, crypto RPC, augment, embeddings, image edit/upscale/multi-edit, and every other endpoint not documented for Fraterna.",
   fraterna:
-    "Public Fraterna upstream that mirrors a curated subset of the Venice API contract (chat, image generate/edit/upscale, embeddings). All other endpoints fall back to the Venice host automatically. No separate credential or privacy posture is required.",
+    "Public Fraterna upstream that mirrors a curated subset of the Venice API contract (/models, /chat/completions, /image/generate, /images/generations). All other endpoints fall back to the Venice host automatically. Fraterna is a third-party service separate from Venice Forge and Venice.ai; it reuses the Venice API key but records selected request metadata for successful proxied requests per its public documentation.",
 };
 
 /**

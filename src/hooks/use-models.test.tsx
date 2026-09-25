@@ -115,6 +115,46 @@ describe("useModels canonical catalog lifecycle", () => {
     expect(veniceMock).toHaveBeenCalledTimes(2);
   });
 
+  // Spec §10 — on primary route change, the model-catalog runtime store
+  // must be reset so the previous host's status / totalCount /
+  // liveModelIds do not surface as authoritative state for the new host
+  // while the refetch is in flight.
+  it("resets the modelCatalogRuntimeStore when the primaryApiRoute changes", async () => {
+    veniceMock.mockResolvedValue({
+      object: "list",
+      data: [{ id: "venice-route-live", object: "model", created: 0, owned_by: "venice" }],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const first = renderHook(() => useModels("text"), { wrapper: createWrapper(client) });
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
+    // The Venice-routed query populated the runtime store.
+    expect(useModelCatalogRuntimeStore.getState().liveModelIds).toEqual([
+      "venice-route-live",
+    ]);
+
+    // Switch primary route → the runtime store must be repopulated by the
+    // Fraterna fetch, not preserved from the Venice fetch. We verify by
+    // asserting the eventual liveModelIds reflect the NEW mock.
+    veniceMock.mockResolvedValue({
+      object: "list",
+      data: [{ id: "fraterna-route-live", object: "model", created: 0, owned_by: "venice" }],
+    });
+    useSettingsStore.setState({ primaryApiRoute: "fraterna" });
+    // Trigger the reset hook synchronously by re-rendering.
+    first.rerender();
+    // The Fraterna refetch eventually repopulates the store with the new
+    // mock's data — never the cached Venice response.
+    await waitFor(() =>
+      expect(useModelCatalogRuntimeStore.getState().liveModelIds).toEqual([
+        "fraterna-route-live",
+      ]),
+    );
+    // And the previous Venice model id is no longer present.
+    expect(useModelCatalogRuntimeStore.getState().liveModelIds).not.toContain(
+      "venice-route-live",
+    );
+  });
+
   it("preserves typed catalog metadata across modality loads", async () => {
     veniceMock
       .mockResolvedValueOnce({ object: "list", data: [{ id: "text-live", object: "model", created: 0, owned_by: "venice" }] })

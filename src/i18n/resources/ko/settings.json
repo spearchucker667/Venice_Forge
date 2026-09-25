@@ -488,21 +488,19 @@
     },
     "primaryRoute": {
       "title": "__MISSING__:Primary API Route",
-      "description": "__MISSING__:Choose which canonical host your primary API requests go to. The Venice route is the default and supports the full endpoint surface. The Fraterna route mirrors a curated subset (chat, image generate/edit/upscale/multi-edit, embeddings); unsupported endpoints automatically fall back to the Venice host. No separate credential or privacy posture is required.",
+      "description": "__MISSING__:Choose which canonical host your primary API requests go to. The Venice route is the default and supports the full endpoint surface. The Fraterna route mirrors a curated subset (/models, /chat/completions, /image/generate, /images/generations); every other endpoint automatically falls back to the Venice host. Fraterna is a third-party service separate from Venice Forge and Venice.ai — its proxy records selected request metadata for successful proxied requests per its public documentation.",
       "label": "__MISSING__:Primary API Route",
       "venice": {
         "label": "__MISSING__:Venice (default)",
-        "description": "__MISSING__:Canonical Venice API host. Required for billing, models, audio, video, characters, API-key administration, x402, and crypto RPC."
+        "description": "__MISSING__:Canonical Venice API host. Required for billing, audio, video, characters, API-key administration, x402, crypto RPC, augment, embeddings, image edit/upscale/multi-edit, and every other endpoint not documented for Fraterna."
       },
       "fraterna": {
         "label": "__MISSING__:Fraterna",
-        "description": "__MISSING__:Public Fraterna upstream that mirrors a curated subset of the Venice API contract (chat, image generate/edit/upscale, embeddings). All other endpoints fall back to the Venice host automatically."
+        "description": "__MISSING__:Public Fraterna upstream that mirrors a curated subset of the Venice API contract (/models, /chat/completions, /image/generate, /images/generations). All other endpoints fall back to the Venice host automatically. Fraterna is a third-party service separate from Venice Forge and Venice.ai; it reuses the Venice API key but records selected request metadata for successful proxied requests per its public documentation."
       },
-      "supportedNotice": "__MISSING__:Fraterna supports: chat completions, image generate, image edit, image upscale, image multi-edit, embeddings. All other endpoints automatically fall back to the Venice host.",
       "aria": {
         "select": "__MISSING__:Select primary API route"
       },
-      "unsupportedNotice": "__MISSING__:Your currently selected route does not support this endpoint; the request will be forwarded to the Venice host.",
       "webDisabled": "__MISSING__:The Primary API Route is configured per-profile in the desktop app. In web mode, the route is set by the VENICE_FORGE_PRIMARY_API_ROUTE server environment variable (default: Venice)."
     }
   },
