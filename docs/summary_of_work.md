@@ -6,15 +6,15 @@ This is the active handoff and validation ledger. The canonical current-work led
 
 ```text
 repository_head_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4 (fix(audit,i18n): remediate 2026-09-24 audit findings and complete first-pass locale catalogs)
-application_code_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4
-verified_against_sha: 107e6e12a75aa5bc119b633d4117939b90339cb4
-verified_at:         2026-09-24 (Pacific)
+application_code_sha: 8bb9c4dc63c2736b4e019ecd92d1a628d32994aa (docs(audit): archive FRATERNA primary routing handoff; build on 1d6c89c1 feat(routing): add Fraterna primary API route selection)
+verified_against_sha: 8bb9c4dc63c2736b4e019ecd92d1a628d32994aa
+verified_at:         2026-09-25 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        clean
-ci_status:           success for 107e6e12 (run 36082441197 — 11/11 jobs)
-codeql_status:       success for 107e6e12 (run 36082441227 — Analyze actions and Analyze javascript-typescript)
+working_tree:        clean (FRATERNA-Routing-2026-09-25 closed)
+ci_status:           success for 8bb9c4dc (run 36179854415 — 11/11 jobs)
+codeql_status:       success for 8bb9c4dc (run 36179854370 — Analyze actions and Analyze javascript-typescript)
 open_findings:       safety-contract conflict in selected 2026-09-24 audit; P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
@@ -46,6 +46,20 @@ external_acceptance_outstanding:
 - **2026-09-23 Repository-management revalidation.** Hygiene delta from the prior turn in this worktree is still uncommitted: `/out/` ignore, removal of unreferenced `assets/ReadMe_Preview.png`, Records archive of `auditsep23.md` and the pet-rotation handoff, README CI wording, and the three reports under `docs/audits/Records/2026-09-23-repository-*.md`.
 
 ## Session History
+
+### 2026-09-25 — Published FRATERNA routing implementation + audit handoff to main
+
+- **Commits.** Two commits on local `main` directly from `0a1bfdf4`:
+  - `1d6c89c1 feat(routing): add Fraterna primary API route selection` — the implementation (55 files, 1983 insertions, 59 deletions).
+  - `8bb9c4dc docs(audit): archive FRATERNA primary routing handoff` — the canonical handoff record (1 file, 1840 insertions).
+  - Author: `fayeblade <spearchucker667@users.noreply.github.com>`.
+- **Push.** `git push origin main` — `0a1bfdf4..8bb9c4dc  main -> main`. Local and remote SHA match (`8bb9c4dc63c2736b4e019ecd92d1a628d32994aa`). No force-push.
+- **Hosted acceptance (inspected).** Both GitHub Actions runs for the new SHA are green:
+  - **CI** run `36179854415` — `completed success`. All jobs succeeded: `lint-and-typecheck`, `contracts`, `unit-and-integration-tests`, `coverage`, `windows-sensitive-tests`, `macos-sensitive-tests`, `script-coverage`, `build`, `electron-smoke-macos`, `electron-smoke-linux`, `electron-smoke-windows`.
+  - **CodeQL** run `36179854370` — `completed success` (Analyze actions + Analyze javascript-typescript).
+- **Pre-push local gates (re-run before commit).** `npm run lint:eslint` clean, `npm run typecheck` clean (3 projects), 410 focused tests pass across 15 files (incl. FRATERNA-201 priority-order regression test), 25 static contract verifiers pass (network-boundaries, repository-identity, roadmap-current, safety-guard, venice-api-docs, venice-contract-drift, ci-contract, provider-adapters, ipc-parity, agent-docs, theme-tokens, image-policy, work-orders, no-native-dialogs, inactive-feature-archive, repo-handoff-hygiene, bundle-budget, release-metadata, meteocon-csp, custom-protocol-privileges, superdesign-init, hardcoded-strings, prompt-language, transitive-deprecations, i18n, markdown-links), 5 feature verifiers pass (chat/image/workflow/rp/settings), `verify:contracts:release` 104 pass, `npm run build` web + server + electron succeed. `verify:lockfile` is blocked by sandbox `/tmp/npm-cache` EPERM (pre-existing on a clean baseline at `0a1bfdf4`, unrelated to this work).
+- **Out of scope.** No release, signing, notarization, funded provider call, or two-device sync was performed. External release evidence (`VF-VERIFY-005`) remains separate.
+- **Untracked (user-owned).** `docs/audits/Records/Venice_Forge_Exhaustive_Audit_Remediation_Handoff_2026-09-24.md` — pre-existing input, not touched by this session.
 
 ### 2026-09-25 — Code-review corrections to FRATERNA routing implementation
 
