@@ -221,6 +221,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Audit Evidence
 
+- [audits/Records/2026-09-24-application-repository-audit-handoff.md](audits/Records/2026-09-24-application-repository-audit-handoff.md) — Point-in-time audit of `main` at `56924240` with six evidence-backed findings. Current status stays in `ROADMAP.md`.
 - [audits/Records/2026-09-23-repository-audit.md](audits/Records/2026-09-23-repository-audit.md) — 2026-09-23 revalidation of the August repository-audit work order against `main` @ `c4134390`. Point-in-time evidence. Open work stays in `ROADMAP.md`.
 - [audits/Records/2026-09-23-repository-hygiene-audit.md](audits/Records/2026-09-23-repository-hygiene-audit.md) — 2026-09-23 hygiene inventory. Does not replace the 2026-09-01 hygiene audit.
 - [audits/Records/2026-09-23-repository-hygiene-final-report.md](audits/Records/2026-09-23-repository-hygiene-final-report.md) — 2026-09-23 hygiene execution report for the delta applied in this pass.

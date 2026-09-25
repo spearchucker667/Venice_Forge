@@ -48,7 +48,7 @@ export function registerPrivilegedIpcChannel(
     if (options.requireMainFrame) {
       const frame = event.senderFrame;
       const mainFrame = event.sender.mainFrame;
-      if (frame && mainFrame && frame !== mainFrame) {
+      if (!frame || !mainFrame || frame !== mainFrame) {
         return { ok: false, error: "Sender frame was rejected." };
       }
     }

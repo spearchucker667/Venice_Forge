@@ -1070,8 +1070,12 @@ describe("registerIpcHandlers", () => {
       });
 
       try {
+        const senderFrame = { url: "http://localhost:5173" };
         const result = await handler!(
-          { sender: { isDestroyed: () => false, send: vi.fn() } as unknown as Electron.WebContents }
+          {
+            senderFrame,
+            sender: { isDestroyed: () => false, send: vi.fn(), mainFrame: senderFrame } as unknown as Electron.WebContents,
+          }
         );
 
         expect(result).toMatchObject({

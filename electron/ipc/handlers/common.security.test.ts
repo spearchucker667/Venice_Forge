@@ -203,4 +203,30 @@ describe("registerPrivilegedIpcChannel sender validation", () => {
     await expect(handler(trustedParentOnlyEvent)).rejects.toThrow(/untrusted/i);
     expect(handlerState.state.ran).toBe(false);
   });
+
+  it("requires an affirmative main-frame match for main-frame-only channels", async () => {
+    const channel = "test:privileged:main-frame-only";
+    let calls = 0;
+    registerPrivilegedIpcChannel(channel, async () => {
+      calls += 1;
+      return { ok: true };
+    }, { requireMainFrame: true });
+    const handler = capturedHandlers.get(channel)!;
+    const frame = { url: "http://localhost:5173/" };
+    const event = {
+      senderFrame: frame,
+      sender: { id: 1, mainFrame: null, getURL: () => frame.url, isDestroyed: () => false },
+    } as unknown as Electron.IpcMainInvokeEvent;
+
+    expect(await handler(event)).toEqual({ ok: false, error: "Sender frame was rejected." });
+    expect(calls).toBe(0);
+
+    (event.sender as unknown as { mainFrame: unknown }).mainFrame = { url: frame.url };
+    expect(await handler(event)).toEqual({ ok: false, error: "Sender frame was rejected." });
+    expect(calls).toBe(0);
+
+    (event.sender as unknown as { mainFrame: unknown }).mainFrame = frame;
+    expect(await handler(event)).toEqual({ ok: true });
+    expect(calls).toBe(1);
+  });
 });

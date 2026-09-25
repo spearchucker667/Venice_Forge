@@ -138,7 +138,7 @@
     "enhancementSafetyBlockedFamily": "프롬프트 향상이 선택적 가족 안전 모드에 의해 중지되었습니다. 원래 프롬프트는 유지되었습니다.",
     "enhancementSafetyBlockedProvider": "프롬프트 향상이 제공자 정책에 의해 중지되었습니다. 원래 프롬프트는 유지되었습니다.",
     "styleReferences": "스타일 참조",
-    "styleReferenceHelp": "PNG, JPEG 또는 WebP 참조 이미지를 최대 {{count}}개 추가하세요. 참조는 런타임 지원을 명시한 모델에만 전송됩니다.",
+    "styleReferenceHelp": "최대 {{count}}개의 PNG, JPEG 또는 WebP 참조 이미지를 추가하세요. 참조는 런타임 지원을 제공하는 모델에만 전송됩니다.",
     "addStyleReferenceImages": "스타일 참조 이미지 추가",
     "styleReferenceCount": "스타일 참조 {{max}}개 중 {{count}}개 선택됨",
     "selectedStyleReferences": "선택한 스타일 참조",
@@ -181,41 +181,41 @@
     }
   },
   "mediaStudioActions": {
-    "heading": "__MISSING__:mediaStudioActions.heading",
-    "upscale": "__MISSING__:mediaStudioActions.upscale",
-    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
-    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
-    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
-    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
-    "cancel": "__MISSING__:mediaStudioActions.cancel",
-    "retry": "__MISSING__:mediaStudioActions.retry",
-    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
-    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
-    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "heading": "이미지 작업",
+    "upscale": "업스케일",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "배경 제거",
+    "inpaint": "인페인트",
+    "cancel": "취소",
+    "retry": "재시도",
+    "done": "{{count}}개 자산에 대한 {{operation}}이 완료되었습니다",
+    "running": "{{name}}에 대한 {{operation}} 실행 중…",
+    "failed": "{{name}}에 대한 {{operation}}이 실패했습니다",
     "operationLabels": {
-      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
-      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
-      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+      "upscale": "업스케일",
+      "remove-background": "배경 제거",
+      "inpaint": "인페인트"
     },
     "reason": {
-      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
-      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
-      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
-      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+      "requiresImage": "이 작업은 이미지 자산이 필요합니다",
+      "sourceUnavailable": "이 소스 자산은 더 이상 로컬에서 사용할 수 없습니다",
+      "modelUnavailable": "선택한 모델에서는 인페인팅을 사용할 수 없습니다",
+      "singleSelection": "인페인팅에는 단일 선택된 이미지가 필요합니다"
     },
     "editor": {
-      "title": "__MISSING__:mediaStudioActions.editor.title",
-      "description": "__MISSING__:mediaStudioActions.editor.description",
-      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
-      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
-      "undo": "__MISSING__:mediaStudioActions.editor.undo",
-      "clear": "__MISSING__:mediaStudioActions.editor.clear",
-      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
-      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
-      "submit": "__MISSING__:mediaStudioActions.editor.submit",
-      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
-      "success": "__MISSING__:mediaStudioActions.editor.success",
-      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+      "title": "인페인트 — 마스크 그리기",
+      "description": "교체할 영역 위에 칠한 후 변경 사항을 설명하세요. 마스크와 소스 이미지가 선택한 편집 모델로 전송됩니다.",
+      "canvasLabel": "마스크 그리기 캔버스",
+      "brushSize": "브러시 크기",
+      "undo": "실행 취소",
+      "clear": "지우기",
+      "promptLabel": "편집 프롬프트(선택 사항)",
+      "promptPlaceholder": "칠한 영역 안에 나타날 내용을 설명하세요…",
+      "submit": "인페인트 적용",
+      "cancel": "취소",
+      "success": "인페인트된 자산이 미디어 스튜디오에 저장되었습니다",
+      "loadFailed": "마스킹을 위해 선택한 이미지를 불러올 수 없습니다."
     }
   }
 }

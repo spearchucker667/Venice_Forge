@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* global window, document, console, process, setTimeout */
 /**
- * Automated Playwright capture and accessibility auditor for the per-tab
+ * Automated Playwright capture and limited shell-layout checker for the per-tab
  * acceptance harness (VF-20260918-P2-016 / VF-20260922-P2-011).
  *
  * Drives the Venice Forge renderer through Playwright across the 15 canonical
@@ -164,6 +164,7 @@ async function runCaptureForTuple({
   const vp = VIEWPORT_MAP[viewportName] || { width: 1280, height: 720 };
   const themeConfig = THEME_MAP[themeName] || { theme: "venice", mode: "dark" };
   const isRtl = localeName === "ar" || themeName === "venice-rtl";
+  const browserVersion = browser.version();
 
   const tupleDir = path.join(
     evidenceRoot,
@@ -180,7 +181,7 @@ async function runCaptureForTuple({
     const existing = JSON.parse(await readFile(manifestPath, "utf8"));
     if (existing?.reviewer?.signature?.trim()) {
       console.log(`  [skip signed] ${tabInfo.id}/${viewportName}__${themeName}__${localeName}`);
-      return;
+      return 0;
     }
   } catch {
     /* file does not exist or unparseable, proceed with capture */
@@ -272,6 +273,53 @@ async function runCaptureForTuple({
     return { headings, landmarks, hasFocusTarget };
   }, tabInfo.initialFocus);
 
+  const shell = await page.evaluate(() => {
+    const sidebar = document.querySelector("aside");
+    const main = document.querySelector("main");
+    const historySearchWidth = main?.querySelector("input[type='text']")?.getBoundingClientRect().width ?? 0;
+    const offscreenControls = main ? [...main.querySelectorAll("button, input, select")]
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        if (!(rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none" &&
+          (rect.left < -2 || rect.right > window.innerWidth + 2))) return false;
+        for (let ancestor = element.parentElement; ancestor && ancestor !== main; ancestor = ancestor.parentElement) {
+          const overflow = window.getComputedStyle(ancestor).overflowX;
+          if ((overflow === "auto" || overflow === "scroll") && ancestor.scrollWidth > ancestor.clientWidth) {
+            return false;
+          }
+        }
+        return true;
+      }).map((element) => ({
+        tag: element.tagName.toLowerCase(),
+        left: Math.round(element.getBoundingClientRect().left),
+        right: Math.round(element.getBoundingClientRect().right),
+      })) : [];
+    return {
+      viewportWidth: window.innerWidth,
+      sidebarPosition: sidebar ? window.getComputedStyle(sidebar).position : "missing",
+      mainWidth: main ? main.getBoundingClientRect().width : 0,
+      mainScrollWidth: main?.scrollWidth ?? 0,
+      mainClientWidth: main?.clientWidth ?? 0,
+      offscreenControls,
+      historySearchWidth,
+    };
+  });
+  const defects = [];
+  if (viewportName.startsWith("mobile-") &&
+      (shell.sidebarPosition !== "fixed" || shell.mainWidth < shell.viewportWidth * 0.8)) {
+    defects.push(`Mobile shell layout: sidebar position=${shell.sidebarPosition}, main width=${Math.round(shell.mainWidth)}px of ${shell.viewportWidth}px.`);
+  }
+  if (shell.mainScrollWidth > shell.mainClientWidth + 2) {
+    defects.push(`Main content overflows horizontally: scroll width=${shell.mainScrollWidth}px, client width=${shell.mainClientWidth}px.`);
+  }
+  if (viewportName.startsWith("mobile-") && shell.offscreenControls.length > 0) {
+    defects.push(`${shell.offscreenControls.length} visible interactive control(s) extend beyond the mobile viewport: ${shell.offscreenControls.map((control) => `${control.tag} ${control.left}..${control.right}px`).join(", ")}.`);
+  }
+  if (viewportName.startsWith("mobile-") && tabInfo.id === "history" && shell.historySearchWidth < 160) {
+    defects.push(`History search field is only ${Math.round(shell.historySearchWidth)}px wide on mobile.`);
+  }
+
   // 1. Initial screenshot
   await page.screenshot({
     path: path.join(tupleDir, "screenshot.png"),
@@ -318,8 +366,8 @@ async function runCaptureForTuple({
     headings: inspection.headings.length ? inspection.headings : [tabInfo.id],
     interactions: [
       `Navigated to route ${tabInfo.route}`,
-      `Verified initial focus target ${tabInfo.initialFocus}`,
-      `Tested layout stability under ${viewportName}`,
+      `Checked presence of initial focus target ${tabInfo.initialFocus}: ${inspection.hasFocusTarget}`,
+      `Measured shell geometry under ${viewportName}`,
     ],
     reviewer: {
       signature: "",
@@ -328,10 +376,10 @@ async function runCaptureForTuple({
     capturedAt: now,
     browser: {
       name: "Chromium (Headless)",
-      version: "153.0",
+      version: browserVersion,
     },
     os: `${os.type()} ${os.arch()}`,
-    defects: [],
+    defects,
     notes: "see notes.md in the same directory; fill before signing this stub",
   };
 
@@ -342,21 +390,21 @@ async function runCaptureForTuple({
 
 Reviewer: <name> <github-handle> <email>
 Captured: ${now}
-Browser/OS: Chromium 153.0 on ${os.type()} (${os.arch()})
+Browser/OS: Chromium ${browserVersion} on ${os.type()} (${os.arch()})
 
 ## Universal
-- Visual / contrast: PASS — Core palette tokens and contrast maintained.
-- Layout / overflow: PASS — Tab viewports accommodate content without clipping.
-- Keyboard navigation: PASS — Target element \`${tabInfo.initialFocus}\` exists and responds to focus.
-- Screen-reader semantics: PASS — Accessible landmarks observed: ${inspection.landmarks.slice(0, 5).join(", ") || "main"}.
-- i18n surface: PASS — Rendered cleanly under ${localeName} (${isRtl ? "RTL" : "LTR"}).
+- Visual / contrast: PENDING HUMAN REVIEW.
+- Layout / overflow: PENDING HUMAN REVIEW. Automated shell measurement: sidebar position ${shell.sidebarPosition}; main width ${Math.round(shell.mainWidth)}px of ${shell.viewportWidth}px viewport; main scroll/client width ${shell.mainScrollWidth}/${shell.mainClientWidth}px; offscreen controls ${shell.offscreenControls.length}.
+- Keyboard navigation: PENDING HUMAN REVIEW. Initial focus target present: ${inspection.hasFocusTarget}.
+- Screen-reader semantics: PENDING HUMAN REVIEW. Landmarks found: ${inspection.landmarks.slice(0, 5).join(", ") || "none"}.
+- i18n surface: PENDING HUMAN REVIEW under ${localeName} (${isRtl ? "RTL" : "LTR"}).
 
 ## Per-tab specifics
 - Route: \`${tabInfo.route}\`
 - Observed headings: ${inspection.headings.join(" | ") || tabInfo.id}
 
-## Defects observed
-- (none)
+## Automated defects observed
+${defects.length ? defects.map((defect) => `- ${defect}`).join("\n") : "- None detected by the limited automated shell check; human review is still required."}
 
 Reviewer signature: 
 `;
@@ -365,6 +413,7 @@ Reviewer signature:
   await context.close();
 
   console.log(`  [captured] ${tabInfo.id}/${viewportName}__${themeName}__${localeName}`);
+  return defects.length;
 }
 
 async function main() {
@@ -416,11 +465,12 @@ async function main() {
   console.log(`[capture] Executing matrix: ${tabsToRun.length} tabs × ${viewports.length} viewports × ${themes.length} themes × ${locales.length} locales = ${total} tuples`);
 
   try {
+    let automatedDefects = 0;
     for (const tabInfo of tabsToRun) {
       for (const vp of viewports) {
         for (const th of themes) {
           for (const loc of locales) {
-            await runCaptureForTuple({
+            automatedDefects += await runCaptureForTuple({
               browser,
               baseUrl,
               tabInfo,
@@ -431,6 +481,10 @@ async function main() {
           }
         }
       }
+    }
+    if (automatedDefects > 0) {
+      console.error(`[capture] ${automatedDefects} automated shell-layout defect(s) detected.`);
+      process.exitCode = 1;
     }
   } finally {
     await browser.close();

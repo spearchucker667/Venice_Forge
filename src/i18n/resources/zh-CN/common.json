@@ -165,10 +165,10 @@
         "safetyGuardAudit": "安全防护审核",
         "lastRequest": "最后请求",
         "mediaClassifierCapabilities": "媒体分类器功能",
-        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
-        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
-        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
-        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
+        "safetyRuntime": "安全运行时",
+        "structuralValidation": "结构 / 协议验证",
+        "mediaClassifierBackend": "媒体分类器后端",
+        "classifierCounters": "分类器计数器"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "当前构建的聚合运行时信息。打开",
@@ -197,33 +197,33 @@
         "protectionItemImageBytes": "图像字节（语义）：未分类",
         "protectionItemAudioBytes": "音频字节（语义）：未分类",
         "protectionItemVideoBytes": "视频字节（语义）：未分类",
-        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
-        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
-        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
-        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
-        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
-        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
-        "source": "__MISSING__:surface.componentsStatusview.text.source",
-        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
-        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
-        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
-        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
-        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
-        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
-        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
-        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
-        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
-        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
-        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
-        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
-        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
-        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
-        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
-        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
-        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
-        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
-        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
-        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
+        "localContentSafeguards": "本地内容防护",
+        "providerSafety": "提供商安全（Venice safe_mode）",
+        "stateEnabled": "已启用",
+        "stateDisabled": "已禁用",
+        "stateOn": "开",
+        "stateOff": "关",
+        "source": "来源",
+        "sourceUser": "用户",
+        "sourceServer": "服务器",
+        "sourcePolicy": "策略",
+        "validationActive": "活跃",
+        "requestsValidated": "已验证请求",
+        "rejectedRequests": "已拒绝请求",
+        "backendRegistered": "后端已注册",
+        "backendName": "后端名称",
+        "classifierStateAvailable": "可用",
+        "classifierStateNotConfigured": "未配置",
+        "classifierStateUnsupported": "不支持",
+        "classifierStateUnhealthy": "后端不健康",
+        "counterTextEvaluations": "文本评估",
+        "counterImageEvaluations": "图像评估",
+        "counterAudioEvaluations": "音频评估",
+        "counterVideoEvaluations": "视频评估",
+        "counterBlocked": "已阻止",
+        "counterAllowed": "已允许",
+        "counterSkippedDisabled": "已跳过（防护已禁用）",
+        "counterErrors": "错误"
       }
     },
     "componentsThememaker": {
@@ -246,7 +246,7 @@
       "heading": {
         "themeSystemEditor": "主题系统和编辑器",
         "importThemePreview": "导入主题预览",
-        "codeAndSyntax": "Code & Syntax"
+        "codeAndSyntax": "代码与语法"
       },
       "description": {
         "configureThemeColorsBorderContrastFocusRings": "在 Venice Forge 上配置主题颜色、边框对比度、对焦环和操作按钮样式。",
@@ -254,7 +254,7 @@
       },
       "label": {
         "selectActiveTheme": "选择活动主题",
-        "syntaxPreset": "Syntax preset"
+        "syntaxPreset": "语法预设"
       },
       "text": {
         "unsavedDraftChanges": "未保存的草稿更改",
@@ -269,10 +269,10 @@
         "id": "ID:"
       },
       "codeToken": {
-        "background": "Code background",
-        "foreground": "Code foreground",
-        "border": "Code border",
-        "headerBackground": "Header background",
+        "background": "代码背景",
+        "foreground": "代码前景",
+        "border": "代码边框",
+        "headerBackground": "标题背景",
         "headerForeground": "Header foreground",
         "inlineBackground": "Inline background",
         "inlineForeground": "Inline foreground",
@@ -583,7 +583,7 @@
         "selected": "选择了",
         "chattingAs": "作为此消息所附的",
         "usesCharacterSystemPrompt": "正在使用角色的系统提示词。对于托管和本地角色聊天，用户提供的系统提示词将被跳过。",
-        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
+        "useVeniceDefaultSystemPrompt": "使用 Venice 默认系统提示词"
       },
       "label": {
         "systemPromptMode": "系统提示模式"
@@ -2113,25 +2113,25 @@
     "writing-scifi-hook": "为科幻小说创作一个引人入胜的开头，其中重力在每个城市的表现都不同。",
     "writing-newsletter-intro": "起草一份引人入胜的时事通讯介绍，讨论自主代理车队的社会影响。",
     "writing-press-release": "创建正式的新闻稿模板，宣布隐私第一的网络抓取工具开源。",
-    "writing-linkedin-post": "起草一篇专业的 LinkedIn 帖子，总结从构建离线优先 Electron 应用程序中学到的主要经验教训。",
+    "writing-linkedin-post": "起草一篇专业的 LinkedIn 帖子，总结构建离线优先 Electron 应用时学到的关键经验。",
     "writing-blog-outline": "为标题为“保护现代电子应用程序中的预加载桥”的技术博客文章生成详细的大纲。",
     "writing-sabbatical-request": "撰写一份专业提案，请求 3 个月的教育休假来研究分布式系统。",
     "writing-speech-intro": "写一篇 3 分钟的介绍性演讲，介绍本地优先软件和数据主权的重要性。",
     "writing-bug-report": "为开源项目中的错误报告编写完整的模板，以鼓励快速解决。",
     "writing-refusal-letter": "起草专业回应拒绝供应商提案，同时为未来合作敞开大门。",
     "writing-haiku-comp": "创作三首俳句，捕捉从模拟硬件到量子计算的转变。",
-    "coding-rest-graphql": "比较 REST 和 GraphQL — 各自何时表现出色？",
-    "coding-debounce-ts": "在 TypeScript for React 中编写一个健壮的、类型齐全的去抖钩子，并支持立即调用。",
+    "coding-rest-graphql": "比较 REST 和 GraphQL——各自在什么场景下大放异彩？",
+    "coding-debounce-ts": "用 TypeScript 为 React 编写一个健壮且完全类型化的防抖 Hook，支持立即调用。",
     "coding-sql-recursive": "通过查询组织层次结构的示例解释递归 CTE 在 SQL 中的工作原理。",
     "coding-refactor-lru": "将简单的 Node.js 内存缓存重构为具有过期支持的线程安全 LRU 缓存。",
     "coding-rust-error": "展示如何使用“thiserror”和“anyhow”包在 Rust 中实现自定义错误处理。",
     "coding-git-bisect": "解释如何使用“git bisect”来定位回归提交，包括自动脚本执行。",
-    "coding-docker-multi": "创建一个最小的、安全的多阶段 Dockerfile，用于打包 TypeScript Node.js 微服务。",
+    "coding-docker-multi": "创建一个最小、安全的多阶段 Dockerfile，用于打包 TypeScript Node.js 微服务。",
     "coding-csp-rules": "编写严格的内容安全策略 (CSP) 标头配置，允许本地 WASM 执行但阻止内联评估。",
     "coding-vitest-mocking": "演示如何在 Vitest 中模拟全局窗口对象和异步获取调用。",
     "coding-css-flex-grid": "解释 CSS Grid 和 Flexbox 布局之间的架构差异，以及每种布局的具体布局用例。",
-    "coding-sse-parse": "展示如何在没有外部依赖的情况下使用普通 JavaScript 编写服务器发送事件 (SSE) 的流解析器。",
-    "coding-indexeddb-transaction": "提供浏览器原生 IndexedDB 中稳健的事务管理和错误回滚的示例。",
+    "coding-sse-parse": "演示如何在原生 JavaScript 中不依赖任何外部库，编写服务器发送事件（SSE）的流解析器。",
+    "coding-indexeddb-transaction": "提供一个在浏览器原生 IndexedDB 中进行健壮事务管理和错误回滚的示例。",
     "learning-rsa-metaphor": "使用 10 岁孩子可以理解的比喻解释 RSA 加密的工作原理。",
     "learning-pid-controller": "用简单直观的术语解释 PID 温度控制器背后的数学原理。",
     "learning-monad-metaphor": "使用日常现实世界的类比来解释函数式编程中的 Monad 是什么。",
@@ -2177,20 +2177,20 @@
     "productivity-markdown-journal": "设计一个轻量级的每日 Markdown 日记提示系统，帮助跟踪每日目标、阻碍因素和感激之情。",
     "productivity-inbox-zero": "起草一个使用自动标签和键盘快捷键实现和维护收件箱清零的分步系统。",
     "productivity-postmortem": "创建一个标准模板，用于在关键生产中断后编写软件事后分析。",
-    "productivity-learning-sprint": "概述为期 4 周的学习冲刺计划，以掌握 Rust WebAssembly 编译的基础知识。",
+    "productivity-learning-sprint": "制定一个为期 4 周的学习冲刺计划，掌握 Rust WebAssembly 编译的基础知识。",
     "productivity-presentation-deck": "起草 10 分钟演示文稿的逐张幻灯片结构，为当地法学硕士客户确保种子资金。",
     "productivity-dependency-audit": "创建一个行动计划，每月对生产代码存储库中的开源库依赖项进行审核。",
     "analysis-p2p-mesh": "对在高密度城市地区部署分散的点对点网状网络进行 SWOT 分析。",
-    "analysis-sqlite-pg": "比较具有同步功能的离线优先桌面应用程序的 SQLite 与 PostgreSQL 的架构权衡。",
+    "analysis-sqlite-pg": "比较在具备同步功能的离线优先桌面应用中，SQLite 与 PostgreSQL 的架构权衡。",
     "analysis-fallacy-media": "列出现代媒体报道中发现的五种常见逻辑谬误，并提供如何发现它们的指南。",
     "analysis-cloud-vs-local": "分析云托管无服务器计算与自托管裸机服务器的长期成本效益权衡。",
     "analysis-electron-tauri": "对 Electron 与 Tauri 在内存占用、构建大小和安全模型方面进行详细的比较分析。",
     "analysis-monolith-micro": "确定关键指标，显示成长中的初创公司何时应从整体架构过渡到微服务架构。",
     "analysis-privacy-shield": "分析 GDPR 合规要求对日志记录和遥测实践的法律和技术影响。",
     "analysis-rsa-vs-ecc": "对 RSA 与椭圆曲线加密 (ECC) 的密钥大小和签名速度进行比较技术分析。",
-    "analysis-dns-over-https": "分析采用 DNS-over-HTTPS (DoH) 的隐私优势和网络性能权衡。",
+    "analysis-dns-over-https": "分析采用基于 HTTPS 的 DNS（DoH）在隐私方面的优势和网络性能方面的权衡。",
     "analysis-open-licensing": "比较 MIT 与 GPLv3 许可证的法律条件、copyleft 属性和商业使用权限。",
-    "analysis-ci-caching": "分析从 GitHub Actions CI 管道中的缓存策略获得的构建时间优化。",
+    "analysis-ci-caching": "分析 GitHub Actions CI 流水线中缓存策略带来的构建时间优化。",
     "analysis-work-automation": "评估人工智能自主代理工作流程对管理团队生产力和资源需求的预期影响。",
     "image-serene-mountain": "黄金时段的宁静高山湖泊，水面上薄雾缭绕，如画般",
     "image-dewdrop-spiderweb": "蜘蛛网上露珠的宏观照片，日出照明",
@@ -2352,7 +2352,7 @@
           "forgeDaylight": "锻造日光",
           "forgeCopper": "锻造铜",
           "forgeDracula": "锻造德古拉",
-          "gruvboxDark": "GruvBox 深色",
+          "gruvboxDark": "GruvBox Dark",
           "rosepine": "玫瑰松",
           "forgeNord": "北锻造",
           "forgeTokyo": "锻造东京",
@@ -2361,7 +2361,7 @@
           "forgeSolarizedLight": "锻造日光灯",
           "forgeOneDark": "锻造一暗",
           "forgeMonokai": "锻造物联网",
-          "forgeGithubLight": "打造 GitHub Light",
+          "forgeGithubLight": "Forge GitHub Light",
           "obsidianBloom": "黑曜石花",
           "harborFog": "港口雾",
           "circuitMint": "电路铸币厂",
@@ -2499,12 +2499,12 @@
             "analyzingImage": "分析图像"
           },
           "error": {
-            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
-            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
-            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
-            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
-            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
-            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
+            "modelUnavailable": "角色创建模型暂时不可用。请几分钟后重试。",
+            "requestCancelled": "生成已取消。",
+            "invalidModelResponse": "模型返回了不可用的响应。请重试。",
+            "schemaRepairFailed": "生成的角色卡未通过验证且无法修复。请重试。",
+            "transportFailed": "无法连接到 Venice API。请检查您的连接并重试。",
+            "providerHttp": "Venice API 拒绝了生成请求。请稍后重试。"
           },
           "notification": {
             "couldNotLoadDraft": "无法加载草稿",
@@ -2550,7 +2550,7 @@
       "characters": {
         "characteravatar": {
           "attribute": {
-            "displaynameAvatar": "{{displayName}}头像"
+            "displaynameAvatar": "{{displayName}} 的头像"
           }
         }
       },
@@ -2575,7 +2575,7 @@
             "localCharacter": "地方特色",
             "localCharacter2": "地方特色",
             "noLocalCharactersCreatedYet": "尚未创建本地角色。",
-            "noCharactersMatchPickerquery": "没有字符匹配“ {{pickerQuery}} ”。"
+            "noCharactersMatchPickerquery": "没有角色匹配\"{{pickerQuery}}\"。"
           }
         },
         "characterscenecard": {
@@ -2603,7 +2603,7 @@
             "conversationRestored": "对话已恢复",
             "failedToRestore": "恢复失败",
             "movedConversations": "移动对话",
-            "movedValue1ConversationValue2ToTargetname": "已将{{value1}}对话{{value2}}移至{{targetName}} 。",
+            "movedValue1ConversationValue2ToTargetname": "已将 {{value1}} 个对话{{value2}}移动到 {{targetName}}。",
             "failedToMoveConversations": "无法移动对话",
             "conversationsDeleted": "对话已删除",
             "value1SelectedConversationValue2Removed": "{{value1}}选定的对话{{value2}}已删除。",
@@ -2648,16 +2648,16 @@
           "text": {
             "deselectAllVisible": "取消选择所有可见的",
             "selectAllVisible": "选择所有可见的",
-            "folderselectedcountSelected": "· 已选择{{folderSelectedCount}}",
+            "folderselectedcountSelected": " · 已选择 {{folderSelectedCount}} 个",
             "selected": "已选择",
             "select": "选择",
-            "unfiledselectedcountSelected": "· 已选择{{unfiledSelectedCount}}"
+            "unfiledselectedcountSelected": " · 已选择 {{unfiledSelectedCount}} 个"
           }
         },
         "chatView": {
           "notification": {
             "modelUnavailable": "型号不可用",
-            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "之前选择的型号不可用。此聊天现在使用{{resolvedDefault}} 。",
+            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "之前选择的模型不可用。此聊天现在使用 {{resolvedDefault}}。",
             "priorContextSkipped": "先前的上下文被跳过",
             "factPermanentlyForgotten": "事实被永久遗忘。",
             "failedToForgetFact": "未能忘记事实"
@@ -2666,7 +2666,7 @@
             "forgetThisFact": "忘记这个事实了吗？",
             "deleteFromHere": "从这里删除？",
             "removedFromChat": "已从聊天中删除",
-            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}}保留在 Media Studio 中。单击撤消重新附加。",
+            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} 仍保留在 Media Studio 中。点击撤销以重新附加。",
             "undo": "撤消",
             "regenerateFromHere": "从这里重生？"
           },
@@ -2779,7 +2779,7 @@
         "compareView": {
           "text": {
             "allSharedFieldsMatch": "所有共享字段都匹配",
-            "changedcountFieldValue2Differ": "{{changedCount}}字段{{value2}}不同"
+            "changedcountFieldValue2Differ": "{{changedCount}} 个字段{{value2}}不同"
           },
           "attribute": {
             "closeCompareView": "关闭比较视图"
@@ -2838,7 +2838,7 @@
             "taggedValue1OfValue2": "已标记{{value1}} （共{{value2}}",
             "taggedValue1ItemValue2": "已标记的{{value1}}项{{value2}}",
             "enterATagFirst": "首先输入一个标签。",
-            "assignedValue1OfValue2Firstreason": "分配了{{value1}}的{{value2}} ( {{firstReason}} )",
+            "assignedValue1OfValue2Firstreason": "已分配 {{value1}} / {{value2}}（{{firstReason}}）",
             "assignedValue1ItemValue2": "分配的{{value1}}项{{value2}}",
             "selectAtLeastOneMediaItem": "至少选择一项媒体项目。",
             "loadedSettingsIntoImageStudio": "将设置加载到 Image Studio 中",
@@ -2966,7 +2966,7 @@
             "thisItemSParentRecordIsMissingClearTheParent": "该项目的父记录丢失。清除父链接以修复谱系。",
             "value1ChildValue2CouldNotBeResolvedClearTheStale": "无法解析{{value1}}子项{{value2}} 。清除过时的指针{{value3}}以修复沿袭。",
             "childrenidsValue1": "儿童 ID： {{value1}}",
-            "childrenidsValue1Missing": "childIds: {{value1}}缺失",
+            "childrenidsValue1Missing": "childrenIds：缺失 {{value1}}",
             "value1MissingRef": "1 缺少参考",
             "value1MissingRefs": "{{value1}}缺少参考"
           }
@@ -3010,7 +3010,7 @@
           },
           "text": {
             "identical": "完全相同的",
-            "changedcountFieldValue2WillChange": "{{changedCount}}字段{{value2}}将更改"
+            "changedcountFieldValue2WillChange": "{{changedCount}} 个字段{{value2}}将发生变化"
           },
           "metadata": {
             "model": "模型",
@@ -3427,7 +3427,7 @@
         "charactereditor": {
           "notification": {
             "fileLoadedSourced": "文件已加载并来源",
-            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "将“ {{value1}} ”加载到{{fieldLabel}}中并保存在字符文件中。",
+            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "已将\"{{value1}}\"加载到 {{fieldLabel}} 并保存在角色文件中。",
             "reAppliedSourcedFile": "重新应用源文件",
             "reLoadedValue1ContentIntoValue2": "将“ {{value1}} ”内容重新加载到{{value2}}中。",
             "workflowCreated": "已创建工作流程",
@@ -3767,7 +3767,7 @@
             "username": "@用户名",
             "knownWebsite": "已知网站",
             "knownOrganization": "已知组织",
-            "githubInc": "GitHub 公司",
+            "githubInc": "GitHub Inc.",
             "knownLocation": "已知位置",
             "sanFranciscoCa": "加利福尼亚州旧金山",
             "maxSearchDepth": "最大搜索深度"
@@ -3864,7 +3864,7 @@
             "couldNotCopySafeDiagnostics": "无法复制安全诊断",
             "diagnosticsRefreshed": "诊断已刷新",
             "diagnosticsRefreshFailed": "诊断刷新失败",
-            "livecountLiveModelsRefreshed": "{{liveCount}}个现场模特已刷新"
+            "livecountLiveModelsRefreshed": "已刷新 {{liveCount}} 个在线模型"
           },
           "attribute": {
             "diagnostics": "诊断",
@@ -4042,7 +4042,7 @@
         },
         "notification": {
           "localSettingsCleared": "本地设置已清除。",
-          "indexeddbDataClearedSuccessfully": "IndexedDB数据清除成功。",
+          "indexeddbDataClearedSuccessfully": "IndexedDB 数据已成功清除。",
           "encryptedBackupExportedSuccessfully": "加密备份导出成功。",
           "exportFailedPleaseTryAgain": "导出失败。请再试一次。"
         }
@@ -4149,7 +4149,7 @@
       "backupimportservice": {
         "metadata": {
           "legacyVersion2BackupAuthenticatedSourceCryptoContentCountAnd": "旧版本 2 备份：经过身份验证的源、加密、内容计数和排除元数据不可用。",
-          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "备份应用程序版本{{value1}}与此应用程序版本{{appVersion}}不同。",
+          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "备份应用版本 {{value1}} 与当前应用版本 {{appVersion}} 不同。",
           "thisBackupIncludesMediaRecords": "此备份包括媒体记录。",
           "excludedByDesignValue1": "按设计排除： {{value1}} 。"
         }
@@ -4162,7 +4162,7 @@
             "extensionDataExceededTheMaximumDepth": "扩展数据超出了最大深度。",
             "nonJsonExtensionValueWasRemoved": "非 JSON 扩展值已被删除。",
             "unsafeObjectKeyWasRemoved": "不安全的对象键已被删除。",
-            "extensionDataExceededThe1MibLimit": "扩展数据超出了 1 MiB 限制。",
+            "extensionDataExceededThe1MibLimit": "扩展数据超过了 1 MiB 限制。",
             "onlyTheFirstMaxLorebookEntriesCharacterBookEntriesWere": "仅保留前{{MAX_LOREBOOK_ENTRIES}}个字符簿条目。",
             "onlyCharacterCardV2SpecVersion20IsSupported": "仅支持角色卡 V2 规范版本 2.0。",
             "keyMustBeAString": "{{key}}必须是字符串。",
@@ -4178,10 +4178,10 @@
       "chatpromptcompiler": {
         "metadata": {
           "contextTruncated": "上下文被截断",
-          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "删除了{{removedCount}}旧的{{turnWord}}以适应上下文限制。开始新的聊天或使用具有较大上下文窗口的模型来保留完整的历史记录。",
+          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "已移除 {{removedCount}} 条旧的 {{turnWord}} 以适应上下文限制。请开始新的对话或使用上下文窗口更大的模型以保留完整历史记录。",
           "theConversationRequiresValue1TokensButOnlyValue2AreAvailable": "该对话需要 ~ {{value1}}令牌，但在保留输出令牌后只有{{value2}}可用。",
           "thisRequestReservesValue1OutputTokensSoTheCustomPrompt": "此请求保留{{value1}}输出令牌，以便自定义提示和当前对话适合所选模型。",
-          "estkKOfTotalkKEstimatedTokensAreInUse": "{{estK}} K 个估计令牌正在使用中，共{{totalK}} K 个。"
+          "estkKOfTotalkKEstimatedTokensAreInUse": "已使用 {{estK}}K / {{totalK}}K 估算的令牌。"
         }
       },
       "chatstorage": {
@@ -4471,7 +4471,7 @@
       "workflowTemplateStore": {
         "metadata": {
           "initialVersion": "初始版本",
-          "versionNextversionnumber": "版本{{nextVersionNumber}}"
+          "versionNextversionnumber": "版本 {{nextVersionNumber}}"
         }
       },
       "profileStore": {
@@ -4502,7 +4502,7 @@
           "value1DoesNotSupportAStylePresetValueWillBe": "{{value1}}不支持样式预设 — 值将被删除。",
           "value1UsesPixelSizingAspectRatioWillBeDropped": "{{value1}}使用像素大小 - 纵横比将被丢弃。",
           "value1DoesNotSupportAResolutionPresetValueWillBe": "{{value1}}不支持分辨率预设 — 值将被丢弃。",
-          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "不支持维度{{originalPair}} - 默认为{{finalPair}} 。",
+          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "尺寸 {{originalPair}} 不受支持 — 已默认为 {{finalPair}}。",
           "aspectRatioValue1IsNotSupportedDefaultedToValue2": "不支持宽高比“ {{value1}} ” - 默认为{{value2}} 。",
           "resolutionValue1IsNotSupportedDefaultedToValue2": "不支持分辨率“ {{value1}} ” — 默认为{{value2}} 。"
         }
@@ -4525,8 +4525,8 @@
           "searchGroundedAndFastLlmApis": "基于搜索的快速 LLM API。",
           "cohereEnterpriseReadyMultilingualModels": "面向企业的多语言模型。",
           "huggingFaceOpenSourceInferenceProviders": "通过 Hugging Face Inference Providers 进行开源模型推理。",
-          "azureOpenAiDeploymentBasedChatCompletions": "基于 Azure OpenAI 部署的聊天补全。",
-          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle 的 OpenAI 兼容推理。",
+          "azureOpenAiDeploymentBasedChatCompletions": "Azure OpenAI 基于部署的聊天补全。",
+          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle OpenAI 兼容推理。",
           "googleVertexAiExpressModeApiKey": "Google Vertex AI Express 模式（API 密钥认证）。"
         }
       }
@@ -4568,8 +4568,8 @@
       },
       "promptLimits": {
         "notification": {
-          "overLimit": "系统提示超出应用限制。最大回退大小：{{maximumCodePoints}} 个 Unicode 码点。检测到：{{codePointCount}} 个 Unicode 码点（估算 {{estimatedTokenCount}} 个令牌）。系统提示策略按约 {{maximumTokens}} 个令牌设计。请先缩短提示再继续。",
-          "warning": "系统提示接近应用限制（估算令牌 {{estimatedTokenCount}} / {{maximumTokens}}；Unicode 码点 {{codePointCount}} / {{maximumCodePoints}}）。"
+          "overLimit": "系统提示词超出应用限制。最大回退大小：{{maximumCodePoints}} 个 Unicode 码点。检测到：{{codePointCount}} 个 Unicode 码点（约 {{estimatedTokenCount}} 个令牌）。系统提示词策略约设计用于 {{maximumTokens}} 个令牌。请缩短提示词后继续。",
+          "warning": "系统提示词接近应用限制（{{estimatedTokenCount}} / {{maximumTokens}} 估算令牌；{{codePointCount}} / {{maximumCodePoints}} 个 Unicode 码点）。"
         }
       }
     },
@@ -4613,22 +4613,22 @@
       "notRequested": "尚未请求型号目录。",
       "loading": "正在加载模型目录...",
       "loaded": "已加载{{count}}个模型。",
-      "selectionUnavailable": "所选模型“ {{modelId}} ”不存在于当前目录 ( {{modelType}} ) 中。",
+      "selectionUnavailable": "所选模型“{{modelId}}”不在当前目录（{{modelType}}）中。",
       "cached": "使用{{timestamp}}中的缓存模型目录。",
       "loadFailed": "无法加载模型目录。"
     },
     "storage": {
-      "unavailable": "IndexedDB 不可用。当地的历史和媒体不会持续下去。",
+      "unavailable": "IndexedDB 不可用。本地历史记录和媒体将不会持久化。",
       "permissionsDetail": "禁用存储的浏览器模式。检查站点权限。",
-      "web": "Web 模式：记录保留在浏览器 IndexedDB 中（静态加密）。",
+      "web": "Web 模式：记录持久化存储于浏览器 IndexedDB 中（静态加密）。",
       "siteDataDetail": "清除站点数据将删除本地保管库。",
-      "desktop": "桌面 IndexedDB 可以访问。记录在静态时被加密。"
+      "desktop": "桌面版 IndexedDB 可访问。记录已静态加密。"
     },
     "project": {
       "allProjects": "所有项目模式均处于活动状态（无范围视图）。",
       "missing": "活动项目 ID 丢失或未知。商店将在下次互动时修复。",
-      "archived": "活动项目“ {{projectName}} ”已存档。切换到所有项目进行修复。",
-      "valid": "活动项目“ {{projectName}} ”有效。"
+      "archived": "活动项目“{{projectName}}”已归档。请切换到“所有项目”进行修复。",
+      "valid": "活动项目“{{projectName}}”有效。"
     },
     "safety": {
       "on": {

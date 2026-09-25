@@ -138,7 +138,7 @@
     "enhancementSafetyBlockedFamily": "प्रॉम्प्ट संवर्धन वैकल्पिक फ़ैमिली सेफ़ मोड द्वारा रोका गया। आपका मूल प्रॉम्प्ट रखा गया।",
     "enhancementSafetyBlockedProvider": "प्रॉम्प्ट संवर्धन प्रदाता नीति द्वारा रोका गया। आपका मूल प्रॉम्प्ट रखा गया।",
     "styleReferences": "शैली संदर्भ",
-    "styleReferenceHelp": "अधिकतम {{count}} PNG, JPEG या WebP संदर्भ चित्र जोड़ें। संदर्भ केवल उन मॉडलों को भेजे जाते हैं जो रनटाइम समर्थन घोषित करते हैं।",
+    "styleReferenceHelp": "अधिकतम {{count}} PNG, JPEG, या WebP संदर्भ छवियाँ जोड़ें। संदर्भ केवल उन मॉडलों को भेजे जाते हैं जो रनटाइम समर्थन का विज्ञापन करते हैं।",
     "addStyleReferenceImages": "शैली संदर्भ चित्र जोड़ें",
     "styleReferenceCount": "{{max}} में से {{count}} शैली संदर्भ चुने गए",
     "selectedStyleReferences": "चुने गए शैली संदर्भ",
@@ -148,7 +148,7 @@
     "styleReferenceLimitReached": "शैली संदर्भ सीमा पूरी हो गई",
     "styleReferenceLimitDetail": "यह मॉडल अधिकतम {{count}} शैली संदर्भ स्वीकार करता है।",
     "styleReferenceRejected": "शैली संदर्भ अस्वीकार किया गया",
-    "styleReferenceUnsupportedType": "PNG, JPEG या WebP चित्र चुनें।",
+    "styleReferenceUnsupportedType": "PNG, JPEG, या WebP छवि चुनें।",
     "styleReferenceEmptyFile": "चुना गया चित्र खाली है।",
     "styleReferenceReadFailed": "चुना गया चित्र पढ़ा नहीं जा सका।",
     "styleReferenceTooLarge": "शैली संदर्भ चित्र 8 MB से छोटे होने चाहिए।"
@@ -181,41 +181,41 @@
     }
   },
   "mediaStudioActions": {
-    "heading": "__MISSING__:mediaStudioActions.heading",
-    "upscale": "__MISSING__:mediaStudioActions.upscale",
-    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
-    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
-    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
-    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
-    "cancel": "__MISSING__:mediaStudioActions.cancel",
-    "retry": "__MISSING__:mediaStudioActions.retry",
-    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
-    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
-    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "heading": "छवि क्रियाएँ",
+    "upscale": "अपस्केल",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "पृष्ठभूमि हटाएँ",
+    "inpaint": "इनपेंट",
+    "cancel": "रद्द करें",
+    "retry": "पुनः प्रयास करें",
+    "done": "{{operation}} {{count}} एसेट(यों) के लिए पूर्ण हुआ",
+    "running": "{{operation}} {{name}} के लिए चल रहा है…",
+    "failed": "{{operation}} {{name}} के लिए विफल हुआ",
     "operationLabels": {
-      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
-      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
-      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+      "upscale": "अपस्केल",
+      "remove-background": "पृष्ठभूमि हटाना",
+      "inpaint": "इनपेंट"
     },
     "reason": {
-      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
-      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
-      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
-      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+      "requiresImage": "इस क्रिया के लिए एक छवि एसेट आवश्यक है",
+      "sourceUnavailable": "यह स्रोत एसेट अब स्थानीय रूप से उपलब्ध नहीं है",
+      "modelUnavailable": "चयनित मॉडल के लिए इनपेंटिंग उपलब्ध नहीं है",
+      "singleSelection": "इनपेंटिंग के लिए एक चयनित छवि आवश्यक है"
     },
     "editor": {
-      "title": "__MISSING__:mediaStudioActions.editor.title",
-      "description": "__MISSING__:mediaStudioActions.editor.description",
-      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
-      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
-      "undo": "__MISSING__:mediaStudioActions.editor.undo",
-      "clear": "__MISSING__:mediaStudioActions.editor.clear",
-      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
-      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
-      "submit": "__MISSING__:mediaStudioActions.editor.submit",
-      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
-      "success": "__MISSING__:mediaStudioActions.editor.success",
-      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+      "title": "इनपेंट — मास्क पेंट करें",
+      "description": "बदलने के लिए क्षेत्र पर पेंट करें, फिर परिवर्तन का वर्णन करें। मास्क और स्रोत छवि चयनित संपादन मॉडल को भेजी जाती है।",
+      "canvasLabel": "मास्क पेंटिंग कैनवास",
+      "brushSize": "ब्रश का आकार",
+      "undo": "पूर्ववत करें",
+      "clear": "साफ़ करें",
+      "promptLabel": "संपादन प्रॉम्प्ट (वैकल्पिक)",
+      "promptPlaceholder": "बताएँ कि पेंट किए गए क्षेत्र के अंदर क्या दिखाई देना चाहिए…",
+      "submit": "इनपेंट लागू करें",
+      "cancel": "रद्द करें",
+      "success": "इनपेंट की गई एसेट मीडिया स्टूडियो में सहेजी गई",
+      "loadFailed": "मास्किंग के लिए चयनित छवि लोड नहीं की जा सकी।"
     }
   }
 }

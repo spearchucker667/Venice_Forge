@@ -138,7 +138,7 @@
     "enhancementSafetyBlockedFamily": "La mejora del prompt se detuvo por el modo familiar seguro opcional. Se conservó tu prompt original.",
     "enhancementSafetyBlockedProvider": "La mejora del prompt se detuvo por la política del proveedor. Se conservó tu prompt original.",
     "styleReferences": "Referencias de estilo",
-    "styleReferenceHelp": "Añade hasta {{count}} imágenes de referencia PNG, JPEG o WebP. Las referencias solo se envían a modelos que anuncian compatibilidad en tiempo de ejecución.",
+    "styleReferenceHelp": "Añade hasta {{count}} imágenes de referencia PNG, JPEG o WebP. Las referencias se envían solo a modelos que anuncian compatibilidad en tiempo de ejecución.",
     "addStyleReferenceImages": "Añadir imágenes de referencia de estilo",
     "styleReferenceCount": "{{count}} de {{max}} referencias de estilo seleccionadas",
     "selectedStyleReferences": "Referencias de estilo seleccionadas",
@@ -181,41 +181,41 @@
     }
   },
   "mediaStudioActions": {
-    "heading": "__MISSING__:mediaStudioActions.heading",
-    "upscale": "__MISSING__:mediaStudioActions.upscale",
-    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
-    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
-    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
-    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
-    "cancel": "__MISSING__:mediaStudioActions.cancel",
-    "retry": "__MISSING__:mediaStudioActions.retry",
-    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
-    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
-    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "heading": "Operaciones de imagen",
+    "upscale": "Escalar",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "Eliminar fondo",
+    "inpaint": "Retoque",
+    "cancel": "Cancelar",
+    "retry": "Reintentar",
+    "done": "{{operation}} finalizada para {{count}} recurso(s)",
+    "running": "{{operation}} en curso para {{name}}…",
+    "failed": "{{operation}} fallida para {{name}}",
     "operationLabels": {
-      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
-      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
-      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+      "upscale": "Escalado",
+      "remove-background": "Eliminación de fondo",
+      "inpaint": "Retoque"
     },
     "reason": {
-      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
-      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
-      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
-      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+      "requiresImage": "Esta operación requiere un recurso de imagen",
+      "sourceUnavailable": "Este recurso de origen ya no está disponible localmente",
+      "modelUnavailable": "El retoque no está disponible para el modelo seleccionado",
+      "singleSelection": "El retoque requiere una sola imagen seleccionada"
     },
     "editor": {
-      "title": "__MISSING__:mediaStudioActions.editor.title",
-      "description": "__MISSING__:mediaStudioActions.editor.description",
-      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
-      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
-      "undo": "__MISSING__:mediaStudioActions.editor.undo",
-      "clear": "__MISSING__:mediaStudioActions.editor.clear",
-      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
-      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
-      "submit": "__MISSING__:mediaStudioActions.editor.submit",
-      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
-      "success": "__MISSING__:mediaStudioActions.editor.success",
-      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+      "title": "Retoque — pinta una máscara",
+      "description": "Pinta sobre el área a reemplazar y luego describe el cambio. La máscara y la imagen de origen se envían al modelo de edición seleccionado.",
+      "canvasLabel": "Lienzo de pintura de máscara",
+      "brushSize": "Tamaño del pincel",
+      "undo": "Deshacer",
+      "clear": "Limpiar",
+      "promptLabel": "Prompt de edición (opcional)",
+      "promptPlaceholder": "Describe qué debería aparecer dentro del área pintada…",
+      "submit": "Aplicar retoque",
+      "cancel": "Cancelar",
+      "success": "Recurso retocado guardado en Media Studio",
+      "loadFailed": "No se pudo cargar la imagen seleccionada para enmascarar."
     }
   }
 }

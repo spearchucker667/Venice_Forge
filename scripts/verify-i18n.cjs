@@ -181,6 +181,7 @@ const ALLOWLISTED_IDENTICAL = new Set([
 // here as a constant so the verifier remains self-documenting.
 const SENTINEL_PATTERN = /^\s*(?:\[[A-Za-z][A-Za-z-]{1,10}\]|Tr:)\s/;
 const MISSING_MARKER_PATTERN = /^\s*__MISSING__:/;
+const TRANSLATION_ARTIFACT_PATTERN = /\b(?:ZZXQ\s*\d+\s*QXZZ|ZXQPH\d+(?:ZX|QX)?|ZXQ)\b/i;
 
 /**
  * Detects key-name fallback placeholders such as
@@ -439,6 +440,10 @@ function runVerification({
               `Locale '${locale}' key '${ns}:${k}' is not a string (got ${typeof locVal})`,
             );
             continue;
+          }
+
+          if (TRANSLATION_ARTIFACT_PATTERN.test(locVal)) {
+            errors.push(`Locale '${locale}' key '${ns}:${k}' contains a translation artifact marker.`);
           }
 
           // Sentinel check (rejects the false-green artefact)

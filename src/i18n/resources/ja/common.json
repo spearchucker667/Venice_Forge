@@ -165,10 +165,10 @@
         "safetyGuardAudit": "安全ガード監査",
         "lastRequest": "最後のリクエスト",
         "mediaClassifierCapabilities": "メディア分類器の機能",
-        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
-        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
-        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
-        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
+        "safetyRuntime": "セーフティランタイム",
+        "structuralValidation": "構造 / プロトコル検証",
+        "mediaClassifierBackend": "メディア分類器バックエンド",
+        "classifierCounters": "分類器カウンター"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "現在のビルドの集約されたランタイム情報。",
@@ -197,33 +197,33 @@
         "protectionItemImageBytes": "画像バイト（セマンティック）: 未分類",
         "protectionItemAudioBytes": "音声バイト（セマンティック）: 未分類",
         "protectionItemVideoBytes": "動画バイト（セマンティック）: 未分類",
-        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
-        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
-        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
-        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
-        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
-        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
-        "source": "__MISSING__:surface.componentsStatusview.text.source",
-        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
-        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
-        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
-        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
-        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
-        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
-        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
-        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
-        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
-        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
-        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
-        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
-        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
-        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
-        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
-        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
-        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
-        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
-        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
-        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
+        "localContentSafeguards": "ローカルコンテンツ保護",
+        "providerSafety": "プロバイダーセーフティ (Venice safe_mode)",
+        "stateEnabled": "有効",
+        "stateDisabled": "無効",
+        "stateOn": "オン",
+        "stateOff": "オフ",
+        "source": "ソース",
+        "sourceUser": "ユーザー",
+        "sourceServer": "サーバー",
+        "sourcePolicy": "ポリシー",
+        "validationActive": "アクティブ",
+        "requestsValidated": "検証されたリクエスト",
+        "rejectedRequests": "拒否されたリクエスト",
+        "backendRegistered": "登録済みバックエンド",
+        "backendName": "バックエンド名",
+        "classifierStateAvailable": "利用可能",
+        "classifierStateNotConfigured": "未設定",
+        "classifierStateUnsupported": "非対応",
+        "classifierStateUnhealthy": "バックエンド異常",
+        "counterTextEvaluations": "テキスト評価",
+        "counterImageEvaluations": "画像評価",
+        "counterAudioEvaluations": "音声評価",
+        "counterVideoEvaluations": "動画評価",
+        "counterBlocked": "ブロック",
+        "counterAllowed": "許可",
+        "counterSkippedDisabled": "スキップ (保護機能無効)",
+        "counterErrors": "エラー"
       }
     },
     "componentsThememaker": {
@@ -246,7 +246,7 @@
       "heading": {
         "themeSystemEditor": "テーマ システムとエディタ",
         "importThemePreview": "テーマ プレビューをインポート",
-        "codeAndSyntax": "Code & Syntax"
+        "codeAndSyntax": "コード & シンタックス"
       },
       "description": {
         "configureThemeColorsBorderContrastFocusRings": "Venice Forge 全体でテーマの色、境界線のコントラスト、フォーカス リング、およびアクション ボタンのスタイルを構成します。",
@@ -254,7 +254,7 @@
       },
       "label": {
         "selectActiveTheme": "アクティブなテーマの選択",
-        "syntaxPreset": "Syntax preset"
+        "syntaxPreset": "シンタックスプリセット"
       },
       "text": {
         "unsavedDraftChanges": "未保存の下書き変更",
@@ -269,39 +269,39 @@
         "id": "ID:"
       },
       "codeToken": {
-        "background": "Code background",
-        "foreground": "Code foreground",
-        "border": "Code border",
+        "background": "コード背景",
+        "foreground": "コード前景",
+        "border": "コード境界",
         "headerBackground": "Header background",
-        "headerForeground": "Header foreground",
-        "inlineBackground": "Inline background",
-        "inlineForeground": "Inline foreground",
-        "selectionBackground": "Selection background",
-        "comment": "Comment",
-        "punctuation": "Punctuation",
-        "property": "Property",
+        "headerForeground": "ヘッダーの前景",
+        "inlineBackground": "インラインの背景",
+        "inlineForeground": "インラインの前景",
+        "selectionBackground": "選択範囲の背景",
+        "comment": "コメント",
+        "punctuation": "句読点",
+        "property": "プロパティ",
         "tag": "Tag",
-        "boolean": "Boolean",
-        "number": "Number",
-        "constant": "Constant",
-        "symbol": "Symbol",
-        "deleted": "Deleted",
-        "selector": "Selector",
-        "attribute": "Attribute",
-        "string": "String",
-        "character": "Character",
-        "builtin": "Builtin",
-        "inserted": "Inserted",
-        "operator": "Operator",
-        "entity": "Entity",
+        "boolean": "ブール値",
+        "number": "数値",
+        "constant": "定数",
+        "symbol": "シンボル",
+        "deleted": "削除済み",
+        "selector": "セレクター",
+        "attribute": "属性",
+        "string": "文字列",
+        "character": "文字",
+        "builtin": "組み込み",
+        "inserted": "挿入済み",
+        "operator": "演算子",
+        "entity": "エンティティ",
         "url": "URL",
-        "atRule": "At-rule",
-        "keyword": "Keyword",
-        "function": "Function",
-        "className": "Class / Type",
-        "regex": "Regex",
-        "important": "Important",
-        "variable": "Variable"
+        "atRule": "Atルール",
+        "keyword": "キーワード",
+        "function": "関数",
+        "className": "クラス / 型",
+        "regex": "正規表現",
+        "important": "重要",
+        "variable": "変数"
       }
     },
     "componentsThemepreview": {
@@ -317,7 +317,7 @@
         "focusedControl": "フォーカスされたコントロール",
         "alertMessageBoundary": "警告メッセージ境界",
         "contrastWarnings": "コントラスト警告:",
-        "syntaxPreview": "Syntax preview"
+        "syntaxPreview": "構文プレビュー"
       }
     },
     "componentsAudioAudioView": {
@@ -583,7 +583,7 @@
         "selected": "選択済み",
         "chattingAs": "このメッセージに添付された",
         "usesCharacterSystemPrompt": "キャラクターのシステムプロンプトを使用しています。ホスト型およびローカルのキャラクターチャットでは、ユーザー指定のシステムプロンプトはバイパスされます。",
-        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
+        "useVeniceDefaultSystemPrompt": "Venice のデフォルトのシステムプロンプトを使用"
       },
       "label": {
         "systemPromptMode": "システム プロンプト モード"
@@ -630,7 +630,7 @@
         "loadFromLibrary": "ライブラリからの読み込み..."
       },
       "text": {
-        "approachingSystemPromptSizeLimit": "システムプロンプトのサイズ: 推定トークン {{estimatedTokenCount}} / {{maximumTokens}}、Unicode コードポイント {{codePointCount}} / {{maximumCodePoints}}。"
+        "approachingSystemPromptSizeLimit": "システムプロンプトのサイズ: {{estimatedTokenCount}} / {{maximumTokens}} 推定トークン; {{codePointCount}} / {{maximumCodePoints}} Unicode コードポイント。"
       }
     },
     "componentsDocumentsDocumentagentview": {
@@ -1308,7 +1308,7 @@
         "tags": "タグ",
         "personality": "性格",
         "systemPrompt": "システム プロンプト",
-        "approachingSystemPromptSizeLimit": "システムプロンプトのサイズ: 推定トークン {{estimatedTokenCount}} / {{maximumTokens}}、Unicode コードポイント {{codePointCount}} / {{maximumCodePoints}}。",
+        "approachingSystemPromptSizeLimit": "システムプロンプトのサイズ: {{estimatedTokenCount}} / {{maximumTokens}} 推定トークン; {{codePointCount}} / {{maximumCodePoints}} Unicode コードポイント。",
         "postHistoryInstructions": "履歴後の指示",
         "instructions": "指示",
         "firstMessagePrimaryGreeting": "最初のメッセージ (主挨拶)",
@@ -1394,7 +1394,7 @@
         "prompt": "プロンプト:",
         "reApplyTo": "再適用",
         "savingCharacter": "キャラクターの保存…",
-        "estimatedSystemPromptTokens": "推定トークン {{estimatedTokenCount}} / {{maximumTokens}}"
+        "estimatedSystemPromptTokens": "{{estimatedTokenCount}} / {{maximumTokens}} 推定トークン"
       },
       "action": {
         "remove": "削除",
@@ -1687,7 +1687,7 @@
         "discoveredProfileCandidates": "検出されたプロファイル候補"
       },
       "description": {
-        "aggregatesSocialProfileMappingsFromPublicDatabases": "Venice Web 統合を使用してパブリック データベース (GitHub、Twitter、LinkedIn など) からソーシャル プロファイル マッピングを集約します。"
+        "aggregatesSocialProfileMappingsFromPublicDatabases": "Venice ウェブ統合を使用して、公開データベース（GitHub、Twitter、LinkedIn など）からソーシャルプロファイルのマッピングを集約します。"
       },
       "label": {
         "platformsToSearch": "検索するプラットフォーム"
@@ -2120,18 +2120,18 @@
     "writing-bug-report": "オープンソース プロジェクトでバグ レポートの完全なテンプレートを作成し、迅速な解決を促進します。",
     "writing-refusal-letter": "将来のコラボレーションへの扉を開いたままにしつつ、ベンダーの提案を拒否する専門的な対応の草案を作成します。",
     "writing-haiku-comp": "アナログ ハードウェアから量子計算への移行を捉えた 3 つの俳句を作成します。",
-    "coding-rest-graphql": "REST と GraphQL を比較してください — それぞれが優れているのはいつでしょうか?",
-    "coding-debounce-ts": "即時呼び出しをサポートする、React 用の堅牢な完全に型指定されたデバウンス フックを TypeScript で作成します。",
+    "coding-rest-graphql": "RESTとGraphQLを比較してください — それぞれはどのような場合に威力を発揮しますか？",
+    "coding-debounce-ts": "即時実行をサポートする、React用のTypeScriptで完全に型付けされた堅牢なデバウンスフックを記述してください。",
     "coding-sql-recursive": "組織階層のクエリの例を使用して、SQL で再帰的 CTE がどのように機能するかを説明します。",
     "coding-refactor-lru": "シンプルな Node.js メモリ キャッシュを、有効期限をサポートするスレッドセーフな LRU キャッシュにリファクタリングします。",
     "coding-rust-error": "「thiserror」クレートと「anyhow」クレートを使用して、Rust でカスタム エラー処理を実装する方法を示します。",
     "coding-git-bisect": "「git bisect」を使用して回帰コミットを見つける方法 (自動スクリプト実行など) を説明します。",
-    "coding-docker-multi": "TypeScript Node.js マイクロサービスをパッケージ化するための、最小限で安全なマルチステージ Dockerfile を作成します。",
+    "coding-docker-multi": "TypeScriptのNode.jsマイクロサービスをパッケージ化するための、最小限で安全なマルチステージDockerfileを作成してください。",
     "coding-csp-rules": "ローカル WASM の実行は許可するがインライン評価をブロックする、厳格なコンテンツ セキュリティ ポリシー (CSP) ヘッダー構成を作成します。",
     "coding-vitest-mocking": "Vitest でグローバル ウィンドウ オブジェクトと非同期フェッチ呼び出しをモックする方法を示します。",
     "coding-css-flex-grid": "CSS グリッド レイアウトとフレックスボックス レイアウトのアーキテクチャの違いを、それぞれの具体的なレイアウトの使用例とともに説明します。",
-    "coding-sse-parse": "外部依存関係を持たないバニラ JavaScript で Server-Sent Events (SSE) 用のストリーム パーサーを作成する方法を示します。",
-    "coding-indexeddb-transaction": "ブラウザネイティブの IndexedDB での堅牢なトランザクション管理とエラー ロールバックの例を示します。",
+    "coding-sse-parse": "外部依存関係のないバニラJavaScriptで、Server-Sent Events (SSE)のストリームパーサーを記述する方法を示してください。",
+    "coding-indexeddb-transaction": "ブラウザネイティブのIndexedDBにおける、堅牢なトランザクション管理とエラーロールバックの例を提示してください。",
     "learning-rsa-metaphor": "10 歳児でも理解できる比喩を使用して、RSA 暗号化がどのように機能するかを説明します。",
     "learning-pid-controller": "PID 温度コントローラーの背後にある数学をシンプルかつ直感的な言葉で説明します。",
     "learning-monad-metaphor": "関数型プログラミングにおけるモナドとは何かを、現実世界の日常的な例えを使って説明します。",
@@ -2177,20 +2177,20 @@
     "productivity-markdown-journal": "毎日の目標、阻害要因、感謝の気持ちを追跡するのに役立つ、軽量の日次マークダウン ジャーナリング プロンプト システムを設計します。",
     "productivity-inbox-zero": "自動ラベルとキーボード ショートカットを使用して、受信トレイ ゼロを達成および維持するための段階的なシステムの草案を作成します。",
     "productivity-postmortem": "重大な実稼働停止後のソフトウェア事後分析を作成するための標準テンプレートを作成します。",
-    "productivity-learning-sprint": "Rust WebAssembly コンパイルの基礎をマスターするための 4 週間の学習スプリント計画の概要を説明します。",
+    "productivity-learning-sprint": "RustのWebAssemblyコンパイルの基礎を習得するための4週間の学習スプリント計画を概説してください。",
     "productivity-presentation-deck": "地元の LLM クライアントへのシード資金を確保するための 10 分間のプレゼンテーション ピッチのスライドごとの構成の草案を作成します。",
     "productivity-dependency-audit": "実稼働コード リポジトリ内のオープンソース ライブラリの依存関係を毎月監査するためのアクション プランを作成します。",
     "analysis-p2p-mesh": "高密度の都市部に分散型ピアツーピア メッシュ ネットワークを展開する SWOT 分析を実施します。",
-    "analysis-sqlite-pg": "同期機能を備えたオフラインファーストのデスクトップ アプリケーションについて、SQLite と PostgreSQL のアーキテクチャ上のトレードオフを比較します。",
+    "analysis-sqlite-pg": "同期機能を持つオフラインファーストのデスクトップアプリケーションにおける、SQLiteとPostgreSQLのアーキテクチャ上のトレードオフを比較してください。",
     "analysis-fallacy-media": "現代のメディア報道に見られる 5 つの一般的な論理的誤謬を挙げ、それらを見つける方法に関するガイドラインを提供します。",
     "analysis-cloud-vs-local": "クラウドホスト型サーバーレスコンピューティングとセルフホスト型ベアメタルサーバーの長期的な費用対効果のトレードオフを分析します。",
     "analysis-electron-tauri": "メモリ フットプリント、ビルド サイズ、セキュリティ モデルの観点から、Electron と Tauri の詳細な比較分析を実行します。",
     "analysis-monolith-micro": "成長中のスタートアップ企業がいつモノリスからマイクロサービス アーキテクチャに移行すべきかを示す主要な指標を特定します。",
     "analysis-privacy-shield": "ログ記録とテレメトリの実践に対する GDPR コンプライアンス要件の法的および技術的影響を分析します。",
     "analysis-rsa-vs-ecc": "キーのサイズと署名速度に関して、RSA と楕円曲線暗号 (ECC) の比較技術分析を実行します。",
-    "analysis-dns-over-https": "DNS-over-HTTPS (DoH) を採用することによるプライバシーの利点とネットワーク パフォーマンスのトレードオフを分析します。",
+    "analysis-dns-over-https": "DNS-over-HTTPS (DoH)の導入によるプライバシー上の利点と、ネットワークパフォーマンスのトレードオフを分析してください。",
     "analysis-open-licensing": "MIT ライセンスと GPLv3 ライセンスの法的条件、コピーレフトの性質、商用利用許可を比較します。",
-    "analysis-ci-caching": "GitHub Actions CI パイプラインのキャッシュ戦略から得られるビルド時間の最適化を分析します。",
+    "analysis-ci-caching": "GitHub ActionsのCIパイプラインにおけるキャッシュ戦略から得られるビルド時間の最適化を分析してください。",
     "analysis-work-automation": "AI 自律エージェント ワークフローが管理チームの生産性とリソース需要に与える予想される影響を評価します。",
     "image-serene-mountain": "黄金色の静かな山の湖、水の上の低い霧、絵画のように",
     "image-dewdrop-spiderweb": "クモの巣上の露のマクロ写真、日の出の照明",
@@ -2352,7 +2352,7 @@
           "forgeDaylight": "フォージデイライト",
           "forgeCopper": "銅を鍛造する",
           "forgeDracula": "ドラキュラを鍛造する",
-          "gruvboxDark": "GruvBox ダーク",
+          "gruvboxDark": "GruvBoxダーク",
           "rosepine": "ローズパイン",
           "forgeNord": "ノルドを鍛造する",
           "forgeTokyo": "フォージ東京",
@@ -2361,7 +2361,7 @@
           "forgeSolarizedLight": "ソラライズドライトを鍛造する",
           "forgeOneDark": "フォージ・ワン・ダーク",
           "forgeMonokai": "モノカイを鍛える",
-          "forgeGithubLight": "GitHub ライトを鍛造する",
+          "forgeGithubLight": "Forge GitHubライト",
           "obsidianBloom": "オブシディアンブルーム",
           "harborFog": "ハーバーフォグ",
           "circuitMint": "サーキットミント",
@@ -2499,12 +2499,12 @@
             "analyzingImage": "画像の解析"
           },
           "error": {
-            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
-            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
-            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
-            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
-            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
-            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
+            "modelUnavailable": "Character Creatorモデルは一時的に利用できません。数分後に再試行してください。",
+            "requestCancelled": "生成はキャンセルされました。",
+            "invalidModelResponse": "モデルが使用できない応答を返しました。再試行してください。",
+            "schemaRepairFailed": "生成されたキャラクターカードは検証に失敗し、修復できませんでした。再試行してください。",
+            "transportFailed": "Venice APIに到達できませんでした。接続を確認して、再試行してください。",
+            "providerHttp": "Venice APIが生成リクエストを拒否しました。後でもう一度お試しください。"
           },
           "notification": {
             "couldNotLoadDraft": "ドラフトをロードできませんでした",
@@ -2550,7 +2550,7 @@
       "characters": {
         "characteravatar": {
           "attribute": {
-            "displaynameAvatar": "{{displayName}}アバター"
+            "displaynameAvatar": "{{displayName}}のアバター"
           }
         }
       },
@@ -2575,7 +2575,7 @@
             "localCharacter": "ご当地キャラクター",
             "localCharacter2": "ご当地キャラクター",
             "noLocalCharactersCreatedYet": "ご当地キャラクターはまだ作成されていません。",
-            "noCharactersMatchPickerquery": "「 {{pickerQuery}} 」に一致する文字はありません。"
+            "noCharactersMatchPickerquery": "\"{{pickerQuery}}\"に一致するキャラクターはありません。"
           }
         },
         "characterscenecard": {
@@ -2603,7 +2603,7 @@
             "conversationRestored": "会話が復元されました",
             "failedToRestore": "復元に失敗しました",
             "movedConversations": "移動された会話",
-            "movedValue1ConversationValue2ToTargetname": "{{value1}}会話{{value2}}を{{targetName}}に移動しました。",
+            "movedValue1ConversationValue2ToTargetname": "{{value1}}件の会話{{value2}}を{{targetName}}に移動しました。",
             "failedToMoveConversations": "会話を移動できませんでした",
             "conversationsDeleted": "会話が削除されました",
             "value1SelectedConversationValue2Removed": "{{value1}}で選択された会話{{value2}}が削除されました。",
@@ -2648,16 +2648,16 @@
           "text": {
             "deselectAllVisible": "表示されているすべての選択を解除します",
             "selectAllVisible": "表示されているものをすべて選択します",
-            "folderselectedcountSelected": "· {{folderSelectedCount}}が選択されました",
+            "folderselectedcountSelected": " · {{folderSelectedCount}}件選択",
             "selected": "選択済み",
             "select": "選択",
-            "unfiledselectedcountSelected": "· {{unfiledSelectedCount}}が選択されました"
+            "unfiledselectedcountSelected": " · {{unfiledSelectedCount}}件選択"
           }
         },
         "chatView": {
           "notification": {
             "modelUnavailable": "モデルが利用できません",
-            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "以前に選択したモデルは使用できません。このチャットでは{{resolvedDefault}}が使用されるようになりました。",
+            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "以前に選択されたモデルは利用できません。このチャットは現在{{resolvedDefault}}を使用しています。",
             "priorContextSkipped": "前のコンテキストがスキップされました",
             "factPermanentlyForgotten": "事実は永久に忘れ去られる。",
             "failedToForgetFact": "事実を忘れることができなかった"
@@ -2666,7 +2666,7 @@
             "forgetThisFact": "この事実を忘れていますか？",
             "deleteFromHere": "ここから削除しますか？",
             "removedFromChat": "チャットから削除されました",
-            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}}は Media Studio に残ります。再度接続するには、「元に戻す」をクリックします。",
+            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}}はMedia Studioに残ります。再アタッチするには、「元に戻す」をクリックしてください。",
             "undo": "元に戻す",
             "regenerateFromHere": "ここから復活？"
           },
@@ -2779,7 +2779,7 @@
         "compareView": {
           "text": {
             "allSharedFieldsMatch": "すべての共有フィールドが一致します",
-            "changedcountFieldValue2Differ": "{{changedCount}}フィールド{{value2}}が異なります"
+            "changedcountFieldValue2Differ": "{{changedCount}}個のフィールド{{value2}}が異なります"
           },
           "attribute": {
             "closeCompareView": "比較ビューを閉じる"
@@ -2838,7 +2838,7 @@
             "taggedValue1OfValue2": "{{value1}} {{value2}}をタグ付けしました",
             "taggedValue1ItemValue2": "{{value1}}アイテム{{value2}}のタグ付け",
             "enterATagFirst": "最初にタグを入力します。",
-            "assignedValue1OfValue2Firstreason": "{{value1}}の{{value2}} } が割り当てられました ( {{firstReason}} )",
+            "assignedValue1OfValue2Firstreason": "{{value2}}件中{{value1}}件を割り当てました ({{firstReason}})",
             "assignedValue1ItemValue2": "{{value1}}アイテム{{value2}}が割り当てられました",
             "selectAtLeastOneMediaItem": "少なくとも 1 つのメディア アイテムを選択します。",
             "loadedSettingsIntoImageStudio": "Image Studio に設定をロードしました",
@@ -2965,8 +2965,8 @@
             "thisItemReferencesRecordsThatNoLongerExistClearThe": "この項目は、もう存在しないレコードを参照しています。古いポインタをクリアしてリネージを修復します。",
             "thisItemSParentRecordIsMissingClearTheParent": "この項目の親レコードがありません。親リンクをクリアして系統を修復します。",
             "value1ChildValue2CouldNotBeResolvedClearTheStale": "{{value1}}の子{{value2}}を解決できませんでした。リネージを修復するには、古いポインタ{{value3}}をクリアします。",
-            "childrenidsValue1": "ChildrenIds: {{value1}}",
-            "childrenidsValue1Missing": "ChildrenIds: {{value1}}がありません",
+            "childrenidsValue1": "childrenIds: {{value1}}",
+            "childrenidsValue1Missing": "childrenIds: {{value1}}が見つかりません",
             "value1MissingRef": "1 つの参照がありません",
             "value1MissingRefs": "{{value1}}個の参照がありません"
           }
@@ -3010,7 +3010,7 @@
           },
           "text": {
             "identical": "同一",
-            "changedcountFieldValue2WillChange": "{{changedCount}}フィールド{{value2}}が変更されます"
+            "changedcountFieldValue2WillChange": "{{changedCount}}個のフィールド{{value2}}が変更されます"
           },
           "metadata": {
             "model": "モデル",
@@ -3427,7 +3427,7 @@
         "charactereditor": {
           "notification": {
             "fileLoadedSourced": "ファイルのロードとソース",
-            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "「 {{value1}} 」を{{fieldLabel}}にロードし、キャラクター ファイル内に保存しました。",
+            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "\"{{value1}}\"を{{fieldLabel}}に読み込み、キャラクターファイル内に保存しました。",
             "reAppliedSourcedFile": "ソースファイルを再適用しました",
             "reLoadedValue1ContentIntoValue2": "「 {{value1}} 」のコンテンツを{{value2}}に再ロードしました。",
             "workflowCreated": "ワークフローが作成されました",
@@ -3484,7 +3484,7 @@
             "moveExampleValue1Up": "例{{value1}}を上に移動します",
             "moveExampleValue1Down": "例{{value1}}を下に移動します",
             "removeExample": "例を削除",
-            "losslessSillytavernMesExampleCompatibilityText": "Lossless SillyTavern mes_example 互換性テキスト",
+            "losslessSillytavernMesExampleCompatibilityText": "ロスレスSillyTavern mes_example互換テキスト",
             "urlScrapingProvider": "URLスクレイピングプロバイダー",
             "temperature": "温度",
             "topP": "トップP",
@@ -3864,7 +3864,7 @@
             "couldNotCopySafeDiagnostics": "安全な診断をコピーできませんでした",
             "diagnosticsRefreshed": "診断が更新されました",
             "diagnosticsRefreshFailed": "診断の更新に失敗しました",
-            "livecountLiveModelsRefreshed": "{{liveCount}}個のライブ モデルが更新されました"
+            "livecountLiveModelsRefreshed": "{{liveCount}}個のライブモデルが更新されました"
           },
           "attribute": {
             "diagnostics": "診断",
@@ -4038,7 +4038,7 @@
       "useDataStorageActions": {
         "metadata": {
           "clearLocalSettings": "ローカル設定をクリアしますか?",
-          "deleteAllIndexeddbHistory": "IndexedDB の履歴をすべて削除しますか?"
+          "deleteAllIndexeddbHistory": "すべてのIndexedDB履歴を削除しますか？"
         },
         "notification": {
           "localSettingsCleared": "ローカル設定がクリアされました。",
@@ -4149,7 +4149,7 @@
       "backupimportservice": {
         "metadata": {
           "legacyVersion2BackupAuthenticatedSourceCryptoContentCountAnd": "レガシー バージョン 2 のバックアップ: 認証されたソース、暗号化、コンテンツ数、および除外メタデータは利用できません。",
-          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "バックアップ アプリのバージョン{{value1}}はこのアプリのバージョン{{appVersion}}とは異なります。",
+          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "バックアップのアプリバージョン{{value1}}はこのアプリのバージョン{{appVersion}}と異なります。",
           "thisBackupIncludesMediaRecords": "このバックアップにはメディア レコードが含まれます。",
           "excludedByDesignValue1": "設計により除外されています: {{value1}} 。"
         }
@@ -4162,7 +4162,7 @@
             "extensionDataExceededTheMaximumDepth": "拡張データが最大深度を超えました。",
             "nonJsonExtensionValueWasRemoved": "非 JSON 拡張子の値が削除されました。",
             "unsafeObjectKeyWasRemoved": "安全でないオブジェクト キーが削除されました。",
-            "extensionDataExceededThe1MibLimit": "拡張データが 1 MiB 制限を超えました。",
+            "extensionDataExceededThe1MibLimit": "拡張データが1 MiBの制限を超えました。",
             "onlyTheFirstMaxLorebookEntriesCharacterBookEntriesWere": "最初の{{MAX_LOREBOOK_ENTRIES}}キャラクターブック エントリのみが保存されました。",
             "onlyCharacterCardV2SpecVersion20IsSupported": "Character Card V2 仕様バージョン 2.0 のみがサポートされています。",
             "keyMustBeAString": "{{key}}文字列である必要があります。",
@@ -4178,10 +4178,10 @@
       "chatpromptcompiler": {
         "metadata": {
           "contextTruncated": "コンテキストが切り詰められました",
-          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "コンテキストの制限内に収まるように、古い{{removedCount}}個の{{turnWord}}を削除しました。新しいチャットを開始するか、より大きなコンテキスト ウィンドウを持つモデルを使用して、完全な履歴を保存します。",
+          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "コンテキスト制限内に収めるため、古い{{turnWord}}を{{removedCount}}個削除しました。完全な履歴を保持するには、新しいチャットを開始するか、より大きなコンテキストウィンドウを持つモデルを使用してください。",
           "theConversationRequiresValue1TokensButOnlyValue2AreAvailable": "会話には ~ {{value1}}個のトークンが必要ですが、出力トークンを予約した後に使用できるのは{{value2}}のみです。",
           "thisRequestReservesValue1OutputTokensSoTheCustomPrompt": "このリクエストは、カスタム プロンプトと現在の会話が選択したモデルに適合するように{{value1}}出力トークンを予約します。",
-          "estkKOfTotalkKEstimatedTokensAreInUse": "{{estK}} K 個の推定トークン中{{totalK}} K 個が使用中です。"
+          "estkKOfTotalkKEstimatedTokensAreInUse": "推定トークンの{{estK}}K / {{totalK}}Kが使用中です。"
         }
       },
       "chatstorage": {
@@ -4502,7 +4502,7 @@
           "value1DoesNotSupportAStylePresetValueWillBe": "{{value1}}はスタイル プリセットをサポートしていません。値は削除されます。",
           "value1UsesPixelSizingAspectRatioWillBeDropped": "{{value1}}はピクセル サイズ設定を使用します。アスペクト比は低下します。",
           "value1DoesNotSupportAResolutionPresetValueWillBe": "{{value1}}は解像度プリセットをサポートしていません。値は削除されます。",
-          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "ディメンション{{originalPair}}はサポートされていません。デフォルトは{{finalPair}}です。",
+          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "ディメンション{{originalPair}}はサポートされていません — {{finalPair}}にデフォルト設定されました。",
           "aspectRatioValue1IsNotSupportedDefaultedToValue2": "アスペクト比「 {{value1}} 」はサポートされていません。デフォルトは{{value2}}です。",
           "resolutionValue1IsNotSupportedDefaultedToValue2": "解像度「 {{value1}} 」はサポートされていません。デフォルトは{{value2}}です。"
         }
@@ -4525,8 +4525,8 @@
           "searchGroundedAndFastLlmApis": "検索ベースの高速 LLM API。",
           "cohereEnterpriseReadyMultilingualModels": "エンタープライズ向け多言語モデル。",
           "huggingFaceOpenSourceInferenceProviders": "Hugging Face Inference Providers 経由のオープンソースモデル推論。",
-          "azureOpenAiDeploymentBasedChatCompletions": "Azure OpenAI デプロイベースのチャット補完。",
-          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle の OpenAI 互換推論。",
+          "azureOpenAiDeploymentBasedChatCompletions": "Azure OpenAI デプロイメントベースのチャット補完。",
+          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle OpenAI互換推論。",
           "googleVertexAiExpressModeApiKey": "Google Vertex AI Express モード（API キー認証）。"
         }
       }
@@ -4568,8 +4568,8 @@
       },
       "promptLimits": {
         "notification": {
-          "overLimit": "システムプロンプトがアプリケーションの上限を超えています。フォールバックの最大サイズ: {{maximumCodePoints}} Unicode コードポイント。検出値: {{codePointCount}} Unicode コードポイント（推定 {{estimatedTokenCount}} トークン）。ポリシーは約 {{maximumTokens}} トークン向けに設計されています。続行する前にプロンプトを短くしてください。",
-          "warning": "システムプロンプトがアプリケーションの上限に近づいています（推定トークン {{estimatedTokenCount}} / {{maximumTokens}}、Unicode コードポイント {{codePointCount}} / {{maximumCodePoints}}）。"
+          "overLimit": "システムプロンプトがアプリケーションの制限を超えています。最大フォールバックサイズ: {{maximumCodePoints}} Unicodeコードポイント。検出: {{codePointCount}} Unicodeコードポイント（推定{{estimatedTokenCount}}トークン）。システムプロンプトポリシーは約{{maximumTokens}}トークン向けに設計されています。続行する前にプロンプトを短縮してください。",
+          "warning": "システムプロンプトがアプリケーションの制限に近づいています（推定トークン{{estimatedTokenCount}} / {{maximumTokens}}；Unicodeコードポイント{{codePointCount}} / {{maximumCodePoints}}）。"
         }
       }
     },
@@ -4613,22 +4613,22 @@
       "notRequested": "モデルカタログはリクエストされていません。",
       "loading": "モデルカタログをロード中…",
       "loaded": "{{count}}個のモデルがロードされました。",
-      "selectionUnavailable": "選択したモデル「 {{modelId}} 」は現在のカタログ ( {{modelType}} ) に存在しません。",
+      "selectionUnavailable": "選択されたモデル「{{modelId}}」は現在のカタログに存在しません（{{modelType}}）。",
       "cached": "{{timestamp}}からキャッシュされたモデル カタログを使用します。",
       "loadFailed": "モデルカタログをロードできませんでした。"
     },
     "storage": {
-      "unavailable": "IndexedDB は使用できません。地元の歴史もメディアも存続しないだろう。",
+      "unavailable": "IndexedDBが利用できません。ローカル履歴とメディアは保存されません。",
       "permissionsDetail": "ストレージが無効になっているブラウザ モード。サイトの権限を確認してください。",
-      "web": "Web モード: レコードはブラウザーの IndexedDB に保持されます (保管時に暗号化されます)。",
+      "web": "Webモード: レコードはブラウザのIndexedDBに保存されます（保管時暗号化）。",
       "siteDataDetail": "サイトのデータを消去すると、ローカルの保管庫も消去されます。",
-      "desktop": "デスクトップ IndexedDB にアクセス可能です。レコードは保存時に暗号化されます。"
+      "desktop": "デスクトップのIndexedDBにアクセス可能です。レコードは保管時に暗号化されます。"
     },
     "project": {
       "allProjects": "すべてのプロジェクト モードがアクティブです (範囲指定されていないビュー)。",
       "missing": "アクティブなプロジェクト ID が見つからないか不明です。次回のやり取りでストアが修理します。",
-      "archived": "アクティブなプロジェクト「 {{projectName}} 」がアーカイブされています。修復するには「すべてのプロジェクト」に切り替えます。",
-      "valid": "アクティブなプロジェクト「 {{projectName}} 」は有効です。"
+      "archived": "アクティブプロジェクト「{{projectName}}」はアーカイブされています。修復するには「すべてのプロジェクト」に切り替えてください。",
+      "valid": "アクティブプロジェクト「{{projectName}}」は有効です。"
     },
     "safety": {
       "on": {

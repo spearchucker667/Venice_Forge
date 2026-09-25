@@ -165,10 +165,10 @@
         "safetyGuardAudit": "सुरक्षा गार्ड ऑडिट",
         "lastRequest": "अंतिम अनुरोध",
         "mediaClassifierCapabilities": "मीडिया वर्गीकरण क्षमताएं",
-        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
-        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
-        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
-        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
+        "safetyRuntime": "सुरक्षा रनटाइम",
+        "structuralValidation": "संरचनात्मक / प्रोटोकॉल सत्यापन",
+        "mediaClassifierBackend": "मीडिया वर्गीकारक बैकएंड",
+        "classifierCounters": "वर्गीकारक काउंटर"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "वर्तमान निर्माण के लिए एकत्रित रनटाइम जानकारी। विस्तृत कंसोल आउटपुट का निरीक्षण करने के लिए",
@@ -197,33 +197,33 @@
         "protectionItemImageBytes": "छवि बाइट्स (अर्थ संबंधी): वर्गीकृत नहीं",
         "protectionItemAudioBytes": "ऑडियो बाइट्स (अर्थ संबंधी): वर्गीकृत नहीं",
         "protectionItemVideoBytes": "वीडियो बाइट्स (अर्थ संबंधी): वर्गीकृत नहीं",
-        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
-        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
-        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
-        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
-        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
-        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
-        "source": "__MISSING__:surface.componentsStatusview.text.source",
-        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
-        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
-        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
-        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
-        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
-        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
-        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
-        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
-        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
-        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
-        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
-        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
-        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
-        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
-        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
-        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
-        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
-        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
-        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
-        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
+        "localContentSafeguards": "स्थानीय सामग्री सुरक्षा उपाय",
+        "providerSafety": "प्रदाता सुरक्षा (Venice safe_mode)",
+        "stateEnabled": "सक्षम",
+        "stateDisabled": "अक्षम",
+        "stateOn": "चालू",
+        "stateOff": "बंद",
+        "source": "स्रोत",
+        "sourceUser": "उपयोगकर्ता",
+        "sourceServer": "सर्वर",
+        "sourcePolicy": "नीति",
+        "validationActive": "सक्रिय",
+        "requestsValidated": "सत्यापित अनुरोध",
+        "rejectedRequests": "अस्वीकृत अनुरोध",
+        "backendRegistered": "बैकएंड पंजीकृत",
+        "backendName": "बैकएंड नाम",
+        "classifierStateAvailable": "उपलब्ध",
+        "classifierStateNotConfigured": "कॉन्फ़िगर नहीं",
+        "classifierStateUnsupported": "असमर्थित",
+        "classifierStateUnhealthy": "बैकएंड अस्वस्थ",
+        "counterTextEvaluations": "टेक्स्ट मूल्यांकन",
+        "counterImageEvaluations": "छवि मूल्यांकन",
+        "counterAudioEvaluations": "ऑडियो मूल्यांकन",
+        "counterVideoEvaluations": "वीडियो मूल्यांकन",
+        "counterBlocked": "अवरुद्ध",
+        "counterAllowed": "अनुमत",
+        "counterSkippedDisabled": "छोड़ा गया (सुरक्षा उपाय अक्षम)",
+        "counterErrors": "त्रुटियाँ"
       }
     },
     "componentsThememaker": {
@@ -246,7 +246,7 @@
       "heading": {
         "themeSystemEditor": "थीम सिस्टम और संपादक",
         "importThemePreview": "आयात थीम पूर्वावलोकन",
-        "codeAndSyntax": "Code & Syntax"
+        "codeAndSyntax": "कोड और सिंटैक्स"
       },
       "description": {
         "configureThemeColorsBorderContrastFocusRings": "Venice Forge में थीम रंग, बॉर्डर कंट्रास्ट, फोकस रिंग और एक्शन बटन शैलियों को कॉन्फ़िगर करें।",
@@ -254,7 +254,7 @@
       },
       "label": {
         "selectActiveTheme": "सक्रिय थीम चुनें",
-        "syntaxPreset": "Syntax preset"
+        "syntaxPreset": "सिंटैक्स प्रिसेट"
       },
       "text": {
         "unsavedDraftChanges": "बिना सहेजे गए ड्राफ्ट परिवर्तन",
@@ -269,12 +269,12 @@
         "id": "ID:"
       },
       "codeToken": {
-        "background": "Code background",
-        "foreground": "Code foreground",
-        "border": "Code border",
-        "headerBackground": "Header background",
-        "headerForeground": "Header foreground",
-        "inlineBackground": "Inline background",
+        "background": "कोड पृष्ठभूमि",
+        "foreground": "कोड अग्रभूमि",
+        "border": "कोड बॉर्डर",
+        "headerBackground": "शीर्षक पृष्ठभूमि",
+        "headerForeground": "शीर्षक अग्रभूमि",
+        "inlineBackground": "इनलाइन पृष्ठभूमि",
         "inlineForeground": "Inline foreground",
         "selectionBackground": "Selection background",
         "comment": "Comment",
@@ -583,7 +583,7 @@
         "selected": "चयनित",
         "chattingAs": "इस संदेश के साथ संलग्न",
         "usesCharacterSystemPrompt": "पात्र के सिस्टम प्रॉम्प्ट का उपयोग कर रहा है। होस्ट किए गए और स्थानीय पात्र चैट के लिए उपयोगकर्ता द्वारा दिए गए सिस्टम प्रॉम्प्ट को छोड़ दिया जाता है।",
-        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
+        "useVeniceDefaultSystemPrompt": "Venice डिफ़ॉल्ट सिस्टम प्रॉम्प्ट का इस्तेमाल करें"
       },
       "label": {
         "systemPromptMode": "सिस्टम प्रॉम्प्ट मोड"
@@ -2499,12 +2499,12 @@
             "analyzingImage": "छवि का विश्लेषण"
           },
           "error": {
-            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
-            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
-            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
-            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
-            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
-            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
+            "modelUnavailable": "कैरेक्टर क्रिएटर मॉडल अस्थायी रूप से अनुपलब्ध है। कृपया कुछ मिनट बाद फिर से कोशिश करें।",
+            "requestCancelled": "जनरेशन कैंसिल कर दी गई थी।",
+            "invalidModelResponse": "मॉडल ने एक अनुपयोगी प्रतिक्रिया दी। कृपया पुनः प्रयास करें।",
+            "schemaRepairFailed": "जनरेट की गई कैरेक्टर कार्ड सत्यापन में विफल रही और इसे सुधारा नहीं जा सका। कृपया पुनः प्रयास करें।",
+            "transportFailed": "Venice API तक नहीं पहुंच सके। कृपया अपना कनेक्शन जांचें और पुनः प्रयास करें।",
+            "providerHttp": "Venice API ने जनरेशन अनुरोध अस्वीकार कर दिया। कृपया बाद में पुनः प्रयास करें।"
           },
           "notification": {
             "couldNotLoadDraft": "ड्राफ्ट लोड नहीं किया जा सका",
@@ -2575,7 +2575,7 @@
             "localCharacter": "स्थानीय चरित्र",
             "localCharacter2": "स्थानीय चरित्र",
             "noLocalCharactersCreatedYet": "अभी तक कोई स्थानीय पात्र नहीं बनाया गया.",
-            "noCharactersMatchPickerquery": "कोई भी अक्षर &quot; {{pickerQuery}} &quot; से मेल नहीं खाता।"
+            "noCharactersMatchPickerquery": "कोई कैरेक्टर \"{{pickerQuery}}\" से मेल नहीं खाते।"
           }
         },
         "characterscenecard": {
@@ -2603,7 +2603,7 @@
             "conversationRestored": "बातचीत बहाल",
             "failedToRestore": "पुनर्स्थापित करने में विफल",
             "movedConversations": "स्थानांतरित की गई बातचीत",
-            "movedValue1ConversationValue2ToTargetname": "{{value1}} वार्तालाप को {{value2}} से {{targetName}} पर ले जाया गया।",
+            "movedValue1ConversationValue2ToTargetname": "{{value1}} वार्तालाप{{value2}} को {{targetName}} में ले जाया गया।",
             "failedToMoveConversations": "बातचीत को आगे बढ़ाने में विफल",
             "conversationsDeleted": "बातचीत हटा दी गई",
             "value1SelectedConversationValue2Removed": "{{value1}} चयनित वार्तालाप {{value2}} हटा दिया गया।",
@@ -2648,16 +2648,16 @@
           "text": {
             "deselectAllVisible": "सभी दृश्यमान अचयनित करें",
             "selectAllVisible": "सभी दृश्यमान का चयन करें",
-            "folderselectedcountSelected": "· {{folderSelectedCount}} चयनित",
+            "folderselectedcountSelected": " · {{folderSelectedCount}} चयनित",
             "selected": "चयनित",
             "select": "चुनना",
-            "unfiledselectedcountSelected": "· {{unfiledSelectedCount}} चयनित"
+            "unfiledselectedcountSelected": " · {{unfiledSelectedCount}} चयनित"
           }
         },
         "chatView": {
           "notification": {
             "modelUnavailable": "मॉडल अनुपलब्ध",
-            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "पहले चयनित मॉडल अनुपलब्ध है. यह चैट अब {{resolvedDefault}} उपयोग करती है।",
+            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "पहले चयनित मॉडल उपलब्ध नहीं है। यह चैट अब {{resolvedDefault}} का उपयोग करती है।",
             "priorContextSkipped": "पिछला संदर्भ छोड़ दिया गया",
             "factPermanentlyForgotten": "तथ्य स्थायी रूप से भुला दिया गया.",
             "failedToForgetFact": "तथ्य भूलने में असफल"
@@ -2666,7 +2666,7 @@
             "forgetThisFact": "इस तथ्य को भूल जाओ?",
             "deleteFromHere": "यहां से हटाएं?",
             "removedFromChat": "चैट से हटा दिया गया",
-            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} मीडिया स्टूडियो में रहता है। पुनः संलग्न करने के लिए पूर्ववत करें पर क्लिक करें।",
+            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} Media Studio में रहता है। पुनः जोड़ने के लिए पूर्ववत करें पर क्लिक करें।",
             "undo": "पूर्ववत",
             "regenerateFromHere": "यहाँ से पुन: उत्पन्न करें?"
           },
@@ -2779,7 +2779,7 @@
         "compareView": {
           "text": {
             "allSharedFieldsMatch": "सभी साझा फ़ील्ड मेल खाते हैं",
-            "changedcountFieldValue2Differ": "{{changedCount}} फ़ील्ड {{value2}} भिन्न है"
+            "changedcountFieldValue2Differ": "{{changedCount}} फ़ील्ड{{value2}} भिन्न हैं"
           },
           "attribute": {
             "closeCompareView": "तुलना दृश्य बंद करें"
@@ -2838,7 +2838,7 @@
             "taggedValue1OfValue2": "{{value1}} {{value2}} टैग किया गया",
             "taggedValue1ItemValue2": "टैग किया गया {{value1}} आइटम {{value2}}",
             "enterATagFirst": "पहले एक टैग दर्ज करें.",
-            "assignedValue1OfValue2Firstreason": "{{value1}} {{value2}} {{firstReason}} गया",
+            "assignedValue1OfValue2Firstreason": "{{value2}} में से {{value1}} असाइन किए गए ({{firstReason}})",
             "assignedValue1ItemValue2": "असाइन किया गया {{value1}} आइटम {{value2}}",
             "selectAtLeastOneMediaItem": "कम से कम एक मीडिया आइटम चुनें.",
             "loadedSettingsIntoImageStudio": "इमेज स्टूडियो में सेटिंग्स लोड की गईं",
@@ -2966,7 +2966,7 @@
             "thisItemSParentRecordIsMissingClearTheParent": "इस आइटम का मूल रिकॉर्ड गुम है. वंशावली की मरम्मत के लिए मूल लिंक साफ़ करें।",
             "value1ChildValue2CouldNotBeResolvedClearTheStale": "{{value1}} चाइल्ड {{value2}} का समाधान नहीं किया जा सका। वंशावली की मरम्मत के लिए पुराने सूचक {{value3}} को साफ़ करें।",
             "childrenidsValue1": "बच्चों की आईडी: {{value1}}",
-            "childrenidsValue1Missing": "childIds: {{value1}} गायब",
+            "childrenidsValue1Missing": "childrenIds: {{value1}} अनुपस्थित",
             "value1MissingRef": "1 लापता रेफरी",
             "value1MissingRefs": "{{value1}} गायब रेफरी"
           }
@@ -3010,7 +3010,7 @@
           },
           "text": {
             "identical": "समान",
-            "changedcountFieldValue2WillChange": "{{changedCount}} फ़ील्ड {{value2}} बदल जाएगा"
+            "changedcountFieldValue2WillChange": "{{changedCount}} फ़ील्ड{{value2}} बदलेंगे"
           },
           "metadata": {
             "model": "नमूना",
@@ -3427,7 +3427,7 @@
         "charactereditor": {
           "notification": {
             "fileLoadedSourced": "फ़ाइल लोड की गई और स्रोतित की गई",
-            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "&quot; {{value1}} &quot; को {{fieldLabel}} में लोड किया गया और कैरेक्टर फ़ाइल के अंदर सहेजा गया।",
+            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "\"{{value1}}\" को {{fieldLabel}} में लोड किया गया और कैरेक्टर फ़ाइल में सहेजा गया।",
             "reAppliedSourcedFile": "स्रोतित फ़ाइल को पुनः लागू किया गया",
             "reLoadedValue1ContentIntoValue2": "&quot; {{value1}} &quot; सामग्री को {{value2}} में पुनः लोड किया गया।",
             "workflowCreated": "वर्कफ़्लो बनाया गया",
@@ -3484,7 +3484,7 @@
             "moveExampleValue1Up": "उदाहरण को {{value1}} ऊपर ले जाएँ",
             "moveExampleValue1Down": "उदाहरण {{value1}} को नीचे ले जाएँ",
             "removeExample": "उदाहरण हटाएँ",
-            "losslessSillytavernMesExampleCompatibilityText": "दोषरहित SillyTavern mes_example संगतता पाठ",
+            "losslessSillytavernMesExampleCompatibilityText": "लॉसलेस SillyTavern mes_example संगतता पाठ",
             "urlScrapingProvider": "यूआरएल स्क्रैपिंग प्रदाता",
             "temperature": "तापमान",
             "topP": "शीर्ष पी",
@@ -3864,7 +3864,7 @@
             "couldNotCopySafeDiagnostics": "सुरक्षित निदान की प्रतिलिपि नहीं बनाई जा सकी",
             "diagnosticsRefreshed": "निदान ताज़ा किया गया",
             "diagnosticsRefreshFailed": "डायग्नोस्टिक्स रीफ्रेश विफल रहा",
-            "livecountLiveModelsRefreshed": "{{liveCount}} लाइव मॉडल ताज़ा किए गए"
+            "livecountLiveModelsRefreshed": "{{liveCount}} लाइव मॉडल रिफ़्रेश किए गए"
           },
           "attribute": {
             "diagnostics": "निदान",
@@ -4038,11 +4038,11 @@
       "useDataStorageActions": {
         "metadata": {
           "clearLocalSettings": "स्थानीय सेटिंग साफ़ करें?",
-          "deleteAllIndexeddbHistory": "सभी IndexedDB इतिहास हटाएँ?"
+          "deleteAllIndexeddbHistory": "सभी IndexedDB इतिहास हटाएं?"
         },
         "notification": {
           "localSettingsCleared": "स्थानीय सेटिंग साफ़ की गईं.",
-          "indexeddbDataClearedSuccessfully": "IndexedDB डेटा सफलतापूर्वक साफ़ हो गया।",
+          "indexeddbDataClearedSuccessfully": "IndexedDB डेटा सफलतापूर्वक साफ़ किया गया।",
           "encryptedBackupExportedSuccessfully": "एन्क्रिप्टेड बैकअप सफलतापूर्वक निर्यात किया गया।",
           "exportFailedPleaseTryAgain": "निर्यात विफल. कृपया पुन: प्रयास करें।"
         }
@@ -4162,7 +4162,7 @@
             "extensionDataExceededTheMaximumDepth": "एक्सटेंशन डेटा अधिकतम गहराई से अधिक हो गया.",
             "nonJsonExtensionValueWasRemoved": "गैर-JSON एक्सटेंशन मान हटा दिया गया था.",
             "unsafeObjectKeyWasRemoved": "असुरक्षित ऑब्जेक्ट कुंजी हटा दी गई.",
-            "extensionDataExceededThe1MibLimit": "एक्सटेंशन डेटा 1 MiB सीमा से अधिक हो गया.",
+            "extensionDataExceededThe1MibLimit": "एक्सटेंशन डेटा 1 MiB सीमा से अधिक हो गया।",
             "onlyTheFirstMaxLorebookEntriesCharacterBookEntriesWere": "केवल पहली {{MAX_LOREBOOK_ENTRIES}} चरित्र-पुस्तक प्रविष्टियाँ संरक्षित की गईं।",
             "onlyCharacterCardV2SpecVersion20IsSupported": "केवल कैरेक्टर कार्ड V2 स्पेक संस्करण 2.0 समर्थित है।",
             "keyMustBeAString": "{{key}} एक स्ट्रिंग होनी चाहिए.",
@@ -4178,10 +4178,10 @@
       "chatpromptcompiler": {
         "metadata": {
           "contextTruncated": "प्रसंग काट दिया गया",
-          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "संदर्भ सीमाओं के भीतर फ़िट होने के लिए पुराने {{removedCount}} पुराने {{turnWord}} हटा दिया गया। संपूर्ण इतिहास को संरक्षित करने के लिए एक नई चैट प्रारंभ करें या बड़ी संदर्भ विंडो वाले मॉडल का उपयोग करें।",
+          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "संदर्भ सीमाओं के भीतर फ़िट करने के लिए {{removedCount}} पुराने {{turnWord}} हटाए गए। पूरा इतिहास सुरक्षित रखने के लिए नई चैट शुरू करें या बड़े संदर्भ विंडो वाले मॉडल का उपयोग करें।",
           "theConversationRequiresValue1TokensButOnlyValue2AreAvailable": "वार्तालाप के लिए ~ {{value1}} टोकन की आवश्यकता होती है, लेकिन आउटपुट टोकन आरक्षित करने के बाद केवल {{value2}} उपलब्ध होते हैं।",
           "thisRequestReservesValue1OutputTokensSoTheCustomPrompt": "यह अनुरोध {{value1}} आउटपुट टोकन सुरक्षित रखता है ताकि कस्टम प्रॉम्प्ट और वर्तमान वार्तालाप चयनित मॉडल में फिट हो।",
-          "estkKOfTotalkKEstimatedTokensAreInUse": "{{estK}} K में से {{totalK}} K अनुमानित टोकन उपयोग में हैं।"
+          "estkKOfTotalkKEstimatedTokensAreInUse": "{{totalK}}K अनुमानित टोकन में से {{estK}}K उपयोग में हैं।"
         }
       },
       "chatstorage": {
@@ -4502,7 +4502,7 @@
           "value1DoesNotSupportAStylePresetValueWillBe": "{{value1}} स्टाइल प्रीसेट का समर्थन नहीं करता - मान हटा दिया जाएगा।",
           "value1UsesPixelSizingAspectRatioWillBeDropped": "{{value1}} पिक्सेल आकार का उपयोग करता है - पहलू अनुपात हटा दिया जाएगा।",
           "value1DoesNotSupportAResolutionPresetValueWillBe": "{{value1}} किसी रिज़ॉल्यूशन प्रीसेट का समर्थन नहीं करता - मान हटा दिया जाएगा।",
-          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "आयाम {{originalPair}} समर्थित नहीं हैं - डिफ़ॉल्ट रूप से {{finalPair}} हैं।",
+          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "आयाम {{originalPair}} समर्थित नहीं हैं — {{finalPair}} पर डिफ़ॉल्ट किया गया।",
           "aspectRatioValue1IsNotSupportedDefaultedToValue2": "पहलू अनुपात &quot; {{value1}} &quot; समर्थित नहीं है - डिफ़ॉल्ट रूप से {{value2}} ।",
           "resolutionValue1IsNotSupportedDefaultedToValue2": "रिज़ॉल्यूशन &quot; {{value1}} &quot; समर्थित नहीं है - डिफ़ॉल्ट रूप से {{value2}} है।"
         }
@@ -4525,8 +4525,8 @@
           "searchGroundedAndFastLlmApis": "खोज-आधारित और तेज़ एलएलएम एपीआई।",
           "cohereEnterpriseReadyMultilingualModels": "एंटरप्राइज़-तैयार बहुभाषी मॉडल।",
           "huggingFaceOpenSourceInferenceProviders": "Hugging Face Inference Providers के माध्यम से ओपन-सोर्स मॉडल इनफेरेंस।",
-          "azureOpenAiDeploymentBasedChatCompletions": "Azure OpenAI परिनियोजन-आधारित चैट पूर्णताएँ।",
-          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle OpenAI-संगत इनफेरेंस।",
+          "azureOpenAiDeploymentBasedChatCompletions": "Azure OpenAI डिप्लॉयमेंट-आधारित चैट पूर्णता।",
+          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle OpenAI-संगत अनुमान।",
           "googleVertexAiExpressModeApiKey": "Google Vertex AI एक्सप्रेस मोड (API-कुंजी प्रमाणीकरण)।"
         }
       }
@@ -4568,8 +4568,8 @@
       },
       "promptLimits": {
         "notification": {
-          "overLimit": "सिस्टम प्रॉम्प्ट एप्लिकेशन सीमा से अधिक है। अधिकतम फ़ॉलबैक आकार: {{maximumCodePoints}} यूनिकोड कोड पॉइंट। मिले: {{codePointCount}} यूनिकोड कोड पॉइंट ({{estimatedTokenCount}} अनुमानित टोकन)। नीति लगभग {{maximumTokens}} टोकन के लिए बनाई गई है। जारी रखने से पहले प्रॉम्प्ट छोटा करें।",
-          "warning": "सिस्टम प्रॉम्प्ट एप्लिकेशन सीमा के करीब है ({{estimatedTokenCount}} / {{maximumTokens}} अनुमानित टोकन; {{codePointCount}} / {{maximumCodePoints}} यूनिकोड कोड पॉइंट)।"
+          "overLimit": "सिस्टम प्रॉम्प्ट ऐप्लिकेशन सीमा से अधिक है। अधिकतम फ़ॉलबैक आकार: {{maximumCodePoints}} Unicode कोड पॉइंट्स। पाया गया: {{codePointCount}} Unicode कोड पॉइंट्स ({{estimatedTokenCount}} अनुमानित टोकन)। सिस्टम-प्रॉम्प्ट नीति लगभग {{maximumTokens}} टोकन के लिए डिज़ाइन की गई है। कृपया जारी रखने से पहले प्रॉम्प्ट को छोटा करें।",
+          "warning": "सिस्टम प्रॉम्प्ट ऐप्लिकेशन सीमा तक पहुंच रहा है ({{estimatedTokenCount}} / {{maximumTokens}} अनुमानित टोकन; {{codePointCount}} / {{maximumCodePoints}} Unicode कोड पॉइंट्स)।"
         }
       }
     },
@@ -4613,22 +4613,22 @@
       "notRequested": "मॉडल कैटलॉग का अनुरोध नहीं किया गया है.",
       "loading": "मॉडल कैटलॉग लोड हो रहा है...",
       "loaded": "{{count}} मॉडल लोड किए गए।",
-      "selectionUnavailable": "चयनित मॉडल “ {{modelId}} ” वर्तमान कैटलॉग ( {{modelType}} ) में मौजूद नहीं है।",
+      "selectionUnavailable": "चयनित मॉडल \"{{modelId}}\" वर्तमान कैटलॉग ({{modelType}}) में मौजूद नहीं है।",
       "cached": "{{timestamp}} से कैश्ड मॉडल कैटलॉग का उपयोग करना।",
       "loadFailed": "मॉडल कैटलॉग लोड नहीं किया जा सका."
     },
     "storage": {
-      "unavailable": "IndexedDB उपलब्ध नहीं है. स्थानीय इतिहास और मीडिया कायम नहीं रहेंगे.",
+      "unavailable": "IndexedDB उपलब्ध नहीं है। स्थानीय इतिहास और मीडिया बनाए नहीं रहेंगे।",
       "permissionsDetail": "भंडारण के साथ ब्राउज़र मोड अक्षम है। साइट अनुमतियाँ जांचें.",
-      "web": "वेब मोड: रिकॉर्ड ब्राउज़र IndexedDB में बने रहते हैं (बाकी स्थिति में एन्क्रिप्टेड)।",
+      "web": "वेब मोड: रिकॉर्ड ब्राउज़र IndexedDB में बने रहते हैं (स्थान पर एन्क्रिप्टेड)।",
       "siteDataDetail": "साइट डेटा साफ़ करने से स्थानीय वॉल्ट मिट जाएगा।",
-      "desktop": "डेस्कटॉप IndexedDB पहुंच योग्य है। रिकॉर्ड्स को आराम से एन्क्रिप्ट किया गया है।"
+      "desktop": "डेस्कटॉप IndexedDB पहुंच योग्य है। रिकॉर्ड स्थान पर एन्क्रिप्टेड हैं।"
     },
     "project": {
       "allProjects": "सभी प्रोजेक्ट मोड सक्रिय (अनस्कोप्ड दृश्य)।",
       "missing": "सक्रिय प्रोजेक्ट आईडी गुम या अज्ञात है. अगली बातचीत में स्टोर की मरम्मत की जाएगी।",
-      "archived": "सक्रिय प्रोजेक्ट “ {{projectName}} ” संग्रहीत है। मरम्मत के लिए सभी प्रोजेक्ट पर स्विच करें।",
-      "valid": "सक्रिय प्रोजेक्ट “ {{projectName}} ” मान्य है।"
+      "archived": "सक्रिय प्रोजेक्ट \"{{projectName}}\" संग्रहीत है। सुधारने के लिए सभी प्रोजेक्ट पर स्विच करें।",
+      "valid": "सक्रिय प्रोजेक्ट \"{{projectName}}\" मान्य है।"
     },
     "safety": {
       "on": {

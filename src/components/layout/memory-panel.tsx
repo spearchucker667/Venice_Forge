@@ -161,8 +161,6 @@ export function MemoryPanel() {
             { value1: res.migrated, value2: res.failed, value3: res.skipped },
           ),
         );
-        setHasLegacy(false);
-        await loadAllFacts();
       } else {
         toast.error(
           tRuntime(
@@ -171,6 +169,8 @@ export function MemoryPanel() {
           ),
         );
       }
+      await checkLegacy();
+      if (res.migrated > 0) await loadAllFacts();
     } catch (err) {
       toast.error(
         tRuntime(

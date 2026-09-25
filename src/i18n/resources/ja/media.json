@@ -138,7 +138,7 @@
     "enhancementSafetyBlockedFamily": "プロンプト強化は任意のファミリーセーフモードにより停止されました。元のプロンプトは保持されています。",
     "enhancementSafetyBlockedProvider": "プロンプト強化はプロバイダーポリシーにより停止されました。元のプロンプトは保持されています。",
     "styleReferences": "スタイル参照",
-    "styleReferenceHelp": "PNG、JPEG、または WebP の参照画像を最大 {{count}} 枚追加できます。参照画像は、実行時対応を明示するモデルにのみ送信されます。",
+    "styleReferenceHelp": "最大 {{count}} 個の PNG、JPEG、または WebP 参照画像を追加してください。参照は実行時サポートを表明したモデルにのみ送信されます。",
     "addStyleReferenceImages": "スタイル参照画像を追加",
     "styleReferenceCount": "スタイル参照を {{max}} 件中 {{count}} 件選択",
     "selectedStyleReferences": "選択したスタイル参照",
@@ -181,41 +181,41 @@
     }
   },
   "mediaStudioActions": {
-    "heading": "__MISSING__:mediaStudioActions.heading",
-    "upscale": "__MISSING__:mediaStudioActions.upscale",
-    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
-    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
-    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
-    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
-    "cancel": "__MISSING__:mediaStudioActions.cancel",
-    "retry": "__MISSING__:mediaStudioActions.retry",
-    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
-    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
-    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "heading": "画像の操作",
+    "upscale": "アップスケール",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "背景を削除",
+    "inpaint": "インペイント",
+    "cancel": "キャンセル",
+    "retry": "再試行",
+    "done": "{{count}} 個のアセットの {{operation}} が完了しました",
+    "running": "{{name}} の {{operation}} を実行中…",
+    "failed": "{{name}} の {{operation}} に失敗しました",
     "operationLabels": {
-      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
-      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
-      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+      "upscale": "アップスケール",
+      "remove-background": "背景削除",
+      "inpaint": "インペイント"
     },
     "reason": {
-      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
-      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
-      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
-      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+      "requiresImage": "この操作には画像アセットが必要です",
+      "sourceUnavailable": "このソースアセットはローカルで利用できなくなりました",
+      "modelUnavailable": "選択したモデルではインペイントは利用できません",
+      "singleSelection": "インペイントには単一の選択画像が必要です"
     },
     "editor": {
-      "title": "__MISSING__:mediaStudioActions.editor.title",
-      "description": "__MISSING__:mediaStudioActions.editor.description",
-      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
-      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
-      "undo": "__MISSING__:mediaStudioActions.editor.undo",
-      "clear": "__MISSING__:mediaStudioActions.editor.clear",
-      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
-      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
-      "submit": "__MISSING__:mediaStudioActions.editor.submit",
-      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
-      "success": "__MISSING__:mediaStudioActions.editor.success",
-      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+      "title": "インペイント — マスクを描く",
+      "description": "置き換える領域を塗りつぶし、変更内容を記述してください。マスクとソース画像は選択した編集モデルに送信されます。",
+      "canvasLabel": "マスク描画キャンバス",
+      "brushSize": "ブラシサイズ",
+      "undo": "元に戻す",
+      "clear": "クリア",
+      "promptLabel": "編集プロンプト（任意）",
+      "promptPlaceholder": "描画領域に表示する内容を記述してください…",
+      "submit": "インペイントを適用",
+      "cancel": "キャンセル",
+      "success": "インペイント済みアセットが Media Studio に保存されました",
+      "loadFailed": "マスク用の選択画像を読み込めませんでした。"
     }
   }
 }

@@ -205,7 +205,7 @@ Express/Vite web development mode.
 ├── electron-builder.config.cjs         # Windows/macOS/Linux packaging config (VERIFY-052)
 ├── .env.example                        # Documented env-var template
 ├── .gitignore                          # Excludes node_modules/, dist/, dist-electron/, release/, coverage/, .env*, docs/AGENTS/, docs/HQE_AUDIT_REPORT.md, docs/design/, todo.md, Thumbs.db, desktop.ini, *.tmp
-├── LICENSE                             # MIT
+├── LICENSE                             # Apache-2.0
 └── Root governance docs                # README.md, AGENTS.md, CHANGELOG.md, CLAUDE.md, GEMINI.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md, SUPPORT.md, PRIVACY.md
 ```
 

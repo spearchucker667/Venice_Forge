@@ -5,27 +5,31 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 6747b0ad (docs(hygiene): compact the roadmap and archive the session ledger)
-application_code_sha: 6747b0ad
-verified_against_sha: 6747b0ad
-verified_at:         2026-09-23 (Pacific)
+repository_head_sha: 56924240509f8580b9cee5d9ef31202d35439908 (release: prepare v3.1.0)
+application_code_sha: 56924240509f8580b9cee5d9ef31202d35439908
+verified_against_sha: 56924240509f8580b9cee5d9ef31202d35439908
+verified_at:         2026-09-24 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
-working_tree:        clean
-ci_status:           success for 6747b0ad (run 35957327247 — 11/11 jobs)
-codeql_status:       success for 6747b0ad (run 35957327282 — Analyze actions and Analyze javascript-typescript)
-open_findings:       P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
+working_tree:        dirty at session start; six audit remediations and first-pass locale completion are uncommitted
+ci_status:           success for 56924240 (run 36064443092)
+codeql_status:       success for 56924240 (run 36064443001 — Analyze actions and Analyze javascript-typescript)
+open_findings:       2026-09-24 audit safety-contract conflict; P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
-  - qualified native-language review (P3-020). Settings catalogs still carry __MISSING__ markers. Do not mark locales production-complete.
+  - qualified native-language review (P3-020). First-pass translations require human review before locales are production-complete.
   - funded live provider calls, signed/notarized installers, and two-device sync (VF-VERIFY-005)
 ```
 
 ## Current Work
 
-These three items cannot be closed from this tree. Each one needs a person, a certificate, a second device, or a paid provider account. Local code and hosted CI on `c4134390` do not substitute for that evidence.
+The 2026-09-24 audit handoff's child-safety requirement conflicts with current `SECURITY.md`, `server.test.ts`, and `tests/safety/guardPipeline.test.ts`: Adult Mode currently skips the local child-safety guard. Establish the intended policy before changing enforcement across Electron, web proxy, bridge, response screening, tests, and documentation. This is a contract conflict under investigation, not a proven bypass of the current documented behavior.
+
+The six findings in the 2026-09-24 point-in-time [application/repository audit](audits/Records/2026-09-24-application-repository-audit-handoff.md) have local remediations committed on main. Their implementation and validation evidence belong in `docs/summary_of_work.md`; the audit remains a record of the original defects. First-pass locale strings now pass strict structural verification, while qualified linguistic review remains open below.
+
+The following three external acceptance items cannot be closed from this tree. Each needs a person, certificate, second device, or paid provider account. Local code and hosted CI do not substitute for that evidence.
 
 `VF-20260922-P2-011` / `P2-016` — Headed visual and accessibility QA. The checklist, schema, and verifier are `docs/design/per-tab-acceptance/README.md`, `docs/design/per-tab-acceptance/CHECKLIST.md`, and `npm run verify:per-tab-acceptance`. Closure needs a human signature. Automated capture does not satisfy the verifier.
 

@@ -181,41 +181,41 @@
     }
   },
   "mediaStudioActions": {
-    "heading": "__MISSING__:mediaStudioActions.heading",
-    "upscale": "__MISSING__:mediaStudioActions.upscale",
-    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
-    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
-    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
-    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
-    "cancel": "__MISSING__:mediaStudioActions.cancel",
-    "retry": "__MISSING__:mediaStudioActions.retry",
-    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
-    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
-    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "heading": "Операции с изображением",
+    "upscale": "Высококлассный сайт",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "Удалить фон",
+    "inpaint": "Локальная перерисовка",
+    "cancel": "Отмена",
+    "retry": "Повторить попытку",
+    "done": "{{operation}} завершено для актива(ов) {{count}}",
+    "running": "{{operation}} работает для {{name}}...",
+    "failed": "{{operation}} не удалось для {{name}}",
     "operationLabels": {
-      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
-      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
-      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+      "upscale": "Высококлассный сайт",
+      "remove-background": "удаление фона",
+      "inpaint": "Локальная перерисовка"
     },
     "reason": {
-      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
-      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
-      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
-      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+      "requiresImage": "Для этой операции требуется графический ресурс",
+      "sourceUnavailable": "Этот исходный ресурс больше не доступен локально",
+      "modelUnavailable": "Для выбранной модели недоступна инкраска",
+      "singleSelection": "Для инкраски требуется одно выбранное изображение"
     },
     "editor": {
-      "title": "__MISSING__:mediaStudioActions.editor.title",
-      "description": "__MISSING__:mediaStudioActions.editor.description",
-      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
-      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
-      "undo": "__MISSING__:mediaStudioActions.editor.undo",
-      "clear": "__MISSING__:mediaStudioActions.editor.clear",
-      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
-      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
-      "submit": "__MISSING__:mediaStudioActions.editor.submit",
-      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
-      "success": "__MISSING__:mediaStudioActions.editor.success",
-      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+      "title": "Inpaint — нарисуйте маску",
+      "description": "Нанесите краску на заменяемую область, а затем опишите изменения. Маска и исходное изображение отправляются в выбранную модель редактирования.",
+      "canvasLabel": "Картина-маска на холсте",
+      "brushSize": "Размер кисти",
+      "undo": "Отменить",
+      "clear": "Очистить",
+      "promptLabel": "Запрос на редактирование (необязательно)",
+      "promptPlaceholder": "Опишите, что должно появиться внутри окрашенной области...",
+      "submit": "Применить Inpaint",
+      "cancel": "Отмена",
+      "success": "Ресурс Inpaint сохранен в Media Studio",
+      "loadFailed": "Не удалось загрузить выбранное изображение для маскировки."
     }
   }
 }

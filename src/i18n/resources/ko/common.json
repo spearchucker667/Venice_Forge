@@ -165,10 +165,10 @@
         "safetyGuardAudit": "안전 가드 감사",
         "lastRequest": "마지막 요청",
         "mediaClassifierCapabilities": "미디어 분류기 기능",
-        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
-        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
-        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
-        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
+        "safetyRuntime": "안전 런타임",
+        "structuralValidation": "구조 / 프로토콜 검증",
+        "mediaClassifierBackend": "미디어 분류기 백엔드",
+        "classifierCounters": "분류기 카운터"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "현재 빌드에 대해 집계된 런타임 정보입니다. 자세한 콘솔 출력을 검사하려면",
@@ -197,33 +197,33 @@
         "protectionItemImageBytes": "이미지 바이트 (시맨틱): 분류되지 않음",
         "protectionItemAudioBytes": "오디오 바이트 (시맨틱): 분류되지 않음",
         "protectionItemVideoBytes": "비디오 바이트 (시맨틱): 분류되지 않음",
-        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
-        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
-        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
-        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
-        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
-        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
-        "source": "__MISSING__:surface.componentsStatusview.text.source",
-        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
-        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
-        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
-        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
-        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
-        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
-        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
-        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
-        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
-        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
-        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
-        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
-        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
-        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
-        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
-        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
-        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
-        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
-        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
-        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
+        "localContentSafeguards": "로컬 콘텐츠 보호 장치",
+        "providerSafety": "제공자 안전 (Venice safe_mode)",
+        "stateEnabled": "활성화됨",
+        "stateDisabled": "비활성화됨",
+        "stateOn": "켜짐",
+        "stateOff": "꺼짐",
+        "source": "소스",
+        "sourceUser": "사용자",
+        "sourceServer": "서버",
+        "sourcePolicy": "정책",
+        "validationActive": "활성",
+        "requestsValidated": "검증된 요청",
+        "rejectedRequests": "거부된 요청",
+        "backendRegistered": "백엔드 등록됨",
+        "backendName": "백엔드 이름",
+        "classifierStateAvailable": "사용 가능",
+        "classifierStateNotConfigured": "구성되지 않음",
+        "classifierStateUnsupported": "지원되지 않음",
+        "classifierStateUnhealthy": "백엔드 비정상",
+        "counterTextEvaluations": "텍스트 평가",
+        "counterImageEvaluations": "이미지 평가",
+        "counterAudioEvaluations": "오디오 평가",
+        "counterVideoEvaluations": "비디오 평가",
+        "counterBlocked": "차단됨",
+        "counterAllowed": "허용됨",
+        "counterSkippedDisabled": "건너뜀 (보호 장치 비활성화됨)",
+        "counterErrors": "오류"
       }
     },
     "componentsThememaker": {
@@ -246,7 +246,7 @@
       "heading": {
         "themeSystemEditor": "테마 시스템 및 편집기",
         "importThemePreview": "테마 미리보기 가져오기",
-        "codeAndSyntax": "Code & Syntax"
+        "codeAndSyntax": "코드 & 구문"
       },
       "description": {
         "configureThemeColorsBorderContrastFocusRings": "Venice Forge 전반에 걸쳐 테마 색상, 테두리 대비, 포커스 링 및 작업 버튼 스타일을 구성합니다.",
@@ -254,7 +254,7 @@
       },
       "label": {
         "selectActiveTheme": "활성 테마 선택",
-        "syntaxPreset": "Syntax preset"
+        "syntaxPreset": "구문 프리셋"
       },
       "text": {
         "unsavedDraftChanges": "저장되지 않은 초안 변경 사항",
@@ -269,39 +269,39 @@
         "id": "ID:"
       },
       "codeToken": {
-        "background": "Code background",
-        "foreground": "Code foreground",
-        "border": "Code border",
-        "headerBackground": "Header background",
-        "headerForeground": "Header foreground",
-        "inlineBackground": "Inline background",
-        "inlineForeground": "Inline foreground",
-        "selectionBackground": "Selection background",
-        "comment": "Comment",
-        "punctuation": "Punctuation",
-        "property": "Property",
+        "background": "코드 배경",
+        "foreground": "코드 전경",
+        "border": "코드 테두리",
+        "headerBackground": "헤더 배경",
+        "headerForeground": "헤더 전경",
+        "inlineBackground": "인라인 배경",
+        "inlineForeground": "인라인 전경",
+        "selectionBackground": "선택 영역 배경",
+        "comment": "주석",
+        "punctuation": "구두점",
+        "property": "속성",
         "tag": "Tag",
-        "boolean": "Boolean",
-        "number": "Number",
-        "constant": "Constant",
-        "symbol": "Symbol",
-        "deleted": "Deleted",
-        "selector": "Selector",
-        "attribute": "Attribute",
-        "string": "String",
-        "character": "Character",
-        "builtin": "Builtin",
-        "inserted": "Inserted",
-        "operator": "Operator",
-        "entity": "Entity",
+        "boolean": "불린",
+        "number": "숫자",
+        "constant": "상수",
+        "symbol": "기호",
+        "deleted": "삭제됨",
+        "selector": "선택자",
+        "attribute": "속성",
+        "string": "문자열",
+        "character": "문자",
+        "builtin": "내장",
+        "inserted": "삽입됨",
+        "operator": "연산자",
+        "entity": "엔티티",
         "url": "URL",
         "atRule": "At-rule",
-        "keyword": "Keyword",
-        "function": "Function",
-        "className": "Class / Type",
-        "regex": "Regex",
-        "important": "Important",
-        "variable": "Variable"
+        "keyword": "키워드",
+        "function": "함수",
+        "className": "클래스 / 타입",
+        "regex": "정규식",
+        "important": "중요",
+        "variable": "변수"
       }
     },
     "componentsThemepreview": {
@@ -317,7 +317,7 @@
         "focusedControl": "집중 제어",
         "alertMessageBoundary": "경고 메시지 경계",
         "contrastWarnings": "대비 경고:",
-        "syntaxPreview": "Syntax preview"
+        "syntaxPreview": "구문 미리보기"
       }
     },
     "componentsAudioAudioView": {
@@ -583,7 +583,7 @@
         "selected": "가",
         "chattingAs": "을(를) 선택함",
         "usesCharacterSystemPrompt": "캐릭터의 시스템 프롬프트를 사용하는 중입니다. 호스팅 및 로컬 캐릭터 채팅에서는 사용자가 제공한 시스템 프롬프트가 우회됩니다.",
-        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
+        "useVeniceDefaultSystemPrompt": "Venice 기본 시스템 프롬프트 사용"
       },
       "label": {
         "systemPromptMode": "시스템 프롬프트 모드"
@@ -630,7 +630,7 @@
         "loadFromLibrary": "라이브러리에서 로드..."
       },
       "text": {
-        "approachingSystemPromptSizeLimit": "시스템 프롬프트 크기: 예상 토큰 {{estimatedTokenCount}} / {{maximumTokens}}, 유니코드 코드 포인트 {{codePointCount}} / {{maximumCodePoints}}."
+        "approachingSystemPromptSizeLimit": "시스템 프롬프트 크기: 예상 토큰 {{estimatedTokenCount}} / {{maximumTokens}}; Unicode 코드 포인트 {{codePointCount}} / {{maximumCodePoints}}."
       }
     },
     "componentsDocumentsDocumentagentview": {
@@ -1308,7 +1308,7 @@
         "tags": "태그",
         "personality": "성격",
         "systemPrompt": "시스템 프롬프트",
-        "approachingSystemPromptSizeLimit": "시스템 프롬프트 크기: 예상 토큰 {{estimatedTokenCount}} / {{maximumTokens}}, 유니코드 코드 포인트 {{codePointCount}} / {{maximumCodePoints}}.",
+        "approachingSystemPromptSizeLimit": "시스템 프롬프트 크기: 예상 토큰 {{estimatedTokenCount}} / {{maximumTokens}}; Unicode 코드 포인트 {{codePointCount}} / {{maximumCodePoints}}.",
         "postHistoryInstructions": "기록 이후 지침",
         "instructions": "지침",
         "firstMessagePrimaryGreeting": "첫 번째 메시지(기본 인사말)",
@@ -1687,7 +1687,7 @@
         "discoveredProfileCandidates": "발견된 프로필 후보자"
       },
       "description": {
-        "aggregatesSocialProfileMappingsFromPublicDatabases": "베니스 웹 통합을 사용하여 공개 데이터베이스(GitHub, Twitter, LinkedIn 등)에서 소셜 프로필 매핑을 집계합니다."
+        "aggregatesSocialProfileMappingsFromPublicDatabases": "Venice 웹 통합을 사용하여 공개 데이터베이스(GitHub, Twitter, LinkedIn 등)에서 소셜 프로필 매핑을 수집합니다."
       },
       "label": {
         "platformsToSearch": "검색 플랫폼"
@@ -2113,25 +2113,25 @@
     "writing-scifi-hook": "도시마다 중력이 다르게 작용하는 SF 소설의 매력적인 오프닝 후크를 구성해 보세요.",
     "writing-newsletter-intro": "자율 에이전트 함대의 사회적 영향을 논의하는 매력적인 뉴스레터 소개 초안을 작성하세요.",
     "writing-press-release": "개인 정보 보호를 최우선으로 하는 웹 스크레이퍼의 오픈 소스를 알리는 공식 보도 자료 템플릿을 만드세요.",
-    "writing-linkedin-post": "오프라인 우선 Electron 애플리케이션 구축에서 배운 주요 교훈을 요약한 전문 LinkedIn 게시물 초안을 작성하세요.",
+    "writing-linkedin-post": "오프라인 우선 Electron 애플리케이션 구축에서 얻은 주요 교훈을 요약하는 전문적인 LinkedIn 게시물을 작성해 주세요.",
     "writing-blog-outline": "'현대 Electron 앱의 프리로드 브리지 보안'이라는 제목의 기술 블로그 게시물에 대한 자세한 개요를 생성하세요.",
     "writing-sabbatical-request": "분산 시스템을 연구하기 위해 3개월 간의 교육 안식년을 요청하는 전문적인 제안서를 작성하세요.",
     "writing-speech-intro": "로컬 우선 소프트웨어와 데이터 주권의 중요성에 대한 3분짜리 소개 연설을 작성하세요.",
     "writing-bug-report": "빠른 해결을 장려하기 위해 오픈 소스 프로젝트에서 버그 보고서를 위한 철저한 템플릿을 작성하세요.",
     "writing-refusal-letter": "향후 협력을 위해 문을 열어두면서 공급업체 제안을 거부하는 전문적인 대응 초안을 작성하세요.",
     "writing-haiku-comp": "아날로그 하드웨어에서 양자 계산으로의 전환을 포착하는 세 개의 하이쿠를 작성합니다.",
-    "coding-rest-graphql": "REST와 GraphQL을 비교해보세요. 각각은 언제 빛을 발할까요?",
-    "coding-debounce-ts": "즉각적인 호출을 지원하는 React용 TypeScript에서 강력하고 완전한 유형의 디바운스 후크를 작성하세요.",
+    "coding-rest-graphql": "REST와 GraphQL을 비교해 주세요. 각각 언제 빛을 발하나요?",
+    "coding-debounce-ts": "즉시 호출을 지원하는 React용 완전한 타입의 견고한 디바운스 훅을 TypeScript로 작성해 주세요.",
     "coding-sql-recursive": "조직 계층 쿼리의 예를 통해 SQL에서 재귀 CTE가 작동하는 방식을 설명합니다.",
     "coding-refactor-lru": "만료 지원을 통해 간단한 Node.js 메모리 캐시를 스레드로부터 안전한 LRU 캐시로 리팩터링합니다.",
     "coding-rust-error": "`thiserror` 및 `anyhow` 상자를 사용하여 Rust에서 사용자 정의 오류 처리를 구현하는 방법을 보여줍니다.",
     "coding-git-bisect": "자동화된 스크립트 실행을 포함하여 'git bisect'를 사용하여 회귀 커밋을 찾는 방법을 설명합니다.",
-    "coding-docker-multi": "TypeScript Node.js 마이크로서비스를 패키징하기 위한 최소한의 안전한 다단계 Dockerfile을 만듭니다.",
+    "coding-docker-multi": "TypeScript Node.js 마이크로서비스 패키징을 위한 최소한의 안전한 다단계 Dockerfile을 생성해 주세요.",
     "coding-csp-rules": "로컬 WASM 실행은 허용하지만 인라인 평가는 차단하는 엄격한 콘텐츠 보안 정책(CSP) 헤더 구성을 작성합니다.",
     "coding-vitest-mocking": "Vitest에서 전역 창 개체와 비동기 가져오기 호출을 모의하는 방법을 보여줍니다.",
     "coding-css-flex-grid": "CSS Grid와 Flexbox 레이아웃 간의 아키텍처 차이점을 각각의 특정 레이아웃 사용 사례와 함께 설명합니다.",
-    "coding-sse-parse": "외부 종속성 없이 바닐라 JavaScript로 SSE(Server-Sent Events)에 대한 스트림 파서를 작성하는 방법을 보여줍니다.",
-    "coding-indexeddb-transaction": "브라우저 기반 IndexedDB에서 강력한 트랜잭션 관리 및 오류 롤백의 예를 제공합니다.",
+    "coding-sse-parse": "외부 종속성 없이 바닐라 JavaScript로 Server-Sent Events(SSE)용 스트림 파서를 작성하는 방법을 보여주세요.",
+    "coding-indexeddb-transaction": "브라우저 네이티브 IndexedDB에서 견고한 트랜잭션 관리 및 오류 롤백 예제를 제공해 주세요.",
     "learning-rsa-metaphor": "10살 어린이가 이해할 수 있는 비유를 사용하여 RSA 암호화가 어떻게 작동하는지 설명하세요.",
     "learning-pid-controller": "간단하고 직관적인 용어로 PID 온도 컨트롤러 이면의 수학을 설명합니다.",
     "learning-monad-metaphor": "일상적인 실제 비유를 사용하여 함수형 프로그래밍에서 모나드가 무엇인지 설명하세요.",
@@ -2177,20 +2177,20 @@
     "productivity-markdown-journal": "일일 목표, 방해 요소 및 감사를 추적하는 데 도움이 되는 가벼운 일일 마크다운 저널링 프롬프트 시스템을 설계합니다.",
     "productivity-inbox-zero": "자동화된 라벨과 키보드 단축키를 사용하여 Inbox Zero를 달성하고 유지 관리하기 위한 단계별 시스템 초안을 작성합니다.",
     "productivity-postmortem": "중요한 생산 중단 후 소프트웨어 사후 분석을 작성하기 위한 표준 템플릿을 만듭니다.",
-    "productivity-learning-sprint": "Rust WebAssembly 컴파일의 기본 사항을 숙달하기 위한 4주 학습 스프린트 계획을 간략하게 설명하세요.",
+    "productivity-learning-sprint": "Rust WebAssembly 컴파일 기본기를 마스터하기 위한 4주 학습 스프린트 계획을 작성해 주세요.",
     "productivity-presentation-deck": "현지 LLM 고객을 위한 초기 자금을 확보하기 위해 10분 프레젠테이션 프레젠테이션을 위한 슬라이드별 구조 초안을 작성합니다.",
     "productivity-dependency-audit": "프로덕션 코드 저장소의 오픈 소스 라이브러리 종속성에 대한 월별 감사를 수행하기 위한 실행 계획을 만듭니다.",
     "analysis-p2p-mesh": "고밀도 도시 지역에 분산형 P2P 메시 네트워크 배포에 대한 SWOT 분석을 수행합니다.",
-    "analysis-sqlite-pg": "동기화 기능을 갖춘 오프라인 우선 데스크톱 애플리케이션에 대한 SQLite와 PostgreSQL의 아키텍처 장단점을 비교합니다.",
+    "analysis-sqlite-pg": "동기화 기능이 있는 오프라인 우선 데스크톱 애플리케이션을 위한 SQLite와 PostgreSQL의 아키텍처적 트레이드오프를 비교해 주세요.",
     "analysis-fallacy-media": "현대 언론 보도에서 흔히 발견되는 다섯 가지 논리적 오류를 나열하고 이를 발견하는 방법에 대한 지침을 제공하십시오.",
     "analysis-cloud-vs-local": "클라우드 호스팅 서버리스 컴퓨팅과 자체 호스팅 베어메탈 서버의 장기적인 비용 이익 균형을 분석합니다.",
     "analysis-electron-tauri": "메모리 공간, 빌드 크기 및 보안 모델 측면에서 Electron과 Tauri의 자세한 비교 분석을 수행합니다.",
     "analysis-monolith-micro": "성장하는 스타트업이 언제 모놀리스에서 마이크로서비스 아키텍처로 전환해야 하는지 보여주는 주요 지표를 식별하세요.",
     "analysis-privacy-shield": "로깅 및 원격 측정 관행에 대한 GDPR 규정 준수 요구 사항의 법적, 기술적 영향을 분석합니다.",
     "analysis-rsa-vs-ecc": "키 크기 및 서명 속도와 관련하여 RSA와 ECC(타원 곡선 암호화)의 기술 비교 분석을 수행합니다.",
-    "analysis-dns-over-https": "DoH(DNS-over-HTTPS) 채택에 따른 개인 정보 보호 이점과 네트워크 성능 장단점을 분석합니다.",
+    "analysis-dns-over-https": "DNS-over-HTTPS(DoH) 도입의 프라이버시 이점과 네트워크 성능 트레이드오프를 분석해 주세요.",
     "analysis-open-licensing": "MIT와 GPLv3 라이선스의 법적 조건, 카피레프트 속성, 상업적 사용 허가를 비교해보세요.",
-    "analysis-ci-caching": "GitHub Actions CI 파이프라인의 캐시 전략을 통해 얻은 빌드 시간 최적화를 분석합니다.",
+    "analysis-ci-caching": "GitHub Actions CI 파이프라인에서 캐시 전략으로 얻은 빌드 시간 최적화를 분석해 주세요.",
     "analysis-work-automation": "AI 자율 에이전트 워크플로가 관리 팀 생산성 및 리소스 수요에 미치는 예상 영향을 평가합니다.",
     "image-serene-mountain": "황금 시간의 고요한 산 호수, 물 위의 낮은 안개, 회화적",
     "image-dewdrop-spiderweb": "거미줄에 이슬방울이 있는 매크로 사진, 일출 조명",
@@ -2361,7 +2361,7 @@
           "forgeSolarizedLight": "Forge Solarized Light",
           "forgeOneDark": "포지 원 다크",
           "forgeMonokai": "모노카이 대장간",
-          "forgeGithubLight": "Forge GitHub 라이트",
+          "forgeGithubLight": "Forge GitHub Light",
           "obsidianBloom": "흑요석 꽃",
           "harborFog": "항구 안개",
           "circuitMint": "서킷민트",
@@ -2499,12 +2499,12 @@
             "analyzingImage": "이미지 분석 중"
           },
           "error": {
-            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
-            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
-            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
-            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
-            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
-            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
+            "modelUnavailable": "캐릭터 크리에이터 모델이 일시적으로 사용할 수 없습니다. 몇 분 후 다시 시도해 주세요.",
+            "requestCancelled": "생성이 취소되었습니다.",
+            "invalidModelResponse": "모델이 사용할 수 없는 응답을 반환했습니다. 다시 시도해 주세요.",
+            "schemaRepairFailed": "생성된 캐릭터 카드가 유효성 검사에 실패하여 복구할 수 없습니다. 다시 시도해 주세요.",
+            "transportFailed": "Venice API에 연결할 수 없습니다. 연결 상태를 확인하고 다시 시도해 주세요.",
+            "providerHttp": "Venice API가 생성 요청을 거부했습니다. 나중에 다시 시도해 주세요."
           },
           "notification": {
             "couldNotLoadDraft": "초안을 로드할 수 없습니다.",
@@ -2575,7 +2575,7 @@
             "localCharacter": "지역 문자",
             "localCharacter2": "지역 캐릭터",
             "noLocalCharactersCreatedYet": "아직 생성된 로컬 캐릭터가 없습니다.",
-            "noCharactersMatchPickerquery": "&quot; {{pickerQuery}} &quot;와 일치하는 문자가 없습니다."
+            "noCharactersMatchPickerquery": "\"{{pickerQuery}}\"와 일치하는 캐릭터가 없습니다."
           }
         },
         "characterscenecard": {
@@ -2603,7 +2603,7 @@
             "conversationRestored": "대화가 복원되었습니다.",
             "failedToRestore": "복원하지 못했습니다.",
             "movedConversations": "이동된 대화",
-            "movedValue1ConversationValue2ToTargetname": "{{value1}} 대화 {{value2}} 을(를 {{targetName}} 로 이동했습니다.",
+            "movedValue1ConversationValue2ToTargetname": "{{value1}}개의 대화{{value2}}를 {{targetName}}(으)로 이동했습니다.",
             "failedToMoveConversations": "대화를 이동하지 못했습니다.",
             "conversationsDeleted": "대화가 삭제되었습니다.",
             "value1SelectedConversationValue2Removed": "{{value1}} 선택한 대화 {{value2}} 가 삭제되었습니다.",
@@ -2648,16 +2648,16 @@
           "text": {
             "deselectAllVisible": "보이는 항목 모두 선택 취소",
             "selectAllVisible": "보이는 항목 모두 선택",
-            "folderselectedcountSelected": "· {{folderSelectedCount}} 개 선택됨",
+            "folderselectedcountSelected": " · {{folderSelectedCount}}개 선택됨",
             "selected": "선택된",
             "select": "선택하다",
-            "unfiledselectedcountSelected": "· {{unfiledSelectedCount}} 개 선택됨"
+            "unfiledselectedcountSelected": " · {{unfiledSelectedCount}}개 선택됨"
           }
         },
         "chatView": {
           "notification": {
             "modelUnavailable": "모델을 사용할 수 없음",
-            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "이전에 선택한 모델은 사용할 수 없습니다. 이 채팅은 이제 {{resolvedDefault}} 사용합니다.",
+            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "이전에 선택한 모델을 사용할 수 없습니다. 이 채팅은 이제 {{resolvedDefault}}를 사용합니다.",
             "priorContextSkipped": "이전 컨텍스트를 건너뛰었습니다.",
             "factPermanentlyForgotten": "사실은 영원히 잊혀졌습니다.",
             "failedToForgetFact": "사실을 잊지 못했습니다."
@@ -2666,7 +2666,7 @@
             "forgetThisFact": "이 사실을 잊어버리셨나요?",
             "deleteFromHere": "여기에서 삭제하시겠습니까?",
             "removedFromChat": "채팅에서 삭제됨",
-            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} (는) Media Studio에 남아 있습니다. 다시 연결하려면 실행 취소를 클릭하세요.",
+            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}}이(가) Media Studio에 남아 있습니다. 다시 연결하려면 실행 취소를 클릭하세요.",
             "undo": "끄르다",
             "regenerateFromHere": "여기에서 재생성하시겠습니까?"
           },
@@ -2779,7 +2779,7 @@
         "compareView": {
           "text": {
             "allSharedFieldsMatch": "모든 공유 필드가 일치합니다.",
-            "changedcountFieldValue2Differ": "{{changedCount}} 필드 {{value2}} 가 다름"
+            "changedcountFieldValue2Differ": "{{changedCount}}개 필드{{value2}}이(가) 다릅니다"
           },
           "attribute": {
             "closeCompareView": "비교 보기 닫기"
@@ -2838,7 +2838,7 @@
             "taggedValue1OfValue2": "{{value1}} 중 {{value2}} 태그가 지정됨",
             "taggedValue1ItemValue2": "태그된 {{value1}} 항목 {{value2}}",
             "enterATagFirst": "먼저 태그를 입력하세요.",
-            "assignedValue1OfValue2Firstreason": "{{value1}} 중 {{value2}} 이( {{firstReason}} ) 할당됨",
+            "assignedValue1OfValue2Firstreason": "{{value2}} 중 {{value1}} 할당됨 ({{firstReason}})",
             "assignedValue1ItemValue2": "할당된 {{value1}} 항목 {{value2}}",
             "selectAtLeastOneMediaItem": "미디어 항목을 하나 이상 선택하세요.",
             "loadedSettingsIntoImageStudio": "Image Studio에 설정 로드됨",
@@ -2965,8 +2965,8 @@
             "thisItemReferencesRecordsThatNoLongerExistClearThe": "이 항목은 더 이상 존재하지 않는 기록을 참조합니다. 오래된 포인터를 지워 계보를 복구합니다.",
             "thisItemSParentRecordIsMissingClearTheParent": "이 항목의 상위 레코드가 누락되었습니다. 계보를 복구하려면 상위 링크를 삭제하세요.",
             "value1ChildValue2CouldNotBeResolvedClearTheStale": "{{value1}} 하위 {{value2}} (를) 확인할 수 없습니다. 계보를 복구하려면 오래된 포인터 {{value3}} 를 지웁니다.",
-            "childrenidsValue1": "childrenId: {{value1}}",
-            "childrenidsValue1Missing": "childrenIds: {{value1}} 누락됨",
+            "childrenidsValue1": "childrenIds: {{value1}}",
+            "childrenidsValue1Missing": "childrenIds: {{value1}} 누락",
             "value1MissingRef": "참조 1개 누락",
             "value1MissingRefs": "{{value1}} 참조 누락"
           }
@@ -3010,7 +3010,7 @@
           },
           "text": {
             "identical": "동일한",
-            "changedcountFieldValue2WillChange": "{{changedCount}} 필드 {{value2}} 가 변경됩니다."
+            "changedcountFieldValue2WillChange": "{{changedCount}}개 필드{{value2}}이(가) 변경됩니다"
           },
           "metadata": {
             "model": "모델",
@@ -3427,7 +3427,7 @@
         "charactereditor": {
           "notification": {
             "fileLoadedSourced": "파일 로드 및 소스",
-            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "&quot; {{value1}} &quot;을 {{fieldLabel}} 에 로드하고 문자 파일 내에 저장했습니다.",
+            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "\"{{value1}}\"을(를) {{fieldLabel}}에 로드하고 캐릭터 파일 내에 저장했습니다.",
             "reAppliedSourcedFile": "소스파일 재적용",
             "reLoadedValue1ContentIntoValue2": "&quot; {{value1}} &quot; 콘텐츠를 {{value2}} 에 다시 로드했습니다.",
             "workflowCreated": "워크플로가 생성되었습니다.",
@@ -3864,7 +3864,7 @@
             "couldNotCopySafeDiagnostics": "안전한 진단을 복사할 수 없습니다.",
             "diagnosticsRefreshed": "진단이 새로 고쳐졌습니다.",
             "diagnosticsRefreshFailed": "진단 새로 고침 실패",
-            "livecountLiveModelsRefreshed": "{{liveCount}} 개의 실시간 모델이 새로 고쳐졌습니다."
+            "livecountLiveModelsRefreshed": "{{liveCount}}개의 라이브 모델이 새로고침됨"
           },
           "attribute": {
             "diagnostics": "진단",

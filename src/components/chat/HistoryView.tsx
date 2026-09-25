@@ -578,8 +578,8 @@ export default function HistoryView() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-6xl mx-auto p-6 space-y-6">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1 min-w-0">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
                 size={18}
@@ -601,7 +601,7 @@ export default function HistoryView() {
                   e.target.value as "all" | "character" | "standard",
                 )
               }
-              className="px-4 py-2.5 bg-vf-panel-bg-inset border border-vf-panel-border rounded-md focus:outline-none focus:border-accent text-[14px] text-text-primary transition-all cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 bg-vf-panel-bg-inset border border-vf-panel-border rounded-md focus:outline-none focus:border-accent text-[14px] text-text-primary transition-all cursor-pointer"
             >
               <option value="all">
                 <Trans i18nKey="common:surface.componentsChatHistoryview.option.allChats" />

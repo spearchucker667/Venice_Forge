@@ -138,7 +138,7 @@
     "enhancementSafetyBlockedFamily": "Die Prompt-Verbesserung wurde durch den optionalen Familien-Safe-Modus gestoppt. Ihr Originalprompt wurde beibehalten.",
     "enhancementSafetyBlockedProvider": "Die Prompt-Verbesserung wurde durch die Anbieterrichtlinie gestoppt. Ihr Originalprompt wurde beibehalten.",
     "styleReferences": "Stilreferenzen",
-    "styleReferenceHelp": "Füge bis zu {{count}} PNG-, JPEG- oder WebP-Referenzbilder hinzu. Referenzen werden nur an Modelle gesendet, die Laufzeitunterstützung angeben.",
+    "styleReferenceHelp": "Fügen Sie bis zu {{count}} PNG-, JPEG- oder WebP-Referenzbilder hinzu. Referenzen werden nur an Modelle gesendet, die Laufzeitunterstützung ankündigen.",
     "addStyleReferenceImages": "Stilreferenzbilder hinzufügen",
     "styleReferenceCount": "{{count}} von {{max}} Stilreferenzen ausgewählt",
     "selectedStyleReferences": "Ausgewählte Stilreferenzen",
@@ -148,7 +148,7 @@
     "styleReferenceLimitReached": "Limit für Stilreferenzen erreicht",
     "styleReferenceLimitDetail": "Dieses Modell akzeptiert bis zu {{count}} Stilreferenzen.",
     "styleReferenceRejected": "Stilreferenz abgelehnt",
-    "styleReferenceUnsupportedType": "Wähle ein PNG-, JPEG- oder WebP-Bild.",
+    "styleReferenceUnsupportedType": "Wählen Sie ein PNG-, JPEG- oder WebP-Bild.",
     "styleReferenceEmptyFile": "Das ausgewählte Bild ist leer.",
     "styleReferenceReadFailed": "Das ausgewählte Bild konnte nicht gelesen werden.",
     "styleReferenceTooLarge": "Stilreferenzbilder müssen kleiner als 8 MB sein."
@@ -181,41 +181,41 @@
     }
   },
   "mediaStudioActions": {
-    "heading": "__MISSING__:mediaStudioActions.heading",
-    "upscale": "__MISSING__:mediaStudioActions.upscale",
-    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
-    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
-    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
-    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
-    "cancel": "__MISSING__:mediaStudioActions.cancel",
-    "retry": "__MISSING__:mediaStudioActions.retry",
-    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
-    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
-    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "heading": "Bildoperationen",
+    "upscale": "Hochskalieren",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "Hintergrund entfernen",
+    "inpaint": "Retuschieren",
+    "cancel": "Abbrechen",
+    "retry": "Erneut versuchen",
+    "done": "{{operation}} abgeschlossen für {{count}} Asset(s)",
+    "running": "{{operation}} läuft für {{name}}…",
+    "failed": "{{operation}} fehlgeschlagen für {{name}}",
     "operationLabels": {
-      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
-      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
-      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+      "upscale": "Hochskalieren",
+      "remove-background": "Hintergrundentfernung",
+      "inpaint": "Retuschieren"
     },
     "reason": {
-      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
-      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
-      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
-      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+      "requiresImage": "Dieser Vorgang erfordert ein Bild-Asset",
+      "sourceUnavailable": "Dieses Quell-Asset ist lokal nicht mehr verfügbar",
+      "modelUnavailable": "Inpainting ist für das ausgewählte Modell nicht verfügbar",
+      "singleSelection": "Inpainting erfordert ein einzelnes ausgewähltes Bild"
     },
     "editor": {
-      "title": "__MISSING__:mediaStudioActions.editor.title",
-      "description": "__MISSING__:mediaStudioActions.editor.description",
-      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
-      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
-      "undo": "__MISSING__:mediaStudioActions.editor.undo",
-      "clear": "__MISSING__:mediaStudioActions.editor.clear",
-      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
-      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
-      "submit": "__MISSING__:mediaStudioActions.editor.submit",
-      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
-      "success": "__MISSING__:mediaStudioActions.editor.success",
-      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+      "title": "Inpaint — Maske malen",
+      "description": "Malen Sie über den zu ersetzenden Bereich und beschreiben Sie dann die Änderung. Die Maske und das Quellbild werden an das ausgewählte Bearbeitungsmodell gesendet.",
+      "canvasLabel": "Masken-Malfläche",
+      "brushSize": "Pinselgröße",
+      "undo": "Rückgängig",
+      "clear": "Löschen",
+      "promptLabel": "Bearbeitungsprompt (optional)",
+      "promptPlaceholder": "Beschreiben Sie, was im gemalten Bereich erscheinen soll…",
+      "submit": "Inpaint anwenden",
+      "cancel": "Abbrechen",
+      "success": "Inpaint-Asset im Media Studio gespeichert",
+      "loadFailed": "Das ausgewählte Bild konnte nicht zum Maskieren geladen werden."
     }
   }
 }

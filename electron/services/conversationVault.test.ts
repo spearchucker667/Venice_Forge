@@ -667,6 +667,36 @@ describe("ConversationVault core and services", () => {
 
   // Group E: Migration & Compatibility
   describe("Group E: Migration & Compatibility", () => {
+    it("keeps a valid legacy conversation retryable when vault persistence fails", async () => {
+      const legacyDir = path.join(path.dirname(CONVERSATIONS_DIR), "chat-history");
+      await fs.mkdir(legacyDir, { recursive: true });
+      const source = path.join(legacyDir, "retryable.json");
+      await fs.writeFile(source, JSON.stringify({
+        version: 1,
+        conversation: {
+          id: "legacy_retryable",
+          title: "Retryable chat",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          model: "llama-3-8b",
+          messages: [],
+        },
+      }));
+
+      mockSafeStorage.encryptString = () => { throw new Error("Keychain temporarily unavailable"); };
+      const failed = await migrateLegacyHistory();
+      expect(failed.ok).toBe(false);
+      expect(failed.failed).toBe(1);
+      expect(await fs.readFile(source, "utf-8")).toContain("legacy_retryable");
+      expect(await detectLegacyHistory()).toBe(true);
+
+      mockSafeStorage.encryptString = (str: string) => Buffer.from("enc:" + str);
+      const retried = await migrateLegacyHistory();
+      expect(retried).toMatchObject({ ok: true, migrated: 1, failed: 0 });
+      expect(await detectLegacyHistory()).toBe(false);
+      expect((await listConversations()).map((record) => record.id)).toEqual(["legacy_retryable"]);
+    });
+
     it("20. Detects and performs legacy flat history file migration", async () => {
       const legacyDir = path.join(path.dirname(CONVERSATIONS_DIR), "chat-history");
       await fs.mkdir(legacyDir, { recursive: true });

@@ -19,7 +19,7 @@
   },
   "overrides": {
     "@xmldom/xmldom": "^0.8.15",
-    "esbuild": "^0.28.1",
+    "esbuild": "$esbuild",
     "fast-uri": "^3.1.6",
     "joi": "^18.2.9",
     "js-yaml": "^4.3.2",

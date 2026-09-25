@@ -470,7 +470,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: Props) {
           "runtimeGenerated.components.layout.sidebar.attribute.primaryNavigation",
         )}
         className={cn(
-          "flex flex-col h-full min-h-0 bg-vf-shell-bg mesh-sidebar border-r border-vf-panel-border shell-region",
+          "flex flex-col h-full min-h-0 bg-vf-shell-bg mesh-sidebar border-r border-vf-panel-border",
           "fixed top-0 left-0 z-40 w-72 h-[100dvh] md:static md:h-full md:w-[var(--sidebar-width,256px)] md:shrink-0",
           mobileOpen
             ? "translate-x-0 visible pointer-events-auto"

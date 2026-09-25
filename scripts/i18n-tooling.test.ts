@@ -243,6 +243,24 @@ describe("sync-catalogs mergeTreeAdditive", () => {
 });
 
 describe("verify-i18n sentinel + missing-marker rejection", () => {
+  it("rejects translation-service token artifacts inside otherwise valid text", () => {
+    const root = makeProject({
+      "en-US": { common: '{ "save": "Save", "cancel": "Cancel" }' },
+      es: { common: '{ "save": "Guardar ZXQPH00001ZX", "cancel": "Cancelar ZZXQ 0 QXZZ" }' },
+    });
+    const result = verifier.runVerification({
+      locales: ["en-US", "es"],
+      namespaces: ["common"],
+      resourcesDir: path.join(root, "src", "i18n", "resources"),
+      docsDir: path.join(root, "docs", "i18n"),
+      docsRequired: [],
+      skipSourceInventory: true,
+      nativeReviewStatus: { locales: {} },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors.filter((error) => /translation artifact/i.test(error))).toHaveLength(2);
+  });
+
   it("rejects sentinel-prefixed locale values", () => {
     const root = makeProject({
       "en-US": { common: '{ "save": "Save", "cancel": { "x": "Cancel x" } }' },

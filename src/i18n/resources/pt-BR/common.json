@@ -177,7 +177,7 @@
       "heading": {
         "themeSystemEditor": "Sistema e editor de tema",
         "importThemePreview": "Visualização do tema de importação",
-        "codeAndSyntax": "Code & Syntax"
+        "codeAndSyntax": "Código & Sintaxe"
       },
       "description": {
         "configureThemeColorsBorderContrastFocusRings": "Configure cores de tema, contraste de borda, anéis de foco e estilos de botão de ação em Venice Forge.",
@@ -185,7 +185,7 @@
       },
       "label": {
         "selectActiveTheme": "Selecionar tema ativo",
-        "syntaxPreset": "Syntax preset"
+        "syntaxPreset": "Predefinição de sintaxe"
       },
       "text": {
         "unsavedDraftChanges": "Alterações de rascunho não salvas",
@@ -200,39 +200,39 @@
         "id": "ID:"
       },
       "codeToken": {
-        "background": "Code background",
-        "foreground": "Code foreground",
-        "border": "Code border",
-        "headerBackground": "Header background",
-        "headerForeground": "Header foreground",
-        "inlineBackground": "Inline background",
-        "inlineForeground": "Inline foreground",
-        "selectionBackground": "Selection background",
-        "comment": "Comment",
-        "punctuation": "Punctuation",
-        "property": "Property",
+        "background": "Fundo do código",
+        "foreground": "Primeiro plano do código",
+        "border": "Borda do código",
+        "headerBackground": "Plano de fundo do cabeçalho",
+        "headerForeground": "Primeiro plano do cabeçalho",
+        "inlineBackground": "Plano de fundo embutido",
+        "inlineForeground": "Primeiro plano embutido",
+        "selectionBackground": "Plano de fundo da seleção",
+        "comment": "Comentário",
+        "punctuation": "Pontuação",
+        "property": "Propriedade",
         "tag": "Tag",
-        "boolean": "Boolean",
-        "number": "Number",
-        "constant": "Constant",
-        "symbol": "Symbol",
-        "deleted": "Deleted",
-        "selector": "Selector",
-        "attribute": "Attribute",
+        "boolean": "Booleano",
+        "number": "Número",
+        "constant": "Constante",
+        "symbol": "Símbolo",
+        "deleted": "Excluído",
+        "selector": "Seletor",
+        "attribute": "Atributo",
         "string": "String",
-        "character": "Character",
-        "builtin": "Builtin",
-        "inserted": "Inserted",
-        "operator": "Operator",
-        "entity": "Entity",
+        "character": "Caractere",
+        "builtin": "Integrado",
+        "inserted": "Inserido",
+        "operator": "Operador",
+        "entity": "Entidade",
         "url": "URL",
-        "atRule": "At-rule",
-        "keyword": "Keyword",
-        "function": "Function",
-        "className": "Class / Type",
+        "atRule": "Regra at",
+        "keyword": "Palavra-chave",
+        "function": "Função",
+        "className": "Classe / Tipo",
         "regex": "Regex",
-        "important": "Important",
-        "variable": "Variable"
+        "important": "Importante",
+        "variable": "Variável"
       }
     },
     "componentsAudioAudioView": {
@@ -498,7 +498,7 @@
         "selected": "selecionou",
         "chattingAs": "Bate-papo como",
         "usesCharacterSystemPrompt": "Usando o prompt de sistema do personagem. O prompt de sistema fornecido pelo usuário é ignorado para chats de personagens hospedados e locais.",
-        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
+        "useVeniceDefaultSystemPrompt": "Usar prompt do sistema padrão do Venice"
       },
       "label": {
         "systemPromptMode": "Modo de prompt do sistema"
@@ -1602,7 +1602,7 @@
         "discoveredProfileCandidates": "Candidatos de perfil descoberto"
       },
       "description": {
-        "aggregatesSocialProfileMappingsFromPublicDatabases": "Agrega mapeamentos de perfis sociais de bancos de dados públicos (GitHub, Twitter, LinkedIn, etc.) usando a integração da Web Venice."
+        "aggregatesSocialProfileMappingsFromPublicDatabases": "Agrega mapeamentos de perfis sociais de bancos de dados públicos (GitHub, Twitter, LinkedIn, etc.) usando a integração web do Venice."
       },
       "label": {
         "platformsToSearch": "Plataformas para pesquisar"
@@ -1796,10 +1796,10 @@
         "safetyGuardAudit": "Auditoria de segurança",
         "lastRequest": "Última solicitação",
         "mediaClassifierCapabilities": "Capacidades do classificador de mídia",
-        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
-        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
-        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
-        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
+        "safetyRuntime": "Runtime de segurança",
+        "structuralValidation": "Validação estrutural / de protocolo",
+        "mediaClassifierBackend": "Backend do classificador de mídia",
+        "classifierCounters": "Contadores do classificador"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Informações agregadas de tempo de execução para a compilação atual. Abra a pasta de logs",
@@ -1828,33 +1828,33 @@
         "protectionItemImageBytes": "Bytes de imagem (semântica): não classificados",
         "protectionItemAudioBytes": "Bytes de áudio (semântica): não classificados",
         "protectionItemVideoBytes": "Bytes de vídeo (semântica): não classificados",
-        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
-        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
-        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
-        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
-        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
-        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
-        "source": "__MISSING__:surface.componentsStatusview.text.source",
-        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
-        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
-        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
-        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
-        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
-        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
-        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
-        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
-        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
-        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
-        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
-        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
-        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
-        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
-        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
-        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
-        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
-        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
-        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
-        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
+        "localContentSafeguards": "Salvaguardas de conteúdo local",
+        "providerSafety": "Segurança do provedor (Venice safe_mode)",
+        "stateEnabled": "Habilitado",
+        "stateDisabled": "Desabilitado",
+        "stateOn": "Ligado",
+        "stateOff": "Desligado",
+        "source": "origem",
+        "sourceUser": "usuário",
+        "sourceServer": "servidor",
+        "sourcePolicy": "política",
+        "validationActive": "Ativo",
+        "requestsValidated": "Requisições validadas",
+        "rejectedRequests": "Requisições rejeitadas",
+        "backendRegistered": "Backend registrado",
+        "backendName": "Nome do backend",
+        "classifierStateAvailable": "Disponível",
+        "classifierStateNotConfigured": "Não configurado",
+        "classifierStateUnsupported": "Não suportado",
+        "classifierStateUnhealthy": "Backend não saudável",
+        "counterTextEvaluations": "Avaliações de texto",
+        "counterImageEvaluations": "Avaliações de imagem",
+        "counterAudioEvaluations": "Avaliações de áudio",
+        "counterVideoEvaluations": "Avaliações de vídeo",
+        "counterBlocked": "Bloqueado",
+        "counterAllowed": "Permitido",
+        "counterSkippedDisabled": "Ignorado (salvaguardas desativadas)",
+        "counterErrors": "Erros"
       }
     },
     "componentsThemepreview": {
@@ -1870,7 +1870,7 @@
         "focusedControl": "Controle focado",
         "alertMessageBoundary": "Limite da mensagem de alerta",
         "contrastWarnings": "Avisos de contraste:",
-        "syntaxPreview": "Syntax preview"
+        "syntaxPreview": "Pré-visualização da sintaxe"
       }
     },
     "componentsCharacterCreatorCharactercreatorcompleted": {
@@ -2113,24 +2113,24 @@
     "writing-scifi-hook": "Componha um gancho de abertura atraente para um romance de ficção científica onde a gravidade se comporta de maneira diferente em cada cidade.",
     "writing-newsletter-intro": "Elabore uma introdução envolvente ao boletim informativo discutindo os impactos sociais das frotas de agentes autônomos.",
     "writing-press-release": "Crie um modelo formal de comunicado à imprensa anunciando o código aberto de um web scraper que prioriza a privacidade.",
-    "writing-linkedin-post": "Elabore uma postagem profissional no LinkedIn resumindo as principais lições aprendidas com a construção de um aplicativo Electron offline.",
+    "writing-linkedin-post": "Escreva uma postagem profissional no LinkedIn resumindo as principais lições aprendidas ao construir um aplicativo Electron offline-first.",
     "writing-blog-outline": "Gere um esboço detalhado para uma postagem técnica no blog intitulada 'Protegendo pontes de pré-carga em aplicativos modernos de elétrons'.",
     "writing-sabbatical-request": "Escreva uma proposta profissional solicitando um período sabático educacional de 3 meses para estudar sistemas distribuídos.",
     "writing-speech-intro": "Escreva um discurso introdutório de 3 minutos sobre a importância do software local e da soberania dos dados.",
     "writing-bug-report": "Escreva um modelo completo para um relatório de bug em um projeto de código aberto para incentivar uma resolução rápida.",
     "writing-refusal-letter": "Elabore uma resposta profissional recusando uma proposta de fornecedor, mantendo a porta aberta para colaboração futura.",
     "writing-haiku-comp": "Componha três haicais capturando a transição do hardware analógico para a computação quântica.",
-    "coding-rest-graphql": "Compare REST e GraphQL – quando cada um brilha?",
-    "coding-debounce-ts": "Escreva um gancho debounce robusto e totalmente digitado em TypeScript para React com suporte para invocação imediata.",
+    "coding-rest-graphql": "Compare REST e GraphQL — quando cada um brilha?",
+    "coding-debounce-ts": "Escreva um hook de debounce robusto e totalmente tipado em TypeScript para React com suporte a invocação imediata.",
     "coding-sql-recursive": "Explique como os CTEs recursivos funcionam em SQL com um exemplo de consulta a uma hierarquia organizacional.",
     "coding-refactor-lru": "Refatore um cache de memória Node.js simples em um cache LRU thread-safe com suporte para expiração.",
     "coding-rust-error": "Mostre como implementar o tratamento de erros personalizado no Rust usando as caixas `thiserror` e `anyhow`.",
     "coding-git-bisect": "Explique como usar `git bisect` para localizar um commit de regressão, incluindo execução automatizada de script.",
-    "coding-docker-multi": "Crie um Dockerfile mínimo e seguro de vários estágios para empacotar um microsserviço TypeScript Node.js.",
+    "coding-docker-multi": "Crie um Dockerfile multi-estágio mínimo e seguro para empacotar um microsserviço Node.js em TypeScript.",
     "coding-csp-rules": "Escreva uma configuração de cabeçalho estrita de Política de Segurança de Conteúdo (CSP) que permita a execução local do WASM, mas bloqueie a avaliação in-line.",
     "coding-vitest-mocking": "Demonstre como simular objetos de janela globais e chamadas de busca assíncronas no Vitest.",
     "coding-css-flex-grid": "Explique as diferenças arquitetônicas entre os layouts CSS Grid e Flexbox, com casos de uso de layout específicos para cada um.",
-    "coding-sse-parse": "Mostre como escrever um analisador de fluxo para eventos enviados pelo servidor (SSE) em JavaScript vanilla sem dependências externas.",
+    "coding-sse-parse": "Mostre como escrever um analisador de fluxo para Server-Sent Events (SSE) em JavaScript vanilla sem dependências externas.",
     "coding-indexeddb-transaction": "Forneça um exemplo de gerenciamento robusto de transações e reversão de erros no IndexedDB nativo do navegador.",
     "learning-rsa-metaphor": "Explique como funciona a criptografia RSA usando uma metáfora que uma criança de 10 anos poderia entender.",
     "learning-pid-controller": "Explique a matemática por trás de um controlador de temperatura PID em termos simples e intuitivos.",
@@ -2177,20 +2177,20 @@
     "productivity-markdown-journal": "Projete um sistema leve de prompt de diário de redução diária que ajude a rastrear metas diárias, bloqueadores e gratificações.",
     "productivity-inbox-zero": "Elabore um sistema passo a passo para alcançar e manter o Inbox Zero usando rótulos automatizados e atalhos de teclado.",
     "productivity-postmortem": "Crie um modelo padrão para escrever postmortems de software após uma interrupção crítica de produção.",
-    "productivity-learning-sprint": "Descreva um plano de sprint de aprendizagem de 4 semanas para dominar os fundamentos da compilação Rust WebAssembly.",
+    "productivity-learning-sprint": "Esboce um plano de sprint de aprendizado de 4 semanas para dominar os fundamentos da compilação de WebAssembly em Rust.",
     "productivity-presentation-deck": "Elabore uma estrutura slide por slide para uma apresentação de 10 minutos para garantir o financiamento inicial para um cliente local de LLM.",
     "productivity-dependency-audit": "Crie um plano de ação para conduzir uma auditoria mensal das dependências da biblioteca de código aberto em um repositório de código de produção.",
     "analysis-p2p-mesh": "Conduzir uma análise SWOT da implantação de uma rede mesh ponto a ponto descentralizada em áreas urbanas de alta densidade.",
-    "analysis-sqlite-pg": "Compare as compensações arquitetônicas do SQLite com o PostgreSQL para um aplicativo de desktop offline com recursos de sincronização.",
+    "analysis-sqlite-pg": "Compare as compensações arquiteturais do SQLite vs PostgreSQL para um aplicativo desktop offline-first com recursos de sincronização.",
     "analysis-fallacy-media": "Liste cinco falácias lógicas comuns encontradas nas reportagens da mídia moderna e forneça diretrizes sobre como identificá-las.",
     "analysis-cloud-vs-local": "Analise as compensações de custo-benefício de longo prazo entre a computação sem servidor hospedada na nuvem e os servidores bare metal auto-hospedados.",
     "analysis-electron-tauri": "Execute uma análise comparativa detalhada de Electron vs Tauri em termos de consumo de memória, tamanho de construção e modelos de segurança.",
     "analysis-monolith-micro": "Identifique os principais indicadores que mostram quando uma startup em crescimento deve fazer a transição de uma arquitetura monolítica para uma arquitetura de microsserviços.",
     "analysis-privacy-shield": "Analise as implicações legais e técnicas dos requisitos de conformidade do GDPR nas práticas de registro e telemetria.",
     "analysis-rsa-vs-ecc": "Realize uma análise técnica comparativa de criptografia RSA versus criptografia de curva elíptica (ECC) em relação a tamanhos de chave e velocidades de assinatura.",
-    "analysis-dns-over-https": "Analise as vantagens de privacidade e as compensações no desempenho da rede decorrentes da adoção de DNS sobre HTTPS (DoH).",
+    "analysis-dns-over-https": "Analise as vantagens de privacidade e as compensações de desempenho de rede ao adotar DNS-over-HTTPS (DoH).",
     "analysis-open-licensing": "Compare as condições legais, propriedades copyleft e permissões de uso comercial das licenças MIT vs GPLv3.",
-    "analysis-ci-caching": "Analise as otimizações de tempo de construção obtidas com estratégias de cache em pipelines de CI do GitHub Actions.",
+    "analysis-ci-caching": "Analise as otimizações de tempo de build obtidas com estratégias de cache em pipelines de CI do GitHub Actions.",
     "analysis-work-automation": "Avalie os impactos potenciais dos fluxos de trabalho de agentes autônomos de IA na produtividade da equipe administrativa e na demanda de recursos.",
     "image-serene-mountain": "Um sereno lago de montanha na hora dourada, neblina baixa sobre a água, pintura",
     "image-dewdrop-spiderweb": "Foto macro de uma gota de orvalho em uma teia de aranha, iluminação do nascer do sol",
@@ -2352,7 +2352,7 @@
           "forgeDaylight": "Forja a luz do dia",
           "forgeCopper": "Forjar Cobre",
           "forgeDracula": "Forja Drácula",
-          "gruvboxDark": "GruvBox Escuro",
+          "gruvboxDark": "GruvBox Dark",
           "rosepine": "Rosapina",
           "forgeNord": "Forja Norte",
           "forgeTokyo": "Forjar Tóquio",
@@ -2361,7 +2361,7 @@
           "forgeSolarizedLight": "Forjar Luz Solarizada",
           "forgeOneDark": "Forja Um Escuro",
           "forgeMonokai": "Forjar Monokai",
-          "forgeGithubLight": "Forjar GitHub Light",
+          "forgeGithubLight": "Forge GitHub Light",
           "obsidianBloom": "Flor Obsidiana",
           "harborFog": "Nevoeiro do Porto",
           "circuitMint": "Circuito Menta",
@@ -2499,12 +2499,12 @@
             "analyzingImage": "Analisando Imagem"
           },
           "error": {
-            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
-            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
-            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
-            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
-            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
-            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
+            "modelUnavailable": "O modelo do Criador de Personagens está temporariamente indisponível. Tente novamente em alguns minutos.",
+            "requestCancelled": "A geração foi cancelada.",
+            "invalidModelResponse": "O modelo retornou uma resposta inutilizável. Tente novamente.",
+            "schemaRepairFailed": "O cartão de personagem gerado falhou na validação e não pôde ser reparado. Tente novamente.",
+            "transportFailed": "Não foi possível acessar a API do Venice. Verifique sua conexão e tente novamente.",
+            "providerHttp": "A API do Venice rejeitou a solicitação de geração. Tente novamente mais tarde."
           },
           "notification": {
             "couldNotLoadDraft": "Não foi possível carregar o rascunho",
@@ -2575,7 +2575,7 @@
             "localCharacter": "Caráter Local",
             "localCharacter2": "Personagem local",
             "noLocalCharactersCreatedYet": "Nenhum personagem local criado ainda.",
-            "noCharactersMatchPickerquery": "Nenhum caractere corresponde a &quot; {{pickerQuery}} &quot;."
+            "noCharactersMatchPickerquery": "Nenhum personagem corresponde a \"{{pickerQuery}}\"."
           }
         },
         "characterscenecard": {
@@ -2603,7 +2603,7 @@
             "conversationRestored": "Conversa restaurada",
             "failedToRestore": "Falha ao restaurar",
             "movedConversations": "Conversas movidas",
-            "movedValue1ConversationValue2ToTargetname": "Conversa {{value1}} movida {{value2}} para {{targetName}} .",
+            "movedValue1ConversationValue2ToTargetname": "{{value1}} conversa{{value2}} movida(s) para {{targetName}}.",
             "failedToMoveConversations": "Falha ao mover conversas",
             "conversationsDeleted": "Conversas excluídas",
             "value1SelectedConversationValue2Removed": "{{value1}} conversa selecionada {{value2}} removida.",
@@ -2648,16 +2648,16 @@
           "text": {
             "deselectAllVisible": "Desmarcar tudo visível",
             "selectAllVisible": "Selecione tudo visível",
-            "folderselectedcountSelected": "· {{folderSelectedCount}} selecionado",
+            "folderselectedcountSelected": " · {{folderSelectedCount}} selecionada(s)",
             "selected": "Selecionado",
             "select": "Selecione",
-            "unfiledselectedcountSelected": "· {{unfiledSelectedCount}} selecionado"
+            "unfiledselectedcountSelected": " · {{unfiledSelectedCount}} selecionada(s)"
           }
         },
         "chatView": {
           "notification": {
             "modelUnavailable": "Modelo indisponível",
-            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "O modelo selecionado anteriormente não está disponível. Este bate-papo agora usa {{resolvedDefault}} .",
+            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "O modelo selecionado anteriormente não está disponível. Este chat agora usa {{resolvedDefault}}.",
             "priorContextSkipped": "Contexto anterior ignorado",
             "factPermanentlyForgotten": "Fato permanentemente esquecido.",
             "failedToForgetFact": "Não consegui esquecer o fato"
@@ -2666,7 +2666,7 @@
             "forgetThisFact": "Esquecer esse fato?",
             "deleteFromHere": "Excluir daqui?",
             "removedFromChat": "Removido do bate-papo",
-            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} permanece no Media Studio. Clique em Desfazer para anexar novamente.",
+            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} permanece no Media Studio. Clique em Desfazer para reanexar.",
             "undo": "Desfazer",
             "regenerateFromHere": "Regenerar daqui?"
           },
@@ -2779,7 +2779,7 @@
         "compareView": {
           "text": {
             "allSharedFieldsMatch": "Todos os campos compartilhados correspondem",
-            "changedcountFieldValue2Differ": "{{changedCount}} campo {{value2}} diferente"
+            "changedcountFieldValue2Differ": "{{changedCount}} campo{{value2}} diferem"
           },
           "attribute": {
             "closeCompareView": "Fechar visualização de comparação"
@@ -2838,7 +2838,7 @@
             "taggedValue1OfValue2": "Marcado com {{value1}} de {{value2}}",
             "taggedValue1ItemValue2": "Item marcado {{value1}} {{value2}}",
             "enterATagFirst": "Insira uma tag primeiro.",
-            "assignedValue1OfValue2Firstreason": "Atribuído {{value1}} de {{value2}} ( {{firstReason}} )",
+            "assignedValue1OfValue2Firstreason": "Atribuído(s) {{value1}} de {{value2}} ({{firstReason}})",
             "assignedValue1ItemValue2": "Item {{value1}} atribuído {{value2}}",
             "selectAtLeastOneMediaItem": "Selecione pelo menos um item de mídia.",
             "loadedSettingsIntoImageStudio": "Configurações carregadas no Image Studio",
@@ -2965,8 +2965,8 @@
             "thisItemReferencesRecordsThatNoLongerExistClearThe": "Este item faz referência a registros que não existem mais. Limpe os ponteiros obsoletos para reparar a linhagem.",
             "thisItemSParentRecordIsMissingClearTheParent": "O registro pai deste item está faltando. Limpe o link pai para reparar a linhagem.",
             "value1ChildValue2CouldNotBeResolvedClearTheStale": "{{value1}} filho {{value2}} não pôde ser resolvido. Limpe o ponteiro obsoleto {{value3}} para reparar a linhagem.",
-            "childrenidsValue1": "filhosIds: {{value1}}",
-            "childrenidsValue1Missing": "filhosIds: {{value1}} faltando",
+            "childrenidsValue1": "childrenIds: {{value1}}",
+            "childrenidsValue1Missing": "childrenIds: {{value1}} ausente(s)",
             "value1MissingRef": "1 referência faltando",
             "value1MissingRefs": "{{value1}} referências ausentes"
           }
@@ -3010,7 +3010,7 @@
           },
           "text": {
             "identical": "Idêntico",
-            "changedcountFieldValue2WillChange": "{{changedCount}} campo {{value2}} mudará"
+            "changedcountFieldValue2WillChange": "{{changedCount}} campo{{value2}} será(ão) alterado(s)"
           },
           "metadata": {
             "model": "Modelo",
@@ -3427,7 +3427,7 @@
         "charactereditor": {
           "notification": {
             "fileLoadedSourced": "Arquivo carregado e originado",
-            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "Carregado &quot; {{value1}} &quot;em {{fieldLabel}} e salvo dentro do arquivo de caracteres.",
+            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "Carregado \"{{value1}}\" em {{fieldLabel}} e salvo no arquivo de personagem.",
             "reAppliedSourcedFile": "Arquivo de origem reaplicado",
             "reLoadedValue1ContentIntoValue2": "Recarregou o conteúdo &quot; {{value1}} &quot; em {{value2}} .",
             "workflowCreated": "Fluxo de trabalho criado",
@@ -3484,7 +3484,7 @@
             "moveExampleValue1Up": "Mova o exemplo {{value1}} para cima",
             "moveExampleValue1Down": "Mova o exemplo {{value1}} para baixo",
             "removeExample": "Remover exemplo",
-            "losslessSillytavernMesExampleCompatibilityText": "Texto de compatibilidade Lossless SillyTavern mes_example",
+            "losslessSillytavernMesExampleCompatibilityText": "Texto de compatibilidade mes_example SillyTavern sem perda",
             "urlScrapingProvider": "Provedor de extração de URL",
             "temperature": "Temperatura",
             "topP": "Parte superior P",
@@ -4042,7 +4042,7 @@
         },
         "notification": {
           "localSettingsCleared": "Configurações locais apagadas.",
-          "indexeddbDataClearedSuccessfully": "Dados IndexedDB limpos com sucesso.",
+          "indexeddbDataClearedSuccessfully": "Dados do IndexedDB limpos com sucesso.",
           "encryptedBackupExportedSuccessfully": "Backup criptografado exportado com sucesso.",
           "exportFailedPleaseTryAgain": "Falha na exportação. Por favor, tente novamente."
         }
@@ -4149,7 +4149,7 @@
       "backupimportservice": {
         "metadata": {
           "legacyVersion2BackupAuthenticatedSourceCryptoContentCountAnd": "Backup legado da versão 2: metadados de origem autenticada, criptografia, contagem de conteúdo e exclusão não estão disponíveis.",
-          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "A versão do aplicativo de backup {{value1}} difere desta versão do aplicativo {{appVersion}} .",
+          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "A versão {{value1}} do aplicativo de backup difere da versão {{appVersion}} deste aplicativo.",
           "thisBackupIncludesMediaRecords": "Este backup inclui registros de mídia.",
           "excludedByDesignValue1": "Excluído por design: {{value1}} ."
         }
@@ -4178,10 +4178,10 @@
       "chatpromptcompiler": {
         "metadata": {
           "contextTruncated": "Contexto truncado",
-          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "Removido {{removedCount}} antigo {{turnWord}} para caber dentro dos limites do contexto. Inicie um novo chat ou use um modelo com uma janela de contexto maior para preservar o histórico completo.",
+          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "Removida(s) {{removedCount}} {{turnWord}} antiga(s) para caber dentro dos limites de contexto. Inicie um novo chat ou use um modelo com uma janela de contexto maior para preservar o histórico completo.",
           "theConversationRequiresValue1TokensButOnlyValue2AreAvailable": "A conversa requer ~ {{value1}} tokens, mas apenas {{value2}} estão disponíveis após a reserva dos tokens de saída.",
           "thisRequestReservesValue1OutputTokensSoTheCustomPrompt": "Esta solicitação reserva {{value1}} tokens de saída para que o prompt personalizado e a conversa atual se ajustem ao modelo selecionado.",
-          "estkKOfTotalkKEstimatedTokensAreInUse": "{{estK}} K de {{totalK}} K tokens estimados estão em uso."
+          "estkKOfTotalkKEstimatedTokensAreInUse": "{{estK}}K de {{totalK}}K tokens estimados em uso."
         }
       },
       "chatstorage": {
@@ -4502,7 +4502,7 @@
           "value1DoesNotSupportAStylePresetValueWillBe": "{{value1}} não suporta uma predefinição de estilo — o valor será descartado.",
           "value1UsesPixelSizingAspectRatioWillBeDropped": "{{value1}} usa tamanho de pixel — a proporção será eliminada.",
           "value1DoesNotSupportAResolutionPresetValueWillBe": "{{value1}} não suporta uma predefinição de resolução — o valor será eliminado.",
-          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "As dimensões {{originalPair}} não são suportadas — o padrão é {{finalPair}} .",
+          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "As dimensões {{originalPair}} não são suportadas — padrão definido para {{finalPair}}.",
           "aspectRatioValue1IsNotSupportedDefaultedToValue2": "A proporção &quot; {{value1}} &quot; não é suportada — o padrão é {{value2}} .",
           "resolutionValue1IsNotSupportedDefaultedToValue2": "A resolução &quot; {{value1}} &quot; não é suportada — o padrão é {{value2}} ."
         }
@@ -4525,7 +4525,7 @@
           "searchGroundedAndFastLlmApis": "APIs LLM rápidas e baseadas em pesquisa.",
           "cohereEnterpriseReadyMultilingualModels": "Modelos multilíngues prontos para empresas.",
           "huggingFaceOpenSourceInferenceProviders": "Inferência de modelos de código aberto via Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Completions de chat baseadas em implantações do Azure OpenAI.",
+          "azureOpenAiDeploymentBasedChatCompletions": "Conclusões de chat baseadas em implantação do Azure OpenAI.",
           "awsBedrockMantleOpenAiCompatibleInference": "Inferência compatível com OpenAI do AWS Bedrock Mantle.",
           "googleVertexAiExpressModeApiKey": "Modo Express do Google Vertex AI (autenticação por chave de API)."
         }
@@ -4568,7 +4568,7 @@
       },
       "promptLimits": {
         "notification": {
-          "overLimit": "O prompt do sistema excede o limite do aplicativo. Tamanho máximo de contingência: {{maximumCodePoints}} pontos de código Unicode. Detectado: {{codePointCount}} pontos de código Unicode ({{estimatedTokenCount}} tokens estimados). A política foi projetada para aproximadamente {{maximumTokens}} tokens. Encurte o prompt antes de continuar.",
+          "overLimit": "O prompt do sistema excede o limite do aplicativo. Tamanho máximo de fallback: {{maximumCodePoints}} pontos de código Unicode. Detectado: {{codePointCount}} pontos de código Unicode ({{estimatedTokenCount}} tokens estimados). A política de prompt do sistema é projetada para aproximadamente {{maximumTokens}} tokens. Encurte o prompt antes de continuar.",
           "warning": "O prompt do sistema está se aproximando do limite do aplicativo ({{estimatedTokenCount}} / {{maximumTokens}} tokens estimados; {{codePointCount}} / {{maximumCodePoints}} pontos de código Unicode)."
         }
       }

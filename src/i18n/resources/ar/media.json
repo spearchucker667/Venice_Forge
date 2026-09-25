@@ -138,7 +138,7 @@
     "enhancementSafetyBlockedFamily": "أُوقف تحسين المطالبة بواسطة وضع الأسرة الآمن الاختياري. تم الاحتفاظ بمطالبتك الأصلية.",
     "enhancementSafetyBlockedProvider": "أُوقف تحسين المطالبة بواسطة سياسة المزوّد. تم الاحتفاظ بمطالبتك الأصلية.",
     "styleReferences": "مراجع النمط",
-    "styleReferenceHelp": "أضف ما يصل إلى {{count}} صور مرجعية بصيغة PNG أو JPEG أو WebP. لا تُرسل المراجع إلا إلى النماذج التي تعلن دعمها وقت التشغيل.",
+    "styleReferenceHelp": "أضف حتى {{count}} صور مرجعية بصيغة PNG أو JPEG أو WebP. يتم إرسال المراجع فقط إلى النماذج التي تعلن دعم وقت التشغيل.",
     "addStyleReferenceImages": "إضافة صور مرجعية للنمط",
     "styleReferenceCount": "تم تحديد {{count}} من {{max}} من مراجع النمط",
     "selectedStyleReferences": "مراجع النمط المحددة",
@@ -181,41 +181,41 @@
     }
   },
   "mediaStudioActions": {
-    "heading": "__MISSING__:mediaStudioActions.heading",
-    "upscale": "__MISSING__:mediaStudioActions.upscale",
-    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
-    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
-    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
-    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
-    "cancel": "__MISSING__:mediaStudioActions.cancel",
-    "retry": "__MISSING__:mediaStudioActions.retry",
-    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
-    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
-    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "heading": "عمليات الصور",
+    "upscale": "تكبير الدقة",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "إزالة الخلفية",
+    "inpaint": "ترميم",
+    "cancel": "إلغاء",
+    "retry": "إعادة المحاولة",
+    "done": "اكتملت {{operation}} لـ {{count}} أصل/أصول",
+    "running": "{{operation}} قيد التشغيل لـ {{name}}…",
+    "failed": "فشلت {{operation}} لـ {{name}}",
     "operationLabels": {
-      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
-      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
-      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+      "upscale": "تكبير الدقة",
+      "remove-background": "إزالة الخلفية",
+      "inpaint": "ترميم"
     },
     "reason": {
-      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
-      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
-      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
-      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+      "requiresImage": "تتطلب هذه العملية أصلاً صورة",
+      "sourceUnavailable": "لم يعد هذا الأصل المصدر متاحاً محلياً",
+      "modelUnavailable": "الترميم غير متاح للنموذج المحدد",
+      "singleSelection": "يتطلب الترميم تحديد صورة واحدة"
     },
     "editor": {
-      "title": "__MISSING__:mediaStudioActions.editor.title",
-      "description": "__MISSING__:mediaStudioActions.editor.description",
-      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
-      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
-      "undo": "__MISSING__:mediaStudioActions.editor.undo",
-      "clear": "__MISSING__:mediaStudioActions.editor.clear",
-      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
-      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
-      "submit": "__MISSING__:mediaStudioActions.editor.submit",
-      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
-      "success": "__MISSING__:mediaStudioActions.editor.success",
-      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+      "title": "ترميم — ارسم قناعاً",
+      "description": "ارسم فوق المنطقة المراد استبدالها، ثم صف التغيير. يتم إرسال القناع والصورة المصدر إلى نموذج التحرير المحدد.",
+      "canvasLabel": "لوحة رسم القناع",
+      "brushSize": "حجم الفرشاة",
+      "undo": "تراجع",
+      "clear": "مسح",
+      "promptLabel": "موجه التحرير (اختياري)",
+      "promptPlaceholder": "صف ما يجب أن يظهر داخل المنطقة المرسومة…",
+      "submit": "تطبيق الترميم",
+      "cancel": "إلغاء",
+      "success": "تم حفظ الأصل المرمم في استوديو الوسائط",
+      "loadFailed": "تعذر تحميل الصورة المحددة للإخفاء."
     }
   }
 }

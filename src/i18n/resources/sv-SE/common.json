@@ -177,7 +177,7 @@
       "heading": {
         "themeSystemEditor": "Temasystem och redigerare",
         "importThemePreview": "Importera förhandsgranskning av tema",
-        "codeAndSyntax": "Code & Syntax"
+        "codeAndSyntax": "Kod och syntax"
       },
       "description": {
         "configureThemeColorsBorderContrastFocusRings": "Konfigurera temafärger, kantkontrast, fokusringar och actionknappstilar över Venice Forge.",
@@ -185,7 +185,7 @@
       },
       "label": {
         "selectActiveTheme": "Välj aktivt tema",
-        "syntaxPreset": "Syntax preset"
+        "syntaxPreset": "Syntaxförinställning"
       },
       "text": {
         "unsavedDraftChanges": "Osparade utkaständringar",
@@ -200,39 +200,39 @@
         "id": "ID:"
       },
       "codeToken": {
-        "background": "Code background",
-        "foreground": "Code foreground",
-        "border": "Code border",
-        "headerBackground": "Header background",
-        "headerForeground": "Header foreground",
-        "inlineBackground": "Inline background",
-        "inlineForeground": "Inline foreground",
-        "selectionBackground": "Selection background",
-        "comment": "Comment",
-        "punctuation": "Punctuation",
-        "property": "Property",
+        "background": "Kodbakgrund",
+        "foreground": "Kodförgrund",
+        "border": "Kodkant",
+        "headerBackground": "Rubrikbakgrund",
+        "headerForeground": "Rubrikförgrund",
+        "inlineBackground": "Inline-bakgrund",
+        "inlineForeground": "Inline-förgrund",
+        "selectionBackground": "Markeringsbakgrund",
+        "comment": "Kommentar",
+        "punctuation": "Skiljetecken",
+        "property": "Egenskap",
         "tag": "Tag",
         "boolean": "Boolean",
-        "number": "Number",
-        "constant": "Constant",
+        "number": "Tal",
+        "constant": "Konstant",
         "symbol": "Symbol",
-        "deleted": "Deleted",
-        "selector": "Selector",
-        "attribute": "Attribute",
-        "string": "String",
-        "character": "Character",
-        "builtin": "Builtin",
-        "inserted": "Inserted",
+        "deleted": "Borttagen",
+        "selector": "Väljare",
+        "attribute": "Attribut",
+        "string": "Sträng",
+        "character": "Tecken",
+        "builtin": "Inbyggd",
+        "inserted": "Infogad",
         "operator": "Operator",
-        "entity": "Entity",
+        "entity": "Entitet",
         "url": "URL",
-        "atRule": "At-rule",
-        "keyword": "Keyword",
-        "function": "Function",
-        "className": "Class / Type",
+        "atRule": "At-regel",
+        "keyword": "Nyckelord",
+        "function": "Funktion",
+        "className": "Klass / Typ",
         "regex": "Regex",
-        "important": "Important",
-        "variable": "Variable"
+        "important": "Viktig",
+        "variable": "Variabel"
       }
     },
     "componentsAudioAudioView": {
@@ -498,7 +498,7 @@
         "selected": "valt",
         "chattingAs": "Chattar som",
         "usesCharacterSystemPrompt": "Använder karaktärens systemprompt. Den användarangivna systemprompten kringgås för värdbaserade och lokala karaktärschattar.",
-        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
+        "useVeniceDefaultSystemPrompt": "Använd Venices standard-systemprompt"
       },
       "label": {
         "systemPromptMode": "Systemmeddelandeläge"
@@ -545,7 +545,7 @@
         "loadFromLibrary": "Ladda från bibliotek..."
       },
       "text": {
-        "approachingSystemPromptSizeLimit": "Systempromptens storlek: {{estimatedTokenCount}} / {{maximumTokens}} uppskattade token; {{codePointCount}} / {{maximumCodePoints}} Unicode-kodpunkter."
+        "approachingSystemPromptSizeLimit": "Systempromptstorlek: {{estimatedTokenCount}} / {{maximumTokens}} uppskattade token; {{codePointCount}} / {{maximumCodePoints}} Unicode-kodpunkter."
       }
     },
     "componentsDocumentsDocumentagentview": {
@@ -1287,7 +1287,7 @@
         "stCardExport": "ST Kortexport",
         "exportV2Json": "Exportera V2 JSON",
         "exportV2Png": "Exportera V2 PNG",
-        "exportPrivacyReducedJson": "Exportera integritetsminskad00 Z00001ZXQ",
+        "exportPrivacyReducedJson": "Exportera JSON med reducerade personuppgifter",
         "validation": "Validering",
         "roundTripVerified": "Rundtur verifierad",
         "output": "Utdata",
@@ -1384,7 +1384,7 @@
         "close": "Stäng",
         "delete": "Ta bort",
         "cancel": "Avbryt",
-        "buildCharacter": "Lokala tecken lagras i ZXQPH00000ZX endast i ZXQPH00000ZX. Venice.ai",
+        "buildCharacter": "Skapa karaktär",
         "drafts": "Bygg tecken",
         "importCard": "Utkast (",
         "characterImportChangedAnExistingCard": "Importera kort",
@@ -1796,10 +1796,10 @@
         "safetyGuardAudit": "Säkerhetsvaktsrevision",
         "lastRequest": "Senaste begäran",
         "mediaClassifierCapabilities": "Funktioner för medieklassificerare",
-        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
-        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
-        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
-        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
+        "safetyRuntime": "Säkerhetsruntime",
+        "structuralValidation": "Strukturell / protokollvalidering",
+        "mediaClassifierBackend": "Medieklassificeringsbackend",
+        "classifierCounters": "Klassificeringsräknare"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Sammanlagd körtidsinformation för det aktuella bygget. Öppna",
@@ -1828,33 +1828,33 @@
         "protectionItemImageBytes": "Bildbytes (semantisk): inte klassificerad",
         "protectionItemAudioBytes": "Ljudbytes (semantisk): inte klassificerad",
         "protectionItemVideoBytes": "Videobytes (semantisk): inte klassificerad",
-        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
-        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
-        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
-        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
-        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
-        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
-        "source": "__MISSING__:surface.componentsStatusview.text.source",
-        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
-        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
-        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
-        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
-        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
-        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
-        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
-        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
-        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
-        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
-        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
-        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
-        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
-        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
-        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
-        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
-        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
-        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
-        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
-        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
+        "localContentSafeguards": "Lokala innehållsskydd",
+        "providerSafety": "Leverantörssäkerhet (Venice safe_mode)",
+        "stateEnabled": "Aktiverad",
+        "stateDisabled": "Inaktiverad",
+        "stateOn": "På",
+        "stateOff": "Av",
+        "source": "källa",
+        "sourceUser": "användare",
+        "sourceServer": "server",
+        "sourcePolicy": "policy",
+        "validationActive": "Aktiv",
+        "requestsValidated": "Validerade förfrågningar",
+        "rejectedRequests": "Avvisade förfrågningar",
+        "backendRegistered": "Backend registrerad",
+        "backendName": "Backendnamn",
+        "classifierStateAvailable": "Tillgänglig",
+        "classifierStateNotConfigured": "Ej konfigurerad",
+        "classifierStateUnsupported": "Stöds ej",
+        "classifierStateUnhealthy": "Backend ej frisk",
+        "counterTextEvaluations": "Textutvärderingar",
+        "counterImageEvaluations": "Bildutvärderingar",
+        "counterAudioEvaluations": "Ljudutvärderingar",
+        "counterVideoEvaluations": "Videoutvärderingar",
+        "counterBlocked": "Blockerade",
+        "counterAllowed": "Tillåtna",
+        "counterSkippedDisabled": "Överhoppade (skydd inaktiverade)",
+        "counterErrors": "Fel"
       }
     },
     "componentsThemepreview": {
@@ -1870,7 +1870,7 @@
         "focusedControl": "Fokuserad kontroll",
         "alertMessageBoundary": "Gräns ​​för varningsmeddelande",
         "contrastWarnings": "Kontrastvarningar:",
-        "syntaxPreview": "Syntax preview"
+        "syntaxPreview": "Syntaxförhandsvisning"
       }
     },
     "componentsCharacterCreatorCharactercreatorcompleted": {
@@ -2190,7 +2190,7 @@
     "analysis-rsa-vs-ecc": "Utför en jämförande teknisk analys av RSA vs Elliptic Curve Cryptography (ECC) angående nyckelstorlekar och signaturhastigheter.",
     "analysis-dns-over-https": "Analysera integritetsfördelarna och nätverkets prestandaavvägningar med att anta DNS-över-HTTPS (DoH).",
     "analysis-open-licensing": "Jämför juridiska villkor, copyleft-egenskaper och kommersiella användningsbehörigheter för MIT vs GPLv3-licenser.",
-    "analysis-ci-caching": "Analysera byggtidsoptimeringarna som erhållits från cachestrategier i GitHub Actions CI-pipelines.",
+    "analysis-ci-caching": "Analysera byggtidsoptimeringar som erhålls från cachestrategier i GitHub Actions CI-pipelines.",
     "analysis-work-automation": "Utvärdera de potentiella effekterna av AI-arbetsflöden för autonoma agenter på administrativa teams produktivitet och resursefterfrågan.",
     "image-serene-mountain": "En fridfull bergssjö i gyllene timmen, låg dimma över vattnet, måleriskt",
     "image-dewdrop-spiderweb": "Makrofoto av en daggdroppe på ett spindelnät, soluppgångsbelysning",
@@ -2352,7 +2352,7 @@
           "forgeDaylight": "Forge Daylight",
           "forgeCopper": "Smida koppar",
           "forgeDracula": "Smida Dracula",
-          "gruvboxDark": "GruvBox mörk",
+          "gruvboxDark": "GruvBox Dark",
           "rosepine": "Rosepine",
           "forgeNord": "Forge Nord",
           "forgeTokyo": "Forge Tokyo",
@@ -2499,12 +2499,12 @@
             "analyzingImage": "Analyserar bild"
           },
           "error": {
-            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
-            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
-            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
-            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
-            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
-            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
+            "modelUnavailable": "Character Creator-modellen är tillfälligt otillgänglig. Försök igen om några minuter.",
+            "requestCancelled": "Generering avbröts.",
+            "invalidModelResponse": "Modellen returnerade ett oanvändbart svar. Försök igen.",
+            "schemaRepairFailed": "Det genererade karaktärskortet klarade inte valideringen och kunde inte repareras. Försök igen.",
+            "transportFailed": "Kunde inte nå Venice API. Kontrollera din anslutning och försök igen.",
+            "providerHttp": "Venice API avvisade genereringsbegäran. Försök igen senare."
           },
           "notification": {
             "couldNotLoadDraft": "Det gick inte att läsa in utkast",
@@ -2550,7 +2550,7 @@
       "characters": {
         "characteravatar": {
           "attribute": {
-            "displaynameAvatar": "{{displayName}}-avatar"
+            "displaynameAvatar": "{{displayName}} avatar"
           }
         }
       },
@@ -2575,7 +2575,7 @@
             "localCharacter": "Lokal karaktär",
             "localCharacter2": "Lokal karaktär",
             "noLocalCharactersCreatedYet": "Inga lokala karaktärer har skapats ännu.",
-            "noCharactersMatchPickerquery": "Inga tecken matchar &quot; {{pickerQuery}} &quot;."
+            "noCharactersMatchPickerquery": "Inga karaktärer matchar \"{{pickerQuery}}\"."
           }
         },
         "characterscenecard": {
@@ -2603,7 +2603,7 @@
             "conversationRestored": "Konversationen återställdes",
             "failedToRestore": "Det gick inte att återställa",
             "movedConversations": "Flyttade konversationer",
-            "movedValue1ConversationValue2ToTargetname": "Flyttade {{value1}} konversation {{value2}} till {{targetName}} .",
+            "movedValue1ConversationValue2ToTargetname": "Flyttade {{value1}} konversation{{value2}} till {{targetName}}.",
             "failedToMoveConversations": "Det gick inte att flytta konversationer",
             "conversationsDeleted": "Konversationer raderade",
             "value1SelectedConversationValue2Removed": "{{value1}} vald konversation {{value2}} har tagits bort.",
@@ -2648,16 +2648,16 @@
           "text": {
             "deselectAllVisible": "Avmarkera alla synliga",
             "selectAllVisible": "Välj alla synliga",
-            "folderselectedcountSelected": "· {{folderSelectedCount}} har valts",
+            "folderselectedcountSelected": " · {{folderSelectedCount}} markerade",
             "selected": "Vald",
             "select": "Välja",
-            "unfiledselectedcountSelected": "· {{unfiledSelectedCount}} har valts"
+            "unfiledselectedcountSelected": " · {{unfiledSelectedCount}} markerade"
           }
         },
         "chatView": {
           "notification": {
             "modelUnavailable": "Modellen är inte tillgänglig",
-            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "Den tidigare valda modellen är inte tillgänglig. Den här chatten använder nu {{resolvedDefault}} .",
+            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "Den tidigare valda modellen är inte tillgänglig. Denna chatt använder nu {{resolvedDefault}}.",
             "priorContextSkipped": "Tidigare sammanhang hoppade över",
             "factPermanentlyForgotten": "Fakta permanent glömt.",
             "failedToForgetFact": "Misslyckades med att glömma fakta"
@@ -2666,7 +2666,7 @@
             "forgetThisFact": "Glömma detta faktum?",
             "deleteFromHere": "Ta bort härifrån?",
             "removedFromChat": "Borttagen från chatten",
-            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} stannar i Media Studio. Klicka på Ångra för att bifoga igen.",
+            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} finns kvar i Media Studio. Klicka på Ångra för att bifoga igen.",
             "undo": "Ångra",
             "regenerateFromHere": "Återskapa härifrån?"
           },
@@ -2779,7 +2779,7 @@
         "compareView": {
           "text": {
             "allSharedFieldsMatch": "Alla delade fält matchar",
-            "changedcountFieldValue2Differ": "{{changedCount}} fältet {{value2}} skiljer sig"
+            "changedcountFieldValue2Differ": "{{changedCount}} fält{{value2}} skiljer sig"
           },
           "attribute": {
             "closeCompareView": "Stäng jämför vy"
@@ -2838,7 +2838,7 @@
             "taggedValue1OfValue2": "Taggad {{value1}} av {{value2}}",
             "taggedValue1ItemValue2": "Taggad {{value1}} artikel {{value2}}",
             "enterATagFirst": "Ange en tagg först.",
-            "assignedValue1OfValue2Firstreason": "Tilldelad {{value1}} av {{value2}} ( {{firstReason}} )",
+            "assignedValue1OfValue2Firstreason": "Tilldelade {{value1}} av {{value2}} ({{firstReason}})",
             "assignedValue1ItemValue2": "Tilldelad {{value1}} objekt {{value2}}",
             "selectAtLeastOneMediaItem": "Välj minst ett medieobjekt.",
             "loadedSettingsIntoImageStudio": "Laddade inställningar i Image Studio",
@@ -2909,7 +2909,7 @@
           },
           "text": {
             "video": "Video",
-            "audio": "Audio",
+            "audio": "Ljud",
             "image": "Bild",
             "favorited": "Favoritmarkerad",
             "favorite": "Favorit",
@@ -2965,7 +2965,7 @@
             "thisItemReferencesRecordsThatNoLongerExistClearThe": "Detta objekt refererar till poster som inte längre finns. Rensa de inaktuella pekarna för att reparera härstamningen.",
             "thisItemSParentRecordIsMissingClearTheParent": "Det här objektets överordnade post saknas. Rensa föräldralänken för att reparera härstamningen.",
             "value1ChildValue2CouldNotBeResolvedClearTheStale": "{{value1}} barn {{value2}} kunde inte lösas. Rensa den inaktuella pekaren {{value3}} för att reparera härstamningen.",
-            "childrenidsValue1": "childIds: {{value1}}",
+            "childrenidsValue1": "childrenIds: {{value1}}",
             "childrenidsValue1Missing": "childrenIds: {{value1}} saknas",
             "value1MissingRef": "1 saknad ref",
             "value1MissingRefs": "{{value1}} saknade refs"
@@ -2977,7 +2977,7 @@
             "all": "Alla",
             "images": "Bilder",
             "videos": "Videor",
-            "audio": "Audio",
+            "audio": "Ljud",
             "favorites": "Favoriter",
             "upscaled": "Uppskalad",
             "edited": "Redigerat",
@@ -3010,7 +3010,7 @@
           },
           "text": {
             "identical": "Identisk",
-            "changedcountFieldValue2WillChange": "{{changedCount}} fältet {{value2}} kommer att ändras"
+            "changedcountFieldValue2WillChange": "{{changedCount}} fält{{value2}} kommer att ändras"
           },
           "metadata": {
             "model": "Modell",
@@ -3427,7 +3427,7 @@
         "charactereditor": {
           "notification": {
             "fileLoadedSourced": "Fil laddad och hämtad",
-            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "Laddade &quot; {{value1}} &quot; i {{fieldLabel}} och sparade i teckenfilen.",
+            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "Laddade \"{{value1}}\" till {{fieldLabel}} och sparade i karaktärsfilen.",
             "reAppliedSourcedFile": "Återapplicerad källfil",
             "reLoadedValue1ContentIntoValue2": "Läste om &quot; {{value1}} &quot; innehåll till {{value2}} .",
             "workflowCreated": "Arbetsflöde skapat",
@@ -3484,7 +3484,7 @@
             "moveExampleValue1Up": "Flytta exemplet {{value1}} uppåt",
             "moveExampleValue1Down": "Flytta exemplet {{value1}} nedåt",
             "removeExample": "Ta bort exempel",
-            "losslessSillytavernMesExampleCompatibilityText": "Förlustfri SillyTavern mes_example kompatibilitetstext",
+            "losslessSillytavernMesExampleCompatibilityText": "Förlustfri SillyTavern mes_example-kompatibilitetstext",
             "urlScrapingProvider": "URL-skrapningsleverantör",
             "temperature": "Temperatur",
             "topP": "Topp P",
@@ -3864,7 +3864,7 @@
             "couldNotCopySafeDiagnostics": "Det gick inte att kopiera säker diagnostik",
             "diagnosticsRefreshed": "Diagnostik uppdaterad",
             "diagnosticsRefreshFailed": "Diagnostikuppdateringen misslyckades",
-            "livecountLiveModelsRefreshed": "{{liveCount}} livemodeller uppdaterade"
+            "livecountLiveModelsRefreshed": "{{liveCount}} aktiva modeller uppdaterade"
           },
           "attribute": {
             "diagnostics": "Diagnostik",
@@ -4032,17 +4032,17 @@
           "memoryRetrievalUnavailable": "Minneshämtning är inte tillgänglig",
           "sendingYourMessageWithoutMemoryContext": "Skickar ditt meddelande utan minneskontext.",
           "attachmentContextTruncated": "Bifogad kontext trunkerad",
-          "totalAttachmentTextExceededValue1KbSomeAttachmentsWereOmitted": "Den totala bifogade texten översteg {{value1}} kB. Vissa bilagor har utelämnats från detta meddelande."
+          "totalAttachmentTextExceededValue1KbSomeAttachmentsWereOmitted": "Total bilagetext översteg {{value1}} KB. Vissa bilagor utelämnades från detta meddelande."
         }
       },
       "useDataStorageActions": {
         "metadata": {
           "clearLocalSettings": "Rensa lokala inställningar?",
-          "deleteAllIndexeddbHistory": "Ta bort all IndexedDB-historik?"
+          "deleteAllIndexeddbHistory": "Radera all IndexedDB-historik?"
         },
         "notification": {
           "localSettingsCleared": "Lokala inställningar rensades.",
-          "indexeddbDataClearedSuccessfully": "IndexedDB-data har rensats.",
+          "indexeddbDataClearedSuccessfully": "IndexedDB-data rensades framgångsrikt.",
           "encryptedBackupExportedSuccessfully": "Krypterad säkerhetskopia har exporterats.",
           "exportFailedPleaseTryAgain": "Exporten misslyckades. Försök igen."
         }
@@ -4149,7 +4149,7 @@
       "backupimportservice": {
         "metadata": {
           "legacyVersion2BackupAuthenticatedSourceCryptoContentCountAnd": "Äldre version 2-säkerhetskopiering: metadata för autentiserad källkod, krypto, innehållsräkning och uteslutning är inte tillgänglig.",
-          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "Backup-appversionen {{value1}} skiljer sig från den här appversionen {{appVersion}} .",
+          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "Säkerhetskopians appversion {{value1}} skiljer sig från denna appversion {{appVersion}}.",
           "thisBackupIncludesMediaRecords": "Denna säkerhetskopia inkluderar mediaposter.",
           "excludedByDesignValue1": "Utesluten genom design: {{value1}} ."
         }

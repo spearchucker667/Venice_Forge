@@ -138,7 +138,7 @@
     "enhancementSafetyBlockedFamily": "L’amélioration du prompt a été arrêtée par le mode familial sécurisé facultatif. Votre prompt d’origine a été conservé.",
     "enhancementSafetyBlockedProvider": "L’amélioration du prompt a été arrêtée par la politique du fournisseur. Votre prompt d’origine a été conservé.",
     "styleReferences": "Références de style",
-    "styleReferenceHelp": "Ajoutez jusqu’à {{count}} images de référence PNG, JPEG ou WebP. Les références ne sont envoyées qu’aux modèles qui annoncent leur prise en charge à l’exécution.",
+    "styleReferenceHelp": "Ajoutez jusqu'à {{count}} images de référence PNG, JPEG ou WebP. Les références sont envoyées uniquement aux modèles qui annoncent une prise en charge d'exécution.",
     "addStyleReferenceImages": "Ajouter des images de référence de style",
     "styleReferenceCount": "{{count}} référence(s) de style sélectionnée(s) sur {{max}}",
     "selectedStyleReferences": "Références de style sélectionnées",
@@ -181,41 +181,41 @@
     }
   },
   "mediaStudioActions": {
-    "heading": "__MISSING__:mediaStudioActions.heading",
-    "upscale": "__MISSING__:mediaStudioActions.upscale",
-    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
-    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
-    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
-    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
-    "cancel": "__MISSING__:mediaStudioActions.cancel",
-    "retry": "__MISSING__:mediaStudioActions.retry",
-    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
-    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
-    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "heading": "Opérations sur image",
+    "upscale": "Mettre à l'échelle",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "Supprimer l'arrière-plan",
+    "inpaint": "Incrustation",
+    "cancel": "Annuler",
+    "retry": "Réessayer",
+    "done": "{{operation}} terminé pour {{count}} ressource(s)",
+    "running": "{{operation}} en cours pour {{name}}…",
+    "failed": "{{operation}} échoué pour {{name}}",
     "operationLabels": {
-      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
-      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
-      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+      "upscale": "Mise à l'échelle",
+      "remove-background": "Suppression d'arrière-plan",
+      "inpaint": "Incrustation"
     },
     "reason": {
-      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
-      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
-      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
-      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+      "requiresImage": "Cette opération nécessite une ressource image",
+      "sourceUnavailable": "Cette ressource source n'est plus disponible localement",
+      "modelUnavailable": "L'incrustation n'est pas disponible pour le modèle sélectionné",
+      "singleSelection": "L'incrustation nécessite une seule image sélectionnée"
     },
     "editor": {
-      "title": "__MISSING__:mediaStudioActions.editor.title",
-      "description": "__MISSING__:mediaStudioActions.editor.description",
-      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
-      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
-      "undo": "__MISSING__:mediaStudioActions.editor.undo",
-      "clear": "__MISSING__:mediaStudioActions.editor.clear",
-      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
-      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
-      "submit": "__MISSING__:mediaStudioActions.editor.submit",
-      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
-      "success": "__MISSING__:mediaStudioActions.editor.success",
-      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+      "title": "Incrustation — peindre un masque",
+      "description": "Peignez sur la zone à remplacer, puis décrivez la modification. Le masque et l'image source sont envoyés au modèle d'édition sélectionné.",
+      "canvasLabel": "Canevas de peinture du masque",
+      "brushSize": "Taille du pinceau",
+      "undo": "Annuler",
+      "clear": "Effacer",
+      "promptLabel": "Invite d'édition (facultatif)",
+      "promptPlaceholder": "Décrivez ce qui doit apparaître dans la zone peinte…",
+      "submit": "Appliquer l'incrustation",
+      "cancel": "Annuler",
+      "success": "Ressource incrustée enregistrée dans Media Studio",
+      "loadFailed": "Impossible de charger l'image sélectionnée pour le masquage."
     }
   }
 }

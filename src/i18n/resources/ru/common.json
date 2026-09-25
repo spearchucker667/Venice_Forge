@@ -165,10 +165,10 @@
         "safetyGuardAudit": "Аудит системы безопасности",
         "lastRequest": "Последний запрос",
         "mediaClassifierCapabilities": "Возможности классификатора медиа",
-        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
-        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
-        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
-        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
+        "safetyRuntime": "Среда выполнения безопасности",
+        "structuralValidation": "Структурная / протокольная валидация",
+        "mediaClassifierBackend": "Бэкенд классификатора медиа",
+        "classifierCounters": "Счётчики классификатора"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Совокупная информация о времени выполнения для текущей сборки. Откройте папку журналов",
@@ -197,33 +197,33 @@
         "protectionItemImageBytes": "Байты изображений (семантика): не классифицированы",
         "protectionItemAudioBytes": "Аудиобайты (семантика): не классифицированы",
         "protectionItemVideoBytes": "Видеобайты (семантика): не классифицированы",
-        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
-        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
-        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
-        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
-        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
-        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
-        "source": "__MISSING__:surface.componentsStatusview.text.source",
-        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
-        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
-        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
-        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
-        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
-        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
-        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
-        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
-        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
-        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
-        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
-        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
-        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
-        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
-        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
-        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
-        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
-        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
-        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
-        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
+        "localContentSafeguards": "Локальные средства защиты контента",
+        "providerSafety": "Безопасность провайдера (Venice safe_mode)",
+        "stateEnabled": "Включено",
+        "stateDisabled": "Отключено",
+        "stateOn": "Вкл",
+        "stateOff": "Выкл",
+        "source": "источник",
+        "sourceUser": "пользователь",
+        "sourceServer": "сервер",
+        "sourcePolicy": "политика",
+        "validationActive": "Активно",
+        "requestsValidated": "Запросов проверено",
+        "rejectedRequests": "Отклонённых запросов",
+        "backendRegistered": "Бэкенд зарегистрирован",
+        "backendName": "Имя бэкенда",
+        "classifierStateAvailable": "Доступен",
+        "classifierStateNotConfigured": "Не настроен",
+        "classifierStateUnsupported": "Не поддерживается",
+        "classifierStateUnhealthy": "Бэкенд неработоспособен",
+        "counterTextEvaluations": "Текстовых оценок",
+        "counterImageEvaluations": "Оценок изображений",
+        "counterAudioEvaluations": "Оценок аудио",
+        "counterVideoEvaluations": "Оценок видео",
+        "counterBlocked": "Заблокировано",
+        "counterAllowed": "Разрешено",
+        "counterSkippedDisabled": "Пропущено (защита отключена)",
+        "counterErrors": "Ошибок"
       }
     },
     "componentsThememaker": {
@@ -246,7 +246,7 @@
       "heading": {
         "themeSystemEditor": "Система и редактор тем",
         "importThemePreview": "Предварительный просмотр импорта темы",
-        "codeAndSyntax": "Code & Syntax"
+        "codeAndSyntax": "Код и синтаксис"
       },
       "description": {
         "configureThemeColorsBorderContrastFocusRings": "Настройте цвета темы, контрастность границ, кольца фокусировки и стили кнопок действий в Venice Forge.",
@@ -254,7 +254,7 @@
       },
       "label": {
         "selectActiveTheme": "Выбрать активную тему",
-        "syntaxPreset": "Syntax preset"
+        "syntaxPreset": "Пресет синтаксиса"
       },
       "text": {
         "unsavedDraftChanges": "Несохраненные черновые изменения",
@@ -269,39 +269,39 @@
         "id": "ID:"
       },
       "codeToken": {
-        "background": "Code background",
-        "foreground": "Code foreground",
-        "border": "Code border",
-        "headerBackground": "Header background",
-        "headerForeground": "Header foreground",
-        "inlineBackground": "Inline background",
+        "background": "Фон кода",
+        "foreground": "Передний план кода",
+        "border": "Граница кода",
+        "headerBackground": "Фон заголовка",
+        "headerForeground": "Передний план заголовка",
+        "inlineBackground": "Фон встроенного блока",
         "inlineForeground": "Inline foreground",
-        "selectionBackground": "Selection background",
-        "comment": "Comment",
-        "punctuation": "Punctuation",
-        "property": "Property",
+        "selectionBackground": "Фон выделения",
+        "comment": "Комментарий",
+        "punctuation": "Пунктуация",
+        "property": "Свойство",
         "tag": "Tag",
-        "boolean": "Boolean",
-        "number": "Number",
-        "constant": "Constant",
-        "symbol": "Symbol",
-        "deleted": "Deleted",
-        "selector": "Selector",
-        "attribute": "Attribute",
-        "string": "String",
-        "character": "Character",
-        "builtin": "Builtin",
-        "inserted": "Inserted",
-        "operator": "Operator",
-        "entity": "Entity",
+        "boolean": "Логическое значение",
+        "number": "Число",
+        "constant": "Константа",
+        "symbol": "Символ",
+        "deleted": "Удалённое",
+        "selector": "Селектор",
+        "attribute": "Атрибут",
+        "string": "Строка",
+        "character": "Символ",
+        "builtin": "Встроенное",
+        "inserted": "Вставленное",
+        "operator": "Оператор",
+        "entity": "Сущность",
         "url": "URL",
-        "atRule": "At-rule",
-        "keyword": "Keyword",
-        "function": "Function",
-        "className": "Class / Type",
-        "regex": "Regex",
-        "important": "Important",
-        "variable": "Variable"
+        "atRule": "At-правило",
+        "keyword": "Ключевое слово",
+        "function": "Функция",
+        "className": "Класс / Тип",
+        "regex": "Регулярное выражение",
+        "important": "Важное",
+        "variable": "Переменная"
       }
     },
     "componentsThemepreview": {
@@ -317,7 +317,7 @@
         "focusedControl": "Фокусное управление",
         "alertMessageBoundary": "Граница предупреждающего сообщения",
         "contrastWarnings": "Контрастные предупреждения:",
-        "syntaxPreview": "Syntax preview"
+        "syntaxPreview": "Предпросмотр синтаксиса"
       }
     },
     "componentsAudioAudioView": {
@@ -583,7 +583,7 @@
         "selected": "выбрано",
         "chattingAs": "В чате как",
         "usesCharacterSystemPrompt": "Используется системный промпт персонажа. Пользовательский системный промпт игнорируется для локальных и размещенных чатов с персонажами.",
-        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
+        "useVeniceDefaultSystemPrompt": "Использовать системный промпт Venice по умолчанию"
       },
       "label": {
         "systemPromptMode": "Режим системной подсказки"
@@ -1687,7 +1687,7 @@
         "discoveredProfileCandidates": "Обнаруженные кандидаты по профилю"
       },
       "description": {
-        "aggregatesSocialProfileMappingsFromPublicDatabases": "Объединяет сопоставления социальных профилей из общедоступных баз данных (GitHub, Twitter, LinkedIn и т. д.) с помощью Venice веб-интеграция"
+        "aggregatesSocialProfileMappingsFromPublicDatabases": "Агрегирует сопоставления социальных профилей из публичных баз данных (GitHub, Twitter, LinkedIn и т. д.) с использованием веб-интеграции Venice."
       },
       "label": {
         "platformsToSearch": "Платформы для поиска"
@@ -2113,25 +2113,25 @@
     "writing-scifi-hook": "Составьте захватывающую вступительную часть научно-фантастического романа, в котором гравитация в каждом городе ведет себя по-разному.",
     "writing-newsletter-intro": "Подготовьте интересное введение к информационному бюллетеню, в котором обсуждается влияние автономных агентов на общество.",
     "writing-press-release": "Создайте официальный шаблон пресс-релиза, объявляющий об открытии исходного кода веб-скребка, ориентированного на конфиденциальность.",
-    "writing-linkedin-post": "Напишите профессиональную публикацию в LinkedIn, в которой обобщаются ключевые уроки, извлеченные из создания автономного приложения Electron.",
+    "writing-linkedin-post": "Составьте профессиональный пост для LinkedIn, обобщающий ключевые уроки, извлечённые при создании офлайн-ориентированного приложения на Electron.",
     "writing-blog-outline": "Создайте подробный план технической статьи в блоге под названием «Защита мостов предварительной загрузки в современных электронных приложениях».",
     "writing-sabbatical-request": "Напишите профессиональное предложение с просьбой о трехмесячном образовательном отпуске для изучения распределенных систем.",
     "writing-speech-intro": "Напишите трехминутную вступительную речь о важности локального программного обеспечения и суверенитета данных.",
     "writing-bug-report": "Напишите подробный шаблон отчета об ошибках в проекте с открытым исходным кодом, чтобы ускорить их решение.",
     "writing-refusal-letter": "Составьте профессиональный ответ, отклонив предложение поставщика, оставив при этом возможность для будущего сотрудничества.",
     "writing-haiku-comp": "Составьте три хайку, отражающие переход от аналогового оборудования к квантовым вычислениям.",
-    "coding-rest-graphql": "Сравните REST и GraphQL — в каких случаях каждый из них эффективен?",
-    "coding-debounce-ts": "Напишите надежный, полностью типизированный механизм устранения дребезга в TypeScript для React с поддержкой немедленного вызова.",
+    "coding-rest-graphql": "Сравните REST и GraphQL — в каких случаях каждый из них раскрывает свой потенциал?",
+    "coding-debounce-ts": "Напишите надёжный, полностью типизированный хук debounce на TypeScript для React с поддержкой немедленного вызова.",
     "coding-sql-recursive": "Объясните, как рекурсивные CTE работают в SQL, на примере запроса к организационной иерархии.",
     "coding-refactor-lru": "Рефакторинг простого кэша памяти Node.js в потокобезопасный кэш LRU с поддержкой срока действия.",
     "coding-rust-error": "Покажите, как реализовать собственную обработку ошибок в Rust, используя крейты thiserror и Anyhow.",
     "coding-git-bisect": "Объясните, как использовать git bisect для поиска коммита регрессии, включая автоматическое выполнение скрипта.",
-    "coding-docker-multi": "Создайте минимальный безопасный многоэтапный файл Dockerfile для упаковки микросервиса TypeScript Node.js.",
+    "coding-docker-multi": "Создайте минимальный, защищённый многоэтапный Dockerfile для упаковки микросервиса TypeScript Node.js.",
     "coding-csp-rules": "Напишите строгую конфигурацию заголовка политики безопасности контента (CSP), которая разрешает локальное выполнение WASM, но блокирует встроенную оценку.",
     "coding-vitest-mocking": "Продемонстрируйте, как имитировать глобальные оконные объекты и асинхронные вызовы выборки в Vitest.",
     "coding-css-flex-grid": "Объясните архитектурные различия между макетами CSS Grid и Flexbox, указав конкретные варианты использования каждого макета.",
-    "coding-sse-parse": "Покажите, как написать анализатор потока для событий, отправленных сервером (SSE) на стандартном JavaScript без внешних зависимостей.",
-    "coding-indexeddb-transaction": "Приведите пример надежного управления транзакциями и отката ошибок в IndexedDB, встроенной в браузер.",
+    "coding-sse-parse": "Покажите, как написать потоковый парсер для Server-Sent Events (SSE) на чистом JavaScript без внешних зависимостей.",
+    "coding-indexeddb-transaction": "Приведите пример надёжного управления транзакциями и отката ошибок в браузерной IndexedDB.",
     "learning-rsa-metaphor": "Объясните, как работает шифрование RSA, используя метафору, которую сможет понять 10-летний ребенок.",
     "learning-pid-controller": "Объясните математическую основу ПИД-регулятора температуры простыми и интуитивно понятными словами.",
     "learning-monad-metaphor": "Объясните, что такое монада в функциональном программировании, используя аналогию из повседневной жизни.",
@@ -2177,20 +2177,20 @@
     "productivity-markdown-journal": "Разработайте легкую систему подсказок для ежедневного ведения журнала уценок, которая поможет отслеживать ежедневные цели, препятствия и благодарности.",
     "productivity-inbox-zero": "Разработайте пошаговую систему достижения и поддержания нулевого уровня папки «Входящие» с использованием автоматических меток и сочетаний клавиш.",
     "productivity-postmortem": "Создайте стандартный шаблон для написания анализов программного обеспечения после критического сбоя в производстве.",
-    "productivity-learning-sprint": "Составьте план четырехнедельного учебного спринта для освоения основ компиляции Rust WebAssembly.",
+    "productivity-learning-sprint": "Составьте план четырёхнедельного учебного спринта для освоения основ компиляции Rust в WebAssembly.",
     "productivity-presentation-deck": "Составьте пошаговую структуру 10-минутной презентации, чтобы обеспечить начальное финансирование для местного клиента LLM.",
     "productivity-dependency-audit": "Создайте план действий для проведения ежемесячного аудита зависимостей библиотеки с открытым исходным кодом в репозитории производственного кода.",
     "analysis-p2p-mesh": "Проведите SWOT-анализ развертывания децентрализованной одноранговой ячеистой сети в густонаселенных городских районах.",
-    "analysis-sqlite-pg": "Сравните архитектурные компромиссы между SQLite и PostgreSQL для автономного настольного приложения с возможностями синхронизации.",
+    "analysis-sqlite-pg": "Сравните архитектурные компромиссы SQLite и PostgreSQL для офлайн-ориентированного настольного приложения с возможностями синхронизации.",
     "analysis-fallacy-media": "Перечислите пять распространенных логических ошибок, встречающихся в современных средствах массовой информации, и дайте рекомендации, как их обнаружить.",
     "analysis-cloud-vs-local": "Проанализируйте долгосрочное соотношение затрат и выгод между бессерверными вычислениями, размещенными в облаке, и автономными серверами без операционной системы.",
     "analysis-electron-tauri": "Проведите подробный сравнительный анализ Electron и Tauri с точки зрения объема памяти, размера сборки и моделей безопасности.",
     "analysis-monolith-micro": "Определите ключевые индикаторы, показывающие, когда растущему стартапу следует перейти от монолитной к микросервисной архитектуре.",
     "analysis-privacy-shield": "Проанализируйте юридические и технические последствия требований соответствия GDPR для методов ведения журналов и телеметрии.",
     "analysis-rsa-vs-ecc": "Выполните сравнительный технический анализ RSA и криптографии на основе эллиптических кривых (ECC) относительно размеров ключей и скорости подписи.",
-    "analysis-dns-over-https": "Проанализируйте преимущества конфиденциальности и недостатки производительности сети при использовании DNS-over-HTTPS (DoH).",
+    "analysis-dns-over-https": "Проанализируйте преимущества для конфиденциальности и компромиссы сетевой производительности при внедрении DNS-over-HTTPS (DoH).",
     "analysis-open-licensing": "Сравните юридические условия, свойства авторского лева и разрешения на коммерческое использование лицензий MIT и GPLv3.",
-    "analysis-ci-caching": "Анализируйте оптимизацию времени сборки, полученную благодаря стратегиям кэширования в конвейерах CI GitHub Actions.",
+    "analysis-ci-caching": "Проанализируйте оптимизации времени сборки, полученные за счёт стратегий кэширования в CI-конвейерах GitHub Actions.",
     "analysis-work-automation": "Оцените предполагаемое влияние рабочих процессов автономных агентов ИИ на производительность административных команд и потребность в ресурсах.",
     "image-serene-mountain": "Безмятежное горное озеро в золотой час, низкий туман над водой, живописное.",
     "image-dewdrop-spiderweb": "Макрофото капли росы на паутине, освещение восхода солнца",
@@ -2361,7 +2361,7 @@
           "forgeSolarizedLight": "Выковать солнечный свет",
           "forgeOneDark": "Forge One Dark",
           "forgeMonokai": "Кузница Монокай",
-          "forgeGithubLight": "Кузница GitHub Light",
+          "forgeGithubLight": "Forge GitHub Light",
           "obsidianBloom": "Обсидиановый Блум",
           "harborFog": "Гавань Туман",
           "circuitMint": "Схема монетного двора",
@@ -2499,12 +2499,12 @@
             "analyzingImage": "Анализ изображения"
           },
           "error": {
-            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
-            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
-            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
-            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
-            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
-            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
+            "modelUnavailable": "Модель Character Creator временно недоступна. Пожалуйста, попробуйте снова через несколько минут.",
+            "requestCancelled": "Генерация была отменена.",
+            "invalidModelResponse": "Модель вернула непригодный ответ. Пожалуйста, попробуйте снова.",
+            "schemaRepairFailed": "Сгенерированная карточка персонажа не прошла проверку и не может быть восстановлена. Пожалуйста, попробуйте снова.",
+            "transportFailed": "Не удалось подключиться к API Venice. Пожалуйста, проверьте подключение и попробуйте снова.",
+            "providerHttp": "API Venice отклонил запрос на генерацию. Пожалуйста, попробуйте позже."
           },
           "notification": {
             "couldNotLoadDraft": "Не удалось загрузить черновик",
@@ -2575,7 +2575,7 @@
             "localCharacter": "Местный персонаж",
             "localCharacter2": "Местный характер",
             "noLocalCharactersCreatedYet": "Местные персонажи пока не созданы.",
-            "noCharactersMatchPickerquery": "Ни один символ не соответствует &quot; {{pickerQuery}} &quot;."
+            "noCharactersMatchPickerquery": "Нет персонажей, соответствующих «{{pickerQuery}}»."
           }
         },
         "characterscenecard": {
@@ -2603,7 +2603,7 @@
             "conversationRestored": "Разговор восстановлен",
             "failedToRestore": "Не удалось восстановить",
             "movedConversations": "Перемещенные разговоры",
-            "movedValue1ConversationValue2ToTargetname": "Перемещен разговор {{value1}} {{value2}} в {{targetName}} .",
+            "movedValue1ConversationValue2ToTargetname": "Перемещено {{value1}} бесед{{value2}} в {{targetName}}.",
             "failedToMoveConversations": "Не удалось переместить беседы.",
             "conversationsDeleted": "Беседы удалены.",
             "value1SelectedConversationValue2Removed": "{{value1}} выбранный разговор {{value2}} удален.",
@@ -2648,16 +2648,16 @@
           "text": {
             "deselectAllVisible": "Отменить выбор всего видимого",
             "selectAllVisible": "Выбрать все видимое",
-            "folderselectedcountSelected": "· {{folderSelectedCount}} выбрано",
+            "folderselectedcountSelected": " · {{folderSelectedCount}} выбрано",
             "selected": "Выбрано",
             "select": "Выбирать",
-            "unfiledselectedcountSelected": "· {{unfiledSelectedCount}} выбрано"
+            "unfiledselectedcountSelected": " · {{unfiledSelectedCount}} выбрано"
           }
         },
         "chatView": {
           "notification": {
             "modelUnavailable": "Модель недоступна",
-            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "Выбранная ранее модель недоступна. Этот чат теперь использует {{resolvedDefault}} .",
+            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "Ранее выбранная модель недоступна. Этот чат теперь использует {{resolvedDefault}}.",
             "priorContextSkipped": "Предыдущий контекст пропущен",
             "factPermanentlyForgotten": "Факт навсегда забыт.",
             "failedToForgetFact": "Не удалось забыть факт"
@@ -2666,7 +2666,7 @@
             "forgetThisFact": "Забыть этот факт?",
             "deleteFromHere": "Удалить отсюда?",
             "removedFromChat": "Удалено из чата",
-            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} остается в Медиа-студии. Нажмите «Отменить», чтобы повторно прикрепить.",
+            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} остаётся в Media Studio. Нажмите «Отменить», чтобы прикрепить снова.",
             "undo": "Отменить",
             "regenerateFromHere": "Регенерировать отсюда?"
           },
@@ -2779,7 +2779,7 @@
         "compareView": {
           "text": {
             "allSharedFieldsMatch": "Все общие поля совпадают",
-            "changedcountFieldValue2Differ": "Поле {{changedCount}} {{value2}} отличается"
+            "changedcountFieldValue2Differ": "{{changedCount}} поле{{value2}} различаются"
           },
           "attribute": {
             "closeCompareView": "Закрыть режим сравнения"
@@ -2838,7 +2838,7 @@
             "taggedValue1OfValue2": "Помечено {{value1}} из {{value2}}",
             "taggedValue1ItemValue2": "Помеченный элемент {{value1}} {{value2}}",
             "enterATagFirst": "Сначала введите тег.",
-            "assignedValue1OfValue2Firstreason": "Присвоено {{value1}} из {{value2}} ( {{firstReason}} )",
+            "assignedValue1OfValue2Firstreason": "Назначено {{value1}} из {{value2}} ({{firstReason}})",
             "assignedValue1ItemValue2": "Назначен {{value1}} элемент {{value2}}",
             "selectAtLeastOneMediaItem": "Выберите хотя бы один медиа-элемент.",
             "loadedSettingsIntoImageStudio": "Загрузил настройки в Image Studio.",
@@ -2965,8 +2965,8 @@
             "thisItemReferencesRecordsThatNoLongerExistClearThe": "Этот элемент ссылается на записи, которые больше не существуют. Очистите устаревшие указатели, чтобы восстановить родословную.",
             "thisItemSParentRecordIsMissingClearTheParent": "Родительская запись этого элемента отсутствует. Очистите родительскую ссылку, чтобы восстановить родословную.",
             "value1ChildValue2CouldNotBeResolvedClearTheStale": "{{value1}} дочерний элемент {{value2}} не может быть разрешен. Очистите устаревший указатель {{value3}} , чтобы восстановить происхождение.",
-            "childrenidsValue1": "ChildrenIds: {{value1}}",
-            "childrenidsValue1Missing": "ChildrenIds: {{value1}} отсутствует",
+            "childrenidsValue1": "childrenIds: {{value1}}",
+            "childrenidsValue1Missing": "childrenIds: {{value1}} отсутствуют",
             "value1MissingRef": "1 недостающий реферал",
             "value1MissingRefs": "{{value1}} отсутствуют ссылки"
           }
@@ -3010,7 +3010,7 @@
           },
           "text": {
             "identical": "Идентичный",
-            "changedcountFieldValue2WillChange": "Поле {{changedCount}} {{value2}} изменится"
+            "changedcountFieldValue2WillChange": "{{changedCount}} поле{{value2}} будут изменены"
           },
           "metadata": {
             "model": "Модель",
@@ -3427,7 +3427,7 @@
         "charactereditor": {
           "notification": {
             "fileLoadedSourced": "Файл загружен и получен",
-            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "Загружено &quot; {{value1}} &quot; в {{fieldLabel}} и сохранено в файле символов.",
+            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "Загружено «{{value1}}» в {{fieldLabel}} и сохранено внутри файла персонажа.",
             "reAppliedSourcedFile": "Повторно применен исходный файл",
             "reLoadedValue1ContentIntoValue2": "Перезагрузил контент &quot; {{value1}} &quot; в {{value2}} .",
             "workflowCreated": "Рабочий процесс создан",
@@ -3484,7 +3484,7 @@
             "moveExampleValue1Up": "Переместить пример {{value1}} вверх",
             "moveExampleValue1Down": "Переместить пример {{value1}} вниз",
             "removeExample": "Удалить пример",
-            "losslessSillytavernMesExampleCompatibilityText": "Текст совместимости SillyTavern без потерь mes_example",
+            "losslessSillytavernMesExampleCompatibilityText": "Текст совместимости SillyTavern mes_example без потерь",
             "urlScrapingProvider": "Поставщик парсинга URL-адресов",
             "temperature": "Температура",
             "topP": "Топ П",
@@ -3864,7 +3864,7 @@
             "couldNotCopySafeDiagnostics": "Не удалось скопировать безопасную диагностику",
             "diagnosticsRefreshed": "Диагностика обновлена",
             "diagnosticsRefreshFailed": "Обновление диагностики не удалось",
-            "livecountLiveModelsRefreshed": "{{liveCount}} живые модели обновлены."
+            "livecountLiveModelsRefreshed": "{{liveCount}} активных моделей обновлено"
           },
           "attribute": {
             "diagnostics": "Диагностика",
@@ -4042,7 +4042,7 @@
         },
         "notification": {
           "localSettingsCleared": "Локальные настройки удалены.",
-          "indexeddbDataClearedSuccessfully": "Данные IndexedDB успешно удалены.",
+          "indexeddbDataClearedSuccessfully": "Данные IndexedDB успешно очищены.",
           "encryptedBackupExportedSuccessfully": "Зашифрованная резервная копия успешно экспортирована.",
           "exportFailedPleaseTryAgain": "Экспорт не удался. Пожалуйста, попробуйте еще раз."
         }
@@ -4149,7 +4149,7 @@
       "backupimportservice": {
         "metadata": {
           "legacyVersion2BackupAuthenticatedSourceCryptoContentCountAnd": "Устаревшая резервная копия версии 2: аутентифицированный источник, шифрование, количество контента и метаданные исключения недоступны.",
-          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "Версия приложения резервного копирования {{value1}} отличается от этой версии приложения {{appVersion}} .",
+          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "Версия приложения в резервной копии {{value1}} отличается от текущей версии приложения {{appVersion}}.",
           "thisBackupIncludesMediaRecords": "Эта резервная копия включает записи носителей.",
           "excludedByDesignValue1": "Исключено намеренно: {{value1}} ."
         }
@@ -4178,10 +4178,10 @@
       "chatpromptcompiler": {
         "metadata": {
           "contextTruncated": "Контекст усечен",
-          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "Удален {{removedCount}} старый {{turnWord}} , чтобы соответствовать ограничениям контекста. Начните новый чат или используйте модель с большим контекстным окном, чтобы сохранить полную историю.",
+          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "Удалено {{removedCount}} старых {{turnWord}}, чтобы уложиться в пределы контекста. Начните новый чат или используйте модель с большим окном контекста для сохранения полной истории.",
           "theConversationRequiresValue1TokensButOnlyValue2AreAvailable": "Для диалога требуются токены ~ {{value1}} , но после резервирования выходных токенов доступны только {{value2}} .",
           "thisRequestReservesValue1OutputTokensSoTheCustomPrompt": "Этот запрос резервирует выходные токены {{value1}} , чтобы настраиваемое приглашение и текущий разговор соответствовали выбранной модели.",
-          "estkKOfTotalkKEstimatedTokensAreInUse": "{{estK}} K из {{totalK}} K предполагаемых токенов используются."
+          "estkKOfTotalkKEstimatedTokensAreInUse": "{{estK}}K из {{totalK}}K оценочных токенов используются."
         }
       },
       "chatstorage": {
@@ -4502,7 +4502,7 @@
           "value1DoesNotSupportAStylePresetValueWillBe": "{{value1}} не поддерживает заданный стиль — значение будет удалено.",
           "value1UsesPixelSizingAspectRatioWillBeDropped": "{{value1}} использует размер в пикселях — соотношение сторон будет уменьшено.",
           "value1DoesNotSupportAResolutionPresetValueWillBe": "{{value1}} не поддерживает предустановленное разрешение — значение будет удалено.",
-          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "Размеры {{originalPair}} не поддерживаются — по умолчанию используются {{finalPair}} .",
+          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "Размеры {{originalPair}} не поддерживаются — по умолчанию используются {{finalPair}}.",
           "aspectRatioValue1IsNotSupportedDefaultedToValue2": "Соотношение сторон « {{value1}} » не поддерживается — по умолчанию установлено значение {{value2}} .",
           "resolutionValue1IsNotSupportedDefaultedToValue2": "Разрешение &quot; {{value1}} &quot; не поддерживается — по умолчанию используется {{value2}} ."
         }
@@ -4526,7 +4526,7 @@
           "cohereEnterpriseReadyMultilingualModels": "Многоязычные модели корпоративного уровня.",
           "huggingFaceOpenSourceInferenceProviders": "Инференс открытых моделей через Hugging Face Inference Providers.",
           "azureOpenAiDeploymentBasedChatCompletions": "Чат-дополнения на базе развёртываний Azure OpenAI.",
-          "awsBedrockMantleOpenAiCompatibleInference": "Инференс AWS Bedrock Mantle, совместимый с OpenAI.",
+          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle OpenAI-совместимый инференс.",
           "googleVertexAiExpressModeApiKey": "Режим Express Google Vertex AI (аутентификация по ключу API)."
         }
       }

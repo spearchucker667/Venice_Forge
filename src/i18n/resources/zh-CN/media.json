@@ -181,41 +181,41 @@
     }
   },
   "mediaStudioActions": {
-    "heading": "__MISSING__:mediaStudioActions.heading",
-    "upscale": "__MISSING__:mediaStudioActions.upscale",
-    "upscale2x": "__MISSING__:mediaStudioActions.upscale2x",
-    "upscale4x": "__MISSING__:mediaStudioActions.upscale4x",
-    "removeBackground": "__MISSING__:mediaStudioActions.removeBackground",
-    "inpaint": "__MISSING__:mediaStudioActions.inpaint",
-    "cancel": "__MISSING__:mediaStudioActions.cancel",
-    "retry": "__MISSING__:mediaStudioActions.retry",
-    "done": "__MISSING__:mediaStudioActions.done {{operation}} {{count}}",
-    "running": "__MISSING__:mediaStudioActions.running {{operation}} {{name}}",
-    "failed": "__MISSING__:mediaStudioActions.failed {{operation}} {{name}}",
+    "heading": "图像操作",
+    "upscale": "放大",
+    "upscale2x": "2×",
+    "upscale4x": "4×",
+    "removeBackground": "删除背景",
+    "inpaint": "局部重绘",
+    "cancel": "取消",
+    "retry": "重试",
+    "done": "已为 {{count}} 个素材完成{{operation}}",
+    "running": "正在为 {{name}} 执行{{operation}}…",
+    "failed": "为 {{name}} 执行{{operation}}失败",
     "operationLabels": {
-      "upscale": "__MISSING__:mediaStudioActions.operationLabels.upscale",
-      "remove-background": "__MISSING__:mediaStudioActions.operationLabels.remove-background",
-      "inpaint": "__MISSING__:mediaStudioActions.operationLabels.inpaint"
+      "upscale": "放大",
+      "remove-background": "背景消除",
+      "inpaint": "局部重绘"
     },
     "reason": {
-      "requiresImage": "__MISSING__:mediaStudioActions.reason.requiresImage",
-      "sourceUnavailable": "__MISSING__:mediaStudioActions.reason.sourceUnavailable",
-      "modelUnavailable": "__MISSING__:mediaStudioActions.reason.modelUnavailable",
-      "singleSelection": "__MISSING__:mediaStudioActions.reason.singleSelection"
+      "requiresImage": "此操作需要图像素材",
+      "sourceUnavailable": "此源素材在本地已不可用",
+      "modelUnavailable": "修复不适用于所选型号",
+      "singleSelection": "修复需要单个所选图像"
     },
     "editor": {
-      "title": "__MISSING__:mediaStudioActions.editor.title",
-      "description": "__MISSING__:mediaStudioActions.editor.description",
-      "canvasLabel": "__MISSING__:mediaStudioActions.editor.canvasLabel",
-      "brushSize": "__MISSING__:mediaStudioActions.editor.brushSize",
-      "undo": "__MISSING__:mediaStudioActions.editor.undo",
-      "clear": "__MISSING__:mediaStudioActions.editor.clear",
-      "promptLabel": "__MISSING__:mediaStudioActions.editor.promptLabel",
-      "promptPlaceholder": "__MISSING__:mediaStudioActions.editor.promptPlaceholder",
-      "submit": "__MISSING__:mediaStudioActions.editor.submit",
-      "cancel": "__MISSING__:mediaStudioActions.editor.cancel",
-      "success": "__MISSING__:mediaStudioActions.editor.success",
-      "loadFailed": "__MISSING__:mediaStudioActions.editor.loadFailed"
+      "title": "油漆—涂上面具",
+      "description": "在要更换的区域上涂漆，然后描述变化。蒙版和源图像被发送到所选的编辑模型。",
+      "canvasLabel": "面具画画布",
+      "brushSize": "画笔大小",
+      "undo": "撤销",
+      "clear": "清除",
+      "promptLabel": "编辑提示（可选）",
+      "promptPlaceholder": "描述油漆区域内应该出现的内容……",
+      "submit": "应用Inpaint",
+      "cancel": "取消",
+      "success": "修复的资产已保存到Media Studio",
+      "loadFailed": "无法加载要屏蔽的所选图像。"
     }
   }
 }

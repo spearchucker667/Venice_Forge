@@ -165,10 +165,10 @@
         "safetyGuardAudit": "تدقيق حراسة الأمان",
         "lastRequest": "آخر طلب",
         "mediaClassifierCapabilities": "إمكانيات مصنف الوسائط",
-        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
-        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
-        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
-        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
+        "safetyRuntime": "بيئة تشغيل الأمان",
+        "structuralValidation": "التحقق الهيكلي / التحقق من البروتوكول",
+        "mediaClassifierBackend": "الواجهة الخلفية لمصنف الوسائط",
+        "classifierCounters": "عدادات المصنف"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "معلومات وقت التشغيل المجمعة للإصدار الحالي. افتح مجلد السجلات",
@@ -197,33 +197,33 @@
         "protectionItemImageBytes": "بايتات الصور (دلالية): غير مصنفة",
         "protectionItemAudioBytes": "بايتات الصوت (دلالية): غير مصنفة",
         "protectionItemVideoBytes": "بايتات الفيديو (دلالية): غير مصنفة",
-        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
-        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
-        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
-        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
-        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
-        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
-        "source": "__MISSING__:surface.componentsStatusview.text.source",
-        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
-        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
-        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
-        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
-        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
-        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
-        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
-        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
-        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
-        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
-        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
-        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
-        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
-        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
-        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
-        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
-        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
-        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
-        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
-        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
+        "localContentSafeguards": "إجراءات حماية المحتوى المحلي",
+        "providerSafety": "أمان المزود (Venice safe_mode)",
+        "stateEnabled": "ممكّن",
+        "stateDisabled": "معطّل",
+        "stateOn": "تشغيل",
+        "stateOff": "إيقاف",
+        "source": "المصدر",
+        "sourceUser": "المستخدم",
+        "sourceServer": "الخادم",
+        "sourcePolicy": "السياسة",
+        "validationActive": "نشط",
+        "requestsValidated": "الطلبات المتحقق منها",
+        "rejectedRequests": "الطلبات المرفوضة",
+        "backendRegistered": "الواجهة الخلفية المسجلة",
+        "backendName": "اسم الواجهة الخلفية",
+        "classifierStateAvailable": "متاح",
+        "classifierStateNotConfigured": "غير مهيأ",
+        "classifierStateUnsupported": "غير مدعوم",
+        "classifierStateUnhealthy": "الواجهة الخلفية غير سليمة",
+        "counterTextEvaluations": "تقييمات النص",
+        "counterImageEvaluations": "تقييمات الصور",
+        "counterAudioEvaluations": "تقييمات الصوت",
+        "counterVideoEvaluations": "تقييمات الفيديو",
+        "counterBlocked": "محظور",
+        "counterAllowed": "مسموح",
+        "counterSkippedDisabled": "تم التخطي (إجراءات الحماية معطلة)",
+        "counterErrors": "أخطاء"
       }
     },
     "componentsThememaker": {
@@ -246,7 +246,7 @@
       "heading": {
         "themeSystemEditor": "نظام السمة ومحررها",
         "importThemePreview": "استيراد معاينة السمة",
-        "codeAndSyntax": "Code & Syntax"
+        "codeAndSyntax": "الكود والصياغة"
       },
       "description": {
         "configureThemeColorsBorderContrastFocusRings": "قم بتكوين ألوان السمة وتباين الحدود وحلقات التركيز وأنماط أزرار الإجراء عبر Venice Forge.",
@@ -254,7 +254,7 @@
       },
       "label": {
         "selectActiveTheme": "تحديد السمة النشطة",
-        "syntaxPreset": "Syntax preset"
+        "syntaxPreset": "إعداد مسبق للصياغة"
       },
       "text": {
         "unsavedDraftChanges": "مسودة التغييرات غير المحفوظة",
@@ -266,42 +266,42 @@
         "aCustomThemeNamedLdquo": "يوجد سمة مخصصة تسمى \"",
         "rdquoAlreadyExistsInYourWorkspace": "\" بالفعل في مساحة العمل الخاصة بك.",
         "importedLayoutPreview": "معاينة التخطيط المستوردة",
-        "id": "ID:"
+        "id": "المعرّف:"
       },
       "codeToken": {
-        "background": "Code background",
-        "foreground": "Code foreground",
-        "border": "Code border",
-        "headerBackground": "Header background",
-        "headerForeground": "Header foreground",
-        "inlineBackground": "Inline background",
-        "inlineForeground": "Inline foreground",
-        "selectionBackground": "Selection background",
-        "comment": "Comment",
-        "punctuation": "Punctuation",
-        "property": "Property",
+        "background": "خلفية الكود",
+        "foreground": "مقدمة الكود",
+        "border": "حدود الكود",
+        "headerBackground": "خلفية الرأس",
+        "headerForeground": "مقدمة الرأس",
+        "inlineBackground": "خلفية السطر المضمن",
+        "inlineForeground": "مقدمة السطر المضمن",
+        "selectionBackground": "خلفية التحديد",
+        "comment": "تعليق",
+        "punctuation": "علامات الترقيم",
+        "property": "خاصية",
         "tag": "Tag",
-        "boolean": "Boolean",
-        "number": "Number",
-        "constant": "Constant",
-        "symbol": "Symbol",
-        "deleted": "Deleted",
-        "selector": "Selector",
-        "attribute": "Attribute",
-        "string": "String",
-        "character": "Character",
-        "builtin": "Builtin",
-        "inserted": "Inserted",
-        "operator": "Operator",
-        "entity": "Entity",
+        "boolean": "قيمة منطقية",
+        "number": "رقم",
+        "constant": "ثابت",
+        "symbol": "رمز",
+        "deleted": "محذوف",
+        "selector": "مُحدِّد",
+        "attribute": "سمة",
+        "string": "سلسلة نصية",
+        "character": "حرف",
+        "builtin": "مدمج",
+        "inserted": "مُدرج",
+        "operator": "عامل تشغيل",
+        "entity": "كيان",
         "url": "URL",
-        "atRule": "At-rule",
-        "keyword": "Keyword",
-        "function": "Function",
-        "className": "Class / Type",
-        "regex": "Regex",
-        "important": "Important",
-        "variable": "Variable"
+        "atRule": "قاعدة @",
+        "keyword": "كلمة مفتاحية",
+        "function": "دالة",
+        "className": "فئة / نوع",
+        "regex": "تعبير نظامي",
+        "important": "مهم",
+        "variable": "متغير"
       }
     },
     "componentsThemepreview": {
@@ -317,7 +317,7 @@
         "focusedControl": "التحكم المركّز",
         "alertMessageBoundary": "حد رسالة التنبيه",
         "contrastWarnings": "تحذيرات التباين:",
-        "syntaxPreview": "Syntax preview"
+        "syntaxPreview": "معاينة الصياغة"
       }
     },
     "componentsAudioAudioView": {
@@ -583,7 +583,7 @@
         "selected": "تم تحديد",
         "chattingAs": "الدردشة كـ",
         "usesCharacterSystemPrompt": "استخدام موجه النظام الخاص بالشخصية. يتم تجاوز موجه النظام المقدم من المستخدم لمحادثات الشخصيات المستضافة والمحلية.",
-        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
+        "useVeniceDefaultSystemPrompt": "استخدام موجه النظام الافتراضي لـ Venice"
       },
       "label": {
         "systemPromptMode": "وضع مطالبة النظام"
@@ -630,7 +630,7 @@
         "loadFromLibrary": "التحميل من المكتبة..."
       },
       "text": {
-        "approachingSystemPromptSizeLimit": "حجم مطالبة النظام: {{estimatedTokenCount}} / {{maximumTokens}} رموز تقديرية؛ {{codePointCount}} / {{maximumCodePoints}} نقاط ترميز Unicode."
+        "approachingSystemPromptSizeLimit": "حجم موجه النظام: {{estimatedTokenCount}} / {{maximumTokens}} رمز مقدّر؛ {{codePointCount}} / {{maximumCodePoints}} نقطة رمز Unicode."
       }
     },
     "componentsDocumentsDocumentagentview": {
@@ -1308,7 +1308,7 @@
         "tags": "العلامات",
         "personality": "الشخصية",
         "systemPrompt": "موجه النظام",
-        "approachingSystemPromptSizeLimit": "حجم مطالبة النظام: {{estimatedTokenCount}} / {{maximumTokens}} رموز تقديرية؛ {{codePointCount}} / {{maximumCodePoints}} نقاط ترميز Unicode.",
+        "approachingSystemPromptSizeLimit": "حجم موجه النظام: {{estimatedTokenCount}} / {{maximumTokens}} رمز مقدّر؛ {{codePointCount}} / {{maximumCodePoints}} نقطة رمز Unicode.",
         "postHistoryInstructions": "تعليمات ما بعد السجل",
         "instructions": "التعليمات",
         "firstMessagePrimaryGreeting": "الرسالة الأولى (تحية أساسية)",
@@ -1394,7 +1394,7 @@
         "prompt": "المطالبة:",
         "reApplyTo": "إعادة التقديم على",
         "savingCharacter": "حفظ الحرف...",
-        "estimatedSystemPromptTokens": "{{estimatedTokenCount}} / {{maximumTokens}} رموز تقديرية"
+        "estimatedSystemPromptTokens": "{{estimatedTokenCount}} / {{maximumTokens}} رمز مقدّر"
       },
       "action": {
         "remove": "إزالة",
@@ -1687,7 +1687,7 @@
         "discoveredProfileCandidates": "مرشحو الملف الشخصي المكتشفون"
       },
       "description": {
-        "aggregatesSocialProfileMappingsFromPublicDatabases": "تجميع تعيينات الملف الشخصي الاجتماعي من قواعد البيانات العامة (GitHub، Twitter، LinkedIn، وما إلى ذلك) باستخدام Venice تكامل الويب"
+        "aggregatesSocialProfileMappingsFromPublicDatabases": "يجمع تعيينات الملفات الشخصية الاجتماعية من قواعد البيانات العامة (GitHub وTwitter وLinkedIn وغيرها) باستخدام تكامل Venice مع الويب."
       },
       "label": {
         "platformsToSearch": "منصات للبحث"
@@ -2113,20 +2113,20 @@
     "writing-scifi-hook": "قم بتأليف افتتاحية جذابة لرواية خيال علمي حيث تتصرف الجاذبية بشكل مختلف في كل مدينة.",
     "writing-newsletter-intro": "قم بصياغة مقدمة رسالة إخبارية جذابة تناقش التأثيرات المجتمعية لأساطيل الوكلاء المستقلة.",
     "writing-press-release": "قم بإنشاء قالب بيان صحفي رسمي للإعلان عن المصدر المفتوح لمكشطة الويب التي تعطي الأولوية للخصوصية.",
-    "writing-linkedin-post": "قم بصياغة منشور احترافي على LinkedIn يلخص الدروس الأساسية المستفادة من إنشاء تطبيق Electron الأول غير المتصل بالإنترنت.",
+    "writing-linkedin-post": "اكتب منشورًا احترافيًا على LinkedIn يلخص أهم الدروس المستفادة من بناء تطبيق Electron يعمل دون اتصال أولاً.",
     "writing-blog-outline": "قم بإنشاء مخطط تفصيلي لمنشور مدونة تقني بعنوان \"تأمين جسور التحميل المسبق في تطبيقات الإلكترون الحديثة\".",
     "writing-sabbatical-request": "اكتب مقترحًا مهنيًا يطلب إجازة تعليمية لمدة 3 أشهر لدراسة الأنظمة الموزعة.",
     "writing-speech-intro": "اكتب خطابًا تمهيديًا مدته 3 دقائق حول أهمية البرامج المحلية وسيادة البيانات.",
     "writing-bug-report": "اكتب نموذجًا شاملاً لتقرير الأخطاء في مشروع مفتوح المصدر لتشجيع الحل السريع.",
     "writing-refusal-letter": "قم بصياغة استجابة احترافية لرفض عرض البائع مع إبقاء الباب مفتوحًا للتعاون المستقبلي.",
     "writing-haiku-comp": "قم بتأليف ثلاثة قصائد هايكوية تصور الانتقال من الأجهزة التناظرية إلى الحساب الكمي.",
-    "coding-rest-graphql": "قارن بين REST وGraphQL - متى يتألق كل منهما؟",
-    "coding-debounce-ts": "اكتب خطافًا قويًا للارتداد مكتوبًا بالكامل في TypeScript لـ React مع دعم الاستدعاء الفوري.",
+    "coding-rest-graphql": "قارن بين REST وGraphQL — متى يتفوّق كل منهما؟",
+    "coding-debounce-ts": "اكتب خطاف debounce قويًا ومكتوبًا بالكامل بلغة TypeScript لـ React مع دعم الاستدعاء الفوري.",
     "coding-sql-recursive": "اشرح كيفية عمل CTEs العودية في SQL مع مثال للاستعلام عن التسلسل الهرمي التنظيمي.",
     "coding-refactor-lru": "قم بإعادة بناء ذاكرة التخزين المؤقت لذاكرة Node.js البسيطة إلى ذاكرة تخزين مؤقت LRU آمنة لمؤشر الترابط مع دعم انتهاء الصلاحية.",
     "coding-rust-error": "أظهر كيفية تنفيذ معالجة مخصصة للأخطاء في Rust باستخدام الصناديق `thiserror` و`anyhow`.",
     "coding-git-bisect": "اشرح كيفية استخدام `git bisect` لتحديد التزام الانحدار، بما في ذلك تنفيذ البرنامج النصي الآلي.",
-    "coding-docker-multi": "قم بإنشاء ملف Dockerfile آمن ومتعدد المراحل لتعبئة خدمة TypeScript Node.js الصغيرة.",
+    "coding-docker-multi": "أنشئ ملف Dockerfile متعدد المراحل بسيط وآمن لحزم خدمة مصغّرة من نوع Node.js مكتوبة بلغة TypeScript.",
     "coding-csp-rules": "اكتب تكوينًا صارمًا لرأس سياسة أمان المحتوى (CSP) الذي يسمح بتنفيذ WASM المحلي ولكنه يمنع التقييم المضمّن.",
     "coding-vitest-mocking": "اشرح كيفية الاستهزاء بكائنات النوافذ العامة واستدعاءات الجلب غير المتزامنة في Vitest.",
     "coding-css-flex-grid": "اشرح الاختلافات المعمارية بين تخطيطات CSS Grid وFlexbox، مع حالات استخدام تخطيط محددة لكل منهما.",
@@ -2499,12 +2499,12 @@
             "analyzingImage": "تحليل الصورة"
           },
           "error": {
-            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
-            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
-            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
-            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
-            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
-            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
+            "modelUnavailable": "نموذج صانع الأحرف غير متاح مؤقتًا. يُرجى إعادة المحاولة بعد بضع دقائق.",
+            "requestCancelled": "تم إلغاء التوليد.",
+            "invalidModelResponse": "أعاد النموذج استجابة غير صالحة للاستعمال. يُرجى إعادة المحاولة.",
+            "schemaRepairFailed": "فشل التحقق من صحة بطاقة الأحرف التي تم إنشاؤها وتعذر إصلاحها. يُرجى إعادة المحاولة.",
+            "transportFailed": "تعذر الوصول إلى Venice API. يرجى التحقق من اتصالك والمحاولة مرة أخرى.",
+            "providerHttp": "رفضت Venice API طلب التوليد. يُرجى إعادة المحاولة لاحقًا."
           },
           "notification": {
             "couldNotLoadDraft": "تعذر تحميل المسودة",
@@ -4613,22 +4613,22 @@
       "notRequested": "لم يتم طلب كتالوج النموذج.",
       "loading": "جارٍ تحميل كتالوج النماذج...",
       "loaded": "تم تحميل {{count}} من النماذج.",
-      "selectionUnavailable": "النموذج المحدد &quot; {{modelId}} &quot; غير موجود في الكتالوج الحالي ( {{modelType}} ).",
+      "selectionUnavailable": "النموذج المحدد \"{{modelId}}\" غير موجود في الكتالوج الحالي ({{modelType}}).",
       "cached": "استخدام كتالوج النموذج المخزن مؤقتًا من {{timestamp}} .",
       "loadFailed": "تعذر تحميل كتالوج النماذج."
     },
     "storage": {
-      "unavailable": "IndexedDB غير متوفر. لن يستمر التاريخ ووسائل الإعلام المحلية.",
+      "unavailable": "IndexedDB غير متاح. لن يتم الاحتفاظ بالسجل المحلي والوسائط.",
       "permissionsDetail": "وضع المتصفح مع تعطيل التخزين. التحقق من أذونات الموقع.",
-      "web": "وضع الويب: تستمر السجلات في المستعرض IndexedDB (المشفرة في حالة الراحة).",
+      "web": "وضع الويب: تُحفظ السجلات في IndexedDB الخاص بالمتصفح (مشفرة أثناء التخزين).",
       "siteDataDetail": "سيؤدي مسح بيانات الموقع إلى مسح المخزن المحلي.",
-      "desktop": "سطح المكتب IndexedDB يمكن الوصول إليه. يتم تشفير السجلات في حالة الراحة."
+      "desktop": "IndexedDB الخاص بتطبيق سطح المكتب متاح. السجلات مشفرة أثناء التخزين."
     },
     "project": {
       "allProjects": "وضع كافة المشاريع نشط (عرض غير محدد).",
       "missing": "معرف المشروع النشط مفقود أو غير معروف. سيتم إصلاح المتجر في التفاعل التالي.",
-      "archived": "تمت أرشفة المشروع النشط &quot; {{projectName}} &quot;. قم بالتبديل إلى كافة المشاريع للإصلاح.",
-      "valid": "المشروع النشط &quot; {{projectName}} &quot; صالح."
+      "archived": "المشروع النشط \"{{projectName}}\" مؤرشف. انتقل إلى كل المشاريع للإصلاح.",
+      "valid": "المشروع النشط \"{{projectName}}\" صالح."
     },
     "safety": {
       "on": {

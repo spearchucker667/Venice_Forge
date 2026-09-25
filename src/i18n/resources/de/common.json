@@ -185,7 +185,7 @@
       },
       "label": {
         "selectActiveTheme": "Aktives Design auswählen",
-        "syntaxPreset": "Syntax preset"
+        "syntaxPreset": "Syntax-Voreinstellung"
       },
       "text": {
         "unsavedDraftChanges": "Nicht gespeicherte Entwurfsänderungen",
@@ -200,38 +200,38 @@
         "id": "ID:"
       },
       "codeToken": {
-        "background": "Code background",
-        "foreground": "Code foreground",
-        "border": "Code border",
-        "headerBackground": "Header background",
-        "headerForeground": "Header foreground",
-        "inlineBackground": "Inline background",
-        "inlineForeground": "Inline foreground",
-        "selectionBackground": "Selection background",
-        "comment": "Comment",
-        "punctuation": "Punctuation",
-        "property": "Property",
+        "background": "Code-Hintergrund",
+        "foreground": "Code-Vordergrund",
+        "border": "Code-Rahmen",
+        "headerBackground": "Header-Hintergrund",
+        "headerForeground": "Header-Vordergrund",
+        "inlineBackground": "Inline-Hintergrund",
+        "inlineForeground": "Inline-Vordergrund",
+        "selectionBackground": "Auswahl-Hintergrund",
+        "comment": "Kommentar",
+        "punctuation": "Interpunktion",
+        "property": "Eigenschaft",
         "tag": "Tag",
-        "boolean": "Boolean",
-        "number": "Number",
-        "constant": "Constant",
+        "boolean": "Boolescher Wert",
+        "number": "Zahl",
+        "constant": "Konstante",
         "symbol": "Symbol",
-        "deleted": "Deleted",
-        "selector": "Selector",
-        "attribute": "Attribute",
-        "string": "String",
-        "character": "Character",
-        "builtin": "Builtin",
-        "inserted": "Inserted",
+        "deleted": "Gelöscht",
+        "selector": "Selektor",
+        "attribute": "Attribut",
+        "string": "Zeichenkette",
+        "character": "Zeichen",
+        "builtin": "Eingebaut",
+        "inserted": "Eingefügt",
         "operator": "Operator",
-        "entity": "Entity",
+        "entity": "Entität",
         "url": "URL",
-        "atRule": "At-rule",
-        "keyword": "Keyword",
-        "function": "Function",
-        "className": "Class / Type",
+        "atRule": "At-Regel",
+        "keyword": "Schlüsselwort",
+        "function": "Funktion",
+        "className": "Klasse / Typ",
         "regex": "Regex",
-        "important": "Important",
+        "important": "Wichtig",
         "variable": "Variable"
       }
     },
@@ -498,7 +498,7 @@
         "selected": "ausgewählt",
         "chattingAs": "Chatten als",
         "usesCharacterSystemPrompt": "Verwendet den System-Prompt des Charakters. Der vom Benutzer bereitgestellte System-Prompt wird bei gehosteten und lokalen Charakter-Chats umgangen.",
-        "useVeniceDefaultSystemPrompt": "__MISSING__:surface.componentsChatChatView.text.useVeniceDefaultSystemPrompt"
+        "useVeniceDefaultSystemPrompt": "Venice-Standard-Systemaufforderung verwenden"
       },
       "label": {
         "systemPromptMode": "Systemaufforderungsmodus"
@@ -545,7 +545,7 @@
         "loadFromLibrary": "Aus Bibliothek laden..."
       },
       "text": {
-        "approachingSystemPromptSizeLimit": "Größe des System-Prompts: {{estimatedTokenCount}} / {{maximumTokens}} geschätzte Token; {{codePointCount}} / {{maximumCodePoints}} Unicode-Codepunkte."
+        "approachingSystemPromptSizeLimit": "Systemaufforderungsgröße: {{estimatedTokenCount}} / {{maximumTokens}} geschätzte Token; {{codePointCount}} / {{maximumCodePoints}} Unicode-Codepunkte."
       }
     },
     "componentsDocumentsDocumentagentview": {
@@ -1213,7 +1213,7 @@
         "tags": "Schlagworte",
         "personality": "Persönlichkeit",
         "systemPrompt": "Systemaufforderung",
-        "approachingSystemPromptSizeLimit": "Größe des System-Prompts: {{estimatedTokenCount}} / {{maximumTokens}} geschätzte Token; {{codePointCount}} / {{maximumCodePoints}} Unicode-Codepunkte.",
+        "approachingSystemPromptSizeLimit": "Systemaufforderungsgröße: {{estimatedTokenCount}} / {{maximumTokens}} geschätzte Token; {{codePointCount}} / {{maximumCodePoints}} Unicode-Codepunkte.",
         "postHistoryInstructions": "Post-History-Anweisungen",
         "instructions": "Anweisungen",
         "firstMessagePrimaryGreeting": "Erste Nachricht (primäre Begrüßung)",
@@ -1575,7 +1575,7 @@
         "discoveredProfileCandidates": "Entdeckte Profilkandidaten"
       },
       "description": {
-        "aggregatesSocialProfileMappingsFromPublicDatabases": "Aggregiert soziale Profilzuordnungen aus öffentlichen Datenbanken (GitHub, Twitter, LinkedIn usw.) mithilfe der Venice-Webintegration."
+        "aggregatesSocialProfileMappingsFromPublicDatabases": "Aggregiert Social-Profile-Zuordnungen aus öffentlichen Datenbanken (GitHub, Twitter, LinkedIn usw.) über die Venice-Webintegration."
       },
       "label": {
         "platformsToSearch": "Zu durchsuchende Plattformen"
@@ -1769,10 +1769,10 @@
         "safetyGuardAudit": "Sicherheitsüberwachungsprüfung",
         "lastRequest": "Letzte Anfrage",
         "mediaClassifierCapabilities": "Medien-Klassifikator-Funktionen",
-        "safetyRuntime": "__MISSING__:surface.componentsStatusview.heading.safetyRuntime",
-        "structuralValidation": "__MISSING__:surface.componentsStatusview.heading.structuralValidation",
-        "mediaClassifierBackend": "__MISSING__:surface.componentsStatusview.heading.mediaClassifierBackend",
-        "classifierCounters": "__MISSING__:surface.componentsStatusview.heading.classifierCounters"
+        "safetyRuntime": "Sicherheits-Runtime",
+        "structuralValidation": "Strukturelle / Protokollvalidierung",
+        "mediaClassifierBackend": "Medienklassifizierungs-Backend",
+        "classifierCounters": "Klassifizierungs-Zähler"
       },
       "description": {
         "aggregatedRuntimeInfoForTheCurrentBuild": "Aggregierte Laufzeitinformationen für den aktuellen Build. Öffnen Sie den Protokollordner",
@@ -1801,33 +1801,33 @@
         "protectionItemImageBytes": "Bild-Bytes (semantisch): nicht klassifiziert",
         "protectionItemAudioBytes": "Audio-Bytes (semantisch): nicht klassifiziert",
         "protectionItemVideoBytes": "Video-Bytes (semantisch): nicht klassifiziert",
-        "localContentSafeguards": "__MISSING__:surface.componentsStatusview.text.localContentSafeguards",
-        "providerSafety": "__MISSING__:surface.componentsStatusview.text.providerSafety",
-        "stateEnabled": "__MISSING__:surface.componentsStatusview.text.stateEnabled",
-        "stateDisabled": "__MISSING__:surface.componentsStatusview.text.stateDisabled",
-        "stateOn": "__MISSING__:surface.componentsStatusview.text.stateOn",
-        "stateOff": "__MISSING__:surface.componentsStatusview.text.stateOff",
-        "source": "__MISSING__:surface.componentsStatusview.text.source",
-        "sourceUser": "__MISSING__:surface.componentsStatusview.text.sourceUser",
-        "sourceServer": "__MISSING__:surface.componentsStatusview.text.sourceServer",
-        "sourcePolicy": "__MISSING__:surface.componentsStatusview.text.sourcePolicy",
-        "validationActive": "__MISSING__:surface.componentsStatusview.text.validationActive",
-        "requestsValidated": "__MISSING__:surface.componentsStatusview.text.requestsValidated",
-        "rejectedRequests": "__MISSING__:surface.componentsStatusview.text.rejectedRequests",
-        "backendRegistered": "__MISSING__:surface.componentsStatusview.text.backendRegistered",
-        "backendName": "__MISSING__:surface.componentsStatusview.text.backendName",
-        "classifierStateAvailable": "__MISSING__:surface.componentsStatusview.text.classifierStateAvailable",
-        "classifierStateNotConfigured": "__MISSING__:surface.componentsStatusview.text.classifierStateNotConfigured",
-        "classifierStateUnsupported": "__MISSING__:surface.componentsStatusview.text.classifierStateUnsupported",
-        "classifierStateUnhealthy": "__MISSING__:surface.componentsStatusview.text.classifierStateUnhealthy",
-        "counterTextEvaluations": "__MISSING__:surface.componentsStatusview.text.counterTextEvaluations",
-        "counterImageEvaluations": "__MISSING__:surface.componentsStatusview.text.counterImageEvaluations",
-        "counterAudioEvaluations": "__MISSING__:surface.componentsStatusview.text.counterAudioEvaluations",
-        "counterVideoEvaluations": "__MISSING__:surface.componentsStatusview.text.counterVideoEvaluations",
-        "counterBlocked": "__MISSING__:surface.componentsStatusview.text.counterBlocked",
-        "counterAllowed": "__MISSING__:surface.componentsStatusview.text.counterAllowed",
-        "counterSkippedDisabled": "__MISSING__:surface.componentsStatusview.text.counterSkippedDisabled",
-        "counterErrors": "__MISSING__:surface.componentsStatusview.text.counterErrors"
+        "localContentSafeguards": "Lokale Inhaltssicherungen",
+        "providerSafety": "Anbietersicherheit (Venice safe_mode)",
+        "stateEnabled": "Aktiviert",
+        "stateDisabled": "Deaktiviert",
+        "stateOn": "An",
+        "stateOff": "Aus",
+        "source": "Quelle",
+        "sourceUser": "Benutzer",
+        "sourceServer": "Server",
+        "sourcePolicy": "Richtlinie",
+        "validationActive": "Aktiv",
+        "requestsValidated": "Validierte Anfragen",
+        "rejectedRequests": "Abgelehnte Anfragen",
+        "backendRegistered": "Backend registriert",
+        "backendName": "Backend-Name",
+        "classifierStateAvailable": "Verfügbar",
+        "classifierStateNotConfigured": "Nicht konfiguriert",
+        "classifierStateUnsupported": "Nicht unterstützt",
+        "classifierStateUnhealthy": "Backend fehlerhaft",
+        "counterTextEvaluations": "Textauswertungen",
+        "counterImageEvaluations": "Bildauswertungen",
+        "counterAudioEvaluations": "Audioauswertungen",
+        "counterVideoEvaluations": "Videoauswertungen",
+        "counterBlocked": "Blockiert",
+        "counterAllowed": "Erlaubt",
+        "counterSkippedDisabled": "Übersprungen (Schutzmaßnahmen deaktiviert)",
+        "counterErrors": "Fehler"
       }
     },
     "componentsThemepreview": {
@@ -1843,7 +1843,7 @@
         "focusedControl": "Fokussierte Steuerung",
         "alertMessageBoundary": "Warnmeldungsgrenze",
         "contrastWarnings": "Kontrastwarnungen:",
-        "syntaxPreview": "Syntax preview"
+        "syntaxPreview": "Syntax-Vorschau"
       }
     },
     "componentsCharacterCreatorCharactercreatorcompleted": {
@@ -2113,25 +2113,25 @@
     "writing-scifi-hook": "Verfassen Sie eine überzeugende Eröffnungssequenz für einen Science-Fiction-Roman, in dem sich die Schwerkraft in jeder Stadt anders verhält.",
     "writing-newsletter-intro": "Entwerfen Sie eine ansprechende Newsletter-Einleitung, in der die gesellschaftlichen Auswirkungen autonomer Agentenflotten erörtert werden.",
     "writing-press-release": "Erstellen Sie eine formelle Vorlage für eine Pressemitteilung, in der Sie die Open-Source-Veröffentlichung eines datenschutzorientierten Web-Scraper ankündigen.",
-    "writing-linkedin-post": "Verfassen Sie einen professionellen LinkedIn-Beitrag, der die wichtigsten Erkenntnisse aus der Erstellung einer Offline-First-Electron-Anwendung zusammenfasst.",
+    "writing-linkedin-post": "Verfasse einen professionellen LinkedIn-Beitrag, der die wichtigsten Lektionen aus der Entwicklung einer Offline-First-Electron-Anwendung zusammenfasst.",
     "writing-blog-outline": "Erstellen Sie eine detaillierte Gliederung für einen technischen Blogbeitrag mit dem Titel „Securing Preload Bridges in Modern Electron Apps“.",
     "writing-sabbatical-request": "Verfassen Sie einen professionellen Vorschlag, in dem Sie um ein dreimonatiges Bildungssabbatical zum Studium verteilter Systeme bitten.",
     "writing-speech-intro": "Schreiben Sie eine dreiminütige Einführungsrede über die Bedeutung von Local-First-Software und Datensouveränität.",
     "writing-bug-report": "Schreiben Sie eine ausführliche Vorlage für einen Fehlerbericht in einem Open-Source-Projekt, um eine schnelle Lösung zu fördern.",
     "writing-refusal-letter": "Entwerfen Sie eine professionelle Antwort, in der Sie ein Angebot eines Anbieters ablehnen und gleichzeitig die Tür für eine zukünftige Zusammenarbeit offen halten.",
     "writing-haiku-comp": "Verfassen Sie drei Haikus, die den Übergang von analoger Hardware zur Quantenberechnung festhalten.",
-    "coding-rest-graphql": "Vergleichen Sie REST und GraphQL – wann glänzen beide?",
-    "coding-debounce-ts": "Schreiben Sie einen robusten, vollständig typisierten Debounce-Hook in TypeScript für React mit Unterstützung für den sofortigen Aufruf.",
+    "coding-rest-graphql": "Vergleiche REST und GraphQL – wann glänzt jeweils welches?",
+    "coding-debounce-ts": "Schreiben Sie einen robusten, vollständig typisierten Debounce-Hook in TypeScript für React mit Unterstützung für sofortige Ausführung.",
     "coding-sql-recursive": "Erklären Sie anhand eines Beispiels für die Abfrage einer Organisationshierarchie, wie rekursive CTEs in SQL funktionieren.",
     "coding-refactor-lru": "Refaktorieren Sie einen einfachen Node.js-Speichercache in einen threadsicheren LRU-Cache mit Ablaufunterstützung.",
     "coding-rust-error": "Zeigen Sie, wie Sie eine benutzerdefinierte Fehlerbehandlung in Rust mithilfe der Kisten „thiserror“ und „anyhow“ implementieren.",
     "coding-git-bisect": "Erklären Sie, wie Sie mit „git bisect“ einen Regressions-Commit finden, einschließlich der automatisierten Skriptausführung.",
-    "coding-docker-multi": "Erstellen Sie eine minimale, sichere mehrstufige Docker-Datei zum Packen eines TypeScript Node.js-Mikrodienstes.",
+    "coding-docker-multi": "Erstellen Sie ein minimales, sicheres Multi-Stage-Dockerfile für das Verpacken eines TypeScript-Node.js-Microservice.",
     "coding-csp-rules": "Schreiben Sie eine strikte CSP-Header-Konfiguration (Content Security Policy), die die lokale WASM-Ausführung zulässt, aber die Inline-Auswertung blockiert.",
     "coding-vitest-mocking": "Demonstrieren Sie, wie Sie globale Fensterobjekte und asynchrone Abrufaufrufe in Vitest verspotten.",
     "coding-css-flex-grid": "Erklären Sie die architektonischen Unterschiede zwischen CSS-Grid- und Flexbox-Layouts mit jeweils spezifischen Layout-Anwendungsfällen.",
-    "coding-sse-parse": "Zeigen Sie, wie Sie einen Stream-Parser für Server-Sent Events (SSE) in Vanilla-JavaScript ohne externe Abhängigkeiten schreiben.",
-    "coding-indexeddb-transaction": "Geben Sie ein Beispiel für robustes Transaktionsmanagement und Fehler-Rollback im browsernativen IndexedDB.",
+    "coding-sse-parse": "Zeigen Sie, wie man einen Stream-Parser für Server-Sent Events (SSE) in Vanilla JavaScript ohne externe Abhängigkeiten schreibt.",
+    "coding-indexeddb-transaction": "Geben Sie ein Beispiel für robustes Transaktionsmanagement und Fehler-Rollback in browser-nativem IndexedDB.",
     "learning-rsa-metaphor": "Erklären Sie anhand einer Metapher, die ein 10-Jähriger verstehen könnte, wie die RSA-Verschlüsselung funktioniert.",
     "learning-pid-controller": "Erklären Sie die Mathematik hinter einem PID-Temperaturregler in einfachen, intuitiven Worten.",
     "learning-monad-metaphor": "Erklären Sie anhand einer alltäglichen Analogie aus der realen Welt, was eine Monade in der funktionalen Programmierung ist.",
@@ -2177,20 +2177,20 @@
     "productivity-markdown-journal": "Entwerfen Sie ein einfaches, tägliches Markdown-Journal-Aufforderungssystem, das dabei hilft, tägliche Ziele, Blocker und Dankbarkeiten zu verfolgen.",
     "productivity-inbox-zero": "Entwerfen Sie ein schrittweises System zum Erreichen und Aufrechterhalten von Inbox Zero mithilfe automatisierter Beschriftungen und Tastaturkürzel.",
     "productivity-postmortem": "Erstellen Sie eine Standardvorlage zum Schreiben von Software-Postmortems nach einem kritischen Produktionsausfall.",
-    "productivity-learning-sprint": "Entwerfen Sie einen 4-wöchigen Lern-Sprint-Plan, um die Grundlagen der Rust WebAssembly-Kompilierung zu erlernen.",
+    "productivity-learning-sprint": "Erstellen Sie einen 4-wöchigen Lern-Sprint-Plan, um die Grundlagen der Rust-WebAssembly-Kompilierung zu meistern.",
     "productivity-presentation-deck": "Entwerfen Sie eine Folie-für-Folie-Struktur für einen 10-minütigen Präsentations-Pitch, um die Startfinanzierung für einen lokalen LLM-Kunden sicherzustellen.",
     "productivity-dependency-audit": "Erstellen Sie einen Aktionsplan für die Durchführung einer monatlichen Prüfung der Open-Source-Bibliotheksabhängigkeiten in einem Produktionscode-Repository.",
     "analysis-p2p-mesh": "Führen Sie eine SWOT-Analyse zum Einsatz eines dezentralen Peer-to-Peer-Mesh-Netzwerks in dicht besiedelten städtischen Gebieten durch.",
-    "analysis-sqlite-pg": "Vergleichen Sie die architektonischen Kompromisse von SQLite und PostgreSQL für eine Offline-Desktopanwendung mit Synchronisierungsfunktionen.",
+    "analysis-sqlite-pg": "Vergleichen Sie die architektonischen Kompromisse von SQLite vs PostgreSQL für eine Offline-First-Desktop-Anwendung mit Synchronisierungsfunktionen.",
     "analysis-fallacy-media": "Nennen Sie fünf häufige logische Irrtümer, die in der modernen Medienberichterstattung vorkommen, und geben Sie Richtlinien, wie man sie erkennt.",
     "analysis-cloud-vs-local": "Analysieren Sie die langfristigen Kosten-Nutzen-Kompromisse von in der Cloud gehostetem serverlosem Computing im Vergleich zu selbst gehosteten Bare-Metal-Servern.",
     "analysis-electron-tauri": "Führen Sie eine detaillierte Vergleichsanalyse von Electron vs. Tauri im Hinblick auf Speicherbedarf, Build-Größe und Sicherheitsmodelle durch.",
     "analysis-monolith-micro": "Identifizieren Sie Schlüsselindikatoren, die zeigen, wann ein wachsendes Startup von einer monolithischen zu einer Microservices-Architektur übergehen sollte.",
     "analysis-privacy-shield": "Analysieren Sie die rechtlichen und technischen Auswirkungen der DSGVO-Konformitätsanforderungen auf Protokollierungs- und Telemetriepraktiken.",
     "analysis-rsa-vs-ecc": "Führen Sie eine vergleichende technische Analyse von RSA und Elliptic Curve Cryptography (ECC) hinsichtlich Schlüsselgrößen und Signaturgeschwindigkeiten durch.",
-    "analysis-dns-over-https": "Analysieren Sie die Datenschutzvorteile und Netzwerkleistungsnachteile bei der Einführung von DNS-over-HTTPS (DoH).",
+    "analysis-dns-over-https": "Analysieren Sie die Datenschutzvorteile und Netzwerk-Leistungskompromisse der Einführung von DNS-over-HTTPS (DoH).",
     "analysis-open-licensing": "Vergleichen Sie die rechtlichen Bedingungen, Copyleft-Eigenschaften und kommerziellen Nutzungsberechtigungen von MIT- und GPLv3-Lizenzen.",
-    "analysis-ci-caching": "Analysieren Sie die durch Cache-Strategien in GitHub Actions CI-Pipelines erzielten Optimierungen der Erstellungszeit.",
+    "analysis-ci-caching": "Analysieren Sie die Build-Zeit-Optimierungen durch Cache-Strategien in GitHub Actions CI-Pipelines.",
     "analysis-work-automation": "Bewerten Sie die voraussichtlichen Auswirkungen autonomer KI-Agenten-Workflows auf die Produktivität des Verwaltungsteams und den Ressourcenbedarf.",
     "image-serene-mountain": "Ein ruhiger Bergsee zur goldenen Stunde, tiefer Nebel über dem Wasser, malerisch",
     "image-dewdrop-spiderweb": "Makrofoto eines Tautropfens auf einem Spinnennetz, Sonnenaufgangsbeleuchtung",
@@ -2499,12 +2499,12 @@
             "analyzingImage": "Bild analysieren"
           },
           "error": {
-            "modelUnavailable": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.modelUnavailable",
-            "requestCancelled": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.requestCancelled",
-            "invalidModelResponse": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.invalidModelResponse",
-            "schemaRepairFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.schemaRepairFailed",
-            "transportFailed": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.transportFailed",
-            "providerHttp": "__MISSING__:runtimeGenerated.components.characterCreator.charactercreatorview.error.providerHttp"
+            "modelUnavailable": "Das Character-Creator-Modell ist vorübergehend nicht verfügbar. Bitte versuchen Sie es in ein paar Minuten erneut.",
+            "requestCancelled": "Die Generierung wurde abgebrochen.",
+            "invalidModelResponse": "Das Modell hat eine unbrauchbare Antwort zurückgegeben. Bitte versuchen Sie es erneut.",
+            "schemaRepairFailed": "Die generierte Charakterkarte hat die Validierung nicht bestanden und konnte nicht repariert werden. Bitte versuchen Sie es erneut.",
+            "transportFailed": "Venice API konnte nicht erreicht werden. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+            "providerHttp": "Die Venice API hat die Generierungsanfrage abgelehnt. Bitte versuchen Sie es später erneut."
           },
           "notification": {
             "couldNotLoadDraft": "Entwurf konnte nicht geladen werden",
@@ -2539,8 +2539,8 @@
         "charactercreatorwelcome": {
           "attribute": {
             "exampleIWantABroodingNocturnalDetectiveWhoProtectsA": "Beispiel: Ich möchte einen grüblerischen Nachtdetektiv, der eine korrupte Stadt beschützt, ohne zu töten.",
-            "eGNeoGothicMetropolis1920sNoir": "zB neugotische Metropole, Noir der 1920er Jahre",
-            "eGGrittyMelancholicSatirical": "zB düster, melancholisch, satirisch",
+            "eGNeoGothicMetropolis1920sNoir": "z. B. neugotische Metropole, 1920er-Noir",
+            "eGGrittyMelancholicSatirical": "z. B. rau, melancholisch, satirisch",
             "eGReluctantAllyMysteriousInformant": "z. B. widerstrebender Verbündeter, mysteriöser Informant",
             "duplicateDraft": "Doppelter Entwurf",
             "deleteDraft": "Entwurf löschen"
@@ -2575,7 +2575,7 @@
             "localCharacter": "Lokaler Charakter",
             "localCharacter2": "Lokaler Charakter",
             "noLocalCharactersCreatedYet": "Es wurden noch keine lokalen Charaktere erstellt.",
-            "noCharactersMatchPickerquery": "Es stimmen keine Zeichen mit „ {{pickerQuery}} “ überein."
+            "noCharactersMatchPickerquery": "Keine Charaktere passen zu \"{{pickerQuery}}\"."
           }
         },
         "characterscenecard": {
@@ -2603,7 +2603,7 @@
             "conversationRestored": "Gespräch wiederhergestellt",
             "failedToRestore": "Wiederherstellung fehlgeschlagen",
             "movedConversations": "Bewegte Gespräche",
-            "movedValue1ConversationValue2ToTargetname": "{{value1}} Konversation {{value2}} nach {{targetName}} verschoben.",
+            "movedValue1ConversationValue2ToTargetname": "{{value1}} Konversation{{value2}} nach {{targetName}} verschoben.",
             "failedToMoveConversations": "Konversationen konnten nicht verschoben werden",
             "conversationsDeleted": "Gespräche gelöscht",
             "value1SelectedConversationValue2Removed": "{{value1}} ausgewählte Konversation {{value2}} entfernt.",
@@ -2648,16 +2648,16 @@
           "text": {
             "deselectAllVisible": "Deaktivieren Sie alle sichtbaren Elemente",
             "selectAllVisible": "Wählen Sie alle sichtbaren aus",
-            "folderselectedcountSelected": "· {{folderSelectedCount}} ausgewählt",
+            "folderselectedcountSelected": " · {{folderSelectedCount}} ausgewählt",
             "selected": "Ausgewählt",
             "select": "Wählen",
-            "unfiledselectedcountSelected": "· {{unfiledSelectedCount}} ausgewählt"
+            "unfiledselectedcountSelected": " · {{unfiledSelectedCount}} ausgewählt"
           }
         },
         "chatView": {
           "notification": {
             "modelUnavailable": "Modell nicht verfügbar",
-            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "Das zuvor ausgewählte Modell ist nicht verfügbar. Dieser Chat verwendet jetzt {{resolvedDefault}} .",
+            "thePreviouslySelectedModelIsUnavailableThisChatNowUses": "Das zuvor ausgewählte Modell ist nicht verfügbar. Dieser Chat verwendet jetzt {{resolvedDefault}}.",
             "priorContextSkipped": "Vorheriger Kontext übersprungen",
             "factPermanentlyForgotten": "Fakt für immer vergessen.",
             "failedToForgetFact": "Es ist mir nicht gelungen, die Tatsache zu vergessen"
@@ -2666,7 +2666,7 @@
             "forgetThisFact": "Vergessen Sie diese Tatsache?",
             "deleteFromHere": "Von hier löschen?",
             "removedFromChat": "Aus dem Chat entfernt",
-            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} bleibt in Media Studio. Klicken Sie auf „Rückgängig“, um die Verbindung erneut herzustellen.",
+            "removednameStaysInMediaStudioClickUndoToReAttach": "{{removedName}} verbleibt im Media Studio. Klicken Sie auf Rückgängig, um erneut anzuhängen.",
             "undo": "Rückgängig machen",
             "regenerateFromHere": "Von hier aus regenerieren?"
           },
@@ -2747,8 +2747,8 @@
             "searchDocuments": "Dokumente durchsuchen…",
             "documentChangeProposal": "Vorschlag zur Dokumentänderung",
             "searchWorkspaceText": "Arbeitsbereichstext durchsuchen…",
-            "eGNotesMd": "zB Notes.md",
-            "eGQ3Architecture": "zB Q3-Architektur"
+            "eGNotesMd": "z. B. notes.md",
+            "eGQ3Architecture": "z. B. Q3-Architektur"
           },
           "text": {
             "fileContentInspector": "Dateiinhaltsinspektor"
@@ -2779,7 +2779,7 @@
         "compareView": {
           "text": {
             "allSharedFieldsMatch": "Alle freigegebenen Felder stimmen überein",
-            "changedcountFieldValue2Differ": "{{changedCount}} Feld {{value2}} unterscheiden sich"
+            "changedcountFieldValue2Differ": "{{changedCount}} Feld{{value2}} weichen ab"
           },
           "attribute": {
             "closeCompareView": "Vergleichsansicht schließen"
@@ -2838,7 +2838,7 @@
             "taggedValue1OfValue2": "Markiert mit {{value1}} von {{value2}}",
             "taggedValue1ItemValue2": "Mit {{value1}} Element {{value2}}",
             "enterATagFirst": "Geben Sie zunächst einen Tag ein.",
-            "assignedValue1OfValue2Firstreason": "Zugewiesen {{value1}} von {{value2}} ( {{firstReason}} )",
+            "assignedValue1OfValue2Firstreason": "Zugewiesen: {{value1}} von {{value2}} ({{firstReason}})",
             "assignedValue1ItemValue2": "Zugewiesener {{value1}} -Artikel {{value2}}",
             "selectAtLeastOneMediaItem": "Wählen Sie mindestens ein Medienelement aus.",
             "loadedSettingsIntoImageStudio": "Einstellungen in Image Studio geladen",
@@ -2966,7 +2966,7 @@
             "thisItemSParentRecordIsMissingClearTheParent": "Der übergeordnete Datensatz dieses Artikels fehlt. Löschen Sie den übergeordneten Link, um die Abstammung zu reparieren.",
             "value1ChildValue2CouldNotBeResolvedClearTheStale": "{{value1}} Kind {{value2}} konnte nicht aufgelöst werden. Löschen Sie den veralteten Zeiger {{value3}} um die Herkunft zu reparieren.",
             "childrenidsValue1": "Kinder-IDs: {{value1}}",
-            "childrenidsValue1Missing": "childIds: {{value1}} fehlt",
+            "childrenidsValue1Missing": "childrenIds: {{value1}} fehlt",
             "value1MissingRef": "1 fehlende Referenz",
             "value1MissingRefs": "{{value1}} fehlende Referenzen"
           }
@@ -3010,7 +3010,7 @@
           },
           "text": {
             "identical": "Identisch",
-            "changedcountFieldValue2WillChange": "{{changedCount}} Feld {{value2}} wird sich ändern"
+            "changedcountFieldValue2WillChange": "{{changedCount}} Feld{{value2}} wird geändert"
           },
           "metadata": {
             "model": "Modell",
@@ -3282,7 +3282,7 @@
             "saveReusablePromptContentAndMetadataToYourEncryptedPrompt": "Speichern Sie wiederverwendbare Eingabeaufforderungsinhalte und Metadaten in Ihrer verschlüsselten Eingabeaufforderungsbibliothek.",
             "closeCreatePromptDialog": "Schließen Sie das Dialogfeld „Eingabeaufforderung erstellen“.",
             "eGDarkFantasyPortrait": "ZB ein dunkles Fantasy-Porträt",
-            "eGDarkFantasyPortraitLighting": "zB Dark Fantasy, Porträtbeleuchtung",
+            "eGDarkFantasyPortraitLighting": "z. B. Dark Fantasy, Porträt-Beleuchtung",
             "enterPromptTextHere": "Geben Sie hier den Aufforderungstext ein...",
             "optionalNegativePrompt": "Optionale negative Eingabeaufforderung..."
           },
@@ -3427,7 +3427,7 @@
         "charactereditor": {
           "notification": {
             "fileLoadedSourced": "Datei geladen und bezogen",
-            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "„ {{value1}} “ in {{fieldLabel}} geladen und in der Zeichendatei gespeichert.",
+            "loadedValue1IntoFieldlabelAndSavedInsideCharacterFile": "\"{{value1}}\" in {{fieldLabel}} geladen und in der Charakterdatei gespeichert.",
             "reAppliedSourcedFile": "Quelldatei erneut angewendet",
             "reLoadedValue1ContentIntoValue2": "„ {{value1}} “-Inhalt wurde erneut in {{value2}} geladen.",
             "workflowCreated": "Workflow erstellt",
@@ -3593,7 +3593,7 @@
             "deleteValue1": "{{value1}} löschen",
             "back": "Zurück",
             "personaPreview": "Persona-Vorschau",
-            "eGTheWanderer": "zB Der Wanderer",
+            "eGTheWanderer": "z. B. Der Wanderer",
             "howTheModelShouldWriteTheUser": "Wie das Modell dem Benutzer schreiben soll.",
             "addTag": "Tag hinzufügen…"
           },
@@ -4038,11 +4038,11 @@
       "useDataStorageActions": {
         "metadata": {
           "clearLocalSettings": "Lokale Einstellungen löschen?",
-          "deleteAllIndexeddbHistory": "Den gesamten IndexedDB-Verlauf löschen?"
+          "deleteAllIndexeddbHistory": "Gesamte IndexedDB-Historie löschen?"
         },
         "notification": {
           "localSettingsCleared": "Lokale Einstellungen gelöscht.",
-          "indexeddbDataClearedSuccessfully": "IndexedDB-Daten wurden erfolgreich gelöscht.",
+          "indexeddbDataClearedSuccessfully": "IndexedDB-Daten erfolgreich gelöscht.",
           "encryptedBackupExportedSuccessfully": "Verschlüsseltes Backup erfolgreich exportiert.",
           "exportFailedPleaseTryAgain": "Der Export ist fehlgeschlagen. Bitte versuchen Sie es erneut."
         }
@@ -4149,7 +4149,7 @@
       "backupimportservice": {
         "metadata": {
           "legacyVersion2BackupAuthenticatedSourceCryptoContentCountAnd": "Legacy-Backup der Version 2: authentifizierte Quelle, Krypto, Inhaltsanzahl und Ausschlussmetadaten sind nicht verfügbar.",
-          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "Die Backup-App-Version {{value1}} unterscheidet sich von dieser App-Version {{appVersion}} .",
+          "backupAppVersionValue1DiffersFromThisAppVersionAppversion": "Backup-App-Version {{value1}} weicht von dieser App-Version {{appVersion}} ab.",
           "thisBackupIncludesMediaRecords": "Dieses Backup umfasst Mediendatensätze.",
           "excludedByDesignValue1": "Absichtlich ausgeschlossen: {{value1}} ."
         }
@@ -4162,7 +4162,7 @@
             "extensionDataExceededTheMaximumDepth": "Erweiterungsdaten haben die maximale Tiefe überschritten.",
             "nonJsonExtensionValueWasRemoved": "Nicht-JSON-Erweiterungswert wurde entfernt.",
             "unsafeObjectKeyWasRemoved": "Unsicherer Objektschlüssel wurde entfernt.",
-            "extensionDataExceededThe1MibLimit": "Die Erweiterungsdaten haben die 1-MiB-Grenze überschritten.",
+            "extensionDataExceededThe1MibLimit": "Erweiterungsdaten haben das 1-MiB-Limit überschritten.",
             "onlyTheFirstMaxLorebookEntriesCharacterBookEntriesWere": "Nur die ersten {{MAX_LOREBOOK_ENTRIES}} Charakterbucheinträge wurden beibehalten.",
             "onlyCharacterCardV2SpecVersion20IsSupported": "Es wird nur die Character Card V2-Spezifikation Version 2.0 unterstützt.",
             "keyMustBeAString": "{{key}} muss eine Zeichenfolge sein.",
@@ -4178,10 +4178,10 @@
       "chatpromptcompiler": {
         "metadata": {
           "contextTruncated": "Kontext abgeschnitten",
-          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "Das alte {{removedCount}} {{turnWord}} wurde entfernt, damit es in die Kontextgrenzen passt. Starten Sie einen neuen Chat oder verwenden Sie ein Modell mit einem größeren Kontextfenster, um den vollständigen Verlauf beizubehalten.",
+          "removedRemovedcountOldTurnwordToFitWithinContextLimitsStart": "{{removedCount}} alte {{turnWord}} entfernt, um innerhalb der Kontextgrenzen zu bleiben. Starten Sie einen neuen Chat oder verwenden Sie ein Modell mit einem größeren Kontextfenster, um die vollständige Historie zu bewahren.",
           "theConversationRequiresValue1TokensButOnlyValue2AreAvailable": "Für die Konversation sind ~ {{value1}} Token erforderlich, nach der Reservierung von Ausgabetokens sind jedoch nur {{value2}} verfügbar.",
           "thisRequestReservesValue1OutputTokensSoTheCustomPrompt": "Diese Anfrage reserviert {{value1}} Ausgabetokens, damit die benutzerdefinierte Eingabeaufforderung und die aktuelle Konversation zum ausgewählten Modell passen.",
-          "estkKOfTotalkKEstimatedTokensAreInUse": "{{estK}} K von {{totalK}} K geschätzten Token werden verwendet."
+          "estkKOfTotalkKEstimatedTokensAreInUse": "{{estK}}K von {{totalK}}K geschätzten Token sind in Verwendung."
         }
       },
       "chatstorage": {
@@ -4502,7 +4502,7 @@
           "value1DoesNotSupportAStylePresetValueWillBe": "{{value1}} unterstützt keine Stilvoreinstellung – der Wert wird gelöscht.",
           "value1UsesPixelSizingAspectRatioWillBeDropped": "{{value1}} verwendet die Pixelgröße – das Seitenverhältnis wird gelöscht.",
           "value1DoesNotSupportAResolutionPresetValueWillBe": "{{value1}} unterstützt keine Auflösungsvoreinstellung – der Wert wird gelöscht.",
-          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "Dimensionen {{originalPair}} werden nicht unterstützt – standardmäßig auf {{finalPair}} eingestellt.",
+          "dimensionsOriginalpairAreNotSupportedDefaultedToFinalpair": "Dimensionen {{originalPair}} werden nicht unterstützt — standardmäßig auf {{finalPair}} gesetzt.",
           "aspectRatioValue1IsNotSupportedDefaultedToValue2": "Das Seitenverhältnis „ {{value1}} “ wird nicht unterstützt – standardmäßig ist es {{value2}} .",
           "resolutionValue1IsNotSupportedDefaultedToValue2": "Die Auflösung „ {{value1}} “ wird nicht unterstützt – standardmäßig ist sie {{value2}} ."
         }
@@ -4525,8 +4525,8 @@
           "searchGroundedAndFastLlmApis": "Suchbasierte und schnelle LLM-APIs.",
           "cohereEnterpriseReadyMultilingualModels": "Unternehmensreife mehrsprachige Modelle.",
           "huggingFaceOpenSourceInferenceProviders": "Open-Source-Modellinferenz über Hugging Face Inference Providers.",
-          "azureOpenAiDeploymentBasedChatCompletions": "Chat-Completions auf Basis von Azure-OpenAI-Bereitstellungen.",
-          "awsBedrockMantleOpenAiCompatibleInference": "OpenAI-kompatible Inferenz von AWS Bedrock Mantle.",
+          "azureOpenAiDeploymentBasedChatCompletions": "Azure OpenAI Deployment-basierte Chat-Vervollständigungen.",
+          "awsBedrockMantleOpenAiCompatibleInference": "AWS Bedrock Mantle OpenAI-kompatible Inferenz.",
           "googleVertexAiExpressModeApiKey": "Google Vertex AI Express-Modus (API-Schlüssel-Authentifizierung)."
         }
       }
@@ -4568,8 +4568,8 @@
       },
       "promptLimits": {
         "notification": {
-          "overLimit": "Der System-Prompt überschreitet das Anwendungslimit. Maximale Rückfallgröße: {{maximumCodePoints}} Unicode-Codepunkte. Erkannt: {{codePointCount}} Unicode-Codepunkte ({{estimatedTokenCount}} geschätzte Token). Die Richtlinie ist für ungefähr {{maximumTokens}} Token ausgelegt. Kürzen Sie den Prompt, bevor Sie fortfahren.",
-          "warning": "Der System-Prompt nähert sich dem Anwendungslimit ({{estimatedTokenCount}} / {{maximumTokens}} geschätzte Token; {{codePointCount}} / {{maximumCodePoints}} Unicode-Codepunkte)."
+          "overLimit": "System-Prompt überschreitet das Anwendungslimit. Maximale Fallback-Größe: {{maximumCodePoints}} Unicode-Codepunkte. Erkannt: {{codePointCount}} Unicode-Codepunkte ({{estimatedTokenCount}} geschätzte Token). Die System-Prompt-Richtlinie ist für ungefähr {{maximumTokens}} Token ausgelegt. Bitte kürzen Sie den Prompt, bevor Sie fortfahren.",
+          "warning": "System-Prompt nähert sich dem Anwendungslimit ({{estimatedTokenCount}} / {{maximumTokens}} geschätzte Token; {{codePointCount}} / {{maximumCodePoints}} Unicode-Codepunkte)."
         }
       }
     },
@@ -4613,22 +4613,22 @@
       "notRequested": "Modellkatalog wurde nicht angefordert.",
       "loading": "Laden des Modellkatalogs…",
       "loaded": "{{count}} Modelle geladen.",
-      "selectionUnavailable": "Das ausgewählte Modell „ {{modelId}} “ ist im aktuellen Katalog ( {{modelType}} ) nicht vorhanden.",
+      "selectionUnavailable": "Ausgewähltes Modell „{{modelId}}“ ist im aktuellen Katalog ({{modelType}}) nicht vorhanden.",
       "cached": "Verwendung eines zwischengespeicherten Modellkatalogs von {{timestamp}} .",
       "loadFailed": "Der Modellkatalog konnte nicht geladen werden."
     },
     "storage": {
-      "unavailable": "IndexedDB ist nicht verfügbar. Lokalgeschichte und Medien werden nicht bestehen bleiben.",
+      "unavailable": "IndexedDB ist nicht verfügbar. Lokale Historie und Medien werden nicht gespeichert.",
       "permissionsDetail": "Browsermodus mit deaktivierter Speicherung. Überprüfen Sie die Site-Berechtigungen.",
-      "web": "Webmodus: Datensätze bleiben im IndexedDB des Browsers bestehen (im Ruhezustand verschlüsselt).",
+      "web": "Web-Modus: Datensätze werden in der Browser-IndexedDB gespeichert (verschlüsselt im Ruhezustand).",
       "siteDataDetail": "Durch das Löschen der Site-Daten wird der lokale Tresor gelöscht.",
-      "desktop": "Desktop IndexedDB ist erreichbar. Datensätze werden im Ruhezustand verschlüsselt."
+      "desktop": "Desktop-IndexedDB ist erreichbar. Datensätze sind im Ruhezustand verschlüsselt."
     },
     "project": {
       "allProjects": "Der Modus „Alle Projekte“ ist aktiv (Ansicht ohne Bereichseinschränkung).",
       "missing": "Die ID des aktiven Projekts fehlt oder ist unbekannt. Der Laden wird bei der nächsten Interaktion repariert.",
-      "archived": "Das aktive Projekt „ {{projectName}} “ ist archiviert. Wechseln Sie zur Reparatur zu „Alle Projekte“.",
-      "valid": "Das aktive Projekt „ {{projectName}} “ ist gültig."
+      "archived": "Aktives Projekt „{{projectName}}“ ist archiviert. Wechseln Sie zu „Alle Projekte“, um zu reparieren.",
+      "valid": "Aktives Projekt „{{projectName}}“ ist gültig."
     },
     "safety": {
       "on": {

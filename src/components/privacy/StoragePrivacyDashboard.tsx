@@ -165,8 +165,8 @@ export function StoragePrivacyDashboard() {
       className="flex flex-col h-full bg-vf-panel-bg overflow-hidden"
       data-testid="storage-privacy-dashboard"
     >
-      <header className="flex items-center justify-between px-6 py-4 border-b border-vf-panel-border">
-        <div>
+      <header className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between px-6 py-4 border-b border-vf-panel-border">
+        <div className="min-w-0">
           <h1 className="text-lg font-semibold text-text-primary">
             <Trans i18nKey="common:surface.componentsPrivacyStorageprivacydashboard.heading.storagePrivacy" />
           </h1>
@@ -174,7 +174,7 @@ export function StoragePrivacyDashboard() {
             <Trans i18nKey="common:surface.componentsPrivacyStorageprivacydashboard.description.inspectAndManageLocalDataBoundaries" />
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <button
             onClick={() => void refreshInventory()}
             disabled={refreshing}
@@ -247,7 +247,7 @@ export function StoragePrivacyDashboard() {
               <Trans i18nKey="settings:apiKeys.status.configured" />
             </span>
           </div>
-          <div className="rounded-lg border border-vf-panel-border overflow-hidden">
+          <div className="rounded-lg border border-vf-panel-border overflow-x-auto">
             <table className="w-full text-left text-sm text-text-secondary">
               <thead className="bg-vf-panel-bg-inset text-text-muted text-xs uppercase">
                 <tr>

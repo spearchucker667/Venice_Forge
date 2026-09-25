@@ -228,14 +228,19 @@ export async function migrateLegacyHistory(): Promise<{
         }
       } else {
         failed++;
-        const dest = path.join(corruptDir, `conv_corrupted_${Date.now()}_${file.name}`);
-        await fs.rename(filePath, dest).catch(() => {});
+        // The source is valid; a vault write failure must leave it available for retry.
         const logMsg = `[${new Date().toISOString()}] Failed to encrypt/save ${file.name} into vault: ${saveRes.error}\n`;
         await fs.appendFile(logPath, logMsg).catch(() => {});
       }
     }
 
-    return { ok: true, migrated, failed, skipped };
+    return {
+      ok: failed === 0,
+      migrated,
+      failed,
+      skipped,
+      ...(failed > 0 ? { error: `${failed} legacy conversation(s) could not be migrated.` } : {}),
+    };
   } catch (err) {
     return {
       ok: false,
