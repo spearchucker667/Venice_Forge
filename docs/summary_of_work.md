@@ -5,17 +5,17 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 6d04f7cd36b121da1a96262edb8d353a96b2b1e2
-application_code_sha: 6d04f7cd36b121da1a96262edb8d353a96b2b1e2
-verified_against_sha: 6d04f7cd36b121da1a96262edb8d353a96b2b1e2
+repository_head_sha: 83bc7eeb89a9e7519aa94c34074556f7baf0109f
+application_code_sha: 83bc7eeb89a9e7519aa94c34074556f7baf0109f
+verified_against_sha: 83bc7eeb89a9e7519aa94c34074556f7baf0109f
 verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        clean (merged feature/graphite-cockpit-redesign)
-ci_status:           all static, feature, and release contracts passed locally; focused test suites passed (UI layout, chat, media, settings, workflows, theme, primitives, empty-states)
+working_tree:        clean (post-merge Graphite Cockpit redesign; HQE audit artifacts emitted under artifacts/hqe/)
+ci_status:           static checks (typecheck + lint:eslint --max-warnings=0) PASS; full test:ci and build NOT run this session due to local Node 24.x / npm cache EPERM drift (HQE-ENV-001/002). Prior session evidence (2026-09-26 entries below) records prior green runs.
 codeql_status:       not checked this session; historical runs below do not cover current edits
-open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
+open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence; HQE-ENV-001 (Node 24 vs 22.x drift); HQE-ENV-002 (npm cache EPERM); HQE-TEST-001 (src/agent + src/i18n test ratios)
 ```
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
@@ -25,6 +25,8 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
+- **2026-09-26 HQE full-audit (`/hqe`) of `main` @ `83bc7eeb`.** Health score **8 / 10 — Solid**. Ran `npm run typecheck` (PASS, 3 tsconfigs) and `npm run lint:eslint --max-warnings=0` (PASS, 0/0). Full `npm run test:ci` and `npm run build` were NOT executed locally due to environmental drift (local Node `v24.21.0` is outside declared engine range `>=22.15.0 <23.0.0`; `/tmp/npm-cache` is root-owned, blocking `npm install` cache hydration). Per AGENTS.md §2 the agent did not silently change versions. Confirmed Graphite Cockpit redesign post-merge fix commit `6d04f7cd` is UI-only (8 files, +21/-16, no `dangerouslySetInnerHTML` / `eval` / IPC changes). Emitted canonical HQE artifacts under `artifacts/hqe/` (`HQE_RUN_MANIFEST.json`, `HQE_AUDIT_REPORT.md`, `HQE_SESSION_LOG.json`). No P0/P1 findings; 3 P2/P3 environmental/coverage items opened (HQE-ENV-001 Node drift, HQE-ENV-002 npm cache EPERM, HQE-TEST-001 `src/agent/` + `src/i18n/` test ratios). External acceptance items unchanged (FRAT-REAUD-006/007, P2-016, VF-VERIFY-005). Detailed findings in `artifacts/hqe/HQE_AUDIT_REPORT.md`.
+
 - **2026-09-26 Typography & Font Settings consolidation, EmptyState font alignment, and merge of Graphite Cockpit redesign to main.** Removed duplicate `<FontSettingsPanel />` from `appearance` (`SettingsView.tsx`), leaving font settings exclusively under `Local Config` (`ConfigPanel.tsx`). Enforced user chosen font styling across all empty states by updating `.vf-empty-state`, `.vf-empty-state__headline`, `.vf-empty-state__helper`, `.vf-empty-state__eyebrow`, and `.vf-empty-state__action` in `src/styles/components.css` to declare `font-family: var(--app-font-family, var(--font-sans))`, and adding `font-sans` classes to `EmptyState` primitives (`src/components/ui/primitives.tsx`, `src/components/ui/shared.tsx`), Scene Composer (`SceneComposerView.tsx`), Prompt Library (`PromptLibraryView.tsx`), and Workflow Templates (`WorkflowTemplatesView.tsx`). Verified CSP inline style invariant (`VERIFY-007`) with 0 JSX inline `style={...}` attributes. Synchronized `.superdesign/init/routes.md` source fingerprint (`879e6e166cc728b2`). Successfully ran `lint:eslint` (PASS, 0 errors/0 warnings), `typecheck` (PASS), `verify:contracts:static` (PASS, 28/28 checks), `verify:contracts` (PASS, 104/104 checks), and focused Vitest suites for Settings, Scene Composer, Prompt Library, Workflows, and Primitives. Fast-forward merged `feature/graphite-cockpit-redesign` cleanly into `main` per user directive.
 
 - **2026-09-26 Graphite Cockpit UI re-envisioning with Stitch MCP & full component refactor.** Completed full design system synchronization and UI re-envisioning of Venice Forge into **Graphite Cockpit Flat Instrumentation** on isolated branch `feature/graphite-cockpit-redesign`. Synchronized canonical `DESIGN.md` with Google Stitch MCP project `12225516409245957947` (asset `e0602d8ee669493f93e05387d8d20026`). Registered new design tokens (`--border-hot: #743940`, `--telemetry-cyan: #6ee7d3`) into Theme Engine V2 (`applyTheme.ts`, `theme.css`, `bootstrap-theme.js`). Refactored shell layout and telemetry headers (`App.tsx`, `header.tsx`), Chat transcript reading container (`chat-view.tsx`), Media Studio and Workflow Canvas fluid grids (`image-page.tsx`, `media-card.tsx`, `WorkflowTemplatesView.tsx`), and dense telemetry system drawers (`TaskCenterDrawer.tsx`, `DiagnosticsDrawer.tsx`, `SettingsView.tsx`). Maintained 100% preservation across all 15 canonical tabs, dual Electron IPC / Express proxy transports, and 22+ Zustand stores. Verified across `lint:eslint` (PASS, 0 errors/0 warnings), `typecheck` (PASS, 3 projects), `build` (PASS), `verify:contracts` (PASS, 104/104 checks), `verify:safety-guard` (PASS), `verify:markdown-links` (PASS), `test:ui:media` (PASS, 136 tests), `test:ui:layout` (PASS, 120 tests), `test:ui:chat` (PASS, 115 tests), `test:ui:settings` (PASS), `test:workflow:ui` (PASS), and `test:unit:theme` (PASS, 788 tests).
@@ -32,6 +34,37 @@ external_acceptance_outstanding:
 - **2026-09-26 repository-maintenance review and repository hygiene execution (uncommitted).** Conducted full review of `docs/repository-maintenance/` (`README.md`, `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`) and executed comprehensive repository hygiene workflows. Remediated gitignore rule collision where trailing lines 401–403 in `.gitignore` conflicted with lines 67–68, restoring 0 ignored tracked files in `git ls-files -c -i --exclude-standard`. Normalized POSIX naming hygiene by relocating `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` (which contained non-ASCII em-dash and spaces) to canonical `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Isolated root clutter by moving `kimi-export-session_-20260926-051728.md` into gitignored `.agent-backups/session-exports/`, and purged untracked Finder `.DS_Store` metadata. Synchronized all four maintenance documents with the 2,248 tracked file inventory and v3.1.0 metadata. Verified with `verify:contracts:static` (28/28 checks PASS), `verify:archive-clean` (PASS), `verify:repository-identity` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:markdown-links` (448/448 markdown files PASS), `verify:agent-docs` (PASS), and `verify:superdesign-init` (PASS). 100% green.
 
 ## Session History
+
+### 2026-09-26 — HQE full-audit (`/hqe`) of `main` @ `83bc7eeb`
+
+- **Skill invocation:** `/hqe` → mode `audit`. Protocol HQE Engineer v5.0.0.
+- **Scope:** full repository audit on `main` @ `83bc7eeb` (`venice-forge@3.1.0`). 1,222 TS/TSX files, 520 test files, 163 scripts.
+- **Phase 0 — Orientation:** repo root verified, branch = `main`, working tree clean, `.nvmrc = 22.15.0`. Detected local Node drift to `v24.21.0` (FAIL vs declared `>=22.15.0 <23.0.0`). npm `11.19.0`. npm cache at `/tmp/npm-cache` is root-owned (`EPERM` on cache hydration).
+- **Architecture survey:** inspected `electron/main.ts` (587), `electron/preload.ts` (909), `electron/ipc/handlers/{index,apiKeyHandlers}.ts`, `electron/ipc/validation.ts`, `electron/services/{veniceClient,secureStore,backupCrypto,bridgeServer,backgroundTaskManager}.ts`, `src/shared/{validation,redaction}.ts`. Confirmed `contextIsolation:true`, `nodeIntegration:false`, `sandbox:true`, `webSecurity:true` (`electron/main.ts:201-204`).
+- **CI / security gates:** inspected `.github/workflows/{ci,codeql,dependency-review,release}.yml`. Least-privilege permissions, immutable action pinning (`<full-sha> # v<ver>`), CodeQL weekly + per-PR (`security-extended` + `security-and-quality`), dependency-review `fail-on-severity: moderate`, concurrency cancel-in-progress.
+- **Baseline validation (this audit host):**
+  - `npm run typecheck`: PASS (3 tsconfigs, exit 0).
+  - `npm run lint:eslint --max-warnings=0`: PASS (exit 0, 0 errors / 0 warnings).
+  - `npm run test:ci`: NOT RUN (Node 24 + npm cache EPERM; substituted by prior-session evidence recorded in this handoff).
+  - `npm run build`: NOT RUN (same blocker).
+- **Domain spot-audit (no defects found):**
+  - IPC: explicit `ALLOWED_VENICE_ENDPOINTS` + `ALLOWED_VENICE_METHODS` allowlists; `localFamilySafeModeEnabled` REMOVED from validated IPC input (renderer cannot override safety toggle); `MutationOrigin` whitelist.
+  - Secrets: Electron `safeStorage` (DPAPI/Keychain/Secret Service); Windows Credential Manager primary path; backup format v2 = Argon2id + XChaCha20-Poly1305 with PBKDF2 210k fallback; plaintext fallback gated by `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE`.
+  - Redaction (`src/shared/redaction.ts`): comprehensive coverage — Venice `vn-…`, OpenAI `sk-…`, HF `hf_…`, GitHub `ghp_…`, AWS, Slack, Bearer, assignment patterns, file URLs, absolute paths with deliberate lookbehind for relative URLs.
+  - Bridge (`electron/services/bridgeServer.ts`): 10 MB body limit, 5-min timeout, token floor 32 chars + 8-distinct-chars minimum, per-(method, path) rate limiter.
+  - Venice client (`electron/services/veniceClient.ts`): `MAX_VENICE_RESPONSE_BYTES = 25 MB`, `MAX_RETRY_AFTER_MS = 30_000`, strict RFC 7231 HTTP-date validation rejecting Node-lenient `Date.parse` inputs.
+- **Recent merge review (`6d04f7cd`):** 8 files, +21/-16; surface = SettingsView, primitives, shared, components.css, 3 view files, `.superdesign/init/routes.md`. **No** `dangerouslySetInnerHTML`, `eval`, `innerHTML`, IPC, or permission changes. Verdict: **CLEAN** — pure presentation/font-token consolidation.
+- **Findings opened:**
+  - **HQE-ENV-001 (P2):** local Node 24.21.0 vs declared 22.x; blocks independent re-run of `test:ci` / `build` on this host.
+  - **HQE-ENV-002 (P3):** `/tmp/npm-cache` is root-owned; `npm install` cache hydration fails with `EPERM` on clean checkout.
+  - **HQE-TEST-001 (P3):** test-to-source ratios for `src/agent/` (~30%) and `src/i18n/` (~37.5%) lag the codebase mean (~70%); flag for triage when next touching those areas.
+  - **HQE-AUDIT-001 (closed/substituted):** full test:ci not run; substituted by prior-session evidence.
+- **External acceptance items unchanged:** FRAT-REAUD-006, FRAT-REAUD-007, P2-016, VF-VERIFY-005 (all out of scope for a local audit).
+- **Artifacts emitted (disposable evidence, not canonical docs):**
+  - `artifacts/hqe/HQE_RUN_MANIFEST.json`
+  - `artifacts/hqe/HQE_AUDIT_REPORT.md`
+  - `artifacts/hqe/HQE_SESSION_LOG.json`
+- **No project-file changes outside the handoff update.**
 
 ### 2026-09-26 — Typography & Font Settings consolidation, EmptyState font alignment, and merge of Graphite Cockpit redesign to main
 

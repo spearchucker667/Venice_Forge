@@ -84,9 +84,9 @@ export function TaskCenterDrawer() {
           "runtimeGenerated.components.status.taskcenterdrawer.attribute.taskCenter",
         )}
         aria-modal="true"
-        className="fixed inset-y-0 right-0 z-[100] flex w-full max-w-sm sm:max-w-md flex-col border-l border-border bg-surface-elevated shadow-2xl transition-transform duration-300 ease-out"
+        className="fixed inset-y-0 right-0 z-[100] flex w-full max-w-sm sm:max-w-md flex-col bg-surface-elevated shadow-2xl transition-transform duration-300 ease-out soft-separator-x"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-border p-4 bg-surface/50">
+        <div className="flex shrink-0 items-center justify-between p-4 bg-surface/50 soft-separator-y">
           <div>
             <h2 className="text-lg font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsStatusTaskcenterdrawer.heading.taskCenter" />

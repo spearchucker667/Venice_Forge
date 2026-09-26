@@ -351,7 +351,7 @@ export function SettingsView() {
   return (
     <div className="flex flex-col h-full bg-bg">
       {/* Header */}
-      <div className="flex-none p-5 border-b border-border bg-surface/50">
+      <div className="flex-none p-5 bg-surface/50 soft-separator-y">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-[17px] font-semibold text-text-primary">{t('settings:header.title', 'Config')}</h2>
@@ -364,7 +364,7 @@ export function SettingsView() {
 
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Navigation Rail */}
-        <div className="w-56 border-r border-border p-3 space-y-1 overflow-y-auto shrink-0 hidden sm:block bg-surface/30">
+        <div className="w-56 p-3 space-y-1 overflow-y-auto shrink-0 hidden sm:block bg-surface/30 soft-separator-x">
           <button onClick={() => setActiveSection("language")} className={sectionButtonClass("language")}>
             <div className="flex items-center gap-2.5">
               <GlobeIcon className="w-4 h-4 opacity-75" />

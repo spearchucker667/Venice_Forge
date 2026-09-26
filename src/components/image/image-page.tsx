@@ -21,7 +21,7 @@ export function ImagePage() {
 
   return (
     <div className="flex flex-col h-full bg-bg">
-      <div className="flex items-center gap-1 px-4 py-2.5 border-b border-border bg-surface/50">
+      <div className="flex items-center gap-1 px-4 py-2.5 bg-surface/50 soft-separator-y">
         {(["generate", "tools"] as const).map((t) => (
           <button
             key={t}

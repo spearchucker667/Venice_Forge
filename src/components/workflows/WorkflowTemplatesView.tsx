@@ -276,7 +276,7 @@ export function WorkflowTemplatesView() {
         data-testid="workflow-templates-view"
       >
         {/* Sidebar List */}
-        <div className="w-full md:w-1/3 lg:w-[clamp(280px,30%,400px)] shrink-0 border-b border-border md:border-b-0 md:border-r border-border p-4 overflow-y-auto flex flex-col gap-4 bg-surface/40">
+        <div className="w-full md:w-1/3 lg:w-[clamp(280px,30%,400px)] shrink-0 p-4 overflow-y-auto flex flex-col gap-4 bg-surface/40 soft-separator-y md:soft-separator-x">
           <div className="flex justify-between items-center">
             <h2 className="text-sm font-semibold text-text-secondary">
               <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.heading.workflows" />
@@ -402,7 +402,7 @@ export function WorkflowTemplatesView() {
                   type="text"
                   value={localTitle}
                   onChange={(e) => setLocalTitle(e.target.value)}
-                  className="bg-transparent text-xl font-semibold text-text-primary outline-none border-b border-border focus:border-border-hot w-full py-1"
+                  className="bg-transparent text-xl font-semibold text-text-primary outline-none border-b border-vf-panel-border focus:border-border-hot w-full py-1"
                   data-testid="workflow-title-input"
                 />
                 <label className="sr-only" htmlFor="workflow-tags">
@@ -416,7 +416,7 @@ export function WorkflowTemplatesView() {
                     "runtimeGenerated.components.workflows.workflowtemplatesview.attribute.tagsCommaSeparated",
                   )}
                   onChange={(e) => setLocalTags(e.target.value)}
-                  className="bg-transparent text-xs text-text-secondary outline-none border-b border-border focus:border-border-hot w-full py-1"
+                  className="bg-transparent text-xs text-text-secondary outline-none border-b border-vf-panel-border focus:border-border-hot w-full py-1"
                   data-testid="workflow-tags-input"
                 />
               </div>
