@@ -5,15 +5,15 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: cf42e89adae78bbe4267045828bddccbc5adb703
-application_code_sha: cf42e89adae78bbe4267045828bddccbc5adb703
-verified_against_sha: cf42e89adae78bbe4267045828bddccbc5adb703
+repository_head_sha: 6d04f7cd36b121da1a96262edb8d353a96b2b1e2
+application_code_sha: 6d04f7cd36b121da1a96262edb8d353a96b2b1e2
+verified_against_sha: 6d04f7cd36b121da1a96262edb8d353a96b2b1e2
 verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
-branch:              feature/graphite-cockpit-redesign
-working_tree:        committing handoff and docs index
-ci_status:           all static, feature, and release contracts passed locally; focused test suites passed (UI layout, chat, media, settings, workflows, theme)
+branch:              main
+working_tree:        clean (merged feature/graphite-cockpit-redesign)
+ci_status:           all static, feature, and release contracts passed locally; focused test suites passed (UI layout, chat, media, settings, workflows, theme, primitives, empty-states)
 codeql_status:       not checked this session; historical runs below do not cover current edits
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
 ```
@@ -25,11 +25,38 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
+- **2026-09-26 Typography & Font Settings consolidation, EmptyState font alignment, and merge of Graphite Cockpit redesign to main.** Removed duplicate `<FontSettingsPanel />` from `appearance` (`SettingsView.tsx`), leaving font settings exclusively under `Local Config` (`ConfigPanel.tsx`). Enforced user chosen font styling across all empty states by updating `.vf-empty-state`, `.vf-empty-state__headline`, `.vf-empty-state__helper`, `.vf-empty-state__eyebrow`, and `.vf-empty-state__action` in `src/styles/components.css` to declare `font-family: var(--app-font-family, var(--font-sans))`, and adding `font-sans` classes to `EmptyState` primitives (`src/components/ui/primitives.tsx`, `src/components/ui/shared.tsx`), Scene Composer (`SceneComposerView.tsx`), Prompt Library (`PromptLibraryView.tsx`), and Workflow Templates (`WorkflowTemplatesView.tsx`). Verified CSP inline style invariant (`VERIFY-007`) with 0 JSX inline `style={...}` attributes. Synchronized `.superdesign/init/routes.md` source fingerprint (`879e6e166cc728b2`). Successfully ran `lint:eslint` (PASS, 0 errors/0 warnings), `typecheck` (PASS), `verify:contracts:static` (PASS, 28/28 checks), `verify:contracts` (PASS, 104/104 checks), and focused Vitest suites for Settings, Scene Composer, Prompt Library, Workflows, and Primitives. Fast-forward merged `feature/graphite-cockpit-redesign` cleanly into `main` per user directive.
+
 - **2026-09-26 Graphite Cockpit UI re-envisioning with Stitch MCP & full component refactor.** Completed full design system synchronization and UI re-envisioning of Venice Forge into **Graphite Cockpit Flat Instrumentation** on isolated branch `feature/graphite-cockpit-redesign`. Synchronized canonical `DESIGN.md` with Google Stitch MCP project `12225516409245957947` (asset `e0602d8ee669493f93e05387d8d20026`). Registered new design tokens (`--border-hot: #743940`, `--telemetry-cyan: #6ee7d3`) into Theme Engine V2 (`applyTheme.ts`, `theme.css`, `bootstrap-theme.js`). Refactored shell layout and telemetry headers (`App.tsx`, `header.tsx`), Chat transcript reading container (`chat-view.tsx`), Media Studio and Workflow Canvas fluid grids (`image-page.tsx`, `media-card.tsx`, `WorkflowTemplatesView.tsx`), and dense telemetry system drawers (`TaskCenterDrawer.tsx`, `DiagnosticsDrawer.tsx`, `SettingsView.tsx`). Maintained 100% preservation across all 15 canonical tabs, dual Electron IPC / Express proxy transports, and 22+ Zustand stores. Verified across `lint:eslint` (PASS, 0 errors/0 warnings), `typecheck` (PASS, 3 projects), `build` (PASS), `verify:contracts` (PASS, 104/104 checks), `verify:safety-guard` (PASS), `verify:markdown-links` (PASS), `test:ui:media` (PASS, 136 tests), `test:ui:layout` (PASS, 120 tests), `test:ui:chat` (PASS, 115 tests), `test:ui:settings` (PASS), `test:workflow:ui` (PASS), and `test:unit:theme` (PASS, 788 tests).
 - **2026-09-26 repository-wide documentation review, updating, and cleaning across docs/ (uncommitted).** Conducted a systematic audit of all tracked documentation across the canonical `docs/` tree (448 markdown documents). Identified and resolved stale version references (e.g. `3.0.0-beta.3` -> `3.1.0` in `docs/architecture/data-export-format.md` and `docs/discovery/DISCOVERY_DOCUMENT_AGENT.md`), updated Node engine requirements to Node `22.15.0` (`>=22.15.0 <23.0.0`) in `docs/FAQ.md`, normalized link labels to match canonical filenames (`building.md`, `platform-support.md`, `troubleshooting.md`, `signing-and-notarization.md`, `DEVELOPMENT/CONFIG.md`), updated historical audit directory citations in `docs/DEVELOPMENT/FILE_TREE.md` and `docs/discovery/DISCOVERY_DOCUMENT_AGENT.md`, refreshed HEAD SHAs and verification dates in `docs/ROADMAP.md`, and purged untracked `docs/.DS_Store` metadata. Validated with `verify:contracts:static` (all 28 checks PASS), `verify:markdown-links` (448/448 markdown files checked, 0 broken links), `verify:agent-docs` (PASS), `verify:roadmap-current` (PASS), `verify:release-metadata` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:archive-clean` (PASS), `typecheck` (PASS), and `lint:eslint` (PASS). 100% green.
 - **2026-09-26 repository-maintenance review and repository hygiene execution (uncommitted).** Conducted full review of `docs/repository-maintenance/` (`README.md`, `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`) and executed comprehensive repository hygiene workflows. Remediated gitignore rule collision where trailing lines 401–403 in `.gitignore` conflicted with lines 67–68, restoring 0 ignored tracked files in `git ls-files -c -i --exclude-standard`. Normalized POSIX naming hygiene by relocating `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` (which contained non-ASCII em-dash and spaces) to canonical `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Isolated root clutter by moving `kimi-export-session_-20260926-051728.md` into gitignored `.agent-backups/session-exports/`, and purged untracked Finder `.DS_Store` metadata. Synchronized all four maintenance documents with the 2,248 tracked file inventory and v3.1.0 metadata. Verified with `verify:contracts:static` (28/28 checks PASS), `verify:archive-clean` (PASS), `verify:repository-identity` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:markdown-links` (448/448 markdown files PASS), `verify:agent-docs` (PASS), and `verify:superdesign-init` (PASS). 100% green.
 
 ## Session History
+
+### 2026-09-26 — Typography & Font Settings consolidation, EmptyState font alignment, and merge of Graphite Cockpit redesign to main
+
+- **Scope & Objectives:**
+  - Consolidate Typography & Font Settings menu to appear exclusively under `Local Config` (`ConfigPanel.tsx`) and remove duplicate from `appearance` (`SettingsView.tsx`).
+  - Align all 6 empty-state texts in Scene Composer, Prompt Library, and Workflow Templates with user chosen font.
+  - Merge verified feature branch `feature/graphite-cockpit-redesign` into `main`.
+- **Implementation:**
+  - Removed `<FontSettingsPanel />` and its import from `SettingsView.tsx` under `activeSection === "appearance"`, retaining it under `Local Config` via `ConfigPanel.tsx`.
+  - Added `font-family: var(--app-font-family, var(--font-sans));` to `.vf-empty-state`, `.vf-empty-state__eyebrow`, `.vf-empty-state__headline`, `.vf-empty-state__helper`, and `.vf-empty-state__action` in `src/styles/components.css`.
+  - Added `font-sans` classes to `EmptyState` container and child text elements in `src/components/ui/primitives.tsx` and `src/components/ui/shared.tsx`.
+  - Added `font-sans` to both empty states in `SceneComposerView.tsx`, `PromptLibraryView.tsx`, and `WorkflowTemplatesView.tsx`.
+  - Updated `.superdesign/init/routes.md` source fingerprint to `879e6e166cc728b2` per `verify:superdesign-init`.
+- **Validation:**
+  - `npx vitest run src/components/SettingsView.test.tsx src/components/settings/FontSettingsPanel.test.tsx src/components/settings/ConfigPanel.test.tsx`: PASS (13/13 tests).
+  - `npx vitest run src/components/scenes/SceneComposerView.test.tsx src/components/prompts/PromptLibraryView.test.tsx src/components/workflows/WorkflowTemplatesView.test.tsx`: PASS (45/45 tests).
+  - `npx vitest run src/components/ui/primitives.test.tsx tests/csp/inlineStyleInvariant.test.ts`: PASS (26/26 tests, 0 inline JSX style attributes).
+  - `npm run typecheck`: PASS (0 type errors).
+  - `npm run lint:eslint`: PASS (0 errors, 0 warnings).
+  - `npm run verify:superdesign-init`: PASS.
+  - `npm run verify:contracts:static`: PASS (28/28 checks).
+  - `npm run verify:contracts`: PASS (104/104 checks).
+- **Integration:**
+  - Committed fixes on `feature/graphite-cockpit-redesign` (`6d04f7cd`).
+  - Switched to `main` and fast-forward merged `feature/graphite-cockpit-redesign` into `main`.
 
 ### 2026-09-26 — Graphite Cockpit Flat Instrumentation UI re-envisioning & Stitch MCP synchronization
 
@@ -560,6 +587,18 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 - `node scripts/verify-roadmap-current.cjs` — PASS.
 - `node scripts/verify-safety-guard.cjs` — PASS.
 - `node scripts/verify-venice-api-docs.cjs` — PASS.
+### 2026-09-26 — Typography menu consolidation, EmptyState font alignment, and Graphite Cockpit merge to main
+
+- `npx vitest run src/components/SettingsView.test.tsx src/components/settings/FontSettingsPanel.test.tsx src/components/settings/ConfigPanel.test.tsx` — PASS (13/13 tests).
+- `npx vitest run src/components/scenes/SceneComposerView.test.tsx src/components/prompts/PromptLibraryView.test.tsx src/components/workflows/WorkflowTemplatesView.test.tsx` — PASS (45/45 tests).
+- `npx vitest run src/components/ui/primitives.test.tsx tests/csp/inlineStyleInvariant.test.ts` — PASS (26/26 tests, 0 inline JSX style attributes).
+- `npm run typecheck` — PASS (app, electron, electron.test).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across all files).
+- `node scripts/verify-superdesign-init.cjs` — PASS (source fingerprint 879e6e166cc728b2).
+- `npm run verify:contracts:static` — PASS (28/28 checks).
+- `npm run verify:contracts` — PASS (104/104 contract invariant checks passed).
+- `git merge feature/graphite-cockpit-redesign` — PASS (clean fast-forward merge into main).
+
 ### 2026-09-25 — Fraterna primary API routing post-implementation audit remediation
 
 - `npm run lint:eslint` — PASS (0 errors, 0 warnings across src, electron, server.ts, scripts).
