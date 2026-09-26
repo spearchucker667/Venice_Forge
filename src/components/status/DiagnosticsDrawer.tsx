@@ -150,10 +150,10 @@ const SECTION_ORDER: Array<{
 ];
 
 const SEVERITY_BADGE: Record<StatusSeverity, string> = {
-  ok: "bg-success/15 text-success border-success/30",
-  warn: "bg-warning/15 text-warning border-warning/30",
-  error: "bg-danger/15 text-danger border-danger/30",
-  unknown: "bg-vf-panel-bg text-text-muted border-vf-panel-border",
+  ok: "bg-success/15 text-success border-success/30 font-mono",
+  warn: "bg-warning/15 text-warning border-warning/30 font-mono",
+  error: "bg-danger/15 text-danger border-danger/30 font-mono",
+  unknown: "bg-surface text-text-muted border-border font-mono",
 };
 
 const SEVERITY_LABEL: Record<StatusSeverity, string> = {
@@ -201,8 +201,8 @@ function Section({ sectionId, title, item, focused, children }: SectionProps) {
       data-focused={focused}
       className={`rounded-lg border p-3 space-y-1.5 transition-all vf-utility-rail-section ${
         focused
-          ? "border-accent/40 bg-vf-panel-bg-raised shadow-[0_0_0_1px_var(--color-accent),0_0_12px_var(--color-vf-accent-glow-subtle)]"
-          : "border-vf-panel-border bg-vf-panel-bg-raised"
+          ? "border-accent/60 bg-surface shadow-[0_0_0_1px_var(--color-accent),0_0_12px_var(--color-vf-accent-glow-subtle)]"
+          : "border-border bg-surface"
       }`}
     >
       <header className="flex items-center justify-between gap-2">
@@ -366,10 +366,10 @@ export function DiagnosticsDrawer() {
         className="flex-1 bg-overlay/80 backdrop-blur-[2px]"
       />
       <aside
-        className="w-[420px] max-w-[92vw] h-full bg-vf-shell-bg border-l border-vf-panel-border overflow-y-auto p-3 space-y-3 animate-slide-in-right shadow-2xl"
+        className="w-[420px] max-w-[92vw] h-full bg-surface-elevated border-l border-border overflow-y-auto p-4 space-y-4 animate-slide-in-right shadow-2xl"
         data-testid="diagnostics-drawer-panel"
       >
-        <header className="flex items-center justify-between gap-2 border-b border-vf-panel-border pb-3">
+        <header className="flex items-center justify-between gap-2 border-b border-border pb-3">
           <div>
             <h2 className="text-[14px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsStatusDiagnosticsdrawer.heading.diagnostics" />
@@ -385,7 +385,7 @@ export function DiagnosticsDrawer() {
               "runtimeGenerated.components.status.diagnosticsdrawer.attribute.close",
             )}
             data-testid="diagnostics-close"
-            className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+            className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
           >
             <Trans i18nKey="common:surface.componentsStatusDiagnosticsdrawer.action.close" />
           </button>
@@ -397,7 +397,7 @@ export function DiagnosticsDrawer() {
             onClick={handleRefresh}
             disabled={isRefreshing}
             data-testid="diagnostics-refresh"
-            className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary disabled:opacity-50 transition-colors cursor-pointer"
+            className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary disabled:opacity-50 transition-colors cursor-pointer"
           >
             {isRefreshing
               ? tRuntime(
@@ -411,7 +411,7 @@ export function DiagnosticsDrawer() {
             type="button"
             onClick={handleCopySafeDiagnostics}
             data-testid="diagnostics-copy-safe"
-            className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+            className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
           >
             <Trans i18nKey="common:surface.componentsStatusDiagnosticsdrawer.action.copySafeDiagnostics" />
           </button>
@@ -431,7 +431,7 @@ export function DiagnosticsDrawer() {
           it on every recompute. We never persist raw prompt content.
         */}
         <label
-          className="flex items-start gap-2 rounded-md border border-vf-panel-border bg-vf-panel-bg-inset p-2.5 text-[12px] text-text-secondary"
+          className="flex items-start gap-2 rounded-md border border-border bg-surface-muted/60 p-2.5 text-[12px] text-text-secondary"
           data-testid="diagnostics-prompt-opt-in"
         >
           <input
@@ -482,7 +482,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer();
                   }}
                   data-testid="diagnostics-action-apiKey"
-                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+                  className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
                 >
                   {(item.actionLabelKey && tRuntime(item.actionLabelKey)) ??
                     tRuntime(
@@ -495,7 +495,7 @@ export function DiagnosticsDrawer() {
                   type="button"
                   onClick={() => void refreshModels()}
                   data-testid="diagnostics-action-api-refresh"
-                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+                  className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
                 >
                   {models.isFetching
                     ? tRuntime(
@@ -512,7 +512,7 @@ export function DiagnosticsDrawer() {
                     type="button"
                     onClick={() => void refreshModels()}
                     data-testid="diagnostics-action-model-refresh"
-                    className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+                    className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
                   >
                     {models.isFetching
                       ? tRuntime(
@@ -539,7 +539,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer();
                   }}
                   data-testid="diagnostics-action-storage"
-                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+                  className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
                 >
                   <Trans i18nKey="common:surface.componentsStatusDiagnosticsdrawer.action.openStatus" />
                 </button>
@@ -552,7 +552,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer();
                   }}
                   data-testid="diagnostics-action-privacy"
-                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+                  className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
                 >
                   <Trans i18nKey="common:surface.componentsStatusDiagnosticsdrawer.action.openPrivacyDashboard" />
                 </button>
@@ -568,7 +568,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer();
                   }}
                   data-testid="diagnostics-action-project"
-                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+                  className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
                 >
                   {(item.actionLabelKey && tRuntime(item.actionLabelKey)) ??
                     tRuntime(
@@ -585,7 +585,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer();
                   }}
                   data-testid="diagnostics-action-safety"
-                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+                  className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
                 >
                   <Trans i18nKey="common:surface.componentsStatusDiagnosticsdrawer.action.openConfig" />
                 </button>
@@ -599,7 +599,7 @@ export function DiagnosticsDrawer() {
                     closeDrawer();
                   }}
                   data-testid="diagnostics-action-provider"
-                  className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+                  className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
                 >
                   <Trans i18nKey="common:surface.componentsStatusDiagnosticsdrawer.action.openConfig" />
                 </button>
@@ -618,7 +618,7 @@ export function DiagnosticsDrawer() {
                     type="button"
                     onClick={() => setFocusedSection("model")}
                     data-testid="diagnostics-action-jump-model"
-                    className="rounded-md border border-vf-panel-border bg-vf-panel-bg px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-vf-control-hover hover:text-text-primary transition-colors cursor-pointer"
+                    className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface-muted hover:text-text-primary transition-colors cursor-pointer"
                   >
                     <Trans i18nKey="common:surface.componentsStatusDiagnosticsdrawer.action.jumpToModel" />
                   </button>
