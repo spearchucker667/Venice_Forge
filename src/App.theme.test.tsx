@@ -155,7 +155,7 @@ describe("App theme lifecycle", () => {
     expect(cache.resolved.mode).toBe("dark");
     expect(cache.resolved.themeId).toBe("venice");
     expect(cache.resolved.colorScheme).toBe("dark");
-    expect(Object.keys(cache.resolved.vars)).toHaveLength(70);
+    expect(Object.keys(cache.resolved.vars)).toHaveLength(72);
     // The cached map is exactly what applyTheme applied to the DOM.
     expect(document.documentElement.style.getPropertyValue("--bg")).toBe(
       cache.resolved.vars["--bg"],

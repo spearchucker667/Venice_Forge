@@ -202,7 +202,7 @@ function Section({ sectionId, title, item, focused, children }: SectionProps) {
       className={`rounded-lg border p-3 space-y-1.5 transition-all vf-utility-rail-section ${
         focused
           ? "border-accent/60 bg-surface shadow-[0_0_0_1px_var(--color-accent),0_0_12px_var(--color-vf-accent-glow-subtle)]"
-          : "border-border bg-surface"
+          : "border-vf-panel-border bg-surface"
       }`}
     >
       <header className="flex items-center justify-between gap-2">
