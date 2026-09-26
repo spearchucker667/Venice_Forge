@@ -1037,7 +1037,7 @@ export function MediaStudioView() {
       prompt: item.prompt,
       filename: `${item.id}.png`,
     });
-    useSettingsStore.getState().setActiveTab("image");
+    useSettingsStore.getState().setActiveTab("image-editor");
     toast.success(
       tRuntime(
         "runtimeGenerated.components.gallery.galleryView.notification.openingImageToolsForEditing",

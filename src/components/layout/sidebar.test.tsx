@@ -57,6 +57,12 @@ describe('Sidebar controls', () => {
     })
   })
 
+  it('opens the dedicated Image Editor from navigation', () => {
+    render(<Sidebar />)
+    fireEvent.click(screen.getByRole('button', { name: 'Image Editor' }))
+    expect(useSettingsStore.getState().activeTab).toBe('image-editor')
+  })
+
   it('exposes the Media Studio navigation item', () => {
     render(<Sidebar />)
     fireEvent.click(screen.getByRole('button', { name: 'Media Studio' }))

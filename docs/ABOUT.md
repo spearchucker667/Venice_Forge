@@ -91,6 +91,7 @@ tabs are:
 | History | Browse prior conversations and restore or inspect saved chat state |
 | Image Studio | Generate images, **Edit** (single image inpainting), **Combine** (multi-image referencing), and **Upscale** (separate from video upscaling), with endpoint-correct payloads and recoverable desktop persistence |
 | Media Studio | Generated-image and -video library with main-owned SHA-256 persistence, integrity-gated native export, bounded failed-write recovery, full-size preview, batch favorite/unstar/delete, lineage (parent + children) tracking, and per-model capability hints |
+| Image Editor | Dedicated image editing from sidebar or command menu; upload PNG/JPEG/WebP, select an edit model, enter a prompt, then Save or Delete the preview |
 | Image Inspector | Analyze bounded PNG/JPEG/WebP inputs with vision-capable models, view live model pricing, produce schema-validated visual breakdowns and target-specific replication prompts, and manage deletable inspection history; direct image-based web matching is provider-blocked |
 | Prompts | Versioned prompt library for chat, image, system, recipe, and workflow prompts |
 | Scene Composer | Structured scene components that compile into image-generation recipes |

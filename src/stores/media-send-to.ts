@@ -172,7 +172,7 @@ export function sendToImageTools(item: MediaItem, tool: "edit" | "upscale" = "ed
     prompt: item.prompt ?? "",
     filename: `${item.id}.png`,
   });
-  setActiveTabSafe("image");
+  setActiveTabSafe(tool === "edit" ? "image-editor" : "image");
   return { destination: "image-tools", ok: true, artifactId: id };
 }
 

@@ -104,6 +104,10 @@
       "label": "Bild-Inspektor",
       "subtitle": "Bilder analysieren und rekonstruieren"
     },
+    "image-editor": {
+      "label": "Bildeditor",
+      "subtitle": "Hochgeladene Bilder bearbeiten und Ergebnisse vor dem Speichern prüfen"
+    },
     "prompts": {
       "label": "Prompts",
       "subtitle": "Ihre Prompt-Bibliothek durchsuchen und verwalten"

@@ -69,9 +69,14 @@ function HistoryView() {
 }
 
 const LazyImagePage = lazy(() => import('./components/image/image-page').then(m => ({ default: m.ImagePage })))
+const LazyImageEditorView = lazy(() => import('./components/image/image-editor-view').then(m => ({ default: m.ImageEditorView })))
 const LazyImageInspectorView = lazy(() => import('./components/image-inspector/ImageInspectorView').then(m => ({ default: m.ImageInspectorView })))
 function ImagePage() {
   return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50"><Trans i18nKey="common:surface.app.text.loadingImageStudio" /></div>}><LazyImagePage /></Suspense>
+}
+
+function ImageEditorPage() {
+  return <Suspense fallback={<div className="flex items-center justify-center h-full text-[12px] text-text-muted/50"><Trans i18nKey="common:surface.app.text.loadingImageStudio" /></div>}><LazyImageEditorView /></Suspense>
 }
 
 function ImageInspectorPage() {
@@ -154,6 +159,7 @@ const views: Record<TabId, React.ComponentType> = {
   history: HistoryView,
   image: ImagePage,
   'image-inspector': ImageInspectorPage,
+  'image-editor': ImageEditorPage,
   media: MediaStudioView,
   prompts: PromptLibraryView,
   scenes: SceneComposerView,

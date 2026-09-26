@@ -50,7 +50,12 @@ import { copyText } from "../../utils/download";
 
 type Tool = "edit" | "upscale" | "remove-bg";
 
-export function ImageTools() {
+interface ImageToolsProps {
+  /** The dedicated editor exposes only editing; Image Studio keeps all tools. */
+  editOnly?: boolean;
+}
+
+export function ImageTools({ editOnly = false }: ImageToolsProps) {
   const { t } = useTranslation("media");
   const sourceMenu = useContextMenu();
   const resultMenu = useContextMenu();
@@ -65,6 +70,9 @@ export function ImageTools() {
   const pendingHandoff = useImageWorkspaceStore((state) => state.pending);
   const [resultUrl, setResultBlob, resetResult] = useBlobUrl();
   const fileRef = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const resultIdRef = useRef<string | null>(null);
 
   // Edit state
   const [editPrompt, setEditPrompt] = useState("");
@@ -128,6 +136,7 @@ export function ImageTools() {
 
   useEffect(() => {
     if (!pendingHandoff || pendingHandoff.target !== "tools") return;
+    if (editOnly && pendingHandoff.tool !== "edit") return;
     setTool(pendingHandoff.tool);
     setImageData(pendingHandoff.image);
     setImageName(pendingHandoff.filename);
@@ -135,7 +144,7 @@ export function ImageTools() {
     if (pendingHandoff.tool === "edit") setEditPrompt(pendingHandoff.prompt);
     resetResult();
     useImageWorkspaceStore.getState().consume(pendingHandoff.id);
-  }, [pendingHandoff, resetResult]);
+  }, [pendingHandoff, resetResult, editOnly]);
 
   const handleFileSelect = async (file: File) => {
     if (!isSupportedImageFile(file)) {
@@ -192,6 +201,7 @@ export function ImageTools() {
     const opts = {
       onSuccess: (blob: Blob) => {
         resultBlobRef.current = blob;
+        resultIdRef.current = generateId();
         setResultBlob(blob);
       },
       onError: (err: unknown) => toast.fromError(err, t("imageTools.failed")),
@@ -209,11 +219,14 @@ export function ImageTools() {
   };
 
   const handleSaveToMedia = async () => {
+    if (savingRef.current) return;
     const blob = resultBlobRef.current;
     if (!blob) {
       toast.error(t("imageTools.noResult"));
       return;
     }
+    savingRef.current = true;
+    setSaving(true);
     try {
       const dataUrl = await blobToDataUrl(blob);
       const op: MediaOperation =
@@ -227,7 +240,7 @@ export function ImageTools() {
           ? lastEditModelRef.current
           : "venice-image-tools";
       const mediaItem = {
-        id: generateId(),
+        id: resultIdRef.current ?? generateId(),
         image: dataUrl,
         prompt:
           lastPromptRef.current ||
@@ -254,10 +267,25 @@ export function ImageTools() {
           source: "generated",
         });
       }
+      if (resultBlobRef.current === blob) {
+        resultBlobRef.current = null;
+        resultIdRef.current = null;
+        resetResult();
+      }
       toast.success(t("imageTools.savedToMedia"));
     } catch (err) {
       toast.fromError(err, t("imageTools.saveFailed"));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
+  };
+
+  const handleDeleteResult = () => {
+    if (savingRef.current) return;
+    resultBlobRef.current = null;
+    resultIdRef.current = null;
+    resetResult();
   };
 
   const isLoading =
@@ -317,13 +345,14 @@ export function ImageTools() {
   };
 
   return (
-    <div className="flex h-full">
-      <div className="w-96 border-r border-vf-panel-border p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
+    <div className="flex h-full flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+      <div className="w-full lg:w-96 lg:border-r border-vf-panel-border p-6 flex flex-col gap-4 overflow-y-auto shrink-0">
         {/* Tool selector */}
-        <div className="flex gap-px bg-vf-panel-bg-raised rounded-md p-0.5 border border-vf-panel-border">
+        {!editOnly && <div className="flex gap-px bg-vf-panel-bg-raised rounded-md p-0.5 border border-vf-panel-border">
           {(["edit", "upscale", "remove-bg"] as const).map((id) => (
             <button
               key={id}
+              disabled={saving}
               onClick={() => {
                 setTool(id);
                 resetResult();
@@ -338,7 +367,7 @@ export function ImageTools() {
               {t(`imageTools.tools.${id}`)}
             </button>
           ))}
-        </div>
+        </div>}
 
         {/* Image upload */}
         <div>
@@ -362,6 +391,7 @@ export function ImageTools() {
                   setParentId(null);
                   resetResult();
                 }}
+                disabled={saving}
                 aria-label={t("imageTools.removeSource")}
                 type="button"
                 className="absolute top-1.5 right-1.5 p-1 bg-overlay rounded-md text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all focus-visible:outline focus-visible:outline-1 focus-visible:outline-accent"
@@ -408,6 +438,7 @@ export function ImageTools() {
           ) : (
             <button
               type="button"
+              disabled={saving}
               aria-label={t("imageTools.dropUpload")}
               onClick={() => fileRef.current?.click()}
               onDragOver={handleSourceDragOver}
@@ -539,6 +570,7 @@ export function ImageTools() {
             !imageData ||
             !hasVeniceKey ||
             isLoading ||
+            saving ||
             (tool === "edit" && !editPrompt.trim())
           }
           loading={isLoading}
@@ -548,7 +580,7 @@ export function ImageTools() {
         {error && <ErrorText>{classifiedError}</ErrorText>}
       </div>
 
-      <div className="flex-1 p-6 overflow-y-auto flex flex-col min-w-0">
+      <div className="flex-1 min-h-48 lg:min-h-0 p-6 overflow-y-auto flex flex-col min-w-0">
         {isLoading ? (
           <div
             className="flex min-h-[18rem] items-center justify-center"
@@ -568,6 +600,7 @@ export function ImageTools() {
               </Label>
               <div className="flex items-center gap-3">
                 <button
+                  disabled={saving}
                   onClick={() => void handleSaveToMedia()}
                   className="text-[14px] text-accent hover:opacity-85 transition-opacity flex items-center gap-1.5"
                   title={t("imageTools.saveToMedia")}
@@ -587,6 +620,14 @@ export function ImageTools() {
                     <polyline points="7 3 7 8 15 8" />
                   </svg>
                   <Trans i18nKey="common:surface.componentsImageImageTools.action.saveToMediaStudio" />
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleDeleteResult}
+                  className="text-[14px] text-text-muted hover:text-text-primary disabled:opacity-50"
+                >
+                  <Trans i18nKey="common:actions.delete" />
                 </button>
                 <button
                   onClick={downloadResult}

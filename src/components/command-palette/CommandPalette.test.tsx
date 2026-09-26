@@ -54,6 +54,13 @@ describe("CommandPalette", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
+  it("opens Image Editor through a searchable menu command", () => {
+    render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />);
+    fireEvent.change(screen.getByPlaceholderText(/Search tabs or actions/), { target: { value: "image editor" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Image Editor\s*Generate$/i }));
+    expect(useSettingsStore.getState().activeTab).toBe("image-editor");
+  });
+
   it("routes tab commands through canonical TAB_REGISTRY ids", () => {
     render(<CommandPalette open onClose={vi.fn()} onToggle={vi.fn()} />);
     const image = TAB_REGISTRY.find((tab) => tab.id === "image");

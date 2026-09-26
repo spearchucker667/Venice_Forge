@@ -1,12 +1,12 @@
 ---
 source: https://docs.venice.ai/llms.txt
-upstream_commit: 18c329e559c724b0fc8c319cb1198d99221b3c4b
+upstream_commit: db3b9f4f40fe71abff2011bcaa9c23ad797c94f3
 retrieved: "2026-09-26"
 content_type: text/markdown
 ---
 # Venice API
 
-> Venice is a privacy-first, uncensored AI API platform offering text generation, image generation, audio synthesis, speech-to-speech voice conversion, video generation, music, embeddings, and developer tools (web search, document parsing, blockchain RPC) with zero data retention and OpenAI SDK compatibility.
+> Venice is a privacy-first, uncensored AI API platform offering text generation, image generation, audio synthesis, video generation, music, embeddings, and developer tools (web search, document parsing, blockchain RPC) with zero data retention and OpenAI SDK compatibility.
 
 Venice provides permissionless access to AI models with no content filtering, making it ideal for developers building applications that require uncensored outputs, privacy guarantees, and full control over AI interactions. The API is fully compatible with OpenAI's SDK—just change the base URL to `https://api.venice.ai/api/v1`. Venice also offers developer tools including web search, web scraping, document parsing, and blockchain RPC—see the **Tools** section below.
 
@@ -19,15 +19,13 @@ Venice offers four tiers of privacy: **Anonymized** (third-party models with ide
 - [Quick Start Guide](https://docs.venice.ai/getting-started/quick-start): Get your API key and make your first request in minutes
 - [API Key Generation](https://docs.venice.ai/guides/getting-started/generating-api-key): Step-by-step guide to creating API keys
 - [About Venice](https://docs.venice.ai/overview/about-venice): Overview of Venice's capabilities and OpenAI compatibility
-- [OpenAI Migration](https://docs.venice.ai/guides/getting-started/openai-migration): Migrate from OpenAI to Venice
-- [Postman Collection](https://docs.venice.ai/guides/getting-started/postman): Import ready-to-use API examples
 
 ## API Reference
 
 ### Text & Chat
 - [API Specification](https://docs.venice.ai/api-reference/api-spec): Complete API specification with Venice-specific parameters
 - [Chat Completions](https://docs.venice.ai/api-reference/endpoint/chat/completions): Text generation endpoint with streaming, vision, audio input, video input, and tool calling
-- [Responses API (Alpha)](https://docs.venice.ai/api-reference/api-spec): OpenAI-compatible `POST /responses` endpoint with typed output blocks for reasoning, messages, function calls, and web search. Stateless, supports streaming via SSE, API key or x402 wallet auth. E2EE models not supported — use `/chat/completions` instead
+- [Responses API (Alpha)](https://docs.venice.ai/api-reference/api-spec): OpenAI-compatible `POST /responses` endpoint with typed output blocks for reasoning, messages, function calls, and web search. Stateless, supports streaming via SSE, API key or x402 wallet auth. E2EE models not supported — use `/chat/completions` instead.
 - [Model Feature Suffixes](https://docs.venice.ai/api-reference/endpoint/chat/model_feature_suffix): Enable features via model name suffixes (e.g., `model-name:web` for web search)
 
 ### Image
@@ -46,23 +44,20 @@ Venice offers four tiers of privacy: **Anonymized** (third-party models with ide
 - [Music Generation (Retrieve)](https://docs.venice.ai/api-reference/endpoint/audio/retrieve): Retrieve generated audio by ID
 - [Music Generation (Quote)](https://docs.venice.ai/api-reference/endpoint/audio/quote): Get price quote for audio generation
 - [Music Generation (Complete)](https://docs.venice.ai/api-reference/endpoint/audio/complete): Queue and wait for audio generation in one call
-- [Voice Changer (Quote)](https://docs.venice.ai/api-reference/endpoint/audio/voice-changer/quote): Get a price quote for converting a source recording
-- [Voice Changer (Queue)](https://docs.venice.ai/api-reference/endpoint/audio/voice-changer/queue): Queue a speech-to-speech conversion (charged at queue time; do not retry)
-- [Voice Changer (Retrieve)](https://docs.venice.ai/api-reference/endpoint/audio/voice-changer/retrieve): Poll conversion status and download converted audio
-- [Voice Changer (Complete)](https://docs.venice.ai/api-reference/endpoint/audio/voice-changer/complete): Release stored media after downloading converted audio
 
 ### Video
 - [Video Generation (Queue)](https://docs.venice.ai/api-reference/endpoint/video/queue): Queue video generation (text-to-video or image-to-video)
 - [Video Generation (Retrieve)](https://docs.venice.ai/api-reference/endpoint/video/retrieve): Retrieve generated video by ID
 - [Video Generation (Quote)](https://docs.venice.ai/api-reference/endpoint/video/quote): Get price quote for video generation
 - [Video Generation (Complete)](https://docs.venice.ai/api-reference/endpoint/video/complete): Queue and wait for video generation in one call
+- [Video Transcription](https://docs.venice.ai/api-reference/endpoint/video/transcriptions): Extract text/speech from videos
 
 ### Tools
 - [Text Parser](https://docs.venice.ai/api-reference/endpoint/augment/text-parser): Extract text from PDF, DOCX, XLSX, and plain text files. Runs in-memory on Venice infrastructure with zero data retention ($0.01/request)
 - [Web Scrape](https://docs.venice.ai/api-reference/endpoint/augment/scrape): Scrape a web page and return its content as markdown ($0.01/request)
 - [Web Search](https://docs.venice.ai/api-reference/endpoint/augment/search): Search the web with privacy-preserving providers — Brave (ZDR, zero data retention) or Google (proxied through Venice so your identity is not associated with the search) ($0.01/request)
 - [Crypto Networks](https://docs.venice.ai/api-reference/endpoint/crypto/networks): List all supported blockchain networks (public endpoint, no auth required)
-- [Crypto RPC](https://docs.venice.ai/api-reference/endpoint/crypto/rpc): **Venice provides blockchain RPC access** — send JSON-RPC requests to Ethereum, Base, Arbitrum, Optimism, Polygon, Linea, Avalanche, BSC, Blast, zkSync Era, Starknet, Solana, and Robinhood Chain (mainnet + testnets). One API key, unified billing in Venice credits. Supports batch requests (up to 100), idempotent retries, and x402 wallet auth. No separate RPC provider signup needed
+- [Crypto RPC](https://docs.venice.ai/api-reference/endpoint/crypto/rpc): **Venice provides blockchain RPC access** — send JSON-RPC requests to Ethereum, Base, Arbitrum, Optimism, Polygon, Linea, Avalanche, BSC, Blast, zkSync Era, Starknet, Solana, and Robinhood Chain (mainnet + testnets). One API key, unified billing in Venice credits. Supports batch requests (up to 100), idempotent retries, and x402 wallet auth. No separate RPC provider signup needed.
 - [Crypto RPC Postman Collection](https://www.postman.com/veniceai/workspace/venice-ai-workspace/folder/38652128-2cf5a817-41cd-438b-ad37-5d07c3f13005?action=share&creator=48156591&active-environment=38652128-ef110f4e-d3e1-43b5-8029-4d6877e62041): 27 ready-to-run examples for crypto RPC calls
 
 ### Embeddings
@@ -115,93 +110,48 @@ Venice offers four tiers of privacy: **Anonymized** (third-party models with ide
 
 ## Guides
 
-### Text & Chat
-- [Structured Responses](https://docs.venice.ai/guides/features/structured-responses): Get JSON responses with guaranteed schemas using `response_format`
-- [Reasoning Models](https://docs.venice.ai/guides/features/reasoning-models): Use models with step-by-step reasoning (supports `reasoning_effort` parameter)
-- [Function Calling](https://docs.venice.ai/guides/features/function-calling): Let Venice chat models call your tools with OpenAI-compatible function calling
-- [Building a Tool-Using Agent with Function Calling](https://docs.venice.ai/guides/features/tool-using-agent): Run the full tool-calling loop against a database the model has never seen, including parallel calls, errors it recovers from, and guards it cannot talk past
-- [Characters](https://docs.venice.ai/guides/features/characters): Discover public Venice characters and chat with their personas via chat completions
-- [Vision](https://docs.venice.ai/guides/features/vision): Analyze images with Venice vision models using multimodal content in chat completions
-- [File Inputs](https://docs.venice.ai/guides/features/file-inputs): Attach PDF, Office, text, data, and source-code files directly to chat completions — Venice extracts them to text before inference
-- [Prompt Caching](https://docs.venice.ai/guides/features/prompt-caching): Reduce latency and costs with prompt caching
-- [TEE & E2EE Models](https://docs.venice.ai/guides/features/tee-e2ee-models): Privacy-enhanced AI with Trusted Execution Environments (TEE) and End-to-End Encryption (E2EE)
-
-### Image
-- [Image Generation Guide](https://docs.venice.ai/guides/media/image-generation): Best practices for image generation
-- [Prompt Enhancement](https://docs.venice.ai/guides/media/prompt-enhancement): Rewrite image prompts automatically with Venice's enhance_prompt parameter
-- [Image Editing Guide](https://docs.venice.ai/guides/media/image-editing): Image editing and inpainting techniques
-- [Image Upscaling](https://docs.venice.ai/guides/media/image-upscaling): Enhance and upscale images with Venice's synchronous /image/upscale endpoint
-
-### Video
-- [Video Generation Guide](https://docs.venice.ai/guides/media/video-generation): Video generation best practices
-- [Seedance 2.0 & 2.5](https://docs.venice.ai/guides/media/seedance-2-0): Generate, edit, extend, and stitch videos with Seedance 2.0 and 2.5 on Venice
-- [Seedance Face-Media Consent](https://docs.venice.ai/guides/media/seedance-face-consent): Submit face-bearing media to Seedance 2.0 with the two-call attestation flow
-- [Reference to Video](https://docs.venice.ai/guides/media/reference-to-video): Lock in characters, objects, and scenes across AI video generations using reference images on Kling O3 and Grok Imagine R2V
-- [Video Upscaling](https://docs.venice.ai/guides/media/video-upscaling): Enhance existing videos to higher resolution (2x/4x) or quality using the Topaz Video Upscale model
-
-### Audio
-- [Text-to-Speech](https://docs.venice.ai/guides/media/text-to-speech): Generate spoken audio from text with Venice text-to-speech models and /audio/speech
-- [Narrating Articles with Text-to-Speech](https://docs.venice.ai/guides/media/article-narration): Chunk long text past the 4096-character cap, synthesize it, and join the pieces into one narrated audio file
-- [Speech-to-Text](https://docs.venice.ai/guides/media/speech-to-text): Transcribe audio to text with Venice speech-to-text models and /audio/transcriptions
-- [Meeting Notes with Speech to Text](https://docs.venice.ai/guides/media/meeting-notes): Transcribe a recording with segment timings, extract decisions and owners against a schema, and work around the absence of speaker labels
-- [Voice Cloning](https://docs.venice.ai/guides/media/voice-cloning): Clone a voice from a short reference sample with Chatterbox HD, then generate speech with Venice text-to-speech
-- [Voice Changer](https://docs.venice.ai/guides/media/voice-changer): Convert a source recording into another voice with `/audio/voice-changer/*` — not TTS, not voice cloning, and not `/audio/queue`
-- [Music & Sound Effects](https://docs.venice.ai/guides/media/music-and-sound-effects): Generate music and sound effects with Venice's asynchronous audio API
-
 ### Search & RAG
 - [Embeddings](https://docs.venice.ai/guides/features/embeddings): Generate vector embeddings for semantic search, retrieval-augmented generation, clustering, and recommendations
 - [Document Processing](https://docs.venice.ai/guides/tools/document-processing): Extract text and token counts from documents for prompts, embeddings, and retrieval pipelines
-- [Web Search and Scraping](https://docs.venice.ai/guides/tools/web-retrieval): Search and scrape the web for fresh context, citations, and retrieval workflows
-- [Cited Answers with Web Search](https://docs.venice.ai/guides/tools/cited-web-answers): Chain web search, source selection, scraping, and chat completions into answers where every claim resolves to a source URL
-- [Extracting Structured Data from Documents](https://docs.venice.ai/guides/tools/document-extraction): Parse a PDF with text-parser, pin the fields to a JSON schema, and fall back to a vision model when the file is a scan with no extractable text
+- [Web Retrieval](https://docs.venice.ai/guides/tools/web-retrieval): Search and scrape the web for fresh context, citations, and retrieval workflows
 
-### Agents & Integrations
+- [Structured Responses](https://docs.venice.ai/guides/features/structured-responses): Get JSON responses with guaranteed schemas using `response_format`
+- [Reasoning Models](https://docs.venice.ai/guides/features/reasoning-models): Use models with step-by-step reasoning (supports `reasoning_effort` parameter)
+- [File Inputs](https://docs.venice.ai/guides/features/file-inputs): Attach PDF, Office, text, data, and source-code files directly to chat completions — Venice extracts them to text before inference
+- [TEE & E2EE Models](https://docs.venice.ai/guides/features/tee-e2ee-models): Privacy-enhanced AI with Trusted Execution Environments (TEE) and End-to-End Encryption (E2EE)
+- [Prompt Caching](https://docs.venice.ai/guides/features/prompt-caching): Reduce latency and costs with prompt caching
+- [Image Generation Guide](https://docs.venice.ai/guides/media/image-generation): Best practices for image generation
+- [Image Editing Guide](https://docs.venice.ai/guides/media/image-editing): Image editing and inpainting techniques
+- [Video Generation Guide](https://docs.venice.ai/guides/media/video-generation): Video generation best practices
+- [Reference to Video](https://docs.venice.ai/guides/media/reference-to-video): Lock in characters, objects, and scenes across AI video generations using reference images on Kling O3 and Grok Imagine R2V
+- [Voice Cloning](https://docs.venice.ai/guides/media/voice-cloning): Clone a voice from a short reference sample with Chatterbox HD, then generate speech with Venice text-to-speech
+- [Video Upscaling](https://docs.venice.ai/guides/media/video-upscaling): Enhance existing videos to higher resolution (2x/4x) or quality using the Topaz Video Upscale model
+- [x402 Wallet API](https://docs.venice.ai/guides/integrations/x402-venice-api): Use Venice API with Ethereum wallet authentication (no API key required)
 - [AI Agents](https://docs.venice.ai/guides/integrations/ai-agents): Choose an agent app, coding tool, Venice agent tool, SDK, or framework
 - [Autonomous Agent API Key Creation](https://docs.venice.ai/guides/integrations/generating-api-key-agent): Let agents programmatically mint their own Venice API key by staking VVV on Base — no human interaction required
-- [OpenClaw](https://docs.venice.ai/guides/integrations/openclaw-bot): Self-hosted AI gateway connecting Venice to WhatsApp, Telegram, Discord, iMessage, and Slack
-- [Hermes Agent](https://docs.venice.ai/guides/integrations/hermes-agent): Self-improving AI agent by Nous Research with persistent memory, skills, and 15+ messaging platforms, powered by Venice as a custom provider
-- [NanoClaw](https://docs.venice.ai/guides/integrations/nanoclaw-venice): Lightweight self-hosted personal AI assistant for WhatsApp and Telegram powered by Venice
 - [Crypto RPC for Agents](https://docs.venice.ai/guides/integrations/crypto-rpc-agents): Give AI agents inference and on-chain access through a single Venice credential. Covers JSON-RPC across 11 chains, x402 wallet auth, autonomous VVV staking, and DIEM-funded credits
-- [x402 Wallet API](https://docs.venice.ai/guides/integrations/x402-venice-api): Use Venice API with Ethereum wallet authentication (no API key required)
-- [Jan AI](https://docs.venice.ai/guides/integrations/jan-ai): Configure Jan AI to use Venice models as a remote provider for private chat
-- [Brave Leo](https://docs.venice.ai/guides/integrations/brave-leo): Connect Brave Leo to Venice for private, browser-native AI chat and page summaries
-
-### Coding Tools
-- [Claude Code](https://docs.venice.ai/guides/integrations/claude-code): Use Venice with Claude Code CLI
-- [Cursor IDE](https://docs.venice.ai/guides/integrations/cursor): Use Venice with Cursor IDE
-- [Cline](https://docs.venice.ai/guides/integrations/cline): Configure the Cline coding assistant in VS Code to use private Venice models
-- [Kilo Code](https://docs.venice.ai/guides/integrations/kilo-code): Configure Kilo Code's native Venice provider in VS Code or the CLI for agentic coding
-- [OpenCode](https://docs.venice.ai/guides/integrations/opencode): Wire OpenCode to Venice so your coding agent runs on private models with one config file
-- [Codex CLI](https://docs.venice.ai/guides/integrations/codex-cli): Use Venice with OpenAI Codex CLI
-- [Aider](https://docs.venice.ai/guides/integrations/aider): Configure Aider for terminal pair-programming with private Venice chat models
-
-### Agent Tooling
-- [Venice CLI](https://docs.venice.ai/guides/integrations/venice-cli): Official Venice command-line tool for chat, search, images, speech, and video
 - [Venice MCP Server](https://docs.venice.ai/guides/integrations/venice-mcp): Official Model Context Protocol server exposing the full Venice API as 31 tools for Claude Desktop, Cursor, LM Studio, and any MCP host
 - [Venice Skills](https://docs.venice.ai/guides/integrations/venice-skills): Official Agent Skills that load Venice API knowledge into Claude Code, Cursor, Codex, OpenCode, Hermes, and Cline
 - [Venice Video Harness](https://docs.venice.ai/guides/integrations/venice-video-harness): Agent-first toolkit for consistency-first AI video creation across 50+ Venice video, image, audio, and music models
-
-### SDKs & Frameworks
 - [LangChain](https://docs.venice.ai/guides/integrations/langchain): Use Venice with LangChain
 - [LlamaIndex](https://docs.venice.ai/guides/integrations/llamaindex): Build RAG pipelines, agents, and query engines with Venice models via LlamaIndex's OpenAILike client
 - [Vercel AI SDK](https://docs.venice.ai/guides/integrations/vercel-ai-sdk): Use Venice with Vercel AI SDK
-- [Mastra](https://docs.venice.ai/guides/integrations/mastra): Build TypeScript agents and workflows with Mastra using Venice as the provider
 - [CrewAI](https://docs.venice.ai/guides/integrations/crewai): Use Venice with CrewAI
-- [PydanticAI](https://docs.venice.ai/guides/integrations/pydanticai): Build typed Python agents with PydanticAI using Venice chat models
-- [LiveKit Agents](https://docs.venice.ai/guides/integrations/livekit-agents): Build realtime voice agents with LiveKit using Venice STT, LLM, and TTS
-- [Rig](https://docs.venice.ai/guides/integrations/rig): Build typed Rust agents with Rig's native Venice provider for tools and streaming
+- [OpenAI Migration](https://docs.venice.ai/guides/getting-started/openai-migration): Migrate from OpenAI to Venice
+- [Claude Code](https://docs.venice.ai/guides/integrations/claude-code): Use Venice with Claude Code CLI
+- [Cursor IDE](https://docs.venice.ai/guides/integrations/cursor): Use Venice with Cursor IDE
+- [Codex CLI](https://docs.venice.ai/guides/integrations/codex-cli): Use Venice with OpenAI Codex CLI
+- [OpenClaw](https://docs.venice.ai/guides/integrations/openclaw-bot): Self-hosted AI gateway connecting Venice to WhatsApp, Telegram, Discord, iMessage, and Slack
+- [Hermes Agent](https://docs.venice.ai/guides/integrations/hermes-agent): Self-improving AI agent by Nous Research with persistent memory, skills, and 15+ messaging platforms, powered by Venice as a custom provider
+- [NanoClaw](https://docs.venice.ai/guides/integrations/nanoclaw-venice): Lightweight self-hosted personal AI assistant for WhatsApp and Telegram powered by Venice
+- [Postman Collection](https://docs.venice.ai/guides/getting-started/postman): Import ready-to-use API examples
 
-## Learn
+## Projects
 
-- [Learn](https://docs.venice.ai/learn): Complete, runnable projects built on the Venice API, from short walkthroughs to full repositories
-- [Building a Private RAG Bot](https://docs.venice.ai/learn/private-rag-bot): Modern private RAG with Venice embeddings, Qdrant vector search, FastEmbed re-ranking, and Venice chat completions
-- [Building a Private Research Agent](https://docs.venice.ai/learn/private-research-agent): Python research agent that plans searches, reads sources with Venice's scrape API, extracts evidence, and writes cited Markdown reports
-- [Building a Codebase Security Reviewer](https://docs.venice.ai/learn/security-code-reviewer): Python security agent that finds vulnerabilities and chains them into exploit paths using Venice, an AST repo map, and Pydantic guardrails
-- [Building a Rust LLM Gateway](https://docs.venice.ai/learn/rust-llm-gateway): OpenAI-compatible Rust gateway with Axum, Postgres-backed API keys, fixed-window rate limits, streaming responses, and OpenTelemetry
-- [Building an Audio Research Notebook](https://docs.venice.ai/learn/audio-research-notebook): NotebookLM-style notebook that ingests URLs and documents with Venice scrape and text parser, answers questions with citations over embeddings, and renders a two-host audio overview with text-to-speech
-- [Giving an Agent a Wallet and a Budget](https://docs.venice.ai/learn/wallet-budget-agent): Pay for Venice inference from a USDC wallet with no API key using x402, signing in with EIP-4361, topping up on Base or Solana, and capping agent spend against the per request charge ledger
-- [Building a Voice Agent](https://docs.venice.ai/learn/voice-agent): Terminal voice agent in Python built from Venice speech-to-text, streamed chat completions, and streamed PCM text-to-speech, with sentence-level TTS handoff and cross-platform record and playback via PortAudio
-- [Building a Terminal Agent with Apify](https://docs.venice.ai/learn/apify-terminal-agent): Python CLI agent that resolves a Venice function-calling model from /models/traits, loads Apify Actor and documentation tools over MCP, streams answers, and gates paid Actor runs behind confirmation
+- [Building a Private RAG Bot](https://docs.venice.ai/guides/projects/private-rag-bot): Modern private RAG with Venice embeddings, Qdrant vector search, FastEmbed re-ranking, and Venice chat completions
+- [Building a Private Research Agent](https://docs.venice.ai/guides/projects/private-research-agent): Python research agent that plans searches, reads sources with Venice's scrape API, extracts evidence, and writes cited Markdown reports
+- [Building a Codebase Security Reviewer](https://docs.venice.ai/guides/projects/security-code-reviewer): Python security agent that finds vulnerabilities and chains them into exploit paths using Venice, an AST repo map, and Pydantic guardrails
+- [Building a Rust LLM Gateway](https://docs.venice.ai/guides/projects/rust-llm-gateway): OpenAI-compatible Rust gateway with Axum, Postgres-backed API keys, fixed-window rate limits, streaming responses, and OpenTelemetry
 
 ## Key Features
 

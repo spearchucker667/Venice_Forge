@@ -78,6 +78,7 @@ vi.mock('../../stores/toast-store', () => ({
 import StorageService from '../../services/storageService'
 import { useMediaStore } from '../../stores/media-store'
 import { ImageTools } from './image-tools'
+import { ImageEditorView } from './image-editor-view'
 import { useImageWorkspaceStore } from '../../stores/image-workspace-store'
 import { isSupportedImageFile, readImageAttachment } from '../../services/attachmentService'
 import { toast } from '../../stores/toast-store'
@@ -115,6 +116,73 @@ describe('ImageTools → Media Studio wiring (P3 regression guard)', () => {
       content: `data:${file.type};base64,FAKE`,
       size: 1,
     }))
+  })
+
+  it('keeps the dedicated editor in edit mode and leaves upscale handoffs for Image Studio', () => {
+    useImageWorkspaceStore.getState().enqueueTools({
+      tool: 'upscale', parentId: 'parent', image: 'data:image/png;base64,SOURCE', prompt: 'source', filename: 'source.png',
+    })
+    render(<ImageEditorView />)
+    expect(screen.getByRole('button', { name: 'Edit Image' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Upscale' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Remove BG' })).not.toBeInTheDocument()
+    expect(useImageWorkspaceStore.getState().pending).toMatchObject({ tool: 'upscale' })
+  })
+
+  it('deletes an unsaved preview without changing the source or adding a gallery item', async () => {
+    mutateMock.mockImplementationOnce((_request: unknown, options: { onSuccess: (blob: Blob) => void }) => {
+      options.onSuccess(new Blob(['result'], { type: 'image/png' }))
+    })
+    render(<ImageEditorView />)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    await act(async () => fireEvent.change(fileInput, { target: { files: [new File(['source'], 'source.webp', { type: 'image/webp' })] } }))
+    fireEvent.change(screen.getByPlaceholderText(/Change the background/), { target: { value: 'Add a sunset' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Image' }))
+    expect(await screen.findByAltText('Result')).toBeInTheDocument()
+    expect(useMediaStore.getState().items).toHaveLength(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(screen.queryByAltText('Result')).not.toBeInTheDocument()
+    expect(screen.getByAltText('Source')).toHaveAttribute('src', 'data:image/webp;base64,FAKE')
+    expect(useMediaStore.getState().items).toHaveLength(0)
+  })
+
+  it('saves a staged preview once and clears it only after persistence succeeds', async () => {
+    mutateMock.mockImplementationOnce((_request: unknown, options: { onSuccess: (blob: Blob) => void }) => {
+      options.onSuccess(new Blob(['result'], { type: 'image/png' }))
+    })
+    render(<ImageEditorView />)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    await act(async () => fireEvent.change(fileInput, { target: { files: [new File(['source'], 'source.jpeg', { type: 'image/jpeg' })] } }))
+    fireEvent.change(screen.getByPlaceholderText(/Change the background/), { target: { value: 'Add a sunset' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Image' }))
+    const save = await screen.findByRole('button', { name: 'Save to Media Studio' })
+    expect(useMediaStore.getState().items).toHaveLength(0)
+    fireEvent.click(save)
+    fireEvent.click(save)
+    await waitFor(() => expect(useMediaStore.getState().items).toHaveLength(1))
+    expect(screen.queryByAltText('Result')).not.toBeInTheDocument()
+    expect(screen.getByAltText('Source')).toBeInTheDocument()
+  })
+
+  it('retains the editor preview after a failed save and allows a successful retry', async () => {
+    vi.mocked(StorageService.putMedia).mockRejectedValueOnce(new Error('Storage unavailable'))
+    mutateMock.mockImplementationOnce((_request: unknown, options: { onSuccess: (blob: Blob) => void }) => {
+      options.onSuccess(new Blob(['result'], { type: 'image/png' }))
+    })
+    render(<ImageEditorView />)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    await act(async () => fireEvent.change(fileInput, { target: { files: [new File(['source'], 'source.png', { type: 'image/png' })] } }))
+    fireEvent.change(screen.getByPlaceholderText(/Change the background/), { target: { value: 'Add a sunset' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Image' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Save to Media Studio' }))
+    await waitFor(() => expect(mockToastFromError).toHaveBeenCalledWith(expect.any(Error), 'Save failed'))
+    expect(screen.getByAltText('Result')).toBeInTheDocument()
+    expect(useMediaStore.getState().items).toHaveLength(0)
+    const retry = screen.getByRole('button', { name: 'Save to Media Studio' })
+    expect(retry).toBeEnabled()
+    fireEvent.click(retry)
+    await waitFor(() => expect(useMediaStore.getState().items).toHaveLength(1))
+    expect(screen.queryByAltText('Result')).not.toBeInTheDocument()
   })
 
   // VERIFY-020 regression guard: edit/upscale/background-remove result MUST be

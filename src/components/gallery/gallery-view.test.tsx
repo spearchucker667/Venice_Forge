@@ -287,6 +287,7 @@ describe('MediaStudioView (GalleryView)', () => {
     await screen.findByText('Copper city at dusk')
     fireEvent.doubleClick(screen.getByRole('button', { name: /open image: copper city at dusk/i }))
     fireEvent.click(await screen.findByTestId('inspector-edit'))
+    expect(useSettingsStore.getState().activeTab).toBe('image-editor')
 
     expect(useImageWorkspaceStore.getState().pending).toMatchObject({
       target: 'tools',

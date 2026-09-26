@@ -104,6 +104,10 @@
       "label": "图像检查器",
       "subtitle": "分析和重建图像"
     },
+    "image-editor": {
+      "label": "图像编辑器",
+      "subtitle": "编辑上传的图像并在保存前查看结果"
+    },
     "prompts": {
       "label": "提示词",
       "subtitle": "浏览和管理提示词库"

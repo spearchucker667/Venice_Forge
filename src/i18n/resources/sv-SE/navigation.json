@@ -104,6 +104,10 @@
       "label": "Bildinspektör",
       "subtitle": "Analysera och återskapa bilder"
     },
+    "image-editor": {
+      "label": "Bildredigerare",
+      "subtitle": "Redigera uppladdade bilder och granska resultaten innan du sparar"
+    },
     "prompts": {
       "label": "Promptar",
       "subtitle": "Bläddra bland och hantera ditt promptbibliotek"

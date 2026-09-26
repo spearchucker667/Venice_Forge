@@ -124,6 +124,7 @@ const TAB_ICONS: Record<TabId, () => React.JSX.Element> = {
   history: HistoryIcon,
   image: ImageIcon,
   "image-inspector": ImageInspectorIcon,
+  "image-editor": ImageIcon,
   media: GalleryIcon,
   prompts: PromptsIcon,
   scenes: SceneIcon,

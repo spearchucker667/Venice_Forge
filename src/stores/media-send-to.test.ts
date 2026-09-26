@@ -230,8 +230,9 @@ describe("media-send-to (VERIFY-044)", () => {
       if (pending?.target === "tools") expect(pending.prompt).toBe("")
     })
 
-    it("routes to image tab and enqueues an edit handoff", () => {
+    it("routes to the dedicated editor and enqueues an edit handoff", () => {
       const r = sendToImageTools(makeItem(), "edit")
+      expect(useSettingsStore.getState().activeTab).toBe("image-editor")
       expect(r.ok).toBe(true)
       const pending = useImageWorkspaceStore.getState().pending
       expect(pending?.target).toBe("tools")
@@ -253,6 +254,7 @@ describe("media-send-to (VERIFY-044)", () => {
 
     it("can be invoked with the upscale tool", () => {
       const r = sendToImageTools(makeItem(), "upscale")
+      expect(useSettingsStore.getState().activeTab).toBe("image")
       expect(r.ok).toBe(true)
       const pending = useImageWorkspaceStore.getState().pending
       if (pending?.target === "tools") expect(pending.tool).toBe("upscale")

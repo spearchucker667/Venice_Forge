@@ -118,6 +118,7 @@ Explore Venice Forge in action:
 - **Projects & Workspaces:** Organize your chat histories, generation parameters, and media assets into logical local projects.
 - **Document Tools & Workspace Grants:** Create non-overwriting managed documents, review exact edit diffs, retain immutable revisions, search text files across granted workspace directories, and export through native save boundaries.
 - **Model-Aware Image Generation:** Image Studio adapts inputs to selected model capabilities and uses endpoint-correct payloads across generation, edit, inpaint, background removal, and API-compliant 2×/4× upscaling. Generated desktop images are verified and persisted through the main-owned media store, with explicit retry and Save As recovery when local storage fails.
+- **Dedicated Image Editor:** Open Image Editor from the sidebar or command menu, upload PNG/JPEG/WebP images, select an edit model, enter a prompt, and review the result. Save adds it to Media Studio; Delete discards the unsaved preview.
 - **Image Inspector & Prompt Reconstruction:** Analyze PNG, JPEG, or WebP images with a selected vision model and generate structured visual breakdowns and target-specific replication prompts. Direct image-based web matching remains provider-blocked; the former query-derived action is disabled.
 - **Media Studio Command Center:** Gallery view equipped with multi-select bulk operations, lineage graph tracing, visual diff comparison, and metadata-preserving exports.
 - **Video & Music Studios:** Queue text/image-to-video and lyrics-driven music requests with explicit stage tracking (`queued` → `generating` → `retrieving` → `saving` → `completed`), durable stream persistence, and MP4/audio exports.
@@ -137,7 +138,7 @@ The navigation below uses the canonical tab labels from `src/config/tabs.ts`:
 flowchart LR
   VF["Venice Forge"]
   VF --> Conversation["Conversation<br/>Chat · Character Chats · History"]
-  VF --> Generate["Generate<br/>Image Studio · Media Studio · Image Inspector · Prompts · Scene Composer<br/>Audio Studio · Music Studio · Video Studio · Embeddings<br/>Research · Characters"]
+  VF --> Generate["Generate<br/>Image Studio · Media Studio · Image Inspector · Image Editor · Prompts · Scene Composer<br/>Audio Studio · Music Studio · Video Studio · Embeddings<br/>Research · Characters"]
   VF --> Build["Build<br/>RP Studio · Character Creator · Workflows · Documents · Playground"]
   VF --> System["System<br/>Privacy · Config · Status"]
 ```
@@ -153,6 +154,7 @@ flowchart LR
 | **History** | Beta | Browse, restore, organize, and inspect saved conversation state |
 | **Image Studio** | Beta | Model-aware generation, prompt enhancement, image editing, background removal, 2×/4× upscaling, and recoverable durable desktop persistence |
 | **Media Studio** | Beta | Main-owned generated-media custody, visual gallery, multi-image comparison, lineage tracking, integrity-gated Save As, and metadata bundle exports |
+| **Image Editor** | Beta | Direct image-edit workflow with upload, edit-model selection, prompt, preview, Save and Delete before gallery promotion |
 | **Image Inspector** | Beta | Bounded local-image ingestion, schema-validated visual analysis, target-specific replication prompts, deletable inspection history, and live model pricing |
 | **Prompts** | Beta | Prompt Library with global/project scopes, version chains, and tag management |
 | **Scene Composer** | Beta | Visual composition tool for arranging prompts, media references, and models into scenes |

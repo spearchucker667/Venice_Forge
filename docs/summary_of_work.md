@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 83bc7eeb89a9e7519aa94c34074556f7baf0109f
-application_code_sha: 83bc7eeb89a9e7519aa94c34074556f7baf0109f
-verified_against_sha: 83bc7eeb89a9e7519aa94c34074556f7baf0109f
+repository_head_sha: 41c77e3ebefb040761637f49483e28a2af5162b1
+application_code_sha: 41c77e3ebefb040761637f49483e28a2af5162b1
+verified_against_sha: 41c77e3ebefb040761637f49483e28a2af5162b1
 verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        clean (post-merge Graphite Cockpit redesign; HQE audit artifacts emitted under artifacts/hqe/)
-ci_status:           static checks (typecheck + lint:eslint --max-warnings=0) PASS; full test:ci and build NOT run this session due to local Node 24.x / npm cache EPERM drift (HQE-ENV-001/002). Prior session evidence (2026-09-26 entries below) records prior green runs.
-codeql_status:       not checked this session; historical runs below do not cover current edits
+working_tree:        API documentation reconciliation and dedicated Image Editor implementation; uncommitted
+ci_status:           local build/lint/typecheck and focused editor checks pass; full suite has one unrelated sync-path failure; hosted checks not run
+codeql_status:       not checked this session; no publication
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence; HQE-ENV-001 (Node 24 vs 22.x drift); HQE-ENV-002 (npm cache EPERM); HQE-TEST-001 (src/agent + src/i18n test ratios)
 ```
 external_acceptance_outstanding:
@@ -24,6 +24,12 @@ external_acceptance_outstanding:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-26 Approved Image Editor navigation delivery.** Added the canonical `image-editor` destination, lazy view, sidebar/command menu labels, and gallery edit routing. Reused the existing upload/model/prompt/synchronous edit flow in edit-only mode. Added Delete for unsaved previews and guarded explicit Save against duplicate clicks; successful Save clears the preview, while failed Save retains it. LoRA is removed. Advanced masks, crop/reframe, enhancement/ratio controls, variations and durable staging remain in the roadmap.
+
+- **2026-09-26 Image Editor scope correction.** Removed LoRA from the active requirements and roadmap. The dedicated editor tab/menu remains unimplemented; the preceding task was documentation-only. Requested clarification on whether to implement that surface next.
+
+- **2026-09-26 Selected local API documentation and Image Editor requirements.** Reconciled snapshots to the user-selected source, documented source-version differences and all requested editor requirements. Documentation-only work; implementation remains planned in `docs/ROADMAP.md`.
 
 - **2026-09-26 Venice API docs refresh + multi-edit capability fix (uncommitted).** Resolved the source-of-truth discrepancy in the prior review: the local api-docs fork at `/Users/super_user/Projects/api-docs` is stale (`db3b9f4f`, 2026-08-14), while upstream `veniceai/api-docs` HEAD is now `18c329e5` (2026-09-25). Synced the vendored snapshot to the current upstream (`schema version 20260918.184256`), updated `docs/reference/VENICE_API_SOURCE_MANIFEST.md` accordingly, and added a `Local Source Used` runtime note when a local checkout is promoted via the new `--source` / `VENICE_API_DOCS_SOURCE` flag. Replaced the hard-coded `slice(0, 3)` cap in `buildCanonicalImageMultiEditPayload()` with per-model `capabilities.maxInputImages` validation (throws on overflow instead of silently truncating); added `quality`, `resolution`, and `disable_prompt_optimization_thinking` fields to the multi-edit builder plus `quality` on edit. Added `getMaxInputImages()`, `supportsSingleImageAspectRatio()`, `getModelResolutions()`, and `DEFAULT_MAX_INPUT_IMAGES` to `capabilities.ts`. All work is uncommitted; no remote push performed this session.
 
@@ -36,6 +42,31 @@ external_acceptance_outstanding:
 - **2026-09-26 repository-maintenance review and repository hygiene execution (uncommitted).** Conducted full review of `docs/repository-maintenance/` (`README.md`, `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`) and executed comprehensive repository hygiene workflows. Remediated gitignore rule collision where trailing lines 401–403 in `.gitignore` conflicted with lines 67–68, restoring 0 ignored tracked files in `git ls-files -c -i --exclude-standard`. Normalized POSIX naming hygiene by relocating `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` (which contained non-ASCII em-dash and spaces) to canonical `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Isolated root clutter by moving `kimi-export-session_-20260926-051728.md` into gitignored `.agent-backups/session-exports/`, and purged untracked Finder `.DS_Store` metadata. Synchronized all four maintenance documents with the 2,248 tracked file inventory and v3.1.0 metadata. Verified with `verify:contracts:static` (28/28 checks PASS), `verify:archive-clean` (PASS), `verify:repository-identity` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:markdown-links` (448/448 markdown files PASS), `verify:agent-docs` (PASS), and `verify:superdesign-init` (PASS). 100% green.
 
 ## Session History
+
+### 2026-09-26 — Approved Image Editor tab and menu
+
+- User explicitly approved a bounded implementation: dedicated editor navigation using the existing image tools, plus Delete for unsaved previews. No commit or push authorized/performed.
+- Registered `image-editor` in `src/config/tabs.ts`; lazy route in `src/App.tsx`; edit-only view in `src/components/image/image-editor-view.tsx`. Sidebar and searchable command menu expose localized navigation; gallery Edit and `sendToImageTools(..., "edit")` open the editor, while upscale continues to use Image Studio.
+- `ImageTools` retains existing centralized API/attachment/persistence boundaries. The editor hides unrelated tool selectors and ignores upscale handoffs. Delete revokes the result preview and clears its Blob/ID without changing the source or gallery. Save has a synchronous in-flight guard and stable result ID, clears preview after successful persistence, and preserves it after failure. Narrow layouts stack the controls and preview.
+- Added first-pass navigation strings to all supported locale catalogs; native-review status unchanged. Updated README, ABOUT, registered requirements/current status, roadmap and `.superdesign/init/routes.md` fingerprint.
+- Regression evidence: seven new behavioral assertions failed before implementation; the focused run then passed 145 tests across seven files. Wider validation and rendered smoke evidence are in the Validation Matrix.
+- Scope limits: this delivery exposes single-image editing, not the full advanced editor. Masks, crop/reframe, enhancement/ratio controls, variation batching and bounded durable staging/navigation/restart handling remain tracked in `docs/ROADMAP.md`. Unsaved local source/preview state is released on tab unmount. No paid generation or full Electron acceptance was performed.
+
+
+### 2026-09-26 — Image Editor scope correction
+
+- User removed LoRA from scope and noted the missing editing menu. Removed the active style/LoRA requirement and updated the capability guide, roadmap and TODO ledger; preserved historical API evidence.
+- The dedicated menu/tab is still a planned feature. No runtime implementation was performed during this correction. Implementation scope clarification is pending.
+
+
+### 2026-09-26 — Selected local API source and Image Editor requirements
+
+- Scope confirmed by user: documentation and feature requirements only. Started clean on `main` at `41c77e3e`, Node `22.15.0`, npm `10.9.2`, package `3.1.0`; no runtime, dependency, commit, push, or source-checkout changes.
+- Promoted Swagger and LLM index from the explicitly selected clean fork commit `db3b9f4f40fe71abff2011bcaa9c23ad797c94f3` (schema `20260814.153445`), replacing the newer `18c329e5` snapshot by user source authority. This supersedes the earlier session's decision to ignore that source; it does not establish current remote/provider behavior.
+- Used the existing snapshot promotion function directly: the full sync inventory requires a voice-changer guide absent from this selected checkout. Corrected generated provenance to the verified fork remote and documented the limitation without changing the sync validator.
+- Registered Image Editor requirements; updated API source manifest, documentation index, image capabilities guide and canonical roadmap. Recorded guide/Swagger conflicts (input count, result MIME, default model), unsupported edit LoRA, per-call variations, staging, and current mask/persistence/navigation gaps. No feature implementation or paid/manual acceptance claimed.
+- Validation: see this session's Validation Matrix below. Runtime source-version reconciliation remains open in ROADMAP.md.
+
 
 ### 2026-09-26 — Venice API docs refresh + multi-edit capability fix
 
@@ -487,8 +518,10 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 
 ## Open TODO Ledger
 
+* **API-DOCS-LOCAL-SOURCE-2026-09-26** — Documentation reconciliation completed locally; runtime differences remain `API-SOURCE-RECONCILIATION-2026-09-26` in `docs/ROADMAP.md`. Earlier upstream-refresh history is retained as history.
+
 * **VENICE-API-DOCS-REFRESH-2026-09-26** — Completed locally (uncommitted). Synced vendored Swagger/LLM snapshots to upstream `18c329e5` (schema version `20260918.184256`); added `--source` / `VENICE_API_DOCS_SOURCE` to `sync-venice-api-docs.cjs`; replaced hard-coded `slice(0, 3)` in `buildCanonicalImageMultiEditPayload()` with capability-driven `maxInputImages` validation (throws on overflow); added `quality`, `resolution`, `disable_prompt_optimization_thinking` fields to multi-edit builder and `quality` to edit; exposed `getMaxInputImages`, `supportsSingleImageAspectRatio`, `getModelResolutions`, `DEFAULT_MAX_INPUT_IMAGES`. Working tree uncommitted.
-* **IMAGE-EDITOR-DEDICATED-TAB-2026-09-26** — Not started. Large feature scope per the prior review: first-class `Image Editor` tab (TAB_IDS / TAB_REGISTRY / App.tsx / i18n / per-tab acceptance), full-resolution mask canvas (replace the 520 px downsizing in `InpaintMaskEditor.tsx`), crop/reframe canvas, model/variation selector, transient result staging with Save/Delete. Coordinate with a follow-up session.
+* **IMAGE-EDITOR-DEDICATED-TAB-2026-09-26** — Dedicated tab/menu and single-image workflow implemented locally under approved bounded scope. Advanced controls and API reconciliation remain in `docs/ROADMAP.md`; LoRA is removed.
 * **GRAPHITE-COCKPIT-UI-2026-09-26** — Completed. Full UI re-envisioning to Graphite Cockpit Flat Instrumentation, Stitch MCP design system sync, and component refactor on branch `feature/graphite-cockpit-redesign`. 100% contracts and UI test suites green.
 * **DOCS-AUDIT-CLEANUP-2026-09-26** — Completed. Full audit and cleaning of `docs/` directory. Synchronized versioning to v3.1.0, Node engine to 22.15.0, link labels, canonical paths, and roadmap SHAs. 100% verifiers green. Working tree uncommitted.
 * **REPO-HYGIENE-2026-09-26** — Completed. Full review of `docs/repository-maintenance/`, `.gitignore` collision resolution (`.superdesign`), closed theme audit handoff relocation/rename to `docs/audits/Records/`, root clutter isolation (`.agent-backups/session-exports/`), and full static contract validation (28/28 checks PASS). Working tree uncommitted.
@@ -515,6 +548,44 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 * **EXTERNAL-ACCEPTANCE** — `P2-016`, `P3-020`, and `VF-VERIFY-005` stay open. They are not local code defects. See `docs/ROADMAP.md`.
 
 ## Validation Matrix
+
+### 2026-09-26 — Approved Image Editor tab and menu
+
+- Baseline `main` at `41c77e3e`, Node `22.15.0`, npm `10.9.2`; prior documentation edits preserved. No dependency or privileged-transport changes.
+- Red run: `npx vitest run src/components/layout/sidebar.test.tsx src/components/command-palette/CommandPalette.test.tsx src/components/image/image-tools.test.tsx src/stores/media-send-to.test.ts src/components/gallery/gallery-view.test.tsx --no-file-parallelism` — seven new assertions failed for the absent menu, edit-only mode, gallery routing, Delete and duplicate Save handling; 126 existing tests passed.
+- Focused green run adding `src/config/tabs.test.ts` and `src/App.navigation.test.ts` initially passed 145 tests. Final run against the completed worktree passed 146 tests across seven files, including the real editor wrapper and failed-save retry coverage.
+- `npm run typecheck` — PASS (all three declared TypeScript projects).
+- `npm run lint:eslint` — PASS.
+- `npm run build` — PASS (renderer, server, Electron); CSS optimizer emitted an existing invalid wildcard custom-property candidate warning; no build error.
+- `npm run verify:i18n` — PASS with 165 existing missing-marker warnings. Initial local run exposed namespace inference errors from a second translation hook; corrected the new Delete label to a namespace-qualified `Trans` before passing. Non-English navigation labels are first-pass and not native-approved.
+- `npm run verify:i18n-hardcoded-regressions` — PASS, zero regressions.
+- `verify:superdesign-init`, `verify:markdown-links` (452 files), `verify:agent-docs`, `verify:roadmap-current`, `verify:ci-contract` — PASS.
+- Rendered smoke: Playwright with installed Chrome (Browser plugin absent), isolated fresh profile, desktop 1440×900 and mobile 390×844. Sidebar and command-menu navigation, source upload and prompt entry passed; no page exceptions or Vite overlay. Mobile preview reachability passed after correcting the editor scroll container. Screenshots were inspected outside the repository. The bundled Playwright browser was unavailable; used installed Chrome with no downloads/installations. The task-owned renderer server was stopped after the checks.
+- Browser limitations: renderer-only local server, no backend on port 3000, no API key and no paid generation. Expected API-proxy 502 resource errors appeared; one 404 resource error also appeared and was not investigated as part of this bounded editor task. Save/Delete and gallery handoffs were exercised by component/store regressions, not a funded live call. Full Electron and human per-tab acceptance not performed.
+- `npm test` — FAIL: 7,706 passed, four skipped, one failed (599 test files passed, two skipped, one failed). The sole failure is the unchanged `scripts/sync-venice-api-docs.test.ts` failure in “resolves a relative --source path against the current working directory”. Independent reproduction confirms macOS temporary-path alias mismatch (`/var` versus physical `/private/var`); helper/test sources unchanged. Exact assertion expected the temporary alias path and received its physical counterpart; no tests were disabled or weakened.
+- `npm run verify:safety-guard` — PASS.
+- `git diff --check` — PASS.
+- Full CI and hosted checks — NOT RUN; earlier selected-source contract-drift failure (`discount_to_user` absent) remains open.
+
+
+### 2026-09-26 — Image Editor scope correction
+
+- `npm run verify:markdown-links` — PASS (452 Markdown files).
+- `git diff --check` — PASS.
+- Runtime tests and manual UI QA — NOT RUN (requirements correction only).
+
+
+### 2026-09-26 — Selected local API source and Image Editor requirements
+
+- Runtime: Node `22.15.0`, npm `10.9.2`; clean starting worktree on `main` at `41c77e3e`. Changes restricted to documentation.
+- Byte-for-byte comparison of promoted Swagger and LLM bodies with the selected checkout — PASS; added provenance excluded from comparison. Selected checkout remains clean.
+- `npm run verify:venice-api-docs` — PASS.
+- `npm run verify:venice-contract-drift` — FAIL: one assertion, `Swagger declares discount_to_user`. Selected older source omits this field. Recorded in canonical roadmap; no runtime or verifier changes made.
+- `npm run verify:markdown-links` — PASS (452 Markdown files).
+- `npm run verify:agent-docs` — PASS.
+- `git diff --check` — PASS.
+- Full CI, build, runtime tests, paid provider calls and headed QA — NOT RUN (documentation-only scope). Passing documentation checks do not close runtime source-version reconciliation.
+
 
 ### 2026-09-26 — Venice API docs refresh + multi-edit capability fix
 

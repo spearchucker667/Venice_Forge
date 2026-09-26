@@ -47,3 +47,8 @@ To add a new image model, follow these steps:
 4. **Dimension Mode**: Assign the correct dimension mode. Older SD-classic models tend to use `widthHeight`. Newer models (Nano, Seedream) rely on `aspectRatio` or `aspectResolution`.
 5. **Update Constants**: Add the ID to relevant sets in `src/constants/venice.ts` if it is an edit model (`IMAGE_EDIT_MODEL_IDS`) or if it needs to be statically resolvable.
 6. **Tests**: Update `src/config/image-model-capabilities.test.ts` to assert the newly added model's behavior.
+
+
+## Dedicated Image Editor and planned extensions
+
+See [Image Editor requirements](image-editor-requirements.md) for mask editing, uploads, crop/reframe, prompt enhancement, per-model variations, and Save/Delete staging. The dedicated tab/menu and existing upload/edit/preview/Save/Delete flow are implemented locally; the advanced controls remain planned. The table's unsupported edit **Variants** means no native batch field; multiple separate edit requests can provide application-level variations. Source precedence and guide discrepancies are recorded in the [API source manifest](../reference/VENICE_API_SOURCE_MANIFEST.md).

@@ -104,6 +104,10 @@
       "label": "Inspetor de Imagem",
       "subtitle": "Analisar e reconstruir imagens"
     },
+    "image-editor": {
+      "label": "Editor de imagens",
+      "subtitle": "Edite imagens enviadas e confira os resultados antes de salvar"
+    },
     "prompts": {
       "label": "Prompts",
       "subtitle": "Navegar e gerenciar sua biblioteca de prompts"
