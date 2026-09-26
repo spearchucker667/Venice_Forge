@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: d9fb4262ef4f791197aa301d75e9189039ab0823
-application_code_sha: d9fb4262ef4f791197aa301d75e9189039ab0823
-verified_against_sha: d9fb4262ef4f791197aa301d75e9189039ab0823
+repository_head_sha: b1f54fa68b212eef840d61a10e8fa7773d7e6fc7
+application_code_sha: b1f54fa68b212eef840d61a10e8fa7773d7e6fc7
+verified_against_sha: b1f54fa68b212eef840d61a10e8fa7773d7e6fc7
 verified_at:         2026-09-25 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        FRAT-AUD-001 through FRAT-AUD-009 remediated; full test suites, verifiers, and build passing
-ci_status:           success for d9fb4262 (hosted CI & CodeQL)
-codeql_status:       success for d9fb4262
+working_tree:        FRAT-AUD-001 through FRAT-AUD-009 remediated; CodeQL alert 286 unused imports removed
+ci_status:           success for b1f54fa6 (run 36202625215 — 11/11 jobs)
+codeql_status:       success for b1f54fa6 (run 36202625294 — Analyze actions and Analyze javascript-typescript)
 open_findings:       FRAT-AUD-010 (live provider acceptance gap); FRAT-AUD-011 (__MISSING__ localization debt awaiting native review); P2-016 headed human accessibility QA; P3-020 qualified native-language review; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
@@ -32,7 +32,8 @@ external_acceptance_outstanding:
   - **FRAT-AUD-006 (P2):** Created `src/components/settings/PrimaryApiRoutePanel.test.tsx` testing Venice default, Fraterna selection, success, `{ ok: false }`, rejected IPC, disabled pending state, external docs link, and web-mode notice (8/8 passing).
   - **FRAT-AUD-009 (P2 risk):** Verified multi-consumer race risk and eliminated per-hook `useEffect` in `src/hooks/use-models.ts` by centralizing the model-catalog runtime store reset in `src/stores/settings-store.ts` via `useSettingsStore.subscribe`. Added concurrent consumer test in `src/hooks/use-models.test.tsx` (8/8 passing).
   - **FRAT-AUD-008 (P2):** Reconciled documentation in `docs/DEVELOPMENT/FRATERNA_ROUTING.md`, `docs/security/security-model.md`, and source comments in `src/hooks/use-models.ts` to accurately reflect the 4-endpoint matrix (excluding embeddings, including `/models`), the Settings UI location, and the precise privacy posture.
-  - **Validation:** `npm run lint:eslint` (PASS, 0 errors / 0 warnings), `npm run typecheck` (PASS across app + electron + electron.test), `npm run test:server` (PASS, 101/101 tests), `npm run test:electron` (PASS, 1,292/1,292 tests across 113 test files), focused vitest suites for `use-models.test.tsx` (8/8), `PrimaryApiRoutePanel.test.tsx` (8/8), `apiKeyHandlers.routeConnectivity.test.ts` (10/10), `verify:contracts` (PASS, 104/104 checks), `verify:agent-docs` (PASS), `verify:markdown-links` (PASS, 446 files), `verify:i18n` & `verify:i18n-hardcoded-regressions` (PASS, 0 regressions), and `npm run build` (PASS).
+  - **CodeQL Alert #286 Remediation:** Removed unused imports `identifyAndValidateGeneratedMedia` and `normalizeAndIdentifyMime` from `tests/safety/guardPipeline.test.ts`.
+  - **Validation & Publication:** `b1f54fa6` pushed directly to `main` with verified remote sync. Hosted CI run `36202625215` (11/11 jobs green) and CodeQL run `36202625294` completed with status `success`. Local checks: `npm run lint:eslint` (0 errors), `npm run typecheck` (PASS), `npm run test:server` (101/101), `npm run test:electron` (1,292/1,292 across 113 test files), `verify:contracts` (104/104), and `npm run build` (PASS).
 
 - **2026-09-25 Copilot instruction refresh.** Updated `.github/copilot-instructions.md` with the current primary API route architecture from `src/shared/primaryApiRoute.ts` and `docs/DEVELOPMENT/FRATERNA_ROUTING.md`: central route resolution, the restricted Fraterna capability set, fallback behavior, and the desktop/web configuration boundaries. This was documentation-only; no application source or user-owned working-tree changes were modified.
 

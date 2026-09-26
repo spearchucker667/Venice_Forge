@@ -26,9 +26,7 @@ import {
   performGuardedVeniceRequest,
 } from "../../electron/services/guardPipeline";
 import {
-  identifyAndValidateGeneratedMedia,
   maybeRunLocalFamilyGuard,
-  normalizeAndIdentifyMime,
 } from "../../src/shared/safety";
 import {
   safetyBlockBodyFromResponseScreen,
