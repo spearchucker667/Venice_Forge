@@ -26,8 +26,8 @@
 
 Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS v4 CSS variables. Core surfaces, text, status, form, button, link, focus, and selection colors derive from 36 canonical semantic roles mapped to CSS custom properties. In addition, every theme variant carries a dedicated **code/syntax palette** with 33 canonical roles for fenced code blocks and inline code. This enables:
 
-- **Built-in themes:** 43 hardcoded theme families including Venice (default), Dark, Light, Copper, Dracula, Gruvbox Dark, Rose Pine, Nord, Tokyo Night, Catppuccin, Solarized, One Dark, Monokai, GitHub Light, and Venice Forge-specific families such as Obsidian Ember, Midnight Cobalt, Terminal Forest, Porcelain Sky, Sandstone, Obsidian Bloom, Harbor Fog, Circuit Mint, Amber Archive, Neon Dusk, and others. Every family ships complete light and dark variants, each with a dedicated code-syntax preset.
-- **YAML-backed themes:** 36 starter YAML templates ship under `config/themes/` (one for each built-in theme plus `example.theme.yaml`). User themes can also be loaded from `.config/themes.local.yaml` (dev) or `themes.yaml` (userData) at runtime and are validated by the same schema as built-in themes.
+- **Built-in themes:** 43 hardcoded theme families including Venice (default), Dark, Light, Copper, Dracula, Gruvbox Dark, Rose Pine, Nord, Tokyo Night, Catppuccin, Solarized, One Dark, Monokai, GitHub Light, and Venice Forge-specific families such as Obsidian Ember, Midnight Cobalt, Terminal Forest, Porcelain Sky, Sandstone, Obsidian Bloom, Harbor Fog, Circuit Mint, Amber Archive, Neon Dusk, Cotton Candy Console, Sweet Nightmare, Dual Persona, Polaroid Board, and others. Every family ships complete light and dark variants, each with a dedicated code-syntax preset.
+- **YAML-backed themes:** 44 starter YAML templates ship under `config/themes/` (one for each of the 43 built-in themes plus `example.theme.yaml`). User themes can also be loaded from `.config/themes.local.yaml` (dev) or `themes.yaml` (userData) at runtime and are validated by the same schema as built-in themes.
 - **Custom themes:** Users can define every token via the in-app ThemeMaker and import/export configurations in YAML format. The starter configurations for all built-in themes are provided in the `config/themes/` directory as `.yaml` files.
 - **Live preview:** Changes apply immediately without reload.
 - **Persistent storage:** Canonical settings live in encrypted IndexedDB; a lightweight `localStorage` bootstrap cache prevents FOUC on startup.
@@ -245,33 +245,23 @@ Venice Forge supports three categories of themes:
 
 ### Built-in Themes (Hardcoded)
 
-The following 35 themes are compiled into the renderer bundle and available even when no YAML config is present:
-
-**New built-ins:**
-
-- `builtin-obsidian-bloom` — Obsidian Bloom (dark)
-- `builtin-harbor-fog` — Harbor Fog (light)
-- `builtin-circuit-mint` — Circuit Mint (dark)
-- `builtin-amber-archive` — Amber Archive (light)
-- `builtin-neon-dusk` — Neon Dusk (dark)
+The following 43 themes are compiled into the renderer bundle and available even when no YAML config is present:
 
 **Full catalog:**
 
 - `builtin-venice` — Default Venice dark aesthetic
 - `builtin-dark` — Classic graphite dark
 - `builtin-light` — Clean light-gray light
-- `builtin-copper` — Warm copper-accent dark
-- `builtin-dracula` — Dracula-inspired dark purple
-- `builtin-gruvbox-dark` — Retro warm-yellow dark
-- `builtin-rosepine` — Rose-gold accent dark
-- `builtin-nord` — Arctic frost-blue dark
-- `builtin-tokyo-night` — Deep purple periwinkle dark
-- `builtin-catppuccin` — Soft pastel pink dark
-- `builtin-solarized-dark` — Low-contrast muted yellow dark
-- `builtin-solarized-light` — Beige orange light
-- `builtin-one-dark` — Calm blue code-editor dark
-- `builtin-monokai` — Bright lime dark
-- `builtin-github-light` — Clean light theme mirroring GitHub's default light UI
+- `builtin-obsidian-ember` — Deep charcoal with glowing ember accent
+- `builtin-midnight-cobalt` — Midnight navy with electric cobalt accent
+- `builtin-terminal-forest` — Terminal green dark matrix
+- `builtin-porcelain-sky` — Crisp porcelain white with bright sky blue accent
+- `builtin-sandstone` — Warm sandstone with earthy terracotta accent
+- `builtin-obsidian-bloom` — Obsidian Bloom (dark)
+- `builtin-harbor-fog` — Harbor Fog (light)
+- `builtin-circuit-mint` — Circuit Mint (dark)
+- `builtin-amber-archive` — Amber Archive (light)
+- `builtin-neon-dusk` — Neon Dusk (dark)
 - `builtin-aurora-boreal` — Deep space black with vibrant mint-green aurora accent
 - `builtin-sakura-terminal` — Warm cream with soft pink cherry-blossom accent
 - `builtin-basalt-noir` — Charcoal-black basalt with bold rose-red accent
@@ -287,10 +277,25 @@ The following 35 themes are compiled into the renderer bundle and available even
 - `builtin-ember-monastery` — Dark stone with warm burnt-orange ember accent
 - `builtin-glacial-ink` — Near-black with sharp cyan glacial accent (high contrast)
 - `builtin-ultraviolet-rain` — Dark violet with electric purple ultraviolet accent
+- `builtin-copper` — Warm copper-accent dark
+- `builtin-dracula` — Dracula-inspired dark purple
+- `builtin-gruvbox-dark` — Retro warm-yellow dark
+- `builtin-rosepine` — Rose-gold accent dark
+- `builtin-nord` — Arctic frost-blue dark
+- `builtin-tokyo-night` — Deep purple periwinkle dark
+- `builtin-catppuccin` — Soft pastel pink dark
+- `builtin-solarized` (`builtin-solarized-dark` / `builtin-solarized-light`) — Low-contrast yellow dark / beige light
+- `builtin-one-dark` — Calm blue code-editor dark
+- `builtin-monokai` — Bright lime dark
+- `builtin-github-light` — Clean light theme mirroring GitHub's default light UI
+- `builtin-cotton-candy-console` — Playful cotton candy aqua/pink light
+- `builtin-sweet-nightmare` — Deep plum near-black with bubblegum pink dark
+- `builtin-dual-persona` — Aqua/pink dual-tone light
+- `builtin-polaroid-board` — Warm cork board with powder aqua accent light
 
 ### YAML-Backed Themes (Runtime-Loaded)
 
-`config/themes/` ships 36 starter YAML templates — one for every built-in theme above plus `example.theme.yaml`. Users can also define additional themes in `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged). On startup, `configService.loadMergedThemes()` parses the file, validates each entry (schema version 1, all 36 required tokens, safe color values), converts snake_case keys to camelCase via `yamlThemeToTheme()`, and caches the resulting `Theme` objects in `useConfigStore.yamlThemes`. They appear in the ThemeMaker selector alongside built-in themes and can be selected just like built-in themes.
+`config/themes/` ships 44 starter YAML templates — one for every of the 43 built-in themes above plus `example.theme.yaml`. Users can also define additional themes in `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged). On startup, `configService.loadMergedThemes()` parses the file, validates each entry (schema version 1, all 36 required tokens, safe color values), converts snake_case keys to camelCase via `yamlThemeToTheme()`, and caches the resulting `Theme` objects in `useConfigStore.yamlThemes`. They appear in the ThemeMaker selector alongside built-in themes and can be selected just like built-in themes.
 
 ### Contrast Verification
 

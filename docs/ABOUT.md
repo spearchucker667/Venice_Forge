@@ -138,7 +138,7 @@ Venice Forge reads two optional files at startup: `config.yaml` and `themes.yaml
 - Generic config patches cannot set plaintext keys; the patch path strips `secrets.*` regardless of input.
 - Raw keys are never logged or exported. The local-files-only rule is enforced at the schema level.
 
-See [`docs/CONFIG.md`](DEVELOPMENT/CONFIG.md) for the full schema, examples, and recovery steps.
+See [`DEVELOPMENT/CONFIG.md`](DEVELOPMENT/CONFIG.md) for the full schema, examples, and recovery steps.
 
 ## Data Flow
 

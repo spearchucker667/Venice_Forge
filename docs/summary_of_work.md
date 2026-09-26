@@ -5,14 +5,14 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 00bc462cb0cc0c1cd6fbc3dafedf993b3e279960
-application_code_sha: 00bc462cb0cc0c1cd6fbc3dafedf993b3e279960
-verified_against_sha: 00bc462cb0cc0c1cd6fbc3dafedf993b3e279960
-verified_at:         2026-09-25 (Pacific)
+repository_head_sha: 93544da174ba6e7fca0b81ca2a9de75546f409f5
+application_code_sha: 93544da174ba6e7fca0b81ca2a9de75546f409f5
+verified_against_sha: 93544da174ba6e7fca0b81ca2a9de75546f409f5
+verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        README video integration; uncommitted video assets (assets/Venice-Forge.mp4, assets/Venice_Forge.mp4)
+working_tree:        repository-wide documentation review and cleanups across docs/ (architecture, FAQ, ABOUT, DEVELOPMENT, discovery, ROADMAP, design, maintenance; uncommitted)
 ci_status:           not checked this session; historical runs below do not cover current edits
 codeql_status:       not checked this session; historical runs below do not cover current edits
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
@@ -25,12 +25,93 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
+- **2026-09-26 repository-wide documentation review, updating, and cleaning across docs/ (uncommitted).** Conducted a systematic audit of all tracked documentation across the canonical `docs/` tree (448 markdown documents). Identified and resolved stale version references (e.g. `3.0.0-beta.3` -> `3.1.0` in `docs/architecture/data-export-format.md` and `docs/discovery/DISCOVERY_DOCUMENT_AGENT.md`), updated Node engine requirements to Node `22.15.0` (`>=22.15.0 <23.0.0`) in `docs/FAQ.md`, normalized link labels to match canonical filenames (`building.md`, `platform-support.md`, `troubleshooting.md`, `signing-and-notarization.md`, `DEVELOPMENT/CONFIG.md`), updated historical audit directory citations in `docs/DEVELOPMENT/FILE_TREE.md` and `docs/discovery/DISCOVERY_DOCUMENT_AGENT.md`, refreshed HEAD SHAs and verification dates in `docs/ROADMAP.md`, and purged untracked `docs/.DS_Store` metadata. Validated with `verify:contracts:static` (all 28 checks PASS), `verify:markdown-links` (448/448 markdown files checked, 0 broken links), `verify:agent-docs` (PASS), `verify:roadmap-current` (PASS), `verify:release-metadata` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:archive-clean` (PASS), `typecheck` (PASS), and `lint:eslint` (PASS). 100% green.
+- **2026-09-26 repository-maintenance review and repository hygiene execution (uncommitted).** Conducted full review of `docs/repository-maintenance/` (`README.md`, `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`) and executed comprehensive repository hygiene workflows. Remediated gitignore rule collision where trailing lines 401–403 in `.gitignore` conflicted with lines 67–68, restoring 0 ignored tracked files in `git ls-files -c -i --exclude-standard`. Normalized POSIX naming hygiene by relocating `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` (which contained non-ASCII em-dash and spaces) to canonical `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Isolated root clutter by moving `kimi-export-session_-20260926-051728.md` into gitignored `.agent-backups/session-exports/`, and purged untracked Finder `.DS_Store` metadata. Synchronized all four maintenance documents with the 2,248 tracked file inventory and v3.1.0 metadata. Verified with `verify:contracts:static` (28/28 checks PASS), `verify:archive-clean` (PASS), `verify:repository-identity` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:markdown-links` (448/448 markdown files PASS), `verify:agent-docs` (PASS), and `verify:superdesign-init` (PASS). 100% green.
+
+## Session History
+
+### 2026-09-26 — repository-wide documentation review, updating, and cleaning across docs/
+
+- **Baseline.** Verified root/branch/Node per AGENTS.md bootstrap: `main` at `3087051bb793498b29855edd17620aa694457b27`, Node `v22.15.0`, npm `10.9.2`, `venice-forge@3.1.0`. Preserved pre-existing user-owned working tree modifications in `docs/design/*.md`, `docs/repository-maintenance/*.md`, `docs/DOCS_INDEX.md`, and `.gitignore`.
+- **Systematic Documentation Audit & Cleanups:**
+  - *`docs/architecture/data-export-format.md`:* Updated version reference from `3.0.0-beta.3` to `3.1.0` and updated sample JSON envelope `appVersion` to `"3.1.0"`.
+  - *`docs/FAQ.md`:* Updated Node.js requirement to `22.15.0 or newer within Node 22.x (contract: >=22.15.0 <23.0.0)`; normalized link labels to canonical lowercase filenames (`[platform-support.md]`, `[building.md]`, `[troubleshooting.md]`).
+  - *`docs/ABOUT.md`:* Corrected path label from `docs/CONFIG.md` to `DEVELOPMENT/CONFIG.md`.
+  - *`docs/DEVELOPMENT/FILE_TREE.md`:* Replaced stale reference to non-existent audit results directory with canonical `docs/audits/Records/` description for historical audit evidence and snapshots.
+  - *`docs/DEVELOPMENT/macos.md`:* Normalized link label `[SIGNING_AND_NOTARIZATION.md]` to canonical filename `[`signing-and-notarization.md`]`.
+  - *`docs/discovery/DISCOVERY_DOCUMENT_AGENT.md`:* Added version context indicating discovery was originally drafted for `v3.0.0-beta.3` and active in `v3.1.0`; updated canonical specification reference from `docs/audits/TODO/Function_calling_todo.md` to `docs/audits/Records/Function_calling_todo.md`.
+  - *`docs/ROADMAP.md`:* Updated machine-readable state header with current HEAD commit `3087051bb793498b29855edd17620aa694457b27` and verified date `2026-09-26 (Pacific)`.
+  - *Untracked OS Metadata Purge:* Removed untracked `docs/.DS_Store`.
+- **Validation:**
+  - `npm run verify:contracts:static`: PASS (all 28 static contract checks passed).
+  - `npm run verify:markdown-links`: PASS (448/448 markdown files checked, 0 broken links).
+  - `npm run verify:agent-docs`: PASS.
+  - `npm run verify:roadmap-current`: PASS.
+  - `npm run verify:release-metadata`: PASS.
+  - `npm run verify:repo-handoff-hygiene`: PASS.
+  - `npm run verify:archive-clean`: PASS.
+  - `npm run typecheck`: PASS (0 errors across app, electron, electron.test).
+  - `npm run lint:eslint`: PASS (0 errors, 0 warnings across `src`, `electron`, `server.ts`, `scripts`).
+  - Out of scope: manual Electron QA, live provider calls. No commit, push, or release performed.
+- **2026-09-25 docs/design review and synchronization to current app status (uncommitted).** Conducted comprehensive audit of all specifications, contracts, and guides under `docs/design/`. Synchronized `DESIGN.md` (36 canonical semantic tokens, 33 code/syntax tokens, 43 built-in dual-mode theme families, local offline font stack, 4px grid), `THEME_SYSTEM.md` (44 starter YAML templates, 43 built-in families in full catalog), `CHARACTER_RP.md` and `SCENE_GENERATION.md` (centralized `veniceFetch` client dispatch via desktopBridge, removing prohibited direct fetch/bridge references), `MEDIA_STUDIO.md` (Media Studio Power Tools, 2..4 compare mode, lineage graph, bulk project tagging, safe export bundles, custody recovery queue), `CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md` (approved/implemented status, 36 roles, canonical tab registry references), `pastel-theme-pack-report.md` (archival implementation banner), `REPOSITORY_TREE.md` (tracked docs/design, removed stale CLAUDE/GEMINI/CHANGELOG references, added missing component directories, 36 roles, 44 YAML templates), `VENICE_UI_EXTRACTION.md` (completed foundational status), and `VENICE_FORGE_REFERENCE_UI_REDESIGN.md` (approved and fully implemented status across phases 1-10). Verified with `verify:agent-docs`, `verify:markdown-links` (442 files), `verify:contracts:static` (28 verifiers), `lint:eslint`, `typecheck`, `test:unit:theme` (787 tests), and `test:contracts` (304 tests). 100% green.
 - **2026-09-25 Theme Engine & Theme System exhaustive audit remediation (Waves 1 & 2, uncommitted).** Completed full remediation of findings from the 2026-09-25 exhaustive theme audit and session handoff across Wave 1 (token cluster + lifecycle + engine + placeholder AA) and Wave 2 (24 legacy V1 theme conversions, documentation corrections, P3 UI/CSS polish, and test suite harmonization). All 19 P2 and 13 P3 findings remediated and verified locally across 113 Electron test suites (1,299 tests), 14 theme unit test files (787 tests), 28 contract test files (304 tests), full static/feature/release contract verifiers (104 checks), theme tokens/collisions verifiers, and full production build. Embedded and linked `assets/Venice-Forge.mp4` and `assets/Venice_Forge.mp4` video teasers in `README.md` intro and Showcase sections. Zero regressions.
 - **2026-09-25 Theme Engine & Theme System exhaustive audit (uncommitted report).** Audited `main` at `8ee5ddd2` per the user's agent handoff via six read-only workstreams + executable probes. Confirmed: one authoritative V2 engine; all 43 built-ins schema-valid; export→import value-stable; injection/pollution-safe; deterministic fallbacks. Confirmed 19 P2 + 13 P3 findings (0 P0/P1). Full report: `docs/audits/VENICE_FORGE_THEME_SYSTEM_EXHAUSTIVE_AUDIT_2026-09-25.md`.
 - **2026-09-25 Diagnostics connectivity correction (uncommitted).** Started from clean `main` at `dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b`, with the previous research fix committed. Diagnostics now recognizes a successful live model-catalog request instead of always warning after key configuration. Cached catalogs and failed refreshes retain the warning. The connected label reuses existing locale translations under the diagnostics namespace.
 - Theme/mesh report remains **blocked by missing reproduction evidence** in `docs/ROADMAP.md`: requested affected theme names and screens. The supplied diagnostics screenshot's API outline is the intentional selected-section indicator. Shared mesh CSS has translucent gradients, but no change to their design is justified from this screenshot alone. No manual Electron QA or live provider call was performed.
 
 ## Session History
+
+### 2026-09-26 — repository-maintenance review and repository hygiene execution
+
+- **Baseline.** Verified root/branch/Node per AGENTS.md bootstrap: `main` at `3087051bb793498b29855edd17620aa694457b27`, Node `v22.15.0`, npm `10.9.2`, `venice-forge@3.1.0`. Preserved pre-existing user-owned working tree modifications in `docs/design/*.md` and `docs/summary_of_work.md`.
+- **Documentation Review & Synchronization:**
+  - Reviewed `docs/repository-maintenance/README.md`, `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, and `DELETION_MANIFEST.md`.
+  - Updated `REPOSITORY_HYGIENE_REPORT.md` with 2026-09-26 revalidation section, updated package version header to `3.1.0`, and synchronized Section 2 inventory table to reflect 2,248 active tracked files across 16 canonical directories with a clean 28-file root perimeter.
+  - Updated `FILE_MOVE_MANIFEST.md` with Section 0 recording the relocation and kebab-case renaming of the closed theme system audit handoff into `docs/audits/Records/`.
+  - Updated `DELETION_MANIFEST.md` with Section 0 recording 0 tracked file deletions, root transient session export isolation, and local `.DS_Store` purging.
+- **Gitignore Rule Collision Remediation:**
+  - Located trailing lines 401–403 in `.gitignore` (`.superdesign`, `/.superdesign`, `/.superdesign/init`) added in commit `00bc462c` that conflicted with existing rules at lines 67–68 (`/.superdesign/*`, `!/.superdesign/init/`). The trailing entries caused Git to treat tracked design specifications in `.superdesign/init/` as ignored (`git ls-files -c -i --exclude-standard` reported 6 tracked files).
+  - Removed lines 401–403 from `.gitignore`. Verified that `git ls-files -c -i --exclude-standard` now returns exactly 0 results. Verified `verify:superdesign-init` passes with source fingerprint `d0da102d82865bb1`.
+- **POSIX Naming Hygiene & Audit Archive Normalization:**
+  - Located `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` introduced in commit `00bc462c`. The file contained a non-ASCII em-dash (`—`) and whitespace, producing quote-escaped strings in POSIX tools and violating Section 1 Key Outcome 2 (`git ls-files | grep -E '[^a-zA-Z0-9._/-]'`).
+  - Because the theme audit and remediation waves have fully completed and landed on `main`, moved the document to `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` per `docs/audits/README.md` governance.
+  - Indexed the new path in `docs/DOCS_INDEX.md`. Verified that `git ls-files | grep -E '[^a-zA-Z0-9._/-]'` returns exactly 0 results.
+- **Root Clutter Isolation & OS Metadata Purge:**
+  - Cleared root transient session export `kimi-export-session_-20260926-051728.md` into gitignored `.agent-backups/session-exports/`.
+  - Purged untracked Finder `.DS_Store` metadata from working tree directories.
+- **Verification:**
+  - `npm run verify:contracts:static`: PASS (all 28 static contract checks passed).
+  - `npm run verify:archive-clean`: PASS.
+  - `npm run verify:repository-identity`: PASS (git mode).
+  - `npm run verify:repo-handoff-hygiene`: PASS.
+  - `npm run verify:markdown-links`: PASS (448/448 markdown files checked).
+  - `npm run verify:agent-docs`: PASS.
+  - `npm run verify:superdesign-init`: PASS.
+  - `node scripts/clean-release-staging.cjs`: PASS.
+  - Out of scope: manual Electron QA, live provider calls. No commit, push, or release performed.
+
+### 2026-09-25 — docs/design review and synchronization to current app status
+
+- **Baseline.** Verified root/branch/Node per AGENTS.md bootstrap: `main` at `3087051bb793498b29855edd17620aa694457b27`, Node `v22.15.0`, npm `10.9.2`, `venice-forge@3.1.0`. Clean worktree before session edits.
+- **Audit & Synchronizations:**
+  - *`docs/design/DESIGN.md`:* Updated color strategy to 36 canonical semantic roles + 33 code/syntax roles; documented all 43 built-in dual-mode theme families; documented local offline font stack (`MesloLGM Nerd Font` / `MesloLGS Nerd Font Mono` / `JetBrains Mono`); corrected spacing system to 4px/0.25rem increments and 16px/1rem base; updated navigation to reflect canonical grouped sidebar (`CANONICAL_TAB_ORDER` across Conversation, Generate, Build, System).
+  - *`docs/design/THEME_SYSTEM.md`:* Updated starter template count from 36 to 44 (43 built-in dual-variant themes + `example.theme.yaml`); expanded full catalog listing to all 43 built-in theme families.
+  - *`docs/design/CHARACTER_RP.md` & `docs/design/SCENE_GENERATION.md`:* Replaced prohibited direct `fetch('/api/venice/image/generate')` and `bridge.venice.request` references with centralized `veniceFetch()` in `src/services/veniceClient.ts` routed through `desktopBridge` and `performGuardedVeniceRequest`.
+  - *`docs/design/MEDIA_STUDIO.md`:* Documented Media Studio Power Tools (VERIFY-044), including 2..4 compare mode (`MEDIA_COMPARE_MAX = 4`), lineage graph tracing, bulk project assignment/tagging, and multi-item safe export bundles; updated Venice client dispatch to `veniceFetch()`; documented Electron generated-media custody and recovery queue (`generatedMediaStore.ts` / `generatedMediaRecoveryQueue.ts`).
+  - *`docs/design/CHAT_DESIGN_SYSTEM_REFRESH_2026-09-13.md`:* Marked status as approved and implemented, subsumed by the Reference-Driven UI Redesign; updated theme role counts to 36; replaced hardcoded tab numbers with `src/config/tabs.ts` registry references.
+  - *`docs/design/pastel-theme-pack-report.md`:* Added historical implementation report banner explaining that baseline `DocumentAgentView` errors were resolved on `main`.
+  - *`docs/design/REPOSITORY_TREE.md`:* Documented that `docs/design/*.md` and redesign evidence are tracked; removed references to removed governance docs (`CLAUDE.md`, `GEMINI.md`, root `CHANGELOG.md`); updated theme system to 36 roles and 44 templates; added missing component subdirectories (`character-creator`, `characters`, `documents`, `generation`, `image-inspector`, `notifications`, `search`, `settings`); corrected `sceneGenerationService.ts` path.
+  - *`docs/design/VENICE_UI_EXTRACTION.md`:* Added completed/archived foundation status header and documented full production integration of the unified sidebar and studios.
+  - *`docs/design/VENICE_FORGE_REFERENCE_UI_REDESIGN.md`:* Updated status from pending to approved and fully implemented across phases 1–10.
+- **Validation:**
+  - `npm run verify:agent-docs`: PASS.
+  - `npm run verify:markdown-links`: PASS (442 Markdown files checked).
+  - `npm run verify:contracts:static`: PASS (all 28 static contract verifiers passed).
+  - `npm run lint:eslint`: PASS (0 errors, 0 warnings across `src`, `electron`, `server.ts`, `scripts`).
+  - `npm run typecheck`: PASS (0 errors across `tsconfig.json`, `tsconfig.electron.json`, `tsconfig.electron.test.json`).
+  - `npm run test:unit:theme`: PASS (14/14 test files, 787/787 tests passed).
+  - `npm run test:contracts`: PASS (28/28 test files, 304/304 tests passed).
+  - Out of scope: manual Electron QA, headed visual QA, live provider calls. No commit, push, or release performed.
 
 ### 2026-09-25 — Theme Engine & Theme System exhaustive audit remediation (Waves 1 & 2)
 
@@ -270,6 +351,8 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 
 ## Open TODO Ledger
 
+* **DOCS-AUDIT-CLEANUP-2026-09-26** — Completed. Full audit and cleaning of `docs/` directory. Synchronized versioning to v3.1.0, Node engine to 22.15.0, link labels, canonical paths, and roadmap SHAs. 100% verifiers green. Working tree uncommitted.
+* **REPO-HYGIENE-2026-09-26** — Completed. Full review of `docs/repository-maintenance/`, `.gitignore` collision resolution (`.superdesign`), closed theme audit handoff relocation/rename to `docs/audits/Records/`, root clutter isolation (`.agent-backups/session-exports/`), and full static contract validation (28/28 checks PASS). Working tree uncommitted.
 * **THEME-AUDIT-2026-09-25** — Completed. Full remediation of Waves 1 and 2 (19 P2 + 13 P3 findings) executed and verified in the local working tree (uncommitted). See Session History and Validation Matrix.
 * **DIAGNOSTICS-CONNECTIVITY-2026-09-25** — Unconditional warning corrected locally with regression coverage. No commit/push performed.
 * **THEME-OVERLAY-2026-09-25** — Awaiting affected theme names/screens or an overlay screenshot; tracked in `docs/ROADMAP.md`.
@@ -293,6 +376,48 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 * **EXTERNAL-ACCEPTANCE** — `P2-016`, `P3-020`, and `VF-VERIFY-005` stay open. They are not local code defects. See `docs/ROADMAP.md`.
 
 ## Validation Matrix
+
+### 2026-09-26 — repository-wide documentation review, updating, and cleaning across docs/
+
+- Baseline: `main` at `3087051bb793498b29855edd17620aa694457b27`; Node `v22.15.0`; npm `10.9.2`; package `3.1.0`. Preserved pre-existing user-owned working tree modifications in `docs/design/*.md`, `docs/repository-maintenance/*.md`, `docs/DOCS_INDEX.md`, and `.gitignore`.
+- `npm run verify:contracts:static` — PASS (all 28 static contract checks passed: lockfile, identity, roadmap, release metadata, bundle budget, safety guard, markdown links, repo handoff hygiene, theme tokens, meteocon CSP, network boundaries, custom protocol privileges, venice API docs, venice contract drift, CI contract, agent docs, superdesign init, image policy, work orders, no native dialogs, inactive feature archive, provider adapters, i18n, i18n hardcoded regressions, IPC parity, prompt language, transitive deprecations, theme collisions).
+- `npm run verify:markdown-links` — PASS (448/448 markdown files checked, 0 broken links or anchors).
+- `npm run verify:agent-docs` — PASS (passed).
+- `npm run verify:roadmap-current` — PASS (passed).
+- `npm run verify:release-metadata` — PASS (passed, stack facts verified).
+- `npm run verify:repo-handoff-hygiene` — PASS (passed).
+- `npm run verify:archive-clean` — PASS (passed).
+- `npm run typecheck` — PASS (0 errors across app, electron, electron.test).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across `src`, `electron`, `server.ts`, `scripts`).
+- `rm -f docs/.DS_Store` — PASS (untracked metadata purged).
+- Out of scope: manual Electron QA, live provider calls. No commit, push, or release performed.
+
+### 2026-09-26 — repository-maintenance review and repository hygiene execution
+
+- Baseline: `main` at `3087051bb793498b29855edd17620aa694457b27`; Node `v22.15.0`; npm `10.9.2`; package `3.1.0`. Preserved pre-existing user-owned working tree modifications in `docs/design/*.md` and `docs/summary_of_work.md`.
+- `npm run verify:contracts:static` — PASS (all 28 static contract checks passed: lockfile, identity, roadmap, release metadata, bundle budget, safety guard, markdown links, repo handoff hygiene, theme tokens, meteocon CSP, network boundaries, custom protocol privileges, venice API docs, venice contract drift, CI contract, agent docs, superdesign init, image policy, work orders, no native dialogs, inactive feature archive, provider adapters, i18n, i18n hardcoded regressions, IPC parity, prompt language, transitive deprecations, theme collisions).
+- `npm run verify:archive-clean` — PASS (archive exclusion config and tracked files clean).
+- `npm run verify:repository-identity` — PASS (git mode).
+- `npm run verify:repo-handoff-hygiene` — PASS (clean).
+- `npm run verify:markdown-links` — PASS (448/448 markdown files checked, 0 broken links or anchors).
+- `npm run verify:agent-docs` — PASS (passed).
+- `npm run verify:superdesign-init` — PASS (source fingerprint d0da102d82865bb1).
+- `node scripts/clean-release-staging.cjs` — PASS (idempotent, safe release check).
+- `git ls-files -c -i --exclude-standard` — PASS (0 tracked files ignored).
+- `git ls-files | grep -E '[^a-zA-Z0-9._/-]'` — PASS (0 non-ASCII or unescaped filenames).
+- Out of scope: manual Electron QA, headed visual QA, live provider calls. No commit, push, or release performed.
+
+### 2026-09-25 — docs/design review and synchronization to current app status
+
+- Baseline: `main` at `3087051bb793498b29855edd17620aa694457b27`; Node `v22.15.0`; npm `10.9.2`; package `3.1.0`.
+- `npm run verify:agent-docs` — PASS.
+- `npm run verify:markdown-links` — PASS (442 Markdown files checked, 0 errors).
+- `npm run verify:contracts:static` — PASS (all 28 static contract verifiers passed).
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across `src`, `electron`, `server.ts`, `scripts`).
+- `npm run typecheck` — PASS (0 errors across `tsconfig.json`, `tsconfig.electron.json`, `tsconfig.electron.test.json`).
+- `npm run test:unit:theme` — PASS (14/14 test files, 787/787 tests passed).
+- `npm run test:contracts` — PASS (28/28 test files, 304/304 tests passed).
+- Out of scope: manual Electron QA, headed visual QA, live provider calls. No commit, push, or release performed.
 
 ### 2026-09-25 — Theme Engine & Theme System exhaustive audit remediation (Waves 1 & 2)
 

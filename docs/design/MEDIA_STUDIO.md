@@ -294,15 +294,23 @@ explaining what the row means. The row is hidden when no capability
 is recognised, so unknown models do not show a misleading "all
 supported" grid.
 
-## Batch actions
+## Batch actions & Power Tools (VERIFY-044)
 
-The toolbar's multi-select toggle enters batch mode. The batch-action
-bar surfaces:
+The toolbar's multi-select toggle enters batch mode powered by `src/stores/media-selection-store.ts`. The batch-action bar and power tools surface:
 
 - a live count + total size of the selection,
 - a Select All / Clear toggle that scopes to the **current filter**
   (so "All" only selects the visible filtered set, not the entire
   store),
+- **Compare Mode**: Enabled when 2 to `MEDIA_COMPARE_MAX` (4) items are
+  selected. Opens the rich comparison dialog (`compare-view.tsx`) with side-by-side
+  and overlay diffing across recipes and generation parameters,
+- **Lineage Tree Navigation**: Trace ancestor and child derivatives (`lineage-viewer.tsx`)
+  using `parentId` and `childrenIds` relationships,
+- **Bulk Project & Tagging**: Assign or remove tags and projects across
+  all selected media items in a single operation,
+- **Safe Export Bundles**: Multi-item export bundle packaging with manifest
+  and sidecar JSON metadata (`media-export-bundle.ts`),
 - Favorite / Unstar — applies to the entire selection in one
   `patchMany` round-trip,
 - Delete — gated on a `window.confirm` with the count; uses
@@ -327,18 +335,24 @@ no way to read from the local filesystem, no way to open the OS file
 manager. The "Export" button works because browser-anchor downloads
 are an OS-level affordance, not a filesystem read.
 
-## Safety
+## Safety & Custody
 
-Every Venice call still goes through `venice()` (services) or
-`veniceBlob()` (lib), and therefore through the canonical IPC safety
-guard. The Media Studio adds no new Venice endpoint, so the
-`verify-safety-guard` script continues to pass.
+Every Venice call routes through `veniceFetch()` in `src/services/veniceClient.ts`,
+enforcing the canonical desktop bridge, request allowlists, and IPC safety guard
+(`performGuardedVeniceRequest()` in `guardPipeline.ts`). Media Studio adds no new
+Venice endpoint, so the `verify-safety-guard` script continues to pass.
 
 The image-tool write path (`image-tools.tsx → useMediaStore.upsert`)
 runs *after* the result is returned, so the guard has already
 approved the request body. Persisting the result to the media store
 cannot bypass the guard because no new Venice call is made during the
 persist.
+
+In Electron desktop mode, media custody is backed by main-process storage
+services (`generatedMediaStore.ts` and `generatedMediaRecoveryQueue.ts`). If local
+persistence fails due to disk pressure, lockouts, or file busy errors, the result
+is placed into an in-memory recovery custody queue rather than silently lost, allowing
+retry or Save As recovery without exposing raw paths or secrets to the renderer.
 
 ## Tests
 

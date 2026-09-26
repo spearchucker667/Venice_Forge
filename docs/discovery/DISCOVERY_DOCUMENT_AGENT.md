@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-18
 **Agent:** Venice Forge Agent
-**Repository:** Venice Forge v3.0.0-beta.3
+**Repository:** Venice Forge (originally drafted for v3.0.0-beta.3; active in v3.1.0)
 **Branch:** main (commit 10d4d9f)
 
 ---
@@ -11,7 +11,7 @@
 
 The authoritative source of truth for the Document Agent is:
 
-**`docs/audits/TODO/Function_calling_todo.md`** (3880 lines)
+**`docs/audits/Records/Function_calling_todo.md`** (3880 lines)
 
 This handoff document, written for a senior Electron security architect, defines:
 

@@ -1,13 +1,22 @@
 # Venice Forge — Deletion & Retirement Manifest
 
-**Latest revalidation working tree:** 2026-09-23 repository-management revalidation on `main` (published HEAD `c4134390241f792527837fc143c7e979ae36fa7a`)
+**Latest revalidation working tree:** 2026-09-26 repository-management revalidation on `main` (baseline `3087051bb793498b29855edd17620aa694457b27`)
 **Historical overhaul baseline:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
-**Date:** 2026-09-18
-**Scope:** Repository Hygiene, Documentation Overhaul, Showcase Integration & CodeQL Hardening
+**Date:** 2026-09-26
+**Scope:** Repository Hygiene, Document Relocation, Gitignore Alignment & POSIX Normalization
 
 ---
 
-## 0. Current Revalidation — 2026-09-23
+## 0. Current Revalidation — 2026-09-26
+
+- **Tracked Deletions:** Zero tracked files were deleted.
+- **Untracked Cleanup & Root Clutter Isolation:**
+  - Root transient session export `kimi-export-session_-20260926-051728.md` was moved to gitignored storage at `.agent-backups/session-exports/kimi-export-session_-20260926-051728.md` to keep the repository root strictly scoped to canonical entry points and configuration.
+  - Local macOS Finder metadata files (`.DS_Store`) were purged from the working tree.
+  - User-owned dirty working tree modifications in `docs/design/*.md` and `docs/summary_of_work.md` were preserved untouched.
+- **All tracked assets, code, test suites, and documentation remain active.**
+
+## 0.1 Prior Revalidation — 2026-09-23
 
 - **Path:** `assets/ReadMe_Preview.png`
 - **Classification:** Unused packaged image

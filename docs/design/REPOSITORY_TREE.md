@@ -15,12 +15,11 @@ Express/Vite web development mode.
 > `docs/reports/historical/` are evidence snapshots only.
 >
 > **Clean audit ZIP policy:** The `scripts/clean-repo-zip.sh` archive includes
-
 > tracked source, required static packaging assets (`build/icon.*`), and
 > canonical documentation. It excludes generated outputs (`dist/`,
 > `dist-electron/`, `release/`, `coverage/`), dependency trees (`node_modules/`),
-> local-only scratch (`docs/audits/`, `docs/design/`, `docs/HQE_AUDIT_REPORT.md`,
-> `docs/AGENTS/`, `todo.md`, `scripts/dev-tools/venice-styles.json`), secrets
+> local-only scratch (`docs/audits/`, `docs/HQE_AUDIT_REPORT.md`,
+> `docs/AGENTS/`, untracked evidence, `scripts/dev-tools/venice-styles.json`), secrets
 > (`.env*`, `*.pem`, etc.), and OS/editor metadata (`.DS_Store`, `Thumbs.db`,
 > `__MACOSX/`, `._*`).
 
@@ -52,14 +51,14 @@ Express/Vite web development mode.
 │   ├── icon.ico                        # Windows application icon bundle
 │   └── icon.png                        # Linux/AppImage icon
 ├── config/
-│   └── themes/                         # Built-in theme YAML templates
+│   └── themes/                         # Built-in theme YAML templates (44 files: 43 built-ins + example)
+│       ├── amber-archive.yaml
 │       ├── dark.yaml
 │       ├── dracula.yaml
 │       ├── example.theme.yaml
-│       ├── gruvbox_dark.yaml
 │       ├── light.yaml
-│       ├── rosepine.yaml
-│       └── venice.yaml
+│       ├── venice.yaml
+│       └── ... (44 templates total)
 ├── docs/                               # Public project documentation (see docs/DOCS_INDEX.md and docs/summary_of_work.md)
 ├── electron/                           # Electron main process source
 │   ├── ipc/                            # IPC handlers and validation
@@ -172,7 +171,7 @@ Express/Vite web development mode.
 │   │       ├── normalization.ts            # Text normalization + multi-view output (T15)
 │   │       └── promptPayloadExtractor.ts   # Endpoint-aware prompt field extraction
 │   ├── stores/                         # Zustand state management (40+ stores; see below)
-│   ├── theme/                          # Token-based theme system (29 canonical roles, WCAG AA)
+│   ├── theme/                          # Token-based theme system (36 canonical roles, 33 code/syntax roles, WCAG AA)
 │   ├── types/                          # TypeScript type definitions
 │   ├── App.tsx                         # Main React App component
 │   ├── App.navigation.test.ts
@@ -204,9 +203,9 @@ Express/Vite web development mode.
 ├── package-scripts.test.ts             # Locks the canonical `dev:web` / verify:* script strings
 ├── electron-builder.config.cjs         # Windows/macOS/Linux packaging config (VERIFY-052)
 ├── .env.example                        # Documented env-var template
-├── .gitignore                          # Excludes node_modules/, dist/, dist-electron/, release/, coverage/, .env*, docs/AGENTS/, docs/HQE_AUDIT_REPORT.md, docs/design/, todo.md, Thumbs.db, desktop.ini, *.tmp
+├── .gitignore                          # Excludes node_modules/, dist/, dist-electron/, release/, coverage/, .env*, local scratch, logs
 ├── LICENSE                             # Apache-2.0
-└── Root governance docs                # README.md, AGENTS.md, CHANGELOG.md, CLAUDE.md, GEMINI.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md, SUPPORT.md, PRIVACY.md
+└── Root governance docs                # README.md, AGENTS.md, CODE_OF_CONDUCT.md, CONTRIBUTING.md, SECURITY.md, SUPPORT.md, PRIVACY.md
 ```
 
 ## `src/components/` Layout Groups
@@ -217,19 +216,27 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 | Subdir | Purpose | Key files |
 |--------|---------|-----------|
 | `audio/` | Audio Studio (TTS + Whisper STT) | `audio-view.tsx` (+ test) |
+| `character-creator/` | Character Creator / ST Card Studio 10-step wizard | `CharacterCreatorView.tsx` (+ test), `CharacterCreatorWelcome.tsx`, `CharacterCreatorReady.tsx`, `CharacterCreatorProcessPanel.tsx`, `CharacterCreatorMascot.tsx`, `CharacterCreatorLocalPickerModal.tsx`, `CharacterCreatorGenerating.tsx`, `CharacterCreatorError.tsx`, `CharacterCreatorDraftEditor.tsx`, `CharacterCreatorCompleted.tsx` |
+| `characters/` | Hosted & local characters avatar and card components | `CharacterAvatar.tsx` (+ test) |
 | `chat/` | Chat Studio (streaming, attachments, vision gate) | `chat-view.tsx` (+ test), `chat-input.tsx` (+ test), `message-bubble.tsx` (+ test), `venice-params.tsx` |
 | `command-palette/` | Ctrl/Cmd-K command palette (selection-aware) | `CommandPalette.tsx`, `CommandPalette.test.tsx` |
+| `documents/` | Managed Document Agent workspace view and file ingestion | `DocumentAgentView.tsx` (+ test), `DocumentRenderer.tsx`, `DocumentUploadModal.tsx`, `DocumentWorkspaceBrowser.tsx` |
 | `embeddings/` | Embeddings Studio | `embeddings-view.tsx` |
 | `gallery/` | Media Studio (gallery, compare, lineage, recipe cards) | `gallery-view.tsx`, `compare-view.tsx`, `lineage-viewer.tsx`, `media-card.tsx`, `media-detail-dialog.tsx`, `media-inspector.tsx`, `media-toolbar.tsx`, `recipe-comparison.tsx`, `recipe-compatibility-card.tsx` (+ tests) |
+| `generation/` | Generation loading indicators and status viewports | `GenerationLoadingIndicator.tsx`, `GenerationProgress.tsx` |
 | `image/` | Image Studio (generate, edit, combine, upscale) | `image-view.tsx`, `image-tools.tsx`, `image-page.tsx` (+ tests) |
+| `image-inspector/` | Image Inspector structured analysis and prompt extraction | `ImageInspectorView.tsx` (+ test), `ExifDrawer.tsx`, `ZoomPanCanvas.tsx` |
 | `layout/` | App shell (header, sidebar, inspector pane, memory panel) | `header.tsx`, `sidebar.tsx`, `inspector-pane.tsx`, `memory-panel.tsx`, `api-key-dialog.tsx` (+ tests) |
 | `music/` | Music Studio | `music-view.tsx` |
+| `notifications/` | In-app notifications and toast management | `NotificationCenter.tsx`, `ToastViewport.tsx` |
 | `playground/` | Playground agent + live workflow canvas | `playground-view.tsx`, `playground-chat.tsx`, `agent-model-picker.tsx`, `preview-node.tsx`, `workflow-preview.tsx` |
 | `privacy/` | Storage / Privacy Dashboard (Phase 2H) | `StoragePrivacyDashboard.tsx` (+ test) |
 | `prompts/` | Prompt Library Foundation (Phase 2D) | `PromptLibraryView.tsx` (+ test) |
 | `research/` | Research Workspace (Phase 2I) | `ResearchWorkspaceView.tsx` (+ test) |
 | `rp-studio/` | Character RP Studio and ST Card Studio (cards, ten-step editor, embedded books, personas, lorebooks, chats, prompt trace, scene generator) | `RpStudioView.tsx`, `CharacterLibrary.tsx`, `CharacterEditor.tsx`, `CharacterBookEditor.tsx`, `PersonaManager.tsx`, `LorebookManager.tsx`, `RpChatList.tsx`, `RpChatView.tsx`, `SceneGenerator.tsx`, `AssetGallery.tsx`, `PromptDebugDrawer.tsx`, `_shared.tsx`, `index.ts` (+ tests) |
 | `scenes/` | Scene Composer (Phase 2E) | `SceneComposerView.tsx` (+ test) |
+| `search/` | Search and web scraping research interface | `SearchScrapeView.tsx`, `ScrapeTab.tsx`, `SearchTab.tsx` (+ tests) |
+| `settings/` | Application settings, local YAML config, and diagnostics | `SettingsView.tsx` (+ test), `AppearanceSettings.tsx`, `ProviderSettings.tsx`, `LocalConfigSettings.tsx` |
 | `status/` | Header Status Cluster + Diagnostics Drawer (Phase 2C) | `HeaderStatusCluster.tsx`, `StatusIndicator.tsx`, `DiagnosticsDrawer.tsx` (+ tests) |
 | `ui/` | Shared primitives | `error-boundary.tsx`, `generation-view.tsx`, `logo.tsx`, `select.tsx`, `shared.tsx` (+ test), `spinner.tsx`, `toaster.tsx` |
 | `video/` | Video Studio (queue + upscale) | `video-view.tsx` |
@@ -261,7 +268,7 @@ The renderer UI is grouped by feature. The canonical tab order is owned by
 | `characterCards/` | Card/book adapters, encrypted draft helpers, AI proposal generation/refinement, Studio handoffs, and field-aware sync merge |
 | `rpPromptCompiler.ts` + tests | RP prompt stack compiler (Phase 2F) |
 | `rp/` | Renderer-side wrappers (assetService, characterCardService, lorebookRendererService, lorebookService, personaService, promptBuilderService, rpChatService) — Electron IPC + web IDB |
-| `sceneGenerationService.ts` (in `src/shared/safety/`) | Scene prompt extraction + `/image/generate` dispatch with hydration-gated `assessScenePrompt` |
+| `sceneGenerationService.ts` (in `src/services/rp/`) | Scene prompt extraction + `/image/generate` dispatch with hydration-gated `assessScenePrompt` |
 
 ## `src/stores/` Surface (40+ Zustand stores)
 

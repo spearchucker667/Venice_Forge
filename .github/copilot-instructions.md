@@ -230,7 +230,7 @@ The `src/research/` directory contains a pluggable provider system for search, s
 
 ### Theme System
 
-`src/theme/` provides a 29-role semantic token system with seven built-in palettes and a live ThemeMaker UI. `completeThemeTokens()` preserves legacy persisted themes; ThemeMaker YAML uses the full snake_case contract. Themes persist to encrypted IndexedDB.
+`src/theme/` provides a 36-role semantic token system (plus 33 code/syntax roles) with 43 built-in dual-mode theme families and a live ThemeMaker UI. `completeThemeTokens()` preserves legacy persisted themes; ThemeMaker YAML uses the full snake_case contract. Themes persist to encrypted IndexedDB.
 
 ### Auto-Updates
 Auto-updates are fetched via GitHub Releases. The `electron/ipc/updates.ts` module securely exposes `checkForUpdates`, `downloadUpdate`, and `installUpdate` to the renderer while keeping download logic in the sandboxed main process.

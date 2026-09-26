@@ -14,14 +14,14 @@ No. Venice Forge is an independent Apache 2.0-licensed project. It is not endors
 - **Linux** — Not officially packaged; development use only with plaintext key fallback
 - **Web browser** — Supported in development mode only
 
-See [PLATFORM_SUPPORT.md](DEVELOPMENT/platform-support.md) for the full matrix.
+See [platform-support.md](DEVELOPMENT/platform-support.md) for the full matrix.
 
 ---
 
 ## Development & Building
 
 ### What Node.js version do I need?
-Node.js **22.13 or newer within Node 22.x** with npm 10+. CI tests the supported Node 22 runtime.
+Node.js **22.15.0 or newer within Node 22.x** (contract: `>=22.15.0 <23.0.0`) with npm 10+. CI tests the supported Node 22 runtime.
 
 ### How do I start development?
 ```bash
@@ -252,11 +252,11 @@ Open a GitHub issue using the bug report template. Include:
 
 - [README.md](../README.md) — Setup and usage
 - [ABOUT.md](ABOUT.md) — Architecture and goals
-- [BUILDING.md](DEVELOPMENT/building.md) — Development and packaging commands
+- [building.md](DEVELOPMENT/building.md) — Development and packaging commands
 - [release.md](release/release.md) — Release checklist
 - [SECURITY.md](../SECURITY.md) — Full security model
 - [LEGAL.md](../LEGAL.md) — Legal and TOS coverage
-- [PLATFORM_SUPPORT.md](DEVELOPMENT/platform-support.md) — Supported platforms
-- [TROUBLESHOOTING.md](DEVELOPMENT/troubleshooting.md) — Common issues and fixes
+- [platform-support.md](DEVELOPMENT/platform-support.md) — Supported platforms
+- [troubleshooting.md](DEVELOPMENT/troubleshooting.md) — Common issues and fixes
 - [summary_of_work.md](summary_of_work.md) — Current development and validation history
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — How to contribute

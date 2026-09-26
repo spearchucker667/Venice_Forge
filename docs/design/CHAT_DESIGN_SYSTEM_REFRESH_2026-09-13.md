@@ -1,8 +1,8 @@
 # Chat & Design System Refresh — 2026-09-13
 
-> **Status:** Design direction awaiting user confirmation.
-> **Scope:** Chat surface as the showcase, with the design system layer strengthened to support all 20 tabs.
-> **Audience:** Engineering. Implementation follows this direction in a single session.
+> **Status:** APPROVED & IMPLEMENTED (2026-09-13). Subsumed by the Reference-Driven UI Redesign ([`VENICE_FORGE_REFERENCE_UI_REDESIGN.md`](./VENICE_FORGE_REFERENCE_UI_REDESIGN.md)).
+> **Scope:** Chat surface as the showcase, with the design system layer strengthened to support all canonical tabs (`src/config/tabs.ts`).
+> **Audience:** Engineering. Historical specification for the 2026-09-13 chat and design system refresh pass.
 
 ---
 
@@ -10,7 +10,7 @@
 
 Venice Forge already runs a mature design system. It is **not** a blank canvas.
 
-- **Theme engine v2** (`src/theme/`): 45+ families, 29 canonical semantic roles, WCAG AA contrast enforcement, light + dark variants, `applyTheme()` writes CSS custom properties on `:root`. Hard constraint: do not break compatibility with any existing theme.
+- **Theme engine v2** (`src/theme/`): 43 built-in families, 36 canonical semantic roles (plus 33 code/syntax roles), WCAG AA contrast enforcement, light + dark variants, `applyTheme()` writes CSS custom properties on `:root`. Hard constraint: do not break compatibility with any existing theme.
 - **Tailwind v4 `@theme` contract** (`src/styles/theme.css`): Maps CSS vars → Tailwind color tokens. Provides `bg-surface`, `text-text-primary`, `border-border`, `bg-accent`, `bg-danger`, `bg-success`, `bg-warning`, etc.
 - **Motion system**: `--motion-fast` (140ms), `--motion-medium` (220ms), `--motion-ease`. Global `prefers-reduced-motion` respected.
 - **Mesh aesthetic**: `mesh-surface`, `mesh-card`, `mesh-input`, `mesh-sidebar`, `mesh-header`, `mesh-panel`, `app-mesh-overlay`. Subtle gradients + backdrop-blur. Distinctive but inconsistently applied.
@@ -112,8 +112,8 @@ Extract repeated patterns into shared primitives under `src/components/ui/`. New
 - `src/theme/builtins/light.ts`, `dark.ts` — add the new semantic surface aliases (defaults derived from existing tokens).
 
 **Won't touch (this pass):**
-- 18 other top-level tabs. They keep their existing styling; the system improvements will benefit them as they get touched in future sessions.
-- The 43 other theme families. They will continue to apply because the new aliases fall back to existing tokens when authors omit them.
+- All other canonical tabs (`src/config/tabs.ts`). They kept their existing styling during this pass; the system improvements benefited them as later redesign waves touched them.
+- The 43 other theme families. They continue to apply because the new aliases fall back to existing tokens when authors omit them.
 - i18n catalogs. No new visible strings in this pass.
 - Electron main process, IPC, persistence. Out of scope.
 - CSP / network boundaries. No change.
@@ -139,7 +139,7 @@ After implementation:
 - **Risk: regression in existing theme families.** Mitigation: new aliases all derive from existing tokens via `completeThemeTokens()`. If a theme doesn't override, the derived value is identical to today's behavior.
 - **Risk: arbitrary-value audit misses something.** Mitigation: `verify:theme-tokens` + a small new check for `text-[Npx]`, `bg-emerald-*`, `bg-amber-*` in the touched files only.
 - **Non-goal: replacing the mesh aesthetic.** It is a defining feature of the brand; we're refining its application, not removing it.
-- **Non-goal: a full 20-tab redesign.** That's a multi-session program. This session strengthens the system and proves it on the chat surface.
+- **Non-goal: a full redesign across all tabs.** That was deferred to the Reference-Driven UI Redesign program ([`VENICE_FORGE_REFERENCE_UI_REDESIGN.md`](./VENICE_FORGE_REFERENCE_UI_REDESIGN.md)). This session strengthened the system and proved it on the chat surface.
 
 ---
 
@@ -150,4 +150,4 @@ The implementation is bounded by these user-confirmed decisions:
 1. **Body face**: **Keep `MesloLGM Nerd Font`** (current, distinctive). Do not switch to Inter. The unused `@fontsource/inter`, `@fontsource/jetbrains-mono`, `@fontsource/lora` packages remain dormant.
 2. **Composer elevation**: soft-shadow at rest + focus-tinted border. No "floating" heavy shadow.
 3. **Icon library**: **Keep inline SVGs** in chat bubble. Refinement target is *consistency* (uniform stroke width 1.75, uniform sizes 14/16/18, consistent corner radius on action buttons), not library migration.
-4. **Scope**: **System + chat + shell** only in this session. Other 18 tabs keep their current styling; the system improvements (type scale, container widths, semantic surface aliases, primitives) benefit them when later sessions touch them.
+4. **Scope**: **System + chat + shell** only in this session. Other tabs (`src/config/tabs.ts`) kept their current styling until subsequent redesign phases; the system improvements (type scale, container widths, semantic surface aliases, primitives) benefited them when later sessions touched them.

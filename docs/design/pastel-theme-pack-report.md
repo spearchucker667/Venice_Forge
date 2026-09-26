@@ -1,5 +1,7 @@
 # Pastel Theme Pack Implementation Report
 
+> **Historical Implementation Report:** This document records the addition and initial validation of the Pastel Theme Pack (`cotton-candy-console`, `sweet-nightmare`, `dual-persona`, `polaroid-board`) anchored to commit `afc801a`. The pre-existing worktree issues noted in Section 1 (such as `DocumentAgentView.tsx`) have since been resolved on `main`. The active 43-theme family architecture and 36-token system are maintained in [`THEME_SYSTEM.md`](./THEME_SYSTEM.md).
+
 ## Repository State
 
 - **Branch:** main

@@ -12,7 +12,7 @@ Describe the bug in one or two sentences.
 
 - **OS / Version:** (e.g., Windows 11, macOS 14.2)
 - **Architecture:** (e.g., x64, Apple Silicon arm64)
-- **App Version:** (e.g., 3.0.0-beta.3)
+- **App Version:** (e.g., 3.1.0)
 - **Artifact Type:** (e.g., NSIS Setup, Portable .exe, macOS .dmg, macOS .zip)
 - **Signed / Unsigned:** (e.g., Local unsigned build, Release signed)
 

@@ -1,15 +1,32 @@
 # Venice Forge — Repository Hygiene, Organization, File Hygiene & Gitignore Overhaul Report
 
-> **Latest revalidation working tree:** 2026-09-18 overhaul on `main` (baseline `ebf814a4edea71b7ea17d318525493d6678f621f`)
+> **Latest revalidation working tree:** 2026-09-26 hygiene pass on `main` (baseline `3087051bb793498b29855edd17620aa694457b27`)
 > **Historical baseline for the original overhaul:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
-> **Package Version:** `3.0.0-beta.3`
+> **Package Version:** `3.1.0`
 > **Branch:** `main`
-> **Date:** 2026-09-18
+> **Date:** 2026-09-26
 > **Authority:** Principal Repository Maintainer, Documentation Architect & Release Engineer
 
 ---
 
-## Current Revalidation — 2026-09-18
+## Current Revalidation — 2026-09-26
+
+- **Baseline & Worktree Safety:** Checked-out `main` verified at `3087051bb793498b29855edd17620aa694457b27`. Pre-existing user-owned working tree modifications in `docs/design/*.md` and `docs/summary_of_work.md` were preserved untouched.
+- **Gitignore Rule Conflict Remediation:** Identified trailing lines 401–403 in `.gitignore` (`.superdesign`, `/.superdesign`, `/.superdesign/init`) appended in commit `00bc462c` that conflicted with existing lines 67–68 (`/.superdesign/*`, `!/.superdesign/init/`). The trailing entries caused Git to treat tracked design files in `.superdesign/init/` as ignored (`git ls-files -c -i --exclude-standard` reported 6 tracked files). Removed the redundant conflict; verified `git ls-files -c -i --exclude-standard` returns exactly 0 results.
+- **POSIX Naming Hygiene & Audit Archive Normalization:** Identified `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` introduced in `00bc462c` containing non-ASCII em-dash (`—`) and whitespace, which produced quote-escaped strings in POSIX tools and violated naming conventions. Because the Theme Engine audit and Waves 1 & 2 remediation have fully landed on `main`, the document was moved to `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Verified `git ls-files | grep -E '[^a-zA-Z0-9._/-]'` returns 0 results.
+- **Root Clutter Isolation:** Root-level transient session export (`kimi-export-session_-20260926-051728.md`) was cleared from root to gitignored storage at `.agent-backups/session-exports/`. Untracked local macOS Finder metadata files (`.DS_Store`) were purged from the working tree.
+- **Repository Inventory:** Verified 2,248 tracked files across the repository, with a clean 28-file root governance perimeter.
+- **Validation Matrix Execution:**
+  - `npm run verify:contracts:static` (28/28 checks PASS: lockfile, identity, roadmap, release metadata, bundle budget, safety guard, markdown links, repo handoff hygiene, theme tokens, meteocon CSP, network boundaries, custom protocol privileges, venice API docs, venice contract drift, CI contract, agent docs, superdesign init, image policy, work orders, no native dialogs, inactive feature archive, provider adapters, i18n, i18n hardcoded regressions, IPC parity, prompt language, transitive deprecations, theme collisions).
+  - `npm run verify:archive-clean` (PASS — archive exclusion config and tracked files are clean).
+  - `npm run verify:repository-identity` (PASS — git mode).
+  - `npm run verify:repo-handoff-hygiene` (PASS).
+  - `npm run verify:markdown-links` (PASS — 448/448 markdown files checked, 0 broken links or anchors).
+  - `npm run verify:agent-docs` (PASS).
+  - `npm run verify:superdesign-init` (PASS).
+  - `node scripts/clean-release-staging.cjs` (PASS — idempotent release directory safety check).
+
+## Prior Revalidation — 2026-09-18
 
 - **Baseline & Worktree Safety:** Checked-out `main` verified at `ebf814a4edea71b7ea17d318525493d6678f621f`. Pre-existing user-owned working tree modifications (`README.md`, `docs/summary_of_work.md`, untracked `assets/Venice_Forge_Hero.png`) were preserved.
 - **Root Clutter Isolation:** Root-level transient session exports (`kimi-export-session_-*.md`) and local screenshot (`Screenshot_20260914-132444.png`) cleared to gitignored storage (`.agent-backups/session-exports/` and `.design-captures/`). Option B was preserved for root `server.ts` and `server.test.ts` to maintain live package-script contracts (`dev:server`, `build:server`).
@@ -58,28 +75,37 @@ An exhaustive repository hygiene, documentation architecture, file organization,
 
 ## 2. Inventory & Classification of Tracked Files
 
-The repository tracks 1,974 files across the following top-level functional areas:
+The repository tracks 2,248 files across the following top-level functional areas:
 
 | Area | Tracked Count | Purpose | Status |
 |---|:---:|---|---|
-| **Root Governance & Config** | 29 | App entrypoints, package manifests, build tool configs, license, root docs | Audited, clean |
-| **`src/`** | 1,033 | React 19 renderer, 19+ Zustand stores, components, services, theme engine | Verified active |
-| **`docs/`** | 377 | Canonical Diátaxis documentation, audits, i18n catalogs (12 locales), specifications | Audited, updated |
-| **`electron/`** | 225 | Electron 43 main process, preload, IPC handlers, native services, guard pipeline | Verified active |
-| **`scripts/`** | 120 | Build, verification contracts, release packaging, i18n tooling, test harnesses | Verified active |
-| **`config/`** | 47 | 43 built-in YAML themes, hardcoded string baselines, prompt language audit | Verified active |
-| **`tests/`** | 43 | Contract, security, CSP, theme, backup, and Playwright smoke tests | Verified active |
-| **`assets/`** | 34 | Branding SVGs, mascot animations (with static reduced-motion fallbacks), README preview | Verified active |
+| **`src/`** | 1,141 | React 19 renderer, 19+ Zustand stores, components, services, theme engine | Verified active |
+| **`docs/`** | 492 | Canonical Diátaxis documentation, audits, i18n catalogs (12 locales), specifications | Audited, updated |
+| **`electron/`** | 229 | Electron 43 main process, preload, IPC handlers, native services, guard pipeline | Verified active |
+| **`scripts/`** | 132 | Build, verification contracts, release packaging, i18n tooling, test harnesses | Verified active |
+| **`tests/`** | 55 | Contract, security, CSP, theme, backup, and Playwright smoke tests | Verified active |
+| **`assets/`** | 50 | Branding SVGs, mascot animations (with static reduced-motion fallbacks), README videos | Verified active |
+| **`config/`** | 46 | 43 built-in YAML themes, hardcoded string baselines, prompt language audit | Verified active |
 | **`public/`** | 32 | Vite public web assets (branding lockups, default splash page) | Verified active |
+| **Root Governance & Config** | 28 | App entrypoints, package manifests, build tool configs, license, root docs | Audited, clean |
 | **`inactive-features/`** | 16 | Archived research-browser feature (verified by `verify:inactive-feature-archive`) | Verified inactive |
 | **`.github/`** | 12 | CI/CD workflows, CodeQL, dependabot, issue/PR templates, CODEOWNERS | Verified active |
+| **`.superdesign/`** | 6 | Canonical component/layout/route specifications for Superdesign integration | Verified active |
 | **`build/`** | 3 | Packaged application icons (`icon.icns`, `icon.ico`, `icon.png`) | Verified active |
+| **`.agents/`** | 3 | Canonical agent skill definitions and tool contracts | Verified active |
 | **`.config/`** | 2 | Example YAML configuration templates (`config.example.yaml`, `themes.example.yaml`) | Verified active |
 | **`.vscode/`** | 1 | Shared repository workspace recommendations | Verified active |
 
 ---
 
 ## 3. Files Moved, Renamed & Consolidated
+
+### 2026-09-26 Pass Outcomes
+- **Tracked Files Relocated:** 1 (`docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` moved to `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md`).
+- **Tracked Files Renamed:** 1 (standard dated kebab-case convention, eliminating non-ASCII em-dash and whitespace).
+- **Tracked Files Deleted:** 0.
+- **Untracked Cleanup:** Cleared root transient session export (`kimi-export-session_-20260926-051728.md`) to `.agent-backups/session-exports/`; purged untracked `.DS_Store` metadata files.
+- **Gitignore Alignment:** Removed trailing conflicting rules (`.superdesign`, `/.superdesign`, `/.superdesign/init`) to restore 0 tracked files ignored by `.gitignore`.
 
 ### 2026-09-14 Pass Outcomes
 - **Tracked Files Relocated:** 0 (existing structure complies with Diátaxis documentation hierarchy and modular domain architecture).

@@ -8,29 +8,25 @@ product
 
 ### Strategy
 
-Venice Forge uses a semantic color system with 29 distinct roles that define a complete design language. The application supports multiple built-in themes including dark and light modes, with "Venice Parity Dark" as the default theme. The color system is based on OKLCH color space for better perceptual uniformity.
+Venice Forge uses a semantic color system with 36 canonical roles defining a complete, accessible design language, along with 33 dedicated code and syntax highlighting roles. The application supports 43 built-in theme families shipping complete dark and light variants (52 variants total), with `venice` (Venice Parity Dark) as the default theme family. The color system uses OKLCH and modern CSS color spaces for perceptual uniformity and contrast fidelity.
 
 ### Palette
 
-The application ships with multiple built-in themes including:
-- Venice Parity Dark (default dark theme)
-- Dracula
-- Gruvbox Dark
-- Nord
-- One Dark
-- Rosepine
-- Solarized Dark
-- Tokyo Night
-- Light
-- GitHub Light
-- Solarized Light
+The application ships with 43 built-in dual-mode theme families including:
+- Venice (default dark/light family)
+- Dark and Light (neutral graphite and daylight)
+- Developer favorites: Dracula, Gruvbox Dark, Nord, One Dark, Monokai, Tokyo Night, Catppuccin, Rose Pine, Solarized, GitHub Light
+- Technical and aesthetic variants: Obsidian Ember, Midnight Cobalt, Terminal Forest, Porcelain Sky, Sandstone, Obsidian Bloom, Harbor Fog, Circuit Mint, Amber Archive, Neon Dusk, Aurora Boreal, Sakura Terminal, Basalt Noir, Solar Ash, Cyber Orchid, Arctic Glass, Desert Copperfield, Toxic Limewire, Midnight Velvet, Porcelain Daybreak, Synthwave Harbor, Moss Circuit, Ember Monastery, Glacial Ink, Ultraviolet Rain, Copper, Cotton Candy Console, Sweet Nightmare, Dual Persona, Polaroid Board
 
-Each theme follows a consistent semantic token structure with roles like:
-- background, surface, surfaceElevated, surfaceMuted
-- foreground, foregroundMuted, foregroundSubtle
-- accent, accentHover, accentForeground
-- success, warning, danger, info
-- focusRing, overlay, glow
+Every theme follows a consistent 36-token semantic structure:
+- Surfaces: `background`, `surface`, `surfaceElevated`, `surfaceMuted`, `overlay`, `glow`
+- Borders: `border`, `borderStrong`
+- Content text: `foreground`, `foregroundMuted`, `foregroundSubtle` (with legacy derivation from `textPrimary`, `textSecondary`, `textMuted`)
+- Brand & interaction: `accent`, `accentHover`, `accentForeground`
+- Feedback: `success`, `successForeground`, `warning`, `warningForeground`, `danger`, `dangerForeground`, `info`
+- Controls: `inputBackground`, `inputForeground`, `placeholder`, `disabledForeground`, `buttonPrimaryBackground`, `buttonPrimaryForeground`, `buttonSecondaryBackground`, `buttonSecondaryForeground`
+- Navigation & selection: `link`, `focusRing`, `selectionBackground`, `selectionForeground`
+- Dedicated code block and syntax tokens (33 roles under `--code-*` and `--syntax-*`)
 
 ### Accessibility
 
@@ -38,18 +34,19 @@ All themes maintain WCAG AA contrast ratios for text:
 - Text against background: ≥4.5:1 for normal text, ≥3:1 for large text
 - Interactive elements: ≥3:1 against background
 - Focus indicators: High-contrast visual indication meeting 3:1 ratio
+- Verified programmatically across all variants via automated contrast testing suites
 
 ## Typography
 
 ### Font Stack
 
 Primary font:
-- Inter (system font stack fallback)
+- `MesloLGM Nerd Font` (local offline font stack with system sans-serif fallback)
 
-Monospace font:
-- JetBrains Mono (system font stack fallback)
+Monospace and code font:
+- `MesloLGS Nerd Font Mono` / `JetBrains Mono` (system monospace fallback)
 
-Font loading is handled via @fontsource packages for Inter, JetBrains Mono, and Lora.
+Font loading is completely local and offline-first, strictly complying with the Content Security Policy by preventing external font or CDN network requests.
 
 ### Scale
 
@@ -68,10 +65,10 @@ Body text is capped at 65-75 characters per line for optimal readability.
 
 ### System
 
-The application uses a consistent spacing system based on an 8px grid:
-- 4px increments (0.5rem)
-- Base unit: 8px (1rem)
-- Common values: 0.5rem, 1rem, 1.5rem, 2rem, 3rem, 4rem
+The application uses a consistent spacing system based on a 4px / 8px grid:
+- 4px increments (0.25rem)
+- Base unit: 16px (1rem), with 8px (0.5rem) sub-grid
+- Common values: 0.25rem (4px), 0.5rem (8px), 0.75rem (12px), 1rem (16px), 1.5rem (24px), 2rem (32px), 3rem (48px), 4rem (64px)
 
 ### Rhythm
 
@@ -85,17 +82,17 @@ Spacing varies purposefully to create visual rhythm:
 ### Layout
 
 The application follows a consistent layout pattern with:
-- Sidebar navigation on the left
+- Sidebar navigation on the left (collapsible and responsive)
 - Main content area in the center
 - Optional inspector panel on the right
 - Header with global actions and status indicators
 
 ### Navigation
 
-- Sidebar with vertical navigation for main features (Chat, History, Image Studio, Media Studio, etc.)
+- Canonical grouped sidebar navigation defined by `src/config/tabs.ts` (`CANONICAL_TAB_ORDER`) across four functional groups: Conversation, Generate, Build, and System
 - Tab-based navigation within feature areas
 - Breadcrumb navigation for hierarchical contexts
-- Command palette for keyboard-driven navigation
+- Command palette (`Cmd+K` / `Ctrl+K`) for keyboard-driven navigation
 
 ### Form Elements
 

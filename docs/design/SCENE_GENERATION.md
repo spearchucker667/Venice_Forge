@@ -18,10 +18,9 @@ sceneGenerationService.generateScene(chat, req)
         │     assessScenePrompt(prompt, negativePrompt, localFamilySafeModeEnabled)
         │     ↳ evaluates local rules when enabled; skips them entirely in Adult Mode
         │
-        ├─ 3. Dispatch to Venice /image/generate
-        │     Electron: bridge.venice.request({ endpoint, method: 'POST', body: payload })
-        │     Web:      fetch('/api/venice/image/generate', { method: 'POST', body: ... })
-        │     (Both paths route the same persisted Family Safe Mode state through transport.)
+        ├─ 3. Dispatch to Venice /image/generate via veniceFetch:
+        │     veniceFetch('/image/generate', { method: 'POST', body: JSON.stringify(payload) })
+        │     (Routes through desktopBridge: Electron window.veniceForge.request or Express /api/venice proxy)
         │
         └─ 4. Register the asset:
               assetService.saveAsset({ chatId, messageId?, characterIds, prompt, model, seed, ... })
@@ -46,7 +45,7 @@ This is intentionally **simple and deterministic**. There is no ML-based "best f
 Scene generation is gated by the existing CSAM guard at **two** layers:
 
 1. **Service layer (mandatory):** `assessScenePrompt(prompt, negative)` runs before the HTTP call. The user-facing `SceneGenerator` UI shows the safety verdict and disables the "Generate" button if the verdict is blocking.
-2. **Transport layer (defense-in-depth):** both `bridge.venice.request` (Electron) and `fetch('/api/venice/image/generate')` (web) re-run the guard at the IPC / proxy boundary via `extractPromptLikeFields`. A scene prompt that slips through the service layer (e.g. by a renderer bug) is still blocked before bytes leave the process.
+2. **Transport layer (defense-in-depth):** all requests route through `veniceFetch()` and `desktopBridge`. In Electron mode, `performGuardedVeniceRequest` in `guardPipeline.ts` re-evaluates the prompt payload before dispatch; in Web mode, the Express proxy route runs `performGuardedVeniceRequest` before relaying to Venice. A scene prompt that slips through the service layer (e.g. by a renderer bug) is still blocked before bytes leave the process.
 
 ## Asset model
 

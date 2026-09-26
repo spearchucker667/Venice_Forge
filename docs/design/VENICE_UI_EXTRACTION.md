@@ -1,5 +1,8 @@
 # Venice UI Extraction Roadmap
 
+> **Status:** COMPLETED & ARCHIVED FOUNDATION SPECIFICATION.  
+> This document records the foundational extraction roadmap that transitioned Venice Forge from a double-sidebar layout to a unified collapsible sidebar (`src/components/layout/sidebar.tsx`), integrated Tailwind CSS v4 `@theme` tokens, adopted Lucide icons, consolidated model parameters, and retired legacy modules and the standalone "Models" tab in favor of studio-integrated model selectors. The design system is now maintained under [`THEME_SYSTEM.md`](./THEME_SYSTEM.md) and [`VENICE_FORGE_REFERENCE_UI_REDESIGN.md`](./VENICE_FORGE_REFERENCE_UI_REDESIGN.md).
+
 This document outlines the extraction of the Venice.ai design system from captured DOM/CSS, the donor `donor-repo` repository, and the target integration into the Venice Forge Electron repository.
 
 ## 1. Discovery

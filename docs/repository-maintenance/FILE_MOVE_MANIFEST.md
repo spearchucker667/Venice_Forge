@@ -1,13 +1,23 @@
 # Venice Forge — File Move & Rename Manifest
 
-**Latest revalidation working tree:** 2026-09-23 repository-management revalidation on `main` (published HEAD `c4134390241f792527837fc143c7e979ae36fa7a`; archive move uncommitted)
+**Latest revalidation working tree:** 2026-09-26 repository-management revalidation on `main` (baseline `3087051bb793498b29855edd17620aa694457b27`)
 **Historical overhaul baseline:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
-**Date:** 2026-09-18
-**Scope:** Repository Hygiene, Documentation Overhaul, Showcase Integration & CodeQL Hardening
+**Date:** 2026-09-26
+**Scope:** Repository Hygiene, Document Relocation, Gitignore Alignment & POSIX Normalization
 
 ---
 
-## 0. Current Revalidation — 2026-09-23
+## 0. Current Revalidation — 2026-09-26
+
+Closed theme system audit handoff moved to `Records/` and renamed to conform to POSIX and naming hygiene conventions:
+
+- **OLD PATH:** `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md`
+- **→ NEW PATH:** `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md`
+- **Reason:** The 2026-09-25 Theme Engine audit and Waves 1 & 2 remediation have fully landed on `main`. Closed audit handoffs live under `docs/audits/Records/`. Additionally, the old path contained non-ASCII em-dash (`—`) and whitespace, producing quote-escaped strings in POSIX tools and Git (`\342\200\224`). Renamed to standard dated kebab-case convention per repository hygiene invariants.
+- **References updated:** `docs/DOCS_INDEX.md`, `docs/repository-maintenance/FILE_MOVE_MANIFEST.md`, `docs/repository-maintenance/REPOSITORY_HYGIENE_REPORT.md`.
+- **Validation result:** PASS (`git ls-files | grep -E '[^a-zA-Z0-9._/-]'` returns 0; `npm run verify:markdown-links` PASS).
+
+## 0.1 Prior Revalidation — 2026-09-23
 
 Two closed handoffs were already copied into `Records/` in the dirty worktree. Checksums matched the HEAD blobs. This pass kept the move and updated links.
 

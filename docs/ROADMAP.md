@@ -5,10 +5,10 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 00bc462cb0cc0c1cd6fbc3dafedf993b3e279960
-application_code_sha: 00bc462cb0cc0c1cd6fbc3dafedf993b3e279960
-verified_against_sha: 00bc462cb0cc0c1cd6fbc3dafedf993b3e279960
-verified_at:         2026-09-25 (Pacific)
+repository_head_sha: 93544da174ba6e7fca0b81ca2a9de75546f409f5
+application_code_sha: 93544da174ba6e7fca0b81ca2a9de75546f409f5
+verified_against_sha: 93544da174ba6e7fca0b81ca2a9de75546f409f5
+verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
