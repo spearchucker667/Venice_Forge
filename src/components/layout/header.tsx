@@ -78,7 +78,7 @@ export function Header({ onOpenApiKey, onOpenMobileSidebar }: Props) {
   );
 
   return (
-    <header className="flex items-center gap-3 h-14 px-3 bg-vf-shell-bg border-b border-vf-panel-border shrink-0 shell-region">
+    <header className="flex items-center gap-3 h-14 px-3 bg-bg border-b border-border shrink-0 shell-region">
       <button
         type="button"
         onClick={() => onOpenMobileSidebar?.()}

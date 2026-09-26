@@ -323,7 +323,7 @@ export function App() {
   }, [setActiveTab])
 
   return (
-    <div className="relative isolate flex h-[100dvh] w-screen overflow-hidden bg-vf-shell-bg-deep">
+    <div className="relative isolate flex h-[100dvh] w-screen overflow-hidden bg-bg">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 z-[100] px-3 py-2 rounded-md bg-accent text-accent-fg text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -345,7 +345,7 @@ export function App() {
           onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
         />
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          <main id="main-content" tabIndex={-1} className="flex-1 min-h-0 overflow-hidden bg-vf-panel-bg rounded-none border-0 shadow-none outline-none">
+          <main id="main-content" tabIndex={-1} className="flex-1 min-h-0 overflow-hidden bg-surface rounded-none border-0 shadow-none outline-none">
             <ErrorBoundary key={normalisedActiveTab}>
               <div key={normalisedActiveTab} className="section-transition h-full">
                 <ActiveView />
