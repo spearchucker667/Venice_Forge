@@ -25,6 +25,8 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
+- **2026-09-26 Venice API docs refresh + multi-edit capability fix (uncommitted).** Resolved the source-of-truth discrepancy in the prior review: the local api-docs fork at `/Users/super_user/Projects/api-docs` is stale (`db3b9f4f`, 2026-08-14), while upstream `veniceai/api-docs` HEAD is now `18c329e5` (2026-09-25). Synced the vendored snapshot to the current upstream (`schema version 20260918.184256`), updated `docs/reference/VENICE_API_SOURCE_MANIFEST.md` accordingly, and added a `Local Source Used` runtime note when a local checkout is promoted via the new `--source` / `VENICE_API_DOCS_SOURCE` flag. Replaced the hard-coded `slice(0, 3)` cap in `buildCanonicalImageMultiEditPayload()` with per-model `capabilities.maxInputImages` validation (throws on overflow instead of silently truncating); added `quality`, `resolution`, and `disable_prompt_optimization_thinking` fields to the multi-edit builder plus `quality` on edit. Added `getMaxInputImages()`, `supportsSingleImageAspectRatio()`, `getModelResolutions()`, and `DEFAULT_MAX_INPUT_IMAGES` to `capabilities.ts`. All work is uncommitted; no remote push performed this session.
+
 - **2026-09-26 HQE full-audit (`/hqe`) of `main` @ `83bc7eeb`.** Health score **8 / 10 — Solid**. Ran `npm run typecheck` (PASS, 3 tsconfigs) and `npm run lint:eslint --max-warnings=0` (PASS, 0/0). Full `npm run test:ci` and `npm run build` were NOT executed locally due to environmental drift (local Node `v24.21.0` is outside declared engine range `>=22.15.0 <23.0.0`; `/tmp/npm-cache` is root-owned, blocking `npm install` cache hydration). Per AGENTS.md §2 the agent did not silently change versions. Confirmed Graphite Cockpit redesign post-merge fix commit `6d04f7cd` is UI-only (8 files, +21/-16, no `dangerouslySetInnerHTML` / `eval` / IPC changes). Emitted canonical HQE artifacts under `artifacts/hqe/` (`HQE_RUN_MANIFEST.json`, `HQE_AUDIT_REPORT.md`, `HQE_SESSION_LOG.json`). No P0/P1 findings; 3 P2/P3 environmental/coverage items opened (HQE-ENV-001 Node drift, HQE-ENV-002 npm cache EPERM, HQE-TEST-001 `src/agent/` + `src/i18n/` test ratios). External acceptance items unchanged (FRAT-REAUD-006/007, P2-016, VF-VERIFY-005). Detailed findings in `artifacts/hqe/HQE_AUDIT_REPORT.md`.
 
 - **2026-09-26 Typography & Font Settings consolidation, EmptyState font alignment, and merge of Graphite Cockpit redesign to main.** Removed duplicate `<FontSettingsPanel />` from `appearance` (`SettingsView.tsx`), leaving font settings exclusively under `Local Config` (`ConfigPanel.tsx`). Enforced user chosen font styling across all empty states by updating `.vf-empty-state`, `.vf-empty-state__headline`, `.vf-empty-state__helper`, `.vf-empty-state__eyebrow`, and `.vf-empty-state__action` in `src/styles/components.css` to declare `font-family: var(--app-font-family, var(--font-sans))`, and adding `font-sans` classes to `EmptyState` primitives (`src/components/ui/primitives.tsx`, `src/components/ui/shared.tsx`), Scene Composer (`SceneComposerView.tsx`), Prompt Library (`PromptLibraryView.tsx`), and Workflow Templates (`WorkflowTemplatesView.tsx`). Verified CSP inline style invariant (`VERIFY-007`) with 0 JSX inline `style={...}` attributes. Synchronized `.superdesign/init/routes.md` source fingerprint (`879e6e166cc728b2`). Successfully ran `lint:eslint` (PASS, 0 errors/0 warnings), `typecheck` (PASS), `verify:contracts:static` (PASS, 28/28 checks), `verify:contracts` (PASS, 104/104 checks), and focused Vitest suites for Settings, Scene Composer, Prompt Library, Workflows, and Primitives. Fast-forward merged `feature/graphite-cockpit-redesign` cleanly into `main` per user directive.
@@ -34,6 +36,40 @@ external_acceptance_outstanding:
 - **2026-09-26 repository-maintenance review and repository hygiene execution (uncommitted).** Conducted full review of `docs/repository-maintenance/` (`README.md`, `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`) and executed comprehensive repository hygiene workflows. Remediated gitignore rule collision where trailing lines 401–403 in `.gitignore` conflicted with lines 67–68, restoring 0 ignored tracked files in `git ls-files -c -i --exclude-standard`. Normalized POSIX naming hygiene by relocating `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` (which contained non-ASCII em-dash and spaces) to canonical `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Isolated root clutter by moving `kimi-export-session_-20260926-051728.md` into gitignored `.agent-backups/session-exports/`, and purged untracked Finder `.DS_Store` metadata. Synchronized all four maintenance documents with the 2,248 tracked file inventory and v3.1.0 metadata. Verified with `verify:contracts:static` (28/28 checks PASS), `verify:archive-clean` (PASS), `verify:repository-identity` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:markdown-links` (448/448 markdown files PASS), `verify:agent-docs` (PASS), and `verify:superdesign-init` (PASS). 100% green.
 
 ## Session History
+
+### 2026-09-26 — Venice API docs refresh + multi-edit capability fix
+
+- **Scope:** contained scope approved by user via questionnaire (option 1). Refresh the vendored Venice API docs snapshot to current upstream, fix the hard-coded `slice(0, 3)` cap in `buildCanonicalImageMultiEditPayload()` with per-model `capabilities.maxInputImages` validation, and add `--source` / `VENICE_API_DOCS_SOURCE` support to `sync-venice-api-docs.cjs` so a pre-existing api-docs checkout can be reused without cloning into the gitignored mirror. No new UI surface, no remote commit/push performed.
+- **Source-of-truth reconciliation (correction to prior review):**
+  - The prior review claimed the local api-docs checkout at `/Users/super_user/Projects/api-docs` was the source of truth and was at `db3b9f4f...`. This was incorrect. That path is the user's own fork (`origin = https://github.com/spearchucker667/api-docs.git`), which is stale at `db3b9f4f` (2026-08-14).
+  - The actual upstream `veniceai/api-docs` HEAD is `18c329e5` (2026-09-25). Refreshing from that URL advances the vendored snapshot from schema version `20260916.135625` (Sept 16, retrieved Sept 18) to `20260918.184256` (Sept 18, retrieved 2026-09-26). Syncing from the stale local fork would have regressed the snapshot — that path was therefore intentionally not used for this run.
+  - The new `--source` capability is additive and safe; users with up-to-date forks can opt into it.
+- **Implementation:**
+  - `scripts/sync-venice-api-docs.cjs`: added `parseSourceFlag()` (handles `--source <path>` and `--source=<path>`), `resolveSourceDir()` (CLI flag → env var → null), `validateLocalSource()` (git working tree or plain checkout + full mandatory file inventory), and a `resolveTrackedPaths()` test seam so tests can redirect writes to a scratch directory. `writeTrackedReferences()` and `syncUpstream()` plumb `repoRoot` through and write only to the resolved tracked paths. `writeTrackedReferences()` now emits a `Local Source Used` note in the manifest when the local-source path was used (without persisting the absolute path).
+  - `src/shared/venice-media-contract/types.ts`: added `quality?: 'low' | 'medium' | 'high'`, `resolution?: string`, `disablePromptOptimizationThinking?: boolean`, and `maxInputImages?: number` to `ImageMultiEditLogicalRequest`; added `quality?: 'low' | 'medium' | 'high'` to `ImageEditLogicalRequest`; mirrored them onto the corresponding `*WirePayload` interfaces.
+  - `src/shared/venice-media-contract/payload-builders.ts`: replaced `req.images.map(...).slice(0, 3)` with a capability-driven validation that throws (`"Multi-edit accepts at most N images for model ..."`) when `images.length > maxInputImages` (default 3, matching the upstream Swagger docstring for `capabilities.maxInputImages`). Pass-through added for `quality`, `resolution`, and `disable_prompt_optimization_thinking`.
+  - `src/shared/venice-media-contract/capabilities.ts`: added `DEFAULT_MAX_INPUT_IMAGES = 3`, `ModelCapabilitiesLike`, `getMaxInputImages()`, `supportsSingleImageAspectRatio()`, and `getModelResolutions()` helpers — all fail-closed on missing/invalid capability data.
+  - `scripts/sync-venice-api-docs.test.ts` (new, 19 tests): covers flag parsing, env-var fallback, source validation, e2e promotion into a scratch repo root, and the path-never-persisted invariant.
+  - `src/shared/venice-media-contract/__tests__/payload-builders.test.ts`: extended Image Multi-Edit suite with 5 new tests covering default-3 cap, overflow throw, 14-image high-cap acceptance, and the new field pass-throughs; added 2 tests for `quality` on edit.
+  - `src/shared/venice-media-contract/__tests__/capabilities.test.ts`: added `Multi-Edit Capability Helpers` describe block covering default, capability-driven resolution, fractional floored values, single-image aspect ratio, and resolutions filtering.
+  - `docs/reference/Venice_swagger_api.yaml`, `docs/reference/Venice_api_LLM_info.md`, `docs/reference/VENICE_API_SOURCE_MANIFEST.md`: refreshed against current upstream `18c329e5`. Manifest now documents the `--source` flag and warns that the local source's `main` must be kept current if used.
+- **Validation:**
+  - `npx tsc --noEmit`: PASS (0 errors).
+  - `npx vitest run scripts/sync-venice-api-docs.test.ts scripts/verify-venice-api-docs.test.ts`: PASS (24/24 tests).
+  - `npx vitest run src/shared/venice-media-contract --no-file-parallelism`: PASS (78/78 tests).
+  - `npx vitest run src/shared --no-file-parallelism`: PASS (756/756 tests).
+  - `node scripts/verify-venice-api-docs.cjs`: PASS.
+  - `node scripts/verify-venice-contract-drift.cjs`: PASS — `[DRIFT-SUMMARY] PASSED: All contract drift verifications succeeded.` (multi-edit still uses `modelId`, etc.).
+  - `node scripts/sync-venice-api-docs.cjs`: PASS — cloned upstream, validated 18 mandatory files, promoted fresh snapshots with provenance `upstream_commit: 18c329e559c724b0fc8c319cb1198d99221b3c4b`, `content_version: 20260918.184256`, `retrieved: 2026-09-26`.
+- **Out of scope (deferred to next session if user requests):**
+  - The dedicated `Image Editor` tab/surface proposed in the prior review (large feature scope).
+  - Persistent LoRA / style_preset / style_references on `/image/edit` and `/image/multi-edit` (upstream does not support these on edit endpoints).
+  - Removing the auto-`upsertDerivative` call from `src/services/imageDerivedOperations.ts:175` (would require coordinating with the `runImageDerivedOperation()` callers).
+  - Full-resolution mask canvas + crop/reframe canvas in a new Image Editor surface.
+  - Updating the local api-docs fork (`/Users/super_user/Projects/api-docs`) to current upstream — not authorized.
+- **Risks/notes:**
+  - The vendored Swagger snapshot has now advanced past the previous `e787d6fe` retrieval. Any consumer code that depended on the old schema version should re-validate against `20260918.184256`. The pre-existing `vendored swagger declares the source-matched queue/quote values` test was re-run against the new snapshot and still passes.
+  - The first end-to-end run of the new test accidentally clobbered the real `docs/reference/Venice_swagger_api.yaml` before the `repoRoot` plumbing was added. The file was restored from `git checkout HEAD --` and no other tracked files were affected; subsequent test runs use the scratch repo root. The test failure was the prompt for the path-redirect plumbing and is documented in this session entry.
 
 ### 2026-09-26 — HQE full-audit (`/hqe`) of `main` @ `83bc7eeb`
 
@@ -451,6 +487,8 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 
 ## Open TODO Ledger
 
+* **VENICE-API-DOCS-REFRESH-2026-09-26** — Completed locally (uncommitted). Synced vendored Swagger/LLM snapshots to upstream `18c329e5` (schema version `20260918.184256`); added `--source` / `VENICE_API_DOCS_SOURCE` to `sync-venice-api-docs.cjs`; replaced hard-coded `slice(0, 3)` in `buildCanonicalImageMultiEditPayload()` with capability-driven `maxInputImages` validation (throws on overflow); added `quality`, `resolution`, `disable_prompt_optimization_thinking` fields to multi-edit builder and `quality` to edit; exposed `getMaxInputImages`, `supportsSingleImageAspectRatio`, `getModelResolutions`, `DEFAULT_MAX_INPUT_IMAGES`. Working tree uncommitted.
+* **IMAGE-EDITOR-DEDICATED-TAB-2026-09-26** — Not started. Large feature scope per the prior review: first-class `Image Editor` tab (TAB_IDS / TAB_REGISTRY / App.tsx / i18n / per-tab acceptance), full-resolution mask canvas (replace the 520 px downsizing in `InpaintMaskEditor.tsx`), crop/reframe canvas, model/variation selector, transient result staging with Save/Delete. Coordinate with a follow-up session.
 * **GRAPHITE-COCKPIT-UI-2026-09-26** — Completed. Full UI re-envisioning to Graphite Cockpit Flat Instrumentation, Stitch MCP design system sync, and component refactor on branch `feature/graphite-cockpit-redesign`. 100% contracts and UI test suites green.
 * **DOCS-AUDIT-CLEANUP-2026-09-26** — Completed. Full audit and cleaning of `docs/` directory. Synchronized versioning to v3.1.0, Node engine to 22.15.0, link labels, canonical paths, and roadmap SHAs. 100% verifiers green. Working tree uncommitted.
 * **REPO-HYGIENE-2026-09-26** — Completed. Full review of `docs/repository-maintenance/`, `.gitignore` collision resolution (`.superdesign`), closed theme audit handoff relocation/rename to `docs/audits/Records/`, root clutter isolation (`.agent-backups/session-exports/`), and full static contract validation (28/28 checks PASS). Working tree uncommitted.
@@ -477,6 +515,18 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 * **EXTERNAL-ACCEPTANCE** — `P2-016`, `P3-020`, and `VF-VERIFY-005` stay open. They are not local code defects. See `docs/ROADMAP.md`.
 
 ## Validation Matrix
+
+### 2026-09-26 — Venice API docs refresh + multi-edit capability fix
+
+- Baseline: branch `main` at `64bd5502`; working tree dirty at session start (post-merge Graphite Cockpit redesign only); Node `v24.21.0` (declared engine `>=22.15.0 <23.0.0` — same drift as the HQE audit above, not silently changed per AGENTS.md §2); package `venice-forge@3.1.0`.
+- `npx tsc --noEmit` — PASS (0 errors across all tsconfigs).
+- `npx vitest run scripts/sync-venice-api-docs.test.ts scripts/verify-venice-api-docs.test.ts` — PASS (24/24 tests).
+- `npx vitest run src/shared/venice-media-contract --no-file-parallelism` — PASS (78/78 tests).
+- `npx vitest run src/shared --no-file-parallelism` — PASS (756/756 tests).
+- `node scripts/verify-venice-api-docs.cjs` — PASS.
+- `node scripts/verify-venice-contract-drift.cjs` — PASS.
+- `node scripts/sync-venice-api-docs.cjs` — PASS. Promoted upstream `18c329e5` (2026-09-25), schema version `20260918.184256`, retrieved `2026-09-26`.
+- `npm run lint:eslint` — NOT RUN this session (Node 24 drift; static contract verification covered by `verify:venice-contract-drift` above).
 
 ### 2026-09-26 — Graphite Cockpit Flat Instrumentation UI re-envisioning & Stitch MCP synchronization
 

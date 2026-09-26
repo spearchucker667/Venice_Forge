@@ -9,6 +9,16 @@
  * - Read-only mirror; never modifies upstream checkout or commits it.
  * - Validates presence of mandatory authoritative files:
  *   swagger.yaml, llms.txt, skill.md, agents.md, api-reference/, models/, guides/media/
+ *
+ * Usage:
+ *   node scripts/sync-venice-api-docs.cjs
+ *   node scripts/sync-venice-api-docs.cjs --source <path-to-local-api-docs-checkout>
+ *   VENICE_API_DOCS_SOURCE=<path> node scripts/sync-venice-api-docs.cjs
+ *
+ * The `--source` flag (or VENICE_API_DOCS_SOURCE env var) lets a developer
+ * reuse a pre-existing api-docs checkout instead of cloning into the
+ * gitignored mirror directory. The path may be absolute or relative to the
+ * repository root. The path is never written to tracked repository files.
  */
 
 const fs = require("node:fs");
@@ -22,6 +32,24 @@ const TRACKED_REFERENCE_DIR = path.join(REPO_ROOT, "docs", "reference");
 const TRACKED_SWAGGER_PATH = path.join(TRACKED_REFERENCE_DIR, "Venice_swagger_api.yaml");
 const TRACKED_LLM_PATH = path.join(TRACKED_REFERENCE_DIR, "Venice_api_LLM_info.md");
 const SOURCE_MANIFEST_PATH = path.join(TRACKED_REFERENCE_DIR, "VENICE_API_SOURCE_MANIFEST.md");
+
+/**
+ * Test seam: allow tests to redirect the tracked reference paths to a
+ * scratch directory. Production callers should leave `paths` undefined.
+ * The shape mirrors the constants above so writes only hit the scratch dir.
+ */
+function resolveTrackedPaths(overrideRoot) {
+  const root = overrideRoot ?? REPO_ROOT;
+  const trackedDir = path.join(root, "docs", "reference");
+  return {
+    REPO_ROOT: root,
+    MIRROR_DIR: path.join(root, "docs", "reference", "venice-api-upstream"),
+    TRACKED_REFERENCE_DIR: trackedDir,
+    TRACKED_SWAGGER_PATH: path.join(trackedDir, "Venice_swagger_api.yaml"),
+    TRACKED_LLM_PATH: path.join(trackedDir, "Venice_api_LLM_info.md"),
+    SOURCE_MANIFEST_PATH: path.join(trackedDir, "VENICE_API_SOURCE_MANIFEST.md"),
+  };
+}
 
 const MANDATORY_FILES = [
   "swagger.yaml",
@@ -44,6 +72,67 @@ const MANDATORY_FILES = [
   path.join("models", "music.mdx"),
 ];
 
+/**
+ * Parse argv for --source <path>. Returns the resolved absolute path or null.
+ * Resolution: absolute paths are kept as-is; relative paths are resolved
+ * against the current working directory (matching user expectation for a
+ * relative flag value), not the repo root. The returned path is never
+ * persisted to tracked files.
+ */
+function parseSourceFlag(argv) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--source" || arg === "--source=") {
+      const value = arg === "--source" ? argv[i + 1] : "";
+      if (typeof value !== "string" || value.length === 0) {
+        throw new Error("--source flag requires a non-empty path argument.");
+      }
+      return path.resolve(value);
+    }
+    if (arg.startsWith("--source=")) {
+      const value = arg.slice("--source=".length);
+      if (value.length === 0) {
+        throw new Error("--source= flag requires a non-empty path argument.");
+      }
+      return path.resolve(value);
+    }
+  }
+  return null;
+}
+
+function resolveSourceDir() {
+  const argvSource = parseSourceFlag(process.argv.slice(2));
+  const envSource = process.env.VENICE_API_DOCS_SOURCE;
+  const raw = argvSource ?? (typeof envSource === "string" && envSource.length > 0 ? envSource : null);
+  if (!raw) return null;
+  return path.resolve(raw);
+}
+
+function validateLocalSource(sourceDir) {
+  if (!fs.existsSync(sourceDir)) {
+    throw new Error(`Local source directory does not exist: ${sourceDir}`);
+  }
+  const stat = fs.statSync(sourceDir);
+  if (!stat.isDirectory()) {
+    throw new Error(`Local source is not a directory: ${sourceDir}`);
+  }
+  // Either a git working tree (has .git) or a plain checkout. Both are valid
+  // so long as the mandatory file inventory is present.
+  const missing = [];
+  for (const file of MANDATORY_FILES) {
+    const fullPath = path.join(sourceDir, file);
+    if (!fs.existsSync(fullPath)) {
+      missing.push(file);
+    }
+  }
+  if (missing.length > 0) {
+    throw new Error(
+      `Local source ${sourceDir} is missing mandatory files: ${missing.join(", ")}`,
+    );
+  }
+  return true;
+}
+
 function runGit(args, cwd) {
   return execFileSync("git", args, {
     cwd,
@@ -52,9 +141,10 @@ function runGit(args, cwd) {
   }).trim();
 }
 
-function writeTrackedReferences(commitSha, retrievedDate) {
-  const swagger = fs.readFileSync(path.join(MIRROR_DIR, "swagger.yaml"), "utf8");
-  const versionMatch = swagger.match(/^\s{2}version:\s*"?([^"\r\n]+)"?\s*$/m);
+function writeTrackedReferences(commitSha, retrievedDate, sourceDir, options = {}) {
+  const paths = resolveTrackedPaths(options.repoRoot);
+  const sourceSwagger = fs.readFileSync(path.join(sourceDir, "swagger.yaml"), "utf8");
+  const versionMatch = sourceSwagger.match(/^\s{2}version:\s*"?([^"\r\n]+)"?\s*$/m);
   if (!versionMatch) {
     throw new Error("Upstream Swagger does not declare info.version.");
   }
@@ -67,9 +157,9 @@ function writeTrackedReferences(commitSha, retrievedDate) {
     `  content_version: "${contentVersion}"`,
     "",
   ].join("\n");
-  fs.writeFileSync(TRACKED_SWAGGER_PATH, `${provenance}${swagger}`, "utf8");
+  fs.writeFileSync(paths.TRACKED_SWAGGER_PATH, `${provenance}${sourceSwagger}`, "utf8");
 
-  const llmInfo = fs.readFileSync(path.join(MIRROR_DIR, "llms.txt"), "utf8");
+  const llmInfo = fs.readFileSync(path.join(sourceDir, "llms.txt"), "utf8");
   const llmProvenance = [
     "---",
     "source: https://docs.venice.ai/llms.txt",
@@ -79,7 +169,11 @@ function writeTrackedReferences(commitSha, retrievedDate) {
     "---",
     "",
   ].join("\n");
-  fs.writeFileSync(TRACKED_LLM_PATH, `${llmProvenance}${llmInfo}`, "utf8");
+  fs.writeFileSync(paths.TRACKED_LLM_PATH, `${llmProvenance}${llmInfo}`, "utf8");
+
+  const localSourceNote = options.localSource
+    ? `\n> **Local Source Used:** This snapshot was promoted from a pre-existing checkout of \`${UPSTREAM_URL.slice(0, -4)}\` passed via \`--source\` / \`VENICE_API_DOCS_SOURCE\`. The checkout itself was not modified; only its committed content was promoted into the tracked knowledge base. The path itself is intentionally not persisted.`
+    : "";
 
   const manifest = `# Venice API Upstream Source Manifest
 
@@ -89,7 +183,7 @@ function writeTrackedReferences(commitSha, retrievedDate) {
 > **Retrieval Date:** \`${retrievedDate}\`
 > **Schema Version (\`info.version\`):** \`${contentVersion}\`
 > **Local Reference Path (Ignored):** \`docs/reference/venice-api-upstream/\`
-> **Tracked Canonical Snapshot:** \`docs/reference/Venice_swagger_api.yaml\`
+> **Tracked Canonical Snapshot:** \`docs/reference/Venice_swagger_api.yaml\`${localSourceNote}
 
 ---
 
@@ -117,46 +211,82 @@ function writeTrackedReferences(commitSha, retrievedDate) {
 ## 3. Refreshing Upstream Documentation
 
 \`\`\`bash
+# Default: clone or refresh the gitignored mirror from the upstream URL.
 npm run docs:venice:sync
+
+# Use a pre-existing local checkout (path is never persisted).
+npm run docs:venice:sync -- --source ../api-docs
+VENICE_API_DOCS_SOURCE=../api-docs npm run docs:venice:sync
 \`\`\`
 
-The command refreshes the ignored upstream mirror, validates the mandatory source inventory, and promotes the Swagger and LLM-reference snapshots with provenance into the tracked knowledge base.
+The command refreshes the upstream mirror (or reads from the supplied local source), validates the mandatory source inventory, and promotes the Swagger and LLM-reference snapshots with provenance into the tracked knowledge base. The local source path is used at runtime only and is intentionally not written to any tracked repository file.
 `;
-  fs.writeFileSync(SOURCE_MANIFEST_PATH, manifest, "utf8");
+  fs.writeFileSync(paths.SOURCE_MANIFEST_PATH, manifest, "utf8");
+  return {
+    TRACKED_SWAGGER_PATH: paths.TRACKED_SWAGGER_PATH,
+    TRACKED_LLM_PATH: paths.TRACKED_LLM_PATH,
+    SOURCE_MANIFEST_PATH: paths.SOURCE_MANIFEST_PATH,
+  };
 }
 
-function syncUpstream() {
-  if (!fs.existsSync(TRACKED_REFERENCE_DIR)) {
-    fs.mkdirSync(TRACKED_REFERENCE_DIR, { recursive: true });
+function syncUpstream(options = {}) {
+  const paths = resolveTrackedPaths(options.repoRoot);
+  if (!fs.existsSync(paths.TRACKED_REFERENCE_DIR)) {
+    fs.mkdirSync(paths.TRACKED_REFERENCE_DIR, { recursive: true });
   }
 
-  const isCloned = fs.existsSync(path.join(MIRROR_DIR, ".git"));
+  const localSource = options.localSource ?? resolveSourceDir();
+  let sourceDir;
+  let commitSha;
+  let commitDate;
+  let commitSubject;
+  let usedLocalSource = false;
 
-  if (!isCloned) {
-    console.log(`[sync-venice-api-docs] Cloning ${UPSTREAM_URL} into ${MIRROR_DIR}...`);
-    execFileSync("git", ["clone", "--depth", "1", "--branch", "main", UPSTREAM_URL, MIRROR_DIR], {
-      cwd: REPO_ROOT,
-      stdio: "inherit",
-    });
+  if (localSource) {
+    console.log(`[sync-venice-api-docs] Using local source: ${localSource}`);
+    validateLocalSource(localSource);
+    sourceDir = localSource;
+    usedLocalSource = true;
+
+    if (fs.existsSync(path.join(sourceDir, ".git"))) {
+      commitSha = runGit(["rev-parse", "HEAD"], sourceDir);
+      commitDate = runGit(["log", "-1", "--format=%ci"], sourceDir);
+      commitSubject = runGit(["log", "-1", "--format=%s"], sourceDir);
+    } else {
+      commitSha = "<unknown-local-checkout>";
+      commitDate = "<unknown>";
+      commitSubject = "<local checkout is not a git working tree>";
+    }
   } else {
-    console.log(`[sync-venice-api-docs] Fetching latest changes in ${MIRROR_DIR}...`);
-    runGit(["fetch", "origin", "main"], MIRROR_DIR);
-    runGit(["checkout", "main"], MIRROR_DIR);
-    runGit(["pull", "--ff-only", "origin", "main"], MIRROR_DIR);
-  }
+    const isCloned = fs.existsSync(path.join(paths.MIRROR_DIR, ".git"));
 
-  const commitSha = runGit(["rev-parse", "HEAD"], MIRROR_DIR);
-  const commitDate = runGit(["log", "-1", "--format=%ci"], MIRROR_DIR);
-  const commitSubject = runGit(["log", "-1", "--format=%s"], MIRROR_DIR);
+    if (!isCloned) {
+      console.log(`[sync-venice-api-docs] Cloning ${UPSTREAM_URL} into ${paths.MIRROR_DIR}...`);
+      execFileSync("git", ["clone", "--depth", "1", "--branch", "main", UPSTREAM_URL, paths.MIRROR_DIR], {
+        cwd: paths.REPO_ROOT,
+        stdio: "inherit",
+      });
+    } else {
+      console.log(`[sync-venice-api-docs] Fetching latest changes in ${paths.MIRROR_DIR}...`);
+      runGit(["fetch", "origin", "main"], paths.MIRROR_DIR);
+      runGit(["checkout", "main"], paths.MIRROR_DIR);
+      runGit(["pull", "--ff-only", "origin", "main"], paths.MIRROR_DIR);
+    }
+
+    sourceDir = paths.MIRROR_DIR;
+    commitSha = runGit(["rev-parse", "HEAD"], paths.MIRROR_DIR);
+    commitDate = runGit(["log", "-1", "--format=%ci"], paths.MIRROR_DIR);
+    commitSubject = runGit(["log", "-1", "--format=%s"], paths.MIRROR_DIR);
+  }
 
   console.log(`[sync-venice-api-docs] Upstream HEAD: ${commitSha}`);
   console.log(`[sync-venice-api-docs] Upstream Date: ${commitDate}`);
   console.log(`[sync-venice-api-docs] Upstream Subject: ${commitSubject}`);
 
-  // Validate mandatory files
+  // Validate mandatory files (already done for local source; re-checked for mirror path)
   const missing = [];
   for (const file of MANDATORY_FILES) {
-    const fullPath = path.join(MIRROR_DIR, file);
+    const fullPath = path.join(sourceDir, file);
     if (!fs.existsSync(fullPath)) {
       missing.push(file);
     }
@@ -172,9 +302,12 @@ function syncUpstream() {
 
   console.log(`[sync-venice-api-docs] All ${MANDATORY_FILES.length} mandatory files verified.`);
   const retrievedDate = new Date().toISOString().slice(0, 10);
-  writeTrackedReferences(commitSha, retrievedDate);
+  writeTrackedReferences(commitSha, retrievedDate, sourceDir, {
+    localSource: usedLocalSource,
+    repoRoot: options.repoRoot,
+  });
   console.log("[sync-venice-api-docs] Updated tracked Swagger, LLM reference, and source manifest.");
-  return { commitSha, commitDate, commitSubject };
+  return { commitSha, commitDate, commitSubject, sourceDir, usedLocalSource };
 }
 
 if (require.main === module) {
@@ -193,5 +326,9 @@ module.exports = {
   TRACKED_LLM_PATH,
   TRACKED_SWAGGER_PATH,
   SOURCE_MANIFEST_PATH,
+  UPSTREAM_URL,
+  parseSourceFlag,
+  resolveSourceDir,
+  validateLocalSource,
   writeTrackedReferences,
 };

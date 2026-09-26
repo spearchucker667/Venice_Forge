@@ -194,3 +194,68 @@ export function resolveModelSizingMode(
 
   return 'widthHeight';
 }
+
+/**
+ * Upstream default for `capabilities.maxInputImages` when the capability is
+ * absent from a model's `/models` entry. The upstream Swagger docstring
+ * states: "Absent means the default of 3 (or 1 when combineImages is false)."
+ * Combine/multi-edit always uses 3 here because the `/image/multi-edit`
+ * endpoint is what consumes this value; single-image edit endpoints take
+ * exactly one image and do not consult the field.
+ */
+export const DEFAULT_MAX_INPUT_IMAGES = 3;
+
+/** Shape of the per-model `capabilities` object exposed by `/models`. */
+export interface ModelCapabilitiesLike {
+  combineImages?: boolean | null;
+  maxInputImages?: number | null;
+  singleImageAspectRatio?: boolean | null;
+  defaultResolution?: string | null;
+  defaultQuality?: string | null;
+  resolutions?: string[] | null;
+}
+
+/**
+ * Returns the per-model maximum number of input images that
+ * `/image/multi-edit` will accept, honoring the upstream default of 3 when
+ * the capability is absent. The caller is responsible for surfacing this
+ * value to the UI so the user can be warned before they exceed the limit.
+ */
+export function getMaxInputImages(model: ModelMetadataLike | null | undefined): number {
+  if (!model || typeof model !== 'object') return DEFAULT_MAX_INPUT_IMAGES;
+  const cap = model.capabilities;
+  if (!cap || typeof cap !== 'object') return DEFAULT_MAX_INPUT_IMAGES;
+  const v = (cap as ModelCapabilitiesLike).maxInputImages;
+  if (typeof v !== 'number' || !Number.isFinite(v) || v < 1) return DEFAULT_MAX_INPUT_IMAGES;
+  return Math.floor(v);
+}
+
+/**
+ * Returns the per-model aspect-ratio control flag for single-image edit
+ * payloads. `false` means the model preserves input dimensions on single-
+ * image edits and ignores `aspect_ratio`. Multi-image edits are unaffected.
+ * Defaults to `true` to match the documented default.
+ */
+export function supportsSingleImageAspectRatio(
+  model: ModelMetadataLike | null | undefined,
+): boolean {
+  if (!model || typeof model !== 'object') return true;
+  const cap = model.capabilities;
+  if (!cap || typeof cap !== 'object') return true;
+  const v = (cap as ModelCapabilitiesLike).singleImageAspectRatio;
+  return v !== false;
+}
+
+/** Returns the list of supported resolutions for an edit-capable model,
+ *  or undefined when the model does not advertise any usable resolutions. */
+export function getModelResolutions(
+  model: ModelMetadataLike | null | undefined,
+): string[] | undefined {
+  if (!model || typeof model !== 'object') return undefined;
+  const cap = model.capabilities;
+  if (!cap || typeof cap !== 'object') return undefined;
+  const v = (cap as ModelCapabilitiesLike).resolutions;
+  if (!Array.isArray(v)) return undefined;
+  const filtered = v.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+  return filtered.length > 0 ? filtered : undefined;
+}

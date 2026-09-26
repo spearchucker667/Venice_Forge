@@ -1,7 +1,7 @@
 ---
 source: https://docs.venice.ai/llms.txt
-upstream_commit: e787d6fe07372f7961dc292979a3bdf4b95497e3
-retrieved: "2026-09-18"
+upstream_commit: 18c329e559c724b0fc8c319cb1198d99221b3c4b
+retrieved: "2026-09-26"
 content_type: text/markdown
 ---
 # Venice API
@@ -56,7 +56,6 @@ Venice offers four tiers of privacy: **Anonymized** (third-party models with ide
 - [Video Generation (Retrieve)](https://docs.venice.ai/api-reference/endpoint/video/retrieve): Retrieve generated video by ID
 - [Video Generation (Quote)](https://docs.venice.ai/api-reference/endpoint/video/quote): Get price quote for video generation
 - [Video Generation (Complete)](https://docs.venice.ai/api-reference/endpoint/video/complete): Queue and wait for video generation in one call
-- [Video Transcription](https://docs.venice.ai/api-reference/endpoint/video/transcriptions): Extract text/speech from videos
 
 ### Tools
 - [Text Parser](https://docs.venice.ai/api-reference/endpoint/augment/text-parser): Extract text from PDF, DOCX, XLSX, and plain text files. Runs in-memory on Venice infrastructure with zero data retention ($0.01/request)

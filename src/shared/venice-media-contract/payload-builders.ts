@@ -32,6 +32,7 @@ import type {
   VideoRetrieveWirePayload,
 } from './types';
 import { isVideoSourceMatchedAspectRatio, isVideoSourceMatchedDuration } from './types';
+import { DEFAULT_MAX_INPUT_IMAGES } from './capabilities';
 
 // Hard limits per upstream swagger.yaml
 export const MIN_IMAGE_DIMENSION = 64;
@@ -165,6 +166,8 @@ export function buildCanonicalImageEditPayload(
   const resolution = cleanString(req.resolution);
   if (resolution) payload.resolution = resolution;
 
+  if (req.quality) payload.quality = req.quality;
+
   if (req.enhancePrompt !== undefined) payload.enhance_prompt = !!req.enhancePrompt;
   if (req.disablePromptOptimizationThinking !== undefined) {
     payload.disable_prompt_optimization_thinking = !!req.disablePromptOptimizationThinking;
@@ -182,7 +185,20 @@ export function buildCanonicalImageMultiEditPayload(
   if (!Array.isArray(req.images) || req.images.length === 0) {
     throw new Error('Multi-edit requires at least 1 image.');
   }
-  const cleanImages = req.images.map((img, i) => cleanRequiredString(img, `images[${i}]`)).slice(0, 3);
+
+  // The per-model maximum comes from upstream
+  // `capabilities.maxInputImages` in the live `/models` payload. Absent
+  // means the documented default of 3. Callers should resolve this from
+  // the model catalog via `getMaxInputImages()`; we apply the same default
+  // here so the builder is safe to use in isolation.
+  const maxImages = Math.max(1, Math.floor(req.maxInputImages ?? DEFAULT_MAX_INPUT_IMAGES));
+  if (req.images.length > maxImages) {
+    throw new Error(
+      `Multi-edit accepts at most ${maxImages} images for model "${modelId}" ` +
+        `(capabilities.maxInputImages). Received ${req.images.length}.`,
+    );
+  }
+  const cleanImages = req.images.map((img, i) => cleanRequiredString(img, `images[${i}]`));
 
   const payload: MultiEditImageWirePayload = {
     modelId,
@@ -194,7 +210,14 @@ export function buildCanonicalImageMultiEditPayload(
   const aspectRatio = cleanString(req.aspectRatio);
   if (aspectRatio) payload.aspect_ratio = aspectRatio;
 
+  const resolution = cleanString(req.resolution);
+  if (resolution) payload.resolution = resolution;
+
+  if (req.quality) payload.quality = req.quality;
   if (req.enhancePrompt !== undefined) payload.enhance_prompt = !!req.enhancePrompt;
+  if (req.disablePromptOptimizationThinking !== undefined) {
+    payload.disable_prompt_optimization_thinking = !!req.disablePromptOptimizationThinking;
+  }
 
   return applyVeniceApiSafeMode('/image/multi-edit', payload as unknown as Record<string, unknown>, req.safeMode) as unknown as MultiEditImageWirePayload;
 }

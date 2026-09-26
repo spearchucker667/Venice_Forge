@@ -1,11 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
+  DEFAULT_MAX_INPUT_IMAGES,
+  getMaxInputImages,
+  getModelResolutions,
   isImageEditModel,
   isImageGenerateModel,
   isVideoModel,
   isAudioMusicModel,
   isAudioTtsModel,
   resolveModelSizingMode,
+  supportsSingleImageAspectRatio,
   supportsVideoBitrateMode,
 } from '../capabilities';
 
@@ -113,6 +117,102 @@ describe('Model Capabilities', () => {
     it('defaults to widthHeight for pixel-based models without aspect ratios', () => {
       const mode = resolveModelSizingMode('flux-dev', {});
       expect(mode).toBe('widthHeight');
+    });
+  });
+
+  // Phase 6 (2026-09-26) — per-model capabilities (maxInputImages,
+  // singleImageAspectRatio, resolutions) are surfaced so the multi-edit
+  // payload builder no longer has to silently truncate to 3.
+  describe('Multi-Edit Capability Helpers', () => {
+    it('exposes the documented upstream default of 3', () => {
+      expect(DEFAULT_MAX_INPUT_IMAGES).toBe(3);
+    });
+
+    it('reads capabilities.maxInputImages when present', () => {
+      expect(
+        getMaxInputImages({
+          id: 'flux-2-max-edit',
+          capabilities: { maxInputImages: 14 },
+        }),
+      ).toBe(14);
+    });
+
+    it('falls back to the default when capabilities is missing or invalid', () => {
+      expect(getMaxInputImages({ id: 'firered-image-edit' })).toBe(3);
+      expect(getMaxInputImages(null)).toBe(3);
+      expect(getMaxInputImages(undefined)).toBe(3);
+      expect(
+        getMaxInputImages({
+          id: 'broken',
+          capabilities: { maxInputImages: 0 },
+        }),
+      ).toBe(3);
+      expect(
+        getMaxInputImages({
+          id: 'broken',
+          capabilities: { maxInputImages: -1 },
+        }),
+      ).toBe(3);
+      expect(
+        getMaxInputImages({
+          id: 'broken',
+          capabilities: { maxInputImages: Number.NaN as unknown as number },
+        }),
+      ).toBe(3);
+    });
+
+    it('floors non-integer maxInputImages values', () => {
+      expect(
+        getMaxInputImages({
+          id: 'fractional',
+          capabilities: { maxInputImages: 7.9 },
+        }),
+      ).toBe(7);
+    });
+
+    it('defaults supportsSingleImageAspectRatio to true when the capability is absent or true', () => {
+      expect(supportsSingleImageAspectRatio(null)).toBe(true);
+      expect(supportsSingleImageAspectRatio({ id: 'x' })).toBe(true);
+      expect(
+        supportsSingleImageAspectRatio({
+          id: 'x',
+          capabilities: { singleImageAspectRatio: true },
+        }),
+      ).toBe(true);
+    });
+
+    it('returns false only when singleImageAspectRatio is explicitly false', () => {
+      expect(
+        supportsSingleImageAspectRatio({
+          id: 'x',
+          capabilities: { singleImageAspectRatio: false },
+        }),
+      ).toBe(false);
+    });
+
+    it('returns resolution arrays verbatim from capabilities', () => {
+      expect(
+        getModelResolutions({
+          id: 'gpt-image-2-edit',
+          capabilities: { resolutions: ['1K', '2K', '4K'] },
+        }),
+      ).toEqual(['1K', '2K', '4K']);
+    });
+
+    it('returns undefined when resolutions are absent or empty', () => {
+      expect(getModelResolutions({ id: 'firered-image-edit' })).toBeUndefined();
+      expect(
+        getModelResolutions({
+          id: 'firered-image-edit',
+          capabilities: { resolutions: [] },
+        }),
+      ).toBeUndefined();
+      expect(
+        getModelResolutions({
+          id: 'firered-image-edit',
+          capabilities: { resolutions: ['', 5 as unknown as string] },
+        }),
+      ).toBeUndefined();
     });
   });
 });

@@ -87,20 +87,35 @@ export interface ImageEditLogicalRequest {
   image: string; // data URL, raw base64, or http(s) URL
   aspectRatio?: string;
   resolution?: string;
+  quality?: 'low' | 'medium' | 'high';
   outputFormat?: 'jpeg' | 'png' | 'webp';
   safeMode?: boolean;
   enhancePrompt?: boolean;
   disablePromptOptimizationThinking?: boolean;
 }
 
+/**
+ * Logical multi-edit request.
+ *
+ * `maxInputImages` is the per-model cap from `capabilities.maxInputImages`
+ * in the upstream model metadata (default 3 when the capability is absent).
+ * The payload builder throws — rather than silently truncating — when the
+ * caller supplies more images than the model advertises. Callers should
+ * resolve `maxInputImages` from the live `/models` metadata via the
+ * `getMaxInputImages()` helper in `capabilities.ts`.
+ */
 export interface ImageMultiEditLogicalRequest {
   modelId: string;
   prompt: string;
-  images: string[]; // up to 3 images (base, layers/masks)
+  images: string[]; // base image + edit layers/masks
+  maxInputImages?: number;
   aspectRatio?: string;
+  resolution?: string;
+  quality?: 'low' | 'medium' | 'high';
   outputFormat?: 'jpeg' | 'png' | 'webp';
   safeMode?: boolean;
   enhancePrompt?: boolean;
+  disablePromptOptimizationThinking?: boolean;
 }
 
 export interface ImageUpscaleLogicalRequest {
@@ -258,6 +273,7 @@ export interface EditImageWirePayload {
   model: string;
   aspect_ratio?: string;
   resolution?: string;
+  quality?: 'low' | 'medium' | 'high';
   output_format?: 'jpeg' | 'png' | 'webp';
   safe_mode?: boolean;
   enhance_prompt?: boolean;
@@ -269,9 +285,12 @@ export interface MultiEditImageWirePayload {
   prompt: string;
   images: string[];
   aspect_ratio?: string;
+  resolution?: string;
+  quality?: 'low' | 'medium' | 'high';
   output_format?: 'jpeg' | 'png' | 'webp';
   safe_mode?: boolean;
   enhance_prompt?: boolean;
+  disable_prompt_optimization_thinking?: boolean;
 }
 
 export interface UpscaleImageWirePayload {

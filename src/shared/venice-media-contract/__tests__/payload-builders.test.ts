@@ -93,6 +93,30 @@ describe('Canonical Payload Builders', () => {
 
       expect(payload.model).toBe('firered-image-edit');
     });
+
+    // Phase 6 (2026-09-26) — `/image/edit` accepts `quality` (low | medium
+    // | high) per the upstream EditImageRequest schema. The field is only
+    // surfaced for models that advertise it; the caller decides whether to
+    // pass it. We pass it through verbatim and omit it otherwise.
+    it('emits quality when provided on edit', () => {
+      const payload = buildCanonicalImageEditPayload({
+        model: 'gpt-image-2-edit',
+        image: 'data:image/png;base64,IMG',
+        prompt: 'sharpen the cat',
+        quality: 'high',
+      });
+      expect(payload.quality).toBe('high');
+    });
+
+    it('omits quality when not provided on edit', () => {
+      const payload = buildCanonicalImageEditPayload({
+        model: 'firered-image-edit',
+        image: 'data:image/png;base64,IMG',
+        prompt: 'add a red hat',
+      });
+      const wire = payload as unknown as Record<string, unknown>;
+      expect(wire.quality).toBeUndefined();
+    });
   });
 
   describe('Image Multi-Edit', () => {
@@ -106,6 +130,83 @@ describe('Canonical Payload Builders', () => {
       expect(payload.modelId).toBe('firered-image-edit');
       expect(payload.images).toEqual(['data:image/png;base64,IMG1', 'data:image/png;base64,IMG2']);
       expect(payload.prompt).toBe('blend scenes');
+      expect(payload.output_format).toBe('png');
+    });
+
+    // Phase 6 (2026-09-26) — the per-model `capabilities.maxInputImages`
+    // must be honored instead of silently truncating to three. The default
+    // is 3 when the caller does not pass `maxInputImages`, matching the
+    // upstream-documented default for `capabilities.maxInputImages` absent.
+    it('defaults to a maxInputImages of 3 when the caller omits it', () => {
+      const payload = buildCanonicalImageMultiEditPayload({
+        modelId: 'firered-image-edit',
+        prompt: 'three layers',
+        images: [
+          'data:image/png;base64,IMG1',
+          'data:image/png;base64,IMG2',
+          'data:image/png;base64,IMG3',
+        ],
+      });
+      expect(payload.images).toHaveLength(3);
+    });
+
+    it('throws when the caller exceeds the per-model maxInputImages', () => {
+      expect(() =>
+        buildCanonicalImageMultiEditPayload({
+          modelId: 'gpt-image-2-edit',
+          prompt: 'too many',
+          images: [
+            'data:image/png;base64,IMG1',
+            'data:image/png;base64,IMG2',
+            'data:image/png;base64,IMG3',
+            'data:image/png;base64,IMG4',
+          ],
+          maxInputImages: 3,
+        }),
+      ).toThrow(/at most 3 images for model "gpt-image-2-edit"/);
+    });
+
+    it('honors a higher maxInputImages from capabilities.maxInputImages', () => {
+      // Live upstream exposes some models with maxInputImages > 3.
+      const images = Array.from(
+        { length: 14 },
+        (_, i) => `data:image/png;base64,IMG${i + 1}`,
+      );
+      const payload = buildCanonicalImageMultiEditPayload({
+        modelId: 'flux-2-max-edit',
+        prompt: 'composite many layers',
+        images,
+        maxInputImages: 14,
+      });
+      expect(payload.images).toHaveLength(14);
+    });
+
+    it('emits quality, resolution, and disable_prompt_optimization_thinking when provided', () => {
+      const payload = buildCanonicalImageMultiEditPayload({
+        modelId: 'gpt-image-2-edit',
+        prompt: 'blend scenes',
+        images: ['data:image/png;base64,IMG1', 'data:image/png;base64,IMG2'],
+        quality: 'high',
+        resolution: '2K',
+        disablePromptOptimizationThinking: true,
+      });
+
+      expect(payload.quality).toBe('high');
+      expect(payload.resolution).toBe('2K');
+      expect(payload.disable_prompt_optimization_thinking).toBe(true);
+    });
+
+    it('omits quality, resolution, and disable_prompt_optimization_thinking when not provided', () => {
+      const payload = buildCanonicalImageMultiEditPayload({
+        modelId: 'firered-image-edit',
+        prompt: 'blend scenes',
+        images: ['data:image/png;base64,IMG1'],
+      });
+
+      const wire = payload as unknown as Record<string, unknown>;
+      expect(wire.quality).toBeUndefined();
+      expect(wire.resolution).toBeUndefined();
+      expect(wire.disable_prompt_optimization_thinking).toBeUndefined();
     });
   });
 
