@@ -1,6 +1,6 @@
 # Venice Forge — File Move & Rename Manifest
 
-**Latest revalidation working tree:** 2026-09-26 repository-management revalidation on `main` (baseline `3087051bb793498b29855edd17620aa694457b27`)
+**Latest revalidation working tree:** 2026-09-26 repository gitignore overhaul & documentation alignment pass on `main` (baseline `76fbc21bd1b5cd0e5cb69ed8b12c09acc1fbca5e`)
 **Historical overhaul baseline:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
 **Date:** 2026-09-26
 **Scope:** Repository Hygiene, Document Relocation, Gitignore Alignment & POSIX Normalization

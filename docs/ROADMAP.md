@@ -5,18 +5,18 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: e1f79499d5a496651cd668bc5327dc2172d0fb76
-application_code_sha: e1f79499d5a496651cd668bc5327dc2172d0fb76
-verified_against_sha: e1f79499d5a496651cd668bc5327dc2172d0fb76
+repository_head_sha: 76fbc21bd1b5cd0e5cb69ed8b12c09acc1fbca5e
+application_code_sha: 76fbc21bd1b5cd0e5cb69ed8b12c09acc1fbca5e
+verified_against_sha: 76fbc21bd1b5cd0e5cb69ed8b12c09acc1fbca5e
 verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
-working_tree:        Media Studio and Image Editor save/model remediation; uncommitted
-ci_status:           focused media validation recorded in summary_of_work.md; full CI not run
-codeql_status:       not checked this session; no publication
-open_findings:       2026-09-24 audit safety-contract conflict; FRAT-REAUD-006 live provider acceptance; FRAT-REAUD-007 native-language review; P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
+working_tree:        repository gitignore overhaul, accidental artifact removal, and documentation alignment; uncommitted
+ci_status:           28/28 static contract verifiers pass locally; lint/typecheck pass; markdown links pass; unit/contract tests pass
+codeql_status:       not re-checked this session; publication authorized
+open_findings:       2026-09-24 audit safety-contract conflict; FRAT-REAUD-006 live provider acceptance; FRAT-REAUD-007 native-language review; P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence; HQE-ENV-001 (Node 24 vs 22.x drift); HQE-ENV-002 (npm cache EPERM); HQE-TEST-001 (src/agent + src/i18n test ratios); HQE-TEST-002 (macOS FSEvents EMFILE drift on bulk electron suites)
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
   - qualified native-language review (P3-020). First-pass translations require human review before locales are production-complete.
@@ -25,11 +25,9 @@ external_acceptance_outstanding:
 
 ## Current Work
 
-`IMAGE-EDITOR-DEDICATED-TAB-2026-09-26` — Dedicated tab/menu and single-image upload/edit/preview/Save/Delete flow implemented locally. Remaining advanced controls are planned: [Image Editor requirements](DEVELOPMENT/image-editor-requirements.md) cover masks, crop/reframe, model-aware aspect ratio, prompt enhancement, same-model/cross-model variations, and bounded durable staging/restart/navigation handling. LoRA was removed from scope at the user’s request. Acceptance and current integration gaps are recorded in that specification.
+`IMAGE-EDITOR-DEDICATED-TAB-2026-09-26` — Dedicated tab/menu and single-image upload/edit/preview/Save/Delete flow committed on main (`e1f79499`). Remaining advanced controls are planned: [Image Editor requirements](DEVELOPMENT/image-editor-requirements.md) cover masks, crop/reframe, model-aware aspect ratio, prompt enhancement, same-model/cross-model variations, and bounded durable staging/restart/navigation handling. LoRA was removed from scope at the user’s request. Acceptance and current integration gaps are recorded in that specification.
 
-`MEDIA-STUDIO-SAVE-2026-09-26` — Attached console evidence is addressed locally: inline data URLs no longer pass through `fetch()` on Save As; desktop catalog writes promote inline image bytes to main-owned content-addressed media before encrypting metadata; Image Editor reads the `inpaint` model catalog. Focused tests pass. Full Electron acceptance and live provider verification remain open.
-
-`API-SOURCE-RECONCILIATION-2026-09-26` — Reconcile runtime adapters against the user-selected `db3b9f4f` API source before the editor implementation. The selected source lacks `discount_to_user` (contract-drift verification fails on that assertion), omits newer endpoints, and single-edit `quality` is absent from its schema despite the current builder accepting it. The source reconciliation itself changes no API adapter behavior. The editor delivery also exposed an unchanged sync-source test expecting a temporary-path alias instead of the physical path on macOS (`scripts/sync-venice-api-docs.test.ts`, relative source case); reconcile that verifier expectation without changing the helper’s cwd semantics. Preserve separately evidenced newer functionality until contract ownership is resolved; see [source manifest](reference/VENICE_API_SOURCE_MANIFEST.md).
+`MEDIA-STUDIO-SAVE-2026-09-26` — Persistence remediation committed on main (`aeef7d1b`): inline data URLs no longer pass through `fetch()` on Save As; desktop catalog writes promote inline image bytes to main-owned content-addressed media before encrypting metadata; Image Editor reads the `inpaint` model catalog. Focused tests pass. Full Electron acceptance and live provider verification remain open.
 
 `THEME-OVERLAY-2026-09-25` — User reports theme formatting and unwanted border/mesh overlays. Awaiting affected theme names and screens or an overlay screenshot. The supplied Diagnostics screenshot shows its intentional selected-section outline; shared mesh gradients are translucent. Reproduce before changing shared styling. Status: blocked by missing evidence.
 

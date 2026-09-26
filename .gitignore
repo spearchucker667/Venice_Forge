@@ -64,6 +64,7 @@ pnpm-debug.log*
 /.superpowers/
 /.freebuff/
 /.playwright-cli/
+/.playwright-mcp/
 /.superdesign/*
 !/.superdesign/init/
 
@@ -325,8 +326,9 @@ pnpm-debug.log*
 /.ai/
 /.cursor/
 /.claude/
+/.gemini/
+/.antigravity/
 /.local-ai/
-/.freebuff/
 /.rup/
 
 venice-forge-filelist.txt

@@ -1,6 +1,6 @@
 # Venice Forge — Repository Hygiene, Organization, File Hygiene & Gitignore Overhaul Report
 
-> **Latest revalidation working tree:** 2026-09-26 hygiene pass on `main` (baseline `3087051bb793498b29855edd17620aa694457b27`)
+> **Latest revalidation working tree:** 2026-09-26 repository gitignore overhaul & documentation alignment pass on `main` (baseline `76fbc21bd1b5cd0e5cb69ed8b12c09acc1fbca5e`)
 > **Historical baseline for the original overhaul:** `db028726bf308a37a764d1c9dc5ef31613f4d7ad`
 > **Package Version:** `3.1.0`
 > **Branch:** `main`
@@ -11,20 +11,29 @@
 
 ## Current Revalidation — 2026-09-26
 
-- **Baseline & Worktree Safety:** Checked-out `main` verified at `3087051bb793498b29855edd17620aa694457b27`. Pre-existing user-owned working tree modifications in `docs/design/*.md` and `docs/summary_of_work.md` were preserved untouched.
-- **Gitignore Rule Conflict Remediation:** Identified trailing lines 401–403 in `.gitignore` (`.superdesign`, `/.superdesign`, `/.superdesign/init`) appended in commit `00bc462c` that conflicted with existing lines 67–68 (`/.superdesign/*`, `!/.superdesign/init/`). The trailing entries caused Git to treat tracked design files in `.superdesign/init/` as ignored (`git ls-files -c -i --exclude-standard` reported 6 tracked files). Removed the redundant conflict; verified `git ls-files -c -i --exclude-standard` returns exactly 0 results.
-- **POSIX Naming Hygiene & Audit Archive Normalization:** Identified `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` introduced in `00bc462c` containing non-ASCII em-dash (`—`) and whitespace, which produced quote-escaped strings in POSIX tools and violated naming conventions. Because the Theme Engine audit and Waves 1 & 2 remediation have fully landed on `main`, the document was moved to `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Verified `git ls-files | grep -E '[^a-zA-Z0-9._/-]'` returns 0 results.
-- **Root Clutter Isolation:** Root-level transient session export (`kimi-export-session_-20260926-051728.md`) was cleared from root to gitignored storage at `.agent-backups/session-exports/`. Untracked local macOS Finder metadata files (`.DS_Store`) were purged from the working tree.
-- **Repository Inventory:** Verified 2,248 tracked files across the repository, with a clean 28-file root governance perimeter.
+- **Baseline & Worktree Safety:** Checked-out `main` verified at `76fbc21bd1b5cd0e5cb69ed8b12c09acc1fbca5e`. Working tree is verified clean.
+- **Gitignore Overhaul & MCP Alignment:**
+  - Added `/.playwright-mcp/` under `# Design and development-tool output` to reliably ignore local Playwright MCP logs, temporary YAML snapshots, and session artifacts.
+  - Removed duplicate `/.freebuff/` rule (was duplicated on lines 65 and 329).
+  - Added `/.gemini/` and `/.antigravity/` to `# Scratch directories and local tooling` to safeguard agent runtime workspaces.
+  - Verified `git ls-files -c -i --exclude-standard` returns exactly 0 results (0 tracked files ignored).
+- **Accidental Artifact Removal:** Removed accidental 68-byte Playwright MCP YAML dump (`.playwright-mcp/page-2026-09-26T08-17-52-803Z.yml`) committed in `c3dea97b`, eliminating local MCP contaminants from repository version control. Documented in `DELETION_MANIFEST.md`.
+- **Repository Documentation Alignment:**
+  - `docs/DOCS_INDEX.md`: Aligned Swagger snapshot entry to schema `20260918.184256` / upstream `18c329e5` (superseding stale `20260814.153445` citation).
+  - `docs/ROADMAP.md`: Stamped machine-readable state header to `76fbc21b`, removed completed `API-SOURCE-RECONCILIATION-2026-09-26`, and updated `IMAGE-EDITOR-DEDICATED-TAB-2026-09-26` and `MEDIA-STUDIO-SAVE-2026-09-26` to reflect committed implementation status.
+  - `SECURITY.md`: Aligned machine-readable state header to `76fbc21b` and refreshed verification date.
+  - `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md`: Updated re-initialization anchor to commit `76fbc21b`.
+  - `docs/DEVELOPMENT/image-editor-requirements.md`: Updated wire contract row to reflect single-edit `quality` removal completed in `76fbc21b`.
+- **Repository Inventory:** Verified 2,254 tracked files across the repository with a clean 28-file root governance perimeter.
 - **Validation Matrix Execution:**
-  - `npm run verify:contracts:static` (28/28 checks PASS: lockfile, identity, roadmap, release metadata, bundle budget, safety guard, markdown links, repo handoff hygiene, theme tokens, meteocon CSP, network boundaries, custom protocol privileges, venice API docs, venice contract drift, CI contract, agent docs, superdesign init, image policy, work orders, no native dialogs, inactive feature archive, provider adapters, i18n, i18n hardcoded regressions, IPC parity, prompt language, transitive deprecations, theme collisions).
-  - `npm run verify:archive-clean` (PASS — archive exclusion config and tracked files are clean).
-  - `npm run verify:repository-identity` (PASS — git mode).
+  - `npm run verify:contracts:static` (PASS across all 28 static contract checks).
+  - `npm run verify:archive-clean` (PASS).
+  - `npm run verify:repository-identity` (PASS).
   - `npm run verify:repo-handoff-hygiene` (PASS).
-  - `npm run verify:markdown-links` (PASS — 448/448 markdown files checked, 0 broken links or anchors).
+  - `npm run verify:markdown-links` (PASS — 452/452 markdown files checked, 0 broken links or anchors).
+  - `npm run verify:roadmap-current` (PASS).
   - `npm run verify:agent-docs` (PASS).
   - `npm run verify:superdesign-init` (PASS).
-  - `node scripts/clean-release-staging.cjs` (PASS — idempotent release directory safety check).
 
 ## Prior Revalidation — 2026-09-18
 

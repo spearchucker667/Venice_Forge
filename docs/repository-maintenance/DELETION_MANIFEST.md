@@ -9,11 +9,15 @@
 
 ## 0. Current Revalidation — 2026-09-26
 
-- **Tracked Deletions:** Zero tracked files were deleted.
+- **Tracked Deletions:** 1 file removed (`.playwright-mcp/page-2026-09-26T08-17-52-803Z.yml`).
+  - **Path:** `.playwright-mcp/page-2026-09-26T08-17-52-803Z.yml`
+  - **Classification:** Accidentally committed development-tool snapshot (Criterion 2: Generated artifact accidentally committed).
+  - **Reason for removal:** 68 bytes; transient Playwright MCP YAML snapshot accidentally committed in `c3dea97b`. Not referenced in source, tests, or documentation. Hardened `.gitignore` with `/.playwright-mcp/` rule.
+  - **Replacement:** None needed (transient local tool output).
+  - **Reference search performed:** Yes (`git grep "playwright-mcp"` returned 0 occurrences across repository).
 - **Untracked Cleanup & Root Clutter Isolation:**
   - Root transient session export `kimi-export-session_-20260926-051728.md` was moved to gitignored storage at `.agent-backups/session-exports/kimi-export-session_-20260926-051728.md` to keep the repository root strictly scoped to canonical entry points and configuration.
   - Local macOS Finder metadata files (`.DS_Store`) were purged from the working tree.
-  - User-owned dirty working tree modifications in `docs/design/*.md` and `docs/summary_of_work.md` were preserved untouched.
 - **All tracked assets, code, test suites, and documentation remain active.**
 
 ## 0.1 Prior Revalidation — 2026-09-23

@@ -1,6 +1,6 @@
 # Image Editor requirements and API contract
 
-Status: partially implemented. The approved dedicated tab/menu and existing single-image edit workflow are implemented locally; advanced requirements below remain planned. Reviewed 2026-09-26 against the user-selected api-docs commit `db3b9f4f40fe71abff2011bcaa9c23ad797c94f3`. The [source manifest](../reference/VENICE_API_SOURCE_MANIFEST.md) records provenance and discrepancies. [ROADMAP.md](../ROADMAP.md) is the sole project-wide work ledger (`IMAGE-EDITOR-DEDICATED-TAB-2026-09-26`).
+Status: partially implemented. The approved dedicated tab/menu and existing single-image edit workflow are implemented locally; advanced requirements below remain planned. Wire contract reconciled with upstream schema `20260918.184256` (commit `18c329e5`) in commit `76fbc21b`. The [source manifest](../reference/VENICE_API_SOURCE_MANIFEST.md) records provenance and discrepancies. [ROADMAP.md](../ROADMAP.md) is the sole project-wide work ledger (`IMAGE-EDITOR-DEDICATED-TAB-2026-09-26`).
 
 LoRA and a dedicated style-selector requirement were removed at the user’s request on 2026-09-26. Styling can still be described in the ordinary edit prompt.
 
@@ -47,7 +47,7 @@ Baseline static review at Venice Forge `41c77e3ebefb040761637f49483e28a2af5162b1
 | Implemented locally | `src/config/tabs.ts`, `TAB_IDS`/registry now includes `image-editor`; `src/App.tsx` lazily renders `ImageEditorView`. | Sidebar and command menu expose the dedicated editor; regression tests cover both and gallery handoffs. |
 | Missing feature | `src/components/gallery/InpaintMaskEditor.tsx`, `MAX_DISPLAY_DIMENSION = 520`; mask dimensions use the scaled display width/height. | A source-resolution editor must decouple display size from mask export. Test coordinate fidelity at multiple zoom levels. |
 | Missing feature | `src/services/imageDerivedOperations.ts`, `runImageDerivedOperation()` calls `upsertDerivative()` before returning. | This immediate-save path cannot satisfy staging unchanged; separate execution/staging from explicit gallery promotion while preserving existing callers. |
-| Contract reconciliation required | `src/shared/venice-media-contract/payload-builders.ts` and `types.ts` allow single-edit `quality`; selected `EditImageRequest` does not declare it. | Reconcile before implementing the new editor; no runtime fix is claimed in this documentation task. |
+| Contract reconciled | `src/shared/venice-media-contract/payload-builders.ts` and `types.ts` removed single-edit `quality` in commit `76fbc21b`, aligning with `EditImageRequest`. | Completed; single-edit payloads never emit `quality` while multi-edit preserves it. |
 
 All calls must use canonical payload builders and `veniceFetch()` through the existing Electron/preload/IPC or Express path. Keep credentials, privileged file operations, safety authority and recovery custody in their existing trusted boundaries. Stage media using bounded app-managed storage and opaque IDs; do not persist large data URLs in UI stores. Validate binary content before marking completion. Separate staged storage from gallery visibility and preserve lineage when saving derivatives.
 

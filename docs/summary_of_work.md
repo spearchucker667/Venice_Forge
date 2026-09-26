@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: aeef7d1bd52fa74bf169d407456dbd0b43c54cf1
-application_code_sha: aeef7d1bd52fa74bf169d407456dbd0b43c54cf1
-verified_against_sha: aeef7d1bd52fa74bf169d407456dbd0b43c54cf1
+repository_head_sha: 76fbc21bd1b5cd0e5cb69ed8b12c09acc1fbca5e
+application_code_sha: 76fbc21bd1b5cd0e5cb69ed8b12c09acc1fbca5e
+verified_against_sha: 76fbc21bd1b5cd0e5cb69ed8b12c09acc1fbca5e
 verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        repository-identity gate fix + Venice API drift remediation + /image/edit quality field removal; uncommitted
-ci_status:           27/27 static contract verifiers pass locally (verify:lockfile blocked by HQE-ENV-002 npm cache EPERM); lint/typecheck pass; verify:repository-identity, verify:venice-contract-drift, verify:venice-api-docs, test:server, test:ingestion, test:contracts, test:coverage:scripts all green; npm run build + verify:dist pass; bulk test:electron shows macOS FSEvents EMFILE drift pre-existing
-codeql_status:       not re-checked this session; no publication
+working_tree:        repository gitignore overhaul, accidental artifact removal, and documentation alignment; uncommitted
+ci_status:           28/28 static contract verifiers pass locally; lint/typecheck pass; test:server pass (102/102); test:contracts pass (304/304); verify:safety-guard pass; verify:markdown-links pass (452/452); build & verify:dist pass
+codeql_status:       not re-checked this session; publication authorized
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence; HQE-ENV-001 (Node 24 vs 22.x drift); HQE-ENV-002 (npm cache EPERM); HQE-TEST-001 (src/agent + src/i18n test ratios); HQE-TEST-002 (macOS FSEvents EMFILE drift on bulk electron suites)
 ```
 external_acceptance_outstanding:
@@ -24,6 +24,8 @@ external_acceptance_outstanding:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-26 Repository gitignore overhaul, accidental artifact purge, and documentation alignment.** Completed full review of `.gitignore` and all repository documentation. (1) `.gitignore` overhaul: added `/.playwright-mcp/` under design/development-tool outputs, added `/.gemini/` and `/.antigravity/` under scratch/local tooling, and purged redundant duplicate `/.freebuff/` entry. (2) Removed accidental 68-byte transient Playwright MCP snapshot (`.playwright-mcp/page-2026-09-26T08-17-52-803Z.yml` committed in `c3dea97b`), ensuring 0 tracked files are ignored (`git ls-files -c -i --exclude-standard` is empty). (3) Reconciled and aligned repository documentation: updated `docs/DOCS_INDEX.md` Swagger entry to schema `20260918.184256` / upstream `18c329e5`; updated `docs/ROADMAP.md` machine-readable state header to `76fbc21b`, removed completed `API-SOURCE-RECONCILIATION-2026-09-26`, and updated status of `IMAGE-EDITOR-DEDICATED-TAB-2026-09-26` and `MEDIA-STUDIO-SAVE-2026-09-26`; updated `SECURITY.md` current state header to `76fbc21b`; updated `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md` anchor to commit `76fbc21b`; updated `docs/DEVELOPMENT/image-editor-requirements.md` wire contract table to reflect completed single-edit `quality` removal; and synchronized maintenance records in `docs/repository-maintenance/` (`REPOSITORY_HYGIENE_REPORT.md`, `DELETION_MANIFEST.md`, `FILE_MOVE_MANIFEST.md`). Validation: 28/28 static contract verifiers PASS, `verify:markdown-links` PASS (452/452 files, 0 broken links), `verify:roadmap-current` PASS, `verify:agent-docs` PASS, `verify:superdesign-init` PASS, `typecheck` PASS (3/3 tsconfigs), `lint:eslint` PASS (0 errors, 0 warnings), `test:server` PASS (102/102), `test:contracts` PASS (304/304), `verify:safety-guard` PASS, `npm run build` + `verify:dist` PASS.
 
 - **2026-09-26 Repository-identity gate fix + Venice API contract drift remediation + /image/edit quality field removal.** Three P1 audit findings cleared on `main` @ `aeef7d1b`. (1) `verify:repository-identity` had a heading-matcher bug (`### Session History` vs the document's `## Session History`) that silently disabled the Session History carve-out; fixed the regex to `/^#{2,3}\s+Session History\s*$/`, sanitized three references to the user's local api-docs fork in `docs/summary_of_work.md` to the portable GitHub slug `spearchucker667/api-docs`, and added four regression tests. (2) `verify:venice-contract-drift` failed because the previously pinned Swagger (`db3b9f4f`, schema `20260814.153445`) does not declare `ModelResponse.discount_to_user` while `src/types/venice.ts:137` does (P3-001); refreshed `docs/reference/Venice_swagger_api.yaml` and `docs/reference/Venice_api_LLM_info.md` to upstream `18c329e5` / schema `20260918.184256` via the canonical `writeTrackedReferences()` helper. (3) Audit finding #2 confirmed against the refreshed Swagger: the upstream `EditImageRequest` schema declares `additionalProperties: false` and does not list `quality`, so `buildCanonicalImageEditPayload()` was emitting a field the wire contract rejects with HTTP 400. Removed `quality` from `ImageEditLogicalRequest`, `EditImageWirePayload`, the builder, and the corresponding tests; replaced the emit-quality test with a never-emits-quality invariant. Multi-edit `quality` is unaffected (the schema supports it). Validation: 27/27 static contract verifiers PASS, `lint:eslint` 0/0, `typecheck` 3/3, `npm run build` PASS, `verify:dist` PASS (`version 3.1.0` build outputs verified), `test:server` 102/102, `test:ingestion` 117/117, `test:contracts` 304/304, `test:coverage:scripts` 334/334 (61.05% statements / 60.24% branches / 67.16% functions / 62.55% lines, all above thresholds), `src/shared/venice-media-contract` 78/78. `verify:lockfile` remains environmentally blocked by `HQE-ENV-002`. No commit, no push.
 
@@ -46,6 +48,37 @@ external_acceptance_outstanding:
 - **2026-09-26 repository-maintenance review and repository hygiene execution (uncommitted).** Conducted full review of `docs/repository-maintenance/` (`README.md`, `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`) and executed comprehensive repository hygiene workflows. Remediated gitignore rule collision where trailing lines 401–403 in `.gitignore` conflicted with lines 67–68, restoring 0 ignored tracked files in `git ls-files -c -i --exclude-standard`. Normalized POSIX naming hygiene by relocating `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` (which contained non-ASCII em-dash and spaces) to canonical `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Isolated root clutter by moving `kimi-export-session_-20260926-051728.md` into gitignored `.agent-backups/session-exports/`, and purged untracked Finder `.DS_Store` metadata. Synchronized all four maintenance documents with the 2,248 tracked file inventory and v3.1.0 metadata. Verified with `verify:contracts:static` (28/28 checks PASS), `verify:archive-clean` (PASS), `verify:repository-identity` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:markdown-links` (448/448 markdown files PASS), `verify:agent-docs` (PASS), and `verify:superdesign-init` (PASS). 100% green.
 
 ## Session History
+
+### 2026-09-26 — Repository gitignore and documentation overhaul, alignment, and verification
+
+- Started on `main` @ `76fbc21b`, Node `v22.15.0`, npm `10.9.2`, package `3.1.0`. Working tree was clean at session start.
+- Reviewed `.gitignore` for syntax, redundancy, and toolchain coverage. Identified that Playwright MCP generated files in `.playwright-mcp/` (such as `console-*.log` and `page-*.yml`) were not covered by `.gitignore`. Furthermore, `c3dea97b` had accidentally committed `.playwright-mcp/page-2026-09-26T08-17-52-803Z.yml` (68 bytes).
+- Removed the accidental tracked file: `git rm .playwright-mcp/page-2026-09-26T08-17-52-803Z.yml`. Confirmed 0 references exist in codebase via `git grep "playwright-mcp"`.
+- Hardened `.gitignore`: added `/.playwright-mcp/` under `# Design and development-tool output`, added `/.gemini/` and `/.antigravity/` to `# Scratch directories and local tooling`, and eliminated duplicate `/.freebuff/` rule (was on lines 65 and 329). Verified `git ls-files -c -i --exclude-standard` returns 0 results.
+- Audited repository documentation and reconciled drift across the following files:
+  - `docs/DOCS_INDEX.md`: Aligned OpenAPI snapshot version from stale `20260814.153445` to `20260918.184256` (upstream `18c329e5`).
+  - `docs/ROADMAP.md`: Stamped machine-readable state header to `76fbc21b`, removed completed `API-SOURCE-RECONCILIATION-2026-09-26`, and updated `IMAGE-EDITOR-DEDICATED-TAB-2026-09-26` and `MEDIA-STUDIO-SAVE-2026-09-26` to reflect committed implementation status.
+  - `SECURITY.md`: Updated machine-readable state header to `76fbc21b` and verified date to `2026-09-26`.
+  - `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md`: Updated re-initialization anchor to commit `76fbc21b`.
+  - `docs/DEVELOPMENT/image-editor-requirements.md`: Updated wire contract mapping and implementation status table to reflect single-edit `quality` removal completed in commit `76fbc21b`.
+  - `docs/repository-maintenance/` (`REPOSITORY_HYGIENE_REPORT.md`, `DELETION_MANIFEST.md`, `FILE_MOVE_MANIFEST.md`): Synchronized working tree baselines to `76fbc21b`, recorded the removal of `.playwright-mcp/page-2026-09-26T08-17-52-803Z.yml`, and documented `.gitignore` modernization.
+- Validation:
+  - `npm run verify:contracts:static` (28/28 checks PASS).
+  - `npm run verify:markdown-links` (452/452 files checked, 0 broken links).
+  - `npm run verify:roadmap-current` (PASS).
+  - `npm run verify:agent-docs` (PASS).
+  - `npm run verify:superdesign-init` (PASS).
+  - `npm run verify:repo-handoff-hygiene` (PASS).
+  - `npm run verify:archive-clean` (PASS).
+  - `npm run verify:repository-identity` (PASS).
+  - `npm run lint:eslint` (PASS, 0 errors / 0 warnings).
+  - `npm run typecheck` (PASS across 3 projects: app, electron, electron.test).
+  - `npm run test:server` (PASS, 102/102 tests).
+  - `npm run test:contracts` (PASS, 304/304 tests across 28 test files).
+  - `npm run verify:safety-guard` (PASS).
+  - `npm run build` and `npm run verify:dist` (PASS, version 3.1.0 build verified).
+  - `git ls-files -c -i --exclude-standard` (PASS, 0 tracked files ignored).
+  - `git diff --check` (PASS, 0 whitespace errors).
 
 ### 2026-09-26 — Repository-identity gate fix + Venice API contract drift remediation
 
@@ -556,10 +589,11 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 
 ## Open TODO Ledger
 
-* **API-DOCS-LOCAL-SOURCE-2026-09-26** — Documentation reconciliation completed locally; runtime differences remain `API-SOURCE-RECONCILIATION-2026-09-26` in `docs/ROADMAP.md`. Earlier upstream-refresh history is retained as history.
-
-* **VENICE-API-DOCS-REFRESH-2026-09-26** — Completed locally (uncommitted). Synced vendored Swagger/LLM snapshots to upstream `18c329e5` (schema version `20260918.184256`); added `--source` / `VENICE_API_DOCS_SOURCE` to `sync-venice-api-docs.cjs`; replaced hard-coded `slice(0, 3)` in `buildCanonicalImageMultiEditPayload()` with capability-driven `maxInputImages` validation (throws on overflow); added `quality`, `resolution`, `disable_prompt_optimization_thinking` fields to multi-edit builder and `quality` to edit; exposed `getMaxInputImages`, `supportsSingleImageAspectRatio`, `getModelResolutions`, `DEFAULT_MAX_INPUT_IMAGES`. Working tree uncommitted.
-* **IMAGE-EDITOR-DEDICATED-TAB-2026-09-26** — Dedicated tab/menu and single-image workflow implemented locally under approved bounded scope. Advanced controls and API reconciliation remain in `docs/ROADMAP.md`; LoRA is removed.
+* **REPO-GITIGNORE-DOCS-OVERHAUL-2026-09-26** — Completed. Comprehensive `.gitignore` overhaul, local Playwright MCP artifact purge, and repository-wide documentation alignment across `SECURITY.md`, `docs/ROADMAP.md`, `docs/DOCS_INDEX.md`, `docs/DEVELOPMENT/agents/AGENT_REINITIALIZATION.md`, `docs/DEVELOPMENT/image-editor-requirements.md`, and `docs/repository-maintenance/` manifests.
+* **API-DOCS-LOCAL-SOURCE-2026-09-26** — Completed and committed on main in `76fbc21b`.
+* **VENICE-API-DOCS-REFRESH-2026-09-26** — Completed and committed on main in `76fbc21b`.
+* **IMAGE-EDITOR-DEDICATED-TAB-2026-09-26** — Dedicated tab/menu and single-image workflow committed on main in `e1f79499`. Planned advanced controls remain tracked in `docs/ROADMAP.md`; LoRA is removed.
+* **MEDIA-STUDIO-SAVE-2026-09-26** — Persistence remediation committed on main in `aeef7d1b`. Full Electron acceptance and live provider verification remain open in `docs/ROADMAP.md`.
 * **GRAPHITE-COCKPIT-UI-2026-09-26** — Completed. Full UI re-envisioning to Graphite Cockpit Flat Instrumentation, Stitch MCP design system sync, and component refactor on branch `feature/graphite-cockpit-redesign`. 100% contracts and UI test suites green.
 * **DOCS-AUDIT-CLEANUP-2026-09-26** — Completed. Full audit and cleaning of `docs/` directory. Synchronized versioning to v3.1.0, Node engine to 22.15.0, link labels, canonical paths, and roadmap SHAs. 100% verifiers green. Working tree uncommitted.
 * **REPO-HYGIENE-2026-09-26** — Completed. Full review of `docs/repository-maintenance/`, `.gitignore` collision resolution (`.superdesign`), closed theme audit handoff relocation/rename to `docs/audits/Records/`, root clutter isolation (`.agent-backups/session-exports/`), and full static contract validation (28/28 checks PASS). Working tree uncommitted.
@@ -586,6 +620,27 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 * **EXTERNAL-ACCEPTANCE** — `P2-016`, `P3-020`, and `VF-VERIFY-005` stay open. They are not local code defects. See `docs/ROADMAP.md`.
 
 ## Validation Matrix
+
+### 2026-09-26 — Repository gitignore and documentation overhaul, alignment, and verification
+
+- `npm run verify:contracts:static` — PASS (28/28 static contract checks).
+- `npm run verify:markdown-links` — PASS (452/452 files checked, 0 broken links).
+- `npm run verify:roadmap-current` — PASS (current work only, 0 closed items, citations intact).
+- `npm run verify:agent-docs` — PASS.
+- `npm run verify:repository-identity` — PASS (git mode).
+- `npm run verify:repo-handoff-hygiene` — PASS.
+- `npm run verify:archive-clean` — PASS.
+- `npm run verify:superdesign-init` — PASS.
+- `npm run verify:ci-contract` — PASS.
+- `npm run verify:release-metadata` — PASS.
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across codebase).
+- `npm run typecheck` — PASS (3/3 projects: app, electron, electron.test).
+- `npm run test:server` — PASS (102/102 tests).
+- `npm run test:contracts` — PASS (304/304 tests across 28 test files).
+- `npm run verify:safety-guard` — PASS.
+- `npm run build` and `npm run verify:dist` — PASS (version 3.1.0 build verified).
+- `git ls-files -c -i --exclude-standard` — PASS (0 tracked files ignored).
+- `git diff --check` — PASS (0 whitespace errors).
 
 ### 2026-09-26 — Media Studio and Image Editor save/model remediation
 
