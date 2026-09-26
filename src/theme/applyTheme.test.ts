@@ -49,13 +49,22 @@ describe("applyTheme", () => {
     expect(setPropertySpy).toHaveBeenCalledWith("--syntax-string", theme.code.tokens.string);
     expect(setPropertySpy).toHaveBeenCalledWith("--syntax-function", theme.code.tokens.function);
     expect(setPropertySpy).toHaveBeenCalledWith("--syntax-comment", theme.code.tokens.comment);
+    expect(setPropertySpy).toHaveBeenCalledWith("--border-hot", "#743940");
+    expect(setPropertySpy).toHaveBeenCalledWith("--telemetry-cyan", "#6ee7d3");
 
-    expect(setPropertySpy).toHaveBeenCalledTimes(70);
+    expect(setPropertySpy).toHaveBeenCalledTimes(72);
   });
 
   it("sets data-theme-mode attribute", () => {
     applyTheme(resolved(BUILTIN_LIGHT, "light"));
     expect(document.documentElement.dataset.themeMode).toBe("light");
+  });
+
+  it("resolves graphite cockpit tokens including borderHot and telemetryCyan", () => {
+    const theme = resolved(BUILTIN_VENICE, "dark");
+    applyTheme(theme);
+    expect(setPropertySpy).toHaveBeenCalledWith("--border-hot", "#743940");
+    expect(setPropertySpy).toHaveBeenCalledWith("--telemetry-cyan", "#6ee7d3");
   });
 
   it("overwrites previous theme tokens when called again", () => {

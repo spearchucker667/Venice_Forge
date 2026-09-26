@@ -18,6 +18,8 @@
       '--surface-muted',
       '--border',
       '--border-strong',
+      '--border-hot',
+      '--telemetry-cyan',
       '--foreground',
       '--foreground-muted',
       '--foreground-subtle',

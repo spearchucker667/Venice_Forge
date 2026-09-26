@@ -98,6 +98,8 @@ export function buildThemeVariableMap(theme: ResolvedTheme): Record<string, stri
     '--focus-ring': t.focusRing,
     '--selection-bg': t.selectionBackground,
     '--selection-fg': t.selectionForeground,
+    '--border-hot': t.borderHot ?? (theme.mode === 'dark' ? '#743940' : '#d9777f'),
+    '--telemetry-cyan': t.telemetryCyan ?? '#6ee7d3',
     '--overlay': t.overlay,
     '--glow': t.glow,
     '--app-mesh-opacity': theme.mode === 'light' ? '0.08' : '0.12',

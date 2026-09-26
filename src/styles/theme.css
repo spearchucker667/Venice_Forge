@@ -21,6 +21,8 @@
   --color-surface-muted: var(--surface-muted);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
+  --color-border-hot: var(--border-hot, #743940);
+  --color-telemetry-cyan: var(--telemetry-cyan, #6ee7d3);
   --color-foreground: var(--foreground);
   --color-foreground-muted: var(--foreground-muted);
   --color-foreground-subtle: var(--foreground-subtle);
