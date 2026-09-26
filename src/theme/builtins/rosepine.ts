@@ -41,7 +41,7 @@ export const BUILTIN_ROSEPINE: ThemeFamily = {
       textPrimary: "#e0def4",
       textSecondary: "#908caa",
       textMuted: "#6e6a86",
-      placeholder: "#716d88",
+      placeholder: "#8f8ba2",
       accent: "#ebbcba",
       accentHover: "#31748f",
       accentForeground: "#191724",

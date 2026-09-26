@@ -190,7 +190,7 @@ export function ProvidersPanel() {
         </p>
       </div>
 
-      <div className="p-4 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-secondary)] space-y-4">
+      <div className="p-4 rounded-md border border-[var(--color-border)] bg-vf-panel-bg-inset space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-medium">{t('settings:providers.autoFallback.title', 'Automatic Fallback Router')}</h3>
@@ -209,7 +209,7 @@ export function ProvidersPanel() {
               })
             }}
             className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */ ${
-              autoFallbackEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-bg-tertiary)]'
+              autoFallbackEnabled ? 'bg-accent' : 'bg-vf-panel-bg-inset'
             }`}
           >
             <span className="sr-only">{t('settings:providers.autoFallback.enableAria', 'Enable Automatic Fallback')}</span>
@@ -226,7 +226,7 @@ export function ProvidersPanel() {
             <label className="block text-sm font-medium mb-1">{t('settings:providers.autoFallback.orderingLabel', 'Fallback Ordering (comma-separated provider IDs)')}</label>
             <input
               type="text"
-              className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm"
+              className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm"
               placeholder={t('settings:providers.autoFallback.orderingPlaceholder', 'together, groq, anthropic')}
               value={fallbackInput}
               onChange={(e) => {
@@ -253,13 +253,13 @@ export function ProvidersPanel() {
           const isUnavailable = !!provider.unavailable
 
           return (
-            <div key={provider.id} className={`p-4 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-secondary)] space-y-3 ${isUnavailable ? 'opacity-60' : ''}`}>
+            <div key={provider.id} className={`p-4 rounded-md border border-[var(--color-border)] bg-vf-panel-bg-inset space-y-3 ${isUnavailable ? 'opacity-60' : ''}`}>
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-medium flex items-center gap-2">
                     {provider.label}
                     {isUnavailable && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 uppercase tracking-wider font-semibold">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning uppercase tracking-wider font-semibold">
                         {t('settings:providers.badge.deferred', 'Deferred')}
                       </span>
                     )}
@@ -269,7 +269,7 @@ export function ProvidersPanel() {
                     {ALL_FEATURES.map(f => {
                       const isAvailable = resolveFeatureAvailability(provider.id, f)
                       return (
-                        <span key={f} className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider ${isAvailable && !isUnavailable ? 'bg-[var(--color-bg-hover)] text-[var(--color-text-primary)]' : 'bg-transparent text-[var(--color-text-muted)] opacity-50 line-through'}`}>
+                        <span key={f} className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider ${isAvailable && !isUnavailable ? 'bg-vf-control-hover text-[var(--color-text-primary)]' : 'bg-transparent text-[var(--color-text-muted)] opacity-50 line-through'}`}>
                           {f}
                         </span>
                       )
@@ -287,7 +287,7 @@ export function ProvidersPanel() {
                     onClick={() => { void handleToggleEnable(provider.id, !isEnabled) }}
                     disabled={!isConfigured || isUnavailable}
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */ ${
-                      isEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-bg-tertiary)]'
+                      isEnabled ? 'bg-accent' : 'bg-vf-panel-bg-inset'
                     } ${(!isConfigured || isUnavailable) ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <span className="sr-only">{t('settings:providers.aria.enable', { defaultValue: 'Enable {{label}}', label: provider.label })}</span>
@@ -302,7 +302,7 @@ export function ProvidersPanel() {
               </div>
 
               {error && (
-                <div className="text-sm text-red-500 bg-red-500/10 p-2 rounded">
+                <div className="text-sm text-danger bg-danger/10 p-2 rounded">
                   {error}
                 </div>
               )}
@@ -317,7 +317,7 @@ export function ProvidersPanel() {
                         : t('settings:providers.status.keyConfigured', 'API Key Configured')}
                     </div>
                     <button
-                      className="px-3 py-1.5 text-sm rounded border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] disabled:opacity-50"
+                      className="px-3 py-1.5 text-sm rounded border border-[var(--color-border)] hover:bg-vf-control-hover disabled:opacity-50"
                       onClick={() => handleClearKey(provider.id)}
                       disabled={saving}
                     >
@@ -333,7 +333,7 @@ export function ProvidersPanel() {
                           placeholder={t('settings:providers.inputs.azureResourceName', 'Azure resource name')}
                           value={structuredInputs[provider.id]?.resourceName || ''}
                           onChange={(e) => handleStructuredChange(provider.id, 'resourceName', e.target.value)}
-                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm"
+                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm"
                           disabled={saving || isUnavailable}
                         />
                         <input
@@ -341,7 +341,7 @@ export function ProvidersPanel() {
                           placeholder={t('settings:providers.inputs.azureDeploymentName', 'Azure deployment name')}
                           value={structuredInputs[provider.id]?.deploymentName || ''}
                           onChange={(e) => handleStructuredChange(provider.id, 'deploymentName', e.target.value)}
-                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm"
+                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm"
                           disabled={saving || isUnavailable}
                         />
                         <input
@@ -349,7 +349,7 @@ export function ProvidersPanel() {
                           placeholder={t('settings:providers.inputs.azureApiVersion', 'Azure API version (e.g. 2024-08-01-preview)')}
                           value={structuredInputs[provider.id]?.apiVersion || ''}
                           onChange={(e) => handleStructuredChange(provider.id, 'apiVersion', e.target.value)}
-                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm"
+                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm"
                           disabled={saving || isUnavailable}
                         />
                         <input
@@ -357,7 +357,7 @@ export function ProvidersPanel() {
                           placeholder={t('settings:providers.inputs.azureApiKey', 'Azure API key')}
                           value={structuredInputs[provider.id]?.apiKey || ''}
                           onChange={(e) => handleStructuredChange(provider.id, 'apiKey', e.target.value)}
-                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm"
+                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm"
                           disabled={saving || isUnavailable}
                         />
                       </>
@@ -369,7 +369,7 @@ export function ProvidersPanel() {
                           placeholder={t('settings:providers.inputs.awsRegion', 'AWS region (e.g. us-east-1)')}
                           value={structuredInputs[provider.id]?.region || ''}
                           onChange={(e) => handleStructuredChange(provider.id, 'region', e.target.value)}
-                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm"
+                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm"
                           disabled={saving || isUnavailable}
                         />
                         <input
@@ -377,7 +377,7 @@ export function ProvidersPanel() {
                           placeholder={t('settings:providers.inputs.awsApiKey', 'AWS Bedrock API key')}
                           value={structuredInputs[provider.id]?.apiKey || ''}
                           onChange={(e) => handleStructuredChange(provider.id, 'apiKey', e.target.value)}
-                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm"
+                          className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm"
                           disabled={saving || isUnavailable}
                         />
                       </>
@@ -388,7 +388,7 @@ export function ProvidersPanel() {
                         placeholder={t('settings:providers.inputs.vertexApiKey', 'Vertex Express API key')}
                         value={structuredInputs[provider.id]?.apiKey || ''}
                         onChange={(e) => handleStructuredChange(provider.id, 'apiKey', e.target.value)}
-                        className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm"
+                        className="w-full px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm"
                         disabled={saving || isUnavailable}
                       />
                     )}
@@ -406,7 +406,7 @@ export function ProvidersPanel() {
                       placeholder={t('settings:providers.inputs.keyPlaceholder', 'Enter API Key')}
                       value={keyInputs[provider.id] || ''}
                       onChange={(e) => handleKeyChange(provider.id, e.target.value)}
-                      className="flex-1 px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm"
+                      className="flex-1 px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm"
                       disabled={saving || isUnavailable}
                     />
                     <PrimaryButton

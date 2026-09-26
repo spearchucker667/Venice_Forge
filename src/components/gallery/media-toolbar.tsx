@@ -524,7 +524,7 @@ export function MediaToolbar({
               onClick={onBatchDelete}
               disabled={!hasSelection}
               data-testid="bulk-delete"
-              className="rounded-md border border-danger/30 px-2 py-1 text-[12px] text-text-danger hover:bg-danger/10 disabled:opacity-30"
+              className="rounded-md border border-danger/30 px-2 py-1 text-[12px] text-danger hover:bg-danger/10 disabled:opacity-30"
             >
               <Trans i18nKey="common:surface.componentsGalleryMediaToolbar.action.delete" />
             </button>

@@ -24,6 +24,14 @@ const ID_RE = /^[A-Za-z0-9_-]+$/;
 const MAX_ID_LEN = 128;
 const MAX_NAME_LEN = 128;
 
+/**
+ * Ids reserved because they collide with on-disk theme storage semantics:
+ * `saveTheme` writes `<userData>/themes/<id>.yaml` and the directory loader
+ * skips the master `themes.yaml`, so a theme saved under this id would vanish
+ * from the merged registry on the next scan.
+ */
+export const RESERVED_THEME_IDS = new Set<string>(['themes']);
+
 function normalizeTokenKey(key: string): string {
   return key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
@@ -198,6 +206,9 @@ export function validateThemeId(value: unknown, path: string, protectedIds?: Set
   }
   if (!ID_RE.test(value) || DANGEROUS_YAML_KEYS.has(value)) {
     errors.push(`${path} must contain only letters, numbers, hyphens, and underscores.`);
+  }
+  if (RESERVED_THEME_IDS.has(value.toLowerCase())) {
+    errors.push(`${path} "${value}" is reserved.`);
   }
   if (protectedIds?.has(value)) {
     errors.push(`${path} "${value}" is a protected built-in theme id.`);

@@ -17,6 +17,7 @@ export function isValidPersistedTheme(value: unknown): value is Theme {
   if (!value || typeof value !== 'object') return false;
   const theme = value as Partial<Theme>;
   if (typeof theme.id !== 'string' || !theme.id || typeof theme.name !== 'string' || theme.name.length > 200) return false;
+  if (theme.name.trim().length === 0) return false;
   if (theme.mode !== 'dark' && theme.mode !== 'light') return false;
   if (!theme.tokens || typeof theme.tokens !== 'object') return false;
   try {
@@ -53,11 +54,16 @@ export function legacyThemeToFamily(theme: Theme): ThemeFamily {
   };
 }
 
-export function applyTheme(theme: ResolvedTheme): void {
-  const root = document.documentElement;
+/**
+ * Build the exact CSS custom-property map that `applyTheme` writes to
+ * `document.documentElement`. Exported so callers that cache the applied
+ * theme (e.g. the App bootstrap effect) reuse the same map instead of a
+ * hand-maintained copy that could drift from what was actually set.
+ */
+export function buildThemeVariableMap(theme: ResolvedTheme): Record<string, string> {
   const t = theme.tokens;
   const c = theme.code.tokens;
-  const map: Record<string, string> = {
+  return {
     '--bg': t.background,
     '--surface': t.surface,
     '--surface-elevated': t.surfaceElevated,
@@ -133,6 +139,11 @@ export function applyTheme(theme: ResolvedTheme): void {
     '--syntax-important': c.important,
     '--syntax-variable': c.variable,
   };
+}
+
+export function applyTheme(theme: ResolvedTheme): void {
+  const root = document.documentElement;
+  const map = buildThemeVariableMap(theme);
   Object.entries(map).forEach(([k, v]) => root.style.setProperty(k, v));
   root.dataset.themeMode = theme.mode;
   // Pin native control chrome (form controls, scrollbars) to the resolved
@@ -214,7 +225,8 @@ export function resolveInitialTheme(
 
 
   const migrated = migrateLegacyThemeId(selectedId);
-  const family = themeRegistry.get(migrated.themeId) ?? findBuiltinThemeFamily(migrated.themeId);
+  // themeRegistry.get already resolves aliases, so no secondary lookup is needed.
+  const family = themeRegistry.get(migrated.themeId);
   if (family) {
     const effectiveAppearance: AppearanceMode = migrated.preferredMode ?? appearanceMode;
     return resolveTheme(family, effectiveAppearance);

@@ -275,14 +275,265 @@ function verifyBuiltinFamilies(root) {
   return violations;
 }
 
+/* === Theme token resolvability audit (THEME-P2-015) =====================
+   Tailwind v4 emits NO CSS for an unresolved utility (silent no-op), and an
+   arbitrary value like bg-[var(--token)] silently falls back to nothing when
+   the token is never defined. This audit fails the build when a utility or
+   var() reference points at a theme token outside the DEFINED set:
+
+     DEFINED = --* keys declared in src/styles/theme.css (the @theme block is
+               what Tailwind resolves utilities from; :root keys are valid
+               var() targets) + the runtime map keys written by
+               src/theme/applyTheme.ts + an explicit RUNTIME_WRITERS allowlist
+               (setProperty writers outside the applyTheme map).
+   ===================================================================== */
+
+// setProperty() writers outside applyTheme's canonical map (enumerated via
+// rg "setProperty\\(\\s*['\"]--"). applyTheme map keys are parsed separately.
+const RUNTIME_WRITERS = [
+  "--app-font-family",
+  "--app-font-scale",
+  "--app-font-size",
+  "--font-sans",
+  "--generation-progress",
+  "--prefers-reduced-motion",
+  "--sidebar-width",
+  "--vf-progress-pct",
+];
+
+// ThemePreview writes a scoped --preview-* family; treat the prefix as defined.
+const RUNTIME_WRITER_PREFIXES = ["--preview-", "--theme-"];
+
+const RESOLVABILITY_SCAN_ROOTS = ["src"];
+
+// Utility prefixes audited for theme-token resolvability (per THEME-P2-015).
+const UTILITY_PREFIX_RE = /(?<![-\w])(bg|text|border|max-w)-([A-Za-z][A-Za-z0-9-]*)/g;
+
+// Arbitrary value referencing a CSS custom property, e.g. bg-[var(--token)].
+const ARBITRARY_VAR_RE = /-\[var\(\s*(--[A-Za-z0-9-]+)\s*\)\]/g;
+
+// Tailwind default palette hues; <hue>-<shade> always resolves from the
+// default theme, so it is not theme-token-shaped and must not be flagged.
+const DEFAULT_PALETTE_HUES = new Set([
+  "red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal",
+  "cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink",
+  "rose", "slate", "gray", "grey", "zinc", "neutral", "stone",
+]);
+
+// Utility names that never reference a --color-*/--container-* token.
+const NON_THEME_UTILITY_NAMES = new Set([
+  "inherit", "current", "transparent", "black", "white", "none",
+  // background geometry / repeat / attachment
+  "fixed", "local", "scroll", "clip", "cover", "contain", "center", "top",
+  "bottom", "left", "right", "auto", "repeat", "repeat-x", "repeat-y", "no-repeat",
+  // font-size scale (Tailwind + this repo's vf type scale)
+  "xs", "sm", "base", "md", "lg", "xl", "2xl", "3xl", "4xl", "5xl", "6xl", "7xl",
+  "8xl", "9xl", "display", "h1", "h2", "body", "meta", "tag",
+  // text alignment / transform / overflow / decoration
+  "justify", "start", "end", "uppercase", "lowercase", "capitalize", "truncate",
+  "ellipsis", "wrap", "nowrap", "balance", "pretty", "underline", "overline",
+  "line-through", "no-underline",
+  // border sides / style / width
+  "t", "r", "b", "l", "x", "y", "s", "e", "solid", "dashed", "dotted", "double",
+  "hidden", "collapse", "separate", "0", "2", "4", "8",
+  // max-w sizing keywords + default container scale
+  "full", "min", "max", "fit", "prose", "screen",
+]);
+
+// Every element.style.setProperty("--token", ...) writer in src is a runtime
+// definition (e.g. --theme-* swatch previews, --sidebar-width, --preview-*),
+// so var(--token) against it resolves. Enumerate them dynamically rather than
+// maintaining a brittle hand list.
+function collectSetPropertyWriters(root) {
+  const writers = new Set();
+  for (const file of collectTokenScanFiles(root, RESOLVABILITY_SCAN_ROOTS)) {
+    const content = fs.readFileSync(path.resolve(root, file), "utf8");
+    for (const m of content.matchAll(/setProperty\(\s*['"](--[A-Za-z0-9-]+)['"]/g)) {
+      writers.add(m[1]);
+    }
+  }
+  return writers;
+}
+
+function loadDefinedTokens(root) {
+  const defined = new Set();
+  const themeCssPath = path.join(root, "src/styles/theme.css");
+  if (fs.existsSync(themeCssPath)) {
+    const css = fs.readFileSync(themeCssPath, "utf8");
+    for (const m of css.matchAll(/(--[A-Za-z0-9-]+)\s*:/g)) defined.add(m[1]);
+  }
+  const applyThemePath = path.join(root, "src/theme/applyTheme.ts");
+  if (fs.existsSync(applyThemePath)) {
+    const src = fs.readFileSync(applyThemePath, "utf8");
+    for (const m of src.matchAll(/'(--[A-Za-z0-9-]+)'\s*:/g)) defined.add(m[1]);
+  }
+  for (const token of RUNTIME_WRITERS) defined.add(token);
+  for (const token of collectSetPropertyWriters(root)) defined.add(token);
+  return defined;
+}
+
+function isDefinedToken(definedTokens, token) {
+  if (definedTokens.has(token)) return true;
+  return RUNTIME_WRITER_PREFIXES.some((prefix) => token.startsWith(prefix));
+}
+
+// Tokens Tailwind resolves color/container utilities from: the @theme block.
+function loadThemeNamespaceTokens(root) {
+  const empty = { color: new Set(), container: new Set() };
+  const cssPath = path.join(root, "src/styles/theme.css");
+  if (!fs.existsSync(cssPath)) return empty;
+  const css = fs.readFileSync(cssPath, "utf8");
+  const start = css.indexOf("@theme");
+  if (start === -1) return empty;
+  const open = css.indexOf("{", start);
+  const close = css.indexOf("}", open);
+  if (open === -1 || close === -1) return empty;
+  const block = css.slice(open, close);
+  for (const m of block.matchAll(/^\s*(--color-[A-Za-z0-9-]+)\s*:/gm)) {
+    empty.color.add(m[1]);
+  }
+  for (const m of block.matchAll(/^\s*(--container-[A-Za-z0-9-]+)\s*:/gm)) {
+    empty.container.add(m[1]);
+  }
+  return empty;
+}
+
+// Non-test source/stylesheet files audited for token resolvability.
+function collectResolvabilityFiles(root, scanRoots) {
+  const files = new Set();
+  for (const file of collectTokenScanFiles(root, scanRoots)) {
+    if (file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue;
+    files.add(file);
+  }
+  return files;
+}
+
+// (a) bg-[var(--X)] / text-[var(--X)] / border-[var(--X)] (any prefix) and any
+//     stylesheet var(--token) reference must name a defined token.
+function verifyArbitraryVarRefs(root, definedTokens, scanRoots = RESOLVABILITY_SCAN_ROOTS) {
+  const files = collectResolvabilityFiles(root, scanRoots);
+  const violations = [];
+  for (const file of files) {
+    const content = fs.readFileSync(path.resolve(root, file), "utf8");
+    const lines = content.split(/\r?\n/);
+    lines.forEach((line, idx) => {
+      if (line.includes(ALLOW_COMMENT)) return;
+      ARBITRARY_VAR_RE.lastIndex = 0;
+      let m;
+      while ((m = ARBITRARY_VAR_RE.exec(line)) !== null) {
+        const token = m[1];
+        if (!isDefinedToken(definedTokens, token)) {
+          violations.push(
+            `${file}:${idx + 1}: unresolved var() reference ${token}: ${line.trim()}`,
+          );
+        }
+      }
+    });
+  }
+  return { filesScanned: files.size, violations };
+}
+
+function isDefaultPaletteName(name) {
+  const parts = name.split("-");
+  if (parts.length < 2) return false;
+  const shade = parts[parts.length - 1];
+  return DEFAULT_PALETTE_HUES.has(parts[0]) && /^\d{2,3}$/.test(shade);
+}
+
+// border-<side>-<width|color> (e.g. border-b-0, border-l-4, border-l-accent)
+// is a per-side utility, not a whole-border color. Return the color part to
+// check, or null when the remainder is a border width / non-theme keyword.
+function borderSideColorName(name) {
+  const side = /^([trblxyse])-(.+)$/.exec(name);
+  if (!side) return name; // whole-border color, e.g. border-vf-panel-border
+  const rest = side[2];
+  if (/^(0|2|4|8|default)$/.test(rest)) return null; // border width
+  return rest; // per-side color name (accent, transparent, vf-panel-border, ...)
+}
+
+// (b) theme-token-shaped bg-/text-/border-/max-w-<name> utilities must resolve
+//     from a --color-<name> / --container-<name> token declared in @theme.
+//     Utilities only exist in ts/tsx sources (stylesheets use raw CSS, where
+//     border-color:/border-radius: would be false positives), so .css/.html
+//     are excluded here. bg/border/max-w have no English-word collision, so
+//     they are checked on every line — this catches class strings built in
+//     const maps (e.g. ToastItem SEVERITY_STYLES), not just inline className
+//     attributes. text-* collides with prose ("text-only", model types like
+//     "text-to-image"), so it stays scoped to class-bearing lines.
+function verifyUtilityResolvability(root, namespace, scanRoots = RESOLVABILITY_SCAN_ROOTS) {
+  const files = [...collectResolvabilityFiles(root, scanRoots)].filter(
+    (file) => file.endsWith(".ts") || file.endsWith(".tsx"),
+  );
+  const violations = [];
+  for (const file of files) {
+    const content = fs.readFileSync(path.resolve(root, file), "utf8");
+    const lines = content.split(/\r?\n/);
+    lines.forEach((line, idx) => {
+      if (line.includes(ALLOW_COMMENT)) return;
+      // text-* collides with ordinary prose ("text-only", model types like
+      // "text-to-image"), so it is only honoured on class-bearing lines.
+      // bg/border/max-w have no such collision and are checked on every line,
+      // which also catches class strings built in const maps.
+      const classBearingLine = /className|class\s*=|cn\(|classList/.test(line);
+      UTILITY_PREFIX_RE.lastIndex = 0;
+      let m;
+      while ((m = UTILITY_PREFIX_RE.exec(line)) !== null) {
+        const prefix = m[1];
+        let name = m[2];
+        if (prefix === "text" && !classBearingLine) continue;
+        if (NON_THEME_UTILITY_NAMES.has(name)) continue;
+        if (isDefaultPaletteName(name)) continue;
+        if (prefix === "max-w") {
+          const token = `--container-${name}`;
+          if (!namespace.container.has(token)) {
+            violations.push(
+              `${file}:${idx + 1}: unresolved utility max-w-${name} (${token} missing from @theme): ${line.trim()}`,
+            );
+          }
+          continue;
+        }
+        if (prefix === "border") {
+          name = borderSideColorName(name);
+          if (name === null || NON_THEME_UTILITY_NAMES.has(name) || isDefaultPaletteName(name)) {
+            continue;
+          }
+        }
+        const token = `--color-${name}`;
+        if (!namespace.color.has(token)) {
+          violations.push(
+            `${file}:${idx + 1}: unresolved utility ${prefix}-${name} (${token} missing from @theme): ${line.trim()}`,
+          );
+        }
+      }
+    });
+  }
+  return { filesScanned: files.size, violations };
+}
+
+function verifyTokenResolvability(root) {
+  const definedTokens = loadDefinedTokens(root);
+  const namespace = loadThemeNamespaceTokens(root);
+  const arb = verifyArbitraryVarRefs(root, definedTokens);
+  const util = verifyUtilityResolvability(root, namespace);
+  return {
+    ok: arb.violations.length === 0 && util.violations.length === 0,
+    filesScanned: new Set([...collectResolvabilityFiles(root, RESOLVABILITY_SCAN_ROOTS)]).size,
+    violations: [...arb.violations, ...util.violations],
+  };
+}
+
 function main() {
   const result = verifyThemeTokens(ROOT);
   const familyViolations = verifyBuiltinFamilies(ROOT);
-  const allViolations = [...result.violations, ...familyViolations];
+  const resolvability = verifyTokenResolvability(ROOT);
+  const allViolations = [...result.violations, ...familyViolations, ...resolvability.violations];
 
   if (allViolations.length === 0) {
     console.log(
       `[verify:theme-tokens] OK: no forbidden hardcoded color classes in themeable UI (${result.filesScanned} files scanned).`,
+    );
+    console.log(
+      `[verify:theme-tokens] OK: all theme tokens resolve (${resolvability.filesScanned} files scanned).`,
     );
     process.exit(0);
   }
@@ -298,21 +549,35 @@ function main() {
 
 module.exports = {
   ALLOW_COMMENT,
+  ARBITRARY_VAR_RE,
+  DEFAULT_PALETTE_HUES,
   FORBIDDEN,
   INVALID_BROWSER_TOKENS,
   INVALID_BROWSER_TOKEN_SCAN_ROOTS,
+  NON_THEME_UTILITY_NAMES,
+  RESOLVABILITY_SCAN_ROOTS,
+  RUNTIME_WRITERS,
+  RUNTIME_WRITER_PREFIXES,
   SCAN_ROOTS,
   SYNTAX_COLOR_PATTERNS,
   SYNTAX_COLOR_SCAN_ROOTS,
+  UTILITY_PREFIX_RE,
+  collectResolvabilityFiles,
   collectScanFiles,
   collectTokenScanFiles,
+  isDefinedToken,
   isSourceFile,
   isThemeScanFile,
+  loadDefinedTokens,
+  loadThemeNamespaceTokens,
   scanFile,
   toPosixPath,
+  verifyArbitraryVarRefs,
   verifyBuiltinFamilies,
   verifySyntaxColorTokens,
   verifyThemeTokens,
+  verifyTokenResolvability,
+  verifyUtilityResolvability,
 };
 
 if (require.main === module) {

@@ -149,7 +149,7 @@ export function AssetGallery() {
                             cancelConfirmDelete();
                             setSelectedId(null);
                           }}
-                          className="flex-1 text-[12px] py-1 rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
+                          className="flex-1 text-[12px] py-1 rounded border border-danger/30 text-danger hover:bg-danger/10"
                         >
                           <Trans i18nKey="common:surface.componentsRpStudioAssetgallery.action.delete" />
                         </button>

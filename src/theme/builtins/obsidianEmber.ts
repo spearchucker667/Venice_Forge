@@ -5,7 +5,7 @@ export const BUILTIN_OBSIDIAN_EMBER: ThemeFamily = {
   schemaVersion: 2,
   id: "obsidian-ember",
   name: "Obsidian Ember",
-  aliases: ["builtin-obsidian-ember","obsidian-ember"],
+  aliases: ["builtin-obsidian-ember"],
   builtIn: true,
   variants: {
     light: {
@@ -41,7 +41,7 @@ export const BUILTIN_OBSIDIAN_EMBER: ThemeFamily = {
       textPrimary: "#eae4d9",
       textSecondary: "#a09a90",
       textMuted: "#706b64",
-      placeholder: "#757068",
+      placeholder: "#938d85",
       accent: "#b83a10",
       accentHover: "#f0642f",
       accentForeground: "#ffffff",

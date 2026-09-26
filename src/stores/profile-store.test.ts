@@ -285,6 +285,45 @@ describe("useProfileStore", () => {
     expect(reloadFn).toHaveBeenCalled();
   });
 
+  it("clears the global theme bootstrap cache before reloading on profile switch (THEME-P3-030)", async () => {
+    window.localStorage.setItem(
+      "vf.theme.bootstrap",
+      JSON.stringify({ selectedThemeId: "builtin-venice", appearanceMode: "dark", customTheme: null }),
+    );
+    useProfileStore.setState({
+      profiles: [
+        { id: "default", name: "Default", onboardingCompleted: false },
+        { id: "work", name: "Work", onboardingCompleted: false },
+      ],
+      activeProfileId: "default",
+    });
+
+    const result = await useProfileStore.getState().requestSwitchProfile("work");
+
+    expect(result.ok).toBe(true);
+    expect(window.localStorage.getItem("vf.theme.bootstrap")).toBeNull();
+    expect(reloadFn).toHaveBeenCalled();
+  });
+
+  it("clears the global theme bootstrap cache when deleting the active profile (THEME-P3-030)", async () => {
+    window.localStorage.setItem(
+      "vf.theme.bootstrap",
+      JSON.stringify({ selectedThemeId: "builtin-venice", appearanceMode: "dark", customTheme: null }),
+    );
+    useProfileStore.setState({
+      profiles: [
+        { id: "default", name: "Default", onboardingCompleted: false },
+        { id: "work", name: "Work", onboardingCompleted: false },
+      ],
+      activeProfileId: "work",
+    });
+
+    await useProfileStore.getState().deleteProfile("work");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(window.localStorage.getItem("vf.theme.bootstrap")).toBeNull();
+  });
+
 });
 
 // ------------------------------------------------------------------

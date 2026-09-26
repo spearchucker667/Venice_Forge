@@ -296,7 +296,7 @@ export function BackupSyncPanel() {
             <button
               onClick={handleChooseFolder}
               disabled={isTransitioning}
-              className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent-light transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-accent text-accent-fg rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors disabled:opacity-50"
             >
               {syncFolder ? t('settings:backupSync.syncFolder.change', 'Change Folder') : t('settings:backupSync.syncFolder.choose', 'Choose Folder')}
             </button>
@@ -349,7 +349,7 @@ export function BackupSyncPanel() {
                 <button
                   onClick={handleStartSync}
                   disabled={isTransitioning}
-                  className="px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:bg-accent-light transition-colors whitespace-nowrap disabled:opacity-50"
+                  className="px-4 py-2 bg-accent text-accent-fg rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors whitespace-nowrap disabled:opacity-50"
                 >
                   {t('settings:backupSync.syncFolder.start', 'Start Sync')}
                 </button>

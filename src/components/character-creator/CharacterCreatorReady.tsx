@@ -180,7 +180,7 @@ export function CharacterCreatorReady({
               type="button"
               disabled={!validationResults.valid}
               onClick={() => onApproveAndCreate(true, false)}
-              className="flex-1 sm:flex-initial px-5 py-2 rounded-lg bg-accent text-accent-contrast font-medium text-xs flex items-center justify-center gap-1.5 hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="flex-1 sm:flex-initial px-5 py-2 rounded-lg bg-accent text-accent-fg font-medium text-xs flex items-center justify-center gap-1.5 hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               <MessageSquare className="w-4 h-4" />
               <span>

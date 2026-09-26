@@ -5,9 +5,9 @@ import { uiSoundController } from "../../services/uiSoundController";
 
 const SEVERITY_STYLES: Record<string, string> = {
   info: "bg-vf-shell-bg",
-  success: "bg-border-success/30",
-  warn: "bg-border-warning/30",
-  error: "bg-border-error/30",
+  success: "bg-success/10",
+  warn: "bg-warning/10",
+  error: "bg-error/10",
 };
 
 const SEVERITY_TITLE: Record<string, string> = {
@@ -71,7 +71,7 @@ export function ToastItem({ toast }: { toast: Toast }) {
                       }
                     });
                   }}
-                  className="rounded-lg bg-vf-panel-bg-raised px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-vf-panel-bg-raised hover:text-text-brand transition-all ring-1 ring-border/20"
+                  className="rounded-lg bg-vf-panel-bg-raised px-3 py-1.5 text-xs font-medium text-text-primary hover:text-accent transition-all ring-1 ring-border/20"
                 >
                   {action.label}
                 </button>
@@ -87,7 +87,7 @@ export function ToastItem({ toast }: { toast: Toast }) {
                   dismiss(toast.id),
                 );
               }}
-              className="mt-3 rounded-lg bg-vf-panel-bg-raised px-3 py-1.5 text-xs font-medium text-text-primary ring-1 ring-border/20 transition-all hover:bg-vf-panel-bg-raised hover:text-text-brand"
+              className="mt-3 rounded-lg bg-vf-panel-bg-raised px-3 py-1.5 text-xs font-medium text-text-primary ring-1 ring-border/20 transition-all hover:text-accent"
             >
               {toast.action.label}
             </button>

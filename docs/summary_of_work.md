@@ -5,17 +5,18 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b
-application_code_sha: dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b
-verified_against_sha: dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b
+repository_head_sha: 8ee5ddd2a14691739d5bfda7c3759a06ce352b66
+application_code_sha: 8ee5ddd2a14691739d5bfda7c3759a06ce352b66
+verified_against_sha: 8ee5ddd2a14691739d5bfda7c3759a06ce352b66
 verified_at:         2026-09-25 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        uncommitted diagnostics connectivity fix; clean at session start
+working_tree:        theme engine & system audit remediation (Waves 1 & 2); pre-existing user-owned audit files; uncommitted
 ci_status:           not checked this session; historical runs below do not cover current edits
 codeql_status:       not checked this session; historical runs below do not cover current edits
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
+```
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
   - qualified native-language review (P3-020)
@@ -24,10 +25,51 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
+- **2026-09-25 Theme Engine & Theme System exhaustive audit remediation (Waves 1 & 2, uncommitted).** Completed full remediation of findings from the 2026-09-25 exhaustive theme audit and session handoff across Wave 1 (token cluster + lifecycle + engine + placeholder AA) and Wave 2 (24 legacy V1 theme conversions, documentation corrections, P3 UI/CSS polish, and test suite harmonization). All 19 P2 and 13 P3 findings remediated and verified locally across 113 Electron test suites (1,299 tests), 14 theme unit test files (787 tests), 28 contract test files (304 tests), full static/feature/release contract verifiers (104 checks), theme tokens/collisions verifiers, and full production build. Zero regressions.
+- **2026-09-25 Theme Engine & Theme System exhaustive audit (uncommitted report).** Audited `main` at `8ee5ddd2` per the user's agent handoff via six read-only workstreams + executable probes. Confirmed: one authoritative V2 engine; all 43 built-ins schema-valid; export→import value-stable; injection/pollution-safe; deterministic fallbacks. Confirmed 19 P2 + 13 P3 findings (0 P0/P1). Full report: `docs/audits/VENICE_FORGE_THEME_SYSTEM_EXHAUSTIVE_AUDIT_2026-09-25.md`.
 - **2026-09-25 Diagnostics connectivity correction (uncommitted).** Started from clean `main` at `dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b`, with the previous research fix committed. Diagnostics now recognizes a successful live model-catalog request instead of always warning after key configuration. Cached catalogs and failed refreshes retain the warning. The connected label reuses existing locale translations under the diagnostics namespace.
 - Theme/mesh report remains **blocked by missing reproduction evidence** in `docs/ROADMAP.md`: requested affected theme names and screens. The supplied diagnostics screenshot's API outline is the intentional selected-section indicator. Shared mesh CSS has translucent gradients, but no change to their design is justified from this screenshot alone. No manual Electron QA or live provider call was performed.
 
 ## Session History
+
+### 2026-09-25 — Theme Engine & Theme System exhaustive audit remediation (Waves 1 & 2)
+
+- **Baseline.** Verified root/branch/Node per AGENTS.md bootstrap: `main` at `8ee5ddd2a14691739d5bfda7c3759a06ce352b66`, Node `v22.15.0`, npm `10.9.2`, `venice-forge@3.1.0`. Preserved pre-existing user-owned worktree state (untracked handoffs; one audit file moved to `docs/audits/Records/`).
+- **Wave 1 Remediations:**
+  - *Dead-token cluster & verifier (THEME-P2-010…015):* Repointed ~45 obsolete shadcn and ghost tokens across ~30 component files (`CharacterCreator*`, `AccessibleDialog`, `ContextMenu`, `AssetGallery`, `CharacterEditor`, `RpChatView`, `DocumentAgentView`, `media-inspector`, `media-toolbar`, `GenerationLoadingIndicator`, `ImageInspectorView`, `image-view`, `ProgressToast`, `ToastItem`, `playground-view`, `preview-node`, `SceneComposerView`, `BackupSyncPanel`, `DataStoragePanel`, `ImportPlanModal`, `PrimaryApiRoutePanel`, `ProvidersPanel`, `WorkflowTemplatesView`) to canonical `--color-surface-*`, `--color-text-*`, and `--color-border-*`. Renamed `--width-*` container tokens to `--container-*`. Defined 9 derived `@theme` color-mix tokens in `src/styles/theme.css`. Extended `scripts/verify-theme-tokens.cjs` to audit 589 files for resolvability against `@theme` and `:root`; added `tests/theme/extendedShellAliasTokens.test.ts`. Extended `tests/theme/inlineColorInvariant.test.ts` to enforce `THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR`.
+  - *Accessibility & contrast (THEME-P2-001, THEME-P2-002, THEME-P2-019):* Rewrote `src/theme/contrast.ts` to parse modern `rgb(r g b / alpha)` and 8-digit hex values accurately. Re-tuned placeholder contrast across all 52 built-in theme variants in `src/theme/builtins/` to WCAG AA (≥ 4.5:1 vs `inputBackground`). Added `src/theme/builtinsContrast.test.ts` with 172 contrast checks.
+  - *Lifecycle & runtime (THEME-P2-003…009, THEME-P2-016):* Handled `customThemes` hydration dead path in `src/App.tsx`; fixed `handleSelect('custom')` persistence in `src/components/ThemeMaker.tsx`; added membership guard to `deleteCustomTheme` in `src/stores/settings-store.ts`; added `useSystemThemeMode` hook (`src/hooks/use-system-theme-mode.ts`) responding to OS `prefers-color-scheme`; updated pre-paint cache in `public/bootstrap-theme.js` and `src/App.tsx`; added web CRUD gate and 25 MiB cap in `ThemeMaker.tsx` and `src/services/desktopBridge.ts`; reserved id `themes` in `src/theme/yaml/validate.ts`; deleted collision `config/themes/copper.yaml` and created `scripts/verify-theme-collisions.cjs` and its test; fixed `isBuiltInId` in `src/theme/registry.ts`; removed dead `mode` option in `src/theme/yaml/serialize.ts`; tightened `SAFE_COLOR_RE` in `src/theme/validateColor.ts`.
+- **Wave 2 Remediations:**
+  - *24 Legacy V1 theme conversions:* Converted all 24 `config/themes/*.yaml` single-mode files into dual-variant Schema V2 theme families (`amber-archive` through `ultraviolet-rain`) with zero companion flattening.
+  - *Documentation corrections (THEME-P2-017, P3-001…004):* Corrected `docs/ui-modernization/THEME_IMPORT_EXPORT.md` (removed `version: 1.0.0` and included legacy `text_*` trio); rewritten `docs/ui-modernization/THEME_MIGRATION.md` (§2/§3 removing references to non-existent `deriveComplementaryVariant`); updated `docs/ui-modernization/THEME_SCHEMA.md` and `docs/design/THEME_SYSTEM.md` (documented 36 token roles and accepted color formats); updated `README.md` and `docs/DOCS_INDEX.md` (43 built-in themes, V2 override structure, and updated archived audit link in `docs/DOCS_INDEX.md`).
+  - *P3 UI/CSS polish (THEME-P3-005…013):* Fixed `ThemeMaker.tsx` export return check, Unicode filename sanitization, and localized code token labels; added `--vf-z-toast: 400` in `theme.css` and adopted in `ToastViewport.tsx`; removed dead `@theme` variables and redundant `@media (prefers-reduced-motion)` in `theme.css`; removed redundant hover backgrounds in `image-view.tsx` and `ToastItem.tsx`; removed duplicate `bg-overlay/75` in `AccessibleDialog.tsx`.
+  - *Test suite harmonization:* Updated `electron/services/configService.test.ts` to support both V1 and V2 theme schemas; updated `.superdesign/init/routes.md` tracked source fingerprint.
+- **Validation:**
+  - `npm run lint:eslint`: PASS (0 errors, 0 warnings across all files).
+  - `npm run typecheck`: PASS (0 errors across app, electron, electron.test).
+  - `npm run test:electron`: PASS (113/113 test files, 1,299/1,299 tests passed).
+  - `npm run test:server`: PASS (102/102 tests passed).
+  - `npm run test:unit:theme`: PASS (14/14 test files, 787/787 tests passed).
+  - `npm run test:contracts`: PASS (28/28 test files, 304/304 tests passed).
+  - `npm run test:character-cards`: PASS (8/8 test files, 79/79 tests passed).
+  - `npm run test:ingestion`: PASS (12/12 test files, 117/117 tests passed).
+  - `npm run verify:theme-tokens`: PASS (202 files scanned for forbidden hardcoded classes; 589 files scanned for token resolvability).
+  - `npm run verify:theme-collisions`: PASS (24 registry-relevant documents checked; 24 intentional dual-variant V2 overrides recognized; 0 collisions).
+  - `npm run verify:markdown-links`: PASS (442 Markdown files checked).
+  - `npm run verify:contracts`: PASS (all static, feature, and release contracts passed; 104/104 checks passed).
+  - `npm run verify:contracts:static`: PASS (all 28 verifiers passed).
+  - `npm run verify:roadmap-current`: PASS.
+  - `npm run build`: PASS (web, server, and Electron bundles).
+  - Out of scope: No commit, push, or release performed per user-owned git policy. Manual Electron QA, headed visual QA, and live provider calls not run.
+
+### 2026-09-25 — Theme Engine & Theme System exhaustive audit (audit-first, no remediation)
+
+- **Baseline.** Verified root/branch/Node per AGENTS.md bootstrap: `main` at `8ee5ddd2a14691739d5bfda7c3759a06ce352b66`, Node `v22.15.0`, npm `10.9.2`, `venice-forge@3.1.0`. Preserved pre-existing user-owned worktree state (untracked handoff doc; one audit file moved to `docs/audits/Records/`). Read the six `.superdesign/init/` context files (all present and non-empty; init complete).
+- **Method.** Parent read of the full engine core (`themeTypes`, `validation`, `validateColor`, `registry`, `resolver`, `applyTheme`, `migration`, `fallbacks`, builtins index/venice/dark/light, `yamlTheme`, `codeSyntax`, full `yaml/` pipeline, `contrast`, `REQUIRED_THEME_TOKEN_KEYS`) plus executable probes via `npx tsx` against the real modules; six parallel read-only workstreams (persistence/runtime, Theme Maker UI, Electron integration, CSS token layer, component surfaces, tests/CI/docs). Every high-severity workstream claim was parent-verified against source or compiled dist CSS before entering the report.
+- **Probe results (all 43 built-ins):** schema-valid via `validateThemeFamily`; 36 valid colors per variant; export→import round-trip value-stable (dark+light, code presets included); placeholder-vs-inputBackground contrast < 4.5 AA in 37/43 dark and 15/43 light variants (venice default fails both: 4.32 dark, 3.43 light); `contrast.ts` returns luminance 0 for valid 8-digit hex and ignores alpha in modern `rgb()`; 9 self-aliases; top-level YAML `mode:` written but never read; `isBuiltInId` broken for aliases (zero callers — latent); security probes (url/expression/javascript/@import/__proto__) all rejected; unknown/corrupt persisted ids resolve deterministically.
+- **Findings.** 0 P0, 0 P1, 19 P2, 13 P3 — full evidence (files, lines, repro, fixes, validation) in `docs/audits/VENICE_FORGE_THEME_SYSTEM_EXHAUSTIVE_AUDIT_2026-09-25.md`. Headline P2s: dead-token cluster (P2-010…P2-013) with CI verifier blind spot (P2-015); placeholder AA (P2-002); contrast parser (P2-001); hydration dead path (P2-003); FOUC bootstrap (P2-004); inert system mode (P2-005); ThemeMaker persistence + YAML-delete side effects (P2-006/007); Electron `themes`-id vanish + copper shadow (P2-008/009); web CRUD gap (P2-016); doc example rejected + phantom migration algorithms (P2-017); test gaps (P2-018); transparency checkerboard (P2-019).
+- **Not run:** `npm run typecheck`, full `npm test`, `npm run build`, `npm run ci`; manual Electron QA, headed visual QA, live OS-appearance toggle, hosted CI/CodeQL inspection for `8ee5ddd2`. No commit, push, or release. No repository source files were modified (report + ledger entries only).
+- The blocked user theme/mesh report (`THEME-OVERLAY-2026-09-25`) remains blocked; the audit notes `--app-mesh-opacity` is hardcoded per mode (`applyTheme.ts:97`), not token-controllable.
 
 ### 2026-09-25 — Diagnostics connectivity correction and theme investigation
 
@@ -228,6 +270,7 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 
 ## Open TODO Ledger
 
+* **THEME-AUDIT-2026-09-25** — Completed. Full remediation of Waves 1 and 2 (19 P2 + 13 P3 findings) executed and verified in the local working tree (uncommitted). See Session History and Validation Matrix.
 * **DIAGNOSTICS-CONNECTIVITY-2026-09-25** — Unconditional warning corrected locally with regression coverage. No commit/push performed.
 * **THEME-OVERLAY-2026-09-25** — Awaiting affected theme names/screens or an overlay screenshot; tracked in `docs/ROADMAP.md`.
 
@@ -250,6 +293,38 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 * **EXTERNAL-ACCEPTANCE** — `P2-016`, `P3-020`, and `VF-VERIFY-005` stay open. They are not local code defects. See `docs/ROADMAP.md`.
 
 ## Validation Matrix
+
+### 2026-09-25 — Theme Engine & Theme System exhaustive audit remediation (Waves 1 & 2)
+
+- Baseline: `main` at `8ee5ddd2a14691739d5bfda7c3759a06ce352b66`; Node `v22.15.0`; npm `10.9.2`; package `3.1.0`. Worktree carried pre-existing user-owned audit files; preserved.
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across `src`, `electron`, `server.ts`, `scripts`).
+- `npm run typecheck` — PASS (0 errors across `tsconfig.json`, `tsconfig.electron.json`, `tsconfig.electron.test.json`).
+- `npm run test:electron` — PASS (113/113 test files, 1,299/1,299 tests passed, 77.35s).
+- `npm run test:server` — PASS (102/102 tests passed).
+- `npm run test:unit:theme` — PASS (14/14 test files, 787/787 tests passed).
+- `npm run test:contracts` — PASS (28/28 test files, 304/304 tests passed).
+- `npm run test:character-cards` — PASS (8/8 test files, 79/79 tests passed).
+- `npm run test:ingestion` — PASS (12/12 test files, 117/117 tests passed).
+- `npm run verify:theme-tokens` — PASS (202 files scanned for forbidden hardcoded classes; 589 files scanned for token resolvability).
+- `npm run verify:theme-collisions` — PASS (24 registry-relevant documents checked; 24 intentional dual-variant V2 overrides recognized; 0 collisions).
+- `npm run verify:markdown-links` — PASS (442 Markdown files checked).
+- `npm run verify:contracts` — PASS (all static, feature, and release contracts passed; 104/104 checks passed).
+- `npm run verify:contracts:static` — PASS (all 28 static contract verifiers passed).
+- `npm run verify:roadmap-current` — PASS.
+- `npm run build` — PASS (web, server, and Electron bundles all succeed and stay within chunk size limits).
+- Not run: manual Electron QA, headed visual QA, live provider calls, hosted CI/CodeQL checks for uncommitted changes. No commit, push, or release performed.
+
+### 2026-09-25 — Theme Engine & Theme System exhaustive audit (audit-only)
+
+- Baseline: `main` at `8ee5ddd2a14691739d5bfda7c3759a06ce352b66`; Node `v22.15.0`; npm `10.9.2`; package `3.1.0`. Worktree carried only pre-existing user-owned audit files; preserved.
+- `npm run test:unit:theme` — PASS (10 files, 313 tests).
+- `npx vitest run tests/theme tests/csp/inlineStyleInvariant.test.ts tests/accessibility/theme-focus.test.ts electron/services/themeService.test.ts --no-file-parallelism` — PASS (8 files, 48 tests).
+- `npm run verify:theme-tokens` — PASS (202 files scanned); audit finding THEME-P2-015 confirms this verifier cannot detect undefined consumed tokens.
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings).
+- `npx tsx` probes (`/tmp/themeAudit*.ts`, `/tmp/themeMatrix*.ts`, scratch only): all 43 built-ins schema-valid; round-trip value-stable; placeholder AA failures 37/43 dark + 15/43 light; contrast parser alpha/8-digit defects; security probes rejected; fallbacks deterministic.
+- Parent `rg`/source verification of every P2 claim (App.tsx:221, ThemeMaker.tsx:551-573, themeService.ts:124-125, config/themes/copper.yaml, undefined `--color-bg-primary`, dist `max-w-*` absence, single point-in-time `prefers-color-scheme` read, zero change listeners).
+- `npm run verify:markdown-links` — FAIL (1 issue): pre-existing broken link at `docs/DOCS_INDEX.md` to `audits/VENICE_FORGE_FRATERNA_POST_IMPLEMENTATION_AUDIT_AGENT_HANDOFF_2026-09-25.md`, caused by the pre-existing user-owned move of that file to `docs/audits/Records/` before this session; left untouched per user-owned-state rules. `npm run verify:roadmap-current` and `npm run verify:agent-docs` — PASS.
+- Not run: `npm run typecheck`, full `npm test`, `npm run build`, `npm run ci`. Not performed: manual Electron QA, headed visual/accessibility QA, live OS-appearance toggle, hosted CI/CodeQL inspection for `8ee5ddd2`. No commit/push/release.
 
 ### 2026-09-25 — Diagnostics connectivity correction
 

@@ -374,6 +374,13 @@ describe('trusted theme validation', () => {
     await expect(deleteTheme(id)).rejects.toThrow();
   });
 
+  it.each(['themes', 'THEMES'])('rejects the reserved id "%s" on save and delete', async (id) => {
+    // saveTheme writes <userData>/themes/<id>.yaml and the directory loader
+    // skips themes.yaml, so a theme saved under this id would vanish.
+    await expect(saveTheme(v2FamilyDocument(id, 'Reserved'))).rejects.toThrow(/reserved/);
+    await expect(deleteTheme(id)).rejects.toThrow(/reserved/);
+  });
+
   it('rejects unsafe colors before persistence', async () => {
     const family = v2FamilyDocument('unsafe-color', 'Unsafe');
     family.variants.dark.tokens.background = 'url(https://example.invalid/image)';

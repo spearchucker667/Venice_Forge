@@ -54,7 +54,7 @@ export const BUILTIN_DRACULA: ThemeFamily = {
       surfaceMuted: "#303241",
       borderStrong: "#737896",
       foregroundSubtle: "#a8a9bd",
-      placeholder: "#a8a9bd",
+      placeholder: "#b6b7c7",
       disabledForeground: "#9293aa",
       link: "#8be9fd",
       }),

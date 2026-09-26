@@ -1852,7 +1852,7 @@ export function ImageView() {
                   downloadImage(img, i);
                 }}
                 aria-label={t("imageStudioRuntime.download")}
-                className="absolute top-2 right-2 p-1.5 bg-overlay hover:bg-overlay rounded-md text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-all backdrop-blur-sm"
+                className="absolute top-2 right-2 p-1.5 bg-overlay rounded-md text-text-secondary hover:text-text-primary opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-all backdrop-blur-sm"
                 title={t("imageStudioRuntime.download")}
               >
                 <svg

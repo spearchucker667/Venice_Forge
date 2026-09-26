@@ -1338,7 +1338,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                 type="checkbox"
                 checked={draft.adult}
                 onChange={(e) => update("adult", e.target.checked)}
-                className="accent-rose-400"
+                className="accent-danger"
               />
               <Label htmlFor="card-adult">
                 <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.text.adultContent18" />
@@ -3542,7 +3542,7 @@ export function CharacterEditor({ cardId, onClose, disabled = false }: Props) {
                   onClick={() => void handleChat()}
                   disabled={disabled}
                   data-testid="character-editor-chat"
-                  className="text-[12px] px-2.5 py-1.5 rounded-md border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-[12px] px-2.5 py-1.5 rounded-md border border-success/30 text-success hover:bg-success/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trans i18nKey="common:surface.componentsRpStudioCharactereditor.action.chat" />
                 </button>

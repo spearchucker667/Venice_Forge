@@ -159,10 +159,10 @@ export function GenerationLoadingIndicator({
 
       {(label || detail || progress !== undefined || showCancel) && (
         <div className={cn(size === 'sm' ? "flex flex-row items-center gap-2" : "flex flex-col items-center text-center", "max-w-[250px]")}>
-          {label && <div className={cn(size === 'sm' ? "text-xs" : "text-sm", "font-medium text-text-main")}>{label}</div>}
+          {label && <div className={cn(size === 'sm' ? "text-xs" : "text-sm", "font-medium text-text-primary")}>{label}</div>}
 
           {progress !== undefined && (
-            <div className={cn(size === 'sm' ? "w-12" : "w-full", "h-1.5 bg-bg-alt rounded-full overflow-hidden")}>
+            <div className={cn(size === 'sm' ? "w-12" : "w-full", "h-1.5 bg-surface-muted rounded-full overflow-hidden")}>
               <div
                 ref={progressBarRef}
                 className="h-full bg-accent transition-all duration-300 w-[var(--generation-progress)]"

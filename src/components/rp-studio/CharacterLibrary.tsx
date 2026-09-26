@@ -811,7 +811,7 @@ function CardTile({
           </div>
         )}
         {card.adult && (
-          <span className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/30 text-rose-200 border border-rose-500/30">
+          <span className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-danger/30 text-danger border border-danger/30">
             18+
           </span>
         )}

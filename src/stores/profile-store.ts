@@ -60,8 +60,19 @@ async function performRawProfileSwitch(id: string): Promise<void> {
     } catch { /* ignore */ }
     clearAllDirtyConversations();
     setActiveProfileId(id)
+    clearGlobalThemeBootstrap()
     window.location.reload()
   }
+}
+
+/** THEME-P3-030: `vf.theme.bootstrap` is a global (not per-profile) pre-paint
+ *  theme cache written by the App theme effect. Clear it before the
+ *  profile-switch reload so the next profile pre-paints its own resolved
+ *  theme instead of the previous profile's. */
+function clearGlobalThemeBootstrap(): void {
+  try {
+    window.localStorage.removeItem('vf.theme.bootstrap') /* localStorage-allowed: global theme bootstrap cache must not leak across profiles */;
+  } catch { /* storage may be unavailable (private mode, disabled cookies) */ }
 }
 
 export const useProfileStore = create<ProfileState>()(
@@ -177,6 +188,7 @@ export const useProfileStore = create<ProfileState>()(
             activeId = 'default'
             if (typeof window !== 'undefined') {
               setActiveProfileId(activeId)
+              clearGlobalThemeBootstrap()
               setTimeout(() => window.location.reload(), 0)
             }
           }

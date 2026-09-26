@@ -58,7 +58,7 @@ export const BUILTIN_BASALT_NOIR: ThemeFamily = {
       info: "#42a5f5",
       inputBackground: "#282828",
       inputForeground: "#f0ebe5",
-      placeholder: "#888078",
+      placeholder: "#968f87",
       disabledForeground: "#888078",
       buttonPrimaryBackground: "#ff6b35",
       buttonPrimaryForeground: "#141414",

@@ -58,7 +58,7 @@ export const BUILTIN_SAKURA_TERMINAL: ThemeFamily = {
       info: "#c7ceea",
       inputBackground: "#3a3038",
       inputForeground: "#ffe4ec",
-      placeholder: "#9a7a8a",
+      placeholder: "#af95a2",
       disabledForeground: "#9a7a8a",
       buttonPrimaryBackground: "#ff8fa3",
       buttonPrimaryForeground: "#1a1218",

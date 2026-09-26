@@ -5,7 +5,7 @@ export const BUILTIN_DUAL_PERSONA: ThemeFamily = {
   schemaVersion: 2,
   id: "dual-persona",
   name: "Dual Persona",
-  aliases: ["builtin-dual-persona","dual-persona"],
+  aliases: ["builtin-dual-persona"],
   builtIn: true,
   variants: {
     light: {
@@ -70,6 +70,7 @@ export const BUILTIN_DUAL_PERSONA: ThemeFamily = {
       glow: "rgba(114, 184, 202, 0.25)",
       surfaceMuted: "#12171c",
       borderStrong: "#607280",
+      placeholder: "#859097",
       }),
       code: { preset: 'dual-persona', tokens: resolveCodeThemeTokens('dual-persona', 'dark') },
     },

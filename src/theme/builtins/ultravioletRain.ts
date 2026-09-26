@@ -58,7 +58,7 @@ export const BUILTIN_ULTRAVIOLET_RAIN: ThemeFamily = {
       info: "#80d8ff",
       inputBackground: "#2c2840",
       inputForeground: "#ede7f6",
-      placeholder: "#8a80a8",
+      placeholder: "#978fb2",
       disabledForeground: "#8a80a8",
       buttonPrimaryBackground: "#8f63ff",
       buttonPrimaryForeground: "#121018",

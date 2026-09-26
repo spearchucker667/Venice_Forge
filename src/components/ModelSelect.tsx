@@ -97,7 +97,7 @@ export function ModelSelect({
                   )}
                   {m.fidelity === "high" && (
                     <span
-                      className="bg-primary/20 text-primary px-1 py-0.5 rounded flex items-center gap-1"
+                      className="bg-accent/20 text-accent px-1 py-0.5 rounded flex items-center gap-1"
                       title={tRuntime(
                         "runtimeGenerated.components.modelselect.attribute.highFidelity",
                       )}

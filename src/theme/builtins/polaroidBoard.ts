@@ -5,7 +5,7 @@ export const BUILTIN_POLAROID_BOARD: ThemeFamily = {
   schemaVersion: 2,
   id: "polaroid-board",
   name: "Polaroid Board",
-  aliases: ["builtin-polaroid-board","polaroid-board"],
+  aliases: ["builtin-polaroid-board"],
   builtIn: true,
   variants: {
     light: {
@@ -70,6 +70,7 @@ export const BUILTIN_POLAROID_BOARD: ThemeFamily = {
       glow: "rgba(114, 172, 202, 0.25)",
       surfaceMuted: "#1d1511",
       borderStrong: "#84695d",
+      placeholder: "#9a8a83",
       }),
       code: { preset: 'polaroid-board', tokens: resolveCodeThemeTokens('polaroid-board', 'dark') },
     },

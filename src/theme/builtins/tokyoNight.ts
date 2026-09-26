@@ -53,6 +53,7 @@ export const BUILTIN_TOKYO_NIGHT: ThemeFamily = {
       glow: "rgba(122, 162, 247, 0.25)",
       surfaceMuted: "#1f2335",
       borderStrong: "#a9b1d6",
+      placeholder: "#a1a7c1",
       }),
       code: { preset: 'tokyo-night', tokens: resolveCodeThemeTokens('tokyo-night', 'dark') },
     },

@@ -5,7 +5,7 @@ export const BUILTIN_SANDSTONE: ThemeFamily = {
   schemaVersion: 2,
   id: "sandstone",
   name: "Sandstone",
-  aliases: ["builtin-sandstone","sandstone"],
+  aliases: ["builtin-sandstone"],
   builtIn: true,
   variants: {
     light: {
@@ -29,6 +29,7 @@ export const BUILTIN_SANDSTONE: ThemeFamily = {
       glow: "rgba(184, 92, 59, 0.2)",
       surfaceMuted: "#e6ded5",
       borderStrong: "#978f86",
+      placeholder: "#766f69",
       warningForeground: "#ffffff",
       successForeground: "#ffffff",
       dangerForeground: "#ffffff",
@@ -56,6 +57,7 @@ export const BUILTIN_SANDSTONE: ThemeFamily = {
       glow: "rgba(208, 135, 108, 0.25)",
       surfaceMuted: "#1d1711",
       borderStrong: "#84705d",
+      placeholder: "#988e82",
       }),
       code: { preset: 'sandstone', tokens: resolveCodeThemeTokens('sandstone', 'dark') },
     },

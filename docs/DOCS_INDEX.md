@@ -170,7 +170,7 @@ This is the canonical source-of-truth navigation map for all documentation in th
 - [ui-modernization/UI_MODERNIZATION_REPORT.md](ui-modernization/UI_MODERNIZATION_REPORT.md) — Full UI modernization report, visual systems overhaul, and implementation summary.
 - [ui-modernization/DESIGN_SYSTEM.md](ui-modernization/DESIGN_SYSTEM.md) — Comprehensive Venice Forge design system: visual foundations, component primitives, surface hierarchy, motion, and spacing.
 - [ui-modernization/THEME_MIGRATION.md](ui-modernization/THEME_MIGRATION.md) — Theme engine architecture, migration path from V1 to V2, and backwards compatibility guarantees.
-- [ui-modernization/VISUAL_QA.md](ui-modernization/VISUAL_QA.md) — Visual QA verification matrix across 44+ built-in themes, light/dark variants, and workspaces.
+- [ui-modernization/VISUAL_QA.md](ui-modernization/VISUAL_QA.md) — Visual QA verification matrix across 43 built-in themes, light/dark variants, and workspaces.
 - [ui-modernization/ACCESSIBILITY_REVIEW.md](ui-modernization/ACCESSIBILITY_REVIEW.md) — WCAG 2.1 AA audit, contrast ratios, keyboard navigation, focus management, and reduced motion testing.
 - [ui-modernization/PERFORMANCE_REVIEW.md](ui-modernization/PERFORMANCE_REVIEW.md) — Rendering performance, paint metrics, bundle impact, CSS efficiency, and virtualization review.
 - [ui-modernization/IMPLEMENTATION_PLAN.md](ui-modernization/IMPLEMENTATION_PLAN.md) — Implementation plan and task tracking for incremental UI modernization and theme refresh.
@@ -222,7 +222,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 
 ### Audit Evidence
 
-- [audits/VENICE_FORGE_FRATERNA_POST_IMPLEMENTATION_AUDIT_AGENT_HANDOFF_2026-09-25.md](audits/VENICE_FORGE_FRATERNA_POST_IMPLEMENTATION_AUDIT_AGENT_HANDOFF_2026-09-25.md) — 2026-09-25 Fraterna primary API routing post-implementation audit & remediation handoff covering FRAT-AUD-001 through FRAT-AUD-011.
+- [audits/VENICE_FORGE_THEME_SYSTEM_EXHAUSTIVE_AUDIT_2026-09-25.md](audits/VENICE_FORGE_THEME_SYSTEM_EXHAUSTIVE_AUDIT_2026-09-25.md) — 2026-09-25 exhaustive theme engine & theme system audit of `main` at `8ee5ddd2`: 0 P0/P1, 19 P2, 13 P3 confirmed findings (dead-token cluster, placeholder WCAG AA, hydration/FOUC/system-mode lifecycle, Electron `themes`-id + copper shadow, docs/tests drift). Point-in-time evidence; open work tracked as `THEME-AUDIT-2026-09-25` in `ROADMAP.md`.
+- [audits/Records/VENICE_FORGE_FRATERNA_POST_IMPLEMENTATION_AUDIT_AGENT_HANDOFF_2026-09-25.md](audits/Records/VENICE_FORGE_FRATERNA_POST_IMPLEMENTATION_AUDIT_AGENT_HANDOFF_2026-09-25.md) — 2026-09-25 Fraterna primary API routing post-implementation audit & remediation handoff covering FRAT-AUD-001 through FRAT-AUD-011.
 - [audits/Records/VENICE_FORGE_FRATERNA_PRIMARY_API_ROUTING_AGENT_HANDOFF.md](audits/Records/VENICE_FORGE_FRATERNA_PRIMARY_API_ROUTING_AGENT_HANDOFF.md) — 2026-09-25 Fraterna primary API routing feature handoff; archived in `Records/` after initial implementation.
 - [audits/Records/Venice_Forge_Exhaustive_Audit_Remediation_Handoff_2026-09-24.md](audits/Records/Venice_Forge_Exhaustive_Audit_Remediation_Handoff_2026-09-24.md) — 2026-09-24 exhaustive audit remediation handoff archived in `Records/`.
 - [audits/Records/2026-09-24-application-repository-audit-handoff.md](audits/Records/2026-09-24-application-repository-audit-handoff.md) — Point-in-time audit of `main` at `56924240` with six evidence-backed findings. Current status stays in `ROADMAP.md`.

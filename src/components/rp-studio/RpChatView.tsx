@@ -482,7 +482,7 @@ export function RpChatView({
                 type="button"
                 onClick={() => setNarratorMode(true)}
                 aria-pressed={narratorMode}
-                className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${narratorMode ? "border-amber-400/40 bg-amber-400/10 text-amber-200" : "border-vf-panel-border text-text-secondary hover:text-text-primary"}`}
+                className={`text-[12px] px-2.5 py-1 rounded-md border transition-colors ${narratorMode ? "border-warning/40 bg-warning/10 text-warning" : "border-vf-panel-border text-text-secondary hover:text-text-primary"}`}
               >
                 <Trans i18nKey="common:surface.componentsRpStudioRpchatview.action.narrator" />
               </button>

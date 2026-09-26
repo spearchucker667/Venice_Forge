@@ -3,6 +3,8 @@
 :root {
   /* Portaled menus sit above dialogs while using one shared layer value. */
   --vf-z-context-menu: 1000;
+  /* Layer scale: content < drawers 100 < lightbox 150/drawers 170/palette 200 < toasts 400 < context menus 1000 */
+  --vf-z-toast: 400;
 }
 
 @theme {
@@ -13,7 +15,6 @@
   --color-bg: var(--bg);
   --color-background: var(--bg);
   --color-surface: var(--surface);
-  --color-surface-base: var(--surface);
   --color-error: var(--danger);
   --color-error-fg: var(--danger-fg);
   --color-surface-elevated: var(--surface-elevated);
@@ -44,34 +45,14 @@
   --color-button-primary-fg: var(--button-primary-fg);
   --color-button-secondary-bg: var(--button-secondary-bg);
   --color-button-secondary-fg: var(--button-secondary-fg);
-  --color-link: var(--link);
   --color-focus-ring: var(--focus-ring);
-  --color-selection-bg: var(--selection-bg);
-  --color-selection-fg: var(--selection-fg);
   --color-overlay: var(--overlay);
-  --color-glow: var(--glow);
 
   /* Code surfaces */
   --color-code-bg: var(--code-bg);
-  --color-code-fg: var(--code-fg);
   --color-code-border: var(--code-border);
   --color-code-header-bg: var(--code-header-bg);
   --color-code-header-fg: var(--code-header-fg);
-  --color-code-inline-bg: var(--code-inline-bg);
-  --color-code-inline-fg: var(--code-inline-fg);
-  --color-code-selection-bg: var(--code-selection-bg);
-
-  /* Surface scale — slightly warmer than pure greyscale, gives dark UI more depth */
-  --color-bg-base: #0a0a0c; /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
-  --color-bg-raised: #111114; /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
-  --color-bg-overlay: #16161b; /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
-
-  /* Border scale is defined below as semantic aliases derived from the
-     active theme border token. Keep one authority per custom property. */
-
-  /* Text scale */
-  --color-text-tertiary: var(--foreground-subtle);
-  --color-text-quaternary: var(--disabled-fg);
 
   /* Accent soft wash — derived from the active semantic accent so every
      theme (Nord, Catppuccin, custom) inherits the correct hue. */
@@ -106,13 +87,15 @@
   --text-2xl: calc(1.5rem * var(--app-font-scale, 1));
   --text-3xl: calc(1.875rem * var(--app-font-scale, 1));
 
-  /* Container widths (max-w-narrow / max-w-reading / max-w-comfort /
-     max-w-wide / max-w-chat-bubble). Establishes a deliberate reading column. */
-  --width-narrow: 30rem; /* 480px */
-  --width-reading: 40rem; /* 640px */
-  --width-comfort: 47.5rem; /* 760px */
-  --width-wide: 60rem; /* 960px */
-  --width-chat-bubble: 78%;
+  /* Container widths. In Tailwind v4, max-w-<name> resolves from the
+     --container-<name> namespace (NOT --width-*). Class names in use:
+     max-w-chat-bubble, max-w-vf-comfort, max-w-vf-wide. Establishes a
+     deliberate reading column. --width-narrow/--width-wide were dropped:
+     they had zero consumers. */
+  --container-reading: 40rem; /* 640px — .vf-empty-state__helper direct ref */
+  --container-vf-comfort: 47.5rem; /* 760px */
+  --container-vf-wide: 60rem; /* 960px */
+  --container-chat-bubble: 78%;
 
   /* Surface elevations (bg-surface-elevated-2 / bg-surface-overlay). */
   --color-surface-elevated-2: color-mix(
@@ -138,12 +121,6 @@
     transparent
   );
 
-  /* Layered surface elevation tokens for modern multi-pane layouts */
-  --color-surface-layer-0: var(--bg);
-  --color-surface-layer-1: var(--surface);
-  --color-surface-layer-2: var(--surface-elevated);
-  --color-surface-layer-3: var(--color-surface-elevated-2);
-  --color-surface-layer-overlay: var(--color-surface-overlay);
 
   /* === Reference shell material layer (2026-09-14) =====================
      Derived from the semantic theme tokens via color-mix so every
@@ -164,6 +141,27 @@
   --color-vf-accent-glow-subtle: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --color-vf-control-hover: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   --color-vf-control-active: color-mix(in srgb, var(--color-accent) 12%, transparent);
+
+  /* === Extended shell/control aliases (2026-09-25) =====================
+     Backfill for vf-* utility names that were referenced by components but
+     never declared. All derive from the semantic chain above so every theme
+     inherits them; never assign raw colors here. */
+  /* Subtler control-hover wash for dense lists / trees. */
+  --color-vf-control-hover-muted: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  /* Hovered panel surface (chips, menu items). */
+  --color-vf-panel-bg-hover: color-mix(in srgb, var(--color-text-primary) 6%, var(--color-vf-panel-bg));
+  /* Muted / recessed-from-raised panel surface (thumbnails, drop zones). */
+  --color-vf-panel-bg-muted: color-mix(in srgb, var(--color-vf-panel-bg-inset) 55%, var(--color-vf-panel-bg) 45%);
+  /* Sunken well for code blocks / media embeds (below inset). */
+  --color-vf-panel-bg-sunken: color-mix(in srgb, var(--color-vf-panel-bg-inset) 75%, var(--color-bg) 25%);
+  /* Subtle panel border (collapsed details, hairlines). */
+  --color-vf-panel-border-soft: color-mix(in srgb, var(--color-vf-panel-border) 55%, transparent);
+  /* Emphasis / focus border — accent-tinted so focus stays visible. */
+  --color-vf-panel-border-strong: color-mix(in srgb, var(--color-accent) 40%, var(--color-vf-panel-border));
+  /* Primary button aliases (WalletPanel action buttons). */
+  --color-vf-button-primary-bg: var(--color-button-primary-bg);
+  --color-vf-button-primary-text: var(--color-button-primary-fg);
+  --color-vf-button-primary-hover-bg: var(--color-accent-hover);
   --vf-noise-opacity: 0.4;
 }
 
@@ -171,26 +169,16 @@
   /* Shared geometry; semantic colors continue to come from ThemeFamily v2. */
   --space-control-x: 1rem;
   --space-control-y: 0.5rem;
-  --space-panel: 1.25rem;
   --radius-control: 0.5rem;
   --radius-panel: 0.625rem; /* 10px */
   --radius-dialog: 0.875rem; /* 14px */
   --blur-overlay: 4px;
-  --motion-instant: 75ms;
   --motion-fast: 140ms;
   --motion-medium: 220ms;
-  --motion-slow: 350ms;
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
-  --easing-enter: cubic-bezier(0, 0, 0.2, 1);
-  --easing-exit: cubic-bezier(0.4, 0, 1, 1);
-  --easing-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* Elevation shadow tokens */
-  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
-  --shadow-low: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
   --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
-  --shadow-high: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
   --shadow-overlay: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2); /* THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR */
 }
 
@@ -324,14 +312,6 @@ a { color: var(--link); }
   animation: shimmer 2s infinite linear;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
 
 /* Range slider */
 input[type="range"] {

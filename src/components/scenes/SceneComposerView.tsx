@@ -542,7 +542,7 @@ function SceneReferencePanel({
                 key={ref.entityId}
                 className="flex items-center gap-2 text-[12px] rounded-md border border-vf-panel-border px-2 py-1"
               >
-                <span className="inline-block w-6 h-6 rounded bg-muted shrink-0 overflow-hidden">
+                <span className="inline-block w-6 h-6 rounded bg-surface-muted shrink-0 overflow-hidden">
                   <img
                     src={`data:${ref.mimeType};base64,${ref.data}`}
                     alt=""
@@ -1140,7 +1140,7 @@ function SceneDetail(props: SceneDetailProps) {
                   <button
                     type="button"
                     onClick={() => removeComponent(c.key)}
-                    className="rounded-md border border-red-500/40 text-red-300 px-1.5 py-0.5 text-[12px] shrink-0"
+                    className="rounded-md border border-danger/40 text-danger px-1.5 py-0.5 text-[12px] shrink-0"
                     data-testid={`scene-composer-component-remove-${c.key}`}
                   >
                     ✕

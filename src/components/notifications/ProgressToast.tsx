@@ -79,7 +79,7 @@ export function ProgressToast({ toast }: { toast: Toast }) {
                       }
                     });
                   }}
-                  className="rounded-lg bg-vf-panel-bg-raised px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-vf-panel-bg-raised hover:text-text-brand transition-all ring-1 ring-border/20"
+                  className="rounded-lg bg-vf-panel-bg-raised px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-vf-panel-bg-raised hover:text-accent transition-all ring-1 ring-border/20"
                 >
                   {action.label}
                 </button>

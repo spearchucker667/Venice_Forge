@@ -24,7 +24,7 @@
 
 ## Overview
 
-Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS v4 CSS variables. Core surfaces, text, status, form, button, link, focus, and selection colors derive from 29 canonical semantic roles mapped to CSS custom properties. In addition, every theme variant carries a dedicated **code/syntax palette** with 33 canonical roles for fenced code blocks and inline code. This enables:
+Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS v4 CSS variables. Core surfaces, text, status, form, button, link, focus, and selection colors derive from 36 canonical semantic roles mapped to CSS custom properties. In addition, every theme variant carries a dedicated **code/syntax palette** with 33 canonical roles for fenced code blocks and inline code. This enables:
 
 - **Built-in themes:** 43 hardcoded theme families including Venice (default), Dark, Light, Copper, Dracula, Gruvbox Dark, Rose Pine, Nord, Tokyo Night, Catppuccin, Solarized, One Dark, Monokai, GitHub Light, and Venice Forge-specific families such as Obsidian Ember, Midnight Cobalt, Terminal Forest, Porcelain Sky, Sandstone, Obsidian Bloom, Harbor Fog, Circuit Mint, Amber Archive, Neon Dusk, and others. Every family ships complete light and dark variants, each with a dedicated code-syntax preset.
 - **YAML-backed themes:** 36 starter YAML templates ship under `config/themes/` (one for each built-in theme plus `example.theme.yaml`). User themes can also be loaded from `.config/themes.local.yaml` (dev) or `themes.yaml` (userData) at runtime and are validated by the same schema as built-in themes.
@@ -47,7 +47,7 @@ Venice Forge uses a **semantic token-based theme system** built on Tailwind CSS 
 │                          ▼                                  │
 │  ┌──────────────────────────────────────────────┐          │
 │  │  resolveInitialTheme(bootstrap, yamlThemes?)  │          │
-│  │  → custom → YAML theme → built-in → fallback  │          │
+│  │  → YAML theme → custom → built-in → fallback  │          │
 │  └──────────────────────────────────────────────┘          │
 │                          │                                  │
 │                          ▼                                  │
@@ -95,12 +95,16 @@ YAML Theme Loading (desktop only):
 
 ### YAML Theme Resolution Order
 
-When a user selects a theme by id:
+When a user selects a theme by id, `resolveInitialTheme()` (`src/theme/applyTheme.ts`) probes in this order:
 
-1. **Custom theme:** If `selectedThemeId === 'custom'` and a `customTheme` object is stored, use it.
-2. **YAML theme:** If `useConfigStore.yamlThemes[id]` exists, use it. This lets YAML themes override built-in themes by matching id.
-3. **Built-in theme:** Look up `findBuiltinTheme(id)` in the hardcoded `BUILTIN_THEMES` registry.
-4. **Fallback:** Use `BUILTIN_VENICE` (or `BUILTIN_LIGHT` if the system prefers light mode).
+1. **YAML theme:** If `useConfigStore.yamlThemes[id]` exists, use it. This lets YAML themes override built-in themes by matching id.
+2. **Custom theme (`custom` id):** If `selectedThemeId === 'custom'` and a `customTheme` object is stored, use it.
+3. **Custom theme from `customThemes`:** A user-saved custom theme whose id matches the selection.
+4. **Custom theme by id:** A stored `customTheme` whose own id matches the selection.
+5. **Registry lookup:** `themeRegistry.get()` resolves the id (after legacy-id migration, e.g. `builtin-light` → `light`) against the registry, where precedence is **YAML > custom > built-in**.
+6. **Fallback:** Use the `light` family when the effective mode is light, otherwise `BUILTIN_VENICE` (Venice Parity Dark, the default family).
+
+Steps 2–4 lift the persisted single-mode `Theme` into a V2 family by copying the same tokens into both variants (see `legacyThemeToFamily`), so legacy custom themes keep their authored look in either appearance mode.
 
 ### Two-Layer Persistence
 
@@ -117,7 +121,7 @@ On desktop startup, `main.tsx` calls `refreshConfig()` before the React tree mou
 
 1. Loads the sanitized config payload via `desktopConfig.get()`.
 2. Calls `desktopConfig.loadMergedThemes()` to parse the active `themes.yaml`.
-3. Validates each entry with `validateThemesFile()` (schema version 1, all 29 required tokens, safe color values).
+3. Validates each entry with `validateThemesFile()` (schema version 1, all 36 required tokens, safe color values).
 4. Converts valid entries to `Theme` objects via `yamlThemeToTheme()` (snake_case → camelCase normalization).
 5. Stores them in `useConfigStore.yamlThemes` so the UI and theme resolver can access them without re-parsing.
 
@@ -129,7 +133,7 @@ Invalid YAML entries are skipped with a `ConfigWarning` (surfaced in Settings �
 
 ## Token Reference
 
-There are **29 canonical semantic tokens**. Each maps to a CSS custom property (`--*`) and a Tailwind v4 utility class. The legacy `textPrimary` / `textSecondary` / `textMuted`, `accentHover`, `info`, `overlay`, and `glow` fields remain supported for existing persisted and imported themes; runtime normalization maps them into the canonical roles.
+There are **36 canonical semantic tokens**. Each maps to a CSS custom property (`--*`) and a Tailwind v4 utility class. The legacy `textPrimary` / `textSecondary` / `textMuted` trio remains part of the required 36-key contract: when the `foreground` / `foregroundMuted` / `foregroundSubtle` roles are absent, runtime normalization (`completeThemeTokens()`) derives them from the trio.
 
 | Token | CSS Variable | Tailwind Class | Role |
 |-------|-------------|----------------|------|
@@ -137,11 +141,16 @@ There are **29 canonical semantic tokens**. Each maps to a CSS custom property (
 | `surface` | `--surface` | `bg-surface` | Card/panel backgrounds |
 | `surfaceElevated` | `--surface-elevated` | `bg-surface-elevated` | Elevated cards, inputs, modal backdrops |
 | `surfaceMuted` | `--surface-muted` | `bg-surface-muted` | Subdued controls and selected secondary surfaces |
+| `overlay` | `--overlay` | `bg-overlay` | Modal scrims, dropdown backdrops |
+| `glow` | `--glow` | `bg-glow` | Accent ambient glow, active indicator luminescence |
 | `border` | `--border` | `border-border` | Dividers, input borders |
 | `borderStrong` | `--border-strong` | `border-border-strong` | Hovered controls and high-emphasis dividers |
 | `foreground` | `--foreground` | `text-foreground` | Headings and primary body text |
 | `foregroundMuted` | `--foreground-muted` | `text-foreground-muted` | Labels and secondary text |
 | `foregroundSubtle` | `--foreground-subtle` | `text-foreground-subtle` | Low-emphasis supporting text |
+| `textPrimary` | `--text-primary` | `text-text-primary` | Legacy primary text role; derivation source for `foreground` |
+| `textSecondary` | `--text-secondary` | `text-text-secondary` | Legacy secondary text role; derivation source for `foregroundMuted` |
+| `textMuted` | `--text-muted` | `text-text-muted` | Legacy muted text role; derivation source for `foregroundSubtle` |
 | `accent` | `--accent` | `bg-accent`, `text-accent`, `border-accent` | Primary action color |
 | `accentHover` | `--accent-hover` | `hover:bg-accent-hover` | Accent hover state |
 | `accentForeground` | `--accent-fg` | `text-accent-fg` | Text on accent backgrounds (buttons, badges) |
@@ -281,7 +290,7 @@ The following 35 themes are compiled into the renderer bundle and available even
 
 ### YAML-Backed Themes (Runtime-Loaded)
 
-`config/themes/` ships 36 starter YAML templates — one for every built-in theme above plus `example.theme.yaml`. Users can also define additional themes in `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged). On startup, `configService.loadMergedThemes()` parses the file, validates each entry (schema version 1, all 29 required tokens, safe color values), converts snake_case keys to camelCase via `yamlThemeToTheme()`, and caches the resulting `Theme` objects in `useConfigStore.yamlThemes`. They appear in the ThemeMaker selector alongside built-in themes and can be selected just like built-in themes.
+`config/themes/` ships 36 starter YAML templates — one for every built-in theme above plus `example.theme.yaml`. Users can also define additional themes in `.config/themes.local.yaml` (dev) or `userData/.config/themes.yaml` (packaged). On startup, `configService.loadMergedThemes()` parses the file, validates each entry (schema version 1, all 36 required tokens, safe color values), converts snake_case keys to camelCase via `yamlThemeToTheme()`, and caches the resulting `Theme` objects in `useConfigStore.yamlThemes`. They appear in the ThemeMaker selector alongside built-in themes and can be selected just like built-in themes.
 
 ### Contrast Verification
 
@@ -412,7 +421,7 @@ Users create custom themes via the ThemeMaker UI. No code changes required.
        tokens:
          bg: "#0a1628"
          bg_surface: "#112240"
-         # ... all 29 required tokens
+         # ... all 36 required tokens
    ```
 3. Save the file.
 4. In the app, go to **Settings → Local Config → Reload** (or restart the app).

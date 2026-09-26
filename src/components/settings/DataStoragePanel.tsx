@@ -233,7 +233,7 @@ export function DataStoragePanel({
             <button
               onClick={handleExport}
               disabled={!password}
-              className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-accent text-accent-foreground hover:bg-accent-light transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-1.5 rounded-lg text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('settings:dataStorage.manualBackup.export', 'Export Backup')}
             </button>

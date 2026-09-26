@@ -45,6 +45,7 @@ import { useInspectorStore } from "../stores/inspector-store";
 import { useSettingsStore } from "../stores/settings-store";
 import { isPrimaryApiRouteId } from "../shared/primaryApiRoute";
 import { getActiveProfileId } from "./activeProfile";
+import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
 
 /**
  * Detects whether the app is currently running inside the Electron desktop shell.
@@ -885,7 +886,7 @@ export const desktopFiles = {
 
   async importYamlString(): Promise<string | null> {
     if (!isElectron()) {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         const input = document.createElement("input");
         input.type = "file";
         input.accept = ".yaml,.yml";
@@ -900,6 +901,11 @@ export const desktopFiles = {
           if (!file) {
             cleanup();
             resolve(null);
+            return;
+          }
+          if (file.size > VENICE_MAX_BODY_BYTES) {
+            cleanup();
+            reject(new Error("Import file is too large."));
             return;
           }
           const reader = new FileReader();

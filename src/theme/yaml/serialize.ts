@@ -1,5 +1,5 @@
 import { stringify } from 'yaml';
-import type { CodeThemeTokens, ThemeFamily, ThemeMode, ThemeTokens } from '../themeTypes';
+import type { CodeThemeTokens, ThemeFamily, ThemeTokens } from '../themeTypes';
 
 function camelToSnake(value: string): string {
   return value.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
@@ -33,21 +33,16 @@ function serializeCodeTokens(tokens: CodeThemeTokens): Record<string, string> {
  * Output is deterministic (alphabetical token order) so round-trips are
  * semantically stable. Colors are written as snake_case CSS variables.
  *
- * Pass `mode` when serializing a single-mode Theme: it emits a top-level
- * `mode: light|dark` field so `yamlToTheme` can preserve the original mode
- * even when both variants carry the same tokens (single-mode legacy themes
- * whose canonical mode otherwise would be inferred from `BUILTIN_CANONICAL_MODES`).
+ * The single-mode `mode:` field is intentionally NOT emitted: nothing reads
+ * `doc.mode` after import (normalizeThemeFamilyYaml drops it), so exporting it
+ * would only mislead readers into thinking the field is load-bearing. The
+ * parser remains tolerant of legacy documents that still carry `mode:`.
  */
-export function serializeThemeFamilyYaml(
-  family: ThemeFamily,
-  options?: { mode?: ThemeMode },
-): string {
-  const mode = options?.mode;
+export function serializeThemeFamilyYaml(family: ThemeFamily): string {
   const doc = {
     schemaVersion: 2,
     id: family.id,
     name: family.name,
-    ...(mode ? { mode } : {}),
     ...(family.author !== undefined ? { author: family.author } : {}),
     ...(family.description !== undefined ? { description: family.description } : {}),
     ...(family.aliases?.length ? { aliases: [...family.aliases] } : {}),

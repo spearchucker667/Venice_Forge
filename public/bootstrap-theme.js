@@ -4,8 +4,123 @@
     if (!raw) return;
     var boot = JSON.parse(raw);
     if (!boot || typeof boot !== 'object' || Array.isArray(boot)) return;
-    if (boot.appearanceMode !== 'dark' && boot.appearanceMode !== 'light') boot.appearanceMode = 'dark';
     var root = document.documentElement;
+
+    // THEME-P2-004: v2 resolved-map cache. The App writes the exact CSS
+    // variable map it applied (see buildThemeVariableMap in
+    // src/theme/applyTheme.ts), so the pre-paint bootstrap can replay it
+    // verbatim after validating every key and value. Any violation falls
+    // through to the legacy palette path below.
+    var ALLOWED_KEYS = [
+      '--bg',
+      '--surface',
+      '--surface-elevated',
+      '--surface-muted',
+      '--border',
+      '--border-strong',
+      '--foreground',
+      '--foreground-muted',
+      '--foreground-subtle',
+      '--text-primary',
+      '--text-secondary',
+      '--text-muted',
+      '--accent',
+      '--accent-hover',
+      '--accent-fg',
+      '--success',
+      '--success-fg',
+      '--warning',
+      '--warning-fg',
+      '--danger',
+      '--danger-fg',
+      '--info',
+      '--input-bg',
+      '--input-fg',
+      '--placeholder',
+      '--disabled-fg',
+      '--button-primary-bg',
+      '--button-primary-fg',
+      '--button-secondary-bg',
+      '--button-secondary-fg',
+      '--link',
+      '--focus-ring',
+      '--selection-bg',
+      '--selection-fg',
+      '--overlay',
+      '--glow',
+      '--app-mesh-opacity',
+      '--code-bg',
+      '--code-fg',
+      '--code-border',
+      '--code-header-bg',
+      '--code-header-fg',
+      '--code-inline-bg',
+      '--code-inline-fg',
+      '--code-selection-bg',
+      '--syntax-comment',
+      '--syntax-punctuation',
+      '--syntax-property',
+      '--syntax-tag',
+      '--syntax-boolean',
+      '--syntax-number',
+      '--syntax-constant',
+      '--syntax-symbol',
+      '--syntax-deleted',
+      '--syntax-selector',
+      '--syntax-attribute',
+      '--syntax-string',
+      '--syntax-character',
+      '--syntax-builtin',
+      '--syntax-inserted',
+      '--syntax-operator',
+      '--syntax-entity',
+      '--syntax-url',
+      '--syntax-atrule',
+      '--syntax-keyword',
+      '--syntax-function',
+      '--syntax-class-name',
+      '--syntax-regex',
+      '--syntax-important',
+      '--syntax-variable',
+    ];
+    var resolved = boot.resolved;
+    if (
+      resolved && typeof resolved === 'object' && !Array.isArray(resolved) &&
+      (resolved.mode === 'dark' || resolved.mode === 'light') &&
+      typeof resolved.themeId === 'string' && resolved.themeId.length <= 128 &&
+      resolved.vars && typeof resolved.vars === 'object' && !Array.isArray(resolved.vars)
+    ) {
+      function validVarValue(v) {
+        if (typeof v !== 'string' || v.length > 128) return false;
+        if (/url\(|expression\(|javascript:|@import/i.test(v)) return false;
+        // Safe colors, plus the one bare-numeric token (--app-mesh-opacity).
+        return /^(#[0-9a-fA-F]{3,8}|rgba?\(\s*[-+\d\s.,%/]+\s*\)|hsla?\(\s*[-+\d\s.,deg%/]+\s*\)|transparent|currentColor)$/i.test(v)
+          || /^\d{1,3}(\.\d{1,4})?$/.test(v);
+      }
+      var usable = true;
+      var keyCount = 0;
+      for (var varsKey in resolved.vars) {
+        if (!Object.prototype.hasOwnProperty.call(resolved.vars, varsKey)) continue;
+        keyCount += 1;
+        if (ALLOWED_KEYS.indexOf(varsKey) === -1 || !validVarValue(resolved.vars[varsKey])) {
+          usable = false;
+          break;
+        }
+      }
+      // The App always writes the full allowlist; partial maps are corrupt.
+      if (usable && keyCount !== ALLOWED_KEYS.length) usable = false;
+      if (usable) {
+        for (var i = 0; i < ALLOWED_KEYS.length; i++) {
+          root.style.setProperty(ALLOWED_KEYS[i], resolved.vars[ALLOWED_KEYS[i]]);
+        }
+        root.dataset.themeMode = resolved.mode;
+        root.style.colorScheme = resolved.mode;
+        return;
+      }
+      // Fall through to the legacy palette path on any validation failure.
+    }
+
+    if (boot.appearanceMode !== 'dark' && boot.appearanceMode !== 'light') boot.appearanceMode = 'dark';
     var customTheme = boot.customTheme && typeof boot.customTheme === 'object' && !Array.isArray(boot.customTheme)
       ? boot.customTheme
       : null;

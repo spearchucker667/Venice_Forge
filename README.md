@@ -206,7 +206,7 @@ Privacy is the core design pillar of Venice Forge:
 ## Theme System (Theme Engine V2)
 
 The user interface uses a token-based styling model matching dynamic glassmorphism aesthetics.
-- **YAML Themes:** Built-in and user-supplied themes live under `config/themes/` using standard CSS variable key-value maps.
+- **YAML Themes:** Built-in themes are authored in TypeScript (`src/theme/builtins/`), while `config/themes/` ships packaged Theme Engine V2 dual-variant override themes and user-supplied themes.
 - **Theme-Aware Syntax Highlighting:** Fenced and inline code blocks are dynamically syntax-highlighted with color palettes matched to the active theme via a 33-token code theme contract.
 - **Theme Maker:** Create, customize, and preview themes in real time, including a dedicated Code & Syntax palette editor.
 - **Built-in Catalog (43 Themes):**

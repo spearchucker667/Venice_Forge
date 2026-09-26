@@ -914,7 +914,7 @@ export function DocumentAgentView() {
                         </pre>
                       </div>
                       <div>
-                        <div className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">
+                        <div className="text-[11px] font-semibold text-success uppercase tracking-wider mb-1">
                           <Trans i18nKey="common:surface.componentsDocumentsDocumentagentview.text.after" />
                         </div>
                         <pre className="overflow-auto rounded-md bg-vf-panel-bg-inset p-3 text-[12px] text-foreground max-h-[160px]">

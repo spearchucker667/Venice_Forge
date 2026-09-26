@@ -5,7 +5,7 @@ export const BUILTIN_COTTON_CANDY_CONSOLE: ThemeFamily = {
   schemaVersion: 2,
   id: "cotton-candy-console",
   name: "Cotton Candy Console",
-  aliases: ["builtin-cotton-candy-console","cotton-candy-console"],
+  aliases: ["builtin-cotton-candy-console"],
   builtIn: true,
   variants: {
     light: {
@@ -70,6 +70,7 @@ export const BUILTIN_COTTON_CANDY_CONSOLE: ThemeFamily = {
       glow: "rgba(114, 184, 202, 0.25)",
       surfaceMuted: "#111b1d",
       borderStrong: "#5d7d84",
+      placeholder: "#829498",
       }),
       code: { preset: 'cotton-candy-console', tokens: resolveCodeThemeTokens('cotton-candy-console', 'dark') },
     },

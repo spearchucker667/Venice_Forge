@@ -5,7 +5,7 @@ export const BUILTIN_PORCELAIN_SKY: ThemeFamily = {
   schemaVersion: 2,
   id: "porcelain-sky",
   name: "Porcelain Sky",
-  aliases: ["builtin-porcelain-sky","porcelain-sky"],
+  aliases: ["builtin-porcelain-sky"],
   builtIn: true,
   variants: {
     light: {
@@ -57,6 +57,7 @@ export const BUILTIN_PORCELAIN_SKY: ThemeFamily = {
       glow: "rgba(77, 128, 239, 0.25)",
       surfaceMuted: "#11171d",
       borderStrong: "#5d7084",
+      placeholder: "#838f99",
       }),
       code: { preset: 'porcelain-sky', tokens: resolveCodeThemeTokens('porcelain-sky', 'dark') },
     },

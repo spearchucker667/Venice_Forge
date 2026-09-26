@@ -5,7 +5,7 @@ export const BUILTIN_SWEET_NIGHTMARE: ThemeFamily = {
   schemaVersion: 2,
   id: "sweet-nightmare",
   name: "Sweet Nightmare",
-  aliases: ["builtin-sweet-nightmare","sweet-nightmare"],
+  aliases: ["builtin-sweet-nightmare"],
   builtIn: true,
   variants: {
     light: {

@@ -58,7 +58,7 @@ export const BUILTIN_OBSIDIAN_BLOOM: ThemeFamily = {
       info: "#8bb8e8",
       inputBackground: "#252026",
       inputForeground: "#f0e8f0",
-      placeholder: "#8f7d8f",
+      placeholder: "#958595",
       disabledForeground: "#8f7d8f",
       buttonPrimaryBackground: "#e06c85",
       buttonPrimaryForeground: "#0f0a12",

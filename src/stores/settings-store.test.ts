@@ -38,6 +38,7 @@ describe('settings-store', () => {
       playgroundAgentModel: '',
       selectedThemeId: 'builtin-venice',
       customTheme: null,
+      customThemes: [],
       appearanceMode: 'dark',
       imageDownloadDirectory: '',
       redTeamMode: false,
@@ -189,6 +190,65 @@ describe('settings-store', () => {
       const state = useSettingsStore.getState()
       expect(state.customThemes).toHaveLength(100)
       expect(state.customThemes[99].id).toBe('theme-overflow')
+    })
+
+    it('setCustomThemes keeps the NEWEST MAX_CUSTOM_THEMES entries (THEME-P3-030)', () => {
+      const themes = Array.from({ length: 120 }, (_, i) =>
+        makeTheme(`theme-${i}`, `Theme ${i}`, 'dark', 'dracula')
+      )
+      useSettingsStore.getState().setCustomThemes(themes)
+
+      const state = useSettingsStore.getState()
+      expect(state.customThemes).toHaveLength(100)
+      expect(state.customThemes[0].id).toBe('theme-20')
+      expect(state.customThemes[99].id).toBe('theme-119')
+    })
+
+    it('deleteCustomTheme resets the active selection when deleting the active member theme', () => {
+      const darkTheme = makeTheme('user-dark', 'User Dark', 'dark', 'dracula')
+      const lightTheme = makeTheme('user-light', 'User Light', 'light', 'github-light')
+
+      useSettingsStore.getState().saveCustomTheme(darkTheme)
+      useSettingsStore.getState().saveCustomTheme(lightTheme)
+      useSettingsStore.getState().deleteCustomTheme('user-light')
+
+      const state = useSettingsStore.getState()
+      expect(state.customThemes.map((t) => t.id)).toEqual(['user-dark'])
+      expect(state.selectedThemeId).toBe('user-dark')
+      expect(state.customTheme?.id).toBe('user-dark')
+      expect(state.appearanceMode).toBe('dark')
+    })
+
+    it('deleteCustomTheme leaves the active selection untouched when deleting an inactive member theme', () => {
+      const darkTheme = makeTheme('user-dark', 'User Dark', 'dark', 'dracula')
+      const lightTheme = makeTheme('user-light', 'User Light', 'light', 'github-light')
+
+      useSettingsStore.getState().saveCustomTheme(darkTheme)
+      useSettingsStore.getState().saveCustomTheme(lightTheme)
+      useSettingsStore.getState().deleteCustomTheme('user-dark')
+
+      const state = useSettingsStore.getState()
+      expect(state.customThemes.map((t) => t.id)).toEqual(['user-light'])
+      expect(state.selectedThemeId).toBe('user-light')
+      expect(state.customTheme?.id).toBe('user-light')
+      expect(state.appearanceMode).toBe('light')
+    })
+
+    it('deleteCustomTheme does not clobber the customTheme slot for non-member (YAML/built-in) ids (THEME-P2-007)', () => {
+      const slotTheme = makeTheme('user-slot', 'User Slot', 'dark', 'dracula')
+      useSettingsStore.getState().saveCustomTheme(slotTheme)
+      // Simulate the user selecting an active YAML theme id that is NOT a
+      // member of customThemes, then deleting it.
+      useSettingsStore.getState().setSelectedThemeId('yaml-theme-1')
+      useSettingsStore.getState().setAppearanceMode('light')
+
+      useSettingsStore.getState().deleteCustomTheme('yaml-theme-1')
+
+      const state = useSettingsStore.getState()
+      expect(state.customThemes.map((t) => t.id)).toEqual(['user-slot'])
+      expect(state.selectedThemeId).toBe('yaml-theme-1')
+      expect(state.customTheme?.id).toBe('user-slot')
+      expect(state.appearanceMode).toBe('light')
     })
   })
 

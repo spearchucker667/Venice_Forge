@@ -26,7 +26,8 @@ import { ErrorBoundary } from './components/ui/error-boundary'
 import { ModalRequestHost } from './components/ui/modal-requests'
 import { Toaster } from './components/ui/toaster'
 import { FIRST_RUN_ACK_KEY } from './shared/legal'
-import { applyTheme, resolveInitialTheme } from './theme'
+import { applyTheme, buildThemeVariableMap, resolveInitialTheme } from './theme'
+import { useSystemThemeMode } from './hooks/use-system-theme-mode'
 import { applyFontSettings } from './services/fontService'
 import { CANONICAL_TAB_ORDER, normaliseTab, type TabId } from './config/tabs'
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion'
@@ -214,19 +215,40 @@ export function App() {
   // touching this file.
   const selectedThemeId = useSettingsStore((s) => s.selectedThemeId)
   const customTheme = useSettingsStore((s) => s.customTheme)
+  const customThemes = useSettingsStore((s) => s.customThemes)
   const appearanceMode = useSettingsStore((s) => s.appearanceMode)
   const yamlThemes = useConfigStore((s) => s.yamlThemes)
+  const systemThemeMode = useSystemThemeMode()
 
   useEffect(() => {
-    const theme = resolveInitialTheme({ selectedThemeId, appearanceMode, customTheme }, yamlThemes)
+    // Resolve 'system' through the subscribed OS preference so an OS-level
+    // light/dark flip re-applies the theme live. Explicit modes pass through
+    // unchanged. The persisted bootstrap keeps the authored 'system' value so
+    // restore semantics are untouched.
+    const resolvedAppearance = appearanceMode === 'system' ? systemThemeMode : appearanceMode
+    const theme = resolveInitialTheme(
+      { selectedThemeId, appearanceMode: resolvedAppearance, customTheme, customThemes },
+      yamlThemes,
+    )
     applyTheme(theme)
 
     try {
-      localStorage.setItem('vf.theme.bootstrap', JSON.stringify({ selectedThemeId, appearanceMode, customTheme })) /* localStorage-allowed: theme bootstrap FOUC cache */;
+      const bootstrapCache = {
+        selectedThemeId,
+        appearanceMode,
+        customTheme,
+        resolved: {
+          mode: theme.mode,
+          themeId: theme.id,
+          colorScheme: theme.mode,
+          vars: buildThemeVariableMap(theme),
+        },
+      };
+      localStorage.setItem('vf.theme.bootstrap', JSON.stringify(bootstrapCache)) /* localStorage-allowed: theme bootstrap FOUC cache */;
     } catch {
       // ignore write failures (e.g. disabled local storage)
     }
-  }, [selectedThemeId, customTheme, appearanceMode, yamlThemes]);
+  }, [selectedThemeId, customTheme, customThemes, appearanceMode, yamlThemes, systemThemeMode]);
 
   // Typography and Font synchronization
   const fontFamily = useSettingsStore((s) => s.fontFamily)

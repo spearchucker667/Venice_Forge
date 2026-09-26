@@ -20,21 +20,21 @@ Theme Engine V2 represents themes as **Theme Families** (`ThemeFamily`). Each fa
 │  ├── schemaVersion: 2                                  │
 │  └── variants:                                         │
 │       ├── light: ThemeVariant                          │
-│       │    ├── tokens: ThemeTokens (37 semantic roles) │
+│       │    ├── tokens: ThemeTokens (36 semantic roles) │
 │       │    └── code: CodeThemeConfig                   │
 │       │         ├── preset: CodeSyntaxPresetId         │
 │       │         └── tokens: CodeThemeTokens            │
 │       └── dark: ThemeVariant                           │
-│            ├── tokens: ThemeTokens (37 semantic roles) │
+│            ├── tokens: ThemeTokens (36 semantic roles) │
 │            └── code: CodeThemeConfig                   │
 └────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Canonical ThemeTokens Taxonomy (37 Roles)
+## 2. Canonical ThemeTokens Taxonomy (36 Roles)
 
-Every theme variant defines 37 semantic UI color tokens:
+Every theme variant defines 36 semantic UI color tokens:
 
 ### 2.1 Surfaces & Depth (6 Tokens)
 | Token Key | CSS Custom Property | Role Description |
@@ -89,6 +89,15 @@ Every theme variant defines 37 semantic UI color tokens:
 | `dangerForeground` | `--danger-fg`, `--color-error-fg`| Foreground text rendered on top of danger surfaces |
 | `info` | `--info` | Informational callouts, inline hints, tips |
 
+### 2.6 Legacy Text Roles (3 Tokens)
+These three keys remain first-class, required members of the 36-key contract (`REQUIRED_THEME_TOKEN_KEYS`). They are the canonical persisted text roles and double as derivation sources: when `foreground` / `foregroundMuted` / `foregroundSubtle` are absent, `completeThemeTokens()` fills them from the trio.
+
+| Token Key | CSS Custom Property | Role Description |
+| :--- | :--- | :--- |
+| `textPrimary` | `--text-primary` (mirrors `--foreground`) | Primary copy role; derivation source for `foreground` |
+| `textSecondary` | `--text-secondary` (mirrors `--foreground-muted`) | Secondary text role; derivation source for `foregroundMuted` |
+| `textMuted` | `--text-muted` (mirrors `--foreground-subtle`) | Muted text role; derivation source for `foregroundSubtle` and `borderStrong` |
+
 ---
 
 ## 3. Code Surface & Syntax Tokens Taxonomy
@@ -132,8 +141,26 @@ System Safe Colors (#ffffff / #000000 / #3b82f6)
 ```
 
 ### Color Format Validation
-All color values must parse as valid CSS color strings:
-- 6-digit or 8-digit Hex: `#RRGGBB`, `#RRGGBBAA`
-- RGB / RGBA: `rgb(r, g, b)`, `rgba(r, g, b, a)`
-- HSL / HSLA: `hsl(h, s, l)`, `hsla(h, s, l, a)`
-- Validated at ingest time by `src/theme/validateColor.ts`
+All color values must parse as valid CSS color strings (enforced at ingest time by `src/theme/validateColor.ts`):
+- **Hex:** 3, 4, 6, or 8 digits — `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`
+- **RGB / RGBA:** `rgb(r, g, b)` and `rgba(r, g, b, a)` — comma-separated, or modern space-separated components with `/` alpha (number or percent)
+- **HSL / HSLA:** `hsl(h, s%, l%)` and `hsla(h, s%, l%, a)` — hue with optional `deg`, comma-separated or modern space/slash alpha
+- **Keywords:** `transparent`, `currentColor`
+
+Values longer than 128 characters and any value containing dangerous CSS patterns — `url(`, `expression(`, `javascript:`, `@import` — are rejected.
+
+### Top-Level Document Keys
+A V2 theme document may carry only the following top-level keys (`ALLOWED_TOP_LEVEL_KEYS` in `src/theme/yaml/validate.ts`):
+
+| Key | Required | Notes |
+| :--- | :--- | :--- |
+| `schemaVersion` | yes | Must be `2`. Documents without it are treated as legacy and routed through the V1 parser. |
+| `id` | yes | Non-empty string of letters, numbers, hyphens, underscores (max 128 chars); must not collide with reserved/protected ids. |
+| `name` | yes | Non-empty display title (max 128 chars). |
+| `variants` | yes | Object with exactly `light` and `dark` entries, each `{ tokens, code? }`. |
+| `base` | no | Optional `{ tokens }` inherited by variants; values must still be valid colors. |
+| `aliases` | no | Array of alternate string ids. |
+| `description` | no | Free text (max 2048 chars). |
+| `author` | no | Free text (max 2048 chars). |
+| `mode` | no | **Tolerated but ignored.** Accepted for backward compatibility when its value is `light` or `dark`; nothing reads it after import (normalization drops it), and the serializer no longer emits it. |
+| `version` | — | **Not allowed.** A top-level `version:` key (e.g. `version: 1.0.0`) is an unknown key and fails validation. |

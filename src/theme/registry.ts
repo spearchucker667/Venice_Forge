@@ -7,7 +7,7 @@ export interface ThemeRegistrySnapshot {
   yaml: ThemeFamily[];
 }
 
-class ThemeRegistry {
+export class ThemeRegistry {
   private builtIns: Map<string, ThemeFamily>;
   private custom: Map<string, ThemeFamily> = new Map();
   private yaml: Map<string, ThemeFamily> = new Map();
@@ -18,7 +18,7 @@ class ThemeRegistry {
 
   private allMaps(): Map<string, ThemeFamily>[] {
     // Precedence: YAML overrides custom overrides built-in.
-    return [this.builtIns, this.custom, this.yaml];
+    return [this.yaml, this.custom, this.builtIns];
   }
 
   get(id: string | null | undefined): ThemeFamily | null {
@@ -90,7 +90,13 @@ class ThemeRegistry {
   }
 
   isBuiltInId(id: string): boolean {
-    return this.builtIns.has(id) || this.builtIns.get(id)?.aliases?.includes(id) === true;
+    // Fast path: exact built-in family id.
+    if (this.builtIns.has(id)) return true;
+    // Alias path: a built-in family may register aliases (e.g. "builtin-venice").
+    for (const family of this.builtIns.values()) {
+      if (family.aliases?.includes(id)) return true;
+    }
+    return false;
   }
 }
 

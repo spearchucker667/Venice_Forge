@@ -636,8 +636,10 @@ describe("configService loadMergedThemes", () => {
     process.env.VENICE_FORGE_THEMES_FILE = envThemes;
 
     const result = await loadMergedThemes();
-    expect(Object.keys(result.themes).length).toBeGreaterThan(0);
-    expect(asYamlTheme(result.themes["aurora-boreal"]).display_name).toBe("Aurora Boreal");
+    const aurora = result.themes["aurora-boreal"];
+    expect(aurora).toBeDefined();
+    const displayName = aurora && "schemaVersion" in aurora ? aurora.name : aurora?.display_name;
+    expect(displayName).toBe("Aurora Boreal");
     expect(result.warnings.filter((warning) => warning.severity === "error")).toEqual([]);
   });
 

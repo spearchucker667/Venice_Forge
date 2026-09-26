@@ -201,7 +201,7 @@ export function CharacterCreatorWelcome({
           <button
             type="submit"
             disabled={!idea.trim() || isGenerating}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-accent text-accent-contrast font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-accent text-accent-fg font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             <Sparkles className="w-4 h-4" />
             <span>

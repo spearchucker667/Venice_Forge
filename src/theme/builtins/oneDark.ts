@@ -54,6 +54,7 @@ export const BUILTIN_ONE_DARK: ThemeFamily = {
       glow: "rgba(97, 175, 239, 0.25)",
       surfaceMuted: "#2c313a",
       borderStrong: "#abb2bf",
+      placeholder: "#afb3b8",
       }),
       code: { preset: 'one-dark', tokens: resolveCodeThemeTokens('one-dark', 'dark') },
     },

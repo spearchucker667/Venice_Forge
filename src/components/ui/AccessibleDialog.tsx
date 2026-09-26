@@ -41,7 +41,7 @@ export function AccessibleDialog({
 
   return (
     <div
-      className={`fixed inset-0 ${zIndexClassName} grid place-items-center bg-overlay/75 p-4 modal-backdrop-blur animate-fade-in`}
+      className={`fixed inset-0 ${zIndexClassName} grid place-items-center p-4 modal-backdrop-blur animate-fade-in`}
       role="presentation"
       onMouseDown={(event) => {
         if (closeOnBackdrop && onClose && event.target === event.currentTarget) onClose()

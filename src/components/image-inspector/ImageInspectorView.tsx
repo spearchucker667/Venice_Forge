@@ -167,7 +167,7 @@ export function ImageInspectorView() {
       {/* Left Pane: Sessions & Input */}
       <div className="w-full md:w-[320px] lg:w-[340px] flex-shrink-0 border-b md:border-b-0 md:border-r border-vf-panel-border flex flex-col bg-vf-panel-bg overflow-hidden max-h-[35vh] md:max-h-none">
         <div className="p-4 border-b border-vf-panel-border">
-          <h2 className="text-[14px] font-semibold text-text mb-4 flex items-center gap-2">
+          <h2 className="text-[14px] font-semibold text-text-primary mb-4 flex items-center gap-2">
             <ScanSearch className="w-4 h-4" />
             <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.imageInspector" />
           </h2>
@@ -457,7 +457,7 @@ export function ImageInspectorView() {
               {analysis ? (
                 <div className="bg-vf-panel-bg p-6 rounded-md border border-vf-panel-border space-y-6">
                   <div>
-                    <h3 className="text-[14px] font-semibold text-text mb-2 border-b border-vf-panel-border pb-2">
+                    <h3 className="text-[14px] font-semibold text-text-primary mb-2 border-b border-vf-panel-border pb-2">
                       <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.analysisSummary" />
                     </h3>
                     <p className="text-[13px] text-text-muted leading-relaxed whitespace-pre-wrap">
@@ -470,10 +470,10 @@ export function ImageInspectorView() {
 
                   {analysis.replicationPrompt && (
                     <div>
-                      <h3 className="text-[14px] font-semibold text-text mb-2 border-b border-vf-panel-border pb-2">
+                      <h3 className="text-[14px] font-semibold text-text-primary mb-2 border-b border-vf-panel-border pb-2">
                         <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.replicationPrompt" />
                       </h3>
-                      <div className="bg-vf-shell-bg rounded p-3 text-[13px] text-text border border-vf-panel-border font-mono whitespace-pre-wrap select-all">
+                      <div className="bg-vf-shell-bg rounded p-3 text-[13px] text-text-primary border border-vf-panel-border font-mono whitespace-pre-wrap select-all">
                         {analysis.replicationPrompt.positive}
                       </div>
                       {analysis.replicationPrompt.negative && (
@@ -489,7 +489,7 @@ export function ImageInspectorView() {
 
                   {analysis.subjects && analysis.subjects.length > 0 && (
                     <div>
-                      <h3 className="text-[14px] font-semibold text-text mb-2 border-b border-vf-panel-border pb-2">
+                      <h3 className="text-[14px] font-semibold text-text-primary mb-2 border-b border-vf-panel-border pb-2">
                         <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.subjects" />
                       </h3>
                       <ul className="list-disc pl-5 text-[13px] text-text-muted space-y-1">
@@ -511,7 +511,7 @@ export function ImageInspectorView() {
 
                   {/* Direct image matching is fail-closed until a supported provider is configured. */}
                   <div className="pt-4 border-t border-vf-panel-border">
-                    <h3 className="text-[14px] font-semibold text-text mb-3 flex items-center gap-2">
+                    <h3 className="text-[14px] font-semibold text-text-primary mb-3 flex items-center gap-2">
                       <Globe className="w-4 h-4 text-accent" />
                       <Trans i18nKey="common:surface.componentsImageInspectorImageinspectorview.heading.imageBasedSourceSearch" />
                     </h3>

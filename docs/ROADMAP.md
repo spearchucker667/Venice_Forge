@@ -5,15 +5,15 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 86b5580503e9b36746bac7a1b63d9602e49baea1
-application_code_sha: 86b5580503e9b36746bac7a1b63d9602e49baea1
-verified_against_sha: 86b5580503e9b36746bac7a1b63d9602e49baea1
+repository_head_sha: 8ee5ddd2a14691739d5bfda7c3759a06ce352b66
+application_code_sha: 8ee5ddd2a14691739d5bfda7c3759a06ce352b66
+verified_against_sha: 8ee5ddd2a14691739d5bfda7c3759a06ce352b66
 verified_at:         2026-09-25 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
-working_tree:        uncommitted Fraterna re-audit remediation
+working_tree:        uncommitted theme-system audit remediation (Waves 1 & 2); pre-existing user-owned audit files
 ci_status:           baseline 86b55805 success (run 36204271635 — 11/11 jobs); current edits not hosted
 codeql_status:       baseline 86b55805 success (run 36204271633 — 2/2 jobs); current edits not hosted
 open_findings:       2026-09-24 audit safety-contract conflict; FRAT-REAUD-006 live provider acceptance; FRAT-REAUD-007 native-language review; P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence

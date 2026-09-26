@@ -55,6 +55,7 @@ export const BUILTIN_SOLARIZED: ThemeFamily = {
         glow: 'rgba(181, 137, 0, 0.25)',
         surfaceMuted: '#00313f',
         borderStrong: '#93a1a1',
+        placeholder: '#95a4a5',
       }),
       code: { preset: 'solarized', tokens: resolveCodeThemeTokens('solarized', 'dark') },
     },

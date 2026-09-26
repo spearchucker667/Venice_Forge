@@ -275,7 +275,7 @@ export function WorkflowTemplatesView() {
         data-testid="workflow-templates-view"
       >
         {/* Sidebar List */}
-        <div className="w-full md:w-1/3 lg:w-[clamp(280px,30%,400px)] shrink-0 border-b border-vf-panel-border md:border-b border-vf-panel-border-0 md:border-r border-vf-panel-border p-4 overflow-y-auto flex flex-col gap-4">
+        <div className="w-full md:w-1/3 lg:w-[clamp(280px,30%,400px)] shrink-0 border-b border-vf-panel-border md:border-b-0 md:border-r border-vf-panel-border p-4 overflow-y-auto flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h2 className="text-sm font-semibold text-text-secondary">
               <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.heading.workflows" />
@@ -286,7 +286,7 @@ export function WorkflowTemplatesView() {
                 "surface.componentsWorkflowsWorkflowtemplatesview.heading.workflows",
               )}
             >
-              <label htmlFor="workflow-templates-1" className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover-hover text-text-primary px-2 py-1 rounded cursor-pointer">
+              <label htmlFor="workflow-templates-1" className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-primary px-2 py-1 rounded cursor-pointer">
                 <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.label.import" />
                 <input
                   type="file" id="workflow-templates-1" 
@@ -297,7 +297,7 @@ export function WorkflowTemplatesView() {
               </label>
               <button
                 onClick={handleCreateWorkflow}
-                className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover-hover text-text-primary px-2 py-1 rounded"
+                className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-primary px-2 py-1 rounded"
                 data-testid="create-workflow-btn"
               >
                 <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.new" />
@@ -339,7 +339,7 @@ export function WorkflowTemplatesView() {
                   role="option"
                   aria-selected={w.id === activeWorkflow?.id}
                   onClick={() => handleSelectWorkflow(w.id)}
-                  className={`w-full text-left cursor-pointer p-2 rounded border flex justify-between items-center outline-none focus-visible:ring-2 focus-visible:ring-accent ${w.id === activeWorkflow?.id ? "bg-vf-panel-bg-hover border-vf-panel-border" : "hover:bg-vf-control-hover-hover border-vf-panel-border"}`}
+                  className={`w-full text-left cursor-pointer p-2 rounded border flex justify-between items-center outline-none focus-visible:ring-2 focus-visible:ring-accent ${w.id === activeWorkflow?.id ? "bg-vf-panel-bg-hover border-vf-panel-border" : "hover:bg-vf-control-hover border-vf-panel-border"}`}
                 >
                   <div className="overflow-hidden">
                     <div className="text-sm text-text-primary truncate flex items-center gap-2">
@@ -436,14 +436,14 @@ export function WorkflowTemplatesView() {
                 </button>
                 <button
                   onClick={handleExport}
-                  className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover-hover text-text-secondary px-3 py-1.5 rounded"
+                  className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-secondary px-3 py-1.5 rounded"
                   data-testid="export-workflow-btn"
                 >
                   <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.export" />
                 </button>
                 <button
                   onClick={() => archiveWorkflow(activeWorkflow.id)}
-                  className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover-hover text-text-secondary px-3 py-1.5 rounded"
+                  className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-secondary px-3 py-1.5 rounded"
                   data-testid="archive-workflow-btn"
                 >
                   <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.archive" />
@@ -493,7 +493,7 @@ export function WorkflowTemplatesView() {
                     steps: activeVersion.steps,
                   })
                 }
-                className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover-hover text-text-secondary px-2 py-1 rounded"
+                className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-secondary px-2 py-1 rounded"
                 data-testid="add-version-btn"
               >
                 <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.addNewVersion" />
@@ -517,7 +517,7 @@ export function WorkflowTemplatesView() {
                       enabled: true,
                     })
                   }
-                  className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover-hover text-text-primary px-2 py-1 rounded"
+                  className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-primary px-2 py-1 rounded"
                   data-testid="add-step-btn"
                 >
                   <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.addStep" />

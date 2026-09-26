@@ -8,12 +8,14 @@ const DANGEROUS_PATTERNS = /url\(|expression\(|javascript:|@import/i;
 
 /**
  * Allowed CSS color formats:
- * - Hex: #rgb, #rgba, #rrggbb, #rrggbbaa
- * - RGB/RGBA: rgb(...), rgba(...)
- * - HSL/HSLA: hsl(...), hsla(...)
+ * - Hex: #rgb, #rgba, #rrggbb, #rrggbbaa (5/7-digit lengths rejected)
+ * - RGB/RGBA: rgb(...), rgba(...) — comma or space separated, optional alpha
+ *   (number or percent, comma or modern slash syntax)
+ * - HSL/HSLA: hsl(...), hsla(...) — hue (deg optional), saturation %,
+ *   lightness %, optional alpha (number or percent, comma or slash syntax)
  * - Safe keywords: transparent, currentColor
  */
-const SAFE_COLOR_RE = /^(#[0-9a-fA-F]{3,8}|rgba?\(\s*[-+\d\s.,%/]+\s*\)|hsla?\(\s*[-+\d\s.,deg%/]+\s*\)|transparent|currentColor)$/i;
+const SAFE_COLOR_RE = /^(?:#[0-9a-fA-F]{8}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{4}|#[0-9a-fA-F]{3}|rgba?\(\s*[-+.\d]+\s*[, ]\s*[-+.\d]+\s*[, ]\s*[-+.\d]+(?:\s*[,/]\s*[-+.\d]+%?)?\s*\)|hsla?\(\s*[-+.\d]+(?:deg)?\s*[, ]\s*[-+.\d]+%\s*[, ]\s*[-+.\d]+%(?:\s*[,/]\s*[-+.\d]+%?)?\s*\)|transparent|currentColor)$/i;
 
 /**
  * Returns true if the string is a safe, recognized CSS color value.

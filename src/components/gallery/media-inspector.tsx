@@ -1281,9 +1281,9 @@ export function MediaInspector({
           aria-label={tRuntime(
             "runtimeGenerated.components.gallery.mediaInspector.attribute.missingReferences",
           )}
-          className="rounded-md border border-amber-400/30 bg-amber-500/[0.06] p-2.5"
+          className="rounded-md border border-warning/30 bg-warning/5 p-2.5"
         >
-          <h4 className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-amber-200/90">
+          <h4 className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-warning/90">
             <Trans i18nKey="common:surface.componentsGalleryMediaInspector.heading.missingReferences" />
           </h4>
           <p className="mb-2 text-[12px] text-text-secondary">
@@ -1316,7 +1316,7 @@ export function MediaInspector({
               <button
                 type="button"
                 onClick={() => void handleClearDanglingParent()}
-                className="ml-auto rounded-md border border-amber-400/40 px-2 py-1 text-amber-200/90 hover:border-amber-300 hover:text-amber-100"
+                className="ml-auto rounded-md border border-warning/40 px-2 py-1 text-warning/90 hover:border-warning hover:text-warning"
               >
                 <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.clearParentLink" />
               </button>
@@ -1338,7 +1338,7 @@ export function MediaInspector({
               <button
                 type="button"
                 onClick={() => void handleClearDanglingChildren()}
-                className="ml-auto rounded-md border border-amber-400/40 px-2 py-1 text-amber-200/90 hover:border-amber-300 hover:text-amber-100"
+                className="ml-auto rounded-md border border-warning/40 px-2 py-1 text-warning/90 hover:border-warning hover:text-warning"
               >
                 <Trans i18nKey="common:surface.componentsGalleryMediaInspector.action.clear" />{" "}
                 {missingChildIds.length === 1

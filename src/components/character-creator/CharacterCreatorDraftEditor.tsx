@@ -172,7 +172,7 @@ export function CharacterCreatorDraftEditor({
           <button
             type="button"
             onClick={onApproveAndCreate}
-            className="px-4 py-1.5 rounded-md bg-accent text-accent-contrast font-medium text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+            className="px-4 py-1.5 rounded-md bg-accent text-accent-fg font-medium text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>
@@ -546,7 +546,7 @@ export function CharacterCreatorDraftEditor({
 
           {activeTab === "advanced" && (
             <div className="flex flex-col gap-4">
-              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
+              <div className="p-3 rounded-lg bg-warning/10 border border-warning/20 text-warning text-xs flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
                   <Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatordrafteditor.text.advancedPromptingInstructionsDirectlyModifySystemPrompt" />
@@ -694,7 +694,7 @@ export function CharacterCreatorDraftEditor({
                       entries: [...(currentBook.entries || []), newEntry],
                     });
                   }}
-                  className="px-3 py-1.5 rounded-md bg-accent text-accent-contrast text-xs font-medium flex items-center gap-1 hover:opacity-90 transition-opacity"
+                  className="px-3 py-1.5 rounded-md bg-accent text-accent-fg text-xs font-medium flex items-center gap-1 hover:opacity-90 transition-opacity"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>

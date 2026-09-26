@@ -201,7 +201,9 @@ export async function startThemeWatcher() {
 
 export async function saveTheme(family: ThemeFamilyV2): Promise<void> {
   if (!isThemeFamilyV2(family)) {
-    throw new Error("Theme must be a valid ThemeFamilyV2 document.");
+    const errors = validateRawThemeYaml(family, { requireV2: true });
+    const detail = errors.length > 0 ? ` ${errors.join(" ")}` : "";
+    throw new Error(`Theme must be a valid ThemeFamilyV2 document.${detail}`);
   }
   const customDir = await ensureCustomThemesDir();
   const filePath = path.join(customDir, `${family.id}.yaml`);

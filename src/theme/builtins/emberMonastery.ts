@@ -58,7 +58,7 @@ export const BUILTIN_EMBER_MONASTERY: ThemeFamily = {
       info: "#64b5f6",
       inputBackground: "#3a2e28",
       inputForeground: "#f5e6d3",
-      placeholder: "#9a8878",
+      placeholder: "#a69788",
       disabledForeground: "#9a8878",
       buttonPrimaryBackground: "#ff6e40",
       buttonPrimaryForeground: "#1a120e",

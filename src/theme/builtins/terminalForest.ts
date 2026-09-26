@@ -5,7 +5,7 @@ export const BUILTIN_TERMINAL_FOREST: ThemeFamily = {
   schemaVersion: 2,
   id: "terminal-forest",
   name: "Terminal Forest",
-  aliases: ["builtin-terminal-forest","terminal-forest"],
+  aliases: ["builtin-terminal-forest"],
   builtIn: true,
   variants: {
     light: {
@@ -29,6 +29,7 @@ export const BUILTIN_TERMINAL_FOREST: ThemeFamily = {
       glow: "rgba(33, 131, 67, 0.18)",
       surfaceMuted: "#edf0ee",
       borderStrong: "#819187",
+      placeholder: "#657a6b",
       }),
       code: { preset: 'terminal-forest', tokens: resolveCodeThemeTokens('terminal-forest', 'light') },
     },
@@ -41,7 +42,7 @@ export const BUILTIN_TERMINAL_FOREST: ThemeFamily = {
       textPrimary: "#d8e8de",
       textSecondary: "#8ba696",
       textMuted: "#5e7a69",
-      placeholder: "#627e6d",
+      placeholder: "#809d8b",
       accent: "#47d177",
       accentHover: "#5bed8f",
       accentForeground: "#000000",

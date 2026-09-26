@@ -300,7 +300,7 @@
   align-items: center;
   text-align: center;
   padding: 3rem 1.5rem;
-  max-width: var(--width-comfort);
+  max-width: var(--container-vf-comfort);
   margin: 0 auto;
 }
 .vf-empty-state__eyebrow {
@@ -324,7 +324,7 @@
   line-height: 1.55;
   color: var(--color-text-secondary);
   margin-bottom: 1.5rem;
-  max-width: var(--width-reading);
+  max-width: var(--container-reading);
 }
 
 /* Composer focus ring — the chat input focus state, standardized. */

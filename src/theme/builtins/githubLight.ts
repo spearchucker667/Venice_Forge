@@ -55,6 +55,7 @@ export const BUILTIN_GITHUB_LIGHT: ThemeFamily = {
       glow: "rgba(69, 151, 247, 0.25)",
       surfaceMuted: "#161718",
       borderStrong: "#6b7075",
+      placeholder: "#8c8e91",
       }),
       code: { preset: 'github-light', tokens: resolveCodeThemeTokens('github-light', 'dark') },
     },

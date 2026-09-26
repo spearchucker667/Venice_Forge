@@ -281,19 +281,19 @@ export function PlaygroundView() {
             </span>
             {validation.errors.length > 0 && (
               <span
-                className="w-1.5 h-1.5 rounded-full bg-red-400/80 shrink-0"
+                className="w-1.5 h-1.5 rounded-full bg-danger/80 shrink-0"
                 title={validation.errors.map((e) => e.message).join("\n")}
               />
             )}
             {validation.errors.length === 0 &&
               validation.warnings.length > 0 && (
                 <span
-                  className="w-1.5 h-1.5 rounded-full bg-yellow-400/70 shrink-0"
+                  className="w-1.5 h-1.5 rounded-full bg-warning/70 shrink-0"
                   title={validation.warnings.map((w) => w.message).join("\n")}
                 />
               )}
             {saveToast && (
-              <span className="text-[12px] text-green-400/70 truncate">
+              <span className="text-[12px] text-success/70 truncate">
                 {saveToast}
               </span>
             )}
@@ -327,7 +327,7 @@ export function PlaygroundView() {
               className={cn(
                 "flex items-center gap-1.5 text-[13px] font-medium px-2.5 py-1 rounded-md transition-colors",
                 canRun
-                  ? "bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30"
+                  ? "bg-success/20 text-success border border-success/30 hover:bg-success/30"
                   : "bg-vf-panel-bg-raised text-text-muted border border-vf-panel-border cursor-not-allowed",
               )}
               title={

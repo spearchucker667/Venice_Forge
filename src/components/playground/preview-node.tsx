@@ -45,8 +45,8 @@ function PreviewNodeComponent({ id, data }: NodeProps<PreviewNode>) {
 
   const statusRing =
     result?.status === 'running' ? 'ring-2 ring-accent animate-pulse'
-    : result?.status === 'done' ? 'ring-2 ring-green-500/30'
-    : result?.status === 'error' ? 'ring-2 ring-red-500/30'
+    : result?.status === 'done' ? 'ring-2 ring-success/30'
+    : result?.status === 'error' ? 'ring-2 ring-danger/30'
     : ''
 
   const output = result?.output
@@ -83,8 +83,8 @@ function PreviewNodeComponent({ id, data }: NodeProps<PreviewNode>) {
       <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-vf-panel-border">
         <span className="text-[13.5px] font-medium text-text-secondary">{schema?.label ?? data.nodeType}</span>
         {result?.status === 'running' && <span className="ml-auto text-[12px] text-text-muted"><Trans i18nKey="common:surface.componentsPlaygroundPreviewNode.text.running" /></span>}
-        {result?.status === 'done' && <span className="ml-auto text-[12px] text-green-400/50"><Trans i18nKey="common:surface.componentsPlaygroundPreviewNode.text.done" /></span>}
-        {result?.status === 'error' && <span className="ml-auto text-[12px] text-red-400/60"><Trans i18nKey="common:surface.componentsPlaygroundPreviewNode.text.error" /></span>}
+        {result?.status === 'done' && <span className="ml-auto text-[12px] text-success/50"><Trans i18nKey="common:surface.componentsPlaygroundPreviewNode.text.done" /></span>}
+        {result?.status === 'error' && <span className="ml-auto text-[12px] text-danger/60"><Trans i18nKey="common:surface.componentsPlaygroundPreviewNode.text.error" /></span>}
         {!result?.status && meta.length > 0 && (
           <span className="ml-auto text-[12px] text-text-muted truncate max-w-[140px]" title={meta.join(' · ')}>{meta.join(' · ')}</span>
         )}
@@ -98,7 +98,7 @@ function PreviewNodeComponent({ id, data }: NodeProps<PreviewNode>) {
 
       {result?.status === 'error' && (
         <div className="px-3.5 py-2.5">
-          <p className="text-[12.5px] text-red-400/70 leading-relaxed whitespace-pre-wrap">{result.error}</p>
+          <p className="text-[12.5px] text-danger/70 leading-relaxed whitespace-pre-wrap">{result.error}</p>
         </div>
       )}
 

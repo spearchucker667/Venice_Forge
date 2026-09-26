@@ -53,6 +53,7 @@ export const BUILTIN_NORD: ThemeFamily = {
       glow: "rgba(136, 192, 208, 0.25)",
       surfaceMuted: "#2A2F3A",
       borderStrong: "#D8DEE9",
+      placeholder: "#aac0d5",
       }),
       code: { preset: 'nord', tokens: resolveCodeThemeTokens('nord', 'dark') },
     },

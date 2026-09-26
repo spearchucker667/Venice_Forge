@@ -42,7 +42,7 @@ export function CharacterCreatorCompleted({
         <button
           type="button"
           onClick={onStartChat}
-          className="w-full py-2.5 rounded-lg bg-accent text-accent-contrast font-medium text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+          className="w-full py-2.5 rounded-lg bg-accent text-accent-fg font-medium text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
         >
           <MessageSquare className="w-4 h-4" />
           <span><Trans i18nKey="common:surface.componentsCharacterCreatorCharactercreatorcompleted.text.startChat" /></span>

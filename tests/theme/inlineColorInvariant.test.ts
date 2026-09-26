@@ -127,4 +127,31 @@ describe('Theme token coverage invariant (VERIFY-010, T11)', () => {
     // to explain why the new file cannot use a semantic token.
     expect(HEX_BG_ALLOWLIST.size).toBeLessThanOrEqual(4)
   })
+
+  it('bare white/black utilities carry the intentional fixed color marker (THEME-P3-032)', () => {
+    const files: string[] = []
+    for (const sub of SCAN_DIRS) files.push(...walk(join(ROOT, sub)))
+    const BARE_FIXED_RE = /\b(text|bg|border)-(white|black)\b/
+    const unannotated: Array<{ file: string; line: number; text: string }> = []
+
+    for (const f of files) {
+      const rel = relative(ROOT, f).replace(/\\/g, '/')
+      if (IGNORE_PATH_PREFIXES.some((p) => rel.endsWith(p))) continue
+      if (rel.includes('.test.') || rel.includes('__tests__')) continue
+      const lines = readFileSync(f, 'utf-8').split('\n')
+      lines.forEach((line, idx) => {
+        if (BARE_FIXED_RE.test(line)) {
+          if (!line.includes('THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR')) {
+            unannotated.push({ file: rel, line: idx + 1, text: line.trim() })
+          }
+        }
+      })
+    }
+
+    expect(
+      unannotated,
+      `Bare white/black utilities must carry the THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR marker: ${JSON.stringify(unannotated, null, 2)}`,
+    ).toEqual([])
+  })
 })
+

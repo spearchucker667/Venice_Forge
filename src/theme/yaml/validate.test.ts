@@ -91,6 +91,14 @@ describe('validateRawThemeYaml', () => {
     expect(errors.some((m) => m.includes('protected built-in theme id'))).toBe(true);
   });
 
+  it('rejects the reserved id "themes" (case-insensitive)', () => {
+    for (const id of ['themes', 'THEMES', 'Themes']) {
+      const doc = { ...validV2(), id } as unknown as Record<string, unknown>;
+      const errors = validateRawThemeYaml(doc);
+      expect(errors.some((m) => m.includes(`id "${id}" is reserved.`)), id).toBe(true);
+    }
+  });
+
   it('rejects empty name', () => {
     const doc = { ...validV2(), name: '' } as unknown as Record<string, unknown>;
     expect(validateRawThemeYaml(doc).some((m) => m.includes('name must be a non-empty string'))).toBe(true);

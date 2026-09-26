@@ -8,13 +8,27 @@ import { afterEach, describe, expect, it } from "vitest";
 const {
   collectScanFiles,
   isSourceFile,
+  loadDefinedTokens,
+  loadThemeNamespaceTokens,
+  verifyArbitraryVarRefs,
   verifyBuiltinFamilies,
   verifySyntaxColorTokens,
   verifyThemeTokens,
+  verifyUtilityResolvability,
   // eslint-disable-next-line @typescript-eslint/no-require-imports
 } = require("./verify-theme-tokens.cjs") as {
   collectScanFiles: (root: string, scanRoots: string[]) => Set<string>;
   isSourceFile: (entry: string) => boolean;
+  loadDefinedTokens: (root: string) => Set<string>;
+  loadThemeNamespaceTokens: (root: string) => {
+    color: Set<string>;
+    container: Set<string>;
+  };
+  verifyArbitraryVarRefs: (
+    root: string,
+    definedTokens: Set<string>,
+    scanRoots?: string[],
+  ) => { filesScanned: number; violations: string[] };
   verifyBuiltinFamilies: (root: string) => string[];
   verifySyntaxColorTokens: (
     root: string,
@@ -32,6 +46,11 @@ const {
       allowComment?: string;
     },
   ) => { ok: boolean; filesScanned: number; violations: string[] };
+  verifyUtilityResolvability: (
+    root: string,
+    namespace: { color: Set<string>; container: Set<string> },
+    scanRoots?: string[],
+  ) => { filesScanned: number; violations: string[] };
 };
 
 const tempDirs: string[] = [];
@@ -179,5 +198,106 @@ describe("verifyBuiltinFamilies", () => {
     expect(violations.some((v) => v.includes("bad.ts") && v.includes("schemaVersion"))).toBe(true);
     expect(violations.some((v) => v.includes("bad.ts") && v.includes("variants"))).toBe(true);
     expect(violations.some((v) => v.includes("good.ts"))).toBe(false);
+  });
+});
+
+// THEME-P2-015: the resolvability audit must fail the build when a utility or
+// arbitrary var() reference points at a theme token that is never defined.
+describe("theme token resolvability (THEME-P2-015)", () => {
+  const FIXTURE_THEME_CSS = [
+    '@import "tailwindcss";',
+    "@theme {",
+    "  --color-bg: var(--bg);",
+    "  --color-accent: var(--accent);",
+    "  --color-vf-panel-bg: var(--color-surface);",
+    "  --container-vf-wide: 60rem;",
+    "}",
+    "",
+  ].join("\n");
+
+  function resolvabilityFixture(files: Record<string, string>) {
+    return fixture({
+      "src/styles/theme.css": FIXTURE_THEME_CSS,
+      "src/theme/applyTheme.ts":
+        "export function applyTheme() { const map: Record<string, string> = { '--bg': '#000' }; return map; }\n",
+      ...files,
+    });
+  }
+
+  it("flags bg-/text-/border-<name> utilities with no matching @theme token", () => {
+    const root = resolvabilityFixture({
+      "src/components/Dead.tsx":
+        "export function Dead() { return <div className='bg-ghost-token text-wisp border-missing' />; }\n",
+    });
+    const { violations } = verifyUtilityResolvability(root, loadThemeNamespaceTokens(root));
+    expect(violations.some((v) => v.includes("--color-ghost-token"))).toBe(true);
+    expect(violations.some((v) => v.includes("--color-wisp"))).toBe(true);
+    expect(violations.some((v) => v.includes("--color-missing"))).toBe(true);
+  });
+
+  it("flags max-w-<name> utilities with no matching --container-* token", () => {
+    const root = resolvabilityFixture({
+      "src/components/Dead.tsx":
+        "export function Dead() { return <div className='max-w-nowhere' />; }\n",
+    });
+    const { violations } = verifyUtilityResolvability(root, loadThemeNamespaceTokens(root));
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toContain("--container-nowhere");
+  });
+
+  it("flags arbitrary var() references to undefined tokens", () => {
+    const root = resolvabilityFixture({
+      "src/components/Dead.tsx":
+        "export function Dead() { return <div className='bg-[var(--color-nope)] text-[var(--undefined-thing)]' />; }\n",
+    });
+    const { violations } = verifyArbitraryVarRefs(root, loadDefinedTokens(root));
+    expect(violations.some((v) => v.includes("--color-nope"))).toBe(true);
+    expect(violations.some((v) => v.includes("--undefined-thing"))).toBe(true);
+  });
+
+  it("does not flag border-side width utilities or default palette hues", () => {
+    const root = resolvabilityFixture({
+      "src/components/Ok.tsx":
+        "export function Ok() { return <div className='border-b-0 border-l-4 border-t border-solid bg-red-500 text-amber-300' />; }\n",
+    });
+    const { violations } = verifyUtilityResolvability(root, loadThemeNamespaceTokens(root));
+    expect(violations).toEqual([]);
+  });
+
+  it("does not flag utilities that resolve from @theme or runtime setProperty writers", () => {
+    const root = resolvabilityFixture({
+      "src/components/Ok.tsx":
+        "export function Ok() { return <div className='bg-vf-panel-bg text-accent max-w-vf-wide' />; }\n",
+      // --swatch-bg is written at runtime, so var(--swatch-bg) resolves.
+      "src/components/Swatch.tsx":
+        "export function Swatch({ el }: { el: HTMLElement }) { el.style.setProperty('--swatch-bg', '#123456'); return <div className='bg-[var(--swatch-bg)]' />; }\n",
+    });
+    const { violations: utilViolations } = verifyUtilityResolvability(root, loadThemeNamespaceTokens(root));
+    expect(utilViolations).toEqual([]);
+    const { violations: arbViolations } = verifyArbitraryVarRefs(root, loadDefinedTokens(root));
+    expect(arbViolations).toEqual([]);
+  });
+
+  it("flags bg/border/max-w utilities even in const maps without a className line", () => {
+    // Regression: ToastItem SEVERITY_STYLES defined these in an object literal
+    // where no line contains className/cn( — the heuristic must still catch them.
+    const root = resolvabilityFixture({
+      "src/components/Dead.tsx":
+        'const STYLES: Record<string, string> = {\n  ok: "bg-vf-panel-bg",\n  bad: "bg-border-success/30",\n};\nexport function Dead() { return <div className={STYLES.bad} />; }\n',
+    });
+    const { violations } = verifyUtilityResolvability(root, loadThemeNamespaceTokens(root));
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toContain("--color-border-success");
+  });
+
+  it("scopes the container check to the --container-* namespace", () => {
+    const root = resolvabilityFixture({
+      "src/components/Ok.tsx":
+        "export function Ok() { return <div className='max-w-vf-wide' />; }\n",
+    });
+    const namespace = loadThemeNamespaceTokens(root);
+    expect(namespace.container.has("--container-vf-wide")).toBe(true);
+    const { violations } = verifyUtilityResolvability(root, namespace);
+    expect(violations).toEqual([]);
   });
 });

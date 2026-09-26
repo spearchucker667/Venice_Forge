@@ -20,7 +20,7 @@ import { Trans, useTranslation } from "react-i18next";
 const KIND_TONE: Record<PromptAssemblyTraceEntry["kind"], string> = {
   "safety-preamble": "border-emerald-400/30 text-emerald-300",
   "model-identity": "border-sky-400/30 text-sky-300",
-  persona: "border-teal-400/30 text-[var(--color-accent)]",
+  persona: "border-info/30 text-[var(--color-accent)]",
   character: "border-violet-400/30 text-violet-300",
   scenario: "border-amber-400/30 text-amber-300",
   "lorebook-entry": "border-pink-400/30 text-pink-300",

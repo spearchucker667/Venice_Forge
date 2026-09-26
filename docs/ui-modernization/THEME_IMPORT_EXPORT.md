@@ -24,7 +24,6 @@ id: cyber-matrix
 name: Cyber Matrix
 description: High-contrast neon green and obsidian terminal palette
 author: Venice Community
-version: 1.0.0
 variants:
   dark:
     tokens:
@@ -37,6 +36,9 @@ variants:
       foreground: "#e0ffe8"
       foregroundMuted: "#88bb94"
       foregroundSubtle: "#44664c"
+      text_primary: "#e0ffe8"
+      text_secondary: "#88bb94"
+      text_muted: "#44664c"
       placeholder: "#33553a"
       disabledForeground: "#2a4230"
       link: "#00ff66"
@@ -88,6 +90,9 @@ variants:
       foreground: "#0a1a0e"
       foregroundMuted: "#2d4a34"
       foregroundSubtle: "#627d68"
+      text_primary: "#0a1a0e"
+      text_secondary: "#2d4a34"
+      text_muted: "#627d68"
       placeholder: "#849e8a"
       disabledForeground: "#a2b8a7"
       link: "#008833"
@@ -137,7 +142,7 @@ variants:
 All imported theme documents are treated as untrusted external content:
 
 1. **Parser Safety:** Parsed using YAML safe mode (`yaml.parse` with strict schema validation). Prototype pollution keys (`__proto__`, `constructor`, `prototype`) are explicitly stripped.
-2. **Color Value Sanitization:** Every token value is sanitized and verified by `isValidColorValue()`. Any value that cannot resolve as a safe CSS color literal (hex, rgb, rgba, hsl, hsla) is rejected with a descriptive error.
+2. **Color Value Sanitization:** Every token value is sanitized and verified by `isValidColorValue()`. Any value that cannot resolve as a safe CSS color literal — 3/4/6/8-digit hex, `rgb()`/`rgba()` and `hsl()`/`hsla()` in comma or modern space/slash syntax, or the `transparent` / `currentColor` keywords — is rejected with a descriptive error.
 3. **No Code Execution:** Themes are declarative data structures only. Inline JavaScript, CSS expressions (`expression(...)`), and SVG scripts are structurally impossible.
 4. **Filename Sanitization:** On export, filenames are sanitized using `[^a-z0-9_-]` regex replacements to prevent path traversal or shell character injection.
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { applyTheme, resolveInitialTheme, legacyThemeToFamily } from "./applyTheme";
+import { applyTheme, resolveInitialTheme, legacyThemeToFamily, isValidPersistedTheme } from "./applyTheme";
 import { BUILTIN_VENICE, BUILTIN_DARK, BUILTIN_LIGHT, BUILTIN_COPPER } from "./themes";
 import { resolveTheme } from "./resolver";
 import type { Theme } from "./themeTypes";
@@ -78,6 +78,33 @@ describe("applyTheme", () => {
     } finally {
       window.removeEventListener("applyTheme:complete", listener as EventListener);
     }
+  });
+});
+
+describe("isValidPersistedTheme", () => {
+  function persistedTheme(name: string): Theme {
+    return { ...resolved(BUILTIN_DARK, "dark"), id: "custom", name };
+  }
+
+  it("accepts a well-formed persisted theme", () => {
+    expect(isValidPersistedTheme(persistedTheme("My Theme"))).toBe(true);
+  });
+
+  it("rejects empty and whitespace-only names", () => {
+    expect(isValidPersistedTheme(persistedTheme(""))).toBe(false);
+    expect(isValidPersistedTheme(persistedTheme("   "))).toBe(false);
+    expect(isValidPersistedTheme(persistedTheme("\t\n "))).toBe(false);
+  });
+
+  it("keeps the 200-character name cap", () => {
+    expect(isValidPersistedTheme(persistedTheme("a".repeat(200)))).toBe(true);
+    expect(isValidPersistedTheme(persistedTheme("a".repeat(201)))).toBe(false);
+  });
+
+  it("rejects non-object and structurally invalid values", () => {
+    expect(isValidPersistedTheme(null)).toBe(false);
+    expect(isValidPersistedTheme("theme")).toBe(false);
+    expect(isValidPersistedTheme({ ...persistedTheme("X"), mode: "system" })).toBe(false);
   });
 });
 
@@ -172,6 +199,30 @@ describe("resolveInitialTheme", () => {
     const result = resolveInitialTheme({ selectedThemeId: "builtin-dark" }, {});
     expect(result.id).toBe(BUILTIN_DARK.id);
     expect(result.mode).toBe("dark");
+  });
+
+  it("recovers to the default family when the selectedThemeId is fully bogus", () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true });
+    const result = resolveInitialTheme({ selectedThemeId: "no-such-theme-at-all" });
+    expect(result.id).toBe(BUILTIN_VENICE.id);
+    expect(result.mode).toBe("dark");
+  });
+
+  it("recovers to the light family when a bogus id is selected under light appearance", () => {
+    const result = resolveInitialTheme({ selectedThemeId: "no-such-theme-at-all", appearanceMode: "light" });
+    expect(result.id).toBe(BUILTIN_LIGHT.id);
+    expect(result.mode).toBe("light");
+  });
+
+  it("treats a garbage appearanceMode as system", () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: false });
+    const result = resolveInitialTheme(
+      { selectedThemeId: "no-such-theme-at-all", appearanceMode: "garbage-mode" as never },
+    );
+    // migrateAppearanceMode coerces unknown values to "system", and the
+    // effective mode then follows the OS preference (mocked light here).
+    expect(result.id).toBe(BUILTIN_LIGHT.id);
+    expect(result.mode).toBe("light");
   });
 });
 

@@ -18,6 +18,10 @@ vi.mock("../services/desktopBridge", async () => {
   >("../services/desktopBridge");
   return {
     ...actual,
+    // These suites simulate the desktop transport, where the mocked IPC
+    // below succeeds. THEME-P2-016 gates CRUD on isElectron(), so the mock
+    // must declare the desktop bridge explicitly (jsdom has no window.veniceForge).
+    isElectron: vi.fn(() => true),
     desktopFiles: {
       exportYaml: vi.fn().mockResolvedValue(true),
       importYamlString: vi.fn().mockResolvedValue(null),
@@ -221,6 +225,82 @@ describe("ThemeMaker Custom Theme Engine Features", () => {
       expect(state.customThemes[1].code.tokens.keyword).toBe("#abcdef");
     });
   });
+
+  it("persists the legacy Custom Theme palette selection (THEME-P2-006)", () => {
+    const legacyCustom = {
+      id: "custom",
+      name: "My Legacy Custom",
+      mode: "dark" as const,
+      tokens: BUILTIN_DRACULA.variants.dark.tokens,
+      code: BUILTIN_DRACULA.variants.dark.code,
+    };
+    useSettingsStore.setState({
+      selectedThemeId: "builtin-venice",
+      customTheme: legacyCustom,
+      customThemes: [],
+      appearanceMode: "light",
+    });
+
+    render(<ThemeMaker />);
+    fireEvent.click(screen.getByRole("button", { name: "Custom Theme" }));
+
+    const state = useSettingsStore.getState();
+    expect(state.selectedThemeId).toBe("custom");
+    expect(state.appearanceMode).toBe("dark");
+    expect(document.documentElement.dataset.themeMode).toBe("dark");
+  });
+
+  it("falls back to the default family when deleting the active YAML theme (THEME-P2-007)", async () => {
+    useConfigStore.setState({
+      yamlThemes: {
+        "yaml-del-test": {
+          schemaVersion: 2,
+          id: "yaml-del-test",
+          name: "YAML Delete Test",
+          aliases: [],
+          builtIn: false,
+          variants: {
+            dark: {
+              tokens: BUILTIN_DRACULA.variants.dark.tokens,
+              code: BUILTIN_DRACULA.variants.dark.code,
+            },
+            light: {
+              tokens: BUILTIN_DRACULA.variants.light.tokens,
+              code: BUILTIN_DRACULA.variants.light.code,
+            },
+          },
+        },
+      },
+    });
+    useSettingsStore.setState({
+      selectedThemeId: "yaml-del-test",
+      customTheme: null,
+      customThemes: [],
+      appearanceMode: "dark",
+    });
+
+    render(<ThemeMaker />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete Theme" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => {
+      expect(
+        useConfigStore.getState().yamlThemes["yaml-del-test"],
+      ).toBeUndefined();
+    });
+
+    const state = useSettingsStore.getState();
+    // The store intentionally leaves the selection untouched for non-member
+    // ids; ThemeMaker owns the selector reset.
+    expect(state.selectedThemeId).toBe("yaml-del-test");
+    expect(state.customTheme).toBeNull();
+    expect(document.documentElement.dataset.themeMode).toBe("dark");
+    // The selector deterministically lands on the default family.
+    expect(
+      screen.getByRole("button", { name: "Venice Parity Dark" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("keeps draft edits scoped and confirms before switching themes", () => {
     render(<ThemeMaker />);
     const original = document.documentElement.style.cssText;

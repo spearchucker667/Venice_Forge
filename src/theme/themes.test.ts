@@ -140,6 +140,12 @@ describe("built-in theme families", () => {
     const root = path.resolve(__dirname, "../../config/themes");
     const files = new Set(fs.readdirSync(root));
     for (const family of BUILTIN_THEME_FAMILIES) {
+      // config/themes/copper.yaml was removed: a shipped V1 YAML sharing a
+      // built-in family id flattens both variants to the YAML's single mode.
+      if (family.id === "copper") {
+        expect(files.has("copper.yaml"), "copper.yaml must not shadow the dual-mode built-in").toBe(false);
+        continue;
+      }
       const names = expectedYamlNames(family.id);
       const hasYaml = names.some((n) => files.has(n));
       expect(hasYaml, `${family.id} missing YAML counterpart (${names.join(" or ")})`).toBe(true);

@@ -104,6 +104,25 @@ describe('serializeThemeFamilyYaml', () => {
     expect(yaml).toContain('button_primary_background:');
   });
 
+  it('does not emit the dead top-level mode field', () => {
+    const family = parseThemeYaml(validV2Yaml());
+    const yaml = serializeThemeFamilyYaml(family);
+    // Nothing reads doc.mode after import (normalize drops it), so exporting
+    // it would imply a contract that does not exist.
+    expect(yaml).not.toMatch(/^mode:/m);
+  });
+
+  it('keeps the parser tolerant of legacy top-level mode fields', () => {
+    const family = parseThemeYaml(validV2Yaml());
+    const legacy = `mode: dark\n${serializeThemeFamilyYaml(family)}`;
+    expect(() => parseThemeYaml(legacy)).not.toThrow();
+  });
+
+  it('stays deterministic across repeated serializations', () => {
+    const family = parseThemeYaml(validV2Yaml());
+    expect(serializeThemeFamilyYaml(family)).toBe(serializeThemeFamilyYaml(family));
+  });
+
   it('is semantically stable through parse → serialize → parse', () => {
     const original = parseThemeYaml(validV2Yaml());
     const yaml = serializeThemeFamilyYaml(original);

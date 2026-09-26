@@ -58,7 +58,7 @@ export const BUILTIN_GLACIAL_INK: ThemeFamily = {
       info: "#40c4ff",
       inputBackground: "#2a3848",
       inputForeground: "#e0f7fa",
-      placeholder: "#6088a0",
+      placeholder: "#87a5b7",
       disabledForeground: "#6088a0",
       buttonPrimaryBackground: "#00e5ff",
       buttonPrimaryForeground: "#0d1b2a",

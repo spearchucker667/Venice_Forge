@@ -92,7 +92,7 @@ export function CharacterCreatorError({
         <button
           type="button"
           onClick={onRetry}
-          className="px-5 py-2 rounded-lg bg-accent text-accent-contrast font-medium text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+          className="px-5 py-2 rounded-lg bg-accent text-accent-fg font-medium text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity"
         >
           <RotateCcw className="w-4 h-4" />
           <span>

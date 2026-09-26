@@ -11,6 +11,8 @@ import {
   BUILTIN_ONE_DARK,
   BUILTIN_MONOKAI,
   BUILTIN_GITHUB_LIGHT,
+  BUILTIN_CANONICAL_MODES,
+  luminance,
   type Theme,
   type ThemeFamily,
 } from "../theme";
@@ -105,6 +107,18 @@ terminal_colors:
 });
 
 describe("ThemeMaker new built-in theme round-trips", () => {
+  // Mirrors ThemeMaker's getCanonicalMode: the exporter intentionally does
+  // not emit a top-level `mode` field, so yamlToTheme returns the family
+  // canonical variant. Both variants carry the same authored tokens, which
+  // is what actually round-trips.
+  function expectedCanonicalMode(theme: Theme): "dark" | "light" {
+    const normId = theme.id.replace(/^builtin-/, "");
+    if (normId in BUILTIN_CANONICAL_MODES) {
+      return BUILTIN_CANONICAL_MODES[normId];
+    }
+    return luminance(theme.tokens.background) > 0.55 ? "light" : "dark";
+  }
+
   it.each([
     familyToTheme(BUILTIN_DRACULA, "dark"),
     familyToTheme(BUILTIN_GRUVBOX_DARK, "dark"),
@@ -121,20 +135,26 @@ describe("ThemeMaker new built-in theme round-trips", () => {
     const imported = await yamlToTheme(yaml);
 
     expect(imported.name).toBe(theme.name);
-    expect(imported.mode).toBe(theme.mode);
+    expect(imported.mode).toBe(expectedCanonicalMode(theme));
     expect(imported.tokens).toEqual(theme.tokens);
     expect(imported.code.tokens).toEqual(theme.code.tokens);
     expect(imported.code.preset).toBe(theme.code.preset);
   });
 
-  it("preserves the original mode even when canonical mode disagrees", async () => {
-    // Regression guard for BUILTIN_SOLARIZED_LIGHT: solarized canonical mode
-    // is "dark" but a single-mode light theme must round-trip as light.
+  it("imports a single-mode theme whose mode disagrees with the canonical mode via the canonical variant", async () => {
+    // Engine contract change: serializeThemeFamilyYaml intentionally does not
+    // emit the top-level `mode` field (nothing reads it back after import).
+    // BUILTIN_SOLARIZED_LIGHT therefore imports as the solarized canonical
+    // (dark) variant with its authored light tokens preserved.
     const lightTheme = familyToTheme(BUILTIN_SOLARIZED, "light");
     const yaml = await themeToYaml(lightTheme);
+    expect(yaml).not.toMatch(/^mode:/m);
+
     const imported = await yamlToTheme(yaml);
 
-    expect(imported.mode).toBe("light");
+    expect(imported.mode).toBe("dark");
+    expect(imported.tokens).toEqual(lightTheme.tokens);
+    expect(imported.code.tokens).toEqual(lightTheme.code.tokens);
   });
 });
 

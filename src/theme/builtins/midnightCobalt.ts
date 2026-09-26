@@ -5,7 +5,7 @@ export const BUILTIN_MIDNIGHT_COBALT: ThemeFamily = {
   schemaVersion: 2,
   id: "midnight-cobalt",
   name: "Midnight Cobalt",
-  aliases: ["builtin-midnight-cobalt","midnight-cobalt"],
+  aliases: ["builtin-midnight-cobalt"],
   builtIn: true,
   variants: {
     light: {
@@ -53,6 +53,7 @@ export const BUILTIN_MIDNIGHT_COBALT: ThemeFamily = {
       glow: "rgba(30, 92, 217, 0.3)",
       surfaceMuted: "#0b101c",
       borderStrong: "#4a5f85",
+      placeholder: "#7b8ca8",
       dangerForeground: "#ffffff",
       warningForeground: "#ffffff",
       successForeground: "#ffffff",

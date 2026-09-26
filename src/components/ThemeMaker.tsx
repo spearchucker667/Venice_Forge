@@ -27,7 +27,7 @@ import { isValidColorValue } from "../theme/validateColor";
 import { ConfirmModal } from "./ConfirmModal";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { ThemePreview } from "./ThemePreview";
-import { desktopFiles } from "../services/desktopBridge";
+import { desktopFiles, isElectron } from "../services/desktopBridge";
 import { useSettingsStore } from "../stores/settings-store";
 import { useConfigStore } from "../stores/config-store";
 import { toast } from "../stores/toast-store";
@@ -150,7 +150,7 @@ function getCodeTokenLabel(
   key: keyof CodeThemeTokens,
 ): string {
   return t(
-    `runtimeGenerated.componentsThememaker.codeToken.${key}`,
+    `surface.componentsThememaker.codeToken.${key}`,
     CODE_TOKEN_LABELS[key] ?? key,
   );
 }
@@ -267,10 +267,12 @@ const EMPTY_CUSTOM_THEMES: Theme[] = [];
 
 /** Backwards-compatible single-mode Theme exporter.
  *  Serializes the theme as a V2 family with the same tokens in both variants.
- *  The original `mode` is preserved via a top-level `mode` field so the
- *  single-mode intent survives a yamlToTheme round-trip. */
+ *  The exporter intentionally does NOT emit a top-level `mode` field (engine
+ *  contract: nothing reads it back after import), so a single-mode theme
+ *  whose mode differs from the family canonical mode imports back in the
+ *  canonical variant with its authored tokens preserved. */
 export async function themeToYaml(theme: Theme): Promise<string> {
-  return serializeThemeFamilyYaml(familyFromTheme(theme), { mode: theme.mode });
+  return serializeThemeFamilyYaml(familyFromTheme(theme));
 }
 
 /** Backwards-compatible single-mode Theme importer.
@@ -305,6 +307,14 @@ export function ThemeMaker() {
   const setAppearanceMode = useSettingsStore((s) => s.setAppearanceMode);
   const yamlThemes = useConfigStore((s) => s.yamlThemes);
   const setYamlThemes = useConfigStore((s) => s.setYamlThemes);
+  // THEME-P2-016: theme CRUD (save/create/duplicate/delete/import-apply)
+  // crosses the desktop IPC boundary. On the web transport those affordances
+  // are disabled with the canonical web-mode notice instead of error-toasting.
+  // Browse/preview/export remain fully functional on web.
+  const isWeb = !isElectron();
+  const webUnsupportedTitle = tRuntime(
+    "runtimeGenerated.services.desktopbridge.error.notSupportedInWebMode",
+  );
 
   // Registry maps.
   const builtInMap = useMemo(() => {
@@ -569,12 +579,27 @@ export function ThemeMaker() {
       setDraft(cloneFamily(base));
       setPreviewMode(mode);
       applyTheme(resolveTheme(base, mode));
+      // THEME-P2-006: persist the legacy Custom Theme selection so it restores
+      // after restart (restore path: resolveInitialTheme selectedThemeId
+      // 'custom' + the customTheme slot).
+      setSelectedThemeId("custom");
+      setAppearanceMode(mode);
     }
   }
 
   async function persistFamily(family: ThemeFamily, mode: ThemeMode) {
     if (builtInMap[family.id] || family.builtIn)
       throw new Error(tRuntime("themeEditor.builtInProtected"));
+    // Theme persistence crosses the desktop IPC boundary; on the web transport
+    // there is no main-process config store to write to. Fail fast with the
+    // canonical web-mode message instead of letting the IPC stub error-toast.
+    // (THEME-P2-016)
+    if (!isElectron())
+      throw new Error(
+        tRuntime(
+          "runtimeGenerated.services.desktopbridge.error.notSupportedInWebMode",
+        ),
+      );
     // Validate both authored variants before crossing the persistence boundary.
     parseThemeYaml(serializeThemeFamilyYaml(family));
     const single = singleModeThemeFromFamily(family, mode);
@@ -784,6 +809,14 @@ export function ThemeMaker() {
 
   async function handleDeleteCustom() {
     if (!isCustomSelected || busyRef.current || builtInMap[draft.id]) return;
+    if (!isElectron()) {
+      toast.error(
+        tRuntime(
+          "runtimeGenerated.services.desktopbridge.error.notSupportedInWebMode",
+        ),
+      );
+      return;
+    }
     busyRef.current = true;
     setBusy(true);
     const targetId = draft.id;
@@ -795,9 +828,17 @@ export function ThemeMaker() {
       delete nextYamlThemes[targetId];
       setYamlThemes(nextYamlThemes);
       const settings = useSettingsStore.getState();
-      const fallback =
-        allFamiliesMap[settings.selectedThemeId] || defaultCustomFamily();
-      setSelector(settings.selectedThemeId);
+      // THEME-P2-007: the store only resets the active selection when the
+      // deleted id is a member of customThemes. When the active YAML theme is
+      // deleted the selection is left untouched, so fall back to the default
+      // family deterministically instead of re-selecting a deleted theme.
+      const fallbackId =
+        settings.selectedThemeId !== targetId &&
+        Boolean(allFamiliesMap[settings.selectedThemeId])
+          ? settings.selectedThemeId
+          : "builtin-venice";
+      const fallback = allFamiliesMap[fallbackId] || defaultCustomFamily();
+      setSelector(fallbackId);
       setDraft(cloneFamily(fallback));
       setPreviewMode(getCanonicalMode(fallback));
       applyTheme(resolveTheme(fallback, getCanonicalMode(fallback)));
@@ -819,8 +860,9 @@ export function ThemeMaker() {
     if (!draftValid) return;
     try {
       const yaml = serializeThemeFamilyYaml(draft);
-      const filename = `${draft.name.toLowerCase().replace(/[^a-z0-9_-]/g, "_")}.theme.yaml`;
-      await desktopFiles.exportYaml(yaml, filename);
+      const filename = `${draft.name.toLowerCase().replace(/[^\p{L}\p{N}_-]+/gu, "_").replace(/^_+|_+$/g, "") || "theme"}.theme.yaml`;
+      const saved = await desktopFiles.exportYaml(yaml, filename);
+      if (!saved) return;
       toast.success(
         tRuntime(
           "runtimeGenerated.components.thememaker.notification.themeExportedSuccessfully",
@@ -954,14 +996,18 @@ export function ThemeMaker() {
           <div className="flex items-center gap-2">
             <button
               className="btn"
-              disabled={!draftValid}
+              disabled={!draftValid || isWeb}
+              aria-disabled={isWeb || undefined}
+              title={isWeb ? webUnsupportedTitle : undefined}
               onClick={handleCreateNewFromActive}
             >
               <Trans i18nKey="common:surface.componentsThememaker.action.createNewTheme" />
             </button>
             <button
               className="btn"
-              disabled={!draftValid}
+              disabled={!draftValid || isWeb}
+              aria-disabled={isWeb || undefined}
+              title={isWeb ? webUnsupportedTitle : undefined}
               onClick={handleDuplicateTheme}
             >
               <Trans
@@ -971,6 +1017,9 @@ export function ThemeMaker() {
             </button>
             <button
               className="btn"
+              disabled={isWeb}
+              aria-disabled={isWeb || undefined}
+              title={isWeb ? webUnsupportedTitle : undefined}
               onClick={() =>
                 guard(() => {
                   void handleImportClick();
@@ -987,6 +1036,11 @@ export function ThemeMaker() {
               <Trans i18nKey="common:surface.componentsThememaker.action.exportTheme" />
             </button>
           </div>
+          {isWeb && (
+            <p className="w-full text-xs text-text-muted" role="note">
+              {webUnsupportedTitle}
+            </p>
+          )}
         </div>
 
         {/* Theme Selector Palette */}
@@ -1117,8 +1171,10 @@ export function ThemeMaker() {
                 className="btn primary"
                 onClick={handleSave}
                 disabled={
-                  !draftValid || (!isDraftDirty && selector === draft.id)
+                  !draftValid || (!isDraftDirty && selector === draft.id) || isWeb
                 }
+                aria-disabled={isWeb || undefined}
+                title={isWeb ? webUnsupportedTitle : undefined}
               >
                 <Trans i18nKey="common:surface.componentsThememaker.action.saveTheme" />
               </button>
@@ -1132,6 +1188,9 @@ export function ThemeMaker() {
               {isCustomSelected && (
                 <button
                   className="btn danger"
+                  disabled={isWeb}
+                  aria-disabled={isWeb || undefined}
+                  title={isWeb ? webUnsupportedTitle : undefined}
                   onClick={() =>
                     setConfirmation({
                       message: tRuntime("themeEditor.deleteConfirm", {

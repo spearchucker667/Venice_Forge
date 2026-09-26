@@ -189,7 +189,7 @@ export function ImportPlanModal({
                 ? "bg-danger text-white hover:bg-danger/90 disabled:opacity-50" // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR
                 : selectedMode === "newProfile"
                 ? "bg-success text-white hover:bg-success/90 disabled:opacity-50" // THEME_TOKEN_ALLOW_INTENTIONAL_FIXED_COLOR
-                : "bg-accent text-accent-foreground hover:bg-accent-light disabled:opacity-50"
+                : "bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-50"
             }`}
           >
             {t('settings:importPlan.actions.confirm', 'Confirm Import')}

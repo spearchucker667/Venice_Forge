@@ -58,7 +58,7 @@ export const BUILTIN_MIDNIGHT_VELVET: ThemeFamily = {
       info: "#90caf9",
       inputBackground: "#1e2240",
       inputForeground: "#f5e6e8",
-      placeholder: "#908090",
+      placeholder: "#978897",
       disabledForeground: "#908090",
       buttonPrimaryBackground: "#d8b4e2",
       buttonPrimaryForeground: "#0a0e1a",

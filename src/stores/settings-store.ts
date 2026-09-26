@@ -338,15 +338,17 @@ export const useSettingsStore = create<SettingsState>()(
       setCustomTheme: (theme) => set({ customTheme: theme }),
       customThemes: [],
       setCustomThemes: (themes) => {
-        // Truncate to MAX_CUSTOM_THEMES (oldest dropped). Surface a warning
-        // so the user knows their oldest themes were dropped. (VF-AUD-20260912-N6)
+        // Truncate to MAX_CUSTOM_THEMES, keeping the NEWEST entries so the
+        // bulk-restore path matches saveCustomTheme's append-order contract.
+        // Surface a warning so the user knows their oldest themes were dropped.
+        // (VF-AUD-20260912-N6, THEME-P3-030)
         const dropped = Math.max(0, themes.length - MAX_CUSTOM_THEMES);
         if (dropped > 0) {
           console.warn(
             `[settings-store] setCustomThemes truncated ${dropped} oldest theme(s) to enforce MAX_CUSTOM_THEMES=${MAX_CUSTOM_THEMES}.`,
           );
         }
-        set({ customThemes: themes.slice(0, MAX_CUSTOM_THEMES) });
+        set({ customThemes: themes.slice(-MAX_CUSTOM_THEMES) });
       },
       saveCustomTheme: (theme) => {
         let droppedOldest = false;
@@ -378,8 +380,13 @@ export const useSettingsStore = create<SettingsState>()(
         }
       },
       deleteCustomTheme: (id) => set((state) => {
+        const isCustomMember = state.customThemes.some((t) => t.id === id);
         const filtered = state.customThemes.filter((t) => t.id !== id);
-        const wasActive = state.selectedThemeId === id || (id === 'custom' && state.selectedThemeId === 'custom');
+        // Only reset the active selection / legacy customTheme slot when the
+        // deleted id is actually a member of customThemes. Deleting an active
+        // YAML or built-in theme id must not clobber the customTheme slot;
+        // YAML-selection fallback is owned by ThemeMaker. (THEME-P2-007)
+        const wasActive = isCustomMember && (state.selectedThemeId === id || (id === 'custom' && state.selectedThemeId === 'custom'));
         const fallbackTheme = filtered.length > 0 ? filtered[0] : null;
         return {
           customThemes: filtered,

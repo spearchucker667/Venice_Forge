@@ -103,7 +103,7 @@ export function PrimaryApiRoutePanel({
   }
 
   return (
-    <div className="p-4 rounded-md border border-[var(--color-border)] bg-[var(--color-bg-secondary)] space-y-4">
+    <div className="p-4 rounded-md border border-[var(--color-border)] bg-vf-panel-bg-inset space-y-4">
       <div className="space-y-2">
         <h3 className="font-medium">
           {t('settings:providers.primaryRoute.title', 'Primary API Route')}
@@ -145,7 +145,7 @@ export function PrimaryApiRoutePanel({
             'settings:providers.primaryRoute.aria.select',
             'Select primary API route',
           )}
-          className="px-3 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-3 py-1.5 rounded border border-[var(--color-border)] bg-input-bg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {PRIMARY_API_ROUTE_IDS.map((routeId) => (
             <option key={routeId} value={routeId}>

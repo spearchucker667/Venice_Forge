@@ -54,6 +54,67 @@ describe("contrastRatio", () => {
     const ratio = contrastRatio("#e5e7eb", "#0d0d0d");
     expect(ratio).toBeGreaterThan(10);
   });
+
+  it("composites fully transparent 8-digit hex over the background", () => {
+    // #ffffff00 is invisible white: the background shows through untouched.
+    expect(contrastRatio("#ffffff00", "#ffffff")).toBeCloseTo(1.0, 5);
+    expect(contrastRatio("#ffffff00", "#111111")).toBeCloseTo(1.0, 5);
+  });
+
+  it("composites semi-transparent 8-digit hex over the background", () => {
+    // 80% white on near-black is high contrast, not the raw ~1.11 the parser
+    // would report if the alpha channel were ignored.
+    const ratio = contrastRatio("#ffffffcc", "#111111");
+    expect(ratio).toBeGreaterThan(10);
+    expect(contrastRatio("#ffffffcc", "#ffffff")).toBeCloseTo(1.0, 2);
+  });
+
+  it("supports 4-digit hex shorthand (#rgba)", () => {
+    expect(contrastRatio("#0000", "#ffffff")).toBeCloseTo(1.0, 5);
+    expect(contrastRatio("#000f", "#ffffff")).toBeCloseTo(21, 1);
+    expect(contrastRatio("#fffc", "#000000")).toBeGreaterThan(10);
+  });
+
+  it("supports modern rgb() with slash alpha", () => {
+    expect(contrastRatio("rgb(255 255 255 / 0.8)", "#111111")).toBeCloseTo(
+      contrastRatio("#ffffffcc", "#111111"),
+      5,
+    );
+    expect(contrastRatio("rgb(255 255 255 / 0)", "#ffffff")).toBeCloseTo(1.0, 5);
+    expect(contrastRatio("rgb(255 255 255 / 80%)", "#111111")).toBeCloseTo(
+      contrastRatio("rgb(255 255 255 / 0.8)", "#111111"),
+      5,
+    );
+  });
+
+  it("supports modern hsl() with slash alpha", () => {
+    expect(contrastRatio("hsl(0 0% 100% / 0.8)", "#111111")).toBeCloseTo(
+      contrastRatio("rgb(255 255 255 / 0.8)", "#111111"),
+      5,
+    );
+    expect(contrastRatio("hsl(0 0% 100% / 0)", "#ffffff")).toBeCloseTo(1.0, 5);
+  });
+
+  it("keeps comma-alpha rgba and hsl results alpha-aware", () => {
+    // rgba(...) comma alpha previously had its alpha ignored entirely.
+    expect(contrastRatio("rgba(255, 255, 255, 0.8)", "#111111")).toBeCloseTo(
+      contrastRatio("#ffffffcc", "#111111"),
+      1,
+    );
+  });
+
+  it("keeps opaque hsl() results unchanged", () => {
+    expect(contrastRatio("hsl(0, 0%, 100%)", "#000000")).toBeCloseTo(21, 1);
+    expect(contrastRatio("hsl(120, 50%, 50%)", "#000000")).toBeCloseTo(
+      contrastRatio("#40bf40", "#000000"),
+      1,
+    );
+  });
+
+  it("treats 8-digit hex foregrounds as composites in isAAPass", () => {
+    expect(isAAPass("#ffffffcc", "#111111")).toBe(true);
+    expect(isAAPass("#ffffff00", "#ffffff")).toBe(false);
+  });
 });
 
 describe("isAAPass", () => {

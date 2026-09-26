@@ -58,7 +58,7 @@ export const BUILTIN_SYNTHWAVE_HARBOR: ThemeFamily = {
       info: "#00b0ff",
       inputBackground: "#1c2440",
       inputForeground: "#e0f7fa",
-      placeholder: "#6888a0",
+      placeholder: "#7391a7",
       disabledForeground: "#6888a0",
       buttonPrimaryBackground: "#ff61a6",
       buttonPrimaryForeground: "#0a0f1e",
