@@ -440,7 +440,7 @@ export function PromptLibraryView() {
             </p>
           ) : filtered.length === 0 ? (
             <EmptyState
-              className="m-3"
+              className="m-3 font-sans"
               data-testid="prompt-library-empty"
               headline={
                 prompts.length === 0 ? (
@@ -585,7 +585,7 @@ export function PromptLibraryView() {
           />
         ) : (
           <EmptyState
-            className="flex-1"
+            className="flex-1 font-sans"
             data-testid="prompt-library-empty-detail"
             headline={
               hydrated && prompts.length > 0

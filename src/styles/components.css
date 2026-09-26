@@ -302,8 +302,10 @@
   padding: 3rem 1.5rem;
   max-width: var(--container-vf-comfort);
   margin: 0 auto;
+  font-family: var(--app-font-family, var(--font-sans));
 }
 .vf-empty-state__eyebrow {
+  font-family: var(--app-font-family, var(--font-sans));
   font-size: var(--text-tag);
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -312,6 +314,7 @@
   margin-bottom: 0.75rem;
 }
 .vf-empty-state__headline {
+  font-family: var(--app-font-family, var(--font-sans));
   font-size: var(--text-h1);
   line-height: 1.22;
   font-weight: 600;
@@ -320,11 +323,15 @@
   margin-bottom: 0.5rem;
 }
 .vf-empty-state__helper {
+  font-family: var(--app-font-family, var(--font-sans));
   font-size: var(--text-body);
   line-height: 1.55;
   color: var(--color-text-secondary);
   margin-bottom: 1.5rem;
   max-width: var(--container-reading);
+}
+.vf-empty-state__action {
+  font-family: var(--app-font-family, var(--font-sans));
 }
 
 /* Composer focus ring — the chat input focus state, standardized. */

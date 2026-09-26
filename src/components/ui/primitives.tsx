@@ -333,18 +333,18 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={cn('vf-empty-state', className)}
+      className={cn('vf-empty-state font-sans', className)}
       {...rest}
     >
       {illustration && (
-        <div className="vf-empty-state__illustration mb-4 opacity-90">
+        <div className="vf-empty-state__illustration mb-4 opacity-90 font-sans">
           {illustration}
         </div>
       )}
-      {eyebrow && <div className="vf-empty-state__eyebrow">{eyebrow}</div>}
-      <div className="vf-empty-state__headline">{headline}</div>
-      {helper && <p className="vf-empty-state__helper">{helper}</p>}
-      {action && <div className="vf-empty-state__action">{action}</div>}
+      {eyebrow && <div className="vf-empty-state__eyebrow font-sans">{eyebrow}</div>}
+      <div className="vf-empty-state__headline font-sans">{headline}</div>
+      {helper && <p className="vf-empty-state__helper font-sans">{helper}</p>}
+      {action && <div className="vf-empty-state__action font-sans">{action}</div>}
     </div>
   )
 }

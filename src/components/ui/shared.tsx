@@ -319,7 +319,7 @@ export function ErrorText({ children }: { children: React.ReactNode }) {
 
 export function EmptyState({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-center flex-1 text-text-muted text-[14px]">
+    <div className="flex items-center justify-center flex-1 text-text-muted text-[14px] font-sans">
       {children}
     </div>
   );

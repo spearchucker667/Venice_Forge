@@ -327,7 +327,7 @@ export function WorkflowTemplatesView() {
           >
             {filteredWorkflows.length === 0 ? (
               <EmptyState
-                className="py-6"
+                className="py-6 font-sans"
                 data-testid="workflow-list-empty"
                 headline={
                   <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.text.noWorkflowsFound" />
@@ -381,7 +381,7 @@ export function WorkflowTemplatesView() {
         {/* Detail View */}
         {!activeWorkflow || !activeVersion ? (
           <EmptyState
-            className="flex-1"
+            className="flex-1 font-sans"
             data-testid="empty-state"
             headline={
               <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.text.selectOrCreateAWorkflowToBegin" />

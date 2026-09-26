@@ -326,7 +326,7 @@ export function SceneComposerView() {
             </p>
           ) : filtered.length === 0 ? (
             <EmptyState
-              className="m-3"
+              className="m-3 font-sans"
               data-testid="scene-composer-empty"
               headline={
                 scenes.length === 0
@@ -461,7 +461,7 @@ export function SceneComposerView() {
           />
         ) : (
           <EmptyState
-            className="flex-1"
+            className="flex-1 font-sans"
             data-testid="scene-composer-empty-detail"
             headline={
               hydrated && scenes.length > 0
