@@ -94,18 +94,18 @@ describe('Canonical Payload Builders', () => {
       expect(payload.model).toBe('firered-image-edit');
     });
 
-    // Phase 6 (2026-09-26) — `/image/edit` accepts `quality` (low | medium
-    // | high) per the upstream EditImageRequest schema. The field is only
-    // surfaced for models that advertise it; the caller decides whether to
-    // pass it. We pass it through verbatim and omit it otherwise.
-    it('emits quality when provided on edit', () => {
+    // The upstream `EditImageRequest` schema does not declare `quality` and
+    // sets `additionalProperties: false`, so the builder must never emit it
+    // on `/image/edit`. (Multi-edit does support `quality`; see the
+    // Multi-Edit describe block below.)
+    it('never emits quality on /image/edit', () => {
       const payload = buildCanonicalImageEditPayload({
         model: 'gpt-image-2-edit',
         image: 'data:image/png;base64,IMG',
         prompt: 'sharpen the cat',
-        quality: 'high',
       });
-      expect(payload.quality).toBe('high');
+      const wire = payload as unknown as Record<string, unknown>;
+      expect(wire.quality).toBeUndefined();
     });
 
     it('omits quality when not provided on edit', () => {

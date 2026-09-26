@@ -166,8 +166,6 @@ export function buildCanonicalImageEditPayload(
   const resolution = cleanString(req.resolution);
   if (resolution) payload.resolution = resolution;
 
-  if (req.quality) payload.quality = req.quality;
-
   if (req.enhancePrompt !== undefined) payload.enhance_prompt = !!req.enhancePrompt;
   if (req.disablePromptOptimizationThinking !== undefined) {
     payload.disable_prompt_optimization_thinking = !!req.disablePromptOptimizationThinking;

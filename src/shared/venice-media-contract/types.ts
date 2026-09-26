@@ -87,7 +87,6 @@ export interface ImageEditLogicalRequest {
   image: string; // data URL, raw base64, or http(s) URL
   aspectRatio?: string;
   resolution?: string;
-  quality?: 'low' | 'medium' | 'high';
   outputFormat?: 'jpeg' | 'png' | 'webp';
   safeMode?: boolean;
   enhancePrompt?: boolean;
@@ -273,7 +272,6 @@ export interface EditImageWirePayload {
   model: string;
   aspect_ratio?: string;
   resolution?: string;
-  quality?: 'low' | 'medium' | 'high';
   output_format?: 'jpeg' | 'png' | 'webp';
   safe_mode?: boolean;
   enhance_prompt?: boolean;
