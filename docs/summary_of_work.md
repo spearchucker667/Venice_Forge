@@ -5,14 +5,14 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 8ee5ddd2a14691739d5bfda7c3759a06ce352b66
-application_code_sha: 8ee5ddd2a14691739d5bfda7c3759a06ce352b66
-verified_against_sha: 8ee5ddd2a14691739d5bfda7c3759a06ce352b66
+repository_head_sha: 00bc462cb0cc0c1cd6fbc3dafedf993b3e279960
+application_code_sha: 00bc462cb0cc0c1cd6fbc3dafedf993b3e279960
+verified_against_sha: 00bc462cb0cc0c1cd6fbc3dafedf993b3e279960
 verified_at:         2026-09-25 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        theme engine & system audit remediation (Waves 1 & 2); pre-existing user-owned audit files; uncommitted
+working_tree:        README video integration; uncommitted video assets (assets/Venice-Forge.mp4, assets/Venice_Forge.mp4)
 ci_status:           not checked this session; historical runs below do not cover current edits
 codeql_status:       not checked this session; historical runs below do not cover current edits
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
@@ -25,7 +25,7 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
-- **2026-09-25 Theme Engine & Theme System exhaustive audit remediation (Waves 1 & 2, uncommitted).** Completed full remediation of findings from the 2026-09-25 exhaustive theme audit and session handoff across Wave 1 (token cluster + lifecycle + engine + placeholder AA) and Wave 2 (24 legacy V1 theme conversions, documentation corrections, P3 UI/CSS polish, and test suite harmonization). All 19 P2 and 13 P3 findings remediated and verified locally across 113 Electron test suites (1,299 tests), 14 theme unit test files (787 tests), 28 contract test files (304 tests), full static/feature/release contract verifiers (104 checks), theme tokens/collisions verifiers, and full production build. Zero regressions.
+- **2026-09-25 Theme Engine & Theme System exhaustive audit remediation (Waves 1 & 2, uncommitted).** Completed full remediation of findings from the 2026-09-25 exhaustive theme audit and session handoff across Wave 1 (token cluster + lifecycle + engine + placeholder AA) and Wave 2 (24 legacy V1 theme conversions, documentation corrections, P3 UI/CSS polish, and test suite harmonization). All 19 P2 and 13 P3 findings remediated and verified locally across 113 Electron test suites (1,299 tests), 14 theme unit test files (787 tests), 28 contract test files (304 tests), full static/feature/release contract verifiers (104 checks), theme tokens/collisions verifiers, and full production build. Embedded and linked `assets/Venice-Forge.mp4` and `assets/Venice_Forge.mp4` video teasers in `README.md` intro and Showcase sections. Zero regressions.
 - **2026-09-25 Theme Engine & Theme System exhaustive audit (uncommitted report).** Audited `main` at `8ee5ddd2` per the user's agent handoff via six read-only workstreams + executable probes. Confirmed: one authoritative V2 engine; all 43 built-ins schema-valid; export→import value-stable; injection/pollution-safe; deterministic fallbacks. Confirmed 19 P2 + 13 P3 findings (0 P0/P1). Full report: `docs/audits/VENICE_FORGE_THEME_SYSTEM_EXHAUSTIVE_AUDIT_2026-09-25.md`.
 - **2026-09-25 Diagnostics connectivity correction (uncommitted).** Started from clean `main` at `dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b`, with the previous research fix committed. Diagnostics now recognizes a successful live model-catalog request instead of always warning after key configuration. Cached catalogs and failed refreshes retain the warning. The connected label reuses existing locale translations under the diagnostics namespace.
 - Theme/mesh report remains **blocked by missing reproduction evidence** in `docs/ROADMAP.md`: requested affected theme names and screens. The supplied diagnostics screenshot's API outline is the intentional selected-section indicator. Shared mesh CSS has translucent gradients, but no change to their design is justified from this screenshot alone. No manual Electron QA or live provider call was performed.

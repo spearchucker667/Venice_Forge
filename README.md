@@ -51,6 +51,12 @@
   <img src="assets/Venice_Forge_Hero.png" alt="Venice Forge - Your Local AI Workspace" width="100%" />
 </p>
 
+<p align="center">
+  <video src="assets/Venice-Forge.mp4" controls width="100%">
+    Your browser does not support the video tag. Watch the <a href="assets/Venice-Forge.mp4">Venice Forge Intro Video</a>.
+  </video>
+</p>
+
 ---
 
 > [!IMPORTANT]
@@ -95,6 +101,14 @@ Explore Venice Forge in action:
 
 - **Showcase Website**: [https://veniceforge.space.minimax.io](https://veniceforge.space.minimax.io) — showcases the features of Venice Forge.
 - **Demo Showcase**: [https://veniceforge.kimi.page/](https://veniceforge.kimi.page/) — interactive, but limited, website version of the app.
+- **Teaser Video (Extended, 20s)**: [assets/Venice-Forge.mp4](assets/Venice-Forge.mp4) — full animated teaser.
+- **Teaser Video (Quick, 10s)**: [assets/Venice_Forge.mp4](assets/Venice_Forge.mp4) — condensed teaser clip.
+
+<p align="center">
+  <video src="assets/Venice_Forge.mp4" controls width="100%">
+    Your browser does not support the video tag. Watch the <a href="assets/Venice_Forge.mp4">Venice Forge Quick Teaser</a>.
+  </video>
+</p>
 
 ---
 
