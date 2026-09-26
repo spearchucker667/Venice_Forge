@@ -5,16 +5,16 @@ This is the canonical ledger for current unfinished work only. Closed execution 
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 41c77e3ebefb040761637f49483e28a2af5162b1
-application_code_sha: 41c77e3ebefb040761637f49483e28a2af5162b1
-verified_against_sha: 41c77e3ebefb040761637f49483e28a2af5162b1
+repository_head_sha: e1f79499d5a496651cd668bc5327dc2172d0fb76
+application_code_sha: e1f79499d5a496651cd668bc5327dc2172d0fb76
+verified_against_sha: e1f79499d5a496651cd668bc5327dc2172d0fb76
 verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 npm_engine:          >=10.0.0
 branch:              main
-working_tree:        API documentation reconciliation and dedicated Image Editor implementation; uncommitted
-ci_status:           not run this documentation session; focused validation recorded in summary_of_work.md
+working_tree:        Media Studio and Image Editor save/model remediation; uncommitted
+ci_status:           focused media validation recorded in summary_of_work.md; full CI not run
 codeql_status:       not checked this session; no publication
 open_findings:       2026-09-24 audit safety-contract conflict; FRAT-REAUD-006 live provider acceptance; FRAT-REAUD-007 native-language review; P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
@@ -26,6 +26,8 @@ external_acceptance_outstanding:
 ## Current Work
 
 `IMAGE-EDITOR-DEDICATED-TAB-2026-09-26` — Dedicated tab/menu and single-image upload/edit/preview/Save/Delete flow implemented locally. Remaining advanced controls are planned: [Image Editor requirements](DEVELOPMENT/image-editor-requirements.md) cover masks, crop/reframe, model-aware aspect ratio, prompt enhancement, same-model/cross-model variations, and bounded durable staging/restart/navigation handling. LoRA was removed from scope at the user’s request. Acceptance and current integration gaps are recorded in that specification.
+
+`MEDIA-STUDIO-SAVE-2026-09-26` — Attached console evidence is addressed locally: inline data URLs no longer pass through `fetch()` on Save As; desktop catalog writes promote inline image bytes to main-owned content-addressed media before encrypting metadata; Image Editor reads the `inpaint` model catalog. Focused tests pass. Full Electron acceptance and live provider verification remain open.
 
 `API-SOURCE-RECONCILIATION-2026-09-26` — Reconcile runtime adapters against the user-selected `db3b9f4f` API source before the editor implementation. The selected source lacks `discount_to_user` (contract-drift verification fails on that assertion), omits newer endpoints, and single-edit `quality` is absent from its schema despite the current builder accepting it. The source reconciliation itself changes no API adapter behavior. The editor delivery also exposed an unchanged sync-source test expecting a temporary-path alias instead of the physical path on macOS (`scripts/sync-venice-api-docs.test.ts`, relative source case); reconcile that verifier expectation without changing the helper’s cwd semantics. Preserve separately evidenced newer functionality until contract ownership is resolved; see [source manifest](reference/VENICE_API_SOURCE_MANIFEST.md).
 

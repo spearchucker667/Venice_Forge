@@ -65,6 +65,17 @@ describe("desktopMedia.saveMediaAs", () => {
     });
   });
 
+  it("saves inline image bytes without a CSP-blocked network fetch", async () => {
+    const fetchSpy = vi.fn().mockRejectedValue(new TypeError("Blocked by CSP"));
+    vi.stubGlobal("fetch", fetchSpy);
+    saveMediaDataUrl.mockResolvedValue({ ok: true, filename: "image.png", bytes: 8 });
+    const source = "data:image/png;base64,iVBORw0KGgo=";
+    await expect(desktopMedia.saveMediaAs({ source, suggestedName: "image.png" }))
+      .resolves.toMatchObject({ status: "saved" });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(saveMediaDataUrl).toHaveBeenCalledWith({ dataUrl: source, suggestedName: "image.png" });
+  });
+
   it("refreshes an expired venice-media capability URL before fetching", async () => {
     // Regression for "Image save failed / Media source returned 403" when
     // attempting Save As on an image whose 5-minute capability token has

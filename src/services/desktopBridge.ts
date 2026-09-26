@@ -1190,9 +1190,21 @@ export const desktopMedia = {
         }
       }
 
-      const response = await fetch(fetchSource);
-      if (response.ok === false) return { status: "failed", error: `Media source returned ${response.status}.` };
-      let blob = await response.blob();
+      // Inline media is already in memory. Fetching a data URL is blocked by
+      // connect-src and can also expose the entire payload in console errors.
+      let blob: Blob;
+      if (fetchSource.startsWith("data:")) {
+        const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=\s]*)$/i.exec(fetchSource);
+        if (!match) return { status: "failed", error: "Invalid inline media source." };
+        const binary = atob(match[2]);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        blob = new Blob([bytes], { type: match[1] });
+      } else {
+        const response = await fetch(fetchSource);
+        if (response.ok === false) return { status: "failed", error: `Media source returned ${response.status}.` };
+        blob = await response.blob();
+      }
       if (blob.size === 0) return { status: "failed", error: "Media source was empty." };
       const normalizedMime = (input.mimeType || blob.type).split(";", 1)[0].trim().toLowerCase();
       if (normalizedMime && blob.type !== normalizedMime) blob = new Blob([blob], { type: normalizedMime });

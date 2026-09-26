@@ -31,7 +31,7 @@ vi.mock('../../stores/auth-store', () => ({
 
 vi.mock('../../hooks/use-models', () => ({
   useModels: (type?: string) => ({
-    data: type === 'image'
+    data: type === 'inpaint'
       ? [
         {
           id: 'flux-2-max-edit',

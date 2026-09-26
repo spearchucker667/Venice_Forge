@@ -851,3 +851,48 @@ describe('media store pure selectors', () => {
     expect(selectParent(state, 'missing')).toBeUndefined()
   })
 })
+
+
+describe('desktop image persistence', () => {
+  const persist = vi.fn();
+  beforeEach(() => {
+    mockService.__reset();
+    useMediaStore.setState({ items: [], totalCount: 0 });
+    persist.mockReset();
+    Object.defineProperty(window, 'veniceForge', { configurable: true, value: {
+      isDesktop: true, files: { persistGeneratedImage: persist },
+    } });
+  });
+  afterEach(() => { delete window.veniceForge; });
+
+  it('stores editor images as durable references before cataloging them', async () => {
+    const item = makeItem();
+    const id = 'a'.repeat(64);
+    persist.mockResolvedValue({ ok: true, media: { id, url: `venice-media://${id}`, mimeType: 'image/png', byteCount: 42, sha256: id } });
+    const saved = await useMediaStore.getState().upsert(item);
+    expect(persist).toHaveBeenCalledWith({ dataUrl: item.image });
+    expect(saved).toMatchObject({ image: `venice-media://${id}`, generatedMediaId: id, processedBytes: 42 });
+  });
+
+  it('converts legacy inline images once before repeated favorite writes', async () => {
+    const item = makeItem();
+    mockService.__seed(item);
+    useMediaStore.setState({ items: [item] });
+    const id = 'b'.repeat(64);
+    persist.mockResolvedValue({ ok: true, media: { id, url: `venice-media://${id}`, mimeType: 'image/png', byteCount: 42, sha256: id } });
+    await useMediaStore.getState().toggleFavorite(item.id);
+    await useMediaStore.getState().toggleFavorite(item.id);
+    expect(persist).toHaveBeenCalledTimes(1);
+    expect(mockService.__all()[0]).toMatchObject({ image: `venice-media://${id}`, favorite: false });
+  });
+
+  it('preserves the original record if durable persistence fails', async () => {
+    const item = makeItem();
+    mockService.__seed(item);
+    useMediaStore.setState({ items: [item] });
+    persist.mockResolvedValue({ ok: false, error: 'Disk full' });
+    await expect(useMediaStore.getState().toggleFavorite(item.id)).rejects.toThrow('Disk full');
+    expect(mockService.__all()[0]).toEqual(item);
+    expect(useMediaStore.getState().items[0]).toEqual(item);
+  });
+});

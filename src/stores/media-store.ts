@@ -3,6 +3,8 @@ import { translateRuntime } from "../i18n/runtimeTranslator";
 
 import { create } from "zustand";
 import StorageService from "../services/storageService";
+import { desktopMedia, isElectron } from "../services/desktopBridge";
+import { mediaItemSource } from "../utils/mediaItem";
 import {
   migrateAll,
   migrateGalleryImageToMediaItem,
@@ -77,6 +79,24 @@ interface MediaState {
 export interface MediaUpsertOptions {
   attachActiveProject?: boolean;
   source?: "generated" | "imported" | "legacy" | "manual" | "migration";
+}
+
+/** Move inline image bytes to main-owned storage before encrypting catalog
+ * metadata. Legacy records convert on their next mutation; failed conversion
+ * leaves the original record intact. Content-addressed writes are retry-safe. */
+async function durableImagePatch(item: MediaItem): Promise<Partial<MediaItem>> {
+  if (!isElectron() || (item.mediaType && item.mediaType !== "image")) return {};
+  const source = mediaItemSource(item);
+  if (!source?.startsWith("data:image/")) return {};
+  const result = await desktopMedia.persistGeneratedImage(source);
+  if (!result.ok || !result.media) throw new Error(result.error || "Image persistence failed.");
+  return {
+    image: result.media.url,
+    generatedMediaId: result.media.id,
+    mimeType: result.media.mimeType,
+    processedBytes: result.media.byteCount,
+    sha256: result.media.sha256,
+  };
 }
 
 export const MEDIA_PAGE_SIZE = 60;
@@ -218,7 +238,8 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     ) {
       migrated.projectId = activeProjectId;
     }
-    const saved = await StorageService.putMedia<MediaItem>(migrated);
+    const durable = await durableImagePatch(migrated);
+    const saved = await StorageService.putMedia<MediaItem>({ ...migrated, ...durable });
     set((state) => {
       const without = state.items.filter(
         (existing) => existing.id !== saved.id,
@@ -245,7 +266,8 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       parentId,
       projectId: item.projectId ?? parent.projectId,
     });
-    const saved = await StorageService.putMedia<MediaItem>(migrated);
+    const durable = await durableImagePatch(migrated);
+    const saved = await StorageService.putMedia<MediaItem>({ ...migrated, ...durable });
     // AUDIT-007: Use function-based patch so childrenIds is computed from
     // the latest existing record at write time, reducing the race window.
     try {
@@ -312,7 +334,8 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   patch: async (id, patch) => {
     const existing = get().items.find((item) => item.id === id);
     if (!existing) return null;
-    const updated = await StorageService.patchMedia<MediaItem>(id, patch);
+    const durable = await durableImagePatch({ ...existing, ...patch });
+    const updated = await StorageService.patchMedia<MediaItem>(id, { ...patch, ...durable });
     set((state) => ({
       items: enforceCacheBound(reconcileList(state.items, [updated])),
     }));

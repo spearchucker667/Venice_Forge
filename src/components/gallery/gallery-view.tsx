@@ -1347,7 +1347,7 @@ export function MediaStudioView() {
                         handleOpenDetail(it);
                       }
                     }}
-                    onToggleFavorite={(it) => void toggleFavorite(it.id)}
+                    onToggleFavorite={(it) => void toggleFavorite(it.id).catch((error) => toast.fromError(error))}
                     onSaveAs={saveMediaItemAs}
                     onVaultToggle={(it) => void toggleVault(it.id)}
                     onDelete={(it) => void handleDelete(it)}
@@ -1417,7 +1417,7 @@ export function MediaStudioView() {
           allItems={filtered}
           onClose={() => setDetailId(null)}
           onNavigate={handleNavigate}
-          onToggleFavorite={(it) => void toggleFavorite(it.id)}
+          onToggleFavorite={(it) => void toggleFavorite(it.id).catch((error) => toast.fromError(error))}
           onSaveAs={saveMediaItemAs}
           onDelete={(it) => void handleDelete(it)}
           onSelect={(it) => setDetailId(it.id)}

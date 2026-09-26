@@ -5,15 +5,15 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 41c77e3ebefb040761637f49483e28a2af5162b1
-application_code_sha: 41c77e3ebefb040761637f49483e28a2af5162b1
-verified_against_sha: 41c77e3ebefb040761637f49483e28a2af5162b1
+repository_head_sha: e1f79499d5a496651cd668bc5327dc2172d0fb76
+application_code_sha: e1f79499d5a496651cd668bc5327dc2172d0fb76
+verified_against_sha: e1f79499d5a496651cd668bc5327dc2172d0fb76
 verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        API documentation reconciliation and dedicated Image Editor implementation; uncommitted
-ci_status:           local build/lint/typecheck and focused editor checks pass; full suite has one unrelated sync-path failure; hosted checks not run
+working_tree:        Media Studio and Image Editor save/model remediation; uncommitted
+ci_status:           focused media checks, lint, typecheck, markdown links and CI contract checks pass; full suite and hosted checks not run
 codeql_status:       not checked this session; no publication
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence; HQE-ENV-001 (Node 24 vs 22.x drift); HQE-ENV-002 (npm cache EPERM); HQE-TEST-001 (src/agent + src/i18n test ratios)
 ```
@@ -24,6 +24,8 @@ external_acceptance_outstanding:
 ```
 
 ## Latest Session Summary
+
+- **2026-09-26 Media Studio and Image Editor save/model remediation.** Fixed inline data-URL Save As handling so CSP `connect-src` is not invoked for in-memory media. Image Editor now queries `/models?type=inpaint`, preserving provider-declared editing models. Desktop media upserts and metadata patches promote inline image bytes to the main-owned content-addressed store before encrypting the catalog row; failed promotion leaves the original record intact. This prevents favorite toggles from re-encrypting multi-megabyte image payloads and keeps the right-click Save As path usable. Focused media tests passed; full Electron and funded provider acceptance remain outstanding.
 
 - **2026-09-26 Approved Image Editor navigation delivery.** Added the canonical `image-editor` destination, lazy view, sidebar/command menu labels, and gallery edit routing. Reused the existing upload/model/prompt/synchronous edit flow in edit-only mode. Added Delete for unsaved previews and guarded explicit Save against duplicate clicks; successful Save clears the preview, while failed Save retains it. LoRA is removed. Advanced masks, crop/reframe, enhancement/ratio controls, variations and durable staging remain in the roadmap.
 
@@ -42,6 +44,14 @@ external_acceptance_outstanding:
 - **2026-09-26 repository-maintenance review and repository hygiene execution (uncommitted).** Conducted full review of `docs/repository-maintenance/` (`README.md`, `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`) and executed comprehensive repository hygiene workflows. Remediated gitignore rule collision where trailing lines 401–403 in `.gitignore` conflicted with lines 67–68, restoring 0 ignored tracked files in `git ls-files -c -i --exclude-standard`. Normalized POSIX naming hygiene by relocating `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` (which contained non-ASCII em-dash and spaces) to canonical `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Isolated root clutter by moving `kimi-export-session_-20260926-051728.md` into gitignored `.agent-backups/session-exports/`, and purged untracked Finder `.DS_Store` metadata. Synchronized all four maintenance documents with the 2,248 tracked file inventory and v3.1.0 metadata. Verified with `verify:contracts:static` (28/28 checks PASS), `verify:archive-clean` (PASS), `verify:repository-identity` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:markdown-links` (448/448 markdown files PASS), `verify:agent-docs` (PASS), and `verify:superdesign-init` (PASS). 100% green.
 
 ## Session History
+
+### 2026-09-26 — Media Studio and Image Editor save/model remediation
+
+- Reproduced the attached console failure: `desktopMedia.saveMediaAs()` called `fetch()` with `data:image/...` sources, which Chromium rejected under the existing CSP. Added an in-memory base64 decoder and kept network fetches for remote/custom-protocol sources.
+- Reproduced favorite-toggle jank with a synthetic 8 MB inline image: the metadata patch blocked the renderer for about 451 ms while the encrypted media row was rewritten. Added a main-owned content-addressed promotion on desktop upsert/patch so inline images become stable `venice-media://` references before catalog metadata is encrypted. Persistence failures are surfaced and leave the prior row unchanged.
+- Changed Image Editor model discovery from the text-to-image catalog to the canonical `inpaint` catalog, retaining the existing capability filter and fallback.
+- Preserved the existing context-menu implementation and fixed gallery favorite callbacks to surface persistence failures instead of creating an unhandled rejection.
+- No CSP broadening, renderer filesystem access, credential changes, commit, push, or paid provider call.
 
 ### 2026-09-26 — Approved Image Editor tab and menu
 
@@ -548,6 +558,15 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 * **EXTERNAL-ACCEPTANCE** — `P2-016`, `P3-020`, and `VF-VERIFY-005` stay open. They are not local code defects. See `docs/ROADMAP.md`.
 
 ## Validation Matrix
+
+### 2026-09-26 — Media Studio and Image Editor save/model remediation
+
+- `npx vitest run src/components/gallery src/components/image/image-tools.test.tsx src/stores/media-store.test.ts src/services/desktopBridge.media-save.test.ts src/services/storageService.test.ts src/hooks/use-models.test.tsx --no-file-parallelism` — PASS (13 files, 203 tests).
+- Additional regression run `npx vitest run src/services/desktopBridge.media-save.test.ts src/stores/media-store.test.ts src/components/image/image-tools.test.tsx --no-file-parallelism` — PASS (3 files, 88 tests).
+- `npm run typecheck` — PASS (all three declared TypeScript projects).
+- `git diff --check` — PASS.
+- Browser reproduction with isolated Chrome profile confirmed a synthetic 8 MB inline image previously caused about 451 ms renderer lag during favorite persistence. The post-fix right-click/download probe was blocked by onboarding automation timing before the menu assertion; component and bridge regressions cover Save As and favorite behavior. No page was used for a paid provider call.
+- Full `npm test`, `npm run build`, full contract CI, hosted checks, and human Electron acceptance — NOT RUN for this remediation. The previously recorded sync-source test failure and API source drift remain unchanged.
 
 ### 2026-09-26 — Approved Image Editor tab and menu
 
