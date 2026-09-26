@@ -393,7 +393,7 @@ export function SearchScrapeView() {
         signal,
         onDelta: (delta) => {
           if (runIdRef.current !== runId) return;
-          full += delta;
+          full += delta.content;
           setResearchOutput(full);
         },
       });

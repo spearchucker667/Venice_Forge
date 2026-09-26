@@ -67,7 +67,7 @@ export function ScrapeTab({
       <div className="flex gap-2">
         <button
           className="px-4 py-2 rounded-md text-[13px] font-medium bg-accent text-accent-fg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer shadow-[0_0_8px_var(--color-vf-accent-glow)]"
-          onClick={runScrape}
+          onClick={() => runScrape()}
           disabled={loading === "scrape" || !url.trim()}
         >
           {loading === "scrape"

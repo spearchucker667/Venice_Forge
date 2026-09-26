@@ -5,16 +5,16 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 86b5580503e9b36746bac7a1b63d9602e49baea1
-application_code_sha: 86b5580503e9b36746bac7a1b63d9602e49baea1
-verified_against_sha: 86b5580503e9b36746bac7a1b63d9602e49baea1
+repository_head_sha: 1fb4849d4da6d35350cb6a5fbbdf2607fb0599cd
+application_code_sha: 1fb4849d4da6d35350cb6a5fbbdf2607fb0599cd
+verified_against_sha: 1fb4849d4da6d35350cb6a5fbbdf2607fb0599cd
 verified_at:         2026-09-25 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        uncommitted FRAT-REAUD-001 through FRAT-REAUD-005 remediation; no publication
-ci_status:           baseline 86b55805 success (run 36204271635 — 11/11 jobs); current edits not hosted
-codeql_status:       baseline 86b55805 success (run 36204271633 — 2/2 jobs); current edits not hosted
+working_tree:        uncommitted research rendering and scrape-click fixes; clean at session start
+ci_status:           not checked this session; historical runs below do not cover current edits
+codeql_status:       not checked this session; historical runs below do not cover current edits
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
 external_acceptance_outstanding:
   - headed accessibility/visual QA with a human signature (P2-016)
@@ -24,10 +24,16 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
-- **2026-09-25 Fraterna routing re-audit remediation (uncommitted).** Baseline `main` was `86b5580503e9b36746bac7a1b63d9602e49baea1` with a clean worktree. Current edits address FRAT-REAUD-001 through FRAT-REAUD-005: schema-aware provider image safety (`safe_mode` on native image routes; `moderation` on `/images/generations`), one bounded `Retry-After` retry followed by configured fallback on retryable failure, route-neutral shared errors, server-authoritative web route hydration before React mounts, and this ledger correction. Local Family Safe Mode remains separate. No commit or push is authorized in this session; hosted CI/CodeQL run IDs below cover the baseline SHA only.
-- **External acceptance remains open.** FRAT-REAUD-006 needs a funded, consorzio-enrolled Fraterna key and safe live smoke evidence. FRAT-REAUD-007 needs qualified native-language review of non-English route/Inspector copy. These are tracked in `docs/ROADMAP.md`.
+- **2026-09-25 Research output and scrape-click correction (uncommitted).** Started from clean `main` at `1fb4849d4da6d35350cb6a5fbbdf2607fb0599cd`. Fixed two confirmed UI defects: synthesis chunks were coerced to `[object Object]`, and the Scrape button forwarded a mouse event into an optional URL parameter. Regression tests use synthetic content and exercise the real child components. Prior Fraterna remediation is present in the committed baseline; no commit or push was performed in this session.
+- Existing external acceptance remains tracked in `docs/ROADMAP.md`. No live provider requests or manual Electron QA were performed for this fix.
 
 ## Session History
+
+### 2026-09-25 — Research output and scrape-click correction
+
+- **Confirmed defect:** `src/components/search/SearchScrapeView.tsx`, `runAiResearch` appended the structured `{ content, reasoning }` callback argument directly to a string. It now appends `delta.content`, preserving citations and keeping reasoning out of answer text. Static callback-contract inspection and a failing component regression reproduced the defect.
+- **Confirmed defect:** `src/components/search/ScrapeTab.tsx`, the Scrape button passed React's click event to `runScrape(explicitUrl?)`, producing the reported `.trim is not a function` rejection before any request. The button now invokes its no-argument callback explicitly. The regression reproduced the exact exception; after correction, entered URL trimming and clicked-result URL selection both pass.
+- Inspected only diagnostic response shapes/statuses from the supplied traffic export. Search/scrape responses contained string fields and successful statuses; raw user/provider content and credentials were not copied into fixtures or documentation. Updated `src/components/search/SearchScrapeView.test.tsx` to exercise real Scrape and AI Research components with neutral synthetic fixtures.
 
 ### 2026-09-25 — Fraterna routing re-audit remediation
 
@@ -216,7 +222,9 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 
 ## Open TODO Ledger
 
-* **FRAT-REAUD-2026-09-25** — FRAT-REAUD-001 through FRAT-REAUD-005 have local uncommitted remediations. Hosted acceptance remains pending publication authority and a new exact SHA. FRAT-REAUD-006 (funded live Fraterna four-endpoint smoke) and FRAT-REAUD-007 (qualified native-language review) remain open in `docs/ROADMAP.md`.
+* **RESEARCH-RENDERING-2026-09-25** — Both reported UI defects corrected locally with failing-then-passing regressions. Manual Electron replay was not performed; existing project-wide open work stays in `docs/ROADMAP.md`.
+
+* **FRAT-REAUD-2026-09-25** — FRAT-REAUD-001 through FRAT-REAUD-005 are present in the committed `1fb4849d` baseline. Hosted status for that SHA was not checked during the research UI session. FRAT-REAUD-006 (funded live Fraterna four-endpoint smoke) and FRAT-REAUD-007 (qualified native-language review) remain open in `docs/ROADMAP.md`.
 
 * **FRATERNA-ROUTING-2026-09-25 (historical, superseded)** — Initial implementation evidence is preserved in Session History. Current status is the FRAT-REAUD entry above and `docs/ROADMAP.md`.
 
@@ -233,6 +241,16 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 * **EXTERNAL-ACCEPTANCE** — `P2-016`, `P3-020`, and `VF-VERIFY-005` stay open. They are not local code defects. See `docs/ROADMAP.md`.
 
 ## Validation Matrix
+
+### 2026-09-25 — Research output and scrape-click correction
+
+- Baseline: clean `main` at `1fb4849d4da6d35350cb6a5fbbdf2607fb0599cd`; Node `v22.15.0`, npm `10.9.2`, package `3.1.0`.
+- Red regression: `npx vitest run src/components/search/SearchScrapeView.test.tsx --no-file-parallelism` — expected 2 failures, 3 passes; reproduced the scrape `.trim` rejection and missing synthesized answer.
+- `npx vitest run src/components/search src/research/agent/researchSynthesis.test.ts --no-file-parallelism` — PASS (18 tests across 4 files).
+- `npm run typecheck` — PASS across all three TypeScript projects. The first run caught an unsupported `exact` option in the new test selector; removed it and reran typechecking and all 18 focused tests successfully.
+- `npm run verify:agent-docs`, `npm run verify:markdown-links`, and `git diff --check` — PASS.
+- Focused ESLint on the three changed source/test files — PASS. `npm run verify:superdesign-init` — PASS; tracked source fingerprint unchanged.
+- Not run: full CI, full repository tests, paid/live provider replay, manual Electron QA, hosted CI/CodeQL. No publication performed.
 
 ### 2026-09-25 — Fraterna routing re-audit remediation (uncommitted)
 

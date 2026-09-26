@@ -4,6 +4,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SearchScrapeView } from './SearchScrapeView';
 import { veniceFetch } from '../../services/veniceClient';
+import { runResearchJob } from '../../research/agent/researchRunner';
+import { synthesizeResearch } from '../../research/agent/researchSynthesis';
+import { createEvidenceStore } from '../../research/agent/evidenceStore';
 
 vi.mock('../../services/veniceClient', () => ({
   MAX_RAW_UPLOAD_BYTES: 10 * 1024 * 1024,
@@ -37,16 +40,11 @@ vi.mock('./ResearchWorkspacePanel', () => ({
   ResearchWorkspacePanel: () => <div data-testid="workspace-panel" />,
 }));
 
-vi.mock('./ScrapeTab', () => ({
-  ScrapeTab: () => <div data-testid="scrape-tab" />,
-}));
+vi.mock('../../research/agent/researchRunner', () => ({ runResearchJob: vi.fn() }));
+vi.mock('../../research/agent/researchSynthesis', () => ({ synthesizeResearch: vi.fn() }));
 
 vi.mock('./TextParserTab', () => ({
   TextParserTab: () => null,
-}));
-
-vi.mock('./AiResearchTab', () => ({
-  AiResearchTab: () => null,
 }));
 
 vi.mock('./ProfileDiscoveryTab', () => ({
@@ -104,6 +102,47 @@ describe('SearchScrapeView', () => {
         }),
       ),
     );
+  });
+
+  it('scrapes the entered URL when the Scrape button is clicked', async () => {
+    render(<SearchScrapeView />);
+    fireEvent.click(screen.getByRole('button', { name: 'Search / Scrape' }));
+    fireEvent.change(screen.getByPlaceholderText('https://example.com'), {
+      target: { value: '  https://example.com/gardens  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scrape' }));
+
+    await waitFor(() => expect(mockVeniceFetch).toHaveBeenCalledWith(
+      '/augment/scrape',
+      expect.objectContaining({ body: { url: 'https://example.com/gardens' } }),
+    ));
+    expect(await screen.findByDisplayValue('clicked result text')).toBeInTheDocument();
+  });
+
+  it('renders streamed answer content without coercing chunks or exposing reasoning', async () => {
+    vi.mocked(runResearchJob).mockResolvedValue({
+      ok: true,
+      evidence: { searchResults: [], scrapes: [], citations: ['https://example.com/gardens'] },
+      store: createEvidenceStore(),
+      queriesUsed: ['urban gardens'],
+      pagesScraped: 0,
+    });
+    vi.mocked(synthesizeResearch).mockImplementation(async ({ onDelta }) => {
+      onDelta?.({ content: '', reasoning: 'Internal analysis' });
+      onDelta?.({ content: 'Urban gardens ', reasoning: '' });
+      onDelta?.({ content: 'support biodiversity.', reasoning: '' });
+      return 'Urban gardens support biodiversity.';
+    });
+    render(<SearchScrapeView />);
+    fireEvent.click(screen.getByRole('button', { name: 'AI Research' }));
+    fireEvent.change(screen.getByPlaceholderText(/What are the latest changes/i), {
+      target: { value: 'urban gardens' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Start Research' }));
+
+    expect(await screen.findByDisplayValue('Urban gardens support biodiversity.')).toBeInTheDocument();
+    expect(screen.getByText('https://example.com/gardens')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue(/\[object Object\]|Internal analysis/)).not.toBeInTheDocument();
   });
 
   // VERIFY-143: every long-running Research operation exposes the shared
