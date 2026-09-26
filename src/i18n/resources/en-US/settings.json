@@ -77,15 +77,15 @@
     "status": {
       "enabled": "When enabled, matching requests are blocked locally before the provider is called.",
       "disabled": "Local Family Safe Mode screening is off; Venice API provider Safe Mode is controlled separately below.",
-      "localOffProviderOn": "Local family filter is OFF, but Venice API provider-side Safe Mode is still ON. Outbound requests include safe_mode: true.",
-      "bothOff": "Both filters are OFF and outbound requests include safe_mode: false. Local screening is skipped.",
+      "localOffProviderOn": "Local family filter is OFF, but Venice API provider-side Safe Mode is still ON. Image requests use the supported provider safety field.",
+      "bothOff": "Both filters are OFF. Image requests use the supported provider safety field to disable provider filtering; local screening is skipped.",
       "filteredLocally": "Matching requests are filtered locally before reaching the provider."
     },
     "effectiveStatus": "Effective Status: Local filter: {{local}} | Venice provider filtering: {{provider}}",
     "setMasterPassword": "Set Master Password to lock Family Safe Mode",
     "masterPasswordEnabled": "Master Password is enabled",
     "veniceApiSafeModeTitle": "Venice API Safe Mode",
-    "veniceApiSafeModeDescription": "Controls the provider-side safemode parameter sent to Venice. This is separate from Family Safe Mode.",
+    "veniceApiSafeModeDescription": "Controls provider-side filtering for supported Venice image routes using safe_mode or moderation. This is separate from Family Safe Mode.",
     "errors": {
       "cannotDisableTitle": "Cannot disable Provider Safe Mode",
       "cannotDisableDetail": "Family Safe Mode must be turned off first."

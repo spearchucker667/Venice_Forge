@@ -46,7 +46,7 @@ import {
   publishInspectorCompletion,
 } from "./inspectorTelemetry";
 import type { VeniceIpcResponse } from "./veniceClient";
-import { applyVeniceApiSafeMode } from "../../src/shared/veniceSafeMode";
+import { applyVeniceProviderSafetyPreference } from "../../src/shared/veniceSafeMode";
 import { composeTrustedRequest } from "../agent/runtime/trusted-agent-request";
 
 /** Shape of a Family Safe Mode block response. Matches the 451 body
@@ -187,7 +187,7 @@ function withFamilySafeProviderOverride(rawRequest: unknown, endpoint: string): 
   if (!isRecord(body)) return rawRequest;
   return {
     ...rawRequest,
-    body: applyVeniceApiSafeMode(endpoint, body, veniceApiSafeMode),
+    body: applyVeniceProviderSafetyPreference(endpoint, body, veniceApiSafeMode),
   };
 }
 

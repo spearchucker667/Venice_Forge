@@ -527,6 +527,24 @@ describe("server.ts health endpoint", () => {
   });
 });
 
+describe("server.ts runtime route", () => {
+  it("returns the server-selected route without accepting a browser override", async () => {
+    const previous = process.env.VENICE_FORGE_PRIMARY_API_ROUTE;
+    try {
+      process.env.VENICE_FORGE_PRIMARY_API_ROUTE = "fraterna";
+      const app = createServerApp();
+      const read = await request(app).get("/api/runtime-config");
+      expect(read.status).toBe(200);
+      expect(read.body).toEqual({ primaryApiRoute: "fraterna" });
+      expect((await request(app).post("/api/runtime-config").send({ primaryApiRoute: "venice" })).status).not.toBe(200);
+      expect((await request(app).get("/api/runtime-config")).body.primaryApiRoute).toBe("fraterna");
+    } finally {
+      if (previous === undefined) delete process.env.VENICE_FORGE_PRIMARY_API_ROUTE;
+      else process.env.VENICE_FORGE_PRIMARY_API_ROUTE = previous;
+    }
+  });
+});
+
 describe("server.ts development session key", () => {
   it("stores and clears a Venice key only in the server process", async () => {
     const app = createServerApp();

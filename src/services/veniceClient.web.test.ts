@@ -26,6 +26,23 @@ describe("veniceClient web regressions", () => {
     globalThis.fetch = originalFetch;
   });
 
+  it.each([
+    [true, "low", "auto"],
+    [false, "auto", "low"],
+  ])("sends the provider safety preference through the web image route", async (enabled, callerValue, expected) => {
+    useSettingsStore.setState({ veniceApiSafeMode: enabled });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ data: [] }), {
+      status: 200, headers: { "content-type": "application/json" },
+    }));
+    globalThis.fetch = fetchMock;
+    await veniceFetch("/images/generations", {
+      method: "POST", body: { model: "image-model", prompt: "shapes", moderation: callerValue },
+    });
+    const [, options] = fetchMock.mock.calls[0];
+    expect(JSON.parse(String(options?.body))).toMatchObject({ moderation: expected });
+    expect(JSON.parse(String(options?.body))).not.toHaveProperty("safe_mode");
+  });
+
   it("does not retry POST /image/generate on 503 (VCS-P2-006)", async () => {
     const dispatch = vi.fn() as unknown as AppDispatch;
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(

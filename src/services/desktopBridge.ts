@@ -43,6 +43,7 @@ import {
 } from "./inspectorTelemetry";
 import { useInspectorStore } from "../stores/inspector-store";
 import { useSettingsStore } from "../stores/settings-store";
+import { isPrimaryApiRouteId } from "../shared/primaryApiRoute";
 import { getActiveProfileId } from "./activeProfile";
 
 /**
@@ -451,6 +452,13 @@ export const desktopProviderSettings = {
       });
       return settings;
     }
+    const response = await fetch("/api/runtime-config", { cache: "no-store" });
+    if (!response.ok) throw new Error("Unable to read server primary API route");
+    const runtimeConfig: unknown = await response.json();
+    const route = runtimeConfig && typeof runtimeConfig === "object"
+      ? (runtimeConfig as Record<string, unknown>).primaryApiRoute : undefined;
+    if (!isPrimaryApiRouteId(route)) throw new Error("Invalid server primary API route");
+    useSettingsStore.getState().setPrimaryApiRoute(route);
     const state = useSettingsStore.getState();
     return {
       enabledProviders: state.enabledProviders,
@@ -490,6 +498,9 @@ export const desktopProviderSettings = {
         await this.get();
       }
       return result;
+    }
+    if (input.primaryApiRoute !== undefined) {
+      return { ok: false, error: "Web primary API route is server-controlled" };
     }
     return { ok: true, settings: await this.get() };
   },

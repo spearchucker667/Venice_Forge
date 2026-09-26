@@ -220,6 +220,42 @@ describe("performVeniceRequest multi-provider adapter integration", () => {
     expect(JSON.parse(requests[1].body).model).toBe("claude-3-5-sonnet-latest");
   });
 
+  it.each([429, 503, 401])("uses the configured fallback only when the same-provider retry ends with retryable %i", async (retryStatus) => {
+    vi.mocked(getProviderSettings).mockReturnValue({
+      enabledProviders: { anthropic: true },
+      autoFallbackEnabled: true,
+      fallbackOrdering: ["anthropic"],
+      nativeFallbackModels: { anthropic: "claude-3-5-sonnet-latest" },
+      primaryApiRoute: "fraterna",
+    });
+    const hosts: string[] = [];
+    (https.request as unknown as HttpsRequestMock).mockImplementation((options, callback) => {
+      hosts.push(String((options as Record<string, unknown>).hostname));
+      const req = new EventEmitter() as MockRequest;
+      req.write = vi.fn();
+      req.end = vi.fn(() => {
+        const res = new EventEmitter() as MockResponse;
+        res.statusCode = hosts.length === 1 ? 429 : hosts.length === 2 ? retryStatus : 200;
+        res.statusMessage = "test";
+        res.headers = { "content-type": "application/json", ...(hosts.length === 1 ? { "retry-after": "0" } : {}) };
+        callback(res);
+        res.emit("data", Buffer.from("{}"));
+        res.emit("end");
+      });
+      req.destroy = vi.fn();
+      return req;
+    });
+    const result = await performVeniceRequest({
+      endpoint: "/chat/completions", method: "POST", profileId: "default",
+      body: { model: "venice-model-id", messages: [{ role: "user", content: "Hi" }] },
+    });
+    expect(hosts).toEqual(retryStatus === 401
+      ? ["fraterna.ai", "fraterna.ai"]
+      : ["fraterna.ai", "fraterna.ai", "api.anthropic.com"]);
+    expect(result.status).toBe(retryStatus === 401 ? 401 : 200);
+    if (retryStatus !== 401) expect(result.effectiveUpstream).toBe("anthropic");
+  });
+
   it("routes /images/generations through the selected Fraterna route with its documented payload", async () => {
     vi.mocked(getProviderSettings).mockReturnValue({
       enabledProviders: { anthropic: true, together: true },

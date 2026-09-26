@@ -25,7 +25,7 @@ import { serializeFormData, dedupeKey } from "./serialization";
 import { calculateBackoff, computeRateLimitWait, deleteInFlight, getInFlight, hasInFlight, isRetryableStatusCode, resolveRetryEnabled, resolveTimeoutMs, setInFlight } from "./retry";
 import { getSafetyDecisionForLog } from "./safety";
 import type { SafetyGuardDecision } from "../../shared/safety";
-import { applyVeniceApiSafeMode, endpointSupportsSafeMode } from "../../shared/veniceSafeMode";
+import { applyVeniceProviderSafetyPreference, endpointSupportsSafeMode } from "../../shared/veniceSafeMode";
 
 /**
  * Builds a minimal `SafetyGuardDecision` for fail-closed response-blocking
@@ -263,7 +263,7 @@ async function veniceFetchDesktop(
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") throw err;
       const errorObj = err as VeniceApiError;
-      const normalized = errorObj.message || "Desktop Venice transport failed.";
+      const normalized = errorObj.message || "Desktop API transport failed.";
       lastError = new Error(normalized) as VeniceApiError;
       lastError.status = errorObj.status ?? response?.status ?? 0;
       lastError.selectedPrimaryRoute = errorObj?.selectedPrimaryRoute ?? response?.selectedPrimaryRoute;
@@ -355,8 +355,8 @@ async function _veniceFetch(
   // Compute the effective body up-front so we can pass it through fetch once.
   const isFormDataBody = isFormData && body instanceof FormData;
   let effectiveBody: unknown = body;
-  if (!isFormDataBody && typeof body === "object" && body !== null && endpointSupportsSafeMode(endpoint)) {
-    effectiveBody = applyVeniceApiSafeMode(endpoint, body as Record<string, unknown>, veniceApiSafeMode);
+  if (!isFormDataBody && typeof body === "object" && body !== null) {
+    effectiveBody = applyVeniceProviderSafetyPreference(endpoint, body as Record<string, unknown>, veniceApiSafeMode);
   }
   const startedAt = nowIso();
   const url = `${PROXY_BASE_PATH}${endpoint}`;
@@ -755,7 +755,7 @@ export async function veniceBlob(path: string, body: object, init: { signal?: Ab
   if (!isElectron()) {
     enforceLegacyWebGuard(path, "POST", body);
     const veniceApiSafeMode = useSettingsStore.getState().veniceApiSafeMode;
-    const effectiveBody = applyVeniceApiSafeMode(path, body as Record<string, unknown>, veniceApiSafeMode);
+    const effectiveBody = applyVeniceProviderSafetyPreference(path, body as Record<string, unknown>, veniceApiSafeMode);
     const url = `${PROXY_BASE_PATH}${path.replace("/api/v1", "")}`;
     const fetchResponse = await fetch(url, {
       method: "POST",

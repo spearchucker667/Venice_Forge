@@ -9,6 +9,7 @@ import {
   desktopJina,
   desktopJinaApiKey,
   desktopVenice,
+  desktopProviderSettings,
   fetchWithTimeout,
   isElectron,
 } from "./desktopBridge";
@@ -19,6 +20,7 @@ vi.mock("./veniceClient", () => ({
 
 import { veniceFetch } from "./veniceClient";
 import { ACTIVE_PROFILE_STORAGE_KEY } from "./activeProfile";
+import { useSettingsStore } from "../stores/settings-store";
 
 // Polyfill localStorage for Node 26+ / jsdom environments where it may be
 // unavailable by default (see safe-storage.test.ts and modelService.test.ts).
@@ -79,6 +81,18 @@ beforeEach(async () => {
 
 /** Tests for desktopBridge fallback behavior in web (non-Electron) mode. */
 describe("desktopBridge web fallback", () => {
+  it("hydrates the web route from server authority and rejects browser route writes", async () => {
+    useSettingsStore.setState({ primaryApiRoute: "venice" });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ primaryApiRoute: "fraterna" }), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    })));
+    const settings = await desktopProviderSettings.get();
+    expect(fetch).toHaveBeenCalledWith("/api/runtime-config", expect.any(Object));
+    expect(settings.primaryApiRoute).toBe("fraterna");
+    expect(useSettingsStore.getState().primaryApiRoute).toBe("fraterna");
+    expect(await desktopProviderSettings.update({ primaryApiRoute: "venice" })).toMatchObject({ ok: false });
+    expect(useSettingsStore.getState().primaryApiRoute).toBe("fraterna");
+  });
   it("keeps Electron Venice key writes on the secure IPC bridge", async () => {
     const set = vi.fn(async () => ({ ok: true }));
     vi.stubGlobal("window", {

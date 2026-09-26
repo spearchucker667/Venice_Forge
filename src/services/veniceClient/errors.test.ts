@@ -26,6 +26,11 @@ describe('VeniceClient Errors', () => {
       expect(normalizeError(418, 'I am a teapot')).toBe('I am a teapot');
       expect(normalizeError(null, '')).toBe('Request failed');
     });
+
+    it('does not identify a retryable upstream as Venice when the route may be Fraterna or a fallback', () => {
+      expect(normalizeError(500, 'failure')).toBe('500 upstream/server retryable error: failure');
+      expect(normalizeError(503, 'failure')).toBe('503 upstream/server retryable error: failure');
+    });
   });
 
   describe('readDesktopErrorBody', () => {
@@ -36,7 +41,7 @@ describe('VeniceClient Errors', () => {
     });
 
     it('should handle non-object inputs', () => {
-      expect(readDesktopErrorBody(null)).toBe('Unknown Venice API error');
+      expect(readDesktopErrorBody(null)).toBe('Unknown upstream API error');
       expect(readDesktopErrorBody('String error')).toBe('String error');
     });
 
@@ -65,7 +70,7 @@ describe('VeniceClient Errors', () => {
       expect(readWebErrorBody({ error: 'Direct error' }, 'Raw text', 'Status')).toBe('Direct error');
       expect(readWebErrorBody(null, 'Raw text', 'Status')).toBe('Raw text');
       expect(readWebErrorBody(null, '', 'Status')).toBe('Status');
-      expect(readWebErrorBody(null, '', '')).toBe('Unknown Venice API error');
+      expect(readWebErrorBody(null, '', '')).toBe('Unknown upstream API error');
     });
     it('should handle validation details', () => {
       expect(readWebErrorBody({ details: { field2: { _errors: ['Web field validation'] } } }, '', '')).toBe('field2: Web field validation');

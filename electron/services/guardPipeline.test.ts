@@ -69,6 +69,7 @@ vi.mock("../../src/shared/veniceSafeMode", async () => {
   );
   return {
     applyVeniceApiSafeMode: actual.applyVeniceApiSafeMode,
+    applyVeniceProviderSafetyPreference: actual.applyVeniceProviderSafetyPreference,
   };
 });
 
@@ -232,6 +233,25 @@ describe("Venice API Safe Mode independence from Family Safe Mode", () => {
       body?: Record<string, unknown>;
     };
     expect(dispatched.body?.safe_mode).toBe(true);
+  });
+
+  it.each([
+    [false, true, "auto"],
+    [true, false, "low"],
+  ])("uses the provider setting for OpenAI image moderation regardless of local Family Safe Mode", async (familyEnabled, providerEnabled, expected) => {
+    await setRuntimeSettings(familyEnabled, providerEnabled);
+    await allowGuard();
+    vi.mocked((await import("./veniceClient")).performVeniceRequest as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true, status: 200, body: {}, contentType: "application/json",
+    });
+    await performGuardedVeniceRequest({
+      endpoint: "/images/generations", method: "POST",
+      body: { model: "image-model", prompt: "shapes", moderation: expected === "auto" ? "low" : "auto" },
+    });
+    const performVeniceRequest = (await import("./veniceClient")).performVeniceRequest;
+    const dispatched = vi.mocked(performVeniceRequest as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as { body: Record<string, unknown> };
+    expect(dispatched.body.moderation).toBe(expected);
+    expect(dispatched.body).not.toHaveProperty("safe_mode");
   });
 
   it("applies safe_mode to all supported image endpoints independently of Family Safe Mode", async () => {

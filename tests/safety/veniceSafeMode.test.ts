@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   VENICE_API_SAFE_MODE_MATRIX,
+  VENICE_PROVIDER_SAFETY_MATRIX,
   applyVeniceApiSafeMode,
+  applyVeniceProviderSafetyPreference,
   endpointSupportsSafeMode,
 } from "../../src/shared/veniceSafeMode";
 
@@ -33,6 +35,31 @@ describe("VERIFY-018 safe_mode endpoint matrix", () => {
     expect(
       applyVeniceApiSafeMode("/images/generations", { model: "gpt-image-1", prompt: "minimal shapes" }, true),
     ).not.toHaveProperty("safe_mode");
+  });
+
+  it.each([
+    [true, "low", "auto"],
+    [false, "auto", "low"],
+    [true, undefined, "auto"],
+    [false, undefined, "low"],
+  ])("makes the provider setting authoritative for OpenAI image moderation (%s, %s)", (enabled, callerValue, expected) => {
+    const input = { model: "image-model", ...(callerValue ? { moderation: callerValue } : {}) };
+    const result = applyVeniceProviderSafetyPreference("/images/generations", input, enabled);
+    expect(result).toMatchObject({ moderation: expected });
+    expect(result).not.toHaveProperty("safe_mode");
+    expect(input).toEqual({ model: "image-model", ...(callerValue ? { moderation: callerValue } : {}) });
+  });
+
+  it("removes the unsupported safe_mode field from OpenAI-compatible image requests", () => {
+    expect(applyVeniceProviderSafetyPreference("/images/generations", {
+      model: "image-model", safe_mode: false, moderation: "low",
+    }, true)).toEqual({ model: "image-model", moderation: "auto" });
+  });
+
+  it("records every provider-safety image endpoint in the schema matrix", () => {
+    expect(VENICE_PROVIDER_SAFETY_MATRIX.map((row) => row.endpoint)).toEqual([
+      "/image/generate", "/image/edit", "/image/multi-edit", "/images/generations",
+    ]);
   });
 
   it("omits safe_mode for endpoints whose request schemas do not declare it", () => {
@@ -84,6 +111,7 @@ describe("VERIFY-018 safe_mode endpoint matrix", () => {
       "/image/generate",
       "/image/edit",
       "/image/multi-edit",
+      "/images/generations",
       "/image/upscale",
       "/audio/speech",
       "/audio/transcriptions",

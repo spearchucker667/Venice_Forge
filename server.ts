@@ -324,6 +324,11 @@ export function createServerApp() {
     res.status(200).json({ status: "ok", version: appVersion });
   });
 
+  app.get("/api/runtime-config", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.status(200).json({ primaryApiRoute: resolveServerPrimaryApiRoute() });
+  });
+
   // UIAUTH-001: browser development may use a process-memory-only Venice key.
   // Production never exposes this endpoint, and general proxy requests still
   // discard renderer-controlled Authorization headers below.

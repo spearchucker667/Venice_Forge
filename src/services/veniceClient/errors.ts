@@ -163,8 +163,8 @@ export function normalizeError(status: number | null, rawMessage: string) {
     413: "413 payload too large",
     415: "415 wrong content type",
     429: "429 rate limit",
-    500: "500 Venice/server retryable error",
-    503: "503 Venice/server retryable error",
+    500: "500 upstream/server retryable error",
+    503: "503 upstream/server retryable error",
   };
   return status && map[status] ? `${map[status]}: ${base}` : base;
 }
@@ -175,7 +175,7 @@ export function normalizeError(status: number | null, rawMessage: string) {
  * @returns A human-readable error string.
  */
 export function readDesktopErrorBody(body: unknown): string {
-  if (!body || typeof body !== "object") return String(body || "Unknown Venice API error");
+  if (!body || typeof body !== "object") return String(body || "Unknown upstream API error");
   const record = body as Record<string, unknown>;
   const errorObj = record.error as Record<string, unknown> | undefined;
   const top = errorObj?.message || record.error || record.message;
@@ -212,7 +212,7 @@ export function readDesktopErrorBody(body: unknown): string {
     }
     return "Request validation failed";
   }
-  return String(record.detail || record.text || "Unknown Venice API error");
+  return String(record.detail || record.text || "Unknown upstream API error");
 }
 
 /**
@@ -223,7 +223,7 @@ export function readDesktopErrorBody(body: unknown): string {
  * @returns A human-readable error string.
  */
 export function readWebErrorBody(parsed: unknown, text: string, statusText: string): string {
-  if (!parsed || typeof parsed !== "object") return String(parsed || text || statusText || "Unknown Venice API error");
+  if (!parsed || typeof parsed !== "object") return String(parsed || text || statusText || "Unknown upstream API error");
   const record = parsed as Record<string, unknown>;
   const errorObj = record.error as Record<string, unknown> | undefined;
   const top = errorObj?.message || record.error || record.message;
@@ -260,7 +260,7 @@ export function readWebErrorBody(parsed: unknown, text: string, statusText: stri
     }
     return "Request validation failed";
   }
-  return String(record.detail || text || statusText || "Unknown Venice API error");
+  return String(record.detail || text || statusText || "Unknown upstream API error");
 }
 
 /**

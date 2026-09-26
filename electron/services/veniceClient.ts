@@ -447,11 +447,11 @@ export async function performVeniceRequest(
               const retried = await performSingleVeniceRequest(currentRequest, wrappedOptions, providerSelection, abortController.signal);
               lastResponse = retried;
               if (retried.ok) return retried;
-              // Non-OK retry: return the latest response so the caller can
-              // inspect the post-retry status without further fallback
-              // exhausting the user's patience.
               logError(`Provider ${providerId} retry after Retry-After returned ${retried.status}.`);
-              return retried;
+              if (hasStartedStreaming || ![408, 429, 500, 502, 503, 504].includes(retried.status)) {
+                return retried;
+              }
+              continue;
             } catch (innerErr) {
               if (isAbortError(innerErr)) {
                 throw new Error("Request aborted");

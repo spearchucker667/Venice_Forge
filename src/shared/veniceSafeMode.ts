@@ -1,4 +1,4 @@
-/** @fileoverview Centralised `safe_mode` (Venice API Safe Mode) helper.
+/** @fileoverview Centralised Venice provider-side image safety preference.
  *
  *  `safe_mode` is a PROVIDER-side boolean that Venice passes to its
  *  upstream model router. It is COMPLETELY SEPARATE from
@@ -7,12 +7,10 @@
  *  affect `safe_mode`. Conversely, turning `safe_mode` off does not
  *  disable Family Safe Mode. The two settings are independent controls.
  *
- *  Use `applyVeniceApiSafeMode(endpoint, payload, enabled)` to add the
- *  field to a payload in a single, audited place. The endpoint matrix
- *  below documents which endpoints accept the top-level `safe_mode`
- *  field; the helper silently omits the field for endpoints that do
- *  not support it, so unsupported endpoints never receive an unknown
- *  payload field.
+ *  Use `applyVeniceProviderSafetyPreference(endpoint, payload, enabled)`
+ *  at request boundaries. Native image routes use `safe_mode`; the
+ *  OpenAI-compatible image route uses `moderation`. The legacy
+ *  `applyVeniceApiSafeMode` helper remains specific to the boolean field.
  *
  *  Source: https://docs.venice.ai plus the tracked OpenAPI snapshot
  *  (docs/reference/Venice_swagger_api.yaml, Schema Version 20260814.194349).
@@ -99,6 +97,30 @@ export function applyVeniceApiSafeMode(
   return { ...payload, safe_mode: enabled };
 }
 
+/** Provider-side safety fields for image routes with distinct Venice schemas. */
+export const VENICE_PROVIDER_SAFETY_MATRIX = [
+  { endpoint: "/image/generate", field: "safe_mode", onValue: true, offValue: false },
+  { endpoint: "/image/edit", field: "safe_mode", onValue: true, offValue: false },
+  { endpoint: "/image/multi-edit", field: "safe_mode", onValue: true, offValue: false },
+  { endpoint: "/images/generations", field: "moderation", onValue: "auto", offValue: "low" },
+] as const;
+
+/** Apply the provider preference using the request schema for this endpoint. */
+export function applyVeniceProviderSafetyPreference(
+  endpoint: string,
+  payload: Record<string, unknown>,
+  enabled: boolean | undefined,
+): Record<string, unknown> {
+  if (typeof enabled !== "boolean") return { ...payload };
+  const normalized = endpoint.trim().replace(/^\/api\/v1(?=\/)/, "");
+  const contract = VENICE_PROVIDER_SAFETY_MATRIX.find((row) => row.endpoint === normalized);
+  if (contract?.field === "moderation") {
+    const { safe_mode: _unsupported, ...schemaPayload } = payload;
+    return { ...schemaPayload, moderation: enabled ? contract.onValue : contract.offValue };
+  }
+  return applyVeniceApiSafeMode(endpoint, payload, enabled);
+}
+
 /** Human-readable endpoint matrix. Kept here so the docs and the helper
  *  cannot drift apart. */
 export const VENICE_API_SAFE_MODE_MATRIX: ReadonlyArray<{
@@ -110,6 +132,7 @@ export const VENICE_API_SAFE_MODE_MATRIX: ReadonlyArray<{
   { endpoint: "/image/generate", supportsSafeMode: true, fieldLocation: "top-level" },
   { endpoint: "/image/edit", supportsSafeMode: true, fieldLocation: "top-level" },
   { endpoint: "/image/multi-edit", supportsSafeMode: true, fieldLocation: "top-level" },
+  { endpoint: "/images/generations", supportsSafeMode: false, fieldLocation: "not-supported" },
   { endpoint: "/image/upscale", supportsSafeMode: false, fieldLocation: "not-supported" },
   { endpoint: "/audio/speech", supportsSafeMode: false, fieldLocation: "not-supported" },
   { endpoint: "/audio/transcriptions", supportsSafeMode: false, fieldLocation: "not-supported" },

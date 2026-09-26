@@ -130,6 +130,14 @@ must add their own set with a comment explaining the contract. Tests in
   identically configured) when the env var selects a supported route.
 * All Family Safe Mode, body-size, prompt-limit, and circuit-breaker
   guards apply to both hosts identically.
+* `GET /api/runtime-config` exposes only the server-selected route. Startup
+  hydrates the renderer mirror before React mounts, so Settings, Status,
+  diagnostics, and model query identity use the same route. Browser writes
+  cannot change the server route.
+* Venice provider-side image filtering is schema-aware: native image routes
+  use `safe_mode: boolean`; `/images/generations` uses `moderation: "auto"`
+  when enabled and `moderation: "low"` when disabled. This preference is
+  independent of Local Family Safe Mode.
 
 ---
 
@@ -180,8 +188,8 @@ must add their own set with a comment explaining the contract. Tests in
 
 | Failure                                             | Behaviour                                                |
 |-----------------------------------------------------|-----------------------------------------------------------|
-| Fraterna returns `5xx`                              | The transport surfaces the error verbatim. The fallback chain does NOT auto-failover to Venice — that would mask billing/rate-limit signals. |
-| Fraterna is unreachable (DNS, TLS, connect)         | The transport surfaces a transport error. The `venice` fallback is offered only via explicit `provider:` prefix. |
+| Fraterna returns retryable `5xx` or `429`            | A configured automatic fallback provider may be tried. A `429` with `Retry-After` receives one bounded same-route retry first. There is no automatic switch from Fraterna to Venice Direct. |
+| Fraterna is unreachable (DNS, TLS, connect)         | A configured automatic fallback provider may be tried. There is no automatic switch to Venice Direct. |
 | User selects an unsupported route id                | The IPC validator rejects the update with a typed error; the store is unchanged. |
 | Persisted state carries an unknown route id         | The sanitizer coerces it to the default (`venice`). The store never persists an unknown id. |
 | Web env var carries an unknown value                | The resolver coerces it to the default (`venice`). The proxy continues to use `api.venice.ai`. |

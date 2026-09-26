@@ -200,7 +200,7 @@ describe("veniceClient utilities", () => {
     it("returns status-prefixed message for known codes", () => {
       expect(normalizeError(429, "too many requests")).toBe("429 rate limit: too many requests");
       expect(normalizeError(401, "unauthorized")).toBe("401 invalid or missing API key: unauthorized");
-      expect(normalizeError(500, "server blew up")).toBe("500 Venice/server retryable error: server blew up");
+      expect(normalizeError(500, "server blew up")).toBe("500 upstream/server retryable error: server blew up");
     });
 
     /** Verifies raw message preservation for unknown status codes. */
