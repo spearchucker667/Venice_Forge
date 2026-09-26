@@ -366,10 +366,10 @@ export function DiagnosticsDrawer() {
         className="flex-1 bg-overlay/80 backdrop-blur-[2px]"
       />
       <aside
-        className="w-[420px] max-w-[92vw] h-full bg-surface-elevated overflow-y-auto p-4 space-y-4 animate-slide-in-right shadow-2xl soft-separator-x"
+        className="w-[420px] max-w-[92vw] h-full bg-vf-shell-bg overflow-y-auto p-4 space-y-4 animate-slide-in-right shadow-2xl border-l border-vf-panel-border"
         data-testid="diagnostics-drawer-panel"
       >
-        <header className="flex items-center justify-between gap-2 pb-3 soft-separator-y">
+        <header className="flex items-center justify-between gap-2 pb-3 border-b border-vf-panel-border">
           <div>
             <h2 className="text-[14px] font-semibold text-text-primary">
               <Trans i18nKey="common:surface.componentsStatusDiagnosticsdrawer.heading.diagnostics" />
