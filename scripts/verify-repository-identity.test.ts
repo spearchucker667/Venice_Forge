@@ -161,4 +161,92 @@ describe("VERIFY-069 repository identity", () => {
     expect(result.errors.some((e) => e.includes("repo_name"))).toBe(true);
     expect(result.errors.some((e) => e.includes("commit"))).toBe(true);
   });
+
+  // Regression: docs/summary_of_work.md must allow Session History entries to
+  // contain historical absolute paths while still rejecting leaks in the active
+  // summary. The previous heading matcher required `### Session History`, but
+  // the canonical document uses `## Session History`, which silently disabled
+  // the carve-out and caused CI to fail on legitimate historical references.
+  it("exempts lines below `## Session History` in docs/summary_of_work.md", () => {
+    writeAgentDocs();
+    // Construct the path at runtime so the committed test source never
+    // contains the literal private absolute path that the verifier scans for.
+    const privateRoot = "/Users" + "/super_user";
+    const privatePath = privateRoot + "/example/secret";
+    write(
+      "docs/summary_of_work.md",
+      [
+        "## Latest Session Summary",
+        "- An active entry that leaks " + privatePath,
+        "",
+        "## Session History",
+        "",
+        "### 2026-09-26 — Historical session entry",
+        "- A historical entry that still references " + privatePath,
+        "",
+      ].join("\n"),
+    );
+    const result = verifyRepositoryIdentity(rootDir);
+    expect(result.passed).toBe(false);
+    expect(result.errors).toContainEqual(expect.stringContaining("summary_of_work.md:2:"));
+    expect(result.errors).not.toContainEqual(expect.stringContaining("summary_of_work.md:6:"));
+  });
+
+  it("also exempts lines below the legacy `### Session History` sub-heading form", () => {
+    writeAgentDocs();
+    const privateRoot = "/Users" + "/super_user";
+    const privatePath = privateRoot + "/example/secret";
+    write(
+      "docs/summary_of_work.md",
+      [
+        "## Latest Session Summary",
+        "",
+        "### Session History",
+        "",
+        "- A historical entry that references " + privatePath,
+        "",
+      ].join("\n"),
+    );
+    const result = verifyRepositoryIdentity(rootDir);
+    expect(result.passed).toBe(true);
+    expect(result.errors).not.toContainEqual(expect.stringContaining("summary_of_work.md:5:"));
+  });
+
+  it("does not exempt summary_of_work.md lines when the heading is missing", () => {
+    writeAgentDocs();
+    const privateRoot = "/Users" + "/super_user";
+    const privatePath = privateRoot + "/example/secret";
+    write(
+      "docs/summary_of_work.md",
+      [
+        "## Latest Session Summary",
+        "- A leak " + privatePath,
+        "",
+        "## Some Other Section",
+        "- Another leak " + privatePath,
+        "",
+      ].join("\n"),
+    );
+    const result = verifyRepositoryIdentity(rootDir);
+    expect(result.passed).toBe(false);
+    expect(result.errors).toContainEqual(expect.stringContaining("summary_of_work.md:2:"));
+    expect(result.errors).toContainEqual(expect.stringContaining("summary_of_work.md:5:"));
+  });
+
+  it("does not match a heading whose text is not exactly `Session History`", () => {
+    writeAgentDocs();
+    const privateRoot = "/Users" + "/super_user";
+    const privatePath = privateRoot + "/example/secret";
+    write(
+      "docs/summary_of_work.md",
+      [
+        "## Session History Index",
+        "- A line that should still be flagged " + privatePath,
+        "",
+      ].join("\n"),
+    );
+    const result = verifyRepositoryIdentity(rootDir);
+    expect(result.passed).toBe(false);
+    expect(result.errors).toContainEqual(expect.stringContaining("summary_of_work.md:2:"));
+  });
 });

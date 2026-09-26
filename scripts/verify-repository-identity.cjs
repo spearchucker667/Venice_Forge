@@ -268,7 +268,7 @@ function verifyRepositoryIdentity(rootDir) {
     }
 
     const summaryHistoryLine = relativePath === "docs/summary_of_work.md"
-      ? content.split(/\r?\n/).findIndex((line) => /^### Session History$/.test(line)) + 1
+      ? content.split(/\r?\n/).findIndex((line) => /^#{2,3}\s+Session History\s*$/.test(line)) + 1
       : 0;
 
     const lines = content.split(/\r?\n/);
