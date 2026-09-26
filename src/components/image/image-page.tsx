@@ -20,8 +20,8 @@ export function ImagePage() {
   }, [pendingTarget]);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-1 px-4 py-2.5 border-b border-vf-panel-border">
+    <div className="flex flex-col h-full bg-bg">
+      <div className="flex items-center gap-1 px-4 py-2.5 border-b border-border bg-surface/50">
         {(["generate", "tools"] as const).map((t) => (
           <button
             key={t}
@@ -30,7 +30,7 @@ export function ImagePage() {
               "text-[14px] font-medium px-2.5 py-[3px] rounded-full transition-all duration-150",
               tab === t
                 ? "bg-accent text-accent-fg shadow-[0_0_8px_var(--color-vf-accent-glow)]"
-                : "bg-vf-panel-bg-raised text-text-muted hover:text-text-muted hover:bg-vf-panel-bg-muted",
+                : "bg-surface-elevated text-text-muted hover:text-text-primary hover:bg-surface-muted",
             )}
           >
             {t === "generate"

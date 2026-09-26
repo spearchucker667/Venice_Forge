@@ -136,12 +136,12 @@ function MediaCardImpl({
   return (
     <article
       className={cn(
-        "mesh-card media-card-virtualized group relative flex flex-col overflow-hidden rounded-md",
+        "mesh-card media-card-virtualized group relative flex flex-col overflow-hidden rounded-lg bg-surface-elevated/60 transition-colors border",
         active
-          ? "border-accent ring-2 ring-accent/40"
+          ? "border-accent ring-2 ring-accent/40 bg-surface-elevated"
           : selected
-            ? "border-accent/60"
-            : "border-vf-panel-border hover:border-accent/40",
+            ? "border-accent/60 bg-surface-elevated"
+            : "border-border hover:border-border-strong",
       )}
       onContextMenu={cardMenu.openAt}
     >
@@ -159,7 +159,7 @@ function MediaCardImpl({
           onSelect(item, !multiSelectMode);
           cardMenu.openAt(event);
         }}
-        className="relative block aspect-square w-full overflow-hidden bg-vf-panel-bg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+        className="relative block aspect-square w-full overflow-hidden bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
         aria-label={tRuntime(
           "runtimeGenerated.components.gallery.mediaCard.attribute.openValue1Value2",
           {
@@ -233,10 +233,10 @@ function MediaCardImpl({
         {multiSelectMode && (
           <span
             className={cn(
-              "absolute left-2 top-2 grid h-5 w-5 place-items-center rounded border bg-vf-panel-bg/80 text-[12px] font-bold",
+              "absolute left-2 top-2 grid h-5 w-5 place-items-center rounded border bg-surface/80 text-[12px] font-bold",
               selected
                 ? "border-accent bg-accent text-accent-fg shadow-[0_0_8px_var(--color-vf-accent-glow)]"
-                : "border-vf-panel-border text-text-muted",
+                : "border-border text-text-muted",
             )}
             aria-hidden="true"
           >
@@ -306,7 +306,7 @@ function MediaCardImpl({
             {item.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="rounded-md border border-vf-panel-border bg-vf-panel-bg-raised px-1.5 py-0.5 text-[12px] text-text-secondary"
+                className="rounded-md border border-border bg-surface px-1.5 py-0.5 text-[12px] text-text-secondary"
               >
                 #{tag}
               </span>
@@ -337,7 +337,7 @@ function MediaCardImpl({
               "rounded-md border px-2 py-1 text-[12px] transition-colors",
               item.favorite
                 ? "border-danger/40 bg-danger/10 text-danger"
-                : "border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent",
+                : "border-border text-text-secondary hover:border-accent hover:text-accent",
             )}
           >
             <Star className={cn("h-3 w-3", item.favorite && "fill-current")} />
@@ -358,7 +358,7 @@ function MediaCardImpl({
               "rounded-md border px-2 py-1 text-[12px] transition-colors",
               item.vaultHidden
                 ? "border-accent/40 bg-accent/[0.08] text-accent"
-                : "border-vf-panel-border text-text-secondary hover:border-accent hover:text-accent",
+                : "border-border text-text-secondary hover:border-accent hover:text-accent",
             )}
           >
             {item.vaultHidden ? (

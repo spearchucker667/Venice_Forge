@@ -16,6 +16,7 @@ import type {
 } from "../../types/workflow";
 import { Trans, useTranslation } from "react-i18next";
 import { Card, EmptyState, Pill, Toolbar } from "../ui/primitives";
+import { cn } from "../../lib/utils";
 
 const WORKFLOW_STEP_KINDS: WorkflowStepKind[] = [
   "prompt",
@@ -275,7 +276,7 @@ export function WorkflowTemplatesView() {
         data-testid="workflow-templates-view"
       >
         {/* Sidebar List */}
-        <div className="w-full md:w-1/3 lg:w-[clamp(280px,30%,400px)] shrink-0 border-b border-vf-panel-border md:border-b-0 md:border-r border-vf-panel-border p-4 overflow-y-auto flex flex-col gap-4">
+        <div className="w-full md:w-1/3 lg:w-[clamp(280px,30%,400px)] shrink-0 border-b border-border md:border-b-0 md:border-r border-border p-4 overflow-y-auto flex flex-col gap-4 bg-surface/40">
           <div className="flex justify-between items-center">
             <h2 className="text-sm font-semibold text-text-secondary">
               <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.heading.workflows" />
@@ -286,7 +287,7 @@ export function WorkflowTemplatesView() {
                 "surface.componentsWorkflowsWorkflowtemplatesview.heading.workflows",
               )}
             >
-              <label htmlFor="workflow-templates-1" className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-primary px-2 py-1 rounded cursor-pointer">
+              <label htmlFor="workflow-templates-1" className="text-xs bg-surface-elevated hover:bg-surface-muted text-text-primary px-2 py-1 rounded cursor-pointer border border-border">
                 <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.label.import" />
                 <input
                   type="file" id="workflow-templates-1" 
@@ -297,7 +298,7 @@ export function WorkflowTemplatesView() {
               </label>
               <button
                 onClick={handleCreateWorkflow}
-                className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-primary px-2 py-1 rounded"
+                className="text-xs bg-surface-elevated hover:bg-surface-muted text-text-primary px-2 py-1 rounded border border-border"
                 data-testid="create-workflow-btn"
               >
                 <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.new" />
@@ -311,7 +312,7 @@ export function WorkflowTemplatesView() {
             )}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-vf-panel-bg border border-vf-panel-border rounded px-2 py-1 text-xs text-text-primary"
+            className="w-full bg-surface border border-border rounded px-2 py-1 text-xs text-text-primary focus:border-border-hot outline-none"
             data-testid="workflow-search-input"
             aria-label={tRuntime(
               "runtimeGenerated.components.workflows.workflowtemplatesview.attribute.searchWorkflows2",
@@ -339,7 +340,12 @@ export function WorkflowTemplatesView() {
                   role="option"
                   aria-selected={w.id === activeWorkflow?.id}
                   onClick={() => handleSelectWorkflow(w.id)}
-                  className={`w-full text-left cursor-pointer p-2 rounded border flex justify-between items-center outline-none focus-visible:ring-2 focus-visible:ring-accent ${w.id === activeWorkflow?.id ? "bg-vf-panel-bg-hover border-vf-panel-border" : "hover:bg-vf-control-hover border-vf-panel-border"}`}
+                  className={cn(
+                    "w-full text-left cursor-pointer p-2 rounded-lg border flex justify-between items-center outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors",
+                    w.id === activeWorkflow?.id
+                      ? "bg-surface-elevated border-border"
+                      : "hover:bg-surface-muted/60 border-border/40",
+                  )}
                 >
                   <div className="overflow-hidden">
                     <div className="text-sm text-text-primary truncate flex items-center gap-2">
@@ -383,7 +389,7 @@ export function WorkflowTemplatesView() {
           />
         ) : (
           <div
-            className="flex-1 flex flex-col h-full bg-vf-panel-bg overflow-y-auto p-4 md:p-6 min-w-0"
+            className="flex-1 flex flex-col h-full bg-bg overflow-y-auto p-4 md:p-6 min-w-0"
             data-testid="workflow-detail"
           >
             <div className="flex flex-col xl:flex-row justify-between items-start mb-6 gap-4">
@@ -396,7 +402,7 @@ export function WorkflowTemplatesView() {
                   type="text"
                   value={localTitle}
                   onChange={(e) => setLocalTitle(e.target.value)}
-                  className="bg-transparent text-xl font-semibold text-text-primary outline-none border-b border-vf-panel-border focus:border-vf-panel-border w-full py-1"
+                  className="bg-transparent text-xl font-semibold text-text-primary outline-none border-b border-border focus:border-border-hot w-full py-1"
                   data-testid="workflow-title-input"
                 />
                 <label className="sr-only" htmlFor="workflow-tags">
@@ -410,7 +416,7 @@ export function WorkflowTemplatesView() {
                     "runtimeGenerated.components.workflows.workflowtemplatesview.attribute.tagsCommaSeparated",
                   )}
                   onChange={(e) => setLocalTags(e.target.value)}
-                  className="bg-transparent text-xs text-text-secondary outline-none border-b border-vf-panel-border focus:border-vf-panel-border w-full py-1"
+                  className="bg-transparent text-xs text-text-secondary outline-none border-b border-border focus:border-border-hot w-full py-1"
                   data-testid="workflow-tags-input"
                 />
               </div>
@@ -436,14 +442,14 @@ export function WorkflowTemplatesView() {
                 </button>
                 <button
                   onClick={handleExport}
-                  className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-secondary px-3 py-1.5 rounded"
+                  className="text-xs bg-surface-elevated hover:bg-surface-muted text-text-secondary px-3 py-1.5 rounded border border-border"
                   data-testid="export-workflow-btn"
                 >
                   <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.export" />
                 </button>
                 <button
                   onClick={() => archiveWorkflow(activeWorkflow.id)}
-                  className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-secondary px-3 py-1.5 rounded"
+                  className="text-xs bg-surface-elevated hover:bg-surface-muted text-text-secondary px-3 py-1.5 rounded border border-border"
                   data-testid="archive-workflow-btn"
                 >
                   <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.archive" />
@@ -474,7 +480,7 @@ export function WorkflowTemplatesView() {
                 onChange={(e) =>
                   setCurrentWorkflowVersion(activeWorkflow.id, e.target.value)
                 }
-                className="bg-vf-panel-bg border border-vf-panel-border text-text-primary text-xs rounded px-2 py-1"
+                className="bg-surface border border-border text-text-primary text-xs rounded px-2 py-1 focus:border-border-hot outline-none"
                 data-testid="workflow-version-select"
               >
                 {activeWorkflow.versions.map((v) => (
@@ -493,7 +499,7 @@ export function WorkflowTemplatesView() {
                     steps: activeVersion.steps,
                   })
                 }
-                className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-secondary px-2 py-1 rounded"
+                className="text-xs bg-surface-elevated hover:bg-surface-muted text-text-secondary px-2 py-1 rounded border border-border"
                 data-testid="add-version-btn"
               >
                 <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.addNewVersion" />
@@ -517,7 +523,7 @@ export function WorkflowTemplatesView() {
                       enabled: true,
                     })
                   }
-                  className="text-xs bg-vf-panel-bg-hover hover:bg-vf-control-hover text-text-primary px-2 py-1 rounded"
+                  className="text-xs bg-accent text-accent-fg hover:bg-accent-hover font-medium px-2.5 py-1 rounded transition-colors"
                   data-testid="add-step-btn"
                 >
                   <Trans i18nKey="common:surface.componentsWorkflowsWorkflowtemplatesview.action.addStep" />
@@ -529,7 +535,7 @@ export function WorkflowTemplatesView() {
                     key={step.id}
                     elevation="flat"
                     padded={false}
-                    className="p-3 bg-vf-panel-bg-hover flex flex-col gap-3"
+                    className="p-3 bg-surface-elevated/60 border border-border rounded-lg flex flex-col gap-3 hover:border-border-strong transition-colors"
                     data-testid="workflow-step-item"
                   >
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_11rem_11rem_auto] gap-2 items-center">
@@ -544,7 +550,7 @@ export function WorkflowTemplatesView() {
                             title: event.target.value,
                           })
                         }
-                        className="rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-xs text-text-primary"
+                        className="rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary focus:border-border-hot outline-none"
                       />
                       <select
                         aria-label={tRuntime(
@@ -556,7 +562,7 @@ export function WorkflowTemplatesView() {
                             kind: event.target.value as WorkflowStepKind,
                           })
                         }
-                        className="rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-xs text-text-primary"
+                        className="rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary font-mono"
                       >
                         {WORKFLOW_STEP_KINDS.map((kind) => (
                           <option key={kind} value={kind}>
@@ -574,7 +580,7 @@ export function WorkflowTemplatesView() {
                             target: event.target.value as WorkflowStepTarget,
                           })
                         }
-                        className="rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-xs text-text-primary"
+                        className="rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary font-mono"
                       >
                         {WORKFLOW_STEP_TARGETS.map((target) => (
                           <option key={target} value={target}>
@@ -623,7 +629,7 @@ export function WorkflowTemplatesView() {
                               )
                         }
                         rows={3}
-                        className="w-full resize-y rounded border border-vf-panel-border bg-vf-panel-bg px-2 py-1.5 text-xs text-text-primary"
+                        className="w-full resize-y rounded border border-border bg-surface px-2 py-1.5 text-xs text-text-primary font-mono focus:border-border-hot outline-none"
                       />
                     )}
                   </Card>
