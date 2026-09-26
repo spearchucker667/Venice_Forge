@@ -4600,6 +4600,7 @@
       "inspectionFailed": "Проверка хранилища в Венеции провалилась.",
       "notConfigured": "Ключ API Венеции не настроен. Добавьте ключ для включения генерации.",
       "openConfigDetail": "Откройте вкладку «Конфигурация», чтобы подключить ключ API Венеции.",
+      "connected": "Подключено",
       "connectivityUnverified": "Ключ API настроен, но подключение к Венеции еще не проверено.",
       "testConnectivityDetail": "Используйте тестовое действие API-ключа, чтобы проверить подключение /models.",
       "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"

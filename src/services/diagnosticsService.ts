@@ -111,10 +111,8 @@ function makeItem(
  * ------------------------------------------------------------------ */
 
 function buildApiStatus(): AppStatusItem {
-  // We don't issue a network call here — that would be a hot loop
-  // side-effect. Instead, we report the cached auth state. The
-  // diagnostics drawer offers an explicit "Test API" action that
-  // runs the request when the user wants it.
+  // Read existing request evidence without issuing a network call.
+  // The drawer's Refresh Models action updates the live catalog state.
   const auth = useAuthStore.getState();
   const route = resolvePrimaryApiRouteForDiagnostics();
   if (auth.hydrationStatus === "idle") {
@@ -140,10 +138,13 @@ function buildApiStatus(): AppStatusItem {
       actionTargetTabId: "settings",
     });
   }
+  const catalog = useModelCatalogRuntimeStore.getState();
+  const connected = catalog.status === "ready" && catalog.source === "live" &&
+    catalog.lastSuccessAt !== null && catalog.lastError === null;
   return makeItem(
     "api",
-    "warn",
-    statusText("api.connectivityUnverified"),
+    connected ? "ok" : "warn",
+    statusText(connected ? "api.connected" : "api.connectivityUnverified"),
     {
       detail: route && route !== "venice"
         ? {

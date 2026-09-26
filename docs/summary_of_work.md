@@ -5,14 +5,14 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 1fb4849d4da6d35350cb6a5fbbdf2607fb0599cd
-application_code_sha: 1fb4849d4da6d35350cb6a5fbbdf2607fb0599cd
-verified_against_sha: 1fb4849d4da6d35350cb6a5fbbdf2607fb0599cd
+repository_head_sha: dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b
+application_code_sha: dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b
+verified_against_sha: dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b
 verified_at:         2026-09-25 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
 branch:              main
-working_tree:        uncommitted research rendering and scrape-click fixes; clean at session start
+working_tree:        uncommitted diagnostics connectivity fix; clean at session start
 ci_status:           not checked this session; historical runs below do not cover current edits
 codeql_status:       not checked this session; historical runs below do not cover current edits
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
@@ -24,10 +24,16 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
-- **2026-09-25 Research output and scrape-click correction (uncommitted).** Started from clean `main` at `1fb4849d4da6d35350cb6a5fbbdf2607fb0599cd`. Fixed two confirmed UI defects: synthesis chunks were coerced to `[object Object]`, and the Scrape button forwarded a mouse event into an optional URL parameter. Regression tests use synthetic content and exercise the real child components. Prior Fraterna remediation is present in the committed baseline; no commit or push was performed in this session.
-- Existing external acceptance remains tracked in `docs/ROADMAP.md`. No live provider requests or manual Electron QA were performed for this fix.
+- **2026-09-25 Diagnostics connectivity correction (uncommitted).** Started from clean `main` at `dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b`, with the previous research fix committed. Diagnostics now recognizes a successful live model-catalog request instead of always warning after key configuration. Cached catalogs and failed refreshes retain the warning. The connected label reuses existing locale translations under the diagnostics namespace.
+- Theme/mesh report remains **blocked by missing reproduction evidence** in `docs/ROADMAP.md`: requested affected theme names and screens. The supplied diagnostics screenshot's API outline is the intentional selected-section indicator. Shared mesh CSS has translucent gradients, but no change to their design is justified from this screenshot alone. No manual Electron QA or live provider call was performed.
 
 ## Session History
+
+### 2026-09-25 — Diagnostics connectivity correction and theme investigation
+
+- **Confirmed defect:** `src/services/diagnosticsService.ts`, `buildApiStatus`, returned a warning for every configured key regardless of successful live model loading. A regression with 166 live models failed before the fix. It now reports Connected only for ready/live catalog evidence with a success timestamp and no error, retaining credential/hydration gates. The existing status-store catalog subscription refreshes diagnostics. This confirms model-endpoint connectivity, not every generation endpoint.
+- Added regressions for live success, subsequent failed refresh, and cached-only catalog evidence in `src/services/diagnosticsService.test.ts`. Reused existing Connected translations in all 12 `common.json` catalogs; no native-review status changed.
+- **Theme report: blocked by missing evidence.** Traced selected-section borders in `src/components/status/DiagnosticsDrawer.tsx` and translucent mesh styles in `src/styles/components.css`. Requested theme/screen examples before altering intentional focus indicators or global mesh styling. See `docs/ROADMAP.md`.
 
 ### 2026-09-25 — Research output and scrape-click correction
 
@@ -222,6 +228,9 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 
 ## Open TODO Ledger
 
+* **DIAGNOSTICS-CONNECTIVITY-2026-09-25** — Unconditional warning corrected locally with regression coverage. No commit/push performed.
+* **THEME-OVERLAY-2026-09-25** — Awaiting affected theme names/screens or an overlay screenshot; tracked in `docs/ROADMAP.md`.
+
 * **RESEARCH-RENDERING-2026-09-25** — Both reported UI defects corrected locally with failing-then-passing regressions. Manual Electron replay was not performed; existing project-wide open work stays in `docs/ROADMAP.md`.
 
 * **FRAT-REAUD-2026-09-25** — FRAT-REAUD-001 through FRAT-REAUD-005 are present in the committed `1fb4849d` baseline. Hosted status for that SHA was not checked during the research UI session. FRAT-REAUD-006 (funded live Fraterna four-endpoint smoke) and FRAT-REAUD-007 (qualified native-language review) remain open in `docs/ROADMAP.md`.
@@ -241,6 +250,16 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 * **EXTERNAL-ACCEPTANCE** — `P2-016`, `P3-020`, and `VF-VERIFY-005` stay open. They are not local code defects. See `docs/ROADMAP.md`.
 
 ## Validation Matrix
+
+### 2026-09-25 — Diagnostics connectivity correction
+
+- Root/branch/Node assertions passed; package `3.1.0`, Node 22, declared Node/npm engines unchanged. Baseline `dde601f9cadf3d4d25b3772af9d3a6fb0ffeaf6b` was clean.
+- Initial diagnostics regression: expected 1 failure, 27 passes (live success incorrectly remained warn).
+- `npx vitest run src/services/diagnosticsService.test.ts src/stores/status-store.test.ts src/components/status/DiagnosticsDrawer.test.tsx --no-file-parallelism` — PASS (50 tests, 3 files).
+- `npm run typecheck` — PASS on final code. Initial typecheck caught an out-of-namespace translation key; moved the reused label into the required diagnostics namespace.
+- `npm run verify:i18n` and `npm run verify:i18n-hardcoded-regressions` — PASS; existing missing-marker warnings remain, zero hardcoded-string regressions.
+- Focused ESLint and `npm run verify:superdesign-init` — PASS; fingerprint unchanged.
+- Full CI, full repository suite, live provider calls, manual Electron/theme replay, and hosted checks not run. Theme reproduction remains pending user detail.
 
 ### 2026-09-25 — Research output and scrape-click correction
 

@@ -4600,6 +4600,7 @@
       "inspectionFailed": "Die Inspektion des sicheren Lagers in Venedig ist fehlgeschlagen.",
       "notConfigured": "Venice-API-Schlüssel nicht konfiguriert. Fügen Sie einen Schlüssel hinzu, um die Generierung zu aktivieren.",
       "openConfigDetail": "Öffnen Sie die Registerkarte „Konfiguration“, um Ihren Venice-API-Schlüssel zu verbinden.",
+      "connected": "Verbunden",
       "connectivityUnverified": "Der API-Schlüssel ist konfiguriert, aber die Live-Konnektivität mit Venedig wurde noch nicht überprüft.",
       "testConnectivityDetail": "Verwenden Sie die API-Schlüsseltestaktion, um die /models-Konnektivität zu überprüfen.",
       "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"

@@ -4600,6 +4600,7 @@
       "inspectionFailed": "A inspeção do armazenamento seguro em Veneza falhou.",
       "notConfigured": "Chave API de Veneza não configurada. Adicione uma chave para permitir a geração.",
       "openConfigDetail": "Abra a guia Config para conectar sua chave de API Venice.",
+      "connected": "Conectado",
       "connectivityUnverified": "A chave de API está configurada, mas a conectividade ao vivo de Veneza ainda não foi verificada.",
       "testConnectivityDetail": "Use a ação de teste da chave de API para verificar a conectividade de /models.",
       "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"

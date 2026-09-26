@@ -4600,6 +4600,7 @@
       "inspectionFailed": "فشل فحص التخزين الآمن في البندقية.",
       "notConfigured": "لم يتم تكوين مفتاح واجهة برمجة تطبيقات Venice. إضافة مفتاح لتمكين الجيل.",
       "openConfigDetail": "افتح علامة التبويب &quot;التكوين&quot; لتوصيل مفتاح Venice API الخاص بك.",
+      "connected": "متصل",
       "connectivityUnverified": "تم تكوين مفتاح API، ولكن لم يتم التحقق من اتصال البندقية المباشر بعد.",
       "testConnectivityDetail": "استخدم إجراء اختبار مفتاح API للتحقق من اتصال /models.",
       "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"

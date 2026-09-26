@@ -182,6 +182,24 @@ describe("computeAppStatusSnapshot (VERIFY-045)", () => {
     expect(dump).toMatch(/apiKey/i);
   });
 
+  it("recognizes successful live model connectivity and drops it after refresh failure", () => {
+    useAuthStore.setState({ isConfigured: true });
+    const catalog = useModelCatalogRuntimeStore.getState();
+    catalog.markReady({ totalCount: 166, countsByType: { all: 166 }, source: "live" });
+    expect(computeAppStatusSnapshot().api.severity).toBe("ok");
+    expect(renderStatusText(computeAppStatusSnapshot().api.summary)).toBe("Connected");
+    catalog.markError(new Error("Network unavailable"), true);
+    expect(computeAppStatusSnapshot().api.severity).toBe("warn");
+  });
+
+  it("does not mistake a cached model catalog for verified connectivity", () => {
+    useAuthStore.setState({ isConfigured: true });
+    useModelCatalogRuntimeStore.getState().markReady({
+      totalCount: 166, countsByType: { all: 166 }, source: "cache",
+    });
+    expect(computeAppStatusSnapshot().api.severity).toBe("warn");
+  });
+
   it("archived active project is warn", () => {
     useSettingsStore.setState({ activeProjectId: "arc" } as never);
     useProjectStore.setState({

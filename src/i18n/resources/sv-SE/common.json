@@ -4600,6 +4600,7 @@
       "inspectionFailed": "Inspektionen av säker lagring i Venedig misslyckades.",
       "notConfigured": "Venedig API-nyckel inte konfigurerad. Lägg till en nyckel för att aktivera generering.",
       "openConfigDetail": "Öppna fliken Config för att ansluta din Venedig API-nyckel.",
+      "connected": "Ansluten",
       "connectivityUnverified": "API-nyckel är konfigurerad, men live Venedig-anslutning har inte verifierats ännu.",
       "testConnectivityDetail": "Använd API-nyckel-teståtgärden för att verifiera /models-anslutning.",
       "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"

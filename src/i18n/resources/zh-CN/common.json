@@ -4600,6 +4600,7 @@
       "inspectionFailed": "威尼斯安全存储检查失败。",
       "notConfigured": "未配置 Venice API 密钥。添加一个密钥以启用生成。",
       "openConfigDetail": "打开“配置”选项卡以连接您的 Venice API 密钥。",
+      "connected": "已连接",
       "connectivityUnverified": "API 密钥已配置，但尚未验证实时威尼斯连接。",
       "testConnectivityDetail": "使用 API 密钥测试操作来验证 /models 连接。",
       "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"

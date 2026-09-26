@@ -4600,6 +4600,7 @@
       "inspectionFailed": "La inspección de almacenamiento seguro de Venecia falló.",
       "notConfigured": "Clave API de Venecia no configurada. Agregue una clave para habilitar la generación.",
       "openConfigDetail": "Abra la pestaña Configuración para conectar su clave API de Venecia.",
+      "connected": "Conectado",
       "connectivityUnverified": "La clave API está configurada, pero aún no se ha verificado la conectividad en vivo de Venecia.",
       "testConnectivityDetail": "Utilice la acción de prueba de clave API para verificar la conectividad de /models.",
       "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"

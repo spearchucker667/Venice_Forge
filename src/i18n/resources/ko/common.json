@@ -4600,6 +4600,7 @@
       "inspectionFailed": "베니스 보안 스토리지 검사에 실패했습니다.",
       "notConfigured": "베니스 API 키가 구성되지 않았습니다. 생성을 활성화하려면 키를 추가하세요.",
       "openConfigDetail": "Config 탭을 열어 Venice API 키를 연결하세요.",
+      "connected": "연결됨",
       "connectivityUnverified": "API 키가 구성되었지만 라이브 베니스 연결이 아직 확인되지 않았습니다.",
       "testConnectivityDetail": "API 키 테스트 작업을 사용하여 /models 연결을 확인하세요.",
       "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"

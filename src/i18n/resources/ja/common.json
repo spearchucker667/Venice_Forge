@@ -4600,6 +4600,7 @@
       "inspectionFailed": "ヴェネツィアの安全な保管検査に失敗しました。",
       "notConfigured": "Venice API キーが設定されていません。キーを追加して生成を有効にします。",
       "openConfigDetail": "「構成」タブを開いて、Venice API キーを接続します。",
+      "connected": "接続済み",
       "connectivityUnverified": "API キーは構成されていますが、ライブ Venice 接続はまだ検証されていません。",
       "testConnectivityDetail": "API キー テスト アクションを使用して、/models の接続を確認します。",
       "routeDetail": "__MISSING__:statusDiagnostics.api.routeDetail {{route}}"

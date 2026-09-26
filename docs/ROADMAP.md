@@ -25,6 +25,8 @@ external_acceptance_outstanding:
 
 ## Current Work
 
+`THEME-OVERLAY-2026-09-25` — User reports theme formatting and unwanted border/mesh overlays. Awaiting affected theme names and screens or an overlay screenshot. The supplied Diagnostics screenshot shows its intentional selected-section outline; shared mesh gradients are translucent. Reproduce before changing shared styling. Status: blocked by missing evidence.
+
 `FRAT-REAUD-006` — Run the four documented Fraterna endpoints with a dedicated, consorzio-enrolled test key when a funded account is available. Record only endpoint, timestamp, status, content type, effective route, safe request ID, and high-level result. The local re-audit remediation for FRAT-REAUD-001 through FRAT-REAUD-005 is uncommitted; exact-SHA hosted CI and CodeQL remain pending authorized publication.
 
 `FRAT-REAUD-007` — Review new route and Inspector copy in every non-English catalog with a qualified native-language reviewer. Keep `isProductionComplete: false` until `docs/i18n/native-review-status.json` records reviewer and date. This is part of the existing `P3-020` review workflow.
