@@ -838,7 +838,7 @@ export function ChatView() {
             <div className="border-b border-vf-panel-border bg-vf-shell-bg/40">
               <VeniceParams />
             </div>
-            <div className="w-full max-w-vf-wide mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
+            <div className="w-full max-w-vf-comfort mx-auto py-5 px-4 sm:px-5 flex flex-col gap-5">
               {isCharacterBound && conversation.messages.length === 0 && (
                 <div className="rounded-lg border border-vf-panel-border bg-vf-panel-bg-raised p-5 text-center vf-meta text-text-secondary">
                   <Trans i18nKey="common:surface.componentsChatChatView.text.startAConversationWith" />{" "}
