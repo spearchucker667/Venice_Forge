@@ -179,6 +179,8 @@ This is the canonical source-of-truth navigation map for all documentation in th
 ### Discovery & Planning
 
 - [discovery/DISCOVERY_DOCUMENT_AGENT.md](discovery/DISCOVERY_DOCUMENT_AGENT.md) — Repository reconciliation and Phase 0 architecture evidence.
+- [superpowers/specs/2026-09-26-graphite-cockpit-ui-design.md](superpowers/specs/2026-09-26-graphite-cockpit-ui-design.md) — Approved design specification for Graphite Cockpit Flat Instrumentation UI redesign and Stitch MCP integration.
+- [superpowers/plans/2026-09-26-graphite-cockpit-ui.md](superpowers/plans/2026-09-26-graphite-cockpit-ui.md) — Test-first implementation plan for the Graphite Cockpit UI re-envisioning across layout, chat, media, workflows, system drawers, and Stitch design tokens.
 - [superpowers/specs/2026-08-31-unified-theme-ci-csp-electron-replicate-design.md](superpowers/specs/2026-08-31-unified-theme-ci-csp-electron-replicate-design.md) — Approved integrated design for Theme Engine V2, CI/package hardening, Electron test typechecking, strict-CSP Meteocon rendering, and durable Replicate paid submissions.
 - [superpowers/plans/2026-08-31-unified-hardening-coordinator.md](superpowers/plans/2026-08-31-unified-hardening-coordinator.md) — Execution coordinator for the approved five-workstream hardening program, integrated validation, and direct-main publication.
 - [superpowers/plans/2026-08-31-electron-test-typecheck.md](superpowers/plans/2026-08-31-electron-test-typecheck.md) — Test-first plan to eliminate Electron test compiler debt and add the dedicated project to canonical typechecking.

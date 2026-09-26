@@ -5,15 +5,15 @@ This is the active handoff and validation ledger. The canonical current-work led
 ## Current State (machine-readable; refresh per session — VF-AUD-20260916-P3-002)
 
 ```text
-repository_head_sha: 93544da174ba6e7fca0b81ca2a9de75546f409f5
-application_code_sha: 93544da174ba6e7fca0b81ca2a9de75546f409f5
-verified_against_sha: 93544da174ba6e7fca0b81ca2a9de75546f409f5
+repository_head_sha: cf42e89adae78bbe4267045828bddccbc5adb703
+application_code_sha: cf42e89adae78bbe4267045828bddccbc5adb703
+verified_against_sha: cf42e89adae78bbe4267045828bddccbc5adb703
 verified_at:         2026-09-26 (Pacific)
 package_version:     3.1.0
 node_engine:         >=22.15.0 <23.0.0
-branch:              main
-working_tree:        repository-wide documentation review and cleanups across docs/ (architecture, FAQ, ABOUT, DEVELOPMENT, discovery, ROADMAP, design, maintenance; uncommitted)
-ci_status:           not checked this session; historical runs below do not cover current edits
+branch:              feature/graphite-cockpit-redesign
+working_tree:        committing handoff and docs index
+ci_status:           all static, feature, and release contracts passed locally; focused test suites passed (UI layout, chat, media, settings, workflows, theme)
 codeql_status:       not checked this session; historical runs below do not cover current edits
 open_findings:       FRAT-REAUD-006 (live provider acceptance); FRAT-REAUD-007 (native-language review); P2-016 headed human accessibility QA; VF-VERIFY-005 external release evidence
 ```
@@ -25,10 +25,50 @@ external_acceptance_outstanding:
 
 ## Latest Session Summary
 
+- **2026-09-26 Graphite Cockpit UI re-envisioning with Stitch MCP & full component refactor.** Completed full design system synchronization and UI re-envisioning of Venice Forge into **Graphite Cockpit Flat Instrumentation** on isolated branch `feature/graphite-cockpit-redesign`. Synchronized canonical `DESIGN.md` with Google Stitch MCP project `12225516409245957947` (asset `e0602d8ee669493f93e05387d8d20026`). Registered new design tokens (`--border-hot: #743940`, `--telemetry-cyan: #6ee7d3`) into Theme Engine V2 (`applyTheme.ts`, `theme.css`, `bootstrap-theme.js`). Refactored shell layout and telemetry headers (`App.tsx`, `header.tsx`), Chat transcript reading container (`chat-view.tsx`), Media Studio and Workflow Canvas fluid grids (`image-page.tsx`, `media-card.tsx`, `WorkflowTemplatesView.tsx`), and dense telemetry system drawers (`TaskCenterDrawer.tsx`, `DiagnosticsDrawer.tsx`, `SettingsView.tsx`). Maintained 100% preservation across all 15 canonical tabs, dual Electron IPC / Express proxy transports, and 22+ Zustand stores. Verified across `lint:eslint` (PASS, 0 errors/0 warnings), `typecheck` (PASS, 3 projects), `build` (PASS), `verify:contracts` (PASS, 104/104 checks), `verify:safety-guard` (PASS), `verify:markdown-links` (PASS), `test:ui:media` (PASS, 136 tests), `test:ui:layout` (PASS, 120 tests), `test:ui:chat` (PASS, 115 tests), `test:ui:settings` (PASS), `test:workflow:ui` (PASS), and `test:unit:theme` (PASS, 788 tests).
 - **2026-09-26 repository-wide documentation review, updating, and cleaning across docs/ (uncommitted).** Conducted a systematic audit of all tracked documentation across the canonical `docs/` tree (448 markdown documents). Identified and resolved stale version references (e.g. `3.0.0-beta.3` -> `3.1.0` in `docs/architecture/data-export-format.md` and `docs/discovery/DISCOVERY_DOCUMENT_AGENT.md`), updated Node engine requirements to Node `22.15.0` (`>=22.15.0 <23.0.0`) in `docs/FAQ.md`, normalized link labels to match canonical filenames (`building.md`, `platform-support.md`, `troubleshooting.md`, `signing-and-notarization.md`, `DEVELOPMENT/CONFIG.md`), updated historical audit directory citations in `docs/DEVELOPMENT/FILE_TREE.md` and `docs/discovery/DISCOVERY_DOCUMENT_AGENT.md`, refreshed HEAD SHAs and verification dates in `docs/ROADMAP.md`, and purged untracked `docs/.DS_Store` metadata. Validated with `verify:contracts:static` (all 28 checks PASS), `verify:markdown-links` (448/448 markdown files checked, 0 broken links), `verify:agent-docs` (PASS), `verify:roadmap-current` (PASS), `verify:release-metadata` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:archive-clean` (PASS), `typecheck` (PASS), and `lint:eslint` (PASS). 100% green.
 - **2026-09-26 repository-maintenance review and repository hygiene execution (uncommitted).** Conducted full review of `docs/repository-maintenance/` (`README.md`, `REPOSITORY_HYGIENE_REPORT.md`, `FILE_MOVE_MANIFEST.md`, `DELETION_MANIFEST.md`) and executed comprehensive repository hygiene workflows. Remediated gitignore rule collision where trailing lines 401–403 in `.gitignore` conflicted with lines 67–68, restoring 0 ignored tracked files in `git ls-files -c -i --exclude-standard`. Normalized POSIX naming hygiene by relocating `docs/audits/Agent Handoff — Venice Forge Theme Engine & Theme System Exhaustive Audit.md` (which contained non-ASCII em-dash and spaces) to canonical `docs/audits/Records/2026-09-25-theme-engine-theme-system-exhaustive-audit-handoff.md` and indexed in `docs/DOCS_INDEX.md`. Isolated root clutter by moving `kimi-export-session_-20260926-051728.md` into gitignored `.agent-backups/session-exports/`, and purged untracked Finder `.DS_Store` metadata. Synchronized all four maintenance documents with the 2,248 tracked file inventory and v3.1.0 metadata. Verified with `verify:contracts:static` (28/28 checks PASS), `verify:archive-clean` (PASS), `verify:repository-identity` (PASS), `verify:repo-handoff-hygiene` (PASS), `verify:markdown-links` (448/448 markdown files PASS), `verify:agent-docs` (PASS), and `verify:superdesign-init` (PASS). 100% green.
 
 ## Session History
+
+### 2026-09-26 — Graphite Cockpit Flat Instrumentation UI re-envisioning & Stitch MCP synchronization
+
+- **Baseline.** Operating on branch `feature/graphite-cockpit-redesign` branched from `main` (`3087051b`). Node `v22.15.0`, npm `10.9.2`, `venice-forge@3.1.0`. All 15 canonical tabs and 4 legacy aliases preserved.
+- **Stitch MCP Design System Integration:**
+  - Connected and authenticated with Google Stitch MCP.
+  - Linked to project `projects/12225516409245957947` ("Venice Forge Design System").
+  - Uploaded canonical `DESIGN.md` via `upload_design_md` and synchronized design system tokens using `create_design_system_from_design_md`, generating active asset `e0602d8ee669493f93e05387d8d20026`.
+- **Theme Engine V2 & Token Cluster Alignment:**
+  - Registered `--border-hot` (`#743940`) and `--telemetry-cyan` (`#6ee7d3`) into `buildThemeVariableMap` in `src/theme/applyTheme.ts`.
+  - Added CSS custom properties `--border-hot` and `--telemetry-cyan` to `@theme` in `src/styles/theme.css`.
+  - Added keys to `ALLOWED_KEYS` in `public/bootstrap-theme.js` to ensure anti-FOUC hydration.
+  - Implemented safe casting `(t as unknown as Record<string, string | undefined>)` in `applyTheme.ts` to cleanly satisfy TypeScript compiler checks without modifying canonical `ThemeTokens`.
+- **Layout Shell & Telemetry Header/Sidebar:**
+  - Updated `src/App.tsx` and `src/components/layout/header.tsx` with semantic background tokens (`bg-bg`, `bg-surface`, `border-border`).
+  - Maintained accessibility skip link, focus bounds, and multi-profile selectors.
+- **Chat & Transcript Views:**
+  - Standardized `src/components/chat/chat-view.tsx` transcript column with `max-w-vf-comfort` (760px) reading budget, hairline semantic borders, and stepped graphite surfaces.
+- **Media Studio & Workflow Canvas:**
+  - Refactored `src/components/image/image-page.tsx`, `src/components/gallery/media-card.tsx`, and `src/components/workflows/WorkflowTemplatesView.tsx` with stepped graphite cards, semantic borders, and monospace font styling.
+- **System Drawers & Configuration:**
+  - Adapted `src/components/status/TaskCenterDrawer.tsx`, `src/components/status/DiagnosticsDrawer.tsx`, and `src/components/settings/SettingsView.tsx` to dense monospace telemetry panels and stepped graphite cards.
+- **Superdesign & Identity Verification:**
+  - Updated `.superdesign/init/routes.md` source fingerprint to `2af15d2f2972c880` following `App.tsx` semantic token updates.
+  - Converted plan cross-reference links in `docs/superpowers/plans/2026-09-26-graphite-cockpit-ui.md` to relative links per `verify:repository-identity`.
+  - Registered spec and plan in `docs/DOCS_INDEX.md`.
+- **Validation:**
+  - `npm run lint:eslint`: PASS (0 errors, 0 warnings across all files).
+  - `npm run typecheck`: PASS (0 errors across app, electron, electron.test).
+  - `npm run build`: PASS (web, server, and Electron bundles built in 1.48s).
+  - `npm run verify:contracts`: PASS (all 28 static contract checks, all feature contract checks, all 104 release packaging hardening checks).
+  - `npm run verify:safety-guard`: PASS.
+  - `npm run verify:markdown-links`: PASS (451 files checked, 0 broken links).
+  - `npm run test:ui:media`: PASS (82/82 gallery tests, 54/54 image tests, 136 tests total).
+  - `npm run test:ui:layout`: PASS (19/19 files, 120/120 tests).
+  - `npm run test:ui:chat`: PASS (12/12 files, 115/115 tests).
+  - `npm run test:ui:settings`: PASS.
+  - `npm run test:workflow:ui`: PASS.
+  - `npm run test:unit:theme`: PASS (14/14 files, 788/788 tests).
 
 ### 2026-09-26 — repository-wide documentation review, updating, and cleaning across docs/
 
@@ -351,6 +391,7 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 
 ## Open TODO Ledger
 
+* **GRAPHITE-COCKPIT-UI-2026-09-26** — Completed. Full UI re-envisioning to Graphite Cockpit Flat Instrumentation, Stitch MCP design system sync, and component refactor on branch `feature/graphite-cockpit-redesign`. 100% contracts and UI test suites green.
 * **DOCS-AUDIT-CLEANUP-2026-09-26** — Completed. Full audit and cleaning of `docs/` directory. Synchronized versioning to v3.1.0, Node engine to 22.15.0, link labels, canonical paths, and roadmap SHAs. 100% verifiers green. Working tree uncommitted.
 * **REPO-HYGIENE-2026-09-26** — Completed. Full review of `docs/repository-maintenance/`, `.gitignore` collision resolution (`.superdesign`), closed theme audit handoff relocation/rename to `docs/audits/Records/`, root clutter isolation (`.agent-backups/session-exports/`), and full static contract validation (28/28 checks PASS). Working tree uncommitted.
 * **THEME-AUDIT-2026-09-25** — Completed. Full remediation of Waves 1 and 2 (19 P2 + 13 P3 findings) executed and verified in the local working tree (uncommitted). See Session History and Validation Matrix.
@@ -376,6 +417,24 @@ Re-ran `npm run lint:eslint`, `npm run typecheck`, the focused tests (381 pass a
 * **EXTERNAL-ACCEPTANCE** — `P2-016`, `P3-020`, and `VF-VERIFY-005` stay open. They are not local code defects. See `docs/ROADMAP.md`.
 
 ## Validation Matrix
+
+### 2026-09-26 — Graphite Cockpit Flat Instrumentation UI re-envisioning & Stitch MCP synchronization
+
+- Baseline: branch `feature/graphite-cockpit-redesign` at `3087051b`; Node `v22.15.0`; npm `10.9.2`; package `3.1.0`. All 15 canonical tabs and 4 legacy aliases verified.
+- `npm run lint:eslint` — PASS (0 errors, 0 warnings across all files).
+- `npm run typecheck` — PASS (0 errors across `tsconfig.json`, `tsconfig.electron.json`, `tsconfig.electron.test.json`).
+- `npm run build` — PASS (web, server, and Electron bundles built in 1.48s).
+- `npm run verify:contracts` — PASS (all static, feature, and release contracts passed; 104/104 checks passed).
+- `npm run verify:safety-guard` — PASS (passed).
+- `npm run verify:markdown-links` — PASS (451 Markdown files checked, 0 broken links).
+- `npm run test:ui:media` — PASS (82/82 gallery tests, 54/54 image tests, 136 tests passed).
+- `npm run test:ui:layout` — PASS (19/19 files, 120/120 tests passed).
+- `npm run test:ui:chat` — PASS (12/12 files, 115/115 tests passed).
+- `npm run test:ui:settings` — PASS (passed).
+- `npm run test:workflow:ui` — PASS (passed).
+- `npm run test:unit:theme` — PASS (14/14 files, 788/788 tests passed).
+- `npm run verify:superdesign-init` — PASS (source fingerprint updated to `2af15d2f2972c880`).
+- Out of scope: manual Electron QA, live provider calls. Working strictly on branch `feature/graphite-cockpit-redesign`.
 
 ### 2026-09-26 — repository-wide documentation review, updating, and cleaning across docs/
 
