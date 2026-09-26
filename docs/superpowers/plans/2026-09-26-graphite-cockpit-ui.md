@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, TypeScript 5, Tailwind CSS v4, Zustand 5, Electron 34, Vitest, Google Labs Stitch MCP.
 
-**Spec:** [`docs/superpowers/specs/2026-09-26-graphite-cockpit-ui-design.md`](file:///Users/super_user/Projects/Venice_Forge/docs/superpowers/specs/2026-09-26-graphite-cockpit-ui-design.md)
+**Spec:** [docs/superpowers/specs/2026-09-26-graphite-cockpit-ui-design.md](../specs/2026-09-26-graphite-cockpit-ui-design.md)
 
 ---
 
